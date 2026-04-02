@@ -21,8 +21,8 @@ describe("TextToSpeechNode", () => {
       arrayBuffer: async () =>
         fakeAudio.buffer.slice(
           fakeAudio.byteOffset,
-          fakeAudio.byteOffset + fakeAudio.byteLength,
-        ),
+          fakeAudio.byteOffset + fakeAudio.byteLength
+        )
     });
   });
 
@@ -46,7 +46,7 @@ describe("TextToSpeechNode", () => {
     expect(url).toContain("9BWtsMINqrJLrRacOk9x");
     expect(options.method).toBe("POST");
     expect((options.headers as Record<string, string>)["xi-api-key"]).toBe(
-      "test-key",
+      "test-key"
     );
 
     const body = JSON.parse(options.body as string) as Record<string, unknown>;
@@ -54,7 +54,7 @@ describe("TextToSpeechNode", () => {
 
     expect(result.output).toMatchObject({
       type: "audio",
-      data: expect.stringContaining("data:audio/mpeg;base64,"),
+      data: expect.stringContaining("data:audio/mpeg;base64,")
     });
   });
 
@@ -66,30 +66,24 @@ describe("TextToSpeechNode", () => {
 
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
     expect((options.headers as Record<string, string>)["xi-api-key"]).toBe(
-      "from-secrets",
+      "from-secrets"
     );
   });
 
   it("throws when API key is missing", async () => {
     delete process.env.ELEVENLABS_API_KEY;
     const node = makeNode({ voice: "Aria", text: "Hello" });
-    await expect(
-      node.process(),
-    ).rejects.toThrow("ELEVENLABS_API_KEY");
+    await expect(node.process()).rejects.toThrow("ELEVENLABS_API_KEY");
   });
 
   it("throws when voice is unknown", async () => {
     const node = makeNode({ voice: "UnknownVoice", text: "Hello" });
-    await expect(
-      node.process(),
-    ).rejects.toThrow("Unknown voice");
+    await expect(node.process()).rejects.toThrow("Unknown voice");
   });
 
   it("throws when text is empty", async () => {
     const node = makeNode({ voice: "Aria", text: "" });
-    await expect(
-      node.process(),
-    ).rejects.toThrow("Text is required");
+    await expect(node.process()).rejects.toThrow("Text is required");
   });
 
   it("includes voice_settings when stability is non-default", async () => {
@@ -98,13 +92,17 @@ describe("TextToSpeechNode", () => {
 
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(options.body as string) as Record<string, unknown>;
-    expect(
-      (body.voice_settings as Record<string, unknown>).stability,
-    ).toBe(0.8);
+    expect((body.voice_settings as Record<string, unknown>).stability).toBe(
+      0.8
+    );
   });
 
   it("includes language_code when not 'none'", async () => {
-    const node = makeNode({ voice: "Aria", text: "Hello", language_code: "en" });
+    const node = makeNode({
+      voice: "Aria",
+      text: "Hello",
+      language_code: "en"
+    });
     await node.process();
 
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
@@ -113,7 +111,11 @@ describe("TextToSpeechNode", () => {
   });
 
   it("omits language_code when set to 'none'", async () => {
-    const node = makeNode({ voice: "Aria", text: "Hello", language_code: "none" });
+    const node = makeNode({
+      voice: "Aria",
+      text: "Hello",
+      language_code: "none"
+    });
     await node.process();
 
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
@@ -133,11 +135,9 @@ describe("TextToSpeechNode", () => {
   it("throws when ElevenLabs API returns an error", async () => {
     mockFetch.mockResolvedValue({
       ok: false,
-      text: async () => "Unauthorized",
+      text: async () => "Unauthorized"
     });
     const node = makeNode({ voice: "Aria", text: "Hello" });
-    await expect(
-      node.process(),
-    ).rejects.toThrow("ElevenLabs API error");
+    await expect(node.process()).rejects.toThrow("ElevenLabs API error");
   });
 });

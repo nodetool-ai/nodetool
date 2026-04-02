@@ -24,7 +24,7 @@ export {
   runEvents,
   runLeases,
   teamTasks,
-  appSettings,
+  appSettings
 } from "./schema/index.js";
 
 // ── Base Model ───────────────────────────────────────────────────────
@@ -33,12 +33,9 @@ export {
   ModelObserver,
   ModelChangeEvent,
   createTimeOrderedUuid,
-  computeEtag,
+  computeEtag
 } from "./base-model.js";
-export type {
-  ModelObserverCallback,
-  DrizzleTable,
-} from "./base-model.js";
+export type { ModelObserverCallback, DrizzleTable } from "./base-model.js";
 
 // ── Domain Models ────────────────────────────────────────────────────
 export { Job } from "./job.js";
@@ -62,7 +59,11 @@ export { Setting } from "./setting.js";
 export { OAuthCredential } from "./oauth-credential.js";
 
 export { Prediction } from "./prediction.js";
-export type { AggregateResult, ProviderAggregateResult, ModelAggregateResult } from "./prediction.js";
+export type {
+  AggregateResult,
+  ProviderAggregateResult,
+  ModelAggregateResult
+} from "./prediction.js";
 
 export { Workspace } from "./workspace.js";
 
@@ -79,7 +80,7 @@ export {
   toApiNode,
   toApiEdge,
   toApiGraph,
-  removeConnectedSlots,
+  removeConnectedSlots
 } from "./api-graph.js";
 export type { ApiNode, ApiEdge, ApiGraph } from "./api-graph.js";
 
@@ -99,7 +100,7 @@ export {
   SQLiteMigrationAdapter,
   PostgresMigrationAdapter,
   migrations,
-  MigrationRunner,
+  MigrationRunner
 } from "./migrations/index.js";
 export type {
   MigrationDBAdapter,
@@ -108,7 +109,7 @@ export type {
   MigrationDef,
   Migration,
   AppliedMigration,
-  MigrationStatus,
+  MigrationStatus
 } from "./migrations/index.js";
 
 // ── Legacy Compatibility (deprecated — will be removed) ─────────────
@@ -116,7 +117,13 @@ export type {
 // the transition. They are no-ops or thin wrappers.
 export { MemoryAdapterFactory, MemoryAdapter } from "./memory-adapter.js";
 export { SQLiteAdapter, SQLiteAdapterFactory } from "./sqlite-adapter.js";
-export type { DatabaseAdapter, TableSchema, FieldDef, IndexDef, Row } from "./database-adapter.js";
+export type {
+  DatabaseAdapter,
+  TableSchema,
+  FieldDef,
+  IndexDef,
+  Row
+} from "./database-adapter.js";
 export {
   Operator,
   LogicalOperator,
@@ -125,17 +132,21 @@ export {
   ConditionGroup,
   Field,
   ConditionBuilder,
-  field,
+  field
 } from "./condition-builder.js";
 export type { ConditionValue } from "./condition-builder.js";
 
 // Legacy adapter resolver — now a no-op since models use getDb() directly.
 // Kept for API compatibility during transition.
 let _legacyResolver: ((schema: unknown) => unknown) | null = null;
-export function setGlobalAdapterResolver(resolver: (schema: unknown) => unknown): void {
+export function setGlobalAdapterResolver(
+  resolver: (schema: unknown) => unknown
+): void {
   _legacyResolver = resolver;
 }
-export function getGlobalAdapterResolver(): ((schema: unknown) => unknown) | null {
+export function getGlobalAdapterResolver():
+  | ((schema: unknown) => unknown)
+  | null {
   return _legacyResolver;
 }
 

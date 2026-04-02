@@ -11,13 +11,13 @@ import {
   ConditionGroup,
   LogicalOperator,
   Operator,
-  Variable,
+  Variable
 } from "./condition-builder.js";
 import type {
   DatabaseAdapter,
   IndexDef,
   Row,
-  TableSchema,
+  TableSchema
 } from "./database-adapter.js";
 
 // ── Condition evaluator ──────────────────────────────────────────────
@@ -46,7 +46,7 @@ function evaluateCondition(row: Row, cond: Condition): boolean {
       // Simple LIKE: % = wildcard
       const regex = new RegExp(
         "^" + target.replace(/%/g, ".*").replace(/_/g, ".") + "$",
-        "i",
+        "i"
       );
       return regex.test(val);
     }
@@ -113,11 +113,11 @@ export class MemoryAdapter implements DatabaseAdapter {
       for (const [existingKey, existingRow] of this.rows) {
         if (existingKey === key) continue; // same row, skip
         const conflict = idx.columns.every(
-          (col) => existingRow[col] === item[col],
+          (col) => existingRow[col] === item[col]
         );
         if (conflict) {
           throw new Error(
-            `Unique index "${idx.name}" violation on columns [${idx.columns.join(", ")}]`,
+            `Unique index "${idx.name}" violation on columns [${idx.columns.join(", ")}]`
           );
         }
       }
@@ -142,7 +142,7 @@ export class MemoryAdapter implements DatabaseAdapter {
       limit?: number;
       reverse?: boolean;
       columns?: string[];
-    } = {},
+    } = {}
   ): Promise<[Row[], string]> {
     const { condition, orderBy, limit = 100, reverse = false, columns } = opts;
 
@@ -190,7 +190,7 @@ export class MemoryAdapter implements DatabaseAdapter {
   async createIndex(
     indexName: string,
     columns: string[],
-    unique = false,
+    unique = false
   ): Promise<void> {
     this.indexes.set(indexName, { name: indexName, columns, unique });
   }

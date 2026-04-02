@@ -32,7 +32,7 @@ export function registerSetting(definition: SettingDefinition): void {
 export function getSettings(): SettingStatus[] {
   return Array.from(registry.values()).map((def) => ({
     ...def,
-    configured: !!process.env[def.envVar],
+    configured: !!process.env[def.envVar]
   }));
 }
 

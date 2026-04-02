@@ -37,7 +37,7 @@ describe("Secrets", () => {
     const key = `TEST_SECRET_${Date.now()}`;
 
     const setRes = await put(`/settings/secrets/${key}`, {
-      value: "super-secret",
+      value: "super-secret"
     });
     expect([200, 201, 204]).toContain(setRes.status);
 

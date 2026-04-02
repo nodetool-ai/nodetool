@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   SearchEmailTool,
   ArchiveEmailTool,
-  AddLabelToEmailTool,
+  AddLabelToEmailTool
 } from "../src/tools/email-tools.js";
 
 // Shared mock client accessible from tests
@@ -13,13 +13,15 @@ const mockClient = {
   search: vi.fn().mockResolvedValue([]),
   fetch: vi.fn(),
   messageFlagsRemove: vi.fn().mockResolvedValue(undefined),
-  messageFlagsAdd: vi.fn().mockResolvedValue(undefined),
+  messageFlagsAdd: vi.fn().mockResolvedValue(undefined)
 };
 
 // Mock imapflow
 vi.mock("imapflow", () => {
   return {
-    ImapFlow: vi.fn(function () { return mockClient; }),
+    ImapFlow: vi.fn(function () {
+      return mockClient;
+    })
   };
 });
 
@@ -29,8 +31,8 @@ vi.mock("mailparser", () => ({
     subject: "Test Subject",
     from: { text: "sender@example.com" },
     html: "<p>Hello World</p>",
-    text: "Hello World",
-  }),
+    text: "Hello World"
+  })
 }));
 
 const mockContext = {
@@ -38,9 +40,8 @@ const mockContext = {
     if (key === "GOOGLE_MAIL_USER") return Promise.resolve("user@gmail.com");
     if (key === "GOOGLE_APP_PASSWORD") return Promise.resolve("app-password");
     return Promise.resolve(null);
-  }),
+  })
 } as any;
-
 
 // ---------------------------------------------------------------------------
 // SearchEmailTool
@@ -76,12 +77,12 @@ describe("SearchEmailTool", () => {
     const messages = [
       {
         uid: 102,
-        source: Buffer.from("fake email source 1"),
+        source: Buffer.from("fake email source 1")
       },
       {
         uid: 101,
-        source: Buffer.from("fake email source 2"),
-      },
+        source: Buffer.from("fake email source 2")
+      }
     ];
 
     client.fetch.mockReturnValueOnce({
@@ -91,15 +92,15 @@ describe("SearchEmailTool", () => {
           next: () =>
             i < messages.length
               ? Promise.resolve({ value: messages[i++], done: false })
-              : Promise.resolve({ value: undefined, done: true }),
+              : Promise.resolve({ value: undefined, done: true })
         };
-      },
+      }
     });
 
     const result = (await tool.process(mockContext, {
       subject: "Test",
       since_hours_ago: 12,
-      max_results: 10,
+      max_results: 10
     })) as any[];
 
     expect(result).toHaveLength(2);
@@ -110,7 +111,7 @@ describe("SearchEmailTool", () => {
 
   it("returns error when credentials missing", async () => {
     const noCredsContext = {
-      getSecret: vi.fn().mockResolvedValue(null),
+      getSecret: vi.fn().mockResolvedValue(null)
     } as any;
 
     // Clear env vars too
@@ -140,7 +141,7 @@ describe("SearchEmailTool", () => {
   it("userMessage truncates long messages", () => {
     const msg = tool.userMessage({
       subject: "A".repeat(100),
-      text: "B".repeat(100),
+      text: "B".repeat(100)
     });
     expect(msg).toBe("Searching emails...");
   });
@@ -171,7 +172,7 @@ describe("ArchiveEmailTool", () => {
 
   it("archives messages successfully", async () => {
     const result = (await tool.process(mockContext, {
-      message_ids: ["1", "2"],
+      message_ids: ["1", "2"]
     })) as any;
 
     expect(result.success).toBe(true);
@@ -180,7 +181,7 @@ describe("ArchiveEmailTool", () => {
 
   it("handles string message_ids (single)", async () => {
     const result = (await tool.process(mockContext, {
-      message_ids: "42",
+      message_ids: "42"
     })) as any;
 
     expect(result.success).toBe(true);
@@ -190,11 +191,11 @@ describe("ArchiveEmailTool", () => {
   it("handles failed archive operations gracefully", async () => {
     const client = mockClient;
     client.messageFlagsRemove.mockRejectedValueOnce(
-      new Error("Message not found"),
+      new Error("Message not found")
     );
 
     const result = (await tool.process(mockContext, {
-      message_ids: ["bad-id", "good-id"],
+      message_ids: ["bad-id", "good-id"]
     })) as any;
 
     expect(result.success).toBe(true);
@@ -204,13 +205,13 @@ describe("ArchiveEmailTool", () => {
 
   it("userMessage for single message", () => {
     expect(tool.userMessage({ message_ids: ["123"] })).toBe(
-      "Archiving email 123...",
+      "Archiving email 123..."
     );
   });
 
   it("userMessage for multiple messages", () => {
     expect(tool.userMessage({ message_ids: ["1", "2", "3"] })).toBe(
-      "Archiving 3 emails...",
+      "Archiving 3 emails..."
     );
   });
 });
@@ -235,7 +236,7 @@ describe("AddLabelToEmailTool", () => {
   it("adds label successfully", async () => {
     const result = (await tool.process(mockContext, {
       message_id: "42",
-      label: "Important",
+      label: "Important"
     })) as any;
 
     expect(result.success).toBe(true);
@@ -249,22 +250,22 @@ describe("AddLabelToEmailTool", () => {
 
     const result = (await tool.process(mockContext, {
       message_id: "42",
-      label: "Important",
+      label: "Important"
     })) as any;
 
     expect(result.error).toMatch(/IMAP error/);
   });
 
   it("userMessage formats correctly", () => {
-    expect(
-      tool.userMessage({ message_id: "42", label: "Work" }),
-    ).toBe("Adding label 'Work' to email 42...");
+    expect(tool.userMessage({ message_id: "42", label: "Work" })).toBe(
+      "Adding label 'Work' to email 42..."
+    );
   });
 
   it("userMessage truncates long messages", () => {
     const msg = tool.userMessage({
       message_id: "A".repeat(100),
-      label: "Work",
+      label: "Work"
     });
     expect(msg).toBe("Adding label 'Work' to email...");
   });

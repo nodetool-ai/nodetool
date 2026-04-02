@@ -20,7 +20,7 @@ import {
   deployToGcp,
   deleteGcpService,
   getGcpDefaultEnv,
-  listGcpServices,
+  listGcpServices
 } from "./deploy-to-gcp.js";
 import { getCloudRunService } from "./google-cloud-run-api.js";
 
@@ -59,9 +59,7 @@ export class GCPDeployer {
   /**
    * Detect changes between local configuration and remote service.
    */
-  private _detectChanges(
-    currentService: Record<string, unknown>
-  ): string[] {
+  private _detectChanges(currentService: Record<string, unknown>): string[] {
     const changes: string[] = [];
 
     const spec = nested(currentService, "spec", "template", "spec") as Record<
@@ -99,9 +97,7 @@ export class GCPDeployer {
     }
 
     if (String(this.deployment.resources.cpu) !== remoteCpu) {
-      changes.push(
-        `CPU: ${remoteCpu} -> ${this.deployment.resources.cpu}`
-      );
+      changes.push(`CPU: ${remoteCpu} -> ${this.deployment.resources.cpu}`);
     }
 
     const remoteMemory = resources?.["memory"] ?? "";
@@ -117,27 +113,19 @@ export class GCPDeployer {
       this.deployment.resources.gpu_count ??
       (this.deployment.resources.gpu_type ? 1 : 0);
     if (String(expectedGpuCount) !== String(remoteGpuCount)) {
-      changes.push(
-        `GPU Count: ${remoteGpuCount} -> ${expectedGpuCount}`
-      );
+      changes.push(`GPU Count: ${remoteGpuCount} -> ${expectedGpuCount}`);
     }
 
     // 3. Scaling
-    const remoteMin =
-      annotations["autoscaling.knative.dev/minScale"] ?? "0";
-    if (
-      String(this.deployment.resources.min_instances) !== String(remoteMin)
-    ) {
+    const remoteMin = annotations["autoscaling.knative.dev/minScale"] ?? "0";
+    if (String(this.deployment.resources.min_instances) !== String(remoteMin)) {
       changes.push(
         `Min Instances: ${remoteMin} -> ${this.deployment.resources.min_instances}`
       );
     }
 
-    const remoteMax =
-      annotations["autoscaling.knative.dev/maxScale"] ?? "0";
-    if (
-      String(this.deployment.resources.max_instances) !== String(remoteMax)
-    ) {
+    const remoteMax = annotations["autoscaling.knative.dev/maxScale"] ?? "0";
+    if (String(this.deployment.resources.max_instances) !== String(remoteMax)) {
       changes.push(
         `Max Instances: ${remoteMax} -> ${this.deployment.resources.max_instances}`
       );
@@ -223,7 +211,7 @@ export class GCPDeployer {
       changes: [] as string[],
       will_create: [] as string[],
       will_update: [] as string[],
-      will_destroy: [] as string[],
+      will_destroy: [] as string[]
     };
 
     const changes = planResult["changes"] as string[];
@@ -231,9 +219,7 @@ export class GCPDeployer {
     const willUpdate = planResult["will_update"] as string[];
 
     // Get current state
-    const currentState = await this.stateManager.readState(
-      this.deploymentName
-    );
+    const currentState = await this.stateManager.readState(this.deploymentName);
 
     // Check if service exists remotely
     let remoteService: Record<string, unknown> | null;
@@ -250,22 +236,14 @@ export class GCPDeployer {
     // Always plan to build/push Docker image
     willCreate.push("Docker image (if changed)");
 
-    if (
-      !currentState ||
-      !currentState["last_deployed"] ||
-      !remoteService
-    ) {
+    if (!currentState || !currentState["last_deployed"] || !remoteService) {
       changes.push("Initial deployment - will create all resources");
-      willCreate.push(
-        `Cloud Run service: ${this.deployment.service_name}`
-      );
+      willCreate.push(`Cloud Run service: ${this.deployment.service_name}`);
     } else {
       const detectedChanges = this._detectChanges(remoteService);
       if (detectedChanges.length > 0) {
         changes.push(...detectedChanges);
-        willUpdate.push(
-          `Cloud Run service: ${this.deployment.service_name}`
-        );
+        willUpdate.push(`Cloud Run service: ${this.deployment.service_name}`);
       } else {
         changes.push("No configuration changes detected");
       }
@@ -288,7 +266,7 @@ export class GCPDeployer {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [] as string[],
-      errors: [] as string[],
+      errors: [] as string[]
     };
     const steps = results["steps"] as string[];
     const errors = results["errors"] as string[];
@@ -312,7 +290,7 @@ export class GCPDeployer {
         skipBuild: false,
         skipPush: false,
         skipDeploy: false,
-        skipPermissionSetup: false,
+        skipPermissionSetup: false
       });
 
       steps.push("Google Cloud Run deployment completed");
@@ -322,7 +300,7 @@ export class GCPDeployer {
         status: DeploymentStatus.SERVING,
         service_name: this.deployment.service_name,
         project: this.deployment.project_id,
-        region: this.deployment.region,
+        region: this.deployment.region
       });
     } catch (e) {
       results["status"] = "error";
@@ -349,7 +327,7 @@ export class GCPDeployer {
       type: "gcp",
       project: this.deployment.project_id,
       region: this.deployment.region,
-      service_name: this.deployment.service_name,
+      service_name: this.deployment.service_name
     };
 
     // Get state from state manager
@@ -370,9 +348,7 @@ export class GCPDeployer {
         const serviceMetadata = service["metadata"] as
           | Record<string, unknown>
           | undefined;
-        if (
-          serviceMetadata?.["name"] === this.deployment.service_name
-        ) {
+        if (serviceMetadata?.["name"] === this.deployment.service_name) {
           const serviceStatus = service["status"] as
             | Record<string, unknown>
             | undefined;
@@ -396,11 +372,7 @@ export class GCPDeployer {
    * @param follow Follow log output (not recommended for programmatic use).
    * @param tail Number of lines to show.
    */
-  async logs(
-    _service?: string,
-    follow = false,
-    tail = 100
-  ): Promise<string> {
+  async logs(_service?: string, follow = false, tail = 100): Promise<string> {
     const args = [
       "logging",
       "read",
@@ -410,7 +382,7 @@ export class GCPDeployer {
       "--limit",
       String(tail),
       "--format",
-      "value(timestamp,textPayload)",
+      "value(timestamp,textPayload)"
     ];
 
     if (follow) {
@@ -419,7 +391,7 @@ export class GCPDeployer {
 
     try {
       const { stdout } = await execFileAsync("gcloud", args, {
-        timeout: follow ? 0 : 30_000,
+        timeout: follow ? 0 : 30_000
       });
       return stdout;
     } catch (e) {
@@ -436,7 +408,7 @@ export class GCPDeployer {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [] as string[],
-      errors: [] as string[],
+      errors: [] as string[]
     };
     const steps = results["steps"] as string[];
     const errors = results["errors"] as string[];
@@ -481,10 +453,7 @@ export class GCPDeployer {
 /**
  * Safely traverse nested objects without throwing on missing keys.
  */
-function nested(
-  obj: Record<string, unknown>,
-  ...keys: string[]
-): unknown {
+function nested(obj: Record<string, unknown>, ...keys: string[]): unknown {
   let current: unknown = obj;
   for (const key of keys) {
     if (

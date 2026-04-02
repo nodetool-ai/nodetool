@@ -14,7 +14,7 @@ export type {
   TeamConfig,
   TeamStrategy,
   IMessageBus,
-  ITaskBoard,
+  ITaskBoard
 } from "./types.js";
 
 // In-memory implementations (programmatic use)
@@ -41,7 +41,7 @@ export {
   CompleteTaskTool,
   FailTaskTool,
   DecomposeTaskTool,
-  createTeamTools,
+  createTeamTools
 } from "./team-tools.js";
 
 // Orchestration

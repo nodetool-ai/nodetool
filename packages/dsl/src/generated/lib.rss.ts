@@ -15,8 +15,13 @@ export interface FetchRSSFeedOutputs {
   author: string;
 }
 
-export function fetchRSSFeed(inputs: FetchRSSFeedInputs): DslNode<FetchRSSFeedOutputs> {
-  return createNode("lib.rss.FetchRSSFeed", inputs as Record<string, unknown>, { outputNames: ["title", "link", "published", "summary", "author"], streaming: true });
+export function fetchRSSFeed(
+  inputs: FetchRSSFeedInputs
+): DslNode<FetchRSSFeedOutputs> {
+  return createNode("lib.rss.FetchRSSFeed", inputs as Record<string, unknown>, {
+    outputNames: ["title", "link", "published", "summary", "author"],
+    streaming: true
+  });
 }
 
 // Extract Feed Metadata — lib.rss.ExtractFeedMetadata
@@ -28,6 +33,12 @@ export interface ExtractFeedMetadataOutputs {
   output: Record<string, unknown>;
 }
 
-export function extractFeedMetadata(inputs: ExtractFeedMetadataInputs): DslNode<ExtractFeedMetadataOutputs, "output"> {
-  return createNode("lib.rss.ExtractFeedMetadata", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function extractFeedMetadata(
+  inputs: ExtractFeedMetadataInputs
+): DslNode<ExtractFeedMetadataOutputs, "output"> {
+  return createNode(
+    "lib.rss.ExtractFeedMetadata",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

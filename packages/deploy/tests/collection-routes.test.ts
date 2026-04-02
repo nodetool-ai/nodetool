@@ -3,7 +3,7 @@ import {
   handleCollectionIndex,
   type IndexFileToCollectionFn,
   type IndexResult,
-  type CollectionHttpError,
+  type CollectionHttpError
 } from "../src/collection-routes.js";
 
 describe("handleCollectionIndex", () => {
@@ -215,7 +215,7 @@ describe("handleCollectionIndex", () => {
       "audio/mpeg",
       "video/mp4",
       "application/json",
-      "text/csv",
+      "text/csv"
     ];
     for (const mime of types) {
       const fn: IndexFileToCollectionFn = vi.fn(async () => null);
@@ -263,9 +263,23 @@ describe("handleCollectionIndex", () => {
     });
 
     const [r1, r2, r3] = await Promise.all([
-      handleCollectionIndex("c1", "/tmp/a", "a.txt", "text/plain", "t", countFn),
-      handleCollectionIndex("c2", "/tmp/b", "b.txt", "text/plain", "t", countFn),
-      handleCollectionIndex("c3", "/tmp/c", "c.txt", "text/plain", "t", countFn),
+      handleCollectionIndex(
+        "c1",
+        "/tmp/a",
+        "a.txt",
+        "text/plain",
+        "t",
+        countFn
+      ),
+      handleCollectionIndex(
+        "c2",
+        "/tmp/b",
+        "b.txt",
+        "text/plain",
+        "t",
+        countFn
+      ),
+      handleCollectionIndex("c3", "/tmp/c", "c.txt", "text/plain", "t", countFn)
     ]);
 
     expect(countFn).toHaveBeenCalledTimes(3);
@@ -299,11 +313,6 @@ describe("handleCollectionIndex", () => {
       token,
       indexFn
     );
-    expect(indexFn).toHaveBeenCalledWith(
-      "col",
-      "/tmp/f",
-      "text/plain",
-      token
-    );
+    expect(indexFn).toHaveBeenCalledWith("col", "/tmp/f", "text/plain", token);
   });
 });

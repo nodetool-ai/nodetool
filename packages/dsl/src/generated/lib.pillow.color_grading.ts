@@ -23,7 +23,11 @@ export interface CDLOutputs {
 }
 
 export function cdl(inputs: CDLInputs): DslNode<CDLOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.CDL", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "lib.pillow.color_grading.CDL",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Color Balance — lib.pillow.color_grading.ColorBalance
@@ -37,8 +41,14 @@ export interface ColorBalanceOutputs {
   output: ImageRef;
 }
 
-export function colorBalance(inputs: ColorBalanceInputs): DslNode<ColorBalanceOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.ColorBalance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function colorBalance(
+  inputs: ColorBalanceInputs
+): DslNode<ColorBalanceOutputs, "output"> {
+  return createNode(
+    "lib.pillow.color_grading.ColorBalance",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Curves — lib.pillow.color_grading.Curves
@@ -59,7 +69,11 @@ export interface CurvesOutputs {
 }
 
 export function curves(inputs: CurvesInputs): DslNode<CurvesOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.Curves", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "lib.pillow.color_grading.Curves",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Exposure — lib.pillow.color_grading.Exposure
@@ -77,8 +91,14 @@ export interface ExposureOutputs {
   output: ImageRef;
 }
 
-export function exposure(inputs: ExposureInputs): DslNode<ExposureOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.Exposure", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function exposure(
+  inputs: ExposureInputs
+): DslNode<ExposureOutputs, "output"> {
+  return createNode(
+    "lib.pillow.color_grading.Exposure",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Film Look — lib.pillow.color_grading.FilmLook
@@ -92,8 +112,14 @@ export interface FilmLookOutputs {
   output: ImageRef;
 }
 
-export function filmLook(inputs: FilmLookInputs): DslNode<FilmLookOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.FilmLook", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function filmLook(
+  inputs: FilmLookInputs
+): DslNode<FilmLookOutputs, "output"> {
+  return createNode(
+    "lib.pillow.color_grading.FilmLook",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // HSLAdjust — lib.pillow.color_grading.HSLAdjust
@@ -109,8 +135,14 @@ export interface HSLAdjustOutputs {
   output: ImageRef;
 }
 
-export function hslAdjust(inputs: HSLAdjustInputs): DslNode<HSLAdjustOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.HSLAdjust", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function hslAdjust(
+  inputs: HSLAdjustInputs
+): DslNode<HSLAdjustOutputs, "output"> {
+  return createNode(
+    "lib.pillow.color_grading.HSLAdjust",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Lift Gamma Gain — lib.pillow.color_grading.LiftGammaGain
@@ -134,8 +166,14 @@ export interface LiftGammaGainOutputs {
   output: ImageRef;
 }
 
-export function liftGammaGain(inputs: LiftGammaGainInputs): DslNode<LiftGammaGainOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.LiftGammaGain", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function liftGammaGain(
+  inputs: LiftGammaGainInputs
+): DslNode<LiftGammaGainOutputs, "output"> {
+  return createNode(
+    "lib.pillow.color_grading.LiftGammaGain",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Saturation Vibrance — lib.pillow.color_grading.SaturationVibrance
@@ -149,8 +187,14 @@ export interface SaturationVibranceOutputs {
   output: ImageRef;
 }
 
-export function saturationVibrance(inputs: SaturationVibranceInputs): DslNode<SaturationVibranceOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.SaturationVibrance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saturationVibrance(
+  inputs: SaturationVibranceInputs
+): DslNode<SaturationVibranceOutputs, "output"> {
+  return createNode(
+    "lib.pillow.color_grading.SaturationVibrance",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Split Toning — lib.pillow.color_grading.SplitToning
@@ -167,8 +211,14 @@ export interface SplitToningOutputs {
   output: ImageRef;
 }
 
-export function splitToning(inputs: SplitToningInputs): DslNode<SplitToningOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.SplitToning", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function splitToning(
+  inputs: SplitToningInputs
+): DslNode<SplitToningOutputs, "output"> {
+  return createNode(
+    "lib.pillow.color_grading.SplitToning",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Vignette — lib.pillow.color_grading.Vignette
@@ -184,6 +234,12 @@ export interface VignetteOutputs {
   output: ImageRef;
 }
 
-export function vignette(inputs: VignetteInputs): DslNode<VignetteOutputs, "output"> {
-  return createNode("lib.pillow.color_grading.Vignette", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function vignette(
+  inputs: VignetteInputs
+): DslNode<VignetteOutputs, "output"> {
+  return createNode(
+    "lib.pillow.color_grading.Vignette",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

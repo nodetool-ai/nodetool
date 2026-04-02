@@ -79,7 +79,7 @@ function escapeHtml(str: string): string {
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json" }
   });
 }
 
@@ -90,7 +90,7 @@ function errorResponse(status: number, detail: string): Response {
 function htmlResponse(html: string, status = 200): Response {
   return new Response(html, {
     status,
-    headers: { "content-type": "text/html; charset=utf-8" },
+    headers: { "content-type": "text/html; charset=utf-8" }
   });
 }
 
@@ -169,7 +169,6 @@ function oauthHtmlResponse(opts: {
   return htmlResponse(html);
 }
 
-
 // ── Token metadata helper ────────────────────────────────────────────
 
 function toTokenMetadata(cred: OAuthCredential): Record<string, unknown> {
@@ -183,7 +182,7 @@ function toTokenMetadata(cred: OAuthCredential): Record<string, unknown> {
     received_at: cred.received_at,
     expires_at: cred.expires_at,
     created_at: cred.created_at,
-    updated_at: cred.updated_at,
+    updated_at: cred.updated_at
   };
 }
 
@@ -191,7 +190,7 @@ function toTokenMetadata(cred: OAuthCredential): Record<string, unknown> {
 
 async function handleHfStart(
   request: Request,
-  getUserId: () => string,
+  getUserId: () => string
 ): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
 
@@ -200,8 +199,7 @@ async function handleHfStart(
   const state = generateState();
 
   // Determine redirect URI from request host
-  let host =
-    request.headers.get("host") ?? "localhost:7777";
+  let host = request.headers.get("host") ?? "localhost:7777";
   if (host.includes("://")) {
     host = host.split("://")[1];
   }
@@ -217,7 +215,7 @@ async function handleHfStart(
     userId,
     codeVerifier,
     redirectUri,
-    createdAt: Date.now(),
+    createdAt: Date.now()
   });
 
   const params = new URLSearchParams({
@@ -227,7 +225,7 @@ async function handleHfStart(
     scope: HF_SCOPES.join(" "),
     state,
     code_challenge: codeChallenge,
-    code_challenge_method: "S256",
+    code_challenge_method: "S256"
   });
 
   return jsonResponse({ auth_url: `${HF_AUTHORIZATION_URL}?${params}` });
@@ -247,7 +245,7 @@ async function handleHfCallback(request: Request): Promise<Response> {
       title: "OAuth Error",
       success: false,
       error,
-      errorDescription: errorDescription || "No description provided",
+      errorDescription: errorDescription || "No description provided"
     });
   }
 
@@ -256,7 +254,7 @@ async function handleHfCallback(request: Request): Promise<Response> {
       title: "OAuth Error",
       success: false,
       error: "invalid_request",
-      errorDescription: "Missing required parameters (code or state).",
+      errorDescription: "Missing required parameters (code or state)."
     });
   }
 
@@ -267,7 +265,7 @@ async function handleHfCallback(request: Request): Promise<Response> {
       success: false,
       error: "invalid_state",
       errorDescription:
-        "The authentication request has expired or is invalid. Please try again.",
+        "The authentication request has expired or is invalid. Please try again."
     });
   }
 
@@ -279,7 +277,7 @@ async function handleHfCallback(request: Request): Promise<Response> {
       success: false,
       error: "invalid_state",
       errorDescription:
-        "The authentication request has expired. Please try again.",
+        "The authentication request has expired. Please try again."
     });
   }
 
@@ -296,8 +294,8 @@ async function handleHfCallback(request: Request): Promise<Response> {
         code,
         redirect_uri: redirectUri,
         client_id: HF_CLIENT_ID,
-        code_verifier: codeVerifier,
-      }),
+        code_verifier: codeVerifier
+      })
     });
 
     if (!tokenRes.ok) {
@@ -306,7 +304,7 @@ async function handleHfCallback(request: Request): Promise<Response> {
         title: "OAuth Error",
         success: false,
         error: "token_exchange_failed",
-        errorDescription: `Failed to exchange authorization code for tokens: ${text}`,
+        errorDescription: `Failed to exchange authorization code for tokens: ${text}`
       });
     }
 
@@ -322,13 +320,13 @@ async function handleHfCallback(request: Request): Promise<Response> {
         title: "OAuth Error",
         success: false,
         error: "token_exchange_failed",
-        errorDescription: "No access token received from Hugging Face.",
+        errorDescription: "No access token received from Hugging Face."
       });
     }
 
     // Get user info
     const whoamiRes = await fetch(HF_WHOAMI_URL, {
-      headers: { Authorization: `${tokenType} ${accessToken}` },
+      headers: { Authorization: `${tokenType} ${accessToken}` }
     });
 
     let username: string | null = null;
@@ -336,8 +334,7 @@ async function handleHfCallback(request: Request): Promise<Response> {
 
     if (whoamiRes.ok) {
       const userInfo = (await whoamiRes.json()) as Record<string, unknown>;
-      username =
-        (userInfo.name as string) ?? (userInfo.id as string) ?? null;
+      username = (userInfo.name as string) ?? (userInfo.id as string) ?? null;
       accountId = (userInfo.id as string) ?? accessToken.slice(0, 16);
     } else {
       accountId = accessToken.slice(0, 16);
@@ -359,14 +356,14 @@ async function handleHfCallback(request: Request): Promise<Response> {
       token_type: tokenType,
       scope,
       received_at: now,
-      expires_at: expiresAt,
+      expires_at: expiresAt
     });
 
     return oauthHtmlResponse({
       title: "OAuth Success",
       success: true,
       username,
-      autoClose: true,
+      autoClose: true
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -374,26 +371,25 @@ async function handleHfCallback(request: Request): Promise<Response> {
       title: "OAuth Error",
       success: false,
       error: "internal_error",
-      errorDescription: `An unexpected error occurred: ${message}`,
+      errorDescription: `An unexpected error occurred: ${message}`
     });
   }
 }
 
 async function handleHfTokens(getUserId: () => string): Promise<Response> {
-
   const userId = getUserId();
   const credentials = await OAuthCredential.listForUserAndProvider(
     userId,
-    "huggingface",
+    "huggingface"
   );
   return jsonResponse({
-    tokens: credentials.map(toTokenMetadata),
+    tokens: credentials.map(toTokenMetadata)
   });
 }
 
 async function handleHfRefresh(
   request: Request,
-  getUserId: () => string,
+  getUserId: () => string
 ): Promise<Response> {
   if (request.method !== "POST")
     return errorResponse(405, "Method not allowed");
@@ -402,25 +398,24 @@ async function handleHfRefresh(
   const accountId = url.searchParams.get("account_id");
   if (!accountId) return errorResponse(400, "Missing account_id parameter");
 
-
   const userId = getUserId();
   const credential = await OAuthCredential.findByAccount(
     userId,
     "huggingface",
-    accountId,
+    accountId
   );
 
   if (!credential) {
     return errorResponse(
       404,
-      `No credential found for account_id: ${accountId}`,
+      `No credential found for account_id: ${accountId}`
     );
   }
 
   if (!credential.encrypted_refresh_token) {
     return errorResponse(
       400,
-      "No refresh token available. Please re-authenticate.",
+      "No refresh token available. Please re-authenticate."
     );
   }
 
@@ -431,8 +426,8 @@ async function handleHfRefresh(
       body: new URLSearchParams({
         grant_type: "refresh_token",
         refresh_token: credential.encrypted_refresh_token,
-        client_id: HF_CLIENT_ID,
-      }),
+        client_id: HF_CLIENT_ID
+      })
     });
 
     if (!tokenRes.ok) {
@@ -444,8 +439,7 @@ async function handleHfRefresh(
     const accessToken = tokenData.access_token as string | undefined;
     const newRefreshToken =
       (tokenData.refresh_token as string) ?? credential.encrypted_refresh_token;
-    const tokenType =
-      (tokenData.token_type as string) ?? credential.token_type;
+    const tokenType = (tokenData.token_type as string) ?? credential.token_type;
     const scope = (tokenData.scope as string) ?? credential.scope;
     const expiresIn = tokenData.expires_in as number | undefined;
 
@@ -466,19 +460,22 @@ async function handleHfRefresh(
     credential.expires_at = expiresAt;
     await credential.save();
 
-    return jsonResponse({ success: true, message: "Token refreshed successfully" });
+    return jsonResponse({
+      success: true,
+      message: "Token refreshed successfully"
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return errorResponse(
       500,
-      `Failed to communicate with Hugging Face: ${message}`,
+      `Failed to communicate with Hugging Face: ${message}`
     );
   }
 }
 
 async function handleHfWhoami(
   request: Request,
-  getUserId: () => string,
+  getUserId: () => string
 ): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
 
@@ -486,32 +483,31 @@ async function handleHfWhoami(
   const accountId = url.searchParams.get("account_id");
   if (!accountId) return errorResponse(400, "Missing account_id parameter");
 
-
   const userId = getUserId();
   const credential = await OAuthCredential.findByAccount(
     userId,
     "huggingface",
-    accountId,
+    accountId
   );
 
   if (!credential) {
     return errorResponse(
       404,
-      `No credential found for account_id: ${accountId}`,
+      `No credential found for account_id: ${accountId}`
     );
   }
 
   try {
     const res = await fetch(HF_WHOAMI_URL, {
       headers: {
-        Authorization: `${credential.token_type} ${credential.encrypted_access_token}`,
-      },
+        Authorization: `${credential.token_type} ${credential.encrypted_access_token}`
+      }
     });
 
     if (res.status === 401) {
       return errorResponse(
         401,
-        "Token expired or invalid. Please refresh or re-authenticate.",
+        "Token expired or invalid. Please refresh or re-authenticate."
       );
     }
 
@@ -526,13 +522,13 @@ async function handleHfWhoami(
       name: data.name ?? null,
       email: data.email ?? null,
       type: data.type ?? null,
-      orgs: data.orgs ?? null,
+      orgs: data.orgs ?? null
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return errorResponse(
       500,
-      `Failed to communicate with Hugging Face: ${message}`,
+      `Failed to communicate with Hugging Face: ${message}`
     );
   }
 }
@@ -541,7 +537,7 @@ async function handleHfWhoami(
 
 async function handleGithubStart(
   request: Request,
-  getUserId: () => string,
+  getUserId: () => string
 ): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
 
@@ -549,7 +545,7 @@ async function handleGithubStart(
   if (!githubClientId) {
     return errorResponse(
       500,
-      "GitHub OAuth not configured. Please set GITHUB_CLIENT_ID.",
+      "GitHub OAuth not configured. Please set GITHUB_CLIENT_ID."
     );
   }
 
@@ -557,8 +553,7 @@ async function handleGithubStart(
   const { codeVerifier, codeChallenge } = generatePkcePair();
   const state = generateState();
 
-  let host =
-    request.headers.get("host") ?? "localhost:7777";
+  let host = request.headers.get("host") ?? "localhost:7777";
   if (host.includes("://")) {
     host = host.split("://")[1];
   }
@@ -573,7 +568,7 @@ async function handleGithubStart(
     userId,
     codeVerifier,
     redirectUri,
-    createdAt: Date.now(),
+    createdAt: Date.now()
   });
 
   const params = new URLSearchParams({
@@ -583,11 +578,11 @@ async function handleGithubStart(
     scope: GITHUB_SCOPES.join(" "),
     state,
     code_challenge: codeChallenge,
-    code_challenge_method: "S256",
+    code_challenge_method: "S256"
   });
 
   return jsonResponse({
-    auth_url: `${GITHUB_AUTHORIZATION_URL}?${params}`,
+    auth_url: `${GITHUB_AUTHORIZATION_URL}?${params}`
   });
 }
 
@@ -605,7 +600,7 @@ async function handleGithubCallback(request: Request): Promise<Response> {
       title: "OAuth Error",
       success: false,
       error,
-      errorDescription: errorDescription || "No description provided",
+      errorDescription: errorDescription || "No description provided"
     });
   }
 
@@ -614,7 +609,7 @@ async function handleGithubCallback(request: Request): Promise<Response> {
       title: "OAuth Error",
       success: false,
       error: "invalid_request",
-      errorDescription: "Missing required parameters (code or state).",
+      errorDescription: "Missing required parameters (code or state)."
     });
   }
 
@@ -625,7 +620,7 @@ async function handleGithubCallback(request: Request): Promise<Response> {
       success: false,
       error: "invalid_state",
       errorDescription:
-        "The authentication request has expired or is invalid. Please try again.",
+        "The authentication request has expired or is invalid. Please try again."
     });
   }
 
@@ -636,7 +631,7 @@ async function handleGithubCallback(request: Request): Promise<Response> {
       success: false,
       error: "invalid_state",
       errorDescription:
-        "The authentication request has expired. Please try again.",
+        "The authentication request has expired. Please try again."
     });
   }
 
@@ -651,7 +646,7 @@ async function handleGithubCallback(request: Request): Promise<Response> {
       title: "OAuth Error",
       success: false,
       error: "configuration_error",
-      errorDescription: "GitHub OAuth is not properly configured.",
+      errorDescription: "GitHub OAuth is not properly configured."
     });
   }
 
@@ -660,15 +655,15 @@ async function handleGithubCallback(request: Request): Promise<Response> {
       method: "POST",
       headers: {
         Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/x-www-form-urlencoded"
       },
       body: new URLSearchParams({
         client_id: githubClientId,
         client_secret: githubClientSecret,
         code,
         code_verifier: codeVerifier,
-        redirect_uri: redirectUri,
-      }),
+        redirect_uri: redirectUri
+      })
     });
 
     if (!tokenRes.ok) {
@@ -677,7 +672,7 @@ async function handleGithubCallback(request: Request): Promise<Response> {
         title: "OAuth Error",
         success: false,
         error: "token_exchange_failed",
-        errorDescription: `Failed to exchange authorization code for tokens: ${text}`,
+        errorDescription: `Failed to exchange authorization code for tokens: ${text}`
       });
     }
 
@@ -691,7 +686,7 @@ async function handleGithubCallback(request: Request): Promise<Response> {
         title: "OAuth Error",
         success: false,
         error: "token_exchange_failed",
-        errorDescription: "No access token received from GitHub.",
+        errorDescription: "No access token received from GitHub."
       });
     }
 
@@ -699,8 +694,8 @@ async function handleGithubCallback(request: Request): Promise<Response> {
     const userRes = await fetch(GITHUB_USER_URL, {
       headers: {
         Authorization: `${tokenType} ${accessToken}`,
-        Accept: "application/json",
-      },
+        Accept: "application/json"
+      }
     });
 
     let username: string | null = null;
@@ -716,7 +711,6 @@ async function handleGithubCallback(request: Request): Promise<Response> {
 
     const now = new Date().toISOString();
 
-  
     await OAuthCredential.upsert({
       user_id: userId,
       provider: "github",
@@ -727,14 +721,14 @@ async function handleGithubCallback(request: Request): Promise<Response> {
       token_type: tokenType,
       scope,
       received_at: now,
-      expires_at: null,
+      expires_at: null
     });
 
     return oauthHtmlResponse({
       title: "OAuth Success",
       success: true,
       username,
-      autoClose: true,
+      autoClose: true
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -742,26 +736,25 @@ async function handleGithubCallback(request: Request): Promise<Response> {
       title: "OAuth Error",
       success: false,
       error: "internal_error",
-      errorDescription: `An unexpected error occurred: ${message}`,
+      errorDescription: `An unexpected error occurred: ${message}`
     });
   }
 }
 
 async function handleGithubTokens(getUserId: () => string): Promise<Response> {
-
   const userId = getUserId();
   const credentials = await OAuthCredential.listForUserAndProvider(
     userId,
-    "github",
+    "github"
   );
   return jsonResponse({
-    tokens: credentials.map(toTokenMetadata),
+    tokens: credentials.map(toTokenMetadata)
   });
 }
 
 async function handleGithubUser(
   request: Request,
-  getUserId: () => string,
+  getUserId: () => string
 ): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
 
@@ -769,18 +762,17 @@ async function handleGithubUser(
   const accountId = url.searchParams.get("account_id");
   if (!accountId) return errorResponse(400, "Missing account_id parameter");
 
-
   const userId = getUserId();
   const credential = await OAuthCredential.findByAccount(
     userId,
     "github",
-    accountId,
+    accountId
   );
 
   if (!credential) {
     return errorResponse(
       404,
-      `No credential found for account_id: ${accountId}`,
+      `No credential found for account_id: ${accountId}`
     );
   }
 
@@ -788,14 +780,14 @@ async function handleGithubUser(
     const res = await fetch(GITHUB_USER_URL, {
       headers: {
         Authorization: `${credential.token_type} ${credential.encrypted_access_token}`,
-        Accept: "application/json",
-      },
+        Accept: "application/json"
+      }
     });
 
     if (res.status === 401) {
       return errorResponse(
         401,
-        "Token expired or invalid. Please re-authenticate.",
+        "Token expired or invalid. Please re-authenticate."
       );
     }
 
@@ -808,10 +800,7 @@ async function handleGithubUser(
     return jsonResponse(data);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return errorResponse(
-      500,
-      `Failed to communicate with GitHub: ${message}`,
-    );
+    return errorResponse(500, `Failed to communicate with GitHub: ${message}`);
   }
 }
 
@@ -846,7 +835,7 @@ function normalizePath(pathname: string): string {
 export async function handleOAuthRequest(
   request: Request,
   pathname: string,
-  getUserId: () => string,
+  getUserId: () => string
 ): Promise<Response | null> {
   const normalised = normalizePath(pathname);
 

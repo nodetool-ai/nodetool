@@ -10,7 +10,11 @@ type ExecResult = {
   exitCode: number;
 };
 
-async function runCommand(cmd: string, args: string[], timeoutMs: number): Promise<ExecResult> {
+async function runCommand(
+  cmd: string,
+  args: string[],
+  timeoutMs: number
+): Promise<ExecResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { stdio: "pipe" });
     let stdout = "";
@@ -35,7 +39,11 @@ async function runCommand(cmd: string, args: string[], timeoutMs: number): Promi
     child.on("close", (code) => {
       clearTimeout(timer);
       if (timedOut) {
-        resolve({ stdout, stderr: `${stderr}\nProcess timed out`, exitCode: 124 });
+        resolve({
+          stdout,
+          stderr: `${stderr}\nProcess timed out`,
+          exitCode: 124
+        });
         return;
       }
       resolve({ stdout, stderr, exitCode: code ?? 0 });
@@ -66,7 +74,7 @@ function safeMetadata(info: Record<string, unknown>): Record<string, unknown> {
     "fps",
     "filesize",
     "tags",
-    "categories",
+    "categories"
   ];
   const out: Record<string, unknown> = {};
   for (const key of keys) {
@@ -75,14 +83,21 @@ function safeMetadata(info: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
-function base64Ref(bytes: Buffer, kind: "video" | "audio" | "image"): Record<string, unknown> {
+function base64Ref(
+  bytes: Buffer,
+  kind: "video" | "audio" | "image"
+): Record<string, unknown> {
   return {
     type: kind,
-    data: bytes.toString("base64"),
+    data: bytes.toString("base64")
   };
 }
 
-async function findFileByExt(dir: string, exts: string[], preferredId = ""): Promise<string | null> {
+async function findFileByExt(
+  dir: string,
+  exts: string[],
+  preferredId = ""
+): Promise<string | null> {
   const names = await fs.readdir(dir);
   const extSet = new Set(exts.map((e) => e.toLowerCase()));
 
@@ -95,15 +110,18 @@ async function findFileByExt(dir: string, exts: string[], preferredId = ""): Pro
     if (exact) return path.join(dir, exact);
   }
 
-  const any = names.find((name) => extSet.has(path.extname(name).slice(1).toLowerCase()));
+  const any = names.find((name) =>
+    extSet.has(path.extname(name).slice(1).toLowerCase())
+  );
   return any ? path.join(dir, any) : null;
 }
 
 export class YtDlpDownloadLibNode extends BaseNode {
   static readonly nodeType = "lib.ytdlp.YtDlpDownload";
-            static readonly title = "YouTube Downloader";
-            static readonly description = "Download media from URLs using yt-dlp.\n    download, video, audio, youtube, media, yt-dlp, metadata, subtitles\n\n    Use cases:\n    - Download videos from YouTube and other platforms\n    - Extract audio from video URLs\n    - Retrieve video/audio metadata without downloading\n    - Download subtitles and thumbnails";
-        static readonly metadataOutputTypes = {
+  static readonly title = "YouTube Downloader";
+  static readonly description =
+    "Download media from URLs using yt-dlp.\n    download, video, audio, youtube, media, yt-dlp, metadata, subtitles\n\n    Use cases:\n    - Download videos from YouTube and other platforms\n    - Extract audio from video URLs\n    - Retrieve video/audio metadata without downloading\n    - Download subtitles and thumbnails";
+  static readonly metadataOutputTypes = {
     video: "video",
     audio: "audio",
     metadata: "dict",
@@ -111,40 +129,82 @@ export class YtDlpDownloadLibNode extends BaseNode {
     thumbnail: "image"
   };
   static readonly requiredRuntimes = ["yt-dlp"];
-  
-  @prop({ type: "str", default: "", title: "Url", description: "URL of the media to download" })
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "URL of the media to download"
+  })
   declare url: any;
 
-  @prop({ type: "enum", default: "video", title: "Mode", description: "Download mode: video, audio, or metadata only", values: [
-  "video",
-  "audio",
-  "metadata"
-] })
+  @prop({
+    type: "enum",
+    default: "video",
+    title: "Mode",
+    description: "Download mode: video, audio, or metadata only",
+    values: ["video", "audio", "metadata"]
+  })
   declare mode: any;
 
-  @prop({ type: "str", default: "best", title: "Format Selector", description: "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio')" })
+  @prop({
+    type: "str",
+    default: "best",
+    title: "Format Selector",
+    description: "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio')"
+  })
   declare format_selector: any;
 
-  @prop({ type: "str", default: "auto", title: "Container", description: "Output container format (e.g., 'mp4', 'webm', 'auto')" })
+  @prop({
+    type: "str",
+    default: "auto",
+    title: "Container",
+    description: "Output container format (e.g., 'mp4', 'webm', 'auto')"
+  })
   declare container: any;
 
-  @prop({ type: "bool", default: false, title: "Subtitles", description: "Download subtitles if available" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Subtitles",
+    description: "Download subtitles if available"
+  })
   declare subtitles: any;
 
-  @prop({ type: "bool", default: false, title: "Thumbnail", description: "Download thumbnail if available" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Thumbnail",
+    description: "Download thumbnail if available"
+  })
   declare thumbnail: any;
 
-  @prop({ type: "bool", default: false, title: "Overwrite", description: "Overwrite existing files" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Overwrite",
+    description: "Overwrite existing files"
+  })
   declare overwrite: any;
 
-  @prop({ type: "int", default: 0, title: "Rate Limit Kbps", description: "Rate limit in KB/s (0 = unlimited)", min: 0 })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Rate Limit Kbps",
+    description: "Rate limit in KB/s (0 = unlimited)",
+    min: 0
+  })
   declare rate_limit_kbps: any;
 
-  @prop({ type: "int", default: 600, title: "Timeout", description: "Timeout in seconds", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 600,
+    title: "Timeout",
+    description: "Timeout in seconds",
+    min: 1,
+    max: 3600
+  })
   declare timeout: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? "").trim();
@@ -173,11 +233,13 @@ export class YtDlpDownloadLibNode extends BaseNode {
         "--no-color",
         "--print-json",
         "--skip-download",
-        url,
+        url
       ];
       const metadataRes = await runCommand("yt-dlp", metadataArgs, timeoutMs);
       if (metadataRes.exitCode !== 0) {
-        throw new Error(`yt-dlp metadata failed: ${metadataRes.stderr || metadataRes.stdout}`);
+        throw new Error(
+          `yt-dlp metadata failed: ${metadataRes.stderr || metadataRes.stdout}`
+        );
       }
       const lines = metadataRes.stdout
         .split(/\r?\n/)
@@ -190,14 +252,16 @@ export class YtDlpDownloadLibNode extends BaseNode {
           break;
         }
       }
-      const parsedInfo = jsonLine ? (JSON.parse(jsonLine) as Record<string, unknown>) : {};
+      const parsedInfo = jsonLine
+        ? (JSON.parse(jsonLine) as Record<string, unknown>)
+        : {};
 
       const output: Record<string, unknown> = {
         video: {},
         audio: {},
         metadata: safeMetadata(parsedInfo),
         subtitles: "",
-        thumbnail: null,
+        thumbnail: null
       };
 
       if (mode !== "metadata") {
@@ -207,43 +271,79 @@ export class YtDlpDownloadLibNode extends BaseNode {
           "--no-color",
           "--restrict-filenames",
           "-o",
-          path.join(tempDir, "%(id)s.%(ext)s"),
+          path.join(tempDir, "%(id)s.%(ext)s")
         ];
 
         if (!overwrite) dlArgs.push("--no-overwrites");
-        if (rateLimitKbps > 0) dlArgs.push("--limit-rate", `${Math.trunc(rateLimitKbps)}K`);
-        if (subtitles) dlArgs.push("--write-subs", "--write-auto-subs", "--sub-langs", "en,en-US,en-GB", "--sub-format", "srt/vtt/ass/best");
+        if (rateLimitKbps > 0)
+          dlArgs.push("--limit-rate", `${Math.trunc(rateLimitKbps)}K`);
+        if (subtitles)
+          dlArgs.push(
+            "--write-subs",
+            "--write-auto-subs",
+            "--sub-langs",
+            "en,en-US,en-GB",
+            "--sub-format",
+            "srt/vtt/ass/best"
+          );
         if (thumbnail) dlArgs.push("--write-thumbnail");
 
         if (mode === "audio") {
           dlArgs.push("-f", "bestaudio/best", "-x", "--audio-format", "mp3");
         } else {
-          dlArgs.push("-f", formatSelector === "best" ? "bestvideo+bestaudio/best" : formatSelector);
-          if (container !== "auto") dlArgs.push("--merge-output-format", container);
+          dlArgs.push(
+            "-f",
+            formatSelector === "best"
+              ? "bestvideo+bestaudio/best"
+              : formatSelector
+          );
+          if (container !== "auto")
+            dlArgs.push("--merge-output-format", container);
         }
         dlArgs.push(url);
 
         const dlRes = await runCommand("yt-dlp", dlArgs, timeoutMs);
         if (dlRes.exitCode !== 0) {
-          throw new Error(`yt-dlp download failed: ${dlRes.stderr || dlRes.stdout}`);
+          throw new Error(
+            `yt-dlp download failed: ${dlRes.stderr || dlRes.stdout}`
+          );
         }
 
         const mediaId = typeof parsedInfo.id === "string" ? parsedInfo.id : "";
         if (mode === "audio") {
-          const audioFile = await findFileByExt(tempDir, ["mp3", "m4a", "opus", "ogg", "wav", "webm"], mediaId);
-          if (audioFile) output.audio = base64Ref(await fs.readFile(audioFile), "audio");
+          const audioFile = await findFileByExt(
+            tempDir,
+            ["mp3", "m4a", "opus", "ogg", "wav", "webm"],
+            mediaId
+          );
+          if (audioFile)
+            output.audio = base64Ref(await fs.readFile(audioFile), "audio");
         } else {
-          const videoFile = await findFileByExt(tempDir, ["mp4", "webm", "mkv", "avi", "mov", "flv"], mediaId);
-          if (videoFile) output.video = base64Ref(await fs.readFile(videoFile), "video");
+          const videoFile = await findFileByExt(
+            tempDir,
+            ["mp4", "webm", "mkv", "avi", "mov", "flv"],
+            mediaId
+          );
+          if (videoFile)
+            output.video = base64Ref(await fs.readFile(videoFile), "video");
         }
 
         if (subtitles) {
-          const subFile = await findFileByExt(tempDir, ["srt", "vtt", "ass", "ssa"], mediaId);
+          const subFile = await findFileByExt(
+            tempDir,
+            ["srt", "vtt", "ass", "ssa"],
+            mediaId
+          );
           if (subFile) output.subtitles = await fs.readFile(subFile, "utf8");
         }
         if (thumbnail) {
-          const thumbFile = await findFileByExt(tempDir, ["jpg", "jpeg", "png", "webp"], mediaId);
-          if (thumbFile) output.thumbnail = base64Ref(await fs.readFile(thumbFile), "image");
+          const thumbFile = await findFileByExt(
+            tempDir,
+            ["jpg", "jpeg", "png", "webp"],
+            mediaId
+          );
+          if (thumbFile)
+            output.thumbnail = base64Ref(await fs.readFile(thumbFile), "image");
         }
       }
 

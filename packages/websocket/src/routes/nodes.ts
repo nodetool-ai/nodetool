@@ -5,7 +5,9 @@ import { handleNodesDummy, handleNodeMetadata } from "../http-api.js";
 import { getSecret } from "@nodetool/security";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
-interface RouteOptions { apiOptions: HttpApiOptions }
+interface RouteOptions {
+  apiOptions: HttpApiOptions;
+}
 
 const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;
@@ -18,11 +20,20 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.get("/api/users/validate_username", async (req, reply) => {
     const username = (req.query as Record<string, string>)["username"]?.trim();
     if (username === undefined) {
-      reply.status(400).send(apiError(ApiErrorCode.MISSING_REQUIRED_FIELD, "username parameter is required"));
+      reply
+        .status(400)
+        .send(
+          apiError(
+            ApiErrorCode.MISSING_REQUIRED_FIELD,
+            "username parameter is required"
+          )
+        );
       return;
     }
     if (!username) {
-      reply.status(400).send(apiError(ApiErrorCode.INVALID_INPUT, "username cannot be empty"));
+      reply
+        .status(400)
+        .send(apiError(ApiErrorCode.INVALID_INPUT, "username cannot be empty"));
       return;
     }
     const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
@@ -34,11 +45,15 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   });
 
   app.get("/api/nodes/metadata", async (req, reply) => {
-    await bridge(req, reply, (request) => handleNodeMetadata(request, apiOptions));
+    await bridge(req, reply, (request) =>
+      handleNodeMetadata(request, apiOptions)
+    );
   });
 
   app.get("/api/node/metadata", async (req, reply) => {
-    await bridge(req, reply, (request) => handleNodeMetadata(request, apiOptions));
+    await bridge(req, reply, (request) =>
+      handleNodeMetadata(request, apiOptions)
+    );
   });
 
   /**
@@ -63,7 +78,9 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       return;
     }
     if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-      reply.status(400).send({ error: "Only http and https hosts are supported" });
+      reply
+        .status(400)
+        .send({ error: "Only http and https hosts are supported" });
       return;
     }
 
@@ -76,13 +93,17 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     try {
       const resp = await fetch(`${base}/object_info`);
       if (!resp.ok) {
-        reply.status(resp.status).send({ error: `ComfyUI returned ${resp.status}` });
+        reply
+          .status(resp.status)
+          .send({ error: `ComfyUI returned ${resp.status}` });
         return;
       }
       const data = await resp.json();
       reply.send(data);
     } catch (err) {
-      reply.status(502).send({ error: `Cannot reach ComfyUI at ${base}: ${err instanceof Error ? err.message : String(err)}` });
+      reply.status(502).send({
+        error: `Cannot reach ComfyUI at ${base}: ${err instanceof Error ? err.message : String(err)}`
+      });
     }
   });
 };

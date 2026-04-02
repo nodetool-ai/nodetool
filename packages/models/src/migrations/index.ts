@@ -11,7 +11,7 @@ export {
   ChecksumError,
   BaselineError,
   MigrationDiscoveryError,
-  RollbackError,
+  RollbackError
 } from "./exceptions.js";
 
 export {
@@ -19,18 +19,17 @@ export {
   APPLICATION_TABLES,
   MIGRATION_TRACKING_TABLE,
   MIGRATION_LOCK_TABLE,
-  detectDatabaseState,
+  detectDatabaseState
 } from "./state.js";
 
 export type { MigrationDBAdapter, SqlParams, Row } from "./db-adapter.js";
-export { SQLiteMigrationAdapter, PostgresMigrationAdapter } from "./db-adapter.js";
+export {
+  SQLiteMigrationAdapter,
+  PostgresMigrationAdapter
+} from "./db-adapter.js";
 
 export type { MigrationDef } from "./versions.js";
 export { migrations } from "./versions.js";
 
-export type {
-  Migration,
-  AppliedMigration,
-  MigrationStatus,
-} from "./runner.js";
+export type { Migration, AppliedMigration, MigrationStatus } from "./runner.js";
 export { MigrationRunner } from "./runner.js";

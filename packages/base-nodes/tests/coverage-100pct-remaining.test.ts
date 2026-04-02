@@ -22,9 +22,17 @@ const mockNativeIndex = () => {
     _vectors: vectors,
     _dim: 0,
     _trained: trained,
-    setDim(d: number) { dim = d; this._dim = d; },
-    add(x: number[]) { vectors.push(...x); },
-    train(x: number[]) { trained = true; this._trained = true; },
+    setDim(d: number) {
+      dim = d;
+      this._dim = d;
+    },
+    add(x: number[]) {
+      vectors.push(...x);
+    },
+    train(x: number[]) {
+      trained = true;
+      this._trained = true;
+    },
     search(x: number[], k: number) {
       const nq = x.length / dim;
       const nStored = vectors.length / dim;
@@ -50,9 +58,15 @@ const mockNativeIndex = () => {
       }
       return { distances, labels };
     },
-    isTrained() { return trained; },
-    ntotal() { return vectors.length / (dim || 1); },
-    getDimension() { return dim; },
+    isTrained() {
+      return trained;
+    },
+    ntotal() {
+      return vectors.length / (dim || 1);
+    },
+    getDimension() {
+      return dim;
+    }
   };
 };
 
@@ -64,23 +78,53 @@ vi.mock("faiss-node", () => {
     return idx;
   };
   return {
-    IndexFlatL2: class { _inner: ReturnType<typeof mockNativeIndex>;
-      constructor(dim: number) { this._inner = createIndex(dim); }
-      add(x: number[]) { this._inner.add(x); }
-      train(x: number[]) { this._inner.train(x); }
-      search(x: number[], k: number) { return this._inner.search(x, k); }
-      isTrained() { return this._inner.isTrained(); }
-      ntotal() { return this._inner.ntotal(); }
-      getDimension() { return this._inner._dim; }
+    IndexFlatL2: class {
+      _inner: ReturnType<typeof mockNativeIndex>;
+      constructor(dim: number) {
+        this._inner = createIndex(dim);
+      }
+      add(x: number[]) {
+        this._inner.add(x);
+      }
+      train(x: number[]) {
+        this._inner.train(x);
+      }
+      search(x: number[], k: number) {
+        return this._inner.search(x, k);
+      }
+      isTrained() {
+        return this._inner.isTrained();
+      }
+      ntotal() {
+        return this._inner.ntotal();
+      }
+      getDimension() {
+        return this._inner._dim;
+      }
     },
-    IndexFlatIP: class { _inner: ReturnType<typeof mockNativeIndex>;
-      constructor(dim: number) { this._inner = createIndex(dim); }
-      add(x: number[]) { this._inner.add(x); }
-      train(x: number[]) { this._inner.train(x); }
-      search(x: number[], k: number) { return this._inner.search(x, k); }
-      isTrained() { return this._inner.isTrained(); }
-      ntotal() { return this._inner.ntotal(); }
-      getDimension() { return this._inner._dim; }
+    IndexFlatIP: class {
+      _inner: ReturnType<typeof mockNativeIndex>;
+      constructor(dim: number) {
+        this._inner = createIndex(dim);
+      }
+      add(x: number[]) {
+        this._inner.add(x);
+      }
+      train(x: number[]) {
+        this._inner.train(x);
+      }
+      search(x: number[], k: number) {
+        return this._inner.search(x, k);
+      }
+      isTrained() {
+        return this._inner.isTrained();
+      }
+      ntotal() {
+        return this._inner.ntotal();
+      }
+      getDimension() {
+        return this._inner._dim;
+      }
     },
     Index: {
       fromFactory(dims: number, descriptor: string, metric?: number) {
@@ -88,19 +132,32 @@ vi.mock("faiss-node", () => {
         // IVF indices start untrained
         idx._trained = false;
         return {
-          add(x: number[]) { if (!idx._trained) throw new Error("Not trained"); idx.add(x); },
-          train(x: number[]) { idx.train(x); },
-          search(x: number[], k: number) { return idx.search(x, k); },
-          isTrained() { return idx._trained; },
-          ntotal() { return idx.ntotal(); },
-          getDimension() { return idx._dim; },
+          add(x: number[]) {
+            if (!idx._trained) throw new Error("Not trained");
+            idx.add(x);
+          },
+          train(x: number[]) {
+            idx.train(x);
+          },
+          search(x: number[], k: number) {
+            return idx.search(x, k);
+          },
+          isTrained() {
+            return idx._trained;
+          },
+          ntotal() {
+            return idx.ntotal();
+          },
+          getDimension() {
+            return idx._dim;
+          }
         };
-      },
+      }
     },
     MetricType: {
       METRIC_L2: 0,
-      METRIC_INNER_PRODUCT: 1,
-    },
+      METRIC_INNER_PRODUCT: 1
+    }
   };
 });
 
@@ -112,7 +169,7 @@ import {
   TrainIndexNode,
   AddVectorsNode,
   AddWithIdsNode,
-  SearchNode,
+  SearchNode
 } from "../src/nodes/vector-faiss.js";
 
 describe("vector-faiss backends", () => {
@@ -123,7 +180,9 @@ describe("vector-faiss backends", () => {
   try {
     require("faiss-node");
     hasFaissNative = true;
-  } catch { /* pure-TS fallback will be used */ }
+  } catch {
+    /* pure-TS fallback will be used */
+  }
 
   it("CreateIndexFlatL2Node creates backend", async () => {
     const node = new CreateIndexFlatL2Node();
@@ -134,7 +193,9 @@ describe("vector-faiss backends", () => {
     const ref = result.output as any;
     expect(ref.__faiss_index__).toBe(true);
     expect(ref.dim).toBe(DIM);
-    expect(ref._index.indexType).toBe(hasFaissNative ? "FlatL2" : "PureTSFlatL2");
+    expect(ref._index.indexType).toBe(
+      hasFaissNative ? "FlatL2" : "PureTSFlatL2"
+    );
   });
 
   it("CreateIndexFlatIPNode creates IP backend", async () => {
@@ -143,7 +204,9 @@ describe("vector-faiss backends", () => {
     node.assign({ dim: DIM });
     const result = await node.process();
     const ref = result.output as any;
-    expect(ref._index.indexType).toBe(hasFaissNative ? "FlatIP" : "PureTSFlatIP");
+    expect(ref._index.indexType).toBe(
+      hasFaissNative ? "FlatIP" : "PureTSFlatIP"
+    );
   });
 
   it("CreateIndexIVFFlatNode creates IVF backend", async () => {
@@ -178,7 +241,13 @@ describe("vector-faiss backends", () => {
 
     // Add vectors
     const addNode = new AddVectorsNode();
-    addNode.assign({ index: idx, vectors: [[1, 0, 0, 0], [0, 1, 0, 0]] });
+    addNode.assign({
+      index: idx,
+      vectors: [
+        [1, 0, 0, 0],
+        [0, 1, 0, 0]
+      ]
+    });
     await addNode.process();
 
     // AddWithIds
@@ -192,7 +261,7 @@ describe("vector-faiss backends", () => {
       index: idx,
       query: [[1, 0, 0, 0]],
       k: 2,
-      nprobe: 1,
+      nprobe: 1
     });
     const searchResult = await searchNode.process();
     expect(searchResult.distances).toBeDefined();
@@ -205,7 +274,13 @@ describe("vector-faiss backends", () => {
     const { output: idx } = await createNode.process();
 
     const addNode = new AddVectorsNode();
-    addNode.assign({ index: idx, vectors: [[1, 0, 0, 0], [0, 1, 0, 0]] });
+    addNode.assign({
+      index: idx,
+      vectors: [
+        [1, 0, 0, 0],
+        [0, 1, 0, 0]
+      ]
+    });
     await addNode.process();
 
     const addIdsNode = new AddWithIdsNode();
@@ -216,7 +291,7 @@ describe("vector-faiss backends", () => {
     searchNode.assign({
       index: idx,
       query: [[1, 0, 0, 0]],
-      k: 2,
+      k: 2
     });
     const result = await searchNode.process();
     expect(result.distances).toBeDefined();
@@ -233,15 +308,24 @@ describe("vector-faiss backends", () => {
 
     // Train
     const trainNode = new TrainIndexNode();
-    const trainVecs = Array.from({ length: 8 }, (_, i) =>
-      [i * 0.1, (i + 1) * 0.1, (i + 2) * 0.1, (i + 3) * 0.1]
-    );
+    const trainVecs = Array.from({ length: 8 }, (_, i) => [
+      i * 0.1,
+      (i + 1) * 0.1,
+      (i + 2) * 0.1,
+      (i + 3) * 0.1
+    ]);
     trainNode.assign({ index: idx, vectors: trainVecs });
     await trainNode.process();
 
     // Add
     const addNode = new AddVectorsNode();
-    addNode.assign({ index: idx, vectors: [[1, 0, 0, 0], [0, 1, 0, 0]] });
+    addNode.assign({
+      index: idx,
+      vectors: [
+        [1, 0, 0, 0],
+        [0, 1, 0, 0]
+      ]
+    });
     await addNode.process();
 
     // AddWithIds
@@ -255,7 +339,7 @@ describe("vector-faiss backends", () => {
       index: idx,
       query: [[1, 0, 0, 0]],
       k: 2,
-      nprobe: 5,
+      nprobe: 5
     });
     const result = await searchNode.process();
     expect(result.distances).toBeDefined();
@@ -273,9 +357,7 @@ describe("vector-faiss backends", () => {
     const { output: idx } = await createNode.process();
     const addNode = new AddVectorsNode();
     addNode.assign({ index: idx, vectors: [[1, 0, 0, 0]] });
-    await expect(
-      addNode.process()
-    ).rejects.toThrow(/trained/i);
+    await expect(addNode.process()).rejects.toThrow(/trained/i);
   });
 
   it("IVFFlat addWithIds before train throws", async () => {
@@ -290,9 +372,7 @@ describe("vector-faiss backends", () => {
     const { output: idx } = await createNode.process();
     const addIdsNode = new AddWithIdsNode();
     addIdsNode.assign({ index: idx, vectors: [[1, 0, 0, 0]], ids: [1] });
-    await expect(
-      addIdsNode.process()
-    ).rejects.toThrow(/trained/i);
+    await expect(addIdsNode.process()).rejects.toThrow(/trained/i);
   });
 
   it("FlatL2 search with label=-1 remapping", async () => {
@@ -307,7 +387,7 @@ describe("vector-faiss backends", () => {
     searchNode.assign({
       index: idx,
       query: [[1, 0, 0, 0]],
-      k: 1,
+      k: 1
     });
     const result = await searchNode.process();
     expect(result.indices).toBeDefined();
@@ -337,7 +417,7 @@ import {
   IsWorkspaceDirectoryNode,
   JoinWorkspacePathsNode,
   SaveImageFileNode,
-  SaveVideoFileNode,
+  SaveVideoFileNode
 } from "../src/nodes/workspace.js";
 
 /**
@@ -345,11 +425,17 @@ import {
  * workspace_dir (which is not a declared @prop on most workspace nodes)
  * appears in the serialized output used by workspaceDirFrom().
  */
-function assignWithWorkspaceDir(node: any, props: Record<string, unknown>): void {
+function assignWithWorkspaceDir(
+  node: any,
+  props: Record<string, unknown>
+): void {
   node.assign(props);
   if ("workspace_dir" in props) {
     const origSerialize = node.serialize.bind(node);
-    node.serialize = () => ({ ...origSerialize(), workspace_dir: props.workspace_dir });
+    node.serialize = () => ({
+      ...origSerialize(),
+      workspace_dir: props.workspace_dir
+    });
   }
 }
 
@@ -369,10 +455,14 @@ describe("workspace nodes", () => {
       expect(() => ensureWorkspacePath(tmpDir, "")).toThrow("cannot be empty");
     });
     it("blocks absolute path", () => {
-      expect(() => ensureWorkspacePath(tmpDir, "/etc/passwd")).toThrow("Absolute paths");
+      expect(() => ensureWorkspacePath(tmpDir, "/etc/passwd")).toThrow(
+        "Absolute paths"
+      );
     });
     it("blocks parent traversal", () => {
-      expect(() => ensureWorkspacePath(tmpDir, "foo/../../../etc")).toThrow("traversal");
+      expect(() => ensureWorkspacePath(tmpDir, "foo/../../../etc")).toThrow(
+        "traversal"
+      );
     });
     it("blocks path outside workspace", () => {
       // A specially constructed relative path that resolves outside
@@ -408,7 +498,12 @@ describe("workspace nodes", () => {
       await fs.writeFile(path.join(tmpDir, "b.csv"), "data");
       const node = new ListWorkspaceFilesNode();
       const results: Record<string, unknown>[] = [];
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: ".", pattern: "*.txt", recursive: false });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: ".",
+        pattern: "*.txt",
+        recursive: false
+      });
       for await (const item of node.genProcess()) {
         results.push(item);
       }
@@ -427,7 +522,12 @@ describe("workspace nodes", () => {
       await fs.writeFile(path.join(tmpDir, "top.txt"), "top");
       const node = new ListWorkspaceFilesNode();
       const results: Record<string, unknown>[] = [];
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: ".", pattern: "*.txt", recursive: true });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: ".",
+        pattern: "*.txt",
+        recursive: true
+      });
       for await (const item of node.genProcess()) {
         results.push(item);
       }
@@ -439,7 +539,11 @@ describe("workspace nodes", () => {
     it("reads text file", async () => {
       await fs.writeFile(path.join(tmpDir, "hello.txt"), "world");
       const node = new ReadTextFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "hello.txt", encoding: "utf-8" });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: "hello.txt",
+        encoding: "utf-8"
+      });
       const result = await node.process();
       expect(result.output).toBe("world");
     });
@@ -448,7 +552,11 @@ describe("workspace nodes", () => {
   describe("WriteTextFileNode", () => {
     it("writes text file", async () => {
       const node = new WriteTextFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "out.txt", content: "test data" });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: "out.txt",
+        content: "test data"
+      });
       await node.process();
       const content = await fs.readFile(path.join(tmpDir, "out.txt"), "utf-8");
       expect(content).toBe("test data");
@@ -457,7 +565,12 @@ describe("workspace nodes", () => {
     it("appends to file", async () => {
       await fs.writeFile(path.join(tmpDir, "app.txt"), "hello");
       const node = new WriteTextFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "app.txt", content: " world", append: true });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: "app.txt",
+        content: " world",
+        append: true
+      });
       await node.process();
       const content = await fs.readFile(path.join(tmpDir, "app.txt"), "utf-8");
       expect(content).toBe("hello world");
@@ -479,7 +592,11 @@ describe("workspace nodes", () => {
     it("writes base64 to binary file", async () => {
       const data = Buffer.from("hello binary").toString("base64");
       const node = new WriteBinaryFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "out.bin", content: data });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: "out.bin",
+        content: data
+      });
       await node.process();
       const content = await fs.readFile(path.join(tmpDir, "out.bin"));
       expect(content.toString()).toBe("hello binary");
@@ -499,7 +616,11 @@ describe("workspace nodes", () => {
       await fs.mkdir(path.join(tmpDir, "deldir"));
       await fs.writeFile(path.join(tmpDir, "deldir", "f.txt"), "x");
       const node = new DeleteWorkspaceFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "deldir", recursive: true });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: "deldir",
+        recursive: true
+      });
       await node.process();
       await expect(fs.access(path.join(tmpDir, "deldir"))).rejects.toThrow();
     });
@@ -507,10 +628,12 @@ describe("workspace nodes", () => {
     it("throws when deleting directory without recursive", async () => {
       await fs.mkdir(path.join(tmpDir, "norecdir"));
       const node = new DeleteWorkspaceFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "norecdir", recursive: false });
-      await expect(
-        node.process()
-      ).rejects.toThrow("directory");
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: "norecdir",
+        recursive: false
+      });
+      await expect(node.process()).rejects.toThrow("directory");
     });
   });
 
@@ -565,7 +688,11 @@ describe("workspace nodes", () => {
     it("copies file", async () => {
       await fs.writeFile(path.join(tmpDir, "src.txt"), "copy me");
       const node = new CopyWorkspaceFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, source: "src.txt", destination: "dst.txt" });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        source: "src.txt",
+        destination: "dst.txt"
+      });
       await node.process();
       const content = await fs.readFile(path.join(tmpDir, "dst.txt"), "utf-8");
       expect(content).toBe("copy me");
@@ -576,10 +703,19 @@ describe("workspace nodes", () => {
     it("moves file", async () => {
       await fs.writeFile(path.join(tmpDir, "mv-src.txt"), "move me");
       const node = new MoveWorkspaceFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, source: "mv-src.txt", destination: "mv-dst.txt" });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        source: "mv-src.txt",
+        destination: "mv-dst.txt"
+      });
       await node.process();
-      await expect(fs.access(path.join(tmpDir, "mv-src.txt"))).rejects.toThrow();
-      const content = await fs.readFile(path.join(tmpDir, "mv-dst.txt"), "utf-8");
+      await expect(
+        fs.access(path.join(tmpDir, "mv-src.txt"))
+      ).rejects.toThrow();
+      const content = await fs.readFile(
+        path.join(tmpDir, "mv-dst.txt"),
+        "utf-8"
+      );
       expect(content).toBe("move me");
     });
   });
@@ -597,9 +733,7 @@ describe("workspace nodes", () => {
       await fs.mkdir(path.join(tmpDir, "sizedir"));
       const node = new GetWorkspaceFileSizeNode();
       assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "sizedir" });
-      await expect(
-        node.process()
-      ).rejects.toThrow("not a file");
+      await expect(node.process()).rejects.toThrow("not a file");
     });
   });
 
@@ -607,7 +741,10 @@ describe("workspace nodes", () => {
     it("returns true for file", async () => {
       await fs.writeFile(path.join(tmpDir, "isfile.txt"), "x");
       const node = new IsWorkspaceFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "isfile.txt" });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: "isfile.txt"
+      });
       const result = await node.process();
       expect(result.output).toBe(true);
     });
@@ -622,7 +759,10 @@ describe("workspace nodes", () => {
 
     it("returns false for missing", async () => {
       const node = new IsWorkspaceFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "nonexistent" });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: "nonexistent"
+      });
       const result = await node.process();
       expect(result.output).toBe(false);
     });
@@ -640,7 +780,10 @@ describe("workspace nodes", () => {
     it("returns false for file", async () => {
       await fs.writeFile(path.join(tmpDir, "notdir.txt"), "x");
       const node = new IsWorkspaceDirectoryNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "notdir.txt" });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: "notdir.txt"
+      });
       const result = await node.process();
       expect(result.output).toBe(false);
     });
@@ -656,7 +799,10 @@ describe("workspace nodes", () => {
   describe("JoinWorkspacePathsNode", () => {
     it("joins paths", async () => {
       const node = new JoinWorkspacePathsNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, paths: ["sub", "file.txt"] });
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        paths: ["sub", "file.txt"]
+      });
       const result = await node.process();
       expect(result.output).toBe(path.join("sub", "file.txt"));
     });
@@ -664,9 +810,7 @@ describe("workspace nodes", () => {
     it("throws for empty paths", async () => {
       const node = new JoinWorkspacePathsNode();
       assignWithWorkspaceDir(node, { workspace_dir: tmpDir, paths: [] });
-      await expect(
-        node.process()
-      ).rejects.toThrow("empty");
+      await expect(node.process()).rejects.toThrow("empty");
     });
   });
 
@@ -679,7 +823,7 @@ describe("workspace nodes", () => {
         image: { data },
         folder: ".",
         filename: "img.png",
-        overwrite: true,
+        overwrite: true
       });
       const result = await node.process();
       const output = result.output as any;
@@ -694,7 +838,7 @@ describe("workspace nodes", () => {
         image: { data: b64 },
         folder: ".",
         filename: "img2.png",
-        overwrite: true,
+        overwrite: true
       });
       const result = await node.process();
       const output2 = result.output as any;
@@ -709,7 +853,7 @@ describe("workspace nodes", () => {
         image: { data: [1, 2, 3] },
         folder: ".",
         filename: "img3.png",
-        overwrite: true,
+        overwrite: true
       });
       const result = await node.process();
       const output3 = result.output as any;
@@ -724,7 +868,7 @@ describe("workspace nodes", () => {
         image: { data: 42 },
         folder: ".",
         filename: "img4.png",
-        overwrite: true,
+        overwrite: true
       });
       const result = await node.process();
       const output4 = result.output as any;
@@ -739,7 +883,7 @@ describe("workspace nodes", () => {
         image: { data: new Uint8Array([1]) },
         folder: ".",
         filename: "dup.png",
-        overwrite: false,
+        overwrite: false
       });
       const result = await node.process();
       const output = result.output as any;
@@ -753,7 +897,7 @@ describe("workspace nodes", () => {
         image: { data: new Uint8Array([1]) },
         folder: ".",
         filename: "img_%Y%m%d.png",
-        overwrite: true,
+        overwrite: true
       });
       const result = await node.process();
       const output = result.output as any;
@@ -769,7 +913,7 @@ describe("workspace nodes", () => {
         video: { data: new Uint8Array([0, 0, 0]) },
         folder: ".",
         filename: "vid.mp4",
-        overwrite: true,
+        overwrite: true
       });
       const result = await node.process();
       const vidOutput = result.output as any;
@@ -785,7 +929,7 @@ describe("workspace nodes", () => {
         video: { data: new Uint8Array([1]) },
         folder: ".",
         filename: "dup.mp4",
-        overwrite: false,
+        overwrite: false
       });
       const result = await node.process();
       const output = result.output as any;
@@ -804,7 +948,7 @@ import {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ResearchAgentNode,
+  ResearchAgentNode
 } from "../src/nodes/agents.js";
 
 describe("agents nodes", () => {
@@ -871,7 +1015,7 @@ describe("agents nodes", () => {
     it("handles message object with array content (MessagePart)", async () => {
       const node = new SummarizerNode();
       node.assign({
-        text: { content: [{ type: "text", text: "hello" }, { type: "image" }] },
+        text: { content: [{ type: "text", text: "hello" }, { type: "image" }] }
       });
       const result = await node.process();
       expect(result.text).toBe("hello");
@@ -949,7 +1093,7 @@ describe("agents nodes", () => {
       const node = new ClassifierNode();
       node.assign({
         text: "I love programming in python",
-        categories: ["python", "javascript", "rust"],
+        categories: ["python", "javascript", "rust"]
       });
       const result = await node.process();
       expect(result.category).toBe("python");
@@ -967,7 +1111,7 @@ describe("agents nodes", () => {
       const node = new ClassifierNode();
       node.assign({
         text: "zzzzz",
-        categories: ["alpha", "beta"],
+        categories: ["alpha", "beta"]
       });
       const result = await node.process();
       // Both have 0 score, first one wins since bestScore starts at -1
@@ -986,15 +1130,25 @@ describe("agents nodes", () => {
       const node = new AgentNode();
       node.assign({
         prompt: "hello",
-        model: { provider: "openai", id: "gpt-4" },
+        model: { provider: "openai", id: "gpt-4" }
       });
       const result = await node.process({
         getProvider: vi.fn().mockResolvedValue({
           async *generateMessages() {
-            yield { type: "chunk", content: "AI", content_type: "text", done: false };
-            yield { type: "chunk", content: " response", content_type: "text", done: true };
-          },
-        }),
+            yield {
+              type: "chunk",
+              content: "AI",
+              content_type: "text",
+              done: false
+            };
+            yield {
+              type: "chunk",
+              content: " response",
+              content_type: "text",
+              done: true
+            };
+          }
+        })
       } as any);
       expect(result.text).toBe("AI response");
     });
@@ -1002,19 +1156,27 @@ describe("agents nodes", () => {
     it("uses provider when available", async () => {
       const mockProvider = {
         generateMessages: vi.fn(async function* () {
-          yield { type: "chunk", content: "AI response", content_type: "text", done: true };
-        }),
+          yield {
+            type: "chunk",
+            content: "AI response",
+            content_type: "text",
+            done: true
+          };
+        })
       };
       const mockContext = {
-        getProvider: vi.fn().mockResolvedValue(mockProvider),
+        getProvider: vi.fn().mockResolvedValue(mockProvider)
       };
       const node = new AgentNode();
       node.assign({
         prompt: "hello",
         system: "sys",
-        history: [{ role: "user", content: "prev" }, { role: "invalid_role", content: "skip" }],
+        history: [
+          { role: "user", content: "prev" },
+          { role: "invalid_role", content: "skip" }
+        ],
         model: { provider: "openai", id: "gpt-4" },
-        max_tokens: 512,
+        max_tokens: 512
       });
       const result = await node.process(mockContext as any);
       expect(result.text).toBe("AI response");
@@ -1025,27 +1187,34 @@ describe("agents nodes", () => {
       const created: any[] = [];
       const mockProvider = {
         generateMessages: vi.fn(async function* ({ messages }: any) {
-          expect(messages.some((m: any) => m.role === "user" && m.content === "persisted-user")).toBe(
-            true
-          );
-          yield { type: "chunk", content: "threaded", content_type: "text", done: true };
-        }),
+          expect(
+            messages.some(
+              (m: any) => m.role === "user" && m.content === "persisted-user"
+            )
+          ).toBe(true);
+          yield {
+            type: "chunk",
+            content: "threaded",
+            content_type: "text",
+            done: true
+          };
+        })
       };
       const mockContext = {
         getProvider: vi.fn().mockResolvedValue(mockProvider),
         getThreadMessages: vi.fn().mockResolvedValue({
           messages: [{ role: "user", content: "persisted-user" }],
-          next: null,
+          next: null
         }),
         createMessage: vi.fn(async (req: any) => {
           created.push(req);
-        }),
+        })
       };
       const node = new AgentNode();
       node.assign({
         prompt: "hello",
         thread_id: "thread-test",
-        model: { provider: "test", id: "model" },
+        model: { provider: "test", id: "model" }
       });
       const result = await node.process(mockContext as any);
       expect(result.text).toBe("threaded");
@@ -1060,41 +1229,53 @@ describe("agents nodes", () => {
       const { thread_id } = await createNode.process();
       const mockProvider = {
         generateMessages: vi.fn(async function* () {
-          yield { type: "chunk", content: "reply-1", content_type: "text", done: true };
-        }),
+          yield {
+            type: "chunk",
+            content: "reply-1",
+            content_type: "text",
+            done: true
+          };
+        })
       };
       const node = new AgentNode();
       node.assign({
         prompt: "hello",
         thread_id,
-        model: { provider: "test", id: "model" },
+        model: { provider: "test", id: "model" }
       });
-      await node.process(
-        { getProvider: vi.fn().mockResolvedValue(mockProvider) } as any
-      );
+      await node.process({
+        getProvider: vi.fn().mockResolvedValue(mockProvider)
+      } as any);
       const secondProvider = {
         generateMessages: vi.fn(async function* ({ messages }: any) {
           expect(
             messages.some(
-              (m: any) => Array.isArray(m.content) && m.content[0]?.text === "hello"
+              (m: any) =>
+                Array.isArray(m.content) && m.content[0]?.text === "hello"
             )
           ).toBe(true);
           expect(
             messages.some(
-              (m: any) => Array.isArray(m.content) && m.content[0]?.text === "reply-1"
+              (m: any) =>
+                Array.isArray(m.content) && m.content[0]?.text === "reply-1"
             )
           ).toBe(true);
-          yield { type: "chunk", content: "reply-2", content_type: "text", done: true };
-        }),
+          yield {
+            type: "chunk",
+            content: "reply-2",
+            content_type: "text",
+            done: true
+          };
+        })
       };
       node.assign({
         prompt: "follow up",
         thread_id: thread_id as string,
-        model: { provider: "test", id: "model" },
+        model: { provider: "test", id: "model" }
       });
-      const result = await node.process(
-        { getProvider: vi.fn().mockResolvedValue(secondProvider) } as any
-      );
+      const result = await node.process({
+        getProvider: vi.fn().mockResolvedValue(secondProvider)
+      } as any);
       expect(result.text).toBe("reply-2");
     });
   });
@@ -1119,19 +1300,19 @@ describe("agents nodes", () => {
       const node = new ResearchAgentNode();
       node.assign({
         objective: "What is machine learning?",
-        model: { provider: "test", id: "model" },
+        model: { provider: "test", id: "model" }
       });
-      const result = await node.process(
-        {
-          getProvider: vi.fn().mockResolvedValue({
-            generateMessage: vi.fn().mockResolvedValue({
-              content:
-                '{"summary":"Machine learning is a data-driven approach.","findings":[{"title":"Definition","summary":"Models learn from data."}]}',
-            }),
-            async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
+      const result = await node.process({
+        getProvider: vi.fn().mockResolvedValue({
+          generateMessage: vi.fn().mockResolvedValue({
+            content:
+              '{"summary":"Machine learning is a data-driven approach.","findings":[{"title":"Definition","summary":"Models learn from data."}]}'
           }),
-        } as any
-      );
+          async generateMessageTraced(...a: any[]) {
+            return (this as any).generateMessage(...a);
+          }
+        })
+      } as any);
       expect(result.text).toContain("data-driven");
       expect(result.findings[0].title).toBe("Definition");
     });
@@ -1176,7 +1357,7 @@ import {
   IndexOfTextNode,
   AutomaticSpeechRecognitionNode,
   LoadTextAssetsNode,
-  LoadTextFolderNode,
+  LoadTextFolderNode
 } from "../src/nodes/text-extra.js";
 
 describe("text-extra nodes full coverage", () => {
@@ -1212,7 +1393,7 @@ describe("text-extra nodes full coverage", () => {
       regex: "(hello)",
       ignorecase: true,
       multiline: true,
-      dotall: true,
+      dotall: true
     });
     const result = await node.process();
     expect((result.output as string[]).length).toBe(1);
@@ -1255,9 +1436,7 @@ describe("text-extra nodes full coverage", () => {
   it("ExtractJSONNode no match throws", async () => {
     const node = new ExtractJSONNode();
     node.assign({ text: '{"a":1}', json_path: "$.nonexistent" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("did not match");
+    await expect(node.process()).rejects.toThrow("did not match");
   });
 
   it("ExtractJSONNode invalid path (no $) returns empty", async () => {
@@ -1269,9 +1448,12 @@ describe("text-extra nodes full coverage", () => {
 
   it("jsonPathFind with wildcard on array", async () => {
     const node = new ExtractJSONNode();
-    node.assign({ text: '[[1,2],[3,4]]', json_path: "$.*", find_all: true });
+    node.assign({ text: "[[1,2],[3,4]]", json_path: "$.*", find_all: true });
     const result = await node.process();
-    expect(result.output).toEqual([[1, 2], [3, 4]]);
+    expect(result.output).toEqual([
+      [1, 2],
+      [3, 4]
+    ]);
   });
 
   it("jsonPathFind array index access", async () => {
@@ -1348,7 +1530,7 @@ describe("text-extra nodes full coverage", () => {
       text_a: " Hello ",
       text_b: "hello",
       case_sensitive: false,
-      trim_whitespace: true,
+      trim_whitespace: true
     });
     const result = await node.process();
     expect(result.output).toBe("equal");
@@ -1436,11 +1618,23 @@ describe("text-extra nodes full coverage", () => {
 
   it("ContainsTextNode any/all/none modes", async () => {
     const node = new ContainsTextNode();
-    node.assign({ text: "hello world", search_values: ["hello", "xyz"], match_mode: "any" });
+    node.assign({
+      text: "hello world",
+      search_values: ["hello", "xyz"],
+      match_mode: "any"
+    });
     expect((await node.process()).output).toBe(true);
-    node.assign({ text: "hello world", search_values: ["hello", "xyz"], match_mode: "all" });
+    node.assign({
+      text: "hello world",
+      search_values: ["hello", "xyz"],
+      match_mode: "all"
+    });
     expect((await node.process()).output).toBe(false);
-    node.assign({ text: "hello world", search_values: ["xyz", "abc"], match_mode: "none" });
+    node.assign({
+      text: "hello world",
+      search_values: ["xyz", "abc"],
+      match_mode: "none"
+    });
     expect((await node.process()).output).toBe(true);
   });
 
@@ -1582,19 +1776,34 @@ describe("text-extra nodes full coverage", () => {
 
   it("PadTextNode right", async () => {
     const node = new PadTextNode();
-    node.assign({ text: "hi", length: 5, pad_character: ".", direction: "right" });
+    node.assign({
+      text: "hi",
+      length: 5,
+      pad_character: ".",
+      direction: "right"
+    });
     expect((await node.process()).output).toBe("hi...");
   });
 
   it("PadTextNode left", async () => {
     const node = new PadTextNode();
-    node.assign({ text: "hi", length: 5, pad_character: ".", direction: "left" });
+    node.assign({
+      text: "hi",
+      length: 5,
+      pad_character: ".",
+      direction: "left"
+    });
     expect((await node.process()).output).toBe("...hi");
   });
 
   it("PadTextNode both", async () => {
     const node = new PadTextNode();
-    node.assign({ text: "hi", length: 6, pad_character: ".", direction: "both" });
+    node.assign({
+      text: "hi",
+      length: 6,
+      pad_character: ".",
+      direction: "both"
+    });
     expect((await node.process()).output).toBe("..hi..");
   });
 
@@ -1632,28 +1841,48 @@ describe("IndexOfTextNode", () => {
 
   it("case insensitive search", async () => {
     const node = new IndexOfTextNode();
-    node.assign({ text: "Hello World", substring: "hello", case_sensitive: false, end_index: 11 });
+    node.assign({
+      text: "Hello World",
+      substring: "hello",
+      case_sensitive: false,
+      end_index: 11
+    });
     const result = await node.process();
     expect(result.output).toBe(0);
   });
 
   it("case sensitive search misses different case", async () => {
     const node = new IndexOfTextNode();
-    node.assign({ text: "Hello World", substring: "hello", case_sensitive: true, end_index: 11 });
+    node.assign({
+      text: "Hello World",
+      substring: "hello",
+      case_sensitive: true,
+      end_index: 11
+    });
     const result = await node.process();
     expect(result.output).toBe(-1);
   });
 
   it("search with start_index and end_index", async () => {
     const node = new IndexOfTextNode();
-    node.assign({ text: "abcabc", substring: "abc", start_index: 1, end_index: 6 });
+    node.assign({
+      text: "abcabc",
+      substring: "abc",
+      start_index: 1,
+      end_index: 6
+    });
     const result = await node.process();
     expect(result.output).toBe(3);
   });
 
   it("search_from_end finds last occurrence", async () => {
     const node = new IndexOfTextNode();
-    node.assign({ text: "abcabc", substring: "abc", search_from_end: true, end_index: 6 });
+    node.assign({
+      text: "abcabc",
+      substring: "abc",
+      search_from_end: true,
+      end_index: 6
+    });
     const result = await node.process();
     expect(result.output).toBe(3);
   });
@@ -1671,8 +1900,12 @@ describe("AutomaticSpeechRecognitionNode", () => {
   it("throws without provider context and audio", async () => {
     const node = new AutomaticSpeechRecognitionNode();
     node.assign({
-      model: { type: "asr_model", provider: "fal_ai", id: "openai/whisper-large-v3" },
-      audio: { type: "audio", uri: "", data: null },
+      model: {
+        type: "asr_model",
+        provider: "fal_ai",
+        id: "openai/whisper-large-v3"
+      },
+      audio: { type: "audio", uri: "", data: null }
     });
     await expect(node.process()).rejects.toThrow(
       "AutomaticSpeechRecognition requires a provider-backed model and audio input."
@@ -1683,11 +1916,15 @@ describe("AutomaticSpeechRecognitionNode", () => {
     const node = new AutomaticSpeechRecognitionNode();
     const base64Audio = Buffer.from("fake audio data").toString("base64");
     node.assign({
-      model: { type: "asr_model", provider: "fal_ai", id: "openai/whisper-large-v3" },
-      audio: { type: "audio", uri: "", data: base64Audio },
+      model: {
+        type: "asr_model",
+        provider: "fal_ai",
+        id: "openai/whisper-large-v3"
+      },
+      audio: { type: "audio", uri: "", data: base64Audio }
     });
     const mockContext = {
-      runProviderPrediction: vi.fn().mockResolvedValue("transcribed text"),
+      runProviderPrediction: vi.fn().mockResolvedValue("transcribed text")
     };
     const result = await node.process(mockContext as any);
     expect(result.text).toBe("transcribed text");
@@ -1696,7 +1933,7 @@ describe("AutomaticSpeechRecognitionNode", () => {
       expect.objectContaining({
         provider: "fal_ai",
         capability: "automatic_speech_recognition",
-        model: "openai/whisper-large-v3",
+        model: "openai/whisper-large-v3"
       })
     );
   });
@@ -1704,11 +1941,15 @@ describe("AutomaticSpeechRecognitionNode", () => {
   it("reads audio from Uint8Array data", async () => {
     const node = new AutomaticSpeechRecognitionNode();
     node.assign({
-      model: { type: "asr_model", provider: "fal_ai", id: "openai/whisper-large-v3" },
-      audio: { type: "audio", uri: "", data: new Uint8Array([1, 2, 3]) },
+      model: {
+        type: "asr_model",
+        provider: "fal_ai",
+        id: "openai/whisper-large-v3"
+      },
+      audio: { type: "audio", uri: "", data: new Uint8Array([1, 2, 3]) }
     });
     const mockContext = {
-      runProviderPrediction: vi.fn().mockResolvedValue("hello world"),
+      runProviderPrediction: vi.fn().mockResolvedValue("hello world")
     };
     const result = await node.process(mockContext as any);
     expect(result.text).toBe("hello world");
@@ -1717,11 +1958,15 @@ describe("AutomaticSpeechRecognitionNode", () => {
   it("throws when no audio bytes provided even with context", async () => {
     const node = new AutomaticSpeechRecognitionNode();
     node.assign({
-      model: { type: "asr_model", provider: "fal_ai", id: "openai/whisper-large-v3" },
-      audio: { type: "audio", uri: "", data: null },
+      model: {
+        type: "asr_model",
+        provider: "fal_ai",
+        id: "openai/whisper-large-v3"
+      },
+      audio: { type: "audio", uri: "", data: null }
     });
     const mockContext = {
-      runProviderPrediction: vi.fn(),
+      runProviderPrediction: vi.fn()
     };
     await expect(node.process(mockContext as any)).rejects.toThrow(
       "AutomaticSpeechRecognition requires a provider-backed model and audio input."
@@ -1788,7 +2033,11 @@ describe("LoadTextFolderNode", () => {
 
   it("yields only matching extensions", async () => {
     const node = new LoadTextFolderNode();
-    node.assign({ folder: tmpDir, extensions: [".txt"], include_subdirectories: false });
+    node.assign({
+      folder: tmpDir,
+      extensions: [".txt"],
+      include_subdirectories: false
+    });
     const items: { text: string; path: string }[] = [];
     for await (const item of node.genProcess()) {
       items.push(item);
@@ -1799,7 +2048,11 @@ describe("LoadTextFolderNode", () => {
 
   it("includes subdirectories when enabled", async () => {
     const node = new LoadTextFolderNode();
-    node.assign({ folder: tmpDir, extensions: [".txt"], include_subdirectories: true });
+    node.assign({
+      folder: tmpDir,
+      extensions: [".txt"],
+      include_subdirectories: true
+    });
     const items: { text: string; path: string }[] = [];
     for await (const item of node.genProcess()) {
       items.push(item);
@@ -1836,7 +2089,7 @@ describe("data.ts uncovered lines", () => {
     const node = new dataModule.FilterDataframeNode();
     node.assign({
       df: { rows: [{ a: 1 }] },
-      condition: "",
+      condition: ""
     });
     const result = await node.process();
     expect((result.output as any).rows).toEqual([{ a: 1 }]);
@@ -1846,7 +2099,7 @@ describe("data.ts uncovered lines", () => {
     const node = new dataModule.FilterDataframeNode();
     node.assign({
       df: { data: [{ b: 2 }] },
-      condition: "",
+      condition: ""
     });
     const result = await node.process();
     expect((result.output as any).rows).toEqual([{ b: 2 }]);
@@ -1857,7 +2110,7 @@ describe("data.ts uncovered lines", () => {
     // A condition that throws inside the Function constructor
     node.assign({
       df: [{ a: 1 }, { b: 2 }],
-      condition: "throw new Error('boom')",
+      condition: "throw new Error('boom')"
     });
     const result = await node.process();
     // Both rows fail the filter, returning empty
@@ -1867,10 +2120,13 @@ describe("data.ts uncovered lines", () => {
   it("LoadCSVURLNode (lines 211-218)", async () => {
     const node = new dataModule.LoadCSVURLNode();
     // Mock fetch
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      text: vi.fn().mockResolvedValue("name,age\nAlice,30\nBob,25"),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: vi.fn().mockResolvedValue("name,age\nAlice,30\nBob,25")
+      })
+    );
     node.assign({ url: "http://example.com/data.csv" });
     const result = await node.process();
     expect((result.output as any).rows.length).toBe(2);
@@ -1879,10 +2135,13 @@ describe("data.ts uncovered lines", () => {
 
   it("LoadCSVURLNode fetch error", async () => {
     const node = new dataModule.LoadCSVURLNode();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404
+      })
+    );
     node.assign({ url: "http://example.com/missing.csv" });
     await expect(node.process()).rejects.toThrow("404");
     vi.unstubAllGlobals();
@@ -1901,7 +2160,7 @@ describe("data.ts uncovered lines", () => {
     node.assign({
       dataframe: [{ a: 1 }],
       column_name: "b",
-      values: "not-array",
+      values: "not-array"
     });
     const result = await node.process();
     // values defaults to [] so column value is undefined
@@ -1962,7 +2221,7 @@ import {
   SplitHTMLNode,
   SplitJSONNode,
   SplitRecursivelyNode,
-  SplitMarkdownNode,
+  SplitMarkdownNode
 } from "../src/nodes/document.js";
 
 describe("document.ts uncovered lines", () => {
@@ -1993,7 +2252,7 @@ describe("document.ts uncovered lines", () => {
     const node = new SplitDocumentNode();
     const results: any[] = [];
     node.assign({
-      document: { uri: `file://${path.join(tmpDir, "uri.txt")}` },
+      document: { uri: `file://${path.join(tmpDir, "uri.txt")}` }
     });
     for await (const item of node.genProcess()) {
       results.push(item);
@@ -2006,7 +2265,7 @@ describe("document.ts uncovered lines", () => {
     const data = Buffer.from("binary doc text").toString("base64");
     const results: any[] = [];
     node.assign({
-      document: { data },
+      document: { data }
     });
     for await (const item of node.genProcess()) {
       results.push(item);
@@ -2065,14 +2324,16 @@ describe("document.ts uncovered lines", () => {
     for await (const item of node.genProcess()) {
       results.push(item);
     }
-    expect(results.some((r) => (r.document?.uri as string)?.includes("deep.md"))).toBe(true);
+    expect(
+      results.some((r) => (r.document?.uri as string)?.includes("deep.md"))
+    ).toBe(true);
   });
 
   it("SplitHTMLNode strips tags", async () => {
     const node = new SplitHTMLNode();
     const results: any[] = [];
     node.assign({
-      document: { text: "<p>Hello</p><p>World</p>" },
+      document: { text: "<p>Hello</p><p>World</p>" }
     });
     for await (const item of node.genProcess()) {
       results.push(item);
@@ -2085,7 +2346,7 @@ describe("document.ts uncovered lines", () => {
     const node = new SplitJSONNode();
     const results: any[] = [];
     node.assign({
-      document: { text: '{"key":"value"}' },
+      document: { text: '{"key":"value"}' }
     });
     for await (const item of node.genProcess()) {
       results.push(item);
@@ -2097,7 +2358,7 @@ describe("document.ts uncovered lines", () => {
     const node = new SplitJSONNode();
     const results: any[] = [];
     node.assign({
-      document: { text: "not json {" },
+      document: { text: "not json {" }
     });
     for await (const item of node.genProcess()) {
       results.push(item);
@@ -2109,7 +2370,7 @@ describe("document.ts uncovered lines", () => {
     const node = new SplitRecursivelyNode();
     const results: any[] = [];
     node.assign({
-      document: { text: "Para one.\n\nPara two.\n\nPara three." },
+      document: { text: "Para one.\n\nPara two.\n\nPara three." }
     });
     for await (const item of node.genProcess()) {
       results.push(item);
@@ -2122,7 +2383,7 @@ describe("document.ts uncovered lines", () => {
     const results: any[] = [];
     node.assign({
       document: { text: "# Heading\nContent here\n# Another\nMore content" },
-      chunk_size: 20,
+      chunk_size: 20
     });
     for await (const item of node.genProcess()) {
       results.push(item);
@@ -2149,7 +2410,7 @@ describe("code.ts uncovered lines", () => {
     const node = new ExecuteBashNode();
     node.assign({
       code: "sleep 30",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     // The subprocess runner doesn't natively support timeout_ms,
     // so we just verify the process starts and can be run
@@ -2164,14 +2425,16 @@ describe("code.ts uncovered lines", () => {
     const node = new ExecuteBashNode();
     // Empty code throws "Code is required"
     node.assign({ code: "" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("Code is required");
+    await expect(node.process()).rejects.toThrow("Code is required");
   });
 
   it("ExecuteBashNode with env vars via dynamic props", async () => {
     const node = new ExecuteBashNode();
-    node.assign({ code: "echo $MY_VAR", execution_mode: "subprocess", MY_VAR: "test123" });
+    node.assign({
+      code: "echo $MY_VAR",
+      execution_mode: "subprocess",
+      MY_VAR: "test123"
+    });
     const result = await node.process();
     // Dynamic props are passed as env vars through the runner
     expect(result.stdout).toBeDefined();

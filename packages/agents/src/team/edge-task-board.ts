@@ -18,7 +18,7 @@ import type {
   AgentIdentity,
   BoardTask,
   ITaskBoard,
-  TeamEvent,
+  TeamEvent
 } from "./types.js";
 
 const log = createLogger("agents:edge-task-board");
@@ -45,10 +45,7 @@ export class EdgeTaskBoard implements ITaskBoard {
    * the inner board directly.
    */
   private canRouteToNode(): boolean {
-    return !!(
-      this.boardNodeId &&
-      this.context?.hasControlEventSupport
-    );
+    return !!(this.boardNodeId && this.context?.hasControlEventSupport);
   }
 
   /**
@@ -66,7 +63,7 @@ export class EdgeTaskBoard implements ITaskBoard {
       (await this.context.sendControlEvent(this.boardNodeId, {
         __task_board_op__: true,
         operation,
-        params,
+        params
       })) ?? {}
     );
   }
@@ -143,7 +140,7 @@ export class EdgeTaskBoard implements ITaskBoard {
     const result = this.inner.decompose(parentTaskId, subtasks);
     this.notifyNode("task_decomposed", {
       parentTaskId,
-      subtaskIds: result.map((t) => t.id),
+      subtaskIds: result.map((t) => t.id)
     });
     return result;
   }
@@ -186,14 +183,14 @@ export class EdgeTaskBoard implements ITaskBoard {
    * Fire-and-forget notification to the board node in the workflow graph.
    * Non-blocking — if it fails, the inner board is still consistent.
    */
-  private notifyNode(
-    operation: string,
-    params: Record<string, unknown>
-  ): void {
+  private notifyNode(operation: string, params: Record<string, unknown>): void {
     if (!this.canRouteToNode()) return;
     this.routeOperation(operation, params).catch((err) => {
       // Intentional: board node notification failed — inner board is still correct
-      log.warn("Edge task board notification failed", { operation, error: String(err) });
+      log.warn("Edge task board notification failed", {
+        operation,
+        error: String(err)
+      });
     });
   }
 }

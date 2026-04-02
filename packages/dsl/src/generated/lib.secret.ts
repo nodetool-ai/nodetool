@@ -12,6 +12,11 @@ export interface GetSecretOutputs {
   output: string;
 }
 
-export function getSecret(inputs: GetSecretInputs): DslNode<GetSecretOutputs, "output"> {
-  return createNode("lib.secret.GetSecret", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function getSecret(
+  inputs: GetSecretInputs
+): DslNode<GetSecretOutputs, "output"> {
+  return createNode("lib.secret.GetSecret", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }

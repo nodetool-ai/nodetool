@@ -8,7 +8,7 @@ import {
   AddVectorsNode,
   AddWithIdsNode,
   SearchNode,
-  type FaissIndexRef,
+  type FaissIndexRef
 } from "../src/nodes/vector-faiss.js";
 
 // ---------------------------------------------------------------------------
@@ -17,7 +17,10 @@ import {
 
 /** Shorthand: instantiate a node, optionally set props, and call process(). */
 async function run<T extends Record<string, unknown>>(
-  NodeCls: new () => { assign(inputs: Record<string, unknown>): void; process(): Promise<T> },
+  NodeCls: new () => {
+    assign(inputs: Record<string, unknown>): void;
+    process(): Promise<T>;
+  },
   inputs: Record<string, unknown> = {}
 ): Promise<T> {
   const node = new NodeCls();
@@ -137,7 +140,7 @@ describe("CreateIndexIVFFlatNode", () => {
       const res = await run(CreateIndexIVFFlatNode, {
         dim: 4,
         nlist: 2,
-        metric: "L2",
+        metric: "L2"
       });
       const ref = res.output as FaissIndexRef;
       expect(ref.__faiss_index__).toBe(true);
@@ -177,8 +180,8 @@ describe("TrainIndexNode", () => {
       index: idx,
       vectors: {
         data: [1, 0, 0, 0, 1, 0, 0, 0, 1],
-        shape: [3, 3],
-      },
+        shape: [3, 3]
+      }
     });
     expect(res.output).toBe(idx);
   });
@@ -187,7 +190,7 @@ describe("TrainIndexNode", () => {
     await expect(
       run(TrainIndexNode, {
         index: null,
-        vectors: { data: [1, 2, 3], shape: [1, 3] },
+        vectors: { data: [1, 2, 3], shape: [1, 3] }
       })
     ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
@@ -197,7 +200,7 @@ describe("TrainIndexNode", () => {
     await expect(
       run(TrainIndexNode, {
         index: idx,
-        vectors: [],
+        vectors: []
       })
     ).rejects.toThrow(/empty/i);
   });
@@ -217,8 +220,8 @@ describe("AddVectorsNode", () => {
       vectors: [
         [1, 0, 0],
         [0, 1, 0],
-        [0, 0, 1],
-      ],
+        [0, 0, 1]
+      ]
     });
     const out = res.output as FaissIndexRef;
     expect(out._index.ntotal()).toBe(3);
@@ -228,7 +231,7 @@ describe("AddVectorsNode", () => {
     const idx = await makeL2Index(2);
     await run(AddVectorsNode, {
       index: idx,
-      vectors: { data: [1, 2, 3, 4, 5, 6], shape: [3, 2] },
+      vectors: { data: [1, 2, 3, 4, 5, 6], shape: [3, 2] }
     });
     expect(idx._index.ntotal()).toBe(3);
   });
@@ -237,7 +240,7 @@ describe("AddVectorsNode", () => {
     await expect(
       run(AddVectorsNode, {
         index: null,
-        vectors: [[1, 2]],
+        vectors: [[1, 2]]
       })
     ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
@@ -247,7 +250,7 @@ describe("AddVectorsNode", () => {
     await expect(
       run(AddVectorsNode, {
         index: idx,
-        vectors: [],
+        vectors: []
       })
     ).rejects.toThrow(/empty/i);
   });
@@ -257,7 +260,7 @@ describe("AddVectorsNode", () => {
     await expect(
       run(AddVectorsNode, {
         index: idx,
-        vectors: [[1, 2]], // dim=2, index expects 3
+        vectors: [[1, 2]] // dim=2, index expects 3
       })
     ).rejects.toThrow(/dimension/i);
   });
@@ -266,7 +269,7 @@ describe("AddVectorsNode", () => {
     await expect(
       run(AddVectorsNode, {
         index: { fake: true },
-        vectors: [[1, 2]],
+        vectors: [[1, 2]]
       })
     ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
@@ -283,9 +286,9 @@ describe("AddWithIdsNode", () => {
       index: idx,
       vectors: [
         [1, 0],
-        [0, 1],
+        [0, 1]
       ],
-      ids: [100, 200],
+      ids: [100, 200]
     });
     expect(idx._index.ntotal()).toBe(2);
   });
@@ -298,9 +301,9 @@ describe("AddWithIdsNode", () => {
         vectors: [
           [1, 0],
           [0, 1],
-          [1, 1],
+          [1, 1]
         ],
-        ids: [10, 20],
+        ids: [10, 20]
       })
     ).rejects.toThrow(/same length/);
   });
@@ -310,7 +313,7 @@ describe("AddWithIdsNode", () => {
       run(AddWithIdsNode, {
         index: null,
         vectors: [[1, 2]],
-        ids: [1],
+        ids: [1]
       })
     ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
@@ -321,7 +324,7 @@ describe("AddWithIdsNode", () => {
       run(AddWithIdsNode, {
         index: idx,
         vectors: [],
-        ids: [],
+        ids: []
       })
     ).rejects.toThrow(/empty/i);
   });
@@ -333,16 +336,16 @@ describe("AddWithIdsNode", () => {
       vectors: [
         [1, 0],
         [0, 1],
-        [1, 1],
+        [1, 1]
       ],
-      ids: [100, 200, 300],
+      ids: [100, 200, 300]
     });
 
     // Search for [1, 0] — nearest should be ID 100
     const searchRes = await run(SearchNode, {
       index: idx,
       query: [[1, 0]],
-      k: 3,
+      k: 3
     });
     const indices = searchRes.indices as { data: number[]; shape: number[] };
     expect(indices.data[0]).toBe(100); // closest match
@@ -365,14 +368,14 @@ describe("SearchNode", () => {
       vectors: [
         [1, 0, 0],
         [0, 1, 0],
-        [0, 0, 1],
-      ],
+        [0, 0, 1]
+      ]
     });
 
     const res = await run(SearchNode, {
       index: idx,
       query: [[1, 0, 0]],
-      k: 2,
+      k: 2
     });
 
     const distances = res.distances as { data: number[]; shape: number[] };
@@ -391,14 +394,14 @@ describe("SearchNode", () => {
       vectors: [
         [1, 0, 0],
         [0, 1, 0],
-        [0, 0, 1],
-      ],
+        [0, 0, 1]
+      ]
     });
 
     const res = await run(SearchNode, {
       index: idx,
       query: [[1, 0, 0]],
-      k: 1,
+      k: 1
     });
 
     const distances = res.distances as { data: number[]; shape: number[] };
@@ -416,15 +419,15 @@ describe("SearchNode", () => {
       vectors: [
         [0, 0],
         [3, 0],
-        [0, 4],
-      ],
+        [0, 4]
+      ]
     });
 
     // Query [0,0] — distances should be 0, 9, 16
     const res = await run(SearchNode, {
       index: idx,
       query: [[0, 0]],
-      k: 3,
+      k: 3
     });
 
     const distances = res.distances as { data: number[]; shape: number[] };
@@ -445,17 +448,17 @@ describe("SearchNode", () => {
       index: idx,
       vectors: [
         [1, 0],
-        [0, 1],
-      ],
+        [0, 1]
+      ]
     });
 
     const res = await run(SearchNode, {
       index: idx,
       query: [
         [1, 0],
-        [0, 1],
+        [0, 1]
       ],
-      k: 2,
+      k: 2
     });
 
     const distances = res.distances as { data: number[]; shape: number[] };
@@ -485,15 +488,15 @@ describe("SearchNode", () => {
       vectors: [
         [1, 0],
         [0, 1],
-        [3, 3],
-      ],
+        [3, 3]
+      ]
     });
 
     // Query [1, 1] — IP: [1,0]=>1, [0,1]=>1, [3,3]=>6
     const res = await run(SearchNode, {
       index: idx,
       query: [[1, 1]],
-      k: 3,
+      k: 3
     });
 
     const distances = res.distances as { data: number[]; shape: number[] };
@@ -512,7 +515,7 @@ describe("SearchNode", () => {
       run(SearchNode, {
         index: null,
         query: [[1, 2, 3]],
-        k: 1,
+        k: 1
       })
     ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
@@ -523,7 +526,7 @@ describe("SearchNode", () => {
       run(SearchNode, {
         index: idx,
         query: [],
-        k: 1,
+        k: 1
       })
     ).rejects.toThrow(/empty/i);
   });
@@ -532,13 +535,13 @@ describe("SearchNode", () => {
     const idx = await makeL2Index(2);
     await run(AddVectorsNode, {
       index: idx,
-      vectors: [[1, 0]],
+      vectors: [[1, 0]]
     });
     await expect(
       run(SearchNode, {
         index: idx,
         query: [[1, 0]],
-        k: 0,
+        k: 0
       })
     ).rejects.toThrow(/positive integer/);
   });
@@ -553,14 +556,14 @@ describe("SearchNode", () => {
       vectors: [
         [1, 0],
         [0, 1],
-        [1, 1],
-      ],
+        [1, 1]
+      ]
     });
 
     const res = await run(SearchNode, {
       index: idx,
       query: [[1, 0]],
-      k: 3,
+      k: 3
     });
 
     const indices = res.indices as { data: number[]; shape: number[] };
@@ -579,14 +582,14 @@ describe("SearchNode", () => {
       index: idx,
       vectors: [
         [1, 0],
-        [0, 1],
-      ],
+        [0, 1]
+      ]
     });
 
     const res = await run(SearchNode, {
       index: idx,
       query: { data: [1, 0, 0, 1], shape: [2, 2] },
-      k: 1,
+      k: 1
     });
 
     const indices = res.indices as { data: number[]; shape: number[] };
@@ -612,7 +615,7 @@ describe("FAISS pipeline", () => {
       [0, 1, 0, 0],
       [0, 0, 1, 0],
       [0, 0, 0, 1],
-      [1, 1, 1, 1],
+      [1, 1, 1, 1]
     ];
     await run(AddVectorsNode, { index: idx, vectors });
     expect(idx._index.ntotal()).toBe(5);
@@ -621,10 +624,13 @@ describe("FAISS pipeline", () => {
     const searchRes = await run(SearchNode, {
       index: idx,
       query: [[1, 0, 0, 0]],
-      k: 3,
+      k: 3
     });
 
-    const distances = searchRes.distances as { data: number[]; shape: number[] };
+    const distances = searchRes.distances as {
+      data: number[];
+      shape: number[];
+    };
     const indices = searchRes.indices as { data: number[]; shape: number[] };
 
     expect(indices.data[0]).toBe(0);
@@ -645,12 +651,12 @@ describe("FAISS pipeline", () => {
     const vectors = [
       [1, 0, 0],
       [0, 2, 0],
-      [0, 0, 3],
+      [0, 0, 3]
     ];
     await run(AddWithIdsNode, {
       index: idx,
       vectors,
-      ids: [100, 200, 300],
+      ids: [100, 200, 300]
     });
     expect(idx._index.ntotal()).toBe(3);
 
@@ -658,10 +664,13 @@ describe("FAISS pipeline", () => {
     const searchRes = await run(SearchNode, {
       index: idx,
       query: [[0, 2, 0]],
-      k: 3,
+      k: 3
     });
 
-    const distances = searchRes.distances as { data: number[]; shape: number[] };
+    const distances = searchRes.distances as {
+      data: number[];
+      shape: number[];
+    };
     const indices = searchRes.indices as { data: number[]; shape: number[] };
 
     expect(indices.data[0]).toBe(200);
@@ -680,8 +689,8 @@ describe("FAISS pipeline", () => {
       index: idx,
       vectors: {
         data: [1, 0, 0, 1],
-        shape: [2, 2],
-      },
+        shape: [2, 2]
+      }
     });
     expect(trainRes.output).toBe(idx);
 
@@ -691,18 +700,21 @@ describe("FAISS pipeline", () => {
       vectors: [
         [1, 0],
         [0, 1],
-        [0.5, 0.5],
-      ],
+        [0.5, 0.5]
+      ]
     });
 
     // Search for [0.5, 0.5] — exact match at index 2
     const searchRes = await run(SearchNode, {
       index: idx,
       query: [[0.5, 0.5]],
-      k: 1,
+      k: 1
     });
 
-    const distances = searchRes.distances as { data: number[]; shape: number[] };
+    const distances = searchRes.distances as {
+      data: number[];
+      shape: number[];
+    };
     const indices = searchRes.indices as { data: number[]; shape: number[] };
 
     expect(indices.data[0]).toBe(2);
@@ -722,8 +734,8 @@ describe("FAISS pipeline", () => {
       index: idx,
       vectors: [
         [1, 1],
-        [2, 2],
-      ],
+        [2, 2]
+      ]
     });
     expect(idx._index.ntotal()).toBe(4);
 
@@ -731,7 +743,7 @@ describe("FAISS pipeline", () => {
     const res = await run(SearchNode, {
       index: idx,
       query: [[2, 2]],
-      k: 1,
+      k: 1
     });
     const indices = res.indices as { data: number[]; shape: number[] };
     expect(indices.data[0]).toBe(3);
@@ -745,15 +757,15 @@ describe("FAISS pipeline", () => {
       index: idx,
       vectors: [
         [1, 0],
-        [0, 1],
-      ],
+        [0, 1]
+      ]
     });
 
     // Add with custom IDs
     await run(AddWithIdsNode, {
       index: idx,
       vectors: [[5, 5]],
-      ids: [999],
+      ids: [999]
     });
 
     expect(idx._index.ntotal()).toBe(3);
@@ -762,7 +774,7 @@ describe("FAISS pipeline", () => {
     const res = await run(SearchNode, {
       index: idx,
       query: [[5, 5]],
-      k: 1,
+      k: 1
     });
     const indices = res.indices as { data: number[]; shape: number[] };
     expect(indices.data[0]).toBe(999);
@@ -776,14 +788,20 @@ describe("FAISS pipeline", () => {
     const makeVec = (seed: number): number[] =>
       Array.from({ length: dim }, (_, i) => Math.sin(seed * (i + 1)));
 
-    const vectors = [makeVec(1), makeVec(2), makeVec(3), makeVec(4), makeVec(5)];
+    const vectors = [
+      makeVec(1),
+      makeVec(2),
+      makeVec(3),
+      makeVec(4),
+      makeVec(5)
+    ];
     await run(AddVectorsNode, { index: idx, vectors });
 
     // Search for exact match of vector 3
     const res = await run(SearchNode, {
       index: idx,
       query: [makeVec(3)],
-      k: 1,
+      k: 1
     });
 
     const distances = res.distances as { data: number[]; shape: number[] };

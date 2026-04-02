@@ -4,15 +4,20 @@ import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, DataframeRef } from "../types.js";
 
 // Create Document — lib.docx.CreateDocument
-export interface CreateDocumentInputs {
-}
+export interface CreateDocumentInputs {}
 
 export interface CreateDocumentOutputs {
   output: unknown;
 }
 
-export function createDocument(inputs?: CreateDocumentInputs): DslNode<CreateDocumentOutputs, "output"> {
-  return createNode("lib.docx.CreateDocument", (inputs ?? {}) as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function createDocument(
+  inputs?: CreateDocumentInputs
+): DslNode<CreateDocumentOutputs, "output"> {
+  return createNode(
+    "lib.docx.CreateDocument",
+    (inputs ?? {}) as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Load Word Document — lib.docx.LoadWordDocument
@@ -24,8 +29,14 @@ export interface LoadWordDocumentOutputs {
   output: unknown;
 }
 
-export function loadWordDocument(inputs: LoadWordDocumentInputs): DslNode<LoadWordDocumentOutputs, "output"> {
-  return createNode("lib.docx.LoadWordDocument", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function loadWordDocument(
+  inputs: LoadWordDocumentInputs
+): DslNode<LoadWordDocumentOutputs, "output"> {
+  return createNode(
+    "lib.docx.LoadWordDocument",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Add Heading — lib.docx.AddHeading
@@ -39,8 +50,13 @@ export interface AddHeadingOutputs {
   output: unknown;
 }
 
-export function addHeading(inputs: AddHeadingInputs): DslNode<AddHeadingOutputs, "output"> {
-  return createNode("lib.docx.AddHeading", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addHeading(
+  inputs: AddHeadingInputs
+): DslNode<AddHeadingOutputs, "output"> {
+  return createNode("lib.docx.AddHeading", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Add Paragraph — lib.docx.AddParagraph
@@ -57,8 +73,14 @@ export interface AddParagraphOutputs {
   output: unknown;
 }
 
-export function addParagraph(inputs: AddParagraphInputs): DslNode<AddParagraphOutputs, "output"> {
-  return createNode("lib.docx.AddParagraph", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addParagraph(
+  inputs: AddParagraphInputs
+): DslNode<AddParagraphOutputs, "output"> {
+  return createNode(
+    "lib.docx.AddParagraph",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Add Table — lib.docx.AddTable
@@ -71,8 +93,13 @@ export interface AddTableOutputs {
   output: unknown;
 }
 
-export function addTable(inputs: AddTableInputs): DslNode<AddTableOutputs, "output"> {
-  return createNode("lib.docx.AddTable", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addTable(
+  inputs: AddTableInputs
+): DslNode<AddTableOutputs, "output"> {
+  return createNode("lib.docx.AddTable", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Add Image — lib.docx.AddImage
@@ -87,8 +114,13 @@ export interface AddImageOutputs {
   output: unknown;
 }
 
-export function addImage(inputs: AddImageInputs): DslNode<AddImageOutputs, "output"> {
-  return createNode("lib.docx.AddImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addImage(
+  inputs: AddImageInputs
+): DslNode<AddImageOutputs, "output"> {
+  return createNode("lib.docx.AddImage", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Add Page Break — lib.docx.AddPageBreak
@@ -100,8 +132,14 @@ export interface AddPageBreakOutputs {
   output: unknown;
 }
 
-export function addPageBreak(inputs: AddPageBreakInputs): DslNode<AddPageBreakOutputs, "output"> {
-  return createNode("lib.docx.AddPageBreak", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addPageBreak(
+  inputs: AddPageBreakInputs
+): DslNode<AddPageBreakOutputs, "output"> {
+  return createNode(
+    "lib.docx.AddPageBreak",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Set Document Properties — lib.docx.SetDocumentProperties
@@ -117,8 +155,14 @@ export interface SetDocumentPropertiesOutputs {
   output: unknown;
 }
 
-export function setDocumentProperties(inputs: SetDocumentPropertiesInputs): DslNode<SetDocumentPropertiesOutputs, "output"> {
-  return createNode("lib.docx.SetDocumentProperties", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function setDocumentProperties(
+  inputs: SetDocumentPropertiesInputs
+): DslNode<SetDocumentPropertiesOutputs, "output"> {
+  return createNode(
+    "lib.docx.SetDocumentProperties",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Save Document — lib.docx.SaveDocument
@@ -128,9 +172,14 @@ export interface SaveDocumentInputs {
   filename?: Connectable<string>;
 }
 
-export interface SaveDocumentOutputs {
-}
+export interface SaveDocumentOutputs {}
 
-export function saveDocument(inputs: SaveDocumentInputs): DslNode<SaveDocumentOutputs> {
-  return createNode("lib.docx.SaveDocument", inputs as Record<string, unknown>, { outputNames: [] });
+export function saveDocument(
+  inputs: SaveDocumentInputs
+): DslNode<SaveDocumentOutputs> {
+  return createNode(
+    "lib.docx.SaveDocument",
+    inputs as Record<string, unknown>,
+    { outputNames: [] }
+  );
 }

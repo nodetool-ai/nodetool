@@ -48,7 +48,7 @@ export abstract class BaseAgent {
    * Subclasses must implement this to define planning and execution logic.
    */
   abstract execute(
-    context: ProcessingContext,
+    context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage>;
 
   /**

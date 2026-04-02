@@ -8,7 +8,7 @@ import type {
   Message,
   ProviderStreamItem,
   ProviderTool,
-  ToolCall,
+  ToolCall
 } from "../../src/providers/types.js";
 
 /**
@@ -23,11 +23,7 @@ class TestProvider extends BaseProvider {
     return this.parseToolCallArgs(raw);
   }
 
-  public testBuildToolCall(
-    id: string,
-    name: string,
-    args: unknown
-  ): ToolCall {
+  public testBuildToolCall(id: string, name: string, args: unknown): ToolCall {
     return this.buildToolCall(id, name, args);
   }
 
@@ -99,15 +95,11 @@ describe("BaseProvider – buildToolCall", () => {
   const provider = new TestProvider();
 
   it("builds ToolCall with parsed args from JSON string", () => {
-    const tc = provider.testBuildToolCall(
-      "call-1",
-      "myTool",
-      '{"foo": "bar"}'
-    );
+    const tc = provider.testBuildToolCall("call-1", "myTool", '{"foo": "bar"}');
     expect(tc).toEqual({
       id: "call-1",
       name: "myTool",
-      args: { foo: "bar" },
+      args: { foo: "bar" }
     });
   });
 
@@ -136,9 +128,9 @@ describe("BaseProvider – isContextLengthError", () => {
   });
 
   it('returns true for "maximum context"', () => {
-    expect(
-      provider.isContextLengthError("maximum context size reached")
-    ).toBe(true);
+    expect(provider.isContextLengthError("maximum context size reached")).toBe(
+      true
+    );
   });
 
   it("returns false for unrelated errors", () => {
@@ -152,19 +144,27 @@ describe("BaseProvider – isRateLimitError", () => {
   const provider = new TestProvider();
 
   it('returns true for messages containing "429"', () => {
-    expect(provider.isRateLimitError(new Error("HTTP 429 Too Many Requests"))).toBe(true);
+    expect(
+      provider.isRateLimitError(new Error("HTTP 429 Too Many Requests"))
+    ).toBe(true);
     expect(provider.isRateLimitError("status 429")).toBe(true);
   });
 
   it('returns true for messages containing "rate limit" (case-insensitive)', () => {
-    expect(provider.isRateLimitError(new Error("rate limit exceeded"))).toBe(true);
+    expect(provider.isRateLimitError(new Error("rate limit exceeded"))).toBe(
+      true
+    );
     expect(provider.isRateLimitError(new Error("Rate Limit"))).toBe(true);
     expect(provider.isRateLimitError("rate_limit reached")).toBe(true);
   });
 
   it('returns true for messages containing "too many requests" (case-insensitive)', () => {
-    expect(provider.isRateLimitError(new Error("too many requests"))).toBe(true);
-    expect(provider.isRateLimitError(new Error("Too Many Requests"))).toBe(true);
+    expect(provider.isRateLimitError(new Error("too many requests"))).toBe(
+      true
+    );
+    expect(provider.isRateLimitError(new Error("Too Many Requests"))).toBe(
+      true
+    );
   });
 
   it("returns false for unrelated errors", () => {
@@ -201,12 +201,16 @@ describe("BaseProvider – isAuthError", () => {
 
   it('returns true for messages containing "invalid api key" (case-insensitive)', () => {
     expect(provider.isAuthError(new Error("invalid api key"))).toBe(true);
-    expect(provider.isAuthError(new Error("Invalid API Key provided"))).toBe(true);
+    expect(provider.isAuthError(new Error("Invalid API Key provided"))).toBe(
+      true
+    );
   });
 
   it('returns true for messages containing "authentication" (case-insensitive)', () => {
     expect(provider.isAuthError(new Error("authentication failed"))).toBe(true);
-    expect(provider.isAuthError(new Error("Authentication required"))).toBe(true);
+    expect(provider.isAuthError(new Error("Authentication required"))).toBe(
+      true
+    );
   });
 
   it("returns false for unrelated errors", () => {
@@ -241,7 +245,7 @@ describe("BaseProvider – default method behaviors", () => {
     await expect(
       provider.textToImage({
         model: { id: "m", name: "m", provider: "test" },
-        prompt: "test",
+        prompt: "test"
       })
     ).rejects.toThrow("does not support");
   });
@@ -250,7 +254,7 @@ describe("BaseProvider – default method behaviors", () => {
     await expect(
       provider.imageToImage(new Uint8Array(), {
         model: { id: "m", name: "m", provider: "test" },
-        prompt: "test",
+        prompt: "test"
       })
     ).rejects.toThrow("does not support");
   });
@@ -264,7 +268,7 @@ describe("BaseProvider – default method behaviors", () => {
     await expect(
       provider.automaticSpeechRecognition({
         audio: new Uint8Array(),
-        model: "m",
+        model: "m"
       })
     ).rejects.toThrow("does not support");
   });
@@ -299,7 +303,7 @@ describe("BaseProvider – default method behaviors", () => {
     await expect(
       provider.textToVideo({
         model: { id: "m", name: "m", provider: "test" },
-        prompt: "test",
+        prompt: "test"
       })
     ).rejects.toThrow("does not support");
   });
@@ -308,7 +312,7 @@ describe("BaseProvider – default method behaviors", () => {
     await expect(
       provider.imageToVideo(new Uint8Array(), {
         model: { id: "m", name: "m", provider: "test" },
-        prompt: "test",
+        prompt: "test"
       })
     ).rejects.toThrow("does not support");
   });

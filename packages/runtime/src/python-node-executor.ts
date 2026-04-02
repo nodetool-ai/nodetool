@@ -1,5 +1,9 @@
 import type { ProcessingContext } from "./context.js";
-import type { ExecuteInputBlobs, ExecuteResult, ProgressEvent } from "./python-bridge.js";
+import type {
+  ExecuteInputBlobs,
+  ExecuteResult,
+  ProgressEvent
+} from "./python-bridge.js";
 
 /** Minimal interface for the bridge — works with both PythonBridge and PythonStdioBridge. */
 interface PythonBridgeLike {
@@ -8,7 +12,7 @@ interface PythonBridgeLike {
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void,
+    onProgress?: (event: ProgressEvent) => void
   ): Promise<ExecuteResult>;
 }
 import { readFile } from "node:fs/promises";
@@ -17,7 +21,10 @@ import { fileURLToPath } from "node:url";
 
 /** Media ref types that need blob conversion. */
 const MEDIA_REF_TYPES = new Set([
-  "ImageRef", "AudioRef", "VideoRef", "Model3DRef",
+  "ImageRef",
+  "AudioRef",
+  "VideoRef",
+  "Model3DRef"
 ]);
 
 /** File extensions by ref type. */
@@ -25,7 +32,7 @@ const EXTENSION_MAP: Record<string, string> = {
   ImageRef: ".png",
   AudioRef: ".wav",
   VideoRef: ".mp4",
-  Model3DRef: ".glb",
+  Model3DRef: ".glb"
 };
 
 /** MIME types by ref type. */
@@ -33,7 +40,7 @@ const MIME_MAP: Record<string, string> = {
   ImageRef: "image/png",
   AudioRef: "audio/wav",
   VideoRef: "video/mp4",
-  Model3DRef: "model/gltf-binary",
+  Model3DRef: "model/gltf-binary"
 };
 
 function isMediaRef(value: unknown): value is { uri: string; type?: string } {
@@ -59,14 +66,12 @@ const ASSET_ID_EXTENSION_CANDIDATES: Record<string, string[]> = {
   image: ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"],
   audio: ["wav", "mp3", "ogg", "m4a", "aac", "flac"],
   video: ["mp4", "webm", "mov", "avi", "mpeg", "mkv"],
-  model3d: ["glb", "gltf", "obj", "fbx"],
+  model3d: ["glb", "gltf", "obj", "fbx"]
 };
 
 function isAbsoluteFilePath(uri: string): boolean {
   return (
-    /^[A-Za-z]:[\\/]/.test(uri) ||
-    uri.startsWith("\\\\") ||
-    uri.startsWith("/")
+    /^[A-Za-z]:[\\/]/.test(uri) || uri.startsWith("\\\\") || uri.startsWith("/")
   );
 }
 
@@ -104,7 +109,7 @@ async function readUriBytes(uri: string): Promise<Uint8Array | null> {
 
 async function loadMediaRefBytes(
   value: MediaRefValue,
-  context?: ProcessingContext,
+  context?: ProcessingContext
 ): Promise<Uint8Array | null> {
   if (!value.uri) {
     return null;
@@ -139,12 +144,12 @@ export class PythonNodeExecutor {
     private nodeType: string,
     _properties: Record<string, unknown>,
     private outputTypes: Record<string, string>,
-    private requiredSettings: string[],
+    private requiredSettings: string[]
   ) {}
 
   async process(
     inputs: Record<string, unknown>,
-    context?: ProcessingContext,
+    context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     // NodeActor merges node.properties + edge inputs before calling process(),
     // so `inputs` already contains all fields. Filter out internal keys.
@@ -169,7 +174,7 @@ export class PythonNodeExecutor {
 
       if (isMediaRefList(value) && value.length > 0) {
         const items = await Promise.all(
-          value.map((item) => loadMediaRefBytes(item, context)),
+          value.map((item) => loadMediaRefBytes(item, context))
         );
         if (items.every((item): item is Uint8Array => item !== null)) {
           blobs[key] = items;
@@ -193,7 +198,7 @@ export class PythonNodeExecutor {
       fields,
       secrets,
       blobs,
-      undefined,
+      undefined
     );
 
     // 5. Convert output blobs to stored assets
@@ -204,7 +209,11 @@ export class PythonNodeExecutor {
         const ext = EXTENSION_MAP[outputType] ?? "";
         const contentType = MIME_MAP[outputType];
         const storageKey = `python-bridge/${randomUUID()}${ext}`;
-        const uri = await context.storage.store(storageKey, blobData, contentType);
+        const uri = await context.storage.store(
+          storageKey,
+          blobData,
+          contentType
+        );
         outputs[name] = { uri, type: outputType };
       } else {
         outputs[name] = blobData;

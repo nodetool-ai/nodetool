@@ -25,13 +25,21 @@ import type { Message, ProviderStreamItem, ProviderTool } from "./types.js";
 
 export type ScriptItem =
   | { type: "chunk"; content: string; done?: boolean }
-  | { type: "tool_call"; name: string; args: Record<string, unknown>; id?: string };
+  | {
+      type: "tool_call";
+      name: string;
+      args: Record<string, unknown>;
+      id?: string;
+    };
 
 /**
  * A script function is called with the current messages and tools for a
  * generateMessages invocation, and returns an array of items to yield.
  */
-export type ScriptFn = (messages: Message[], tools: ProviderTool[]) => ScriptItem[];
+export type ScriptFn = (
+  messages: Message[],
+  tools: ProviderTool[]
+) => ScriptItem[];
 
 // ---------------------------------------------------------------------------
 // ScriptedProvider
@@ -46,7 +54,8 @@ export class ScriptedProvider extends BaseProvider {
 
   constructor(scripts: ScriptFn[]) {
     super("fake");
-    if (scripts.length === 0) throw new Error("ScriptedProvider requires at least one script");
+    if (scripts.length === 0)
+      throw new Error("ScriptedProvider requires at least one script");
     this.scripts = scripts;
   }
 
@@ -92,14 +101,14 @@ export class ScriptedProvider extends BaseProvider {
           type: "chunk",
           content: item.content,
           done: item.done ?? true,
-          content_type: "text",
+          content_type: "text"
         } as Chunk;
       } else {
         // tool_call
         yield {
           id: item.id ?? randomUUID(),
           name: item.name,
-          args: item.args,
+          args: item.args
         };
       }
     }
@@ -127,7 +136,11 @@ export interface TaskPlanSpec {
  */
 export function planScript(taskSpec: TaskPlanSpec): ScriptFn {
   return (_messages, _tools) => [
-    { type: "tool_call", name: "create_task", args: taskSpec as unknown as Record<string, unknown> },
+    {
+      type: "tool_call",
+      name: "create_task",
+      args: taskSpec as unknown as Record<string, unknown>
+    }
   ];
 }
 
@@ -137,7 +150,7 @@ export function planScript(taskSpec: TaskPlanSpec): ScriptFn {
  */
 export function stepScript(result: unknown): ScriptFn {
   return (_messages, _tools) => [
-    { type: "tool_call", name: "finish_step", args: { result } },
+    { type: "tool_call", name: "finish_step", args: { result } }
   ];
 }
 
@@ -146,18 +159,17 @@ export function stepScript(result: unknown): ScriptFn {
  * Useful for unstructured steps or testing fallback behavior.
  */
 export function textScript(content: string): ScriptFn {
-  return (_messages, _tools) => [
-    { type: "chunk", content, done: true },
-  ];
+  return (_messages, _tools) => [{ type: "chunk", content, done: true }];
 }
 
 /**
  * Script that calls an arbitrary tool by name.
  */
-export function toolCallScript(name: string, args: Record<string, unknown>): ScriptFn {
-  return (_messages, _tools) => [
-    { type: "tool_call", name, args },
-  ];
+export function toolCallScript(
+  name: string,
+  args: Record<string, unknown>
+): ScriptFn {
+  return (_messages, _tools) => [{ type: "tool_call", name, args }];
 }
 
 /**
@@ -176,12 +188,26 @@ export function autoScript(opts: {
   return (_messages, tools) => {
     const toolNames = new Set(tools.map((t) => t.name));
     if (toolNames.has("create_task") && opts.plan) {
-      return [{ type: "tool_call", name: "create_task", args: opts.plan as unknown as Record<string, unknown> }];
+      return [
+        {
+          type: "tool_call",
+          name: "create_task",
+          args: opts.plan as unknown as Record<string, unknown>
+        }
+      ];
     }
     if (toolNames.has("finish_step")) {
-      return [{ type: "tool_call", name: "finish_step", args: { result: opts.result ?? {} } }];
+      return [
+        {
+          type: "tool_call",
+          name: "finish_step",
+          args: { result: opts.result ?? {} }
+        }
+      ];
     }
-    return [{ type: "chunk", content: opts.text ?? "Task completed.", done: true }];
+    return [
+      { type: "chunk", content: opts.text ?? "Task completed.", done: true }
+    ];
   };
 }
 
@@ -200,13 +226,18 @@ export function autoScript(opts: {
  */
 export function toolThenFinishScript(
   toolCalls: Array<{ name: string; args: Record<string, unknown> }>,
-  finalResult: unknown,
+  finalResult: unknown
 ): ScriptFn[] {
   const scripts: ScriptFn[] = [
     // First call: yield the tool calls
-    (_messages, _tools) => toolCalls.map((tc) => ({ type: "tool_call" as const, name: tc.name, args: tc.args })),
+    (_messages, _tools) =>
+      toolCalls.map((tc) => ({
+        type: "tool_call" as const,
+        name: tc.name,
+        args: tc.args
+      })),
     // Second call (after tool results): yield finish_step
-    stepScript(finalResult),
+    stepScript(finalResult)
   ];
   return scripts;
 }

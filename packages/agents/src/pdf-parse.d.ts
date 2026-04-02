@@ -7,6 +7,9 @@ declare module "pdf-parse" {
     metadata: unknown;
     version: string;
   }
-  function pdfParse(buffer: Buffer, options?: Record<string, unknown>): Promise<PDFData>;
+  function pdfParse(
+    buffer: Buffer,
+    options?: Record<string, unknown>
+  ): Promise<PDFData>;
   export = pdfParse;
 }

@@ -5,7 +5,7 @@ import {
   Embedding,
   ImageToText,
   OCR,
-  MISTRAL_NODES,
+  MISTRAL_NODES
 } from "../src/nodes/mistral.js";
 
 const originalFetch = global.fetch;
@@ -20,8 +20,8 @@ function mockChatResponse(content: string) {
   mockFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({
-      choices: [{ message: { content } }],
-    }),
+      choices: [{ message: { content } }]
+    })
   });
 }
 
@@ -47,9 +47,7 @@ describe("ChatComplete", () => {
   it("throws without API key", async () => {
     const node = new ChatComplete();
     node.assign({ prompt: "hi" });
-    await expect(node.process()).rejects.toThrow(
-      /Mistral API key/i
-    );
+    await expect(node.process()).rejects.toThrow(/Mistral API key/i);
   });
 
   it("throws when prompt is empty", async () => {
@@ -103,7 +101,7 @@ describe("ChatComplete", () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 429,
-      text: async () => "Rate limited",
+      text: async () => "Rate limited"
     });
 
     const node = new ChatComplete();
@@ -195,8 +193,8 @@ describe("Embedding (Mistral)", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [{ embedding: [0.1, 0.2, 0.3] }],
-      }),
+        data: [{ embedding: [0.1, 0.2, 0.3] }]
+      })
     });
 
     const node = new Embedding();
@@ -217,11 +215,8 @@ describe("Embedding (Mistral)", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [
-          { embedding: [1.0, 2.0] },
-          { embedding: [3.0, 4.0] },
-        ],
-      }),
+        data: [{ embedding: [1.0, 2.0] }, { embedding: [3.0, 4.0] }]
+      })
     });
 
     const node = new Embedding();

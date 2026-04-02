@@ -9,7 +9,7 @@ import {
   TranslateNode,
   TranscribeNode,
   RealtimeAgentNode,
-  RealtimeTranscriptionNode,
+  RealtimeTranscriptionNode
 } from "../src/nodes/openai.js";
 
 const originalFetch = globalThis.fetch;
@@ -33,7 +33,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     json: async () => body,
     text: async () => JSON.stringify(body),
     arrayBuffer: async () => new ArrayBuffer(8),
-    blob: async () => new Blob([]),
+    blob: async () => new Blob([])
   } as unknown as Response;
 }
 
@@ -58,7 +58,9 @@ describe("EmbeddingNode (OpenAI)", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse("err", 400));
     node.assign({ input: "test" });
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
-    await expect(node.process()).rejects.toThrow("OpenAI Embedding API error 400");
+    await expect(node.process()).rejects.toThrow(
+      "OpenAI Embedding API error 400"
+    );
   });
 
   it("throws when API key missing", async () => {
@@ -77,7 +79,7 @@ describe("WebSearchNode", () => {
     const node = new WebSearchNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "Search result" } }],
+        choices: [{ message: { content: "Search result" } }]
       })
     );
     node.assign({ query: "test" });
@@ -90,7 +92,9 @@ describe("WebSearchNode", () => {
     const node = new WebSearchNode();
     node.assign({ query: "" });
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
-    await expect(node.process()).rejects.toThrow("Search query cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Search query cannot be empty"
+    );
   });
 
   it("handles response without choices", async () => {
@@ -114,9 +118,9 @@ describe("ModerationNode", () => {
           {
             flagged: true,
             categories: { violence: true },
-            category_scores: { violence: 0.95 },
-          },
-        ],
+            category_scores: { violence: 0.95 }
+          }
+        ]
       })
     );
     node.assign({ input: "test" });
@@ -271,9 +275,7 @@ describe("TranscribeNode", () => {
   it("throws when audio missing", async () => {
     const node = new TranscribeNode();
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
-    await expect(node.process()).rejects.toThrow(
-      "Audio input is required"
-    );
+    await expect(node.process()).rejects.toThrow("Audio input is required");
   });
 
   it("transcribes audio", async () => {
@@ -295,7 +297,9 @@ describe("TranscribeNode", () => {
       timestamps: true
     });
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
-    await expect(node.process()).rejects.toThrow("New transcription models do not support verbose_json");
+    await expect(node.process()).rejects.toThrow(
+      "New transcription models do not support verbose_json"
+    );
   });
 
   it("parses timestamps from whisper", async () => {
@@ -304,7 +308,7 @@ describe("TranscribeNode", () => {
       jsonResponse({
         text: "Hello",
         segments: [{ start: 0, end: 1, text: "Hello" }],
-        words: [{ start: 0, end: 0.5, word: "Hello" }],
+        words: [{ start: 0, end: 0.5, word: "Hello" }]
       })
     );
     node.assign({
@@ -323,12 +327,12 @@ describe("TranscribeNode", () => {
 describe("RealtimeAgentNode", () => {
   it("returns realtime fallback output", async () => {
     const node = new RealtimeAgentNode();
-    globalThis.fetch = (
-      vi
-        .fn()
-        .mockResolvedValueOnce(jsonResponse({ choices: [{ message: { content: "ok" } }] }))
-        .mockResolvedValueOnce(jsonResponse({}))
-    ) as any;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ choices: [{ message: { content: "ok" } }] })
+      )
+      .mockResolvedValueOnce(jsonResponse({})) as any;
     node.assign({ prompt: "hello" });
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
     const result = await node.process();
@@ -337,7 +341,9 @@ describe("RealtimeAgentNode", () => {
 
     // audio should be an object with a base64 data URI (TTS response)
     expect(result.audio).toEqual(
-      expect.objectContaining({ data: expect.stringContaining("data:audio/mp3;base64,") })
+      expect.objectContaining({
+        data: expect.stringContaining("data:audio/mp3;base64,")
+      })
     );
 
     // chunk should be a well-formed chunk object
@@ -345,7 +351,7 @@ describe("RealtimeAgentNode", () => {
       type: "chunk",
       content_type: "text",
       content: "ok",
-      done: true,
+      done: true
     });
   });
 });
@@ -353,7 +359,9 @@ describe("RealtimeAgentNode", () => {
 describe("RealtimeTranscriptionNode", () => {
   it("returns transcription fallback output", async () => {
     const node = new RealtimeTranscriptionNode();
-    globalThis.fetch = vi.fn().mockResolvedValueOnce(jsonResponse({ text: "heard" })) as any;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ text: "heard" })) as any;
     (node as any).chunk = { content: Buffer.from("wav").toString("base64") };
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
     const result = await node.process();
@@ -365,7 +373,7 @@ describe("RealtimeTranscriptionNode", () => {
       type: "chunk",
       content_type: "text",
       content: "heard",
-      done: true,
+      done: true
     });
   });
 });

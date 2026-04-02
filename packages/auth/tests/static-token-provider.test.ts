@@ -25,7 +25,7 @@ describe("StaticTokenProvider", () => {
     it("supports multiple tokens mapped to different users", async () => {
       const provider = new StaticTokenProvider({
         "token-a": "user-1",
-        "token-b": "user-2",
+        "token-b": "user-2"
       });
       const a = await provider.verifyToken("token-a");
       const b = await provider.verifyToken("token-b");
@@ -79,7 +79,7 @@ describe("StaticTokenProvider", () => {
     beforeEach(() => {
       process.env["STATIC_AUTH_TOKENS"] = JSON.stringify({
         "multi-token-a": "user-100",
-        "multi-token-b": "user-200",
+        "multi-token-b": "user-200"
       });
     });
 

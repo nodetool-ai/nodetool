@@ -25,7 +25,7 @@ describe("T-MSG-1: packContext", () => {
     const messages = [
       msg("user", "first message that is quite long to use tokens"),
       msg("user", "second message"),
-      msg("assistant", "reply"),
+      msg("assistant", "reply")
     ];
     // Budget tight enough to force dropping the first message
     const sysPrompt = "sys";
@@ -62,10 +62,7 @@ describe("T-MSG-1: packContext", () => {
   });
 
   it("keeps at least the most recent message when possible", () => {
-    const messages = [
-      msg("user", "old message"),
-      msg("user", "new"),
-    ];
+    const messages = [msg("user", "old message"), msg("user", "new")];
     const sysPrompt = "s";
     // Budget for system + last message only
     const budget = estimateTokens("s") + estimateTokens("new") + 1;
@@ -76,16 +73,14 @@ describe("T-MSG-1: packContext", () => {
 
   it("estimates tokens from MessageContent array", () => {
     const messages: Message[] = [
-      { role: "user", content: [{ type: "text", text: "hello world" }] },
+      { role: "user", content: [{ type: "text", text: "hello world" }] }
     ];
     const result = packContext(messages, "sys", 1000);
     expect(result.messages).toEqual(messages);
   });
 
   it("drops all messages if budget only fits system prompt", () => {
-    const messages = [
-      msg("user", "a long message that takes many tokens"),
-    ];
+    const messages = [msg("user", "a long message that takes many tokens")];
     const sysPrompt = "sys";
     // Only enough for system prompt
     const budget = estimateTokens(sysPrompt);

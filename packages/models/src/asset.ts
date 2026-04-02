@@ -68,10 +68,7 @@ export class Asset extends DBModel {
   // ── Static queries ───────────────────────────────────────────────
 
   /** Find an asset by id, scoped to the user. */
-  static async find(
-    userId: string,
-    assetId: string,
-  ): Promise<Asset | null> {
+  static async find(userId: string, assetId: string): Promise<Asset | null> {
     const asset = await Asset.get<Asset>(assetId);
     if (!asset || asset.user_id !== userId) return null;
     return asset;
@@ -87,9 +84,16 @@ export class Asset extends DBModel {
       nodeId?: string;
       jobId?: string;
       limit?: number;
-    } = {},
+    } = {}
   ): Promise<[Asset[], string]> {
-    const { parentId, contentType, workflowId, nodeId, jobId, limit = 50 } = opts;
+    const {
+      parentId,
+      contentType,
+      workflowId,
+      nodeId,
+      jobId,
+      limit = 50
+    } = opts;
     const db = getDb();
 
     const conditions = [eq(assets.user_id, userId)];
@@ -113,13 +117,15 @@ export class Asset extends DBModel {
       conditions.push(eq(assets.job_id, jobId));
     }
 
-    const rows = db.select().from(assets)
+    const rows = db
+      .select()
+      .from(assets)
       .where(and(...conditions))
       .orderBy(desc(assets.created_at))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Asset(r as Record<string, unknown>));
+    const items = rows.map((r) => new Asset(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -130,7 +136,7 @@ export class Asset extends DBModel {
   static async getChildren(
     userId: string,
     parentId: string,
-    limit = 100,
+    limit = 100
   ): Promise<Asset[]> {
     const [assetList] = await Asset.paginate(userId, { parentId, limit });
     return assetList;
@@ -146,7 +152,7 @@ export class Asset extends DBModel {
     opts: {
       contentType?: string;
       limit?: number;
-    } = {},
+    } = {}
   ): Promise<[Asset[], string, Array<Record<string, string>>]> {
     const { contentType, limit = 100 } = opts;
     // Escape LIKE special characters to prevent pattern injection
@@ -155,22 +161,27 @@ export class Asset extends DBModel {
 
     const conditions = [
       eq(assets.user_id, userId),
-      like(assets.name, `%${sanitized}%`),
+      like(assets.name, `%${sanitized}%`)
     ];
     if (contentType) {
       const sanitizedType = contentType.replace(/[%_\\]/g, "\\$&");
       conditions.push(like(assets.content_type, `${sanitizedType}%`));
     }
 
-    const rows = db.select().from(assets)
+    const rows = db
+      .select()
+      .from(assets)
       .where(and(...conditions))
       .limit(limit)
       .all();
 
-    const items = rows.map(r => new Asset(r as Record<string, unknown>));
+    const items = rows.map((r) => new Asset(r as Record<string, unknown>));
     const cursor = "";
 
-    const pathInfo = await Asset.getAssetPathInfo(userId, items.map(a => a.id));
+    const pathInfo = await Asset.getAssetPathInfo(
+      userId,
+      items.map((a) => a.id)
+    );
 
     const folderPaths: Array<Record<string, string>> = [];
     for (const asset of items) {
@@ -180,7 +191,7 @@ export class Asset extends DBModel {
         folderPaths.push({
           folder_name: "Unknown",
           folder_path: "Unknown",
-          folder_id: asset.parent_id ?? "",
+          folder_id: asset.parent_id ?? ""
         });
       }
     }
@@ -193,7 +204,7 @@ export class Asset extends DBModel {
    */
   static async getAssetPathInfo(
     userId: string,
-    assetIds: string[],
+    assetIds: string[]
   ): Promise<Record<string, Record<string, string>>> {
     if (assetIds.length === 0) return {};
 
@@ -215,7 +226,7 @@ export class Asset extends DBModel {
         result[assetId] = {
           folder_name: "Home",
           folder_path: "Home",
-          folder_id: userId,
+          folder_id: userId
         };
         continue;
       }
@@ -247,7 +258,7 @@ export class Asset extends DBModel {
       result[assetId] = {
         folder_name: immediateName,
         folder_path: pathParts.join(" / "),
-        folder_id: immediateId,
+        folder_id: immediateId
       };
     }
 
@@ -259,15 +270,17 @@ export class Asset extends DBModel {
    */
   static async getAssetsRecursive(
     userId: string,
-    folderId: string,
+    folderId: string
   ): Promise<{ assets: Record<string, unknown>[] }> {
     const folder = await Asset.find(userId, folderId);
     if (!folder) return { assets: [] };
 
-    async function recursiveFetch(currentFolderId: string): Promise<Record<string, unknown>[]> {
+    async function recursiveFetch(
+      currentFolderId: string
+    ): Promise<Record<string, unknown>[]> {
       const [assetList] = await Asset.paginate(userId, {
         parentId: currentFolderId,
-        limit: 10000,
+        limit: 10000
       });
       const result: Record<string, unknown>[] = [];
       for (const asset of assetList) {

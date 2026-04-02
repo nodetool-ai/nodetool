@@ -55,7 +55,7 @@ export enum CloudRunRegion {
   ASIA_SOUTHEAST1 = "asia-southeast1",
   ASIA_SOUTHEAST2 = "asia-southeast2",
   AUSTRALIA_SOUTHEAST1 = "australia-southeast1",
-  AUSTRALIA_SOUTHEAST2 = "australia-southeast2",
+  AUSTRALIA_SOUTHEAST2 = "australia-southeast2"
 }
 
 /** Return all region values. */
@@ -69,7 +69,7 @@ export enum CloudRunCPU {
   CPU_2 = "2",
   CPU_4 = "4",
   CPU_6 = "6",
-  CPU_8 = "8",
+  CPU_8 = "8"
 }
 
 export function listCloudRunCPUs(): string[] {
@@ -84,7 +84,7 @@ export enum CloudRunMemory {
   MEMORY_4Gi = "4Gi",
   MEMORY_8Gi = "8Gi",
   MEMORY_16Gi = "16Gi",
-  MEMORY_32Gi = "32Gi",
+  MEMORY_32Gi = "32Gi"
 }
 
 export function listCloudRunMemory(): string[] {
@@ -117,7 +117,7 @@ export async function checkGcloudAuth(): Promise<boolean> {
       "auth",
       "list",
       "--filter=status:ACTIVE",
-      "--format=value(account)",
+      "--format=value(account)"
     ]);
     return stdout.trim().length > 0;
   } catch {
@@ -195,7 +195,7 @@ export async function ensureCloudRunPermissions(
           `user:${userAccount}`,
           "--role",
           role,
-          "--quiet",
+          "--quiet"
         ]);
         console.log(`Granted ${role}`);
       } catch {
@@ -243,7 +243,7 @@ export async function enableRequiredApis(projectId: string): Promise<void> {
     "run.googleapis.com",
     "cloudbuild.googleapis.com",
     "containerregistry.googleapis.com",
-    "artifactregistry.googleapis.com",
+    "artifactregistry.googleapis.com"
   ];
 
   console.log("Enabling required APIs...");
@@ -308,7 +308,7 @@ export async function deployToCloudRun(
     envVars,
     serviceAccount,
     gcsBucket,
-    gcsMountPath = "/mnt/gcs",
+    gcsMountPath = "/mnt/gcs"
   } = options;
 
   console.log(`Deploying ${serviceName} to Cloud Run...`);
@@ -350,7 +350,7 @@ export async function deployToCloudRun(
       `${timeout}s`,
       "--format",
       "json",
-      "--quiet",
+      "--quiet"
     ];
 
     if (gcsBucket) {
@@ -390,8 +390,7 @@ export async function deployToCloudRun(
       console.log(`Service URL: ${status?.["url"] ?? "N/A"}`);
       return deploymentInfo;
     } catch (e) {
-      const msg =
-        e instanceof Error ? e.message : String(e);
+      const msg = e instanceof Error ? e.message : String(e);
       console.error("Failed to deploy to Cloud Run");
       console.error(`Error: ${msg}`);
       throw new Error(`Cloud Run deployment failed: ${msg}`);
@@ -429,7 +428,7 @@ export async function deployToCloudRun(
       `${timeout}s`,
       "--format",
       "json",
-      "--quiet",
+      "--quiet"
     ];
 
     if (gcsBucket) {
@@ -475,7 +474,7 @@ export async function deployToCloudRun(
             "allUsers",
             "--role",
             "roles/run.invoker",
-            "--quiet",
+            "--quiet"
           ]);
         } catch {
           // Suppressed — may already be bound
@@ -489,8 +488,7 @@ export async function deployToCloudRun(
       console.log(`Service URL: ${status?.["url"] ?? "N/A"}`);
       return deploymentInfo;
     } catch (e) {
-      const msg =
-        e instanceof Error ? e.message : String(e);
+      const msg = e instanceof Error ? e.message : String(e);
       console.error("Failed to update Cloud Run service");
       console.error(`Error: ${msg}`);
       throw new Error(`Cloud Run update failed: ${msg}`);
@@ -522,7 +520,7 @@ export async function deleteCloudRunService(
       region,
       "--project",
       projectId,
-      "--quiet",
+      "--quiet"
     ]);
     console.log(`Successfully deleted service ${serviceName}`);
     return true;
@@ -551,7 +549,7 @@ export async function getCloudRunService(
       "--project",
       projectId,
       "--format",
-      "json",
+      "json"
     ]);
     return JSON.parse(stdout) as Record<string, unknown>;
   } catch {
@@ -576,7 +574,7 @@ export async function listCloudRunServices(
       "--project",
       projectId,
       "--format",
-      "json",
+      "json"
     ]);
     return JSON.parse(stdout) as Record<string, unknown>[];
   } catch {
@@ -607,17 +605,17 @@ export async function pushToGcr(
         `Ensuring Artifact Registry repository '${repoName}' exists in ${region}...`
       );
       const result = await execFileAsync("gcloud", [
-          "artifacts",
-          "repositories",
-          "create",
-          repoName,
-          "--repository-format=docker",
-          "--location",
-          region,
-          "--project",
-          projectId,
-          "--quiet",
-        ]);
+        "artifacts",
+        "repositories",
+        "create",
+        repoName,
+        "--repository-format=docker",
+        "--location",
+        region,
+        "--project",
+        projectId,
+        "--quiet"
+      ]);
 
       if (result.stdout || !result.stderr) {
         console.log(`Repository '${repoName}' created successfully`);
@@ -639,7 +637,10 @@ export async function pushToGcr(
     if (registry.includes("pkg.dev")) {
       const registryHost = registry.split("/")[0];
       await execFileAsync("gcloud", [
-        "auth", "configure-docker", registryHost, "--quiet",
+        "auth",
+        "configure-docker",
+        registryHost,
+        "--quiet"
       ]);
     }
   } catch (e) {

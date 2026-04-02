@@ -28,12 +28,16 @@ describe("MemoryStorage", () => {
 
   it("getUrl returns memory:// scheme", () => {
     const storage = new MemoryStorage();
-    expect(storage.getUrl("path/to/file.txt")).toBe("memory://path/to/file.txt");
+    expect(storage.getUrl("path/to/file.txt")).toBe(
+      "memory://path/to/file.txt"
+    );
   });
 
   it("download of non-existent key throws", async () => {
     const storage = new MemoryStorage();
-    await expect(storage.download("nonexistent")).rejects.toThrow("Key not found: nonexistent");
+    await expect(storage.download("nonexistent")).rejects.toThrow(
+      "Key not found: nonexistent"
+    );
   });
 
   it("exists returns false for non-existent key", async () => {

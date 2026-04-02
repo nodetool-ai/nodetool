@@ -104,7 +104,10 @@ export class NodeActor {
   async run(): Promise<ActorResult> {
     let errorMessage: string | undefined;
     try {
-      log.debug("Actor started", { nodeId: this.node.id, type: this.node.type });
+      log.debug("Actor started", {
+        nodeId: this.node.id,
+        type: this.node.type
+      });
       this._emitNodeStatus("running");
 
       if (this._executor.preProcess) {
@@ -120,13 +123,20 @@ export class NodeActor {
           const nodeOutputs = new NodeOutputs({
             sendFn: async (slot: string, value: unknown) => {
               await this._sendOutputs(this.node.id, { [slot]: value });
-            },
+            }
           });
-          await this._executor.run(nodeInputs, nodeOutputs, this._executionContext);
+          await this._executor.run(
+            nodeInputs,
+            nodeOutputs,
+            this._executionContext
+          );
           this._latestResult = nodeOutputs.collected();
         } else {
           // Legacy fallback: call process() once with empty inputs.
-          const outputs = await this._executor.process({}, this._executionContext);
+          const outputs = await this._executor.process(
+            {},
+            this._executionContext
+          );
           this._latestResult = outputs;
           await this._sendOutputs(this.node.id, outputs);
         }
@@ -139,7 +149,11 @@ export class NodeActor {
       }
     } catch (err) {
       errorMessage = err instanceof Error ? err.message : String(err);
-      log.error("Actor failed", { nodeId: this.node.id, type: this.node.type, error: errorMessage });
+      log.error("Actor failed", {
+        nodeId: this.node.id,
+        type: this.node.type,
+        error: errorMessage
+      });
     } finally {
       // Always finalize, even on error (Python parity: gap #13)
       if (this._executor.finalize) {
@@ -156,7 +170,10 @@ export class NodeActor {
       return { outputs: {}, error: errorMessage };
     }
 
-    log.debug("Actor completed", { nodeId: this.node.id, type: this.node.type });
+    log.debug("Actor completed", {
+      nodeId: this.node.id,
+      type: this.node.type
+    });
     this._emitNodeStatus("completed", this._latestResult ?? {});
     return { outputs: this._latestResult ?? {} };
   }
@@ -249,7 +266,7 @@ export class NodeActor {
       nodeId: this.node.id,
       type: this.node.type,
       syncMode: this.node.sync_mode ?? "on_any",
-      inputHandles: Object.keys(inputs),
+      inputHandles: Object.keys(inputs)
     });
 
     if (this.node.is_streaming_output && this._executor.genProcess) {
@@ -310,7 +327,12 @@ export class NodeActor {
         // Merge node properties as defaults (matching _executeWithInputs behavior)
         const baseProps = this.node.properties ?? {};
         const dynProps = this.node.dynamic_properties ?? {};
-        const merged = { ...baseProps, ...dynProps, ...inputs, ...this._currentControlProperties };
+        const merged = {
+          ...baseProps,
+          ...dynProps,
+          ...inputs,
+          ...this._currentControlProperties
+        };
         const outputs = await this._executor.process(
           merged,
           this._executionContext
@@ -344,15 +366,12 @@ export class NodeActor {
     for await (const [handle, item] of this.inbox.iterAny()) {
       if (handle === "__control__") {
         // Push control events back – they'll be consumed by iterInput later
-        this.inbox.prepend(
-          "__control__",
-          {
-            data: item,
-            metadata: {},
-            timestamp: Date.now(),
-            event_id: "",
-          }
-        );
+        this.inbox.prepend("__control__", {
+          data: item,
+          metadata: {},
+          timestamp: Date.now(),
+          event_id: ""
+        });
         continue;
       }
       if (!this._cachedInputs) this._cachedInputs = {};
@@ -415,7 +434,8 @@ export class NodeActor {
       }
 
       // Use sticky value if handle is closed or marked sticky from streaming analysis
-      const isSticky = !this.inbox.isOpen(handle) || this._initialStickyHandles.has(handle);
+      const isSticky =
+        !this.inbox.isOpen(handle) || this._initialStickyHandles.has(handle);
       if (isSticky && handle in this._stickyValues) {
         result[handle] = this._stickyValues[handle];
         continue;
@@ -481,7 +501,7 @@ export class NodeActor {
       properties:
         this.node.properties && typeof this.node.properties === "object"
           ? (this.node.properties as Record<string, unknown>)
-          : null,
+          : null
     });
   }
 

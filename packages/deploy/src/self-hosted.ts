@@ -17,7 +17,7 @@ import * as path from "path";
 import { SSHCommandError, SSHConnection } from "./ssh.js";
 import {
   DockerRunGenerator,
-  type DockerRunDeployment as DockerRunSelfHostedDeployment,
+  type DockerRunDeployment as DockerRunSelfHostedDeployment
 } from "./docker-run.js";
 import {
   DeploymentStatus,
@@ -25,7 +25,7 @@ import {
   SelfHostedDeployment,
   SSHConfig,
   dockerDeploymentGetServerUrl,
-  imageConfigFullName,
+  imageConfigFullName
 } from "./deployment-config.js";
 import { StateManager } from "./state.js";
 
@@ -136,7 +136,7 @@ export function isLocalhost(host: string): boolean {
               // Use execFileSync with getent (Linux) as primary method
               const result = execFileSync("getent", ["hosts", target], {
                 encoding: "utf-8",
-                timeout: 5000,
+                timeout: 5000
               }).trim();
               const resolved: string[] = [];
               for (const line of result.split("\n")) {
@@ -237,7 +237,7 @@ export class LocalExecutor {
         encoding: "utf-8",
         timeout: timeout ? timeout * 1000 : undefined,
         maxBuffer: 50 * 1024 * 1024,
-        stdio: ["pipe", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"]
       });
       return [0, result ?? "", ""];
     } catch (err: unknown) {
@@ -345,7 +345,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
       user: sshConfig.user,
       keyPath: sshConfig.key_path,
       password: sshConfig.password,
-      port: sshConfig.port,
+      port: sshConfig.port
     });
 
     // Wrap SSHConnection to match the async Executor interface.
@@ -356,16 +356,19 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
       mkdir(dirPath: string, mode = 0o755, parents = true) {
         return conn.mkdir(dirPath, mode, parents);
       },
-      _sshConnection: conn,
+      _sshConnection: conn
     } as Executor & { _sshConnection: SSHConnection };
   }
 
   /**
    * Use an executor within a callback, ensuring proper open/close lifecycle.
    */
-  protected async withExecutor<R>(fn: (executor: Executor) => Promise<R>): Promise<R> {
+  protected async withExecutor<R>(
+    fn: (executor: Executor) => Promise<R>
+  ): Promise<R> {
     const executor = this.getExecutor();
-    const sshConn = (executor as { _sshConnection?: SSHConnection })._sshConnection;
+    const sshConn = (executor as { _sshConnection?: SSHConnection })
+      ._sshConnection;
     if (sshConn) {
       await sshConn.connect();
     } else {
@@ -458,12 +461,10 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
     const override = process.env["NODETOOL_CONTAINER_RUNTIME"];
     if (override === "docker" || override === "podman") return override;
     if (this.isLocalhost) return this.resolveLocalRuntimeCommand();
-    return '$((command -v docker >/dev/null 2>&1 && echo docker) || (command -v podman >/dev/null 2>&1 && echo podman) || echo docker)';
+    return "$((command -v docker >/dev/null 2>&1 && echo docker) || (command -v podman >/dev/null 2>&1 && echo podman) || echo docker)";
   }
 
-  protected containerGenerator(
-    runtimeCommand?: string
-  ): DockerRunGenerator {
+  protected containerGenerator(runtimeCommand?: string): DockerRunGenerator {
     const cmd = runtimeCommand ?? this.runtimeCommandForShell();
     const d = this.deployment as DockerDeployment;
     const converted: DockerRunSelfHostedDeployment = {
@@ -471,7 +472,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
       container: d.container,
       paths: {
         workspace: d.paths.workspace,
-        hfCache: d.paths.hf_cache,
+        hfCache: d.paths.hf_cache
       },
       persistentPaths: d.persistent_paths
         ? {
@@ -480,10 +481,10 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
             chromaPath: d.persistent_paths.chroma_path,
             hfCache: d.persistent_paths.hf_cache,
             assetBucket: d.persistent_paths.asset_bucket,
-            logsPath: d.persistent_paths.logs_path,
+            logsPath: d.persistent_paths.logs_path
           }
         : undefined,
-      serverAuthToken: d.server_auth_token,
+      serverAuthToken: d.server_auth_token
     };
     return new DockerRunGenerator(converted, cmd);
   }
@@ -512,7 +513,11 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
   abstract apply(opts?: { dryRun?: boolean }): Promise<DeployResult>;
   abstract destroy(): Promise<DeployResult>;
   abstract status(): Promise<DeployStatus>;
-  abstract logs(opts?: { service?: string; follow?: boolean; tail?: number }): Promise<string>;
+  abstract logs(opts?: {
+    service?: string;
+    follow?: boolean;
+    tail?: number;
+  }): Promise<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -539,7 +544,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       changes: [],
       will_create: [],
       will_update: [],
-      will_destroy: [],
+      will_destroy: []
     };
 
     const generator = this.containerGenerator();
@@ -552,13 +557,8 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
 
     const newHash = generator.generateHash();
 
-    if (
-      !currentState ||
-      !currentState["last_deployed"]
-    ) {
-      plan.changes.push(
-        "Initial deployment - will create all resources"
-      );
+    if (!currentState || !currentState["last_deployed"]) {
+      plan.changes.push("Initial deployment - will create all resources");
       plan.will_create.push(`App container: ${containerName}`);
     } else if (currentHash !== newHash) {
       plan.changes.push("Container configuration has changed");
@@ -576,14 +576,14 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
 
   async apply(opts?: { dryRun?: boolean }): Promise<DeployResult> {
     if (opts?.dryRun) {
-      return await this.plan() as unknown as DeployResult;
+      return (await this.plan()) as unknown as DeployResult;
     }
 
     const results: DeployResult = {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
     if (this.isLocalhost) {
@@ -616,7 +616,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
           container_run_hash: containerRunHash,
           container_name: containerName,
           container_id: null,
-          url: dockerDeploymentGetServerUrl(this.deployment),
+          url: dockerDeploymentGetServerUrl(this.deployment)
         });
       });
     } catch (e) {
@@ -658,9 +658,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
     try {
       const [, stdout] = await ssh.execute(checkCommand, false);
       if (stdout.trim()) {
-        results.steps.push(
-          `  Found existing app container: ${containerName}`
-        );
+        results.steps.push(`  Found existing app container: ${containerName}`);
         await ssh.execute(
           `${runtime} stop ${safeShellQuote(containerName)}`,
           false,
@@ -677,9 +675,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         results.steps.push("  No existing app container found");
       }
     } catch (exc) {
-      results.steps.push(
-        `  Warning: could not inspect app container: ${exc}`
-      );
+      results.steps.push(`  Warning: could not inspect app container: ${exc}`);
     }
 
     // Clean up legacy NodeTool containers that still hold the same host port
@@ -704,14 +700,10 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
           false,
           60
         );
-        results.steps.push(
-          `  Removed conflicting container: ${conflictName}`
-        );
+        results.steps.push(`  Removed conflicting container: ${conflictName}`);
       }
     } catch (exc) {
-      results.steps.push(
-        `  Warning: could not check port conflicts: ${exc}`
-      );
+      results.steps.push(`  Warning: could not check port conflicts: ${exc}`);
     }
   }
 
@@ -731,9 +723,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         return;
       }
 
-      results.steps.push(
-        `  Found existing app container: ${containerName}`
-      );
+      results.steps.push(`  Found existing app container: ${containerName}`);
       try {
         await ssh.execute(
           `${runtime} stop ${safeShellQuote(containerName)}`,
@@ -742,9 +732,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         );
         results.steps.push(`  Stopped app container: ${containerName}`);
       } catch (exc) {
-        results.steps.push(
-          `  Warning: failed stopping app container: ${exc}`
-        );
+        results.steps.push(`  Warning: failed stopping app container: ${exc}`);
       }
       try {
         await ssh.execute(
@@ -754,14 +742,10 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         );
         results.steps.push(`  Removed app container: ${containerName}`);
       } catch (exc) {
-        results.steps.push(
-          `  Warning: failed removing app container: ${exc}`
-        );
+        results.steps.push(`  Warning: failed removing app container: ${exc}`);
       }
     } catch (exc) {
-      results.steps.push(
-        `  Warning: could not inspect app container: ${exc}`
-      );
+      results.steps.push(`  Warning: could not inspect app container: ${exc}`);
     }
   }
 
@@ -801,14 +785,10 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         } catch {
           // ignore
         }
-        results.steps.push(
-          `  Removed conflicting container: ${conflictName}`
-        );
+        results.steps.push(`  Removed conflicting container: ${conflictName}`);
       }
     } catch (exc) {
-      results.steps.push(
-        `  Warning: could not check port conflicts: ${exc}`
-      );
+      results.steps.push(`  Warning: could not check port conflicts: ${exc}`);
     }
   }
 
@@ -831,9 +811,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       );
     } catch (exc) {
       if (exc instanceof SSHCommandError) {
-        results.errors.push(
-          `Failed to start app container: ${exc.stderr}`
-        );
+        results.errors.push(`Failed to start app container: ${exc.stderr}`);
       }
       throw exc;
     }
@@ -864,11 +842,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       }
 
       try {
-        await ssh.execute(
-          `curl -fsS ${safeShellQuote(healthUrl)}`,
-          true,
-          20
-        );
+        await ssh.execute(`curl -fsS ${safeShellQuote(healthUrl)}`, true, 20);
         if (attemptErrors.length === 0) {
           results.steps.push(`  Health endpoint OK: ${healthUrl}`);
           return;
@@ -894,9 +868,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       results.steps.push(`  Warning: ${err}`);
     }
     results.errors.push(...lastErrors);
-    throw new Error(
-      `Deployment health check failed: ${lastErrors.join("; ")}`
-    );
+    throw new Error(`Deployment health check failed: ${lastErrors.join("; ")}`);
   }
 
   private async getContainerStatus(
@@ -922,7 +894,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
     try {
@@ -956,9 +928,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
           results.steps.push(`Container removed: ${containerName}`);
         } catch (e) {
           if (e instanceof SSHCommandError) {
-            results.errors.push(
-              `Failed to remove container: ${e.stderr}`
-            );
+            results.errors.push(`Failed to remove container: ${e.stderr}`);
           }
           throw e;
         }
@@ -983,13 +953,12 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       deployment_name: this.deploymentName,
       host: this.deployment.host,
       container_name: this.containerName(),
-      type: "docker",
+      type: "docker"
     };
 
     const state = await this.stateManager.readState(this.deploymentName);
     if (state) {
-      statusInfo.status =
-        (state["status"] as string) ?? "unknown";
+      statusInfo.status = (state["status"] as string) ?? "unknown";
       statusInfo.last_deployed =
         (state["last_deployed"] as string) ?? "unknown";
       statusInfo.url = (state["url"] as string) ?? "unknown";
@@ -1010,9 +979,11 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
     return statusInfo;
   }
 
-  async logs(
-    opts?: { service?: string; follow?: boolean; tail?: number }
-  ): Promise<string> {
+  async logs(opts?: {
+    service?: string;
+    follow?: boolean;
+    tail?: number;
+  }): Promise<string> {
     const follow = opts?.follow ?? false;
     const tail = opts?.tail ?? 100;
     return this.withExecutor(async (ssh) => {
@@ -1064,9 +1035,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
     if (stdoutAfter.trim()) {
       results.steps.push("  Image transferred successfully.");
     } else {
-      throw new Error(
-        `Failed to transfer image '${image}' to remote host.`
-      );
+      throw new Error(`Failed to transfer image '${image}' to remote host.`);
     }
   }
 
@@ -1081,7 +1050,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
     // Check image exists locally
     try {
       execFileSync(localRuntime, ["image", "inspect", image], {
-        stdio: ["pipe", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"]
       });
     } catch {
       throw new Error(
@@ -1098,14 +1067,16 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         sshConfig.port && sshConfig.port !== 22
           ? `-p ${safeShellQuote(String(sshConfig.port))}`
           : "";
-      const sshTarget = safeShellQuote(`${sshConfig.user}@${this.deployment.host}`);
+      const sshTarget = safeShellQuote(
+        `${sshConfig.user}@${this.deployment.host}`
+      );
       const runtimeForShell = this.runtimeCommandForShell();
 
       const pipeCmd = `${shellQuote(localRuntime)} save ${shellQuote(image)} | ssh -o StrictHostKeyChecking=no ${keyArg} ${portArg} ${sshTarget} sh -lc '${runtimeForShell} load'`;
       execSync(pipeCmd, {
         encoding: "utf-8",
         timeout: 600000,
-        stdio: ["pipe", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"]
       });
     } catch (err: unknown) {
       const e = err as { stderr?: string; message?: string };

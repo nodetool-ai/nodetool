@@ -14,7 +14,7 @@ describe("MemoryDurableInboxStore", () => {
       seq: 1,
       payload: { data: "hello" },
       status: "pending",
-      createdAt: new Date(),
+      createdAt: new Date()
     });
 
     const found = await store.findByMessageId("m1");

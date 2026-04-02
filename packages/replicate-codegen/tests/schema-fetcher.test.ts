@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 vi.mock("node:fs/promises", () => ({
   readFile: vi.fn(),
   writeFile: vi.fn(),
-  mkdir: vi.fn(),
+  mkdir: vi.fn()
 }));
 
 import { SchemaFetcher } from "../src/schema-fetcher.js";
@@ -26,7 +26,7 @@ const MODEL_ID = "stability-ai/sdxl";
 
 const FAKE_MODEL_RESPONSE = {
   description: "A text-to-image model",
-  latest_version: { id: "abc123def456" },
+  latest_version: { id: "abc123def456" }
 };
 
 const FAKE_VERSION_RESPONSE = {
@@ -36,17 +36,17 @@ const FAKE_VERSION_RESPONSE = {
         Input: {
           type: "object",
           properties: {
-            prompt: { type: "string" },
+            prompt: { type: "string" }
           },
-          required: ["prompt"],
+          required: ["prompt"]
         },
         Output: {
           type: "array",
-          items: { type: "string", format: "uri" },
-        },
-      },
-    },
-  },
+          items: { type: "string", format: "uri" }
+        }
+      }
+    }
+  }
 };
 
 const FAKE_CACHED_SCHEMA = {
@@ -56,7 +56,7 @@ const FAKE_CACHED_SCHEMA = {
   version: "abc123def456",
   description: "A text-to-image model",
   inputSchema: { type: "object", properties: { prompt: { type: "string" } } },
-  outputSchema: {},
+  outputSchema: {}
 };
 
 // Cast mocks for ergonomic typing
@@ -76,7 +76,7 @@ describe("SchemaFetcher", () => {
 
     // Default: cache miss
     readFileMock.mockRejectedValue(
-      Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      Object.assign(new Error("ENOENT"), { code: "ENOENT" })
     );
     writeFileMock.mockResolvedValue(undefined);
     mkdirMock.mockResolvedValue(undefined);
@@ -89,14 +89,14 @@ describe("SchemaFetcher", () => {
         status: 200,
         statusText: "OK",
         text: async () => "",
-        json: async () => FAKE_MODEL_RESPONSE,
+        json: async () => FAKE_MODEL_RESPONSE
       } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         statusText: "OK",
         text: async () => "",
-        json: async () => FAKE_VERSION_RESPONSE,
+        json: async () => FAKE_VERSION_RESPONSE
       } as unknown as Response);
 
     vi.stubGlobal("fetch", fetchMock);
@@ -121,7 +121,7 @@ describe("SchemaFetcher", () => {
     it("produces different keys for different model IDs", () => {
       const fetcher = new SchemaFetcher("test-token", "/tmp/test-cache");
       expect(fetcher.cacheKey("stability-ai/sdxl")).not.toBe(
-        fetcher.cacheKey("black-forest-labs/flux-schnell"),
+        fetcher.cacheKey("black-forest-labs/flux-schnell")
       );
     });
 
@@ -153,7 +153,7 @@ describe("SchemaFetcher", () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
       expect(fetchMock).toHaveBeenCalledWith(
         "https://api.replicate.com/v1/models/stability-ai/sdxl",
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
       expect(writeFileMock).toHaveBeenCalledOnce();
       expect(result.modelId).toBe(MODEL_ID);
@@ -192,7 +192,7 @@ describe("SchemaFetcher", () => {
       expect(writeFileMock).toHaveBeenCalledOnce();
       const [, writtenContent] = writeFileMock.mock.calls[0] as [
         unknown,
-        string,
+        string
       ];
       const written = JSON.parse(writtenContent);
       expect(written.modelId).toBe(MODEL_ID);
@@ -212,20 +212,18 @@ describe("SchemaFetcher", () => {
         status: 404,
         statusText: "Not Found",
         text: async () => "Model not found",
-        json: async () => ({}),
+        json: async () => ({})
       } as unknown as Response);
       vi.stubGlobal("fetch", fetchMock);
 
       const fetcher = new SchemaFetcher("test-token", "/tmp/test-cache");
-      await expect(fetcher.fetchSchema(MODEL_ID, false)).rejects.toThrow(
-        /404/,
-      );
+      await expect(fetcher.fetchSchema(MODEL_ID, false)).rejects.toThrow(/404/);
     });
 
     it("throws for invalid model ID format", async () => {
       const fetcher = new SchemaFetcher("test-token", "/tmp/test-cache");
       await expect(
-        fetcher.fetchSchema("invalid-no-slash", false),
+        fetcher.fetchSchema("invalid-no-slash", false)
       ).rejects.toThrow(/Invalid model ID/);
     });
 
@@ -237,13 +235,13 @@ describe("SchemaFetcher", () => {
         status: 200,
         statusText: "OK",
         text: async () => "",
-        json: async () => ({ description: "No version", latest_version: null }),
+        json: async () => ({ description: "No version", latest_version: null })
       } as unknown as Response);
       vi.stubGlobal("fetch", fetchMock);
 
       const fetcher = new SchemaFetcher("test-token", "/tmp/test-cache");
       await expect(fetcher.fetchSchema(MODEL_ID, false)).rejects.toThrow(
-        /no latest version/,
+        /no latest version/
       );
     });
   });
@@ -259,7 +257,7 @@ describe("SchemaFetcher", () => {
 
       const fetcher = new SchemaFetcher(undefined, "/tmp/test-cache");
       await expect(fetcher.fetchSchema(MODEL_ID, false)).rejects.toThrow(
-        /REPLICATE_API_TOKEN/,
+        /REPLICATE_API_TOKEN/
       );
 
       if (originalToken !== undefined) {

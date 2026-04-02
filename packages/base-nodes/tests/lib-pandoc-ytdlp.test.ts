@@ -6,11 +6,13 @@ import {
   ConvertTextPandocLibNode,
   ConvertFilePandocLibNode,
   YtDlpDownloadLibNode,
-  registerBaseNodes,
+  registerBaseNodes
 } from "../src/index.js";
 import { NodeRegistry } from "@nodetool/node-sdk";
 
-async function withMockBins(run: (binDir: string) => Promise<void>): Promise<void> {
+async function withMockBins(
+  run: (binDir: string) => Promise<void>
+): Promise<void> {
   const binDir = await mkdtemp(join(tmpdir(), "nt-mock-bin-"));
 
   const pandocScript = `#!/bin/sh
@@ -103,16 +105,19 @@ describe("native lib.pandoc and lib.ytdlp", () => {
       const textOut = await new ConvertTextPandocLibNode({
         content: "# hello",
         input_format: "markdown",
-        output_format: "plain",
+        output_format: "plain"
       }).process();
       expect(textOut.output).toBe("converted(markdown->plain):# hello");
 
-      const inputFile = join(await mkdtemp(join(tmpdir(), "nt-pandoc-in-")), "in.md");
+      const inputFile = join(
+        await mkdtemp(join(tmpdir(), "nt-pandoc-in-")),
+        "in.md"
+      );
       await writeFile(inputFile, "sample file", "utf8");
       const fileOut = await new ConvertFilePandocLibNode({
         input_path: { path: inputFile },
         input_format: "markdown",
-        output_format: "plain",
+        output_format: "plain"
       }).process();
       expect(fileOut.output).toBe("converted(markdown->plain):sample file");
     });
@@ -122,15 +127,18 @@ describe("native lib.pandoc and lib.ytdlp", () => {
     await withMockBins(async () => {
       const metadata = await new YtDlpDownloadLibNode({
         url: "https://example.com/video",
-        mode: "metadata",
+        mode: "metadata"
       }).process();
-      expect(metadata.metadata).toMatchObject({ id: "mockid", title: "Mock Title" });
+      expect(metadata.metadata).toMatchObject({
+        id: "mockid",
+        title: "Mock Title"
+      });
 
       const video = await new YtDlpDownloadLibNode({
         url: "https://example.com/video",
         mode: "video",
         subtitles: true,
-        thumbnail: true,
+        thumbnail: true
       }).process();
       expect(typeof (video.video as { data?: string }).data).toBe("string");
       expect(video.subtitles).toBe("sub text");
@@ -138,7 +146,7 @@ describe("native lib.pandoc and lib.ytdlp", () => {
 
       const audio = await new YtDlpDownloadLibNode({
         url: "https://example.com/video",
-        mode: "audio",
+        mode: "audio"
       }).process();
       expect(typeof (audio.audio as { data?: string }).data).toBe("string");
     });

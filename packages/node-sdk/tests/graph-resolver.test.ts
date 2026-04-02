@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  NodeRegistry,
-  createGraphNodeTypeResolver,
-} from "../src/registry.js";
+import { NodeRegistry, createGraphNodeTypeResolver } from "../src/registry.js";
 import type { NodeMetadata } from "../src/metadata.js";
 import { BaseNode } from "../src/base-node.js";
 
@@ -14,16 +11,16 @@ const sampleMetadata: NodeMetadata = {
   properties: [
     {
       name: "value",
-      type: { type: "int", type_args: [] },
-    },
+      type: { type: "int", type_args: [] }
+    }
   ],
   outputs: [
     {
       name: "output",
-      type: { type: "list", type_args: [{ type: "string", type_args: [] }] },
-    },
+      type: { type: "list", type_args: [{ type: "string", type_args: [] }] }
+    }
   ],
-  is_streaming_output: true,
+  is_streaming_output: true
 };
 
 class LazyNode extends BaseNode {
@@ -49,7 +46,7 @@ class ZipNode extends BaseNode {
 describe("createGraphNodeTypeResolver", () => {
   it("resolves registered metadata into kernel graph metadata", async () => {
     const registry = new NodeRegistry({
-      metadataByType: new Map([["test.StrictNode", sampleMetadata]]),
+      metadataByType: new Map([["test.StrictNode", sampleMetadata]])
     });
     const resolver = createGraphNodeTypeResolver(registry);
 
@@ -61,8 +58,8 @@ describe("createGraphNodeTypeResolver", () => {
       isDynamic: false,
       descriptorDefaults: {
         name: "Strict Node",
-        is_streaming_output: true,
-      },
+        is_streaming_output: true
+      }
     });
   });
 
@@ -73,10 +70,10 @@ describe("createGraphNodeTypeResolver", () => {
           "test.Strict",
           {
             ...sampleMetadata,
-            node_type: "test.Strict",
-          },
-        ],
-      ]),
+            node_type: "test.Strict"
+          }
+        ]
+      ])
     });
     const resolver = createGraphNodeTypeResolver(registry);
 
@@ -96,10 +93,10 @@ describe("createGraphNodeTypeResolver", () => {
             ...sampleMetadata,
             title: "Lazy",
             namespace: "test.lazy",
-            node_type: "test.lazy.Node",
-          },
+            node_type: "test.lazy.Node"
+          }
         });
-      },
+      }
     });
 
     const resolved = await lazyResolver.resolveNodeType("test.lazy.Node");
@@ -113,8 +110,8 @@ describe("createGraphNodeTypeResolver", () => {
       metadata: {
         ...sampleMetadata,
         title: "Zip Node",
-        node_type: "test.zip.Node",
-      },
+        node_type: "test.zip.Node"
+      }
     });
     const resolver = createGraphNodeTypeResolver(registry);
 
@@ -122,7 +119,7 @@ describe("createGraphNodeTypeResolver", () => {
     expect(resolved?.descriptorDefaults).toEqual({
       name: "Zip Node",
       is_streaming_output: true,
-      sync_mode: "zip_all",
+      sync_mode: "zip_all"
     });
   });
 });

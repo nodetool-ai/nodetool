@@ -21,7 +21,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "aspect_ratio",
@@ -30,7 +30,7 @@ export const imageConfig: ModuleConfig = {
           title: "Aspect Ratio",
           description:
             "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"],
+          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"]
         },
         {
           name: "resolution",
@@ -38,12 +38,16 @@ export const imageConfig: ModuleConfig = {
           default: "1K",
           title: "Resolution",
           description: "Output image resolution.",
-          values: ["1K", "2K"],
-        },
+          values: ["1K", "2K"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -62,14 +66,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing how to transform the image.",
+          description: "The text prompt describing how to transform the image."
         },
         {
           name: "images",
           type: "list[image]",
           default: [],
           title: "Images",
-          description: "Source images to transform (1-8 images supported).",
+          description: "Source images to transform (1-8 images supported)."
         },
         {
           name: "aspect_ratio",
@@ -78,7 +82,7 @@ export const imageConfig: ModuleConfig = {
           title: "Aspect Ratio",
           description:
             "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"],
+          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"]
         },
         {
           name: "resolution",
@@ -86,20 +90,24 @@ export const imageConfig: ModuleConfig = {
           default: "1K",
           title: "Resolution",
           description: "Output image resolution.",
-          values: ["1K", "2K"],
-        },
+          values: ["1K", "2K"]
+        }
       ],
       uploads: [
         {
           field: "images",
           kind: "image",
           isList: true,
-          paramName: "input_urls",
-        },
+          paramName: "input_urls"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -118,7 +126,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "aspect_ratio",
@@ -127,7 +135,7 @@ export const imageConfig: ModuleConfig = {
           title: "Aspect Ratio",
           description:
             "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"],
+          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"]
         },
         {
           name: "resolution",
@@ -135,12 +143,16 @@ export const imageConfig: ModuleConfig = {
           default: "1K",
           title: "Resolution",
           description: "Output image resolution.",
-          values: ["1K", "2K"],
-        },
+          values: ["1K", "2K"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -159,14 +171,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing how to transform the image.",
+          description: "The text prompt describing how to transform the image."
         },
         {
           name: "images",
           type: "list[image]",
           default: [],
           title: "Images",
-          description: "Source images to transform (1-8 images supported).",
+          description: "Source images to transform (1-8 images supported)."
         },
         {
           name: "aspect_ratio",
@@ -175,7 +187,7 @@ export const imageConfig: ModuleConfig = {
           title: "Aspect Ratio",
           description:
             "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"],
+          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"]
         },
         {
           name: "resolution",
@@ -183,20 +195,24 @@ export const imageConfig: ModuleConfig = {
           default: "1K",
           title: "Resolution",
           description: "Output image resolution.",
-          values: ["1K", "2K"],
-        },
+          values: ["1K", "2K"]
+        }
       ],
       uploads: [
         {
           field: "images",
           kind: "image",
           isList: true,
-          paramName: "input_urls",
-        },
+          paramName: "input_urls"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -215,7 +231,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "aspect_ratio",
@@ -223,7 +239,7 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
         },
         {
           name: "quality",
@@ -231,15 +247,19 @@ export const imageConfig: ModuleConfig = {
           default: "basic",
           title: "Quality",
           description: "Basic outputs 2K images, while High outputs 4K images.",
-          values: ["basic", "high"],
-        },
+          values: ["basic", "high"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
       ],
       paramNames: {
-        quality: "resolution",
-      },
+        quality: "resolution"
+      }
     },
 
     // -----------------------------------------------------------------------
@@ -258,14 +278,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing how to edit the image.",
+          description: "The text prompt describing how to edit the image."
         },
         {
           name: "image_input",
           type: "list[image]",
           default: [],
           title: "Image Input",
-          description: "The source images to edit.",
+          description: "The source images to edit."
         },
         {
           name: "aspect_ratio",
@@ -273,7 +293,7 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the output image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
         },
         {
           name: "quality",
@@ -281,23 +301,27 @@ export const imageConfig: ModuleConfig = {
           default: "basic",
           title: "Quality",
           description: "Basic outputs 2K images, while High outputs 4K images.",
-          values: ["basic", "high"],
-        },
+          values: ["basic", "high"]
+        }
       ],
       uploads: [
         {
           field: "image_input",
           kind: "image",
           isList: false,
-          paramName: "image_url",
-        },
+          paramName: "image_url"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
       ],
       paramNames: {
-        quality: "resolution",
-      },
+        quality: "resolution"
+      }
     },
 
     // -----------------------------------------------------------------------
@@ -316,7 +340,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "aspect_ratio",
@@ -324,12 +348,16 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
-        },
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -348,7 +376,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "image_size",
@@ -367,16 +395,20 @@ export const imageConfig: ModuleConfig = {
             "5:4",
             "4:5",
             "21:9",
-            "auto",
-          ],
-        },
+            "auto"
+          ]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
       ],
       paramNames: {
-        image_size: "aspect_ratio",
-      },
+        image_size: "aspect_ratio"
+      }
     },
 
     // -----------------------------------------------------------------------
@@ -395,14 +427,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "image_input",
           type: "list[image]",
           default: [],
           title: "Image Input",
-          description: "Optional image inputs for multimodal generation.",
+          description: "Optional image inputs for multimodal generation."
         },
         {
           name: "aspect_ratio",
@@ -410,7 +442,7 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
         },
         {
           name: "resolution",
@@ -418,12 +450,16 @@ export const imageConfig: ModuleConfig = {
           default: "2K",
           title: "Resolution",
           description: "Output image resolution.",
-          values: ["1K", "2K", "4K"],
-        },
+          values: ["1K", "2K", "4K"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -442,7 +478,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "aspect_ratio",
@@ -450,7 +486,7 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
         },
         {
           name: "mode",
@@ -458,12 +494,16 @@ export const imageConfig: ModuleConfig = {
           default: "pro",
           title: "Mode",
           description: "Generation mode: 'pro' for speed, 'max' for quality.",
-          values: ["pro", "max"],
-        },
+          values: ["pro", "max"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -482,7 +522,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "aspect_ratio",
@@ -490,12 +530,16 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
-        },
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -512,19 +556,25 @@ export const imageConfig: ModuleConfig = {
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
           description:
-            "The image to upscale. Must be an image previously generated by a Kie.ai node.",
-        },
+            "The image to upscale. Must be an image previously generated by a Kie.ai node."
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
-        },
-      ],
+          paramName: "image_url"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -543,7 +593,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "aspect_ratio",
@@ -551,12 +601,16 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
-        },
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -575,14 +629,20 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing how to transform the image.",
+          description: "The text prompt describing how to transform the image."
         },
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
-          description: "The source image to transform.",
+          description: "The source image to transform."
         },
         {
           name: "aspect_ratio",
@@ -590,19 +650,23 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the output image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
-        },
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
-        },
+          paramName: "image_url"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -619,9 +683,15 @@ export const imageConfig: ModuleConfig = {
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
-          description: "The image to upscale.",
+          description: "The image to upscale."
         },
         {
           name: "upscale_factor",
@@ -629,19 +699,19 @@ export const imageConfig: ModuleConfig = {
           default: "2",
           title: "Upscale Factor",
           description: "The upscaling factor (2x or 4x).",
-          values: ["2", "4"],
-        },
+          values: ["2", "4"]
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
-        },
+          paramName: "image_url"
+        }
       ],
       paramNames: {
-        upscale_factor: "scale_factor",
-      },
+        upscale_factor: "scale_factor"
+      }
     },
 
     // -----------------------------------------------------------------------
@@ -658,18 +728,24 @@ export const imageConfig: ModuleConfig = {
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
-          description: "The image to remove the background from.",
-        },
+          description: "The image to remove the background from."
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
-        },
-      ],
+          paramName: "image_url"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -688,14 +764,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "Text description for the character image.",
+          description: "Text description for the character image."
         },
         {
           name: "reference_images",
           type: "list[image]",
           default: [],
           title: "Reference Images",
-          description: "Reference images for character guidance.",
+          description: "Reference images for character guidance."
         },
         {
           name: "rendering_speed",
@@ -703,7 +779,7 @@ export const imageConfig: ModuleConfig = {
           default: "BALANCED",
           title: "Rendering Speed",
           description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"],
+          values: ["TURBO", "BALANCED", "QUALITY"]
         },
         {
           name: "style",
@@ -711,14 +787,14 @@ export const imageConfig: ModuleConfig = {
           default: "AUTO",
           title: "Style",
           description: "Generation style.",
-          values: ["AUTO", "REALISTIC", "FICTION"],
+          values: ["AUTO", "REALISTIC", "FICTION"]
         },
         {
           name: "expand_prompt",
           type: "bool",
           default: true,
           title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt.",
+          description: "Whether to expand/augment the prompt."
         },
         {
           name: "image_size",
@@ -732,15 +808,15 @@ export const imageConfig: ModuleConfig = {
             "portrait_4_3",
             "portrait_16_9",
             "landscape_4_3",
-            "landscape_16_9",
-          ],
+            "landscape_16_9"
+          ]
         },
         {
           name: "negative_prompt",
           type: "str",
           default: "",
           title: "Negative Prompt",
-          description: "Undesired elements to exclude from the image.",
+          description: "Undesired elements to exclude from the image."
         },
         {
           name: "seed",
@@ -748,23 +824,27 @@ export const imageConfig: ModuleConfig = {
           default: 0,
           title: "Seed",
           description: "Random seed for generation.",
-          min: 0,
-        },
+          min: 0
+        }
       ],
       uploads: [
         {
           field: "reference_images",
           kind: "image",
           isList: true,
-          paramName: "input_urls",
-        },
+          paramName: "input_urls"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
       ],
       paramNames: {
-        image_size: "aspect_ratio",
-      },
+        image_size: "aspect_ratio"
+      }
     },
 
     // -----------------------------------------------------------------------
@@ -783,28 +863,40 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "Text description for the masked area.",
+          description: "Text description for the masked area."
         },
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
-          description: "Base image with masked area to fill.",
+          description: "Base image with masked area to fill."
         },
         {
           name: "mask",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Mask",
-          description: "Mask image indicating areas to edit.",
+          description: "Mask image indicating areas to edit."
         },
         {
           name: "reference_images",
           type: "list[image]",
           default: [],
           title: "Reference Images",
-          description: "Reference images for character guidance.",
+          description: "Reference images for character guidance."
         },
         {
           name: "rendering_speed",
@@ -812,7 +904,7 @@ export const imageConfig: ModuleConfig = {
           default: "BALANCED",
           title: "Rendering Speed",
           description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"],
+          values: ["TURBO", "BALANCED", "QUALITY"]
         },
         {
           name: "style",
@@ -820,14 +912,14 @@ export const imageConfig: ModuleConfig = {
           default: "AUTO",
           title: "Style",
           description: "Generation style.",
-          values: ["AUTO", "REALISTIC", "FICTION"],
+          values: ["AUTO", "REALISTIC", "FICTION"]
         },
         {
           name: "expand_prompt",
           type: "bool",
           default: true,
           title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt.",
+          description: "Whether to expand/augment the prompt."
         },
         {
           name: "seed",
@@ -835,30 +927,34 @@ export const imageConfig: ModuleConfig = {
           default: 0,
           title: "Seed",
           description: "Random seed for generation.",
-          min: 0,
-        },
+          min: 0
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
+          paramName: "image_url"
         },
         {
           field: "mask",
           kind: "image",
-          paramName: "mask_url",
+          paramName: "mask_url"
         },
         {
           field: "reference_images",
           kind: "image",
           isList: true,
-          paramName: "reference_image_urls",
-        },
+          paramName: "reference_image_urls"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -877,21 +973,27 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "Text description for remixing.",
+          description: "Text description for remixing."
         },
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
-          description: "Base image to remix.",
+          description: "Base image to remix."
         },
         {
           name: "reference_images",
           type: "list[image]",
           default: [],
           title: "Reference Images",
-          description: "Reference images for character guidance.",
+          description: "Reference images for character guidance."
         },
         {
           name: "rendering_speed",
@@ -899,7 +1001,7 @@ export const imageConfig: ModuleConfig = {
           default: "BALANCED",
           title: "Rendering Speed",
           description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"],
+          values: ["TURBO", "BALANCED", "QUALITY"]
         },
         {
           name: "style",
@@ -907,14 +1009,14 @@ export const imageConfig: ModuleConfig = {
           default: "AUTO",
           title: "Style",
           description: "Generation style.",
-          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"],
+          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"]
         },
         {
           name: "expand_prompt",
           type: "bool",
           default: true,
           title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt.",
+          description: "Whether to expand/augment the prompt."
         },
         {
           name: "image_size",
@@ -928,8 +1030,8 @@ export const imageConfig: ModuleConfig = {
             "portrait_4_3",
             "portrait_16_9",
             "landscape_4_3",
-            "landscape_16_9",
-          ],
+            "landscape_16_9"
+          ]
         },
         {
           name: "strength",
@@ -938,46 +1040,50 @@ export const imageConfig: ModuleConfig = {
           title: "Strength",
           description: "How strongly to apply the remix (0.0 to 1.0).",
           min: 0,
-          max: 1,
+          max: 1
         },
         {
           name: "negative_prompt",
           type: "str",
           default: "",
           title: "Negative Prompt",
-          description: "Undesired elements to exclude from the image.",
+          description: "Undesired elements to exclude from the image."
         },
         {
           name: "additional_images",
           type: "list[image]",
           default: [],
           title: "Additional Images",
-          description: "Additional image this.",
+          description: "Additional image this."
         },
         {
           name: "reference_mask_urls",
           type: "str",
           default: "",
           title: "Reference Mask Urls",
-          description: "URL(s) to masks for references (comma-separated).",
-        },
+          description: "URL(s) to masks for references (comma-separated)."
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
+          paramName: "image_url"
         },
         {
           field: "reference_images",
           kind: "image",
           isList: true,
-          paramName: "reference_image_urls",
-        },
+          paramName: "reference_image_urls"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -994,9 +1100,15 @@ export const imageConfig: ModuleConfig = {
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
-          description: "URL of the image to reframe.",
+          description: "URL of the image to reframe."
         },
         {
           name: "image_size",
@@ -1010,8 +1122,8 @@ export const imageConfig: ModuleConfig = {
             "portrait_4_3",
             "portrait_16_9",
             "landscape_4_3",
-            "landscape_16_9",
-          ],
+            "landscape_16_9"
+          ]
         },
         {
           name: "rendering_speed",
@@ -1019,7 +1131,7 @@ export const imageConfig: ModuleConfig = {
           default: "BALANCED",
           title: "Rendering Speed",
           description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"],
+          values: ["TURBO", "BALANCED", "QUALITY"]
         },
         {
           name: "style",
@@ -1027,23 +1139,23 @@ export const imageConfig: ModuleConfig = {
           default: "AUTO",
           title: "Style",
           description: "Generation style.",
-          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"],
+          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"]
         },
         {
           name: "seed",
           type: "int",
           default: 0,
           title: "Seed",
-          description: "RNG seed.",
-        },
+          description: "RNG seed."
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
-        },
-      ],
+          paramName: "image_url"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1060,18 +1172,24 @@ export const imageConfig: ModuleConfig = {
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
-          description: "The image to upscale.",
-        },
+          description: "The image to upscale."
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
-        },
-      ],
+          paramName: "image_url"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1090,14 +1208,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "negative_prompt",
           type: "str",
           default: "",
           title: "Negative Prompt",
-          description: "Undesired elements to exclude.",
+          description: "Undesired elements to exclude."
         },
         {
           name: "aspect_ratio",
@@ -1105,12 +1223,16 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
-        },
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1129,14 +1251,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "negative_prompt",
           type: "str",
           default: "",
           title: "Negative Prompt",
-          description: "Undesired elements to exclude.",
+          description: "Undesired elements to exclude."
         },
         {
           name: "aspect_ratio",
@@ -1144,19 +1266,23 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
         },
         {
           name: "seed",
           type: "int",
           default: 0,
           title: "Seed",
-          description: "RNG seed.",
-        },
+          description: "RNG seed."
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1175,14 +1301,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "negative_prompt",
           type: "str",
           default: "",
           title: "Negative Prompt",
-          description: "Undesired elements to exclude.",
+          description: "Undesired elements to exclude."
         },
         {
           name: "aspect_ratio",
@@ -1190,19 +1316,23 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
         },
         {
           name: "seed",
           type: "int",
           default: 0,
           title: "Seed",
-          description: "RNG seed.",
-        },
+          description: "RNG seed."
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1221,14 +1351,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "Text description of the changes to make.",
+          description: "Text description of the changes to make."
         },
         {
           name: "image_input",
           type: "list[image]",
           default: [],
           title: "Image Input",
-          description: "Images to edit.",
+          description: "Images to edit."
         },
         {
           name: "image_size",
@@ -1247,21 +1377,25 @@ export const imageConfig: ModuleConfig = {
             "5:4",
             "4:5",
             "21:9",
-            "auto",
-          ],
-        },
+            "auto"
+          ]
+        }
       ],
       uploads: [
         {
           field: "image_input",
           kind: "image",
           isList: false,
-          paramName: "image_url",
-        },
+          paramName: "image_url"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1280,7 +1414,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "size",
@@ -1288,7 +1422,7 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Size",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "3:2", "2:3"],
+          values: ["1:1", "3:2", "2:3"]
         },
         {
           name: "n_variants",
@@ -1297,19 +1431,23 @@ export const imageConfig: ModuleConfig = {
           title: "N Variants",
           description: "Number of image variants to generate (1, 2, or 4).",
           min: 1,
-          max: 4,
+          max: 4
         },
         {
           name: "is_enhance",
           type: "bool",
           default: false,
           title: "Is Enhance",
-          description: "Enable prompt enhancement for more refined effects.",
-        },
+          description: "Enable prompt enhancement for more refined effects."
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1328,14 +1466,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing how to edit the image.",
+          description: "The text prompt describing how to edit the image."
         },
         {
           name: "images",
           type: "list[image]",
           default: [],
           title: "Images",
-          description: "Input images to edit (supports up to 5 images).",
+          description: "Input images to edit (supports up to 5 images)."
         },
         {
           name: "size",
@@ -1343,7 +1481,7 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Size",
           description: "The aspect ratio of the output image.",
-          values: ["1:1", "3:2", "2:3"],
+          values: ["1:1", "3:2", "2:3"]
         },
         {
           name: "n_variants",
@@ -1352,20 +1490,24 @@ export const imageConfig: ModuleConfig = {
           title: "N Variants",
           description: "Number of image variants to generate (1, 2, or 4).",
           min: 1,
-          max: 4,
-        },
+          max: 4
+        }
       ],
       uploads: [
         {
           field: "images",
           kind: "image",
           isList: true,
-          paramName: "input_urls",
-        },
+          paramName: "input_urls"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1384,7 +1526,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "aspect_ratio",
@@ -1392,20 +1534,25 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "2:3", "3:2"],
+          values: ["1:1", "2:3", "3:2"]
         },
         {
           name: "quality",
           type: "enum",
           default: "medium",
           title: "Quality",
-          description: "Image quality setting. Medium = balanced, High = slow/detailed.",
-          values: ["medium", "high"],
-        },
+          description:
+            "Image quality setting. Medium = balanced, High = slow/detailed.",
+          values: ["medium", "high"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1424,14 +1571,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing how to edit the image.",
+          description: "The text prompt describing how to edit the image."
         },
         {
           name: "images",
           type: "list[image]",
           default: [],
           title: "Images",
-          description: "Input images to edit (supports up to 16 images).",
+          description: "Input images to edit (supports up to 16 images)."
         },
         {
           name: "aspect_ratio",
@@ -1439,28 +1586,33 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the output image.",
-          values: ["1:1", "2:3", "3:2"],
+          values: ["1:1", "2:3", "3:2"]
         },
         {
           name: "quality",
           type: "enum",
           default: "medium",
           title: "Quality",
-          description: "Image quality setting. Medium = balanced, High = slow/detailed.",
-          values: ["medium", "high"],
-        },
+          description:
+            "Image quality setting. Medium = balanced, High = slow/detailed.",
+          values: ["medium", "high"]
+        }
       ],
       uploads: [
         {
           field: "images",
           kind: "image",
           isList: true,
-          paramName: "input_urls",
-        },
+          paramName: "input_urls"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1479,14 +1631,14 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "negative_prompt",
           type: "str",
           default: "",
           title: "Negative Prompt",
-          description: "Elements to avoid in the generated image.",
+          description: "Elements to avoid in the generated image."
         },
         {
           name: "rendering_speed",
@@ -1494,7 +1646,7 @@ export const imageConfig: ModuleConfig = {
           default: "BALANCED",
           title: "Rendering Speed",
           description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"],
+          values: ["TURBO", "BALANCED", "QUALITY"]
         },
         {
           name: "style",
@@ -1502,7 +1654,7 @@ export const imageConfig: ModuleConfig = {
           default: "AUTO",
           title: "Style",
           description: "Generation style.",
-          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"],
+          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"]
         },
         {
           name: "image_size",
@@ -1516,30 +1668,33 @@ export const imageConfig: ModuleConfig = {
             "portrait_4_3",
             "portrait_16_9",
             "landscape_4_3",
-            "landscape_16_9",
-          ],
+            "landscape_16_9"
+          ]
         },
         {
           name: "expand_prompt",
           type: "bool",
           default: true,
           title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt with MagicPrompt.",
+          description: "Whether to expand/augment the prompt with MagicPrompt."
         },
         {
           name: "seed",
           type: "int",
           default: -1,
           title: "Seed",
-          description: "Random seed for reproducible results. Use -1 for random.",
-        },
+          description:
+            "Random seed for reproducible results. Use -1 for random."
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
       ],
-      conditionalFields: [
-        { field: "negative_prompt", condition: "truthy" },
-      ],
+      conditionalFields: [{ field: "negative_prompt", condition: "truthy" }]
     },
 
     // -----------------------------------------------------------------------
@@ -1558,21 +1713,27 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing how to transform the image.",
+          description: "The text prompt describing how to transform the image."
         },
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
-          description: "The source image to transform.",
+          description: "The source image to transform."
         },
         {
           name: "negative_prompt",
           type: "str",
           default: "",
           title: "Negative Prompt",
-          description: "Elements to avoid in the output.",
+          description: "Elements to avoid in the output."
         },
         {
           name: "rendering_speed",
@@ -1580,7 +1741,7 @@ export const imageConfig: ModuleConfig = {
           default: "BALANCED",
           title: "Rendering Speed",
           description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"],
+          values: ["TURBO", "BALANCED", "QUALITY"]
         },
         {
           name: "style",
@@ -1588,7 +1749,7 @@ export const imageConfig: ModuleConfig = {
           default: "AUTO",
           title: "Style",
           description: "Generation style.",
-          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"],
+          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"]
         },
         {
           name: "image_size",
@@ -1602,8 +1763,8 @@ export const imageConfig: ModuleConfig = {
             "portrait_4_3",
             "portrait_16_9",
             "landscape_4_3",
-            "landscape_16_9",
-          ],
+            "landscape_16_9"
+          ]
         },
         {
           name: "strength",
@@ -1613,33 +1774,38 @@ export const imageConfig: ModuleConfig = {
           description:
             "Strength of the input image in the remix (0-1). Lower = more original preserved.",
           min: 0,
-          max: 1,
+          max: 1
         },
         {
           name: "expand_prompt",
           type: "bool",
           default: true,
           title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt with MagicPrompt.",
+          description: "Whether to expand/augment the prompt with MagicPrompt."
         },
         {
           name: "seed",
           type: "int",
           default: -1,
           title: "Seed",
-          description: "Random seed for reproducible results. Use -1 for random.",
-        },
+          description:
+            "Random seed for reproducible results. Use -1 for random."
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
-        },
+          paramName: "image_url"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
-      ],
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1658,7 +1824,7 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing the image to generate.",
+          description: "The text prompt describing the image to generate."
         },
         {
           name: "aspect_ratio",
@@ -1666,7 +1832,7 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
         },
         {
           name: "quality",
@@ -1674,15 +1840,19 @@ export const imageConfig: ModuleConfig = {
           default: "basic",
           title: "Quality",
           description: "Basic outputs 2K images, while High outputs 4K images.",
-          values: ["basic", "high"],
-        },
+          values: ["basic", "high"]
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
       ],
       paramNames: {
-        quality: "resolution",
-      },
+        quality: "resolution"
+      }
     },
 
     // -----------------------------------------------------------------------
@@ -1701,14 +1871,20 @@ export const imageConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Prompt",
-          description: "The text prompt describing how to transform the image.",
+          description: "The text prompt describing how to transform the image."
         },
         {
           name: "image",
           type: "image",
-          default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Image",
-          description: "The source image to transform.",
+          description: "The source image to transform."
         },
         {
           name: "aspect_ratio",
@@ -1716,7 +1892,7 @@ export const imageConfig: ModuleConfig = {
           default: "1:1",
           title: "Aspect Ratio",
           description: "The aspect ratio of the output image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
         },
         {
           name: "quality",
@@ -1724,22 +1900,26 @@ export const imageConfig: ModuleConfig = {
           default: "basic",
           title: "Quality",
           description: "Basic outputs 2K images, while High outputs 4K images.",
-          values: ["basic", "high"],
-        },
+          values: ["basic", "high"]
+        }
       ],
       uploads: [
         {
           field: "image",
           kind: "image",
-          paramName: "image_url",
-        },
+          paramName: "image_url"
+        }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt cannot be empty" },
+        {
+          field: "prompt",
+          rule: "not_empty",
+          message: "Prompt cannot be empty"
+        }
       ],
       paramNames: {
-        quality: "resolution",
-      },
-    },
-  ],
+        quality: "resolution"
+      }
+    }
+  ]
 };

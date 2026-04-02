@@ -7,7 +7,7 @@ import {
   GraphValidationError,
   NodeInbox,
   NodeActor,
-  WorkflowRunner,
+  WorkflowRunner
 } from "../src/index.js";
 import type {
   MessageEnvelope,
@@ -15,7 +15,7 @@ import type {
   ActorResult,
   RunJobRequest,
   WorkflowRunnerOptions,
-  RunResult,
+  RunResult
 } from "../src/index.js";
 
 describe("@nodetool/kernel barrel exports", () => {

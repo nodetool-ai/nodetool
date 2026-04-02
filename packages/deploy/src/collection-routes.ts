@@ -63,7 +63,7 @@ export async function handleCollectionIndex(
     console.error(`Error indexing file ${fileName}: ${message}`);
     const httpError: CollectionHttpError = {
       statusCode: 500,
-      detail: message,
+      detail: message
     };
     throw httpError;
   }

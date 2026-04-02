@@ -6,7 +6,10 @@
  */
 
 import Database from "better-sqlite3";
-import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import {
+  drizzle,
+  type BetterSQLite3Database
+} from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema/index.js";
 
 let _db: BetterSQLite3Database<typeof schema> | null = null;
@@ -43,7 +46,11 @@ export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
 export function initTestDb(): BetterSQLite3Database<typeof schema> {
   // Close existing connection if any
   if (_sqlite) {
-    try { _sqlite.close(); } catch { /* ignore */ }
+    try {
+      _sqlite.close();
+    } catch {
+      /* ignore */
+    }
   }
   const sqlite = new Database(":memory:");
   _sqlite = sqlite;
@@ -60,7 +67,10 @@ export function initTestDb(): BetterSQLite3Database<typeof schema> {
  * Throws if not initialized.
  */
 export function getDb(): BetterSQLite3Database<typeof schema> {
-  if (!_db) throw new Error("Database not initialized. Call initDb() or initTestDb() first.");
+  if (!_db)
+    throw new Error(
+      "Database not initialized. Call initDb() or initTestDb() first."
+    );
   return _db;
 }
 
@@ -68,7 +78,10 @@ export function getDb(): BetterSQLite3Database<typeof schema> {
  * Get the underlying better-sqlite3 Database instance for raw queries.
  */
 export function getRawDb(): Database.Database {
-  if (!_sqlite) throw new Error("Database not initialized. Call initDb() or initTestDb() first.");
+  if (!_sqlite)
+    throw new Error(
+      "Database not initialized. Call initDb() or initTestDb() first."
+    );
   return _sqlite;
 }
 
@@ -77,7 +90,11 @@ export function getRawDb(): Database.Database {
  */
 export function closeDb(): void {
   if (_sqlite) {
-    try { _sqlite.close(); } catch { /* ignore */ }
+    try {
+      _sqlite.close();
+    } catch {
+      /* ignore */
+    }
     _sqlite = null;
   }
   _db = null;
@@ -89,89 +106,237 @@ export function closeDb(): void {
  */
 const TABLE_COLUMNS: Record<string, Record<string, string>> = {
   nodetool_workflows: {
-    id: "text", user_id: "text", name: "text", tool_name: "text", description: "text",
-    tags: "text", thumbnail: "text", thumbnail_url: "text", graph: "text", settings: "text",
-    package_name: "text", path: "text", run_mode: "text", workspace_id: "text",
-    html_app: "text", receive_clipboard: "integer", access: "text",
-    created_at: "text", updated_at: "text",
+    id: "text",
+    user_id: "text",
+    name: "text",
+    tool_name: "text",
+    description: "text",
+    tags: "text",
+    thumbnail: "text",
+    thumbnail_url: "text",
+    graph: "text",
+    settings: "text",
+    package_name: "text",
+    path: "text",
+    run_mode: "text",
+    workspace_id: "text",
+    html_app: "text",
+    receive_clipboard: "integer",
+    access: "text",
+    created_at: "text",
+    updated_at: "text"
   },
   nodetool_jobs: {
-    id: "text", user_id: "text", job_type: "text", workflow_id: "text", status: "text",
-    name: "text", graph: "text", params: "text", worker_id: "text", heartbeat_at: "text",
-    started_at: "text", finished_at: "text", completed_at: "text", failed_at: "text",
-    error: "text", error_message: "text", cost: "real", logs: "text",
-    retry_count: "integer", max_retries: "integer", version: "integer",
-    suspended_node_id: "text", suspension_reason: "text", suspension_state_json: "text",
-    suspension_metadata_json: "text", execution_strategy: "text", execution_id: "text",
-    metadata_json: "text", created_at: "text", updated_at: "text",
+    id: "text",
+    user_id: "text",
+    job_type: "text",
+    workflow_id: "text",
+    status: "text",
+    name: "text",
+    graph: "text",
+    params: "text",
+    worker_id: "text",
+    heartbeat_at: "text",
+    started_at: "text",
+    finished_at: "text",
+    completed_at: "text",
+    failed_at: "text",
+    error: "text",
+    error_message: "text",
+    cost: "real",
+    logs: "text",
+    retry_count: "integer",
+    max_retries: "integer",
+    version: "integer",
+    suspended_node_id: "text",
+    suspension_reason: "text",
+    suspension_state_json: "text",
+    suspension_metadata_json: "text",
+    execution_strategy: "text",
+    execution_id: "text",
+    metadata_json: "text",
+    created_at: "text",
+    updated_at: "text"
   },
   nodetool_messages: {
-    id: "text", user_id: "text", thread_id: "text", role: "text", name: "text",
-    content: "text", tool_calls: "text", tool_call_id: "text", input_files: "text",
-    output_files: "text", provider: "text", model: "text", cost: "real",
-    workflow_id: "text", graph: "text", tools: "text", collections: "text",
-    agent_mode: "integer", help_mode: "integer", agent_execution_id: "text",
-    execution_event_type: "text", workflow_target: "text", created_at: "text",
+    id: "text",
+    user_id: "text",
+    thread_id: "text",
+    role: "text",
+    name: "text",
+    content: "text",
+    tool_calls: "text",
+    tool_call_id: "text",
+    input_files: "text",
+    output_files: "text",
+    provider: "text",
+    model: "text",
+    cost: "real",
+    workflow_id: "text",
+    graph: "text",
+    tools: "text",
+    collections: "text",
+    agent_mode: "integer",
+    help_mode: "integer",
+    agent_execution_id: "text",
+    execution_event_type: "text",
+    workflow_target: "text",
+    created_at: "text"
   },
   nodetool_threads: {
-    id: "text", user_id: "text", title: "text", created_at: "text", updated_at: "text",
+    id: "text",
+    user_id: "text",
+    title: "text",
+    created_at: "text",
+    updated_at: "text"
   },
   nodetool_assets: {
-    id: "text", user_id: "text", parent_id: "text", file_id: "text", name: "text",
-    content_type: "text", size: "real", duration: "real", metadata: "text",
-    workflow_id: "text", node_id: "text", job_id: "text",
-    created_at: "text", updated_at: "text",
+    id: "text",
+    user_id: "text",
+    parent_id: "text",
+    file_id: "text",
+    name: "text",
+    content_type: "text",
+    size: "real",
+    duration: "real",
+    metadata: "text",
+    workflow_id: "text",
+    node_id: "text",
+    job_id: "text",
+    created_at: "text",
+    updated_at: "text"
   },
   nodetool_secrets: {
-    id: "text", user_id: "text", key: "text", encrypted_value: "text",
-    description: "text", created_at: "text", updated_at: "text",
+    id: "text",
+    user_id: "text",
+    key: "text",
+    encrypted_value: "text",
+    description: "text",
+    created_at: "text",
+    updated_at: "text"
   },
   nodetool_workspaces: {
-    id: "text", user_id: "text", name: "text", path: "text", is_default: "integer",
-    created_at: "text", updated_at: "text",
+    id: "text",
+    user_id: "text",
+    name: "text",
+    path: "text",
+    is_default: "integer",
+    created_at: "text",
+    updated_at: "text"
   },
   nodetool_workflow_versions: {
-    id: "text", workflow_id: "text", user_id: "text", name: "text", description: "text",
-    graph: "text", version: "integer", save_type: "text", autosave_metadata: "text",
-    created_at: "text",
+    id: "text",
+    workflow_id: "text",
+    user_id: "text",
+    name: "text",
+    description: "text",
+    graph: "text",
+    version: "integer",
+    save_type: "text",
+    autosave_metadata: "text",
+    created_at: "text"
   },
   nodetool_oauth_credentials: {
-    id: "text", user_id: "text", provider: "text", account_id: "text",
-    encrypted_access_token: "text", encrypted_refresh_token: "text", username: "text",
-    token_type: "text", scope: "text", received_at: "text", expires_at: "text",
-    created_at: "text", updated_at: "text",
+    id: "text",
+    user_id: "text",
+    provider: "text",
+    account_id: "text",
+    encrypted_access_token: "text",
+    encrypted_refresh_token: "text",
+    username: "text",
+    token_type: "text",
+    scope: "text",
+    received_at: "text",
+    expires_at: "text",
+    created_at: "text",
+    updated_at: "text"
   },
   run_node_state: {
-    id: "text", run_id: "text", node_id: "text", status: "text", attempt: "integer",
-    scheduled_at: "text", started_at: "text", completed_at: "text", failed_at: "text",
-    suspended_at: "text", updated_at: "text", last_error: "text", retryable: "integer",
-    suspension_reason: "text", resume_state_json: "text", outputs_json: "text",
+    id: "text",
+    run_id: "text",
+    node_id: "text",
+    status: "text",
+    attempt: "integer",
+    scheduled_at: "text",
+    started_at: "text",
+    completed_at: "text",
+    failed_at: "text",
+    suspended_at: "text",
+    updated_at: "text",
+    last_error: "text",
+    retryable: "integer",
+    suspension_reason: "text",
+    resume_state_json: "text",
+    outputs_json: "text"
   },
   nodetool_predictions: {
-    id: "text", user_id: "text", node_id: "text", provider: "text", model: "text",
-    workflow_id: "text", error: "text", logs: "text", status: "text", cost: "real",
-    input_tokens: "integer", output_tokens: "integer", total_tokens: "integer",
-    cached_tokens: "integer", reasoning_tokens: "integer", created_at: "text",
-    started_at: "text", completed_at: "text", duration: "real", hardware: "text",
-    input_size: "integer", output_size: "integer", parameters: "text", metadata: "text",
+    id: "text",
+    user_id: "text",
+    node_id: "text",
+    provider: "text",
+    model: "text",
+    workflow_id: "text",
+    error: "text",
+    logs: "text",
+    status: "text",
+    cost: "real",
+    input_tokens: "integer",
+    output_tokens: "integer",
+    total_tokens: "integer",
+    cached_tokens: "integer",
+    reasoning_tokens: "integer",
+    created_at: "text",
+    started_at: "text",
+    completed_at: "text",
+    duration: "real",
+    hardware: "text",
+    input_size: "integer",
+    output_size: "integer",
+    parameters: "text",
+    metadata: "text"
   },
   run_events: {
-    id: "text", run_id: "text", seq: "integer", event_type: "text",
-    event_time: "text", node_id: "text", payload: "text",
+    id: "text",
+    run_id: "text",
+    seq: "integer",
+    event_type: "text",
+    event_time: "text",
+    node_id: "text",
+    payload: "text"
   },
   run_leases: {
-    run_id: "text", worker_id: "text", acquired_at: "text", expires_at: "text",
+    run_id: "text",
+    worker_id: "text",
+    acquired_at: "text",
+    expires_at: "text"
   },
   nodetool_team_tasks: {
-    id: "text", team_id: "text", title: "text", description: "text", status: "text",
-    created_by: "text", claimed_by: "text", depends_on: "text", required_skills: "text",
-    priority: "integer", artifacts: "text", parent_task_id: "text", result: "text",
-    failure_reason: "text", created_at: "text", updated_at: "text",
+    id: "text",
+    team_id: "text",
+    title: "text",
+    description: "text",
+    status: "text",
+    created_by: "text",
+    claimed_by: "text",
+    depends_on: "text",
+    required_skills: "text",
+    priority: "integer",
+    artifacts: "text",
+    parent_task_id: "text",
+    result: "text",
+    failure_reason: "text",
+    created_at: "text",
+    updated_at: "text"
   },
   nodetool_settings: {
-    id: "text", user_id: "text", key: "text", value: "text",
-    description: "text", created_at: "text", updated_at: "text",
-  },
+    id: "text",
+    user_id: "text",
+    key: "text",
+    value: "text",
+    description: "text",
+    created_at: "text",
+    updated_at: "text"
+  }
 };
 
 /**
@@ -183,13 +348,16 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
 function addMissingColumns(sqlite: Database.Database): void {
   for (const [tableName, expectedCols] of Object.entries(TABLE_COLUMNS)) {
     const existingCols = new Set(
-      (sqlite.pragma(`table_info("${tableName}")`) as Array<{ name: string }>)
-        .map(row => row.name),
+      (
+        sqlite.pragma(`table_info("${tableName}")`) as Array<{ name: string }>
+      ).map((row) => row.name)
     );
 
     for (const [colName, colType] of Object.entries(expectedCols)) {
       if (!existingCols.has(colName)) {
-        sqlite.exec(`ALTER TABLE "${tableName}" ADD COLUMN "${colName}" ${colType}`);
+        sqlite.exec(
+          `ALTER TABLE "${tableName}" ADD COLUMN "${colName}" ${colType}`
+        );
       }
     }
   }
@@ -497,6 +665,10 @@ function getCreateIndexStatementsSql(): string {
   return getCreateSchemaSql()
     .split(";")
     .map((statement) => statement.trim())
-    .filter((statement) => statement.startsWith("CREATE INDEX") || statement.startsWith("CREATE UNIQUE INDEX"))
+    .filter(
+      (statement) =>
+        statement.startsWith("CREATE INDEX") ||
+        statement.startsWith("CREATE UNIQUE INDEX")
+    )
     .join(";\n");
 }

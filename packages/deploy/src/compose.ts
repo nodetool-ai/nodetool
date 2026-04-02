@@ -9,10 +9,7 @@
 import { createHash } from "crypto";
 import { writeFileSync } from "fs";
 import yaml from "js-yaml";
-import type {
-  ContainerConfig,
-  DockerDeployment,
-} from "./deployment-config.js";
+import type { ContainerConfig, DockerDeployment } from "./deployment-config.js";
 import { imageConfigFullName } from "./deployment-config.js";
 import { INTERNAL_API_PORT, APP_ENV_PORT } from "./docker-run.js";
 
@@ -68,7 +65,7 @@ export class ComposeGenerator {
     const composeDict = this.buildComposeDict();
     return yaml.dump(composeDict, {
       flowLevel: -1,
-      sortKeys: false,
+      sortKeys: false
     });
   }
 
@@ -84,7 +81,7 @@ export class ComposeGenerator {
   private buildComposeDict(): ComposeDict {
     const compose: ComposeDict = {
       version: "3.8",
-      services: {},
+      services: {}
     };
 
     const container = this.deployment.container;
@@ -123,13 +120,13 @@ export class ComposeGenerator {
           "CMD",
           "curl",
           "-f",
-          `http://localhost:${INTERNAL_API_PORT}/health`,
+          `http://localhost:${INTERNAL_API_PORT}/health`
         ],
         interval: "30s",
         timeout: "10s",
         retries: 3,
-        start_period: "40s",
-      },
+        start_period: "40s"
+      }
     };
 
     if (container.gpu) {
@@ -177,11 +174,11 @@ export class ComposeGenerator {
             {
               driver: "nvidia",
               device_ids: gpuIds,
-              capabilities: ["gpu"],
-            },
-          ],
-        },
-      },
+              capabilities: ["gpu"]
+            }
+          ]
+        }
+      }
     };
   }
 }

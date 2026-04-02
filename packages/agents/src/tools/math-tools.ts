@@ -18,24 +18,36 @@ export class StatisticsTool extends Tool {
       data: {
         type: "array" as const,
         items: { type: "number" as const },
-        description: "Array of numerical values to analyze",
+        description: "Array of numerical values to analyze"
       },
       calculations: {
         type: "array" as const,
         items: {
           type: "string" as const,
-          enum: ["mean", "median", "mode", "std_dev", "variance", "min", "max", "sum", "count", "all"],
+          enum: [
+            "mean",
+            "median",
+            "mode",
+            "std_dev",
+            "variance",
+            "min",
+            "max",
+            "sum",
+            "count",
+            "all"
+          ]
         },
-        description: "Which statistics to calculate (use 'all' for all statistics)",
-        default: ["all"],
-      },
+        description:
+          "Which statistics to calculate (use 'all' for all statistics)",
+        default: ["all"]
+      }
     },
-    required: ["data"],
+    required: ["data"]
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const data = params["data"];
     if (!Array.isArray(data) || data.length === 0) {
@@ -53,9 +65,10 @@ export class StatisticsTool extends Tool {
       if (calcs.includes("all") || calcs.includes("median")) {
         const sorted = [...nums].sort((a, b) => a - b);
         const mid = Math.floor(sorted.length / 2);
-        results["median"] = sorted.length % 2 !== 0
-          ? sorted[mid]
-          : (sorted[mid - 1] + sorted[mid]) / 2;
+        results["median"] =
+          sorted.length % 2 !== 0
+            ? sorted[mid]
+            : (sorted[mid - 1] + sorted[mid]) / 2;
       }
       if (calcs.includes("all") || calcs.includes("mode")) {
         const freq = new Map<number, number>();
@@ -63,14 +76,19 @@ export class StatisticsTool extends Tool {
         let maxFreq = 0;
         let mode: number | string = "No unique mode";
         for (const [val, count] of freq) {
-          if (count > maxFreq) { maxFreq = count; mode = val; }
+          if (count > maxFreq) {
+            maxFreq = count;
+            mode = val;
+          }
         }
         results["mode"] = mode;
       }
       if (calcs.includes("all") || calcs.includes("std_dev")) {
         if (nums.length > 1) {
           const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
-          const variance = nums.reduce((sum, n) => sum + (n - mean) ** 2, 0) / (nums.length - 1);
+          const variance =
+            nums.reduce((sum, n) => sum + (n - mean) ** 2, 0) /
+            (nums.length - 1);
           results["std_dev"] = Math.sqrt(variance);
         } else {
           results["std_dev"] = 0;
@@ -79,17 +97,26 @@ export class StatisticsTool extends Tool {
       if (calcs.includes("all") || calcs.includes("variance")) {
         if (nums.length > 1) {
           const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
-          results["variance"] = nums.reduce((sum, n) => sum + (n - mean) ** 2, 0) / (nums.length - 1);
+          results["variance"] =
+            nums.reduce((sum, n) => sum + (n - mean) ** 2, 0) /
+            (nums.length - 1);
         } else {
           results["variance"] = 0;
         }
       }
-      if (calcs.includes("all") || calcs.includes("min")) results["min"] = Math.min(...nums);
-      if (calcs.includes("all") || calcs.includes("max")) results["max"] = Math.max(...nums);
-      if (calcs.includes("all") || calcs.includes("sum")) results["sum"] = nums.reduce((a, b) => a + b, 0);
-      if (calcs.includes("all") || calcs.includes("count")) results["count"] = nums.length;
+      if (calcs.includes("all") || calcs.includes("min"))
+        results["min"] = Math.min(...nums);
+      if (calcs.includes("all") || calcs.includes("max"))
+        results["max"] = Math.max(...nums);
+      if (calcs.includes("all") || calcs.includes("sum"))
+        results["sum"] = nums.reduce((a, b) => a + b, 0);
+      if (calcs.includes("all") || calcs.includes("count"))
+        results["count"] = nums.length;
 
-      return { data_summary: `Analyzed ${nums.length} values`, statistics: results };
+      return {
+        data_summary: `Analyzed ${nums.length} values`,
+        statistics: results
+      };
     } catch (e) {
       return { error: `Statistics calculation error: ${String(e)}` };
     }
@@ -111,8 +138,17 @@ export class GeometryTool extends Tool {
     properties: {
       shape: {
         type: "string" as const,
-        enum: ["circle", "rectangle", "triangle", "sphere", "cylinder", "cube", "distance_2d", "distance_3d"],
-        description: "Type of geometric shape or calculation",
+        enum: [
+          "circle",
+          "rectangle",
+          "triangle",
+          "sphere",
+          "cylinder",
+          "cube",
+          "distance_2d",
+          "distance_3d"
+        ],
+        description: "Type of geometric shape or calculation"
       },
       dimensions: {
         type: "object" as const,
@@ -132,16 +168,16 @@ export class GeometryTool extends Tool {
           z1: { type: "number" as const },
           x2: { type: "number" as const },
           y2: { type: "number" as const },
-          z2: { type: "number" as const },
-        },
-      },
+          z2: { type: "number" as const }
+        }
+      }
     },
-    required: ["shape", "dimensions"],
+    required: ["shape", "dimensions"]
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const shape = params["shape"] as string;
     const dims = (params["dimensions"] ?? {}) as Record<string, number>;
@@ -155,7 +191,8 @@ export class GeometryTool extends Tool {
         results["circumference"] = 2 * Math.PI * r;
         results["diameter"] = 2 * r;
       } else if (shape === "rectangle") {
-        const w = dims["width"], h = dims["height"];
+        const w = dims["width"],
+          h = dims["height"];
         results["area"] = w * h;
         results["perimeter"] = 2 * (w + h);
         results["diagonal"] = Math.sqrt(w ** 2 + h ** 2);
@@ -174,7 +211,8 @@ export class GeometryTool extends Tool {
         results["volume"] = (4 / 3) * Math.PI * r ** 3;
         results["surface_area"] = 4 * Math.PI * r ** 2;
       } else if (shape === "cylinder") {
-        const r = dims["radius"], h = dims["height"];
+        const r = dims["radius"],
+          h = dims["height"];
         results["volume"] = Math.PI * r ** 2 * h;
         results["surface_area"] = 2 * Math.PI * r * (r + h);
       } else if (shape === "cube") {
@@ -182,12 +220,14 @@ export class GeometryTool extends Tool {
         results["volume"] = s ** 3;
         results["surface_area"] = 6 * s ** 2;
       } else if (shape === "distance_2d") {
-        results["distance"] = Math.sqrt((dims["x2"] - dims["x1"]) ** 2 + (dims["y2"] - dims["y1"]) ** 2);
+        results["distance"] = Math.sqrt(
+          (dims["x2"] - dims["x1"]) ** 2 + (dims["y2"] - dims["y1"]) ** 2
+        );
       } else if (shape === "distance_3d") {
         results["distance"] = Math.sqrt(
           (dims["x2"] - dims["x1"]) ** 2 +
-          (dims["y2"] - dims["y1"]) ** 2 +
-          (dims["z2"] - dims["z1"]) ** 2,
+            (dims["y2"] - dims["y1"]) ** 2 +
+            (dims["z2"] - dims["z1"]) ** 2
         );
       } else {
         return { error: `Unsupported shape: ${shape}` };
@@ -214,34 +254,50 @@ export class TrigonometryTool extends Tool {
     properties: {
       function: {
         type: "string" as const,
-        enum: ["sin", "cos", "tan", "asin", "acos", "atan", "deg_to_rad", "rad_to_deg"],
-        description: "Trigonometric function to apply",
+        enum: [
+          "sin",
+          "cos",
+          "tan",
+          "asin",
+          "acos",
+          "atan",
+          "deg_to_rad",
+          "rad_to_deg"
+        ],
+        description: "Trigonometric function to apply"
       },
       value: {
         type: "number" as const,
-        description: "Input value (angle in degrees for trig functions, or value for inverse functions)",
+        description:
+          "Input value (angle in degrees for trig functions, or value for inverse functions)"
       },
       angle_unit: {
         type: "string" as const,
         enum: ["degrees", "radians"],
         description: "Unit of the input angle",
-        default: "degrees",
-      },
+        default: "degrees"
+      }
     },
-    required: ["function", "value"],
+    required: ["function", "value"]
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const fn = params["function"] as string;
     const value = params["value"] as number;
     const angleUnit = (params["angle_unit"] as string | undefined) ?? "degrees";
 
     try {
-      const toRad = angleUnit === "degrees" ? (v: number) => (v * Math.PI) / 180 : (v: number) => v;
-      const toDeg = angleUnit === "degrees" ? (v: number) => (v * 180) / Math.PI : (v: number) => v;
+      const toRad =
+        angleUnit === "degrees"
+          ? (v: number) => (v * Math.PI) / 180
+          : (v: number) => v;
+      const toDeg =
+        angleUnit === "degrees"
+          ? (v: number) => (v * 180) / Math.PI
+          : (v: number) => v;
 
       let result: number;
       if (fn === "sin") result = Math.sin(toRad(value));
@@ -254,7 +310,12 @@ export class TrigonometryTool extends Tool {
       else if (fn === "rad_to_deg") result = (value * 180) / Math.PI;
       else return { error: `Unsupported function: ${fn}` };
 
-      return { function: fn, input_value: value, input_unit: angleUnit, result };
+      return {
+        function: fn,
+        input_value: value,
+        input_unit: angleUnit,
+        result
+      };
     } catch (e) {
       return { error: `Trigonometry calculation error: ${String(e)}` };
     }
@@ -267,30 +328,48 @@ export class TrigonometryTool extends Tool {
 
 const UNIT_CONVERSIONS: Record<string, number> = {
   // Length (to meters)
-  meters: 1.0, m: 1.0,
-  centimeters: 0.01, cm: 0.01,
-  millimeters: 0.001, mm: 0.001,
-  kilometers: 1000.0, km: 1000.0,
-  feet: 0.3048, ft: 0.3048,
-  inches: 0.0254, in: 0.0254,
-  yards: 0.9144, yd: 0.9144,
+  meters: 1.0,
+  m: 1.0,
+  centimeters: 0.01,
+  cm: 0.01,
+  millimeters: 0.001,
+  mm: 0.001,
+  kilometers: 1000.0,
+  km: 1000.0,
+  feet: 0.3048,
+  ft: 0.3048,
+  inches: 0.0254,
+  in: 0.0254,
+  yards: 0.9144,
+  yd: 0.9144,
   miles: 1609.344,
   // Weight (to kilograms)
-  kilograms: 1.0, kg: 1.0,
-  grams: 0.001, g: 0.001,
-  pounds: 0.453592, lbs: 0.453592,
-  ounces: 0.0283495, oz: 0.0283495,
+  kilograms: 1.0,
+  kg: 1.0,
+  grams: 0.001,
+  g: 0.001,
+  pounds: 0.453592,
+  lbs: 0.453592,
+  ounces: 0.0283495,
+  oz: 0.0283495,
   // Area (to square meters)
-  square_meters: 1.0, m2: 1.0,
-  square_feet: 0.092903, ft2: 0.092903,
-  square_inches: 0.00064516, in2: 0.00064516,
+  square_meters: 1.0,
+  m2: 1.0,
+  square_feet: 0.092903,
+  ft2: 0.092903,
+  square_inches: 0.00064516,
+  in2: 0.00064516,
   acres: 4046.86,
   // Volume (to liters)
-  liters: 1.0, l: 1.0,
-  milliliters: 0.001, ml: 0.001,
-  gallons: 3.78541, gal: 3.78541,
+  liters: 1.0,
+  l: 1.0,
+  milliliters: 0.001,
+  ml: 0.001,
+  gallons: 3.78541,
+  gal: 3.78541,
   cups: 0.236588,
-  fluid_ounces: 0.0295735, fl_oz: 0.0295735,
+  fluid_ounces: 0.0295735,
+  fl_oz: 0.0295735
 };
 
 export class ConversionTool extends Tool {
@@ -302,15 +381,21 @@ export class ConversionTool extends Tool {
     type: "object" as const,
     properties: {
       value: { type: "number" as const, description: "Value to convert" },
-      from_unit: { type: "string" as const, description: "Source unit (e.g., 'meters', 'feet', 'celsius', 'kg')" },
-      to_unit: { type: "string" as const, description: "Target unit (e.g., 'feet', 'meters', 'fahrenheit', 'lbs')" },
+      from_unit: {
+        type: "string" as const,
+        description: "Source unit (e.g., 'meters', 'feet', 'celsius', 'kg')"
+      },
+      to_unit: {
+        type: "string" as const,
+        description: "Target unit (e.g., 'feet', 'meters', 'fahrenheit', 'lbs')"
+      }
     },
-    required: ["value", "from_unit", "to_unit"],
+    required: ["value", "from_unit", "to_unit"]
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const value = params["value"] as number;
     const fromUnit = (params["from_unit"] as string).toLowerCase();
@@ -326,7 +411,9 @@ export class ConversionTool extends Tool {
         const fromFactor = UNIT_CONVERSIONS[fromUnit];
         const toFactor = UNIT_CONVERSIONS[toUnit];
         if (fromFactor === undefined || toFactor === undefined) {
-          return { error: `Unsupported unit conversion: ${fromUnit} to ${toUnit}` };
+          return {
+            error: `Unsupported unit conversion: ${fromUnit} to ${toUnit}`
+          };
         }
         result = (value * fromFactor) / toFactor;
       }
@@ -336,7 +423,7 @@ export class ConversionTool extends Tool {
         from_unit: fromUnit,
         to_unit: toUnit,
         converted_value: result,
-        formatted: `${value} ${fromUnit} = ${result} ${toUnit}`,
+        formatted: `${value} ${fromUnit} = ${result} ${toUnit}`
       };
     } catch (e) {
       return { error: `Conversion error: ${String(e)}` };
@@ -345,11 +432,11 @@ export class ConversionTool extends Tool {
 
   private convertTemperature(value: number, from: string, to: string): number {
     let celsius: number;
-    if (from === "fahrenheit") celsius = (value - 32) * 5 / 9;
+    if (from === "fahrenheit") celsius = ((value - 32) * 5) / 9;
     else if (from === "kelvin") celsius = value - 273.15;
     else celsius = value;
 
-    if (to === "fahrenheit") return celsius * 9 / 5 + 32;
+    if (to === "fahrenheit") return (celsius * 9) / 5 + 32;
     if (to === "kelvin") return celsius + 273.15;
     return celsius;
   }

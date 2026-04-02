@@ -5,7 +5,7 @@ import {
   getNodetoolDataDir,
   getDefaultDbPath,
   getDefaultVectorstoreDbPath,
-  getDefaultAssetsPath,
+  getDefaultAssetsPath
 } from "../src/paths.js";
 
 describe("getNodetoolDataDir", () => {
@@ -29,7 +29,9 @@ describe("getNodetoolDataDir", () => {
     if (process.platform === "win32") return;
     saved.XDG_DATA_HOME = process.env.XDG_DATA_HOME;
     delete process.env.XDG_DATA_HOME;
-    expect(getNodetoolDataDir()).toBe(join(homedir(), ".local", "share", "nodetool"));
+    expect(getNodetoolDataDir()).toBe(
+      join(homedir(), ".local", "share", "nodetool")
+    );
   });
 
   it("does NOT use ~/Library/Application Support on macOS (matches Python side)", () => {
@@ -61,7 +63,9 @@ describe("getDefaultDbPath", () => {
   it("defaults to nodetool.sqlite3 inside data dir", () => {
     saved.DB_PATH = process.env.DB_PATH;
     delete process.env.DB_PATH;
-    expect(getDefaultDbPath()).toBe(join(getNodetoolDataDir(), "nodetool.sqlite3"));
+    expect(getDefaultDbPath()).toBe(
+      join(getNodetoolDataDir(), "nodetool.sqlite3")
+    );
   });
 });
 
@@ -84,7 +88,9 @@ describe("getDefaultVectorstoreDbPath", () => {
   it("defaults to vectorstore.db inside data dir", () => {
     saved.VECTORSTORE_DB_PATH = process.env.VECTORSTORE_DB_PATH;
     delete process.env.VECTORSTORE_DB_PATH;
-    expect(getDefaultVectorstoreDbPath()).toBe(join(getNodetoolDataDir(), "vectorstore.db"));
+    expect(getDefaultVectorstoreDbPath()).toBe(
+      join(getNodetoolDataDir(), "vectorstore.db")
+    );
   });
 });
 

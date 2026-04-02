@@ -52,7 +52,9 @@ describe("FileStorage", () => {
 
   it("download of non-existent key throws", async () => {
     await setup();
-    await expect(storage.download("nonexistent")).rejects.toThrow("Key not found: nonexistent");
+    await expect(storage.download("nonexistent")).rejects.toThrow(
+      "Key not found: nonexistent"
+    );
   });
 
   it("exists returns false for non-existent key", async () => {
@@ -62,7 +64,9 @@ describe("FileStorage", () => {
 
   it("rejects path traversal", async () => {
     await setup();
-    expect(() => storage.getUrl("../../etc/passwd")).toThrow("Path traversal detected");
+    expect(() => storage.getUrl("../../etc/passwd")).toThrow(
+      "Path traversal detected"
+    );
   });
 
   it("upload with Uint8Array works", async () => {

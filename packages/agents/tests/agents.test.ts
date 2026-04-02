@@ -20,7 +20,7 @@ function createMockProvider(
       | { type: "chunk"; content: string; done?: boolean }
       | { id: string; name: string; args: Record<string, unknown> }
     >
-  >,
+  >
 ) {
   let callIndex = 0;
   return {
@@ -33,8 +33,12 @@ function createMockProvider(
         yield item;
       }
     },
-    async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
-    async generateMessageTraced(...args: any[]) { return (this as any).generateMessage(...args); },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
     generateMessage: vi.fn(),
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
     getAvailableImageModels: vi.fn().mockResolvedValue([]),
@@ -50,7 +54,7 @@ function createMockProvider(
     textToVideo: vi.fn(),
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
-    isContextLengthError: () => false,
+    isContextLengthError: () => false
   } as any;
 }
 
@@ -73,7 +77,7 @@ function createMockContext() {
     get: vi.fn((key: string) => {
       return store.get(key);
     }),
-    _store: store,
+    _store: store
   } as any;
 }
 
@@ -89,9 +93,9 @@ describe("SimpleAgent", () => {
         {
           id: "tc_1",
           name: "finish_step",
-          args: { result: { value: "hello" } },
-        },
-      ],
+          args: { result: { value: "hello" } }
+        }
+      ]
     ]);
 
     const agent = new SimpleAgent({
@@ -102,8 +106,8 @@ describe("SimpleAgent", () => {
       tools: [],
       outputSchema: {
         type: "object",
-        properties: { value: { type: "string" } },
-      },
+        properties: { value: { type: "string" } }
+      }
     });
 
     const context = createMockContext();
@@ -125,9 +129,9 @@ describe("SimpleAgent", () => {
         {
           id: "tc_1",
           name: "finish_step",
-          args: { result: { v: 1 } },
-        },
-      ],
+          args: { result: { v: 1 } }
+        }
+      ]
     ]);
 
     const agent = new SimpleAgent({
@@ -136,7 +140,7 @@ describe("SimpleAgent", () => {
       provider,
       model: "test-model",
       // tools not provided, should default to []
-      outputSchema: { type: "object", properties: { v: { type: "number" } } },
+      outputSchema: { type: "object", properties: { v: { type: "number" } } }
     });
 
     const context = createMockContext();
@@ -155,9 +159,9 @@ describe("SimpleAgent", () => {
         {
           id: "tc_1",
           name: "finish_step",
-          args: { result: { done: true } },
-        },
-      ],
+          args: { result: { done: true } }
+        }
+      ]
     ]);
 
     const agent = new SimpleAgent({
@@ -166,7 +170,10 @@ describe("SimpleAgent", () => {
       provider,
       model: "test-model",
       tools: [],
-      outputSchema: { type: "object", properties: { done: { type: "boolean" } } },
+      outputSchema: {
+        type: "object",
+        properties: { done: { type: "boolean" } }
+      }
     });
 
     const context = createMockContext();
@@ -196,8 +203,8 @@ describe("TaskPlanner", () => {
       title: "My Task",
       steps: [
         { id: "step_a", instructions: "Do A", depends_on: [] },
-        { id: "step_b", instructions: "Do B", depends_on: ["step_a"] },
-      ],
+        { id: "step_b", instructions: "Do B", depends_on: ["step_a"] }
+      ]
     };
 
     const provider = createMockProvider([
@@ -206,14 +213,14 @@ describe("TaskPlanner", () => {
         {
           id: "tc_plan",
           name: "create_task",
-          args: taskPayload,
-        },
-      ],
+          args: taskPayload
+        }
+      ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const context = createMockContext();
@@ -236,7 +243,9 @@ describe("TaskPlanner", () => {
     expect(task!.steps[1].dependsOn).toEqual(["step_a"]);
 
     // Should have a planning_update message
-    const planningUpdates = messages.filter((m) => m.type === "planning_update");
+    const planningUpdates = messages.filter(
+      (m) => m.type === "planning_update"
+    );
     expect(planningUpdates.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -245,8 +254,8 @@ describe("TaskPlanner", () => {
       title: "Circular Task",
       steps: [
         { id: "step_x", instructions: "Do X", depends_on: ["step_y"] },
-        { id: "step_y", instructions: "Do Y", depends_on: ["step_x"] },
-      ],
+        { id: "step_y", instructions: "Do Y", depends_on: ["step_x"] }
+      ]
     };
 
     const provider = createMockProvider([
@@ -254,14 +263,14 @@ describe("TaskPlanner", () => {
         {
           id: "tc_plan",
           name: "create_task",
-          args: circularPayload,
-        },
-      ],
+          args: circularPayload
+        }
+      ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const context = createMockContext();
@@ -288,7 +297,7 @@ describe("TaskPlanner", () => {
         (m.type === "chunk" &&
           "content" in m &&
           typeof (m as any).content === "string" &&
-          (m as any).content.toLowerCase().includes("circular")),
+          (m as any).content.toLowerCase().includes("circular"))
     );
     expect(errorUpdates.length).toBeGreaterThanOrEqual(1);
   });
@@ -296,9 +305,7 @@ describe("TaskPlanner", () => {
   it("includes outputSchema in planner prompt when provided", async () => {
     const taskPayload = {
       title: "Schema Plan",
-      steps: [
-        { id: "step_a", instructions: "Do A", depends_on: [] },
-      ],
+      steps: [{ id: "step_a", instructions: "Do A", depends_on: [] }]
     };
 
     const provider = createMockProvider([
@@ -306,15 +313,18 @@ describe("TaskPlanner", () => {
         {
           id: "tc_plan",
           name: "create_task",
-          args: taskPayload,
-        },
-      ],
+          args: taskPayload
+        }
+      ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
       model: "test-model",
-      outputSchema: { type: "object", properties: { answer: { type: "string" } } },
+      outputSchema: {
+        type: "object",
+        properties: { answer: { type: "string" } }
+      }
     });
 
     const context = createMockContext();
@@ -331,9 +341,7 @@ describe("TaskPlanner", () => {
   it("includes tool info when tools are provided", async () => {
     const taskPayload = {
       title: "Tools Task",
-      steps: [
-        { id: "step_a", instructions: "Use tool", depends_on: [] },
-      ],
+      steps: [{ id: "step_a", instructions: "Use tool", depends_on: [] }]
     };
 
     const provider = createMockProvider([
@@ -341,9 +349,9 @@ describe("TaskPlanner", () => {
         {
           id: "tc_plan",
           name: "create_task",
-          args: taskPayload,
-        },
-      ],
+          args: taskPayload
+        }
+      ]
     ]);
 
     const mockTool = {
@@ -355,14 +363,14 @@ describe("TaskPlanner", () => {
       toProviderTool: () => ({
         name: "my_tool",
         description: "A test tool",
-        inputSchema: { type: "object", properties: {}, required: [] },
-      }),
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
     };
 
     const planner = new TaskPlanner({
       provider,
       model: "test-model",
-      tools: [mockTool as any],
+      tools: [mockTool as any]
     });
 
     const context = createMockContext();
@@ -380,21 +388,22 @@ describe("TaskPlanner", () => {
   it("extracts task from text when no tool call is made", async () => {
     const taskPayload = {
       title: "Text Task",
-      steps: [
-        { id: "step_a", instructions: "Do A", depends_on: [] },
-      ],
+      steps: [{ id: "step_a", instructions: "Do A", depends_on: [] }]
     };
 
     // Provider returns JSON in text, not as a tool call
     const provider = createMockProvider([
       [
-        { type: "chunk", content: `Here is the plan: ${JSON.stringify(taskPayload)}` },
-      ],
+        {
+          type: "chunk",
+          content: `Here is the plan: ${JSON.stringify(taskPayload)}`
+        }
+      ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const context = createMockContext();
@@ -416,8 +425,8 @@ describe("TaskPlanner", () => {
       steps: [
         { id: "step_a", instructions: "Do A", dependsOn: [] },
         { id: "step_b", instructions: "Do B", dependsOn: ["step_a"] },
-        { id: "step_c", instructions: "Do C" }, // no depends_on or dependsOn => fallback to []
-      ],
+        { id: "step_c", instructions: "Do C" } // no depends_on or dependsOn => fallback to []
+      ]
     };
 
     const provider = createMockProvider([
@@ -425,14 +434,14 @@ describe("TaskPlanner", () => {
         {
           id: "tc_plan",
           name: "create_task",
-          args: taskPayload,
-        },
-      ],
+          args: taskPayload
+        }
+      ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const context = createMockContext();
@@ -453,14 +462,12 @@ describe("TaskPlanner", () => {
   it("returns null when LLM provides no task data", async () => {
     // Provider that returns no tool call and no extractable JSON
     const provider = createMockProvider([
-      [
-        { type: "chunk", content: "I don't know how to plan this." },
-      ],
+      [{ type: "chunk", content: "I don't know how to plan this." }]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const context = createMockContext();
@@ -479,7 +486,7 @@ describe("TaskPlanner", () => {
       (m) =>
         m.type === "chunk" &&
         typeof (m as any).content === "string" &&
-        (m as any).content.includes("Failed"),
+        (m as any).content.includes("Failed")
     );
     expect(failChunks).toHaveLength(1);
   });
@@ -492,9 +499,9 @@ describe("TaskPlanner", () => {
           id: "step_a",
           instructions: "Do A",
           depends_on: [],
-          output_schema: '{"type": "string"}',
-        },
-      ],
+          output_schema: '{"type": "string"}'
+        }
+      ]
     };
 
     const provider = createMockProvider([
@@ -502,14 +509,14 @@ describe("TaskPlanner", () => {
         {
           id: "tc_plan",
           name: "create_task",
-          args: taskPayload,
-        },
-      ],
+          args: taskPayload
+        }
+      ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const context = createMockContext();
@@ -529,8 +536,13 @@ describe("TaskPlanner", () => {
       title: "Malformed Task",
       steps: [
         { depends_on: [] }, // missing id and instructions
-        { id: "step_b", instructions: "Do B", depends_on: [], tools: ["my_tool"] },
-      ],
+        {
+          id: "step_b",
+          instructions: "Do B",
+          depends_on: [],
+          tools: ["my_tool"]
+        }
+      ]
     };
 
     const provider = createMockProvider([
@@ -538,14 +550,14 @@ describe("TaskPlanner", () => {
         {
           id: "tc_plan",
           name: "create_task",
-          args: taskPayload,
-        },
-      ],
+          args: taskPayload
+        }
+      ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const context = createMockContext();
@@ -573,14 +585,14 @@ describe("TaskPlanner", () => {
         {
           id: "tc_plan",
           name: "create_task",
-          args: taskPayload,
-        },
-      ],
+          args: taskPayload
+        }
+      ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const context = createMockContext();
@@ -604,9 +616,9 @@ describe("TaskPlanner", () => {
           id: "step_a",
           instructions: "Do A",
           depends_on: [],
-          outputSchema: '{"type": "object"}',
-        },
-      ],
+          outputSchema: '{"type": "object"}'
+        }
+      ]
     };
 
     const provider = createMockProvider([
@@ -614,14 +626,14 @@ describe("TaskPlanner", () => {
         {
           id: "tc_plan",
           name: "create_task",
-          args: taskPayload,
-        },
-      ],
+          args: taskPayload
+        }
+      ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const context = createMockContext();
@@ -650,9 +662,9 @@ describe("TaskExecutor", () => {
       dependsOn: [],
       outputSchema: JSON.stringify({
         type: "object",
-        properties: { data: { type: "string" } },
+        properties: { data: { type: "string" } }
       }),
-      logs: [],
+      logs: []
     };
 
     const stepB: Step = {
@@ -662,15 +674,15 @@ describe("TaskExecutor", () => {
       dependsOn: ["step_a"],
       outputSchema: JSON.stringify({
         type: "object",
-        properties: { result: { type: "string" } },
+        properties: { result: { type: "string" } }
       }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_1",
       title: "Sequential Task",
-      steps: [stepA, stepB],
+      steps: [stepA, stepB]
     };
 
     // Two calls to generateMessages: one for step_a, one for step_b
@@ -680,17 +692,17 @@ describe("TaskExecutor", () => {
         {
           id: "tc_a",
           name: "finish_step",
-          args: { result: { data: "from_a" } },
-        },
+          args: { result: { data: "from_a" } }
+        }
       ],
       [
         { type: "chunk", content: "Executing B" },
         {
           id: "tc_b",
           name: "finish_step",
-          args: { result: { result: "from_b" } },
-        },
-      ],
+          args: { result: { result: "from_b" } }
+        }
+      ]
     ]);
 
     const context = createMockContext();
@@ -699,7 +711,7 @@ describe("TaskExecutor", () => {
       model: "test-model",
       context,
       tools: [],
-      task,
+      task
     });
 
     const messages: ProcessingMessage[] = [];
@@ -712,8 +724,12 @@ describe("TaskExecutor", () => {
     expect(stepB.completed).toBe(true);
 
     // step_a result should be stored before step_b runs
-    expect(context.storeStepResult).toHaveBeenCalledWith("step_a", { data: "from_a" });
-    expect(context.storeStepResult).toHaveBeenCalledWith("step_b", { result: "from_b" });
+    expect(context.storeStepResult).toHaveBeenCalledWith("step_a", {
+      data: "from_a"
+    });
+    expect(context.storeStepResult).toHaveBeenCalledWith("step_b", {
+      result: "from_b"
+    });
 
     // Verify step_result messages
     const stepResults = messages.filter((m) => m.type === "step_result");
@@ -727,38 +743,50 @@ describe("TaskExecutor", () => {
       instructions: "Root step",
       completed: false,
       dependsOn: [],
-      outputSchema: JSON.stringify({ type: "object", properties: { v: { type: "number" } } }),
-      logs: [],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { v: { type: "number" } }
+      }),
+      logs: []
     };
     const stepB: Step = {
       id: "b",
       instructions: "Branch 1",
       completed: false,
       dependsOn: ["a"],
-      outputSchema: JSON.stringify({ type: "object", properties: { v: { type: "number" } } }),
-      logs: [],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { v: { type: "number" } }
+      }),
+      logs: []
     };
     const stepC: Step = {
       id: "c",
       instructions: "Branch 2",
       completed: false,
       dependsOn: ["a"],
-      outputSchema: JSON.stringify({ type: "object", properties: { v: { type: "number" } } }),
-      logs: [],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { v: { type: "number" } }
+      }),
+      logs: []
     };
     const stepD: Step = {
       id: "d",
       instructions: "Merge step",
       completed: false,
       dependsOn: ["b", "c"],
-      outputSchema: JSON.stringify({ type: "object", properties: { v: { type: "number" } } }),
-      logs: [],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { v: { type: "number" } }
+      }),
+      logs: []
     };
 
     const task: Task = {
       id: "diamond_task",
       title: "Diamond dependency",
-      steps: [stepA, stepB, stepC, stepD],
+      steps: [stepA, stepB, stepC, stepD]
     };
 
     // The executor processes steps sequentially within each "round".
@@ -769,23 +797,23 @@ describe("TaskExecutor", () => {
       // Round 1: step A
       [
         { type: "chunk", content: "A" },
-        { id: "tc_a", name: "finish_step", args: { result: { v: 1 } } },
+        { id: "tc_a", name: "finish_step", args: { result: { v: 1 } } }
       ],
       // Round 2: step B
       [
         { type: "chunk", content: "B" },
-        { id: "tc_b", name: "finish_step", args: { result: { v: 2 } } },
+        { id: "tc_b", name: "finish_step", args: { result: { v: 2 } } }
       ],
       // Round 2: step C
       [
         { type: "chunk", content: "C" },
-        { id: "tc_c", name: "finish_step", args: { result: { v: 3 } } },
+        { id: "tc_c", name: "finish_step", args: { result: { v: 3 } } }
       ],
       // Round 3: step D
       [
         { type: "chunk", content: "D" },
-        { id: "tc_d", name: "finish_step", args: { result: { v: 6 } } },
-      ],
+        { id: "tc_d", name: "finish_step", args: { result: { v: 6 } } }
+      ]
     ]);
 
     const context = createMockContext();
@@ -794,7 +822,7 @@ describe("TaskExecutor", () => {
       model: "test-model",
       context,
       tools: [],
-      task,
+      task
     });
 
     const messages: ProcessingMessage[] = [];
@@ -826,13 +854,13 @@ describe("TaskExecutor", () => {
       completed: false,
       dependsOn: ["nonexistent_step"],
       outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "deadlock_task",
       title: "Deadlock Task",
-      steps: [stepA],
+      steps: [stepA]
     };
 
     const provider = createMockProvider([]);
@@ -843,7 +871,7 @@ describe("TaskExecutor", () => {
       model: "test-model",
       context,
       tools: [],
-      task,
+      task
     });
 
     const messages: ProcessingMessage[] = [];
@@ -859,7 +887,7 @@ describe("TaskExecutor", () => {
       (m) =>
         m.type === "chunk" &&
         typeof (m as any).content === "string" &&
-        (m as any).content.includes("dependency"),
+        (m as any).content.includes("dependency")
     );
     expect(deadlockMsgs).toHaveLength(1);
   });
@@ -872,15 +900,15 @@ describe("TaskExecutor", () => {
       dependsOn: ["user_input"],
       outputSchema: JSON.stringify({
         type: "object",
-        properties: { v: { type: "string" } },
+        properties: { v: { type: "string" } }
       }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "input_dep_task",
       title: "Input Dependency Task",
-      steps: [stepA],
+      steps: [stepA]
     };
 
     // Provider returns finish_step immediately
@@ -890,9 +918,9 @@ describe("TaskExecutor", () => {
         {
           id: "tc_a",
           name: "finish_step",
-          args: { result: { v: "done" } },
-        },
-      ],
+          args: { result: { v: "done" } }
+        }
+      ]
     ]);
 
     const context = createMockContext();
@@ -903,7 +931,7 @@ describe("TaskExecutor", () => {
       context,
       tools: [],
       task,
-      inputs: { user_input: "some data" },
+      inputs: { user_input: "some data" }
     });
 
     const messages: ProcessingMessage[] = [];
@@ -913,6 +941,8 @@ describe("TaskExecutor", () => {
 
     // Step should complete because "user_input" is in inputs
     expect(stepA.completed).toBe(true);
-    expect(context.storeStepResult).toHaveBeenCalledWith("step_a", { v: "done" });
+    expect(context.storeStepResult).toHaveBeenCalledWith("step_a", {
+      v: "done"
+    });
   });
 });

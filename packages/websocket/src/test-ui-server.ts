@@ -1,4 +1,8 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse
+} from "node:http";
 import { createLogger, getDefaultDbPath } from "@nodetool/config";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -7,7 +11,10 @@ import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
-import { UnifiedWebSocketRunner, type WebSocketConnection } from "./unified-websocket-runner.js";
+import {
+  UnifiedWebSocketRunner,
+  type WebSocketConnection
+} from "./unified-websocket-runner.js";
 import { ScriptedProvider, autoScript } from "@nodetool/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
 import { initDb } from "@nodetool/models";
@@ -815,13 +822,25 @@ class WsAdapter implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
   applicationState: "connected" | "disconnected" = "connected";
 
-  private queue: WebSocketConnection["receive"] extends () => Promise<infer T> ? T[] : never = [];
-  private waiters: Array<(frame: { type: string; bytes?: Uint8Array | null; text?: string | null }) => void> = [];
+  private queue: WebSocketConnection["receive"] extends () => Promise<infer T>
+    ? T[]
+    : never = [];
+  private waiters: Array<
+    (frame: {
+      type: string;
+      bytes?: Uint8Array | null;
+      text?: string | null;
+    }) => void
+  > = [];
 
   constructor(private socket: any) {
     socket.on("message", (raw: any, isBinary: boolean) => {
       const frame = isBinary
-        ? { type: "websocket.message", bytes: raw instanceof Uint8Array ? raw : new Uint8Array(raw as Buffer) }
+        ? {
+            type: "websocket.message",
+            bytes:
+              raw instanceof Uint8Array ? raw : new Uint8Array(raw as Buffer)
+          }
         : { type: "websocket.message", text: raw.toString() };
       const waiter = this.waiters.shift();
       if (waiter) waiter(frame);
@@ -838,7 +857,11 @@ class WsAdapter implements WebSocketConnection {
 
   async accept(): Promise<void> {}
 
-  async receive(): Promise<{ type: string; bytes?: Uint8Array | null; text?: string | null }> {
+  async receive(): Promise<{
+    type: string;
+    bytes?: Uint8Array | null;
+    text?: string | null;
+  }> {
     const next = this.queue.shift();
     if (next) return next;
     return await new Promise((resolve) => this.waiters.push(resolve));
@@ -926,13 +949,15 @@ print(json.dumps(sorted(roots)))
   for (const python of ["python3", "python"]) {
     const proc = spawnSync(python, ["-c", script], {
       encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
+      stdio: ["ignore", "pipe", "ignore"]
     });
     if (proc.status !== 0 || !proc.stdout) continue;
     try {
       const roots = JSON.parse(proc.stdout.trim()) as string[];
       if (!Array.isArray(roots)) continue;
-      return roots.filter((p) => typeof p === "string" && p.length > 0 && existsSync(p));
+      return roots.filter(
+        (p) => typeof p === "string" && p.length > 0 && existsSync(p)
+      );
     } catch {
       // try next python executable
     }
@@ -990,7 +1015,9 @@ function detectNearbyMetadataRoots(cwd: string): string[] {
 }
 
 function hasNodetoolBaseExamplesLayout(root: string): boolean {
-  return existsSync(path.join(root, "src", "nodetool", "examples", "nodetool-base"));
+  return existsSync(
+    path.join(root, "src", "nodetool", "examples", "nodetool-base")
+  );
 }
 
 function detectNearbyNodetoolBaseRoot(cwd: string): string | null {
@@ -1023,32 +1050,57 @@ function detectNearbyNodetoolBaseRoot(cwd: string): string | null {
 }
 
 function resolveExamplesDir(options: TestUiServerOptions): string | null {
-  if (options.examplesDir && existsSync(options.examplesDir)) return options.examplesDir;
-  if (process.env.NODETOOL_BASE_EXAMPLES_DIR && existsSync(process.env.NODETOOL_BASE_EXAMPLES_DIR)) {
+  if (options.examplesDir && existsSync(options.examplesDir))
+    return options.examplesDir;
+  if (
+    process.env.NODETOOL_BASE_EXAMPLES_DIR &&
+    existsSync(process.env.NODETOOL_BASE_EXAMPLES_DIR)
+  ) {
     return process.env.NODETOOL_BASE_EXAMPLES_DIR;
   }
   const baseRoot = detectNearbyNodetoolBaseRoot(process.cwd());
   if (!baseRoot) return null;
-  const dir = path.join(baseRoot, "src", "nodetool", "examples", "nodetool-base");
+  const dir = path.join(
+    baseRoot,
+    "src",
+    "nodetool",
+    "examples",
+    "nodetool-base"
+  );
   return existsSync(dir) ? dir : null;
 }
 
-function listExampleWorkflows(examplesDir: string): Array<{ id: string; name: string; description: string; tags: string[] }> {
+function listExampleWorkflows(
+  examplesDir: string
+): Array<{ id: string; name: string; description: string; tags: string[] }> {
   const files = readdirSync(examplesDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".json"))
+    .filter(
+      (entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".json")
+    )
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b));
 
-  const items: Array<{ id: string; name: string; description: string; tags: string[] }> = [];
+  const items: Array<{
+    id: string;
+    name: string;
+    description: string;
+    tags: string[];
+  }> = [];
   for (const file of files) {
     try {
       const raw = readFileSync(path.join(examplesDir, file), "utf8");
       const parsed = JSON.parse(raw) as Record<string, unknown>;
       items.push({
         id: file,
-        name: typeof parsed.name === "string" ? parsed.name : file.replace(/\.json$/i, ""),
-        description: typeof parsed.description === "string" ? parsed.description : "",
-        tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t) => typeof t === "string") : [],
+        name:
+          typeof parsed.name === "string"
+            ? parsed.name
+            : file.replace(/\.json$/i, ""),
+        description:
+          typeof parsed.description === "string" ? parsed.description : "",
+        tags: Array.isArray(parsed.tags)
+          ? parsed.tags.filter((t) => typeof t === "string")
+          : []
       });
     } catch {
       // skip invalid files
@@ -1057,21 +1109,33 @@ function listExampleWorkflows(examplesDir: string): Array<{ id: string; name: st
   return items;
 }
 
-function readExampleWorkflow(examplesDir: string, id: string): Record<string, unknown> | null {
+function readExampleWorkflow(
+  examplesDir: string,
+  id: string
+): Record<string, unknown> | null {
   const safeId = path.basename(id);
   if (!safeId.toLowerCase().endsWith(".json")) return null;
   const full = path.join(examplesDir, safeId);
   if (!existsSync(full)) return null;
   const raw = readFileSync(full, "utf8");
   const parsed = JSON.parse(raw) as Record<string, unknown>;
-  const graph = parsed.graph as { nodes?: unknown; edges?: unknown } | undefined;
-  if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) return null;
+  const graph = parsed.graph as
+    | { nodes?: unknown; edges?: unknown }
+    | undefined;
+  if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges))
+    return null;
   return {
     id: safeId,
-    name: typeof parsed.name === "string" ? parsed.name : safeId.replace(/\.json$/i, ""),
-    description: typeof parsed.description === "string" ? parsed.description : "",
-    tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t) => typeof t === "string") : [],
-    graph,
+    name:
+      typeof parsed.name === "string"
+        ? parsed.name
+        : safeId.replace(/\.json$/i, ""),
+    description:
+      typeof parsed.description === "string" ? parsed.description : "",
+    tags: Array.isArray(parsed.tags)
+      ? parsed.tags.filter((t) => typeof t === "string")
+      : [],
+    graph
   };
 }
 
@@ -1082,13 +1146,16 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
 
   const metadataRoots = resolveMetadataRoots(options);
   const registry = new NodeRegistry();
-  registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: options.metadataMaxDepth ?? 8 });
+  registry.loadPythonMetadata({
+    roots: metadataRoots,
+    maxDepth: options.metadataMaxDepth ?? 8
+  });
   registerBaseNodes(registry);
   registerElevenLabsNodes(registry);
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,
-    registry,
+    registry
   };
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
 
@@ -1117,10 +1184,14 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       if (!examplesDir) {
         res.statusCode = 404;
         res.setHeader("content-type", "application/json");
-        res.end(JSON.stringify({ detail: "Examples directory not configured" }));
+        res.end(
+          JSON.stringify({ detail: "Examples directory not configured" })
+        );
         return;
       }
-      const id = decodeURIComponent(url.pathname.slice("/api/examples/".length));
+      const id = decodeURIComponent(
+        url.pathname.slice("/api/examples/".length)
+      );
       const example = readExampleWorkflow(examplesDir, id);
       if (!example) {
         res.statusCode = 404;
@@ -1133,7 +1204,11 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       res.end(JSON.stringify(example));
       return;
     }
-    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/v1/") || url.pathname.startsWith("/admin/")) {
+    if (
+      url.pathname.startsWith("/api/") ||
+      url.pathname.startsWith("/v1/") ||
+      url.pathname.startsWith("/admin/")
+    ) {
       void handleNodeHttpRequest(req, res, resolvedApiOptions);
       return;
     }
@@ -1162,19 +1237,29 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       const runner = new UnifiedWebSocketRunner({
         resolveExecutor: (node) => registry.resolve(node),
         resolveNodeType: graphNodeTypeResolver,
-        resolveProvider: async (_providerId) => new ScriptedProvider([
-          autoScript({
-            plan: {
-              title: "Agent task",
-              steps: [{ id: "s1", instructions: "Complete the objective", depends_on: [] }],
-            },
-            text: "fake agent response from server",
-          }),
-        ]),
+        resolveProvider: async (_providerId) =>
+          new ScriptedProvider([
+            autoScript({
+              plan: {
+                title: "Agent task",
+                steps: [
+                  {
+                    id: "s1",
+                    instructions: "Complete the objective",
+                    depends_on: []
+                  }
+                ]
+              },
+              text: "fake agent response from server"
+            })
+          ])
       });
       log.info("WebSocket client connected");
       void runner.run(new WsAdapter(ws)).catch((error) => {
-        log.error("Runner crashed", error instanceof Error ? error : new Error(String(error)));
+        log.error(
+          "Runner crashed",
+          error instanceof Error ? error : new Error(String(error))
+        );
       });
     });
   });
@@ -1197,7 +1282,12 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
           }
         });
       }),
-    info: { host, port, metadataRoots, metadataCount: registry.listMetadata().length },
+    info: {
+      host,
+      port,
+      metadataRoots,
+      metadataCount: registry.listMetadata().length
+    }
   };
 }
 
@@ -1212,6 +1302,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
   const srv = createTestUiServer();
   void srv.listen().then(() => {
-    log.info("Server listening", { host: srv.info.host, port: srv.info.port, metadataRoots: srv.info.metadataRoots, nodes: srv.info.metadataCount });
+    log.info("Server listening", {
+      host: srv.info.host,
+      port: srv.info.port,
+      metadataRoots: srv.info.metadataRoots,
+      nodes: srv.info.metadataCount
+    });
   });
 }

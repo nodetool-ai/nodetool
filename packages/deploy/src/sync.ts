@@ -75,7 +75,7 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
             path: (m["path"] as string | null) ?? null,
             variant: (m["variant"] as string | null) ?? null,
             allow_patterns: (m["allow_patterns"] as string[] | null) ?? null,
-            ignore_patterns: (m["ignore_patterns"] as string[] | null) ?? null,
+            ignore_patterns: (m["ignore_patterns"] as string[] | null) ?? null
           });
         }
       }
@@ -92,7 +92,7 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
           models.push({
             type: "language_model",
             provider: "ollama",
-            id: m["id"] as string,
+            id: m["id"] as string
           });
         }
       }
@@ -115,7 +115,7 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
               path: filePath,
               variant: null,
               allow_patterns: null,
-              ignore_patterns: null,
+              ignore_patterns: null
             });
           }
         }
@@ -135,7 +135,7 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
         models.push({
           type: "language_model",
           provider: "ollama",
-          id: nodeData["id"] as string,
+          id: nodeData["id"] as string
         });
       }
     }
@@ -164,7 +164,7 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
                   allow_patterns:
                     (it["allow_patterns"] as string[] | null) ?? null,
                   ignore_patterns:
-                    (it["ignore_patterns"] as string[] | null) ?? null,
+                    (it["ignore_patterns"] as string[] | null) ?? null
                 });
               }
             }

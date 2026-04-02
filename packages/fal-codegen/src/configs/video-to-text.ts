@@ -4,27 +4,29 @@ export const config: ModuleConfig = {
   configs: {
     "openrouter/router/video/enterprise": {
       className: "OpenrouterRouterVideoEnterprise",
-      docstring: "Run any VLM (Video Language Model) with fal, powered by OpenRouter.",
+      docstring:
+        "Run any VLM (Video Language Model) with fal, powered by OpenRouter.",
       tags: ["video", "transcription", "analysis", "video-understanding"],
       useCases: [
         "Video transcription",
         "Video content analysis",
         "Automated captioning",
         "Video understanding",
-        "Content indexing",
-      ],
+        "Content indexing"
+      ]
     },
     "openrouter/router/video": {
       className: "OpenrouterRouterVideo",
-      docstring: "Run any VLM (Video Language Model) with fal, powered by OpenRouter.",
+      docstring:
+        "Run any VLM (Video Language Model) with fal, powered by OpenRouter.",
       tags: ["video", "transcription", "analysis", "video-understanding"],
       useCases: [
         "Video transcription",
         "Video content analysis",
         "Automated captioning",
         "Video understanding",
-        "Content indexing",
-      ],
-    },
-  },
+        "Content indexing"
+      ]
+    }
+  }
 };

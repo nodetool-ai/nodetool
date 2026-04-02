@@ -64,7 +64,9 @@ export class WorkflowNode extends BaseNode {
         // If data has a nested `properties` object, use that as the node properties
         // (this is the web UI's format: data.properties holds the actual node props).
         const props =
-          dataObj.properties && typeof dataObj.properties === "object" && !Array.isArray(dataObj.properties)
+          dataObj.properties &&
+          typeof dataObj.properties === "object" &&
+          !Array.isArray(dataObj.properties)
             ? dataObj.properties
             : dataObj;
         return { ...rest, properties: props };
@@ -72,15 +74,17 @@ export class WorkflowNode extends BaseNode {
       return { ...n };
     });
     const normalizedEdges = graph.edges.map((edge) => {
-      const rawEdgeType =
-        (edge.edge_type as string) ?? (edge.type as string);
+      const rawEdgeType = (edge.edge_type as string) ?? (edge.type as string);
       const edge_type = rawEdgeType === "control" ? "control" : "data";
       const { type: _type, ...rest } = edge;
       return { ...rest, edge_type };
     });
 
     // Hydrate graph via resolver if available
-    let hydratedGraph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+    let hydratedGraph: {
+      nodes: Array<Record<string, unknown>>;
+      edges: Array<Record<string, unknown>>;
+    };
     if (context.resolveNodeType) {
       const loaded = await Graph.loadFromDict(
         { nodes: normalizedNodes, edges: normalizedEdges },
@@ -88,7 +92,7 @@ export class WorkflowNode extends BaseNode {
       );
       hydratedGraph = {
         nodes: [...loaded.nodes] as unknown as Array<Record<string, unknown>>,
-        edges: [...loaded.edges] as unknown as Array<Record<string, unknown>>,
+        edges: [...loaded.edges] as unknown as Array<Record<string, unknown>>
       };
     } else {
       hydratedGraph = { nodes: normalizedNodes, edges: normalizedEdges };
@@ -114,9 +118,10 @@ export class WorkflowNode extends BaseNode {
       const nodeName = n.name as string | undefined;
       const runnerKey = nodeName ?? nodeId;
       const props = (n.properties ?? n.data ?? {}) as Record<string, unknown>;
-      const outputName = typeof props.name === "string" && props.name.trim()
-        ? props.name.trim()
-        : runnerKey;
+      const outputName =
+        typeof props.name === "string" && props.name.trim()
+          ? props.name.trim()
+          : runnerKey;
       outputKeyMap.set(runnerKey, outputName);
     }
 
@@ -126,14 +131,14 @@ export class WorkflowNode extends BaseNode {
         resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
         ),
-      executionContext: context,
+      executionContext: context
     });
 
     const result = await runner.run(
       {
         job_id: jobId,
         workflow_id: this.workflow_id || undefined,
-        params,
+        params
       },
       hydratedGraph as unknown as { nodes: NodeDescriptor[]; edges: Edge[] }
     );
@@ -160,9 +165,7 @@ export class WorkflowNode extends BaseNode {
     yield output;
   }
 
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     // genProcess is the primary path; this fallback collects its output.
     let result: Record<string, unknown> = {};
     for await (const partial of this.genProcess(context)) {

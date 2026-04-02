@@ -26,7 +26,7 @@ function stripHtml(html: string): string {
 }
 
 async function createGmailConnection(
-  context: ProcessingContext,
+  context: ProcessingContext
 ): Promise<ImapFlow> {
   const emailAddress =
     (await context.getSecret("GOOGLE_MAIL_USER")) ??
@@ -48,9 +48,9 @@ async function createGmailConnection(
     secure: true,
     auth: {
       user: emailAddress,
-      pass: appPassword,
+      pass: appPassword
     },
-    logger: false as any,
+    logger: false as any
   });
 
   await client.connect();
@@ -66,23 +66,23 @@ export class SearchEmailTool extends Tool {
     properties: {
       subject: {
         type: "string",
-        description: "Text to search for in email subject",
+        description: "Text to search for in email subject"
       },
       since_hours_ago: {
         type: "integer",
         description: "Number of hours ago to search for",
-        default: 6,
+        default: 6
       },
       text: {
         type: "string",
-        description: "General text to search for anywhere in the email",
+        description: "General text to search for anywhere in the email"
       },
       max_results: {
         type: "integer",
         description: "Maximum number of emails to return",
-        default: 50,
-      },
-    },
+        default: 50
+      }
+    }
   };
 
   userMessage(params: Record<string, unknown>): string {
@@ -98,7 +98,7 @@ export class SearchEmailTool extends Tool {
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     let client: ImapFlow | null = null;
     try {
@@ -116,9 +116,7 @@ export class SearchEmailTool extends Tool {
         }
 
         const sinceHours = (params.since_hours_ago as number) ?? 6;
-        const sinceDate = new Date(
-          Date.now() - sinceHours * 60 * 60 * 1000,
-        );
+        const sinceDate = new Date(Date.now() - sinceHours * 60 * 60 * 1000);
         searchCriteria.since = sinceDate;
 
         const uids = await client.search(searchCriteria, { uid: true });
@@ -132,7 +130,7 @@ export class SearchEmailTool extends Tool {
 
         const maxResults = Math.min(
           uids.length,
-          (params.max_results as number) ?? 50,
+          (params.max_results as number) ?? 50
         );
         const selectedUids = uids.slice(0, maxResults);
 
@@ -146,7 +144,7 @@ export class SearchEmailTool extends Tool {
         for await (const msg of client.fetch(
           selectedUids.map(String).join(","),
           { source: true, uid: true },
-          { uid: true },
+          { uid: true }
         )) {
           const parsed = await simpleParser(msg.source ?? Buffer.alloc(0));
           let body = "";
@@ -160,7 +158,7 @@ export class SearchEmailTool extends Tool {
             message_id: String(msg.uid),
             subject: parsed.subject ?? "",
             sender: parsed.from?.text ?? "",
-            body,
+            body
           });
         }
 
@@ -172,7 +170,9 @@ export class SearchEmailTool extends Tool {
       return { error: e.message ?? String(e) };
     } finally {
       if (client) {
-        await client.logout().catch(() => { /* Intentional: best-effort IMAP logout during cleanup */ });
+        await client.logout().catch(() => {
+          /* Intentional: best-effort IMAP logout during cleanup */
+        });
       }
     }
   }
@@ -187,10 +187,10 @@ export class ArchiveEmailTool extends Tool {
       message_ids: {
         type: "array",
         items: { type: "string" },
-        description: "List of message IDs to archive",
-      },
+        description: "List of message IDs to archive"
+      }
     },
-    required: ["message_ids"],
+    required: ["message_ids"]
   };
 
   userMessage(params: Record<string, unknown>): string {
@@ -202,7 +202,7 @@ export class ArchiveEmailTool extends Tool {
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     let client: ImapFlow | null = null;
     try {
@@ -227,7 +227,7 @@ export class ArchiveEmailTool extends Tool {
 
         return {
           success: true,
-          archived_messages: archivedIds,
+          archived_messages: archivedIds
         };
       } finally {
         lock.release();
@@ -236,7 +236,9 @@ export class ArchiveEmailTool extends Tool {
       return { error: e.message ?? String(e) };
     } finally {
       if (client) {
-        await client.logout().catch(() => { /* Intentional: best-effort IMAP logout during cleanup */ });
+        await client.logout().catch(() => {
+          /* Intentional: best-effort IMAP logout during cleanup */
+        });
       }
     }
   }
@@ -250,14 +252,14 @@ export class AddLabelToEmailTool extends Tool {
     properties: {
       message_id: {
         type: "string",
-        description: "Message ID to label",
+        description: "Message ID to label"
       },
       label: {
         type: "string",
-        description: "Label to add to the message",
-      },
+        description: "Label to add to the message"
+      }
     },
-    required: ["message_id", "label"],
+    required: ["message_id", "label"]
   };
 
   userMessage(params: Record<string, unknown>): string {
@@ -268,7 +270,7 @@ export class AddLabelToEmailTool extends Tool {
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     let client: ImapFlow | null = null;
     try {
@@ -284,7 +286,7 @@ export class AddLabelToEmailTool extends Tool {
         return {
           success: true,
           message_id: messageId,
-          label,
+          label
         };
       } finally {
         lock.release();
@@ -293,7 +295,9 @@ export class AddLabelToEmailTool extends Tool {
       return { error: e.message ?? String(e) };
     } finally {
       if (client) {
-        await client.logout().catch(() => { /* Intentional: best-effort IMAP logout during cleanup */ });
+        await client.logout().catch(() => {
+          /* Intentional: best-effort IMAP logout during cleanup */
+        });
       }
     }
   }

@@ -11,7 +11,7 @@ function makeAsyncIterable(items: unknown[]) {
     },
     async close() {
       return;
-    },
+    }
   };
 }
 
@@ -33,8 +33,11 @@ describe("LlamaProvider", () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        data: [{ id: "Qwen/Qwen3-4B-GGUF:Qwen3-4B-Q4_K_M.gguf" }, { id: "gemma3:4b" }],
-      }),
+        data: [
+          { id: "Qwen/Qwen3-4B-GGUF:Qwen3-4B-Q4_K_M.gguf" },
+          { id: "gemma3:4b" }
+        ]
+      })
     });
 
     const provider = new LlamaProvider(
@@ -46,9 +49,9 @@ describe("LlamaProvider", () => {
       {
         id: "Qwen/Qwen3-4B-GGUF:Qwen3-4B-Q4_K_M.gguf",
         name: "Qwen/Qwen3-4B-GGUF:Qwen3-4B-Q4_K_M.gguf",
-        provider: "llama_cpp",
+        provider: "llama_cpp"
       },
-      { id: "gemma3:4b", name: "gemma3:4b", provider: "llama_cpp" },
+      { id: "gemma3:4b", name: "gemma3:4b", provider: "llama_cpp" }
     ]);
   });
 
@@ -63,16 +66,16 @@ describe("LlamaProvider", () => {
     const assistant: Message = {
       role: "assistant",
       content: "doing work",
-      toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }],
+      toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }]
     };
 
     await expect(provider.convertMessage(user)).resolves.toEqual({
       role: "user",
-      content: "hello",
+      content: "hello"
     });
     await expect(provider.convertMessage(tool)).resolves.toEqual({
       role: "user",
-      content: "Tool result:\n{\"ok\":true}",
+      content: 'Tool result:\n{"ok":true}'
     });
     await expect(provider.convertMessage(assistant)).resolves.toEqual({
       role: "assistant",
@@ -81,9 +84,9 @@ describe("LlamaProvider", () => {
         {
           type: "function",
           id: "tc1",
-          function: { name: "sum", arguments: "{\"a\":1}" },
-        },
-      ],
+          function: { name: "sum", arguments: '{"a":1}' }
+        }
+      ]
     });
   });
 
@@ -93,44 +96,49 @@ describe("LlamaProvider", () => {
         {
           message: {
             content: "calculator(expression='5 + 3')",
-            tool_calls: [],
-          },
-        },
-      ],
+            tool_calls: []
+          }
+        }
+      ]
     });
 
     const provider = new LlamaProvider(
       { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const result = await provider.generateMessage({
       model: "gemma3:4b",
       messages: [{ role: "user", content: "calc" }],
-      tools: [{ name: "calculator" }],
+      tools: [{ name: "calculator" }]
     });
 
     expect(result).toEqual({
       role: "assistant",
       content: "calculator(expression='5 + 3')",
       toolCalls: [
-        { id: "tool_1", name: "calculator", args: { expression: "5 + 3" } },
-      ],
+        { id: "tool_1", name: "calculator", args: { expression: "5 + 3" } }
+      ]
     });
   });
 
   it("streams chunks and parses emulated tool call on stop", async () => {
     const stream = makeAsyncIterable([
       {
-        choices: [{ delta: { content: "calculator(expression='9+1')" }, finish_reason: null }],
+        choices: [
+          {
+            delta: { content: "calculator(expression='9+1')" },
+            finish_reason: null
+          }
+        ]
       },
       {
-        choices: [{ delta: { content: "" }, finish_reason: "stop" }],
-      },
+        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
+      }
     ]);
 
     const create = vi.fn().mockResolvedValue(stream);
@@ -138,8 +146,8 @@ describe("LlamaProvider", () => {
       { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
@@ -147,7 +155,7 @@ describe("LlamaProvider", () => {
     for await (const item of provider.generateMessages({
       model: "gemma3:4b",
       messages: [{ role: "user", content: "calc" }],
-      tools: [{ name: "calculator" }],
+      tools: [{ name: "calculator" }]
     })) {
       out.push(item);
     }
@@ -155,7 +163,7 @@ describe("LlamaProvider", () => {
     expect(out).toEqual([
       { type: "chunk", content: "calculator(expression='9+1')", done: false },
       { type: "chunk", content: "", done: true },
-      { id: "tool_1", name: "calculator", args: { expression: "9+1" } },
+      { id: "tool_1", name: "calculator", args: { expression: "9+1" } }
     ]);
   });
 
@@ -165,7 +173,9 @@ describe("LlamaProvider", () => {
       { client: {} as any }
     );
 
-    expect(provider.isContextLengthError(new Error("context window exceeded"))).toBe(true);
+    expect(
+      provider.isContextLengthError(new Error("context window exceeded"))
+    ).toBe(true);
     expect(provider.isContextLengthError(new Error("unrelated"))).toBe(false);
   });
 });

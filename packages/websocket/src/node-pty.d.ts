@@ -12,7 +12,9 @@ declare module "node-pty" {
     readonly pid: number;
     readonly process: string;
     onData: (callback: (data: string) => void) => { dispose: () => void };
-    onExit: (callback: (e: { exitCode: number; signal?: number }) => void) => { dispose: () => void };
+    onExit: (callback: (e: { exitCode: number; signal?: number }) => void) => {
+      dispose: () => void;
+    };
     write(data: string): void;
     resize(columns: number, rows: number): void;
     kill(signal?: string): void;

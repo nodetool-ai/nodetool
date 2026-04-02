@@ -11,17 +11,21 @@ import type { NodeDescriptor, Edge } from "@nodetool/protocol";
 import type { NodeExecutor } from "../src/actor.js";
 
 function simpleExecutor(
-  fn: (inputs: Record<string, unknown>) => Record<string, unknown>,
+  fn: (inputs: Record<string, unknown>) => Record<string, unknown>
 ): NodeExecutor {
-  return { async process(inputs) { return fn(inputs); } };
+  return {
+    async process(inputs) {
+      return fn(inputs);
+    }
+  };
 }
 
-function makeRunner(
-  executorMap: Record<string, NodeExecutor>,
-): WorkflowRunner {
+function makeRunner(executorMap: Record<string, NodeExecutor>): WorkflowRunner {
   return new WorkflowRunner("test-job", {
     resolveExecutor: (node) =>
-      executorMap[node.id] ?? executorMap[node.type] ?? simpleExecutor(() => ({})),
+      executorMap[node.id] ??
+      executorMap[node.type] ??
+      simpleExecutor(() => ({}))
   });
 }
 
@@ -34,12 +38,15 @@ async function runAndGetDetection(
   nodes: NodeDescriptor[],
   edges: Edge[],
   params: Record<string, unknown> = {},
-  jobId = "j-test",
+  jobId = "j-test"
 ) {
   const runner = makeRunner(executorMap);
   const result = await runner.run({ job_id: jobId, params }, { nodes, edges });
   // Access the private detection map for verification
-  const detection = (runner as any)._multiEdgeListInputs as Map<string, Set<string>>;
+  const detection = (runner as any)._multiEdgeListInputs as Map<
+    string,
+    Set<string>
+  >;
   return { result, detection };
 }
 
@@ -53,12 +60,12 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.ListConsumer",
         name: "consumer",
-        propertyTypes: { values: "list[int]" },
-      },
+        propertyTypes: { values: "list[int]" }
+      }
     ];
     const edges: Edge[] = [
       { source: "a", sourceHandle: "out", target: "c", targetHandle: "values" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "values" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "values" }
     ];
 
     const runner = makeRunner({
@@ -66,13 +73,13 @@ describe("Multi-edge list type validation (T-K-10)", () => {
       "test.ListConsumer": simpleExecutor((inputs) => ({
         sum: Array.isArray(inputs.values)
           ? (inputs.values as number[]).reduce((a, b) => a + b, 0)
-          : inputs.values,
-      })),
+          : inputs.values
+      }))
     });
 
     const result = await runner.run(
       { job_id: "j1", params: { a: 1 } },
-      { nodes, edges },
+      { nodes, edges }
     );
 
     expect(result.status).toBe("completed");
@@ -90,24 +97,24 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.ScalarConsumer",
         name: "consumer",
-        propertyTypes: { value: "int" },
-      },
+        propertyTypes: { value: "int" }
+      }
     ];
     const edges: Edge[] = [
       { source: "a", sourceHandle: "out", target: "c", targetHandle: "value" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "value" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "value" }
     ];
 
     const runner = makeRunner({
       "test.Source": simpleExecutor(() => ({ out: 42 })),
       "test.ScalarConsumer": simpleExecutor((inputs) => ({
-        result: inputs.value,
-      })),
+        result: inputs.value
+      }))
     });
 
     const result = await runner.run(
       { job_id: "j2", params: { a: 1 } },
-      { nodes, edges },
+      { nodes, edges }
     );
 
     expect(result.status).toBe("completed");
@@ -123,23 +130,23 @@ describe("Multi-edge list type validation (T-K-10)", () => {
       {
         id: "c",
         type: "test.Consumer",
-        name: "consumer",
+        name: "consumer"
         // No propertyTypes — backward compat: aggregation allowed
-      },
+      }
     ];
     const edges: Edge[] = [
       { source: "a", sourceHandle: "out", target: "c", targetHandle: "items" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "items" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "items" }
     ];
 
     const runner = makeRunner({
       "test.Source": simpleExecutor(() => ({ out: 1 })),
-      "test.Consumer": simpleExecutor((inputs) => ({ result: inputs.items })),
+      "test.Consumer": simpleExecutor((inputs) => ({ result: inputs.items }))
     });
 
     const result = await runner.run(
       { job_id: "j3", params: { a: 1 } },
-      { nodes, edges },
+      { nodes, edges }
     );
 
     expect(result.status).toBe("completed");
@@ -154,22 +161,22 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.Consumer",
         name: "consumer",
-        propertyTypes: { value: "union[str, int]" },
-      },
+        propertyTypes: { value: "union[str, int]" }
+      }
     ];
     const edges: Edge[] = [
       { source: "a", sourceHandle: "out", target: "c", targetHandle: "value" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "value" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "value" }
     ];
 
     const runner = makeRunner({
       "test.Source": simpleExecutor(() => ({ out: "hello" })),
-      "test.Consumer": simpleExecutor((inputs) => ({ result: inputs.value })),
+      "test.Consumer": simpleExecutor((inputs) => ({ result: inputs.value }))
     });
 
     const result = await runner.run(
       { job_id: "j4", params: { a: 1 } },
-      { nodes, edges },
+      { nodes, edges }
     );
 
     expect(result.status).toBe("completed");
@@ -183,23 +190,25 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.ListConsumer",
         name: "consumer",
-        propertyTypes: { values: "list[str]" },
-      },
+        propertyTypes: { values: "list[str]" }
+      }
     ];
     const edges: Edge[] = [
       { source: "a", sourceHandle: "out", target: "c", targetHandle: "values" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "values" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "values" }
     ];
 
     const { result, detection } = await runAndGetDetection(
       {
         "test.Source": simpleExecutor(() => ({ out: "hello" })),
-        "test.ListConsumer": simpleExecutor((inputs) => ({ result: inputs.values })),
+        "test.ListConsumer": simpleExecutor((inputs) => ({
+          result: inputs.values
+        }))
       },
       nodes,
       edges,
       { a: "x" },
-      "j-str",
+      "j-str"
     );
 
     expect(result.status).toBe("completed");
@@ -216,23 +225,25 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.ListConsumer",
         name: "consumer",
-        propertyTypes: { values: "list[float]" },
-      },
+        propertyTypes: { values: "list[float]" }
+      }
     ];
     const edges: Edge[] = [
       { source: "a", sourceHandle: "out", target: "c", targetHandle: "values" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "values" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "values" }
     ];
 
     const { result, detection } = await runAndGetDetection(
       {
         "test.Source": simpleExecutor(() => ({ out: 3.14 })),
-        "test.ListConsumer": simpleExecutor((inputs) => ({ result: inputs.values })),
+        "test.ListConsumer": simpleExecutor((inputs) => ({
+          result: inputs.values
+        }))
       },
       nodes,
       edges,
       { a: 1 },
-      "j-float",
+      "j-float"
     );
 
     expect(result.status).toBe("completed");
@@ -248,22 +259,24 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.ListConsumer",
         name: "consumer",
-        propertyTypes: { values: "list[int]" },
-      },
+        propertyTypes: { values: "list[int]" }
+      }
     ];
     const edges: Edge[] = [
-      { source: "a", sourceHandle: "out", target: "c", targetHandle: "values" },
+      { source: "a", sourceHandle: "out", target: "c", targetHandle: "values" }
     ];
 
     const { result, detection } = await runAndGetDetection(
       {
         "test.Source": simpleExecutor(() => ({ out: 42 })),
-        "test.ListConsumer": simpleExecutor((inputs) => ({ result: inputs.values })),
+        "test.ListConsumer": simpleExecutor((inputs) => ({
+          result: inputs.values
+        }))
       },
       nodes,
       edges,
       { a: 1 },
-      "j-single",
+      "j-single"
     );
 
     expect(result.status).toBe("completed");
@@ -281,25 +294,25 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.MixedConsumer",
         name: "consumer",
-        propertyTypes: { values: "list[int]", tag: "str" },
-      },
+        propertyTypes: { values: "list[int]", tag: "str" }
+      }
     ];
     const edges: Edge[] = [
       { source: "a", sourceHandle: "out", target: "c", targetHandle: "values" },
       { source: "b", sourceHandle: "out", target: "c", targetHandle: "values" },
       { source: "a", sourceHandle: "label", target: "c", targetHandle: "tag" },
-      { source: "b", sourceHandle: "label", target: "c", targetHandle: "tag" },
+      { source: "b", sourceHandle: "label", target: "c", targetHandle: "tag" }
     ];
 
     const { result, detection } = await runAndGetDetection(
       {
         "test.Source": simpleExecutor(() => ({ out: 10, label: "hi" })),
-        "test.MixedConsumer": simpleExecutor((inputs) => ({ result: "ok" })),
+        "test.MixedConsumer": simpleExecutor((inputs) => ({ result: "ok" }))
       },
       nodes,
       edges,
       { a: 1 },
-      "j-mixed",
+      "j-mixed"
     );
 
     expect(result.status).toBe("completed");
@@ -319,24 +332,26 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.ListConsumer",
         name: "consumer",
-        propertyTypes: { values: "list[int]" },
-      },
+        propertyTypes: { values: "list[int]" }
+      }
     ];
     const edges: Edge[] = [
       { source: "a", sourceHandle: "out", target: "c", targetHandle: "values" },
       { source: "b", sourceHandle: "out", target: "c", targetHandle: "values" },
-      { source: "d", sourceHandle: "out", target: "c", targetHandle: "values" },
+      { source: "d", sourceHandle: "out", target: "c", targetHandle: "values" }
     ];
 
     const { result, detection } = await runAndGetDetection(
       {
         "test.Source": simpleExecutor(() => ({ out: 7 })),
-        "test.ListConsumer": simpleExecutor((inputs) => ({ result: inputs.values })),
+        "test.ListConsumer": simpleExecutor((inputs) => ({
+          result: inputs.values
+        }))
       },
       nodes,
       edges,
       { a: 1 },
-      "j-three",
+      "j-three"
     );
 
     expect(result.status).toBe("completed");
@@ -355,23 +370,23 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.Consumer",
         name: "consumer",
-        propertyTypes: {},
-      },
+        propertyTypes: {}
+      }
     ];
     const edges: Edge[] = [
       { source: "a", sourceHandle: "out", target: "c", targetHandle: "items" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "items" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "items" }
     ];
 
     const { result, detection } = await runAndGetDetection(
       {
         "test.Source": simpleExecutor(() => ({ out: 99 })),
-        "test.Consumer": simpleExecutor((inputs) => ({ result: inputs.items })),
+        "test.Consumer": simpleExecutor((inputs) => ({ result: inputs.items }))
       },
       nodes,
       edges,
       { a: 1 },
-      "j-empty-pt",
+      "j-empty-pt"
     );
 
     expect(result.status).toBe("completed");

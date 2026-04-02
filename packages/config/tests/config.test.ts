@@ -12,7 +12,7 @@ import {
   resetEnvironment,
   registerSetting,
   getSettings,
-  clearSettings,
+  clearSettings
 } from "../src/index.js";
 
 // ── T-CFG-1 — Environment loader ────────────────────────────────────
@@ -52,7 +52,10 @@ describe("T-CFG-1: Environment loader", () => {
 
   it("NODE_ENV=test loads .env.test", async () => {
     await fs.writeFile(path.join(tmpDir, ".env"), "TEST_CFG_VAR=base\n");
-    await fs.writeFile(path.join(tmpDir, ".env.test"), "TEST_CFG_VAR=from_test\n");
+    await fs.writeFile(
+      path.join(tmpDir, ".env.test"),
+      "TEST_CFG_VAR=from_test\n"
+    );
     process.env.NODE_ENV = "test";
     delete process.env.TEST_CFG_VAR;
     loadEnvironment(tmpDir);
@@ -60,8 +63,14 @@ describe("T-CFG-1: Environment loader", () => {
   });
 
   it(".local overrides .env.{NODE_ENV}", async () => {
-    await fs.writeFile(path.join(tmpDir, ".env.test"), "TEST_CFG_VAR=from_test\n");
-    await fs.writeFile(path.join(tmpDir, ".env.test.local"), "TEST_CFG_VAR=from_local\n");
+    await fs.writeFile(
+      path.join(tmpDir, ".env.test"),
+      "TEST_CFG_VAR=from_test\n"
+    );
+    await fs.writeFile(
+      path.join(tmpDir, ".env.test.local"),
+      "TEST_CFG_VAR=from_local\n"
+    );
     process.env.NODE_ENV = "test";
     delete process.env.TEST_CFG_VAR;
     loadEnvironment(tmpDir);
@@ -90,7 +99,9 @@ describe("T-CFG-1: Environment loader", () => {
   it("requireEnv throws when var not set", () => {
     resetEnvironment();
     delete process.env.NONEXISTENT_VAR_XYZ;
-    expect(() => requireEnv("NONEXISTENT_VAR_XYZ")).toThrow("NONEXISTENT_VAR_XYZ");
+    expect(() => requireEnv("NONEXISTENT_VAR_XYZ")).toThrow(
+      "NONEXISTENT_VAR_XYZ"
+    );
   });
 
   it("requireEnv returns value when set", async () => {
@@ -129,7 +140,7 @@ describe("T-CFG-2: Settings registry", () => {
       envVar: "MY_TEST_KEY",
       group: "TestGroup",
       description: "A test setting",
-      isSecret: false,
+      isSecret: false
     });
     const settings = getSettings();
     expect(settings.length).toBe(1);
@@ -143,7 +154,7 @@ describe("T-CFG-2: Settings registry", () => {
       envVar: "MY_TEST_KEY",
       group: "Test",
       description: "test",
-      isSecret: false,
+      isSecret: false
     });
     process.env.MY_TEST_KEY = "some_value";
     const settings = getSettings();
@@ -156,7 +167,7 @@ describe("T-CFG-2: Settings registry", () => {
       envVar: "MY_TEST_KEY",
       group: "Test",
       description: "test",
-      isSecret: false,
+      isSecret: false
     });
     delete process.env.MY_TEST_KEY;
     const settings = getSettings();
@@ -169,14 +180,14 @@ describe("T-CFG-2: Settings registry", () => {
       envVar: "MY_TEST_KEY",
       group: "Test",
       description: "test key",
-      isSecret: false,
+      isSecret: false
     });
     registerSetting({
       package: "nodetool",
       envVar: "MY_SECRET",
       group: "Secrets",
       description: "a secret",
-      isSecret: true,
+      isSecret: true
     });
     process.env.MY_TEST_KEY = "v";
     delete process.env.MY_SECRET;

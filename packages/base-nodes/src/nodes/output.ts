@@ -3,47 +3,64 @@ import type { ProcessingContext } from "@nodetool/runtime";
 
 export class OutputNode extends BaseNode {
   static readonly nodeType = "nodetool.output.Output";
-            static readonly title = "Output";
-            static readonly description = "Generic output node for any type.\n    output, result, sink, return";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Output";
+  static readonly description =
+    "Generic output node for any type.\n    output, result, sink, return";
+  static readonly metadataOutputTypes = {
     output: "any"
   };
-          static readonly basicFields = [
-  "name",
-  "value"
-];
-  
-          static readonly isStreamingOutput = true;
-  @prop({ type: "str", default: "", title: "Name", description: "The parameter name for the workflow." })
+  static readonly basicFields = ["name", "value"];
+
+  static readonly isStreamingOutput = true;
+  @prop({
+    type: "str",
+    default: "",
+    title: "Name",
+    description: "The parameter name for the workflow."
+  })
   declare name: any;
 
-  @prop({ type: "any", default: null, title: "Value", description: "The value of the output." })
+  @prop({
+    type: "any",
+    default: null,
+    title: "Value",
+    description: "The value of the output."
+  })
   declare value: any;
 
-  @prop({ type: "str", default: "", title: "Description", description: "The description of the output for the workflow." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Description",
+    description: "The description of the output for the workflow."
+  })
   declare description: any;
-
-
-
 
   private inferOutputType(value: unknown): string {
     if (value === null || value === undefined) return "any";
     if (typeof value === "string") return "str";
-    if (typeof value === "number") return Number.isInteger(value) ? "int" : "float";
+    if (typeof value === "number")
+      return Number.isInteger(value) ? "int" : "float";
     if (typeof value === "boolean") return "bool";
     if (Array.isArray(value)) return "list";
     if (value && typeof value === "object") return "dict";
     return "any";
   }
 
-  private async normalize(value: unknown, context?: ProcessingContext): Promise<unknown> {
-    if (!context || typeof context.normalizeOutputValue !== "function") return value;
+  private async normalize(
+    value: unknown,
+    context?: ProcessingContext
+  ): Promise<unknown> {
+    if (!context || typeof context.normalizeOutputValue !== "function")
+      return value;
     return context.normalizeOutputValue(value);
   }
 
   private emitOutputUpdate(value: unknown, context?: ProcessingContext): void {
     if (!context || typeof context.emit !== "function") return;
-    const nodeId = String(this.__node_id ?? this.name ?? this.__node_name ?? "");
+    const nodeId = String(
+      this.__node_id ?? this.name ?? this.__node_name ?? ""
+    );
     const nodeName = String(this.__node_name ?? this.name ?? nodeId);
     const outputName =
       typeof this.name === "string" && this.name.trim().length > 0
@@ -56,7 +73,7 @@ export class OutputNode extends BaseNode {
       output_name: outputName,
       value,
       output_type: this.inferOutputType(value),
-      metadata: {},
+      metadata: {}
     });
   }
 
@@ -79,20 +96,24 @@ export class PreviewNode extends BaseNode {
   @prop({ type: "str", default: "" })
   declare name: any;
 
-
-
-  private async normalize(value: unknown, context?: ProcessingContext): Promise<unknown> {
-    if (!context || typeof context.normalizeOutputValue !== "function") return value;
+  private async normalize(
+    value: unknown,
+    context?: ProcessingContext
+  ): Promise<unknown> {
+    if (!context || typeof context.normalizeOutputValue !== "function")
+      return value;
     return context.normalizeOutputValue(value);
   }
 
   private emitPreview(value: unknown, context?: ProcessingContext): void {
     if (!context || typeof context.emit !== "function") return;
-    const nodeId = String(this.__node_id ?? this.name ?? this.__node_name ?? "");
+    const nodeId = String(
+      this.__node_id ?? this.name ?? this.__node_name ?? ""
+    );
     context.emit({
       type: "preview_update",
       node_id: nodeId,
-      value,
+      value
     });
   }
 

@@ -7,9 +7,12 @@ export interface KieAIInputs {
   model_info?: Connectable<number>;
 }
 
-export interface KieAIOutputs {
-}
+export interface KieAIOutputs {}
 
 export function kieAI(inputs: KieAIInputs): DslNode<KieAIOutputs> {
-  return createNode("kie.dynamic_schema.KieAI", inputs as Record<string, unknown>, { outputNames: [] });
+  return createNode(
+    "kie.dynamic_schema.KieAI",
+    inputs as Record<string, unknown>,
+    { outputNames: [] }
+  );
 }

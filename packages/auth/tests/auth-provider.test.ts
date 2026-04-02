@@ -7,7 +7,7 @@ import {
   StaticTokenProvider,
   createAuthMiddleware,
   getUserId,
-  HttpError,
+  HttpError
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -41,7 +41,7 @@ describe("AuthProvider.extractTokenFromHeaders", () => {
 
   it("extracts a valid bearer token from a plain object", () => {
     const token = provider.extractTokenFromHeaders({
-      authorization: "Bearer abc123",
+      authorization: "Bearer abc123"
     });
     expect(token).toBe("abc123");
   });
@@ -72,7 +72,7 @@ describe("AuthProvider.extractTokenFromHeaders", () => {
   it("returns null for authorization header with extra parts", () => {
     expect(
       provider.extractTokenFromHeaders({
-        authorization: "Bearer abc def",
+        authorization: "Bearer abc def"
       })
     ).toBeNull();
   });
@@ -88,7 +88,7 @@ describe("AuthProvider.extractTokenFromHeaders", () => {
 
   it("handles capitalized header name in plain object", () => {
     const token = provider.extractTokenFromHeaders({
-      Authorization: "Bearer capital",
+      Authorization: "Bearer capital"
     });
     expect(token).toBe("capital");
   });
@@ -176,7 +176,7 @@ describe("StaticTokenProvider", () => {
   it("supports multiple tokens", async () => {
     const provider = new StaticTokenProvider({
       tok1: "u1",
-      tok2: "u2",
+      tok2: "u2"
     });
     expect((await provider.verifyToken("tok1")).userId).toBe("u1");
     expect((await provider.verifyToken("tok2")).userId).toBe("u2");
@@ -201,7 +201,7 @@ describe("StaticTokenProvider", () => {
     it("reads STATIC_AUTH_TOKENS as JSON", async () => {
       process.env["STATIC_AUTH_TOKENS"] = JSON.stringify({
         alpha: "uA",
-        beta: "uB",
+        beta: "uB"
       });
       const provider = new StaticTokenProvider();
       expect((await provider.verifyToken("alpha")).userId).toBe("uA");
@@ -226,7 +226,7 @@ describe("createAuthMiddleware", () => {
     const staticProvider = new StaticTokenProvider({ tok: "u1" });
     const authenticate = createAuthMiddleware({
       staticProvider,
-      enforceAuth: false,
+      enforceAuth: false
     });
 
     const request = makeRequest({});
@@ -239,7 +239,7 @@ describe("createAuthMiddleware", () => {
     const staticProvider = new StaticTokenProvider({ tok: "u1" });
     const authenticate = createAuthMiddleware({
       staticProvider,
-      enforceAuth: false,
+      enforceAuth: false
     });
 
     const request = makeRequest({ authorization: "Bearer tok" });
@@ -251,7 +251,7 @@ describe("createAuthMiddleware", () => {
     const staticProvider = new StaticTokenProvider({ tok: "u1" });
     const authenticate = createAuthMiddleware({
       staticProvider,
-      enforceAuth: true,
+      enforceAuth: true
     });
 
     const request = makeRequest({});
@@ -267,7 +267,7 @@ describe("createAuthMiddleware", () => {
     const staticProvider = new StaticTokenProvider({ secret: "u5" });
     const authenticate = createAuthMiddleware({
       staticProvider,
-      enforceAuth: true,
+      enforceAuth: true
     });
 
     const request = makeRequest({ authorization: "Bearer secret" });
@@ -281,7 +281,7 @@ describe("createAuthMiddleware", () => {
     const authenticate = createAuthMiddleware({
       staticProvider,
       userProvider,
-      enforceAuth: true,
+      enforceAuth: true
     });
 
     const request = makeRequest({ authorization: "Bearer utok" });
@@ -296,7 +296,7 @@ describe("createAuthMiddleware", () => {
     const authenticate = createAuthMiddleware({
       staticProvider,
       userProvider,
-      enforceAuth: true,
+      enforceAuth: true
     });
 
     const request = makeRequest({ authorization: "Bearer bad" });
@@ -307,7 +307,7 @@ describe("createAuthMiddleware", () => {
     const staticProvider = new StaticTokenProvider({ stok: "u1" });
     const authenticate = createAuthMiddleware({
       staticProvider,
-      enforceAuth: true,
+      enforceAuth: true
     });
 
     const request = makeRequest({ authorization: "Bearer bad" });

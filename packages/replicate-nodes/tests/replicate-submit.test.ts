@@ -37,7 +37,7 @@ describe("assetToUrl with apiKey (upload paths)", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
-      headers: new Headers({ "content-type": "image/png" }),
+      headers: new Headers({ "content-type": "image/png" })
     });
     // Second call: upload fails
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
@@ -52,7 +52,7 @@ describe("assetToUrl with apiKey (upload paths)", () => {
 
   it("returns external URL directly when no apiKey is provided", async () => {
     const result = await assetToUrl({
-      uri: "https://example.com/image.png",
+      uri: "https://example.com/image.png"
     });
     expect(result).toBe("https://example.com/image.png");
     expect(mockFetch).not.toHaveBeenCalled();
@@ -88,7 +88,9 @@ describe("registerReplicateNodes", () => {
     registerReplicateNodes(registry);
 
     // Spot-check a few known types
-    expect(registry.has("replicate.image.generate.StableDiffusionXL")).toBe(true);
+    expect(registry.has("replicate.image.generate.StableDiffusionXL")).toBe(
+      true
+    );
     expect(registry.has("replicate.audio.generate.MusicGen")).toBe(true);
   });
 });

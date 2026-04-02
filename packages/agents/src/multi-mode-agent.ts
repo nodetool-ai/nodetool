@@ -17,7 +17,7 @@ import type {
   StepResult,
   LogUpdate,
   TaskUpdate,
-  Chunk,
+  Chunk
 } from "@nodetool/protocol";
 import { TaskUpdateEvent } from "@nodetool/protocol";
 import { BaseAgent } from "./base-agent.js";
@@ -92,7 +92,7 @@ export class MultiModeAgent extends BaseAgent {
       tools: opts.tools,
       inputs: opts.inputs,
       systemPrompt: opts.systemPrompt,
-      maxTokenLimit: opts.maxTokenLimit,
+      maxTokenLimit: opts.maxTokenLimit
     });
     this.mode = opts.mode ?? "loop";
     this.outputSchema = opts.outputSchema;
@@ -111,11 +111,13 @@ export class MultiModeAgent extends BaseAgent {
     }
   }
 
-  async *execute(context: ProcessingContext): AsyncGenerator<ProcessingMessage> {
+  async *execute(
+    context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage> {
     log.info("MultiModeAgent started", {
       name: this.name,
       mode: this.mode,
-      objective: this.objective.slice(0, 80),
+      objective: this.objective.slice(0, 80)
     });
 
     yield {
@@ -123,7 +125,7 @@ export class MultiModeAgent extends BaseAgent {
       node_id: "multi_mode_agent",
       node_name: this.name,
       content: `Starting agent in "${this.mode}" mode: ${this.objective.slice(0, 100)}...`,
-      severity: "info",
+      severity: "info"
     } satisfies LogUpdate;
 
     switch (this.mode) {
@@ -155,14 +157,16 @@ export class MultiModeAgent extends BaseAgent {
       instructions: this.objective,
       completed: false,
       dependsOn: [],
-      outputSchema: this.outputSchema ? JSON.stringify(this.outputSchema) : undefined,
-      logs: [],
+      outputSchema: this.outputSchema
+        ? JSON.stringify(this.outputSchema)
+        : undefined,
+      logs: []
     };
 
     const task: Task = {
       id: randomUUID(),
       title: this.objective,
-      steps: [step],
+      steps: [step]
     };
     this.task = task;
 
@@ -175,7 +179,7 @@ export class MultiModeAgent extends BaseAgent {
       tools: this.tools,
       systemPrompt: this.systemPrompt || undefined,
       maxTokenLimit: this.maxTokenLimit,
-      maxIterations: this.maxIterations,
+      maxIterations: this.maxIterations
     });
 
     for await (const item of executor.execute()) {
@@ -202,7 +206,7 @@ export class MultiModeAgent extends BaseAgent {
         node_id: "agent_planner",
         node_name: this.name,
         content: `Planning steps for objective: ${this.objective.slice(0, 100)}...`,
-        severity: "info",
+        severity: "info"
       } satisfies LogUpdate;
 
       const planner = new TaskPlanner({
@@ -212,7 +216,7 @@ export class MultiModeAgent extends BaseAgent {
         tools: this.tools,
         systemPrompt: this.systemPrompt || undefined,
         outputSchema: this.outputSchema,
-        inputs: this.inputs,
+        inputs: this.inputs
       });
 
       const planGen = planner.plan(this.objective, context);
@@ -228,19 +232,24 @@ export class MultiModeAgent extends BaseAgent {
       throw new Error("TaskPlanner failed to create a task plan.");
     }
 
-    log.info("Planning complete", { name: this.name, steps: task.steps.length });
+    log.info("Planning complete", {
+      name: this.name,
+      steps: task.steps.length
+    });
     this.task = task;
 
     if (!this.initialTask) {
       yield {
         type: "task_update",
         event: TaskUpdateEvent.TaskCreated,
-        task: task as unknown as TaskUpdate["task"],
+        task: task as unknown as TaskUpdate["task"]
       } satisfies TaskUpdate;
     }
 
     if (this.outputSchema && task.steps.length > 0) {
-      task.steps[task.steps.length - 1].outputSchema = JSON.stringify(this.outputSchema);
+      task.steps[task.steps.length - 1].outputSchema = JSON.stringify(
+        this.outputSchema
+      );
     }
 
     yield {
@@ -248,7 +257,7 @@ export class MultiModeAgent extends BaseAgent {
       node_id: "agent_executor",
       node_name: this.name,
       content: `Starting execution of ${task.steps.length} steps...`,
-      severity: "info",
+      severity: "info"
     } satisfies LogUpdate;
 
     const executor = new TaskExecutor({
@@ -261,7 +270,7 @@ export class MultiModeAgent extends BaseAgent {
       inputs: this.inputs,
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,
-      maxTokenLimit: this.maxTokenLimit,
+      maxTokenLimit: this.maxTokenLimit
     });
 
     for await (const item of executor.executeTasks()) {
@@ -272,7 +281,7 @@ export class MultiModeAgent extends BaseAgent {
           yield {
             type: "task_update",
             event: TaskUpdateEvent.TaskCompleted,
-            task: task as unknown as TaskUpdate["task"],
+            task: task as unknown as TaskUpdate["task"]
           } satisfies TaskUpdate;
         }
       }
@@ -292,7 +301,9 @@ export class MultiModeAgent extends BaseAgent {
 
     if (this.subAgents && this.subAgents.length > 0) {
       agentConfigs = this.subAgents;
-      log.info("Using explicit sub-agent configs", { count: agentConfigs.length });
+      log.info("Using explicit sub-agent configs", {
+        count: agentConfigs.length
+      });
     } else {
       log.info("Auto-specializing sub-agents", { count: this.numSubAgents });
 
@@ -301,13 +312,13 @@ export class MultiModeAgent extends BaseAgent {
         node_id: "sub_agent_planner",
         node_name: this.name,
         content: `Auto-specializing ${this.numSubAgents} sub-agents for objective...`,
-        severity: "info",
+        severity: "info"
       } satisfies LogUpdate;
 
       const planner = new SubAgentPlanner({
         provider: this.provider,
         model: this.planningModel,
-        tools: this.tools,
+        tools: this.tools
       });
 
       const planGen = planner.plan(this.objective, this.numSubAgents);
@@ -328,12 +339,13 @@ export class MultiModeAgent extends BaseAgent {
       node_id: "team_executor",
       node_name: this.name,
       content: `Starting team of ${agentConfigs.length} agents with "${this.teamStrategy}" strategy...`,
-      severity: "info",
+      severity: "info"
     } satisfies LogUpdate;
 
     // Convert SubAgentConfig[] to AgentIdentity[] for TeamExecutor
     const providerKey =
-      (this.provider as unknown as Record<string, unknown>).provider as string ?? "openai";
+      ((this.provider as unknown as Record<string, unknown>)
+        .provider as string) ?? "openai";
     const agents = agentConfigs.map((config, index) => ({
       id: `agent_${index}_${config.name.toLowerCase().replace(/\s+/g, "_")}`,
       name: config.name,
@@ -341,7 +353,7 @@ export class MultiModeAgent extends BaseAgent {
       skills: config.skills,
       provider: config.provider ?? providerKey,
       model: config.model ?? this.model,
-      tools: config.tools ?? this.tools.map((t) => t.name),
+      tools: config.tools ?? this.tools.map((t) => t.name)
     }));
 
     const teamExecutor = new TeamExecutor({
@@ -349,10 +361,10 @@ export class MultiModeAgent extends BaseAgent {
         objective: this.objective,
         agents,
         strategy: this.teamStrategy,
-        maxConcurrency: this.maxConcurrency,
+        maxConcurrency: this.maxConcurrency
       },
       context,
-      sharedTools: [...this.tools],
+      sharedTools: [...this.tools]
     });
 
     for await (const event of teamExecutor.execute()) {
@@ -362,7 +374,7 @@ export class MultiModeAgent extends BaseAgent {
           yield {
             type: "chunk",
             content: `[${event.agentId}] ${event.content}`,
-            done: false,
+            done: false
           } satisfies Chunk;
           break;
 
@@ -372,7 +384,7 @@ export class MultiModeAgent extends BaseAgent {
             node_id: "team_executor",
             node_name: this.name,
             content: `Task created: ${event.task.title}`,
-            severity: "info",
+            severity: "info"
           } satisfies LogUpdate;
           break;
 
@@ -382,7 +394,7 @@ export class MultiModeAgent extends BaseAgent {
             node_id: "team_executor",
             node_name: this.name,
             content: `Task ${event.taskId} completed`,
-            severity: "info",
+            severity: "info"
           } satisfies LogUpdate;
           break;
 
@@ -392,7 +404,7 @@ export class MultiModeAgent extends BaseAgent {
             node_id: "team_executor",
             node_name: this.name,
             content: `Task ${event.taskId} failed: ${event.reason}`,
-            severity: "warning",
+            severity: "warning"
           } satisfies LogUpdate;
           break;
 
@@ -402,7 +414,7 @@ export class MultiModeAgent extends BaseAgent {
             node_id: "team_executor",
             node_name: this.name,
             content: `Agent ${event.agentId} started`,
-            severity: "info",
+            severity: "info"
           } satisfies LogUpdate;
           break;
 
@@ -412,7 +424,7 @@ export class MultiModeAgent extends BaseAgent {
             node_id: "team_executor",
             node_name: this.name,
             content: `Deadlock detected in tasks: ${event.blockingTasks.join(", ")}`,
-            severity: "error",
+            severity: "error"
           } satisfies LogUpdate;
           break;
 
@@ -423,7 +435,7 @@ export class MultiModeAgent extends BaseAgent {
             node_id: "team_executor",
             node_name: this.name,
             content: "Team execution complete",
-            severity: "info",
+            severity: "info"
           } satisfies LogUpdate;
           break;
       }

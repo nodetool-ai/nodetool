@@ -22,7 +22,7 @@ import type {
   TextToVideoParams,
   ToolCall,
   TTSModel,
-  VideoModel,
+  VideoModel
 } from "./types.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
@@ -91,7 +91,10 @@ export class GeminiProvider extends BaseProvider {
   readonly apiKey: string;
   private _fetch: typeof fetch;
 
-  constructor(secrets: { GEMINI_API_KEY?: string }, options: GeminiProviderOptions = {}) {
+  constructor(
+    secrets: { GEMINI_API_KEY?: string },
+    options: GeminiProviderOptions = {}
+  ) {
     super("gemini");
 
     const apiKey = secrets.GEMINI_API_KEY;
@@ -131,14 +134,16 @@ export class GeminiProvider extends BaseProvider {
     const items = payload.models ?? [];
 
     return items
-      .filter((m) => (m.supportedGenerationMethods ?? []).includes("generateContent"))
+      .filter((m) =>
+        (m.supportedGenerationMethods ?? []).includes("generateContent")
+      )
       .filter((m) => !!m.name)
       .map((m) => {
         const id = (m.name as string).split("/").pop() as string;
         return {
           id,
           name: m.displayName ?? id,
-          provider: "gemini",
+          provider: "gemini"
         };
       });
   }
@@ -147,7 +152,9 @@ export class GeminiProvider extends BaseProvider {
   // Message conversion helpers
   // ---------------------------------------------------------------------------
 
-  private async messageContentToGeminiPart(content: MessageContent): Promise<GeminiPart> {
+  private async messageContentToGeminiPart(
+    content: MessageContent
+  ): Promise<GeminiPart> {
     if (content.type === "text") {
       return { text: (content as MessageTextContent).text };
     }
@@ -171,7 +178,8 @@ export class GeminiProvider extends BaseProvider {
           base64Data = img.uri.slice(idx + 1);
         } else {
           const resp = await this._fetch(img.uri);
-          if (!resp.ok) throw new Error(`Failed to fetch image: ${resp.status}`);
+          if (!resp.ok)
+            throw new Error(`Failed to fetch image: ${resp.status}`);
           mimeType = resp.headers.get("content-type") ?? mimeType;
           base64Data = Buffer.from(await resp.arrayBuffer()).toString("base64");
         }
@@ -201,7 +209,8 @@ export class GeminiProvider extends BaseProvider {
           base64Data = aud.uri.slice(idx + 1);
         } else {
           const resp = await this._fetch(aud.uri);
-          if (!resp.ok) throw new Error(`Failed to fetch audio: ${resp.status}`);
+          if (!resp.ok)
+            throw new Error(`Failed to fetch audio: ${resp.status}`);
           mimeType = resp.headers.get("content-type") ?? mimeType;
           base64Data = Buffer.from(await resp.arrayBuffer()).toString("base64");
         }
@@ -226,19 +235,22 @@ export class GeminiProvider extends BaseProvider {
 
     for (const msg of messages) {
       if (msg.role === "system") {
-        systemInstruction = typeof msg.content === "string"
-          ? msg.content
-          : (msg.content ?? [])
-              .filter((c): c is MessageTextContent => c.type === "text")
-              .map((c) => c.text)
-              .join(" ");
+        systemInstruction =
+          typeof msg.content === "string"
+            ? msg.content
+            : (msg.content ?? [])
+                .filter((c): c is MessageTextContent => c.type === "text")
+                .map((c) => c.text)
+                .join(" ");
         continue;
       }
 
       if (msg.role === "tool") {
         // Tool result → model role with functionResponse part
         const responseText =
-          typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+          typeof msg.content === "string"
+            ? msg.content
+            : JSON.stringify(msg.content);
 
         contents.push({
           role: "user",
@@ -246,10 +258,10 @@ export class GeminiProvider extends BaseProvider {
             {
               functionResponse: {
                 name: msg.toolCallId ?? "unknown",
-                response: { result: responseText },
-              },
-            },
-          ],
+                response: { result: responseText }
+              }
+            }
+          ]
         });
         continue;
       }
@@ -261,7 +273,7 @@ export class GeminiProvider extends BaseProvider {
         if (msg.toolCalls && msg.toolCalls.length > 0) {
           for (const tc of msg.toolCalls) {
             parts.push({
-              functionCall: { name: tc.name, args: tc.args },
+              functionCall: { name: tc.name, args: tc.args }
             });
           }
         }
@@ -298,10 +310,10 @@ export class GeminiProvider extends BaseProvider {
     return { contents, systemInstruction };
   }
 
-  formatTools(
-    tools: ProviderTool[]
-  ): {
-    geminiTools: Array<{ functionDeclarations: Array<Record<string, unknown>> }>;
+  formatTools(tools: ProviderTool[]): {
+    geminiTools: Array<{
+      functionDeclarations: Array<Record<string, unknown>>;
+    }>;
     nameMap: Map<string, string>;
     reverseMap: Map<string, string>;
   } {
@@ -328,14 +340,15 @@ export class GeminiProvider extends BaseProvider {
       declarations.push({
         name: unique,
         description: tool.description ?? "",
-        parameters: tool.inputSchema ?? { type: "object", properties: {} },
+        parameters: tool.inputSchema ?? { type: "object", properties: {} }
       });
     }
 
     return {
-      geminiTools: declarations.length > 0 ? [{ functionDeclarations: declarations }] : [],
+      geminiTools:
+        declarations.length > 0 ? [{ functionDeclarations: declarations }] : [],
       nameMap,
-      reverseMap,
+      reverseMap
     };
   }
 
@@ -362,10 +375,12 @@ export class GeminiProvider extends BaseProvider {
       responseFormat,
       jsonSchema,
       temperature,
-      topP,
+      topP
     } = args;
 
-    const { contents, systemInstruction } = await this.convertMessages(args.messages);
+    const { contents, systemInstruction } = await this.convertMessages(
+      args.messages
+    );
     const { geminiTools, reverseMap } = this.formatTools(tools);
 
     const body: GeminiRequest = { contents };
@@ -379,7 +394,7 @@ export class GeminiProvider extends BaseProvider {
     }
 
     const generationConfig: Record<string, unknown> = {
-      maxOutputTokens: maxTokens,
+      maxOutputTokens: maxTokens
     };
     if (temperature != null) generationConfig.temperature = temperature;
     if (topP != null) generationConfig.topP = topP;
@@ -395,12 +410,15 @@ export class GeminiProvider extends BaseProvider {
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
       const text = await response.text();
-      log.error("Gemini request failed", { model, error: `${response.status}: ${text.slice(0, 200)}` });
+      log.error("Gemini request failed", {
+        model,
+        error: `${response.status}: ${text.slice(0, 200)}`
+      });
       throw new Error(`Gemini API error ${response.status}: ${text}`);
     }
 
@@ -435,15 +453,11 @@ export class GeminiProvider extends BaseProvider {
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
   }): AsyncGenerator<ProviderStreamItem> {
-    const {
-      model,
-      tools = [],
-      maxTokens = 16384,
-      temperature,
-      topP,
-    } = args;
+    const { model, tools = [], maxTokens = 16384, temperature, topP } = args;
 
-    const { contents, systemInstruction } = await this.convertMessages(args.messages);
+    const { contents, systemInstruction } = await this.convertMessages(
+      args.messages
+    );
     const { geminiTools, reverseMap } = this.formatTools(tools);
 
     const body: GeminiRequest = { contents };
@@ -457,7 +471,7 @@ export class GeminiProvider extends BaseProvider {
     }
 
     const generationConfig: Record<string, unknown> = {
-      maxOutputTokens: maxTokens,
+      maxOutputTokens: maxTokens
     };
     if (temperature != null) generationConfig.temperature = temperature;
     if (topP != null) generationConfig.topP = topP;
@@ -469,12 +483,15 @@ export class GeminiProvider extends BaseProvider {
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
       const text = await response.text();
-      log.error("Gemini request failed", { model, error: `${response.status}: ${text.slice(0, 200)}` });
+      log.error("Gemini request failed", {
+        model,
+        error: `${response.status}: ${text.slice(0, 200)}`
+      });
       throw new Error(`Gemini API error ${response.status}: ${text}`);
     }
 
@@ -515,15 +532,17 @@ export class GeminiProvider extends BaseProvider {
               const chunk: Chunk = {
                 type: "chunk",
                 content: part.text,
-                done: false,
+                done: false
               };
               yield chunk;
             } else if (part.functionCall) {
-              const originalName = reverseMap.get(part.functionCall.name) ?? part.functionCall.name;
+              const originalName =
+                reverseMap.get(part.functionCall.name) ??
+                part.functionCall.name;
               const toolCall: ToolCall = {
                 id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
                 name: originalName,
-                args: part.functionCall.args ?? {},
+                args: part.functionCall.args ?? {}
               };
               yield toolCall;
             }
@@ -538,7 +557,7 @@ export class GeminiProvider extends BaseProvider {
     const doneChunk: Chunk = {
       type: "chunk",
       content: "",
-      done: true,
+      done: true
     };
     yield doneChunk;
   }
@@ -558,11 +577,12 @@ export class GeminiProvider extends BaseProvider {
       if (part.text !== undefined) {
         textParts.push(part.text);
       } else if (part.functionCall) {
-        const originalName = reverseMap.get(part.functionCall.name) ?? part.functionCall.name;
+        const originalName =
+          reverseMap.get(part.functionCall.name) ?? part.functionCall.name;
         toolCalls.push({
           id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
           name: originalName,
-          args: part.functionCall.args ?? {},
+          args: part.functionCall.args ?? {}
         });
       }
     }
@@ -570,7 +590,7 @@ export class GeminiProvider extends BaseProvider {
     return {
       role: "assistant",
       content: textParts.join("") || null,
-      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined
     };
   }
 
@@ -580,42 +600,90 @@ export class GeminiProvider extends BaseProvider {
 
   async getAvailableImageModels(): Promise<ImageModel[]> {
     return [
-      { id: "gemini-2.0-flash-preview-image-generation", name: "Gemini 2.0 Flash Image Gen", provider: "gemini" },
-      { id: "imagen-3.0-generate-002", name: "Imagen 3.0", provider: "gemini" },
+      {
+        id: "gemini-2.0-flash-preview-image-generation",
+        name: "Gemini 2.0 Flash Image Gen",
+        provider: "gemini"
+      },
+      { id: "imagen-3.0-generate-002", name: "Imagen 3.0", provider: "gemini" }
     ];
   }
 
   async getAvailableTTSModels(): Promise<TTSModel[]> {
     const voices = [
-      "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede",
-      "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba",
-      "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar",
-      "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi",
-      "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
+      "Zephyr",
+      "Puck",
+      "Charon",
+      "Kore",
+      "Fenrir",
+      "Leda",
+      "Orus",
+      "Aoede",
+      "Callirrhoe",
+      "Autonoe",
+      "Enceladus",
+      "Iapetus",
+      "Umbriel",
+      "Algieba",
+      "Despina",
+      "Erinome",
+      "Algenib",
+      "Rasalgethi",
+      "Laomedeia",
+      "Achernar",
+      "Alnilam",
+      "Schedar",
+      "Gacrux",
+      "Pulcherrima",
+      "Achird",
+      "Zubenelgenubi",
+      "Vindemiatrix",
+      "Sadachbia",
+      "Sadaltager",
+      "Sulafat"
     ];
     return [
-      { id: "gemini-2.5-pro-preview-tts", name: "Gemini 2.5 Pro TTS", provider: "gemini", voices },
+      {
+        id: "gemini-2.5-pro-preview-tts",
+        name: "Gemini 2.5 Pro TTS",
+        provider: "gemini",
+        voices
+      }
     ];
   }
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
     return [
       { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "gemini" },
-      { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "gemini" },
+      { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "gemini" }
     ];
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return [
-      { id: "veo-3.1-generate-preview", name: "Veo 3.1 Preview", provider: "gemini" },
-      { id: "veo-2.0-generate-001", name: "Veo 2.0", provider: "gemini" },
+      {
+        id: "veo-3.1-generate-preview",
+        name: "Veo 3.1 Preview",
+        provider: "gemini"
+      },
+      { id: "veo-2.0-generate-001", name: "Veo 2.0", provider: "gemini" }
     ];
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
     return [
-      { id: "text-embedding-004", name: "Text Embedding 004", provider: "gemini", dimensions: 768 },
-      { id: "gemini-embedding-001", name: "Gemini Embedding 001", provider: "gemini", dimensions: 3072 },
+      {
+        id: "text-embedding-004",
+        name: "Text Embedding 004",
+        provider: "gemini",
+        dimensions: 768
+      },
+      {
+        id: "gemini-embedding-001",
+        name: "Gemini Embedding 001",
+        provider: "gemini",
+        dimensions: 3072
+      }
     ];
   }
 
@@ -639,7 +707,7 @@ export class GeminiProvider extends BaseProvider {
     const embeddings: number[][] = [];
     for (const t of texts) {
       const body: Record<string, unknown> = {
-        content: { parts: [{ text: t }] },
+        content: { parts: [{ text: t }] }
       };
       if (dimensions) {
         body.outputDimensionality = dimensions;
@@ -649,15 +717,19 @@ export class GeminiProvider extends BaseProvider {
       const response = await this._fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`Gemini embedding error ${response.status}: ${errText}`);
+        throw new Error(
+          `Gemini embedding error ${response.status}: ${errText}`
+        );
       }
 
-      const data = (await response.json()) as { embedding?: { values?: number[] } };
+      const data = (await response.json()) as {
+        embedding?: { values?: number[] };
+      };
       if (!data.embedding?.values) {
         throw new Error("No embedding returned from Gemini API");
       }
@@ -683,20 +755,22 @@ export class GeminiProvider extends BaseProvider {
       const body = {
         contents: [{ role: "user" as const, parts: [{ text: params.prompt }] }],
         generationConfig: {
-          responseModalities: ["IMAGE", "TEXT"],
-        },
+          responseModalities: ["IMAGE", "TEXT"]
+        }
       };
 
       const url = `${GEMINI_API_BASE}/models/${modelId}:generateContent?key=${this.apiKey}`;
       const response = await this._fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`Gemini text-to-image failed ${response.status}: ${errText}`);
+        throw new Error(
+          `Gemini text-to-image failed ${response.status}: ${errText}`
+        );
       }
 
       const data = (await response.json()) as GeminiResponse;
@@ -714,19 +788,21 @@ export class GeminiProvider extends BaseProvider {
     // Imagen models use generateImages endpoint
     const body: Record<string, unknown> = {
       instances: [{ prompt: params.prompt }],
-      parameters: { sampleCount: 1 },
+      parameters: { sampleCount: 1 }
     };
 
     const url = `${GEMINI_API_BASE}/models/${modelId}:generateImages?key=${this.apiKey}`;
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Gemini image generation failed ${response.status}: ${errText}`);
+      throw new Error(
+        `Gemini image generation failed ${response.status}: ${errText}`
+      );
     }
 
     const data = (await response.json()) as {
@@ -747,41 +823,50 @@ export class GeminiProvider extends BaseProvider {
   // Image-to-image
   // ---------------------------------------------------------------------------
 
-  override async imageToImage(image: Uint8Array, params: ImageToImageParams): Promise<Uint8Array> {
+  override async imageToImage(
+    image: Uint8Array,
+    params: ImageToImageParams
+  ): Promise<Uint8Array> {
     if (!params.prompt) {
       throw new Error("The input prompt cannot be empty.");
     }
 
     const modelId = params.model.id;
     if (!modelId.startsWith("gemini-")) {
-      throw new Error(`Model ${modelId} does not support image-to-image. Only gemini-* models supported.`);
+      throw new Error(
+        `Model ${modelId} does not support image-to-image. Only gemini-* models supported.`
+      );
     }
 
     const imageBase64 = Buffer.from(image).toString("base64");
 
     const body = {
-      contents: [{
-        role: "user" as const,
-        parts: [
-          { text: params.prompt },
-          { inlineData: { mimeType: "image/png", data: imageBase64 } },
-        ],
-      }],
+      contents: [
+        {
+          role: "user" as const,
+          parts: [
+            { text: params.prompt },
+            { inlineData: { mimeType: "image/png", data: imageBase64 } }
+          ]
+        }
+      ],
       generationConfig: {
-        responseModalities: ["IMAGE", "TEXT"],
-      },
+        responseModalities: ["IMAGE", "TEXT"]
+      }
     };
 
     const url = `${GEMINI_API_BASE}/models/${modelId}:generateContent?key=${this.apiKey}`;
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Gemini image-to-image failed ${response.status}: ${errText}`);
+      throw new Error(
+        `Gemini image-to-image failed ${response.status}: ${errText}`
+      );
     }
 
     const data = (await response.json()) as GeminiResponse;
@@ -814,17 +899,17 @@ export class GeminiProvider extends BaseProvider {
         responseModalities: ["AUDIO"],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: voice },
-          },
-        },
-      },
+            prebuiltVoiceConfig: { voiceName: voice }
+          }
+        }
+      }
     };
 
     const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${this.apiKey}`;
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
@@ -840,7 +925,11 @@ export class GeminiProvider extends BaseProvider {
       if (part.inlineData?.data) {
         const raw = Buffer.from(part.inlineData.data, "base64");
         // Gemini TTS returns raw PCM int16 at 24kHz
-        const samples = new Int16Array(raw.buffer, raw.byteOffset, raw.byteLength / 2);
+        const samples = new Int16Array(
+          raw.buffer,
+          raw.byteOffset,
+          raw.byteLength / 2
+        );
         yield { samples };
       }
     }
@@ -865,15 +954,30 @@ export class GeminiProvider extends BaseProvider {
 
     // Detect MIME type from audio header
     let mimeType = "audio/wav";
-    if (audio[0] === 0x52 && audio[1] === 0x49 && audio[2] === 0x46 && audio[3] === 0x46) {
+    if (
+      audio[0] === 0x52 &&
+      audio[1] === 0x49 &&
+      audio[2] === 0x46 &&
+      audio[3] === 0x46
+    ) {
       mimeType = "audio/wav"; // RIFF
     } else if (audio[0] === 0x49 && audio[1] === 0x44 && audio[2] === 0x33) {
       mimeType = "audio/mp3"; // ID3
     } else if (audio[0] === 0xff && (audio[1] === 0xfb || audio[1] === 0xf3)) {
       mimeType = "audio/mp3"; // MPEG sync
-    } else if (audio[0] === 0x66 && audio[1] === 0x4c && audio[2] === 0x61 && audio[3] === 0x43) {
+    } else if (
+      audio[0] === 0x66 &&
+      audio[1] === 0x4c &&
+      audio[2] === 0x61 &&
+      audio[3] === 0x43
+    ) {
       mimeType = "audio/flac"; // fLaC
-    } else if (audio[0] === 0x4f && audio[1] === 0x67 && audio[2] === 0x67 && audio[3] === 0x53) {
+    } else if (
+      audio[0] === 0x4f &&
+      audio[1] === 0x67 &&
+      audio[2] === 0x67 &&
+      audio[3] === 0x53
+    ) {
       mimeType = "audio/ogg"; // OggS
     }
 
@@ -885,23 +989,25 @@ export class GeminiProvider extends BaseProvider {
     const audioBase64 = Buffer.from(audio).toString("base64");
 
     const body = {
-      contents: [{
-        role: "user" as const,
-        parts: [
-          { inlineData: { mimeType, data: audioBase64 } },
-          { text: promptText },
-        ],
-      }],
+      contents: [
+        {
+          role: "user" as const,
+          parts: [
+            { inlineData: { mimeType, data: audioBase64 } },
+            { text: promptText }
+          ]
+        }
+      ],
       generationConfig: {
-        temperature,
-      },
+        temperature
+      }
     };
 
     const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${this.apiKey}`;
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
@@ -930,14 +1036,17 @@ export class GeminiProvider extends BaseProvider {
 
     const modelId = params.model.id;
     if (!modelId.startsWith("veo-")) {
-      throw new Error(`Model ${modelId} is not a Veo model. Only Veo models support text-to-video.`);
+      throw new Error(
+        `Model ${modelId} is not a Veo model. Only Veo models support text-to-video.`
+      );
     }
 
     const body: Record<string, unknown> = {
-      instances: [{ prompt: params.prompt }],
+      instances: [{ prompt: params.prompt }]
     };
     const parameters: Record<string, unknown> = {};
-    if (params.negativePrompt) parameters.negativePrompt = params.negativePrompt;
+    if (params.negativePrompt)
+      parameters.negativePrompt = params.negativePrompt;
     if (params.aspectRatio) parameters.aspectRatio = params.aspectRatio;
     if (params.seed != null) parameters.seed = params.seed;
     if (Object.keys(parameters).length > 0) body.parameters = parameters;
@@ -947,12 +1056,14 @@ export class GeminiProvider extends BaseProvider {
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Gemini video generation failed ${response.status}: ${errText}`);
+      throw new Error(
+        `Gemini video generation failed ${response.status}: ${errText}`
+      );
     }
 
     const operation = (await response.json()) as {
@@ -998,27 +1109,35 @@ export class GeminiProvider extends BaseProvider {
   // Image-to-video (Veo models)
   // ---------------------------------------------------------------------------
 
-  override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
+  override async imageToVideo(
+    image: Uint8Array,
+    params: ImageToVideoParams
+  ): Promise<Uint8Array> {
     if (!image || image.length === 0) {
       throw new Error("Input image cannot be empty.");
     }
 
     const modelId = params.model.id;
     if (!modelId.startsWith("veo-")) {
-      throw new Error(`Model ${modelId} is not a Veo model. Only Veo models support image-to-video.`);
+      throw new Error(
+        `Model ${modelId} is not a Veo model. Only Veo models support image-to-video.`
+      );
     }
 
     const imageBase64 = Buffer.from(image).toString("base64");
     const prompt = params.prompt ?? "Animate this image";
 
     const body: Record<string, unknown> = {
-      instances: [{
-        prompt,
-        image: { bytesBase64Encoded: imageBase64, mimeType: "image/png" },
-      }],
+      instances: [
+        {
+          prompt,
+          image: { bytesBase64Encoded: imageBase64, mimeType: "image/png" }
+        }
+      ]
     };
     const parameters: Record<string, unknown> = {};
-    if (params.negativePrompt) parameters.negativePrompt = params.negativePrompt;
+    if (params.negativePrompt)
+      parameters.negativePrompt = params.negativePrompt;
     if (params.aspectRatio) parameters.aspectRatio = params.aspectRatio;
     if (params.seed != null) parameters.seed = params.seed;
     if (Object.keys(parameters).length > 0) body.parameters = parameters;
@@ -1027,12 +1146,14 @@ export class GeminiProvider extends BaseProvider {
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Gemini image-to-video failed ${response.status}: ${errText}`);
+      throw new Error(
+        `Gemini image-to-video failed ${response.status}: ${errText}`
+      );
     }
 
     const operation = (await response.json()) as {

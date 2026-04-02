@@ -17,6 +17,12 @@ export interface ChartRendererOutputs {
   output: ImageRef;
 }
 
-export function chartRenderer(inputs: ChartRendererInputs): DslNode<ChartRendererOutputs, "output"> {
-  return createNode("lib.seaborn.ChartRenderer", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function chartRenderer(
+  inputs: ChartRendererInputs
+): DslNode<ChartRendererOutputs, "output"> {
+  return createNode(
+    "lib.seaborn.ChartRenderer",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

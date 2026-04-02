@@ -16,7 +16,9 @@ function decodeData(data: string | Uint8Array | undefined): Buffer | null {
 }
 
 function toPath(uriOrPath: string): string {
-  return uriOrPath.startsWith("file://") ? uriOrPath.slice("file://".length) : uriOrPath;
+  return uriOrPath.startsWith("file://")
+    ? uriOrPath.slice("file://".length)
+    : uriOrPath;
 }
 
 async function loadImageBuffer(image: unknown): Promise<Buffer> {
@@ -36,35 +38,50 @@ function toImageRef(buf: Buffer): Record<string, unknown> {
   return {
     type: "image",
     data: buf.toString("base64"),
-    mime_type: "image/png",
+    mime_type: "image/png"
   };
 }
 
 export class SliceImageGridLibNode extends BaseNode {
   static readonly nodeType = "lib.grid.SliceImageGrid";
-            static readonly title = "Slice Image Grid";
-            static readonly description = "Slice an image into a grid of tiles.\n    image, grid, slice, tiles\n\n    Use cases:\n    - Prepare large images for processing in smaller chunks\n    - Create image puzzles or mosaic effects\n    - Distribute image processing tasks across multiple workers";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Slice Image Grid";
+  static readonly description =
+    "Slice an image into a grid of tiles.\n    image, grid, slice, tiles\n\n    Use cases:\n    - Prepare large images for processing in smaller chunks\n    - Create image puzzles or mosaic effects\n    - Distribute image processing tasks across multiple workers";
+  static readonly metadataOutputTypes = {
     output: "list[image]"
   };
-  
-  @prop({ type: "image", default: {
-  "type": "image",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Image", description: "The image to slice into a grid." })
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to slice into a grid."
+  })
   declare image: any;
 
-  @prop({ type: "int", default: 0, title: "Columns", description: "Number of columns in the grid.", min: 0 })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Columns",
+    description: "Number of columns in the grid.",
+    min: 0
+  })
   declare columns: any;
 
-  @prop({ type: "int", default: 0, title: "Rows", description: "Number of rows in the grid.", min: 0 })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Rows",
+    description: "Number of rows in the grid.",
+    min: 0
+  })
   declare rows: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const imageInput = this.image;
@@ -106,7 +123,7 @@ export class SliceImageGridLibNode extends BaseNode {
             left: x,
             top: y,
             width: Math.max(1, right - x),
-            height: Math.max(1, bottom - y),
+            height: Math.max(1, bottom - y)
           })
           .png()
           .toBuffer();
@@ -120,20 +137,29 @@ export class SliceImageGridLibNode extends BaseNode {
 
 export class CombineImageGridLibNode extends BaseNode {
   static readonly nodeType = "lib.grid.CombineImageGrid";
-            static readonly title = "Combine Image Grid";
-            static readonly description = "Combine a grid of image tiles into a single image.\n    image, grid, combine, tiles\n\n    Use cases:\n    - Reassemble processed image chunks\n    - Create composite images from smaller parts\n    - Merge tiled image data from distributed processing";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Combine Image Grid";
+  static readonly description =
+    "Combine a grid of image tiles into a single image.\n    image, grid, combine, tiles\n\n    Use cases:\n    - Reassemble processed image chunks\n    - Create composite images from smaller parts\n    - Merge tiled image data from distributed processing";
+  static readonly metadataOutputTypes = {
     output: "image"
   };
-  
-  @prop({ type: "list[image]", default: [], title: "Tiles", description: "List of image tiles to combine." })
+
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Tiles",
+    description: "List of image tiles to combine."
+  })
   declare tiles: any;
 
-  @prop({ type: "int", default: 0, title: "Columns", description: "Number of columns in the grid.", min: 0 })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Columns",
+    description: "Number of columns in the grid.",
+    min: 0
+  })
   declare columns: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const tileInputs = (this.tiles ?? []) as unknown[];
@@ -141,8 +167,12 @@ export class CombineImageGridLibNode extends BaseNode {
       throw new Error("No tiles provided for combining.");
     }
 
-    const tiles = await Promise.all(tileInputs.map((tile) => loadImageBuffer(tile)));
-    const metas = await Promise.all(tiles.map((tile) => sharp(tile, { failOn: "none" }).metadata()));
+    const tiles = await Promise.all(
+      tileInputs.map((tile) => loadImageBuffer(tile))
+    );
+    const metas = await Promise.all(
+      tiles.map((tile) => sharp(tile, { failOn: "none" }).metadata())
+    );
 
     let columns = Number(this.columns ?? 0);
     if (columns <= 0) {
@@ -159,8 +189,8 @@ export class CombineImageGridLibNode extends BaseNode {
         width: maxWidth * columns,
         height: maxHeight * rows,
         channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      }
     });
 
     const composite = tiles.map((tile, index) => {
@@ -169,7 +199,7 @@ export class CombineImageGridLibNode extends BaseNode {
       return {
         input: tile,
         left: col * maxWidth,
-        top: row * maxHeight,
+        top: row * maxHeight
       };
     });
 
@@ -178,4 +208,7 @@ export class CombineImageGridLibNode extends BaseNode {
   }
 }
 
-export const LIB_GRID_NODES = [SliceImageGridLibNode, CombineImageGridLibNode] as const;
+export const LIB_GRID_NODES = [
+  SliceImageGridLibNode,
+  CombineImageGridLibNode
+] as const;

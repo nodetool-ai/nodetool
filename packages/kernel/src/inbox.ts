@@ -32,7 +32,7 @@ function makeEnvelope(
     data,
     metadata,
     timestamp: Date.now(),
-    event_id: randomUUID(),
+    event_id: randomUUID()
   };
 }
 

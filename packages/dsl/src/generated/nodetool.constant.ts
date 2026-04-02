@@ -4,14 +4,16 @@ import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, AudioRef, VideoRef, DataframeRef } from "../types.js";
 
 // Constant — nodetool.constant.Constant
-export interface ConstantInputs {
-}
+export interface ConstantInputs {}
 
-export interface ConstantOutputs {
-}
+export interface ConstantOutputs {}
 
 export function constant(inputs?: ConstantInputs): DslNode<ConstantOutputs> {
-  return createNode("nodetool.constant.Constant", (inputs ?? {}) as Record<string, unknown>, { outputNames: [] });
+  return createNode(
+    "nodetool.constant.Constant",
+    (inputs ?? {}) as Record<string, unknown>,
+    { outputNames: [] }
+  );
 }
 
 // Bool — nodetool.constant.Bool
@@ -24,7 +26,11 @@ export interface BoolOutputs {
 }
 
 export function bool(inputs: BoolInputs): DslNode<BoolOutputs, "output"> {
-  return createNode("nodetool.constant.Bool", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.Bool",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Integer — nodetool.constant.Integer
@@ -36,8 +42,14 @@ export interface IntegerOutputs {
   output: number;
 }
 
-export function integer(inputs: IntegerInputs): DslNode<IntegerOutputs, "output"> {
-  return createNode("nodetool.constant.Integer", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function integer(
+  inputs: IntegerInputs
+): DslNode<IntegerOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.Integer",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Float — nodetool.constant.Float
@@ -50,7 +62,11 @@ export interface FloatOutputs {
 }
 
 export function float(inputs: FloatInputs): DslNode<FloatOutputs, "output"> {
-  return createNode("nodetool.constant.Float", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.Float",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // String — nodetool.constant.String
@@ -63,7 +79,11 @@ export interface StringOutputs {
 }
 
 export function string(inputs: StringInputs): DslNode<StringOutputs, "output"> {
-  return createNode("nodetool.constant.String", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.String",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // List — nodetool.constant.List
@@ -76,7 +96,11 @@ export interface ListOutputs {
 }
 
 export function list(inputs: ListInputs): DslNode<ListOutputs, "output"> {
-  return createNode("nodetool.constant.List", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.List",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Text List — nodetool.constant.TextList
@@ -88,8 +112,14 @@ export interface TextListOutputs {
   output: string[];
 }
 
-export function textList(inputs: TextListInputs): DslNode<TextListOutputs, "output"> {
-  return createNode("nodetool.constant.TextList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function textList(
+  inputs: TextListInputs
+): DslNode<TextListOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.TextList",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Dict — nodetool.constant.Dict
@@ -102,7 +132,11 @@ export interface DictOutputs {
 }
 
 export function dict(inputs: DictInputs): DslNode<DictOutputs, "output"> {
-  return createNode("nodetool.constant.Dict", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.Dict",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Audio — nodetool.constant.Audio
@@ -115,7 +149,11 @@ export interface AudioOutputs {
 }
 
 export function audio(inputs: AudioInputs): DslNode<AudioOutputs, "output"> {
-  return createNode("nodetool.constant.Audio", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.Audio",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Image — nodetool.constant.Image
@@ -128,7 +166,11 @@ export interface ImageOutputs {
 }
 
 export function image(inputs: ImageInputs): DslNode<ImageOutputs, "output"> {
-  return createNode("nodetool.constant.Image", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.Image",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Video — nodetool.constant.Video
@@ -141,7 +183,11 @@ export interface VideoOutputs {
 }
 
 export function video(inputs: VideoInputs): DslNode<VideoOutputs, "output"> {
-  return createNode("nodetool.constant.Video", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.Video",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Document — nodetool.constant.Document
@@ -153,8 +199,14 @@ export interface DocumentOutputs {
   output: unknown;
 }
 
-export function document(inputs: DocumentInputs): DslNode<DocumentOutputs, "output"> {
-  return createNode("nodetool.constant.Document", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function document(
+  inputs: DocumentInputs
+): DslNode<DocumentOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.Document",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // JSON — nodetool.constant.JSON
@@ -167,7 +219,11 @@ export interface JSONOutputs {
 }
 
 export function json(inputs: JSONInputs): DslNode<JSONOutputs, "output"> {
-  return createNode("nodetool.constant.JSON", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.JSON",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Model 3D — nodetool.constant.Model3D
@@ -179,8 +235,14 @@ export interface Model3DOutputs {
   output: unknown;
 }
 
-export function model3D(inputs: Model3DInputs): DslNode<Model3DOutputs, "output"> {
-  return createNode("nodetool.constant.Model3D", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function model3D(
+  inputs: Model3DInputs
+): DslNode<Model3DOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.Model3D",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Data Frame — nodetool.constant.DataFrame
@@ -192,8 +254,14 @@ export interface DataFrameOutputs {
   output: DataframeRef;
 }
 
-export function dataFrame(inputs: DataFrameInputs): DslNode<DataFrameOutputs, "output"> {
-  return createNode("nodetool.constant.DataFrame", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function dataFrame(
+  inputs: DataFrameInputs
+): DslNode<DataFrameOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.DataFrame",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Audio List — nodetool.constant.AudioList
@@ -205,8 +273,14 @@ export interface AudioListOutputs {
   output: AudioRef[];
 }
 
-export function audioList(inputs: AudioListInputs): DslNode<AudioListOutputs, "output"> {
-  return createNode("nodetool.constant.AudioList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function audioList(
+  inputs: AudioListInputs
+): DslNode<AudioListOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.AudioList",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Image List — nodetool.constant.ImageList
@@ -218,8 +292,14 @@ export interface ImageListOutputs {
   output: ImageRef[];
 }
 
-export function imageList(inputs: ImageListInputs): DslNode<ImageListOutputs, "output"> {
-  return createNode("nodetool.constant.ImageList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function imageList(
+  inputs: ImageListInputs
+): DslNode<ImageListOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.ImageList",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Video List — nodetool.constant.VideoList
@@ -231,8 +311,14 @@ export interface VideoListOutputs {
   output: VideoRef[];
 }
 
-export function videoList(inputs: VideoListInputs): DslNode<VideoListOutputs, "output"> {
-  return createNode("nodetool.constant.VideoList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function videoList(
+  inputs: VideoListInputs
+): DslNode<VideoListOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.VideoList",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Select — nodetool.constant.Select
@@ -247,7 +333,11 @@ export interface SelectOutputs {
 }
 
 export function select(inputs: SelectInputs): DslNode<SelectOutputs, "output"> {
-  return createNode("nodetool.constant.Select", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.Select",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Image Size — nodetool.constant.ImageSize
@@ -262,7 +352,11 @@ export interface ImageSizeOutputs {
 }
 
 export function imageSize(inputs: ImageSizeInputs): DslNode<ImageSizeOutputs> {
-  return createNode("nodetool.constant.ImageSize", inputs as Record<string, unknown>, { outputNames: ["image_size", "width", "height"] });
+  return createNode(
+    "nodetool.constant.ImageSize",
+    inputs as Record<string, unknown>,
+    { outputNames: ["image_size", "width", "height"] }
+  );
 }
 
 // Date — nodetool.constant.Date
@@ -277,7 +371,11 @@ export interface DateOutputs {
 }
 
 export function date(inputs: DateInputs): DslNode<DateOutputs, "output"> {
-  return createNode("nodetool.constant.Date", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.constant.Date",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Date Time — nodetool.constant.DateTime
@@ -297,8 +395,14 @@ export interface DateTimeOutputs {
   output: unknown;
 }
 
-export function dateTime(inputs: DateTimeInputs): DslNode<DateTimeOutputs, "output"> {
-  return createNode("nodetool.constant.DateTime", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function dateTime(
+  inputs: DateTimeInputs
+): DslNode<DateTimeOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.DateTime",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // ASRModel Constant — nodetool.constant.ASRModelConstant
@@ -310,8 +414,14 @@ export interface ASRModelConstantOutputs {
   output: unknown;
 }
 
-export function asrModelConstant(inputs: ASRModelConstantInputs): DslNode<ASRModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.ASRModelConstant", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function asrModelConstant(
+  inputs: ASRModelConstantInputs
+): DslNode<ASRModelConstantOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.ASRModelConstant",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Embedding Model Constant — nodetool.constant.EmbeddingModelConstant
@@ -323,8 +433,14 @@ export interface EmbeddingModelConstantOutputs {
   output: unknown;
 }
 
-export function embeddingModelConstant(inputs: EmbeddingModelConstantInputs): DslNode<EmbeddingModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.EmbeddingModelConstant", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function embeddingModelConstant(
+  inputs: EmbeddingModelConstantInputs
+): DslNode<EmbeddingModelConstantOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.EmbeddingModelConstant",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Image Model Constant — nodetool.constant.ImageModelConstant
@@ -336,8 +452,14 @@ export interface ImageModelConstantOutputs {
   output: unknown;
 }
 
-export function imageModelConstant(inputs: ImageModelConstantInputs): DslNode<ImageModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.ImageModelConstant", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function imageModelConstant(
+  inputs: ImageModelConstantInputs
+): DslNode<ImageModelConstantOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.ImageModelConstant",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Language Model Constant — nodetool.constant.LanguageModelConstant
@@ -349,8 +471,14 @@ export interface LanguageModelConstantOutputs {
   output: unknown;
 }
 
-export function languageModelConstant(inputs: LanguageModelConstantInputs): DslNode<LanguageModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.LanguageModelConstant", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function languageModelConstant(
+  inputs: LanguageModelConstantInputs
+): DslNode<LanguageModelConstantOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.LanguageModelConstant",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // TTSModel Constant — nodetool.constant.TTSModelConstant
@@ -362,8 +490,14 @@ export interface TTSModelConstantOutputs {
   output: unknown;
 }
 
-export function ttsModelConstant(inputs: TTSModelConstantInputs): DslNode<TTSModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.TTSModelConstant", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function ttsModelConstant(
+  inputs: TTSModelConstantInputs
+): DslNode<TTSModelConstantOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.TTSModelConstant",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Video Model Constant — nodetool.constant.VideoModelConstant
@@ -375,6 +509,12 @@ export interface VideoModelConstantOutputs {
   output: unknown;
 }
 
-export function videoModelConstant(inputs: VideoModelConstantInputs): DslNode<VideoModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.VideoModelConstant", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function videoModelConstant(
+  inputs: VideoModelConstantInputs
+): DslNode<VideoModelConstantOutputs, "output"> {
+  return createNode(
+    "nodetool.constant.VideoModelConstant",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

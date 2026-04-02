@@ -7,7 +7,7 @@ import {
   GoogleJobsNode,
   GoogleLensNode,
   GoogleMapsNode,
-  GoogleShoppingNode,
+  GoogleShoppingNode
 } from "../src/nodes/search.js";
 
 const originalFetch = globalThis.fetch;
@@ -30,7 +30,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     statusText: status === 200 ? "OK" : "Error",
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   } as unknown as Response;
 }
 
@@ -111,7 +111,7 @@ describe("GoogleImagesNode", () => {
     const node = new GoogleImagesNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        images_results: [{ original: "https://img.com/1.png" }],
+        images_results: [{ original: "https://img.com/1.png" }]
       })
     );
     node.assign({ keyword: "cats" });
@@ -122,9 +122,7 @@ describe("GoogleImagesNode", () => {
 
   it("uses reverse image search for image_url", async () => {
     const node = new GoogleImagesNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ images_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ images_results: [] }));
     node.assign({
       image_url: "https://example.com/img.jpg"
     });
@@ -138,7 +136,9 @@ describe("GoogleImagesNode", () => {
     const node = new GoogleImagesNode();
     node.assign({ keyword: "", image_url: "" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
-    await expect(node.process()).rejects.toThrow("One of 'keyword' or 'image_url' is required");
+    await expect(node.process()).rejects.toThrow(
+      "One of 'keyword' or 'image_url' is required"
+    );
   });
 });
 
@@ -147,7 +147,10 @@ describe("GoogleImagesNode", () => {
 describe("GoogleFinanceNode", () => {
   it("returns finance data with full output shape", async () => {
     const node = new GoogleFinanceNode();
-    const apiData = { summary: { price: 150, currency: "USD" }, markets: { us: [] } };
+    const apiData = {
+      summary: { price: 150, currency: "USD" },
+      markets: { us: [] }
+    };
     mockFetch.mockResolvedValueOnce(jsonResponse(apiData));
     node.assign({ query: "AAPL:NASDAQ" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
@@ -156,7 +159,10 @@ describe("GoogleFinanceNode", () => {
     expect(output.success).toBe(true);
     expect(output.results).toEqual(apiData);
     expect(typeof output.results).toBe("object");
-    expect((output.results as Record<string, unknown>).summary).toEqual({ price: 150, currency: "USD" });
+    expect((output.results as Record<string, unknown>).summary).toEqual({
+      price: 150,
+      currency: "USD"
+    });
   });
 
   it("passes window parameter when provided", async () => {
@@ -179,7 +185,9 @@ describe("GoogleFinanceNode", () => {
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
-    expect(output).toEqual({ error: "Query is required for Google Finance search." });
+    expect(output).toEqual({
+      error: "Query is required for Google Finance search."
+    });
     expect(output.success).toBeUndefined();
     expect(output.results).toBeUndefined();
   });
@@ -220,7 +228,7 @@ describe("GoogleLensNode", () => {
     const node = new GoogleLensNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        visual_matches: [{ image: "https://img.com/match.png", title: "Match" }],
+        visual_matches: [{ image: "https://img.com/match.png", title: "Match" }]
       })
     );
     node.assign({
@@ -250,7 +258,7 @@ describe("GoogleMapsNode", () => {
     const node = new GoogleMapsNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        local_results: [{ title: "Cafe", type: "restaurant", rating: 4.5 }],
+        local_results: [{ title: "Cafe", type: "restaurant", rating: 4.5 }]
       })
     );
     node.assign({ query: "cafes" });
@@ -285,9 +293,7 @@ describe("GoogleShoppingNode", () => {
 
   it("builds tbs filter for price and condition", async () => {
     const node = new GoogleShoppingNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ shopping_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ shopping_results: [] }));
     node.assign({
       query: "phone",
       min_price: 100,

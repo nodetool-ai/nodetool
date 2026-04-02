@@ -165,8 +165,8 @@ function melFilterbank(
     melPoints[i] = melToHz(melMin + ((melMax - melMin) * i) / (nMels + 1));
   }
 
-  const binFreqs = melPoints.map(
-    (hz) => Math.floor(((nFft + 1) * hz) / sampleRate)
+  const binFreqs = melPoints.map((hz) =>
+    Math.floor(((nFft + 1) * hz) / sampleRate)
   );
 
   const filterbank: number[][] = [];
@@ -297,23 +297,26 @@ function griffinLim(
 
   for (let iter = 0; iter < nIter; iter++) {
     // Build complex frames from magnitude [numBins][numFrames] + phases [numFrames][numBins]
-    const complexFrames: number[][] = Array.from({ length: numFrames }, (_, f) => {
-      const frame = new Array(nFft * 2).fill(0);
-      for (let k = 0; k < numBins; k++) {
-        const mag = magnitude[k][f] ?? 0;
-        const ph = phases[f][k];
-        const re = mag * Math.cos(ph);
-        const im = mag * Math.sin(ph);
-        frame[k * 2] = re;
-        frame[k * 2 + 1] = im;
-        // Mirror for conjugate symmetry (real signal): bin k maps to bin nFft - k
-        if (k > 0 && k < nFft / 2) {
-          frame[(nFft - k) * 2] = re;
-          frame[(nFft - k) * 2 + 1] = -im;
+    const complexFrames: number[][] = Array.from(
+      { length: numFrames },
+      (_, f) => {
+        const frame = new Array(nFft * 2).fill(0);
+        for (let k = 0; k < numBins; k++) {
+          const mag = magnitude[k][f] ?? 0;
+          const ph = phases[f][k];
+          const re = mag * Math.cos(ph);
+          const im = mag * Math.sin(ph);
+          frame[k * 2] = re;
+          frame[k * 2 + 1] = im;
+          // Mirror for conjugate symmetry (real signal): bin k maps to bin nFft - k
+          if (k > 0 && k < nFft / 2) {
+            frame[(nFft - k) * 2] = re;
+            frame[(nFft - k) * 2 + 1] = -im;
+          }
         }
+        return frame;
       }
-      return frame;
-    });
+    );
 
     // ISTFT
     const signal = computeISTFT(complexFrames, nFft, hopLength, signalLength);
@@ -340,49 +343,73 @@ function griffinLim(
 
 export class STFTNode extends BaseNode {
   static readonly nodeType = "lib.librosa.analysis.STFT";
-            static readonly title = "STFT";
-            static readonly description = "This node computes the Short-Time Fourier Transform (STFT) matrix for an audio signal. The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.\n    audio, analysis, fourier, frequency, time\n    #### Applications\n    - Audio Analysis: By transforming the audio signal into a visualizable format, it helps in understanding and analyzing the audio signal.\n    - Sound Processing: It plays a key foundational role in sound effects, tuning, compression, and more.\n    - Audio Feature Extraction: It can be used to analyze frequency-based features for sound classification.\n    - Music Information Retrieval: It helps in music transcription, rhythm and tempo analysis.";
-        static readonly metadataOutputTypes = {
+  static readonly title = "STFT";
+  static readonly description =
+    "This node computes the Short-Time Fourier Transform (STFT) matrix for an audio signal. The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.\n    audio, analysis, fourier, frequency, time\n    #### Applications\n    - Audio Analysis: By transforming the audio signal into a visualizable format, it helps in understanding and analyzing the audio signal.\n    - Sound Processing: It plays a key foundational role in sound effects, tuning, compression, and more.\n    - Audio Feature Extraction: It can be used to analyze frequency-based features for sound classification.\n    - Music Information Retrieval: It helps in music transcription, rhythm and tempo analysis.";
+  static readonly metadataOutputTypes = {
     output: "np_array"
   };
-          static readonly basicFields = [
-  "audio",
-  "n_fft",
-  "hop_length"
-];
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to compute the STFT matrix from." })
+  static readonly basicFields = ["audio", "n_fft", "hop_length"];
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The audio file to compute the STFT matrix from."
+  })
   declare audio: any;
 
-  @prop({ type: "int", default: 2048, title: "N Fft", description: "The number of samples per frame.", min: 0 })
+  @prop({
+    type: "int",
+    default: 2048,
+    title: "N Fft",
+    description: "The number of samples per frame.",
+    min: 0
+  })
   declare n_fft: any;
 
-  @prop({ type: "int", default: 512, title: "Hop Length", description: "The number of samples between frames.", min: 0 })
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Hop Length",
+    description: "The number of samples between frames.",
+    min: 0
+  })
   declare hop_length: any;
 
-  @prop({ type: "int", default: null, title: "Win Length", description: "The window length. If None, it defaults to n_fft." })
+  @prop({
+    type: "int",
+    default: null,
+    title: "Win Length",
+    description: "The window length. If None, it defaults to n_fft."
+  })
   declare win_length: any;
 
-  @prop({ type: "str", default: "hann", title: "Window", description: "The type of window to use." })
+  @prop({
+    type: "str",
+    default: "hann",
+    title: "Window",
+    description: "The type of window to use."
+  })
   declare window: any;
 
-  @prop({ type: "bool", default: true, title: "Center", description: "If True, input signal is padded so that frame D[:, t] is centered at y[t * hop_length]." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Center",
+    description:
+      "If True, input signal is padded so that frame D[:, t] is centered at y[t * hop_length]."
+  })
   declare center: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
     const nFft = Number(this.n_fft ?? 2048);
     const hopLength = Number(this.hop_length ?? 512);
 
@@ -412,49 +439,75 @@ export class STFTNode extends BaseNode {
 
 export class MelSpectrogramNode extends BaseNode {
   static readonly nodeType = "lib.librosa.analysis.MelSpectrogram";
-            static readonly title = "Mel Spectrogram";
-            static readonly description = "MelSpecNode computes the Mel-frequency spectrogram for an audio signal.\n    audio, analysis, spectrogram\n\n    Useful for:\n    - Audio feature extraction for machine learning\n    - Speech and music analysis tasks";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Mel Spectrogram";
+  static readonly description =
+    "MelSpecNode computes the Mel-frequency spectrogram for an audio signal.\n    audio, analysis, spectrogram\n\n    Useful for:\n    - Audio feature extraction for machine learning\n    - Speech and music analysis tasks";
+  static readonly metadataOutputTypes = {
     output: "np_array"
   };
-          static readonly basicFields = [
-  "audio",
-  "n_mels",
-  "fmax"
-];
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to convert to a tensor." })
+  static readonly basicFields = ["audio", "n_mels", "fmax"];
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The audio file to convert to a tensor."
+  })
   declare audio: any;
 
-  @prop({ type: "int", default: 2048, title: "N Fft", description: "The number of samples per frame.", min: 0 })
+  @prop({
+    type: "int",
+    default: 2048,
+    title: "N Fft",
+    description: "The number of samples per frame.",
+    min: 0
+  })
   declare n_fft: any;
 
-  @prop({ type: "int", default: 512, title: "Hop Length", description: "The number of samples between frames.", min: 0 })
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Hop Length",
+    description: "The number of samples between frames.",
+    min: 0
+  })
   declare hop_length: any;
 
-  @prop({ type: "int", default: 128, title: "N Mels", description: "The number of Mel bands to generate.", min: 0 })
+  @prop({
+    type: "int",
+    default: 128,
+    title: "N Mels",
+    description: "The number of Mel bands to generate.",
+    min: 0
+  })
   declare n_mels: any;
 
-  @prop({ type: "int", default: 0, title: "Fmin", description: "The lowest frequency (in Hz).", min: 0 })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Fmin",
+    description: "The lowest frequency (in Hz).",
+    min: 0
+  })
   declare fmin: any;
 
-  @prop({ type: "int", default: 8000, title: "Fmax", description: "The highest frequency (in Hz).", min: 0 })
+  @prop({
+    type: "int",
+    default: 8000,
+    title: "Fmax",
+    description: "The highest frequency (in Hz).",
+    min: 0
+  })
   declare fmax: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
     const nFft = Number(this.n_fft ?? 2048);
     const hopLength = Number(this.hop_length ?? 512);
     const nMels = Number(this.n_mels ?? 128);
@@ -489,49 +542,75 @@ export class MelSpectrogramNode extends BaseNode {
 
 export class MFCCNode extends BaseNode {
   static readonly nodeType = "lib.librosa.analysis.MFCC";
-            static readonly title = "MFCC";
-            static readonly description = "MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.\n    audio, analysis, frequency, MFCC, MEL";
-        static readonly metadataOutputTypes = {
+  static readonly title = "MFCC";
+  static readonly description =
+    "MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.\n    audio, analysis, frequency, MFCC, MEL";
+  static readonly metadataOutputTypes = {
     output: "np_array"
   };
-          static readonly basicFields = [
-  "audio",
-  "n_mfcc",
-  "n_fft"
-];
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to extract MFCCs from." })
+  static readonly basicFields = ["audio", "n_mfcc", "n_fft"];
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The audio file to extract MFCCs from."
+  })
   declare audio: any;
 
-  @prop({ type: "int", default: 13, title: "N Mfcc", description: "The number of MFCCs to extract.", min: 0 })
+  @prop({
+    type: "int",
+    default: 13,
+    title: "N Mfcc",
+    description: "The number of MFCCs to extract.",
+    min: 0
+  })
   declare n_mfcc: any;
 
-  @prop({ type: "int", default: 2048, title: "N Fft", description: "The number of samples per frame.", min: 0 })
+  @prop({
+    type: "int",
+    default: 2048,
+    title: "N Fft",
+    description: "The number of samples per frame.",
+    min: 0
+  })
   declare n_fft: any;
 
-  @prop({ type: "int", default: 512, title: "Hop Length", description: "The number of samples between frames.", min: 0 })
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Hop Length",
+    description: "The number of samples between frames.",
+    min: 0
+  })
   declare hop_length: any;
 
-  @prop({ type: "int", default: 0, title: "Fmin", description: "The lowest frequency (in Hz).", min: 0 })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Fmin",
+    description: "The lowest frequency (in Hz).",
+    min: 0
+  })
   declare fmin: any;
 
-  @prop({ type: "int", default: 8000, title: "Fmax", description: "The highest frequency (in Hz).", min: 0 })
+  @prop({
+    type: "int",
+    default: 8000,
+    title: "Fmax",
+    description: "The highest frequency (in Hz).",
+    min: 0
+  })
   declare fmax: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
     const nMfcc = Number(this.n_mfcc ?? 13);
     const nFft = Number(this.n_fft ?? 2048);
     const hopLength = Number(this.hop_length ?? 512);
@@ -573,35 +652,47 @@ export class MFCCNode extends BaseNode {
 
 export class ChromaSTFTNode extends BaseNode {
   static readonly nodeType = "lib.librosa.analysis.ChromaSTFT";
-            static readonly title = "Chroma STFT";
-            static readonly description = "This node creates a chromagram from a waveform or power spectrogram to identify different pitch classes in an audio signal.\n    audio, analysis, chromagram, pitch\n\n    Applications:\n    - Chord recognition in music\n    - Music genre classification based on pitch content";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Chroma STFT";
+  static readonly description =
+    "This node creates a chromagram from a waveform or power spectrogram to identify different pitch classes in an audio signal.\n    audio, analysis, chromagram, pitch\n\n    Applications:\n    - Chord recognition in music\n    - Music genre classification based on pitch content";
+  static readonly metadataOutputTypes = {
     output: "np_array"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to extract chromagram from." })
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The audio file to extract chromagram from."
+  })
   declare audio: any;
 
-  @prop({ type: "int", default: 2048, title: "N Fft", description: "The number of samples per frame.", min: 0 })
+  @prop({
+    type: "int",
+    default: 2048,
+    title: "N Fft",
+    description: "The number of samples per frame.",
+    min: 0
+  })
   declare n_fft: any;
 
-  @prop({ type: "int", default: 512, title: "Hop Length", description: "The number of samples between frames.", min: 0 })
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Hop Length",
+    description: "The number of samples between frames.",
+    min: 0
+  })
   declare hop_length: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
     const nFft = Number(this.n_fft ?? 2048);
     const hopLength = Number(this.hop_length ?? 512);
 
@@ -651,35 +742,49 @@ export class ChromaSTFTNode extends BaseNode {
 
 export class SpectralCentroidNode extends BaseNode {
   static readonly nodeType = "lib.librosa.analysis.SpectralCentroid";
-            static readonly title = "Spectral Centroid";
-            static readonly description = "Computes the spectral centroid of an audio file.\n    audio, analysis, spectral\n\n    The spectral centroid indicates where the \"center of mass\" of the spectrum is located.\n    Perceptually, it has a connection with the impression of \"brightness\" of a sound.\n\n    Use cases:\n    - Analyze the timbral characteristics of audio\n    - Track changes in sound brightness over time\n    - Feature extraction for music genre classification\n    - Audio effect design and sound manipulation";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Spectral Centroid";
+  static readonly description =
+    'Computes the spectral centroid of an audio file.\n    audio, analysis, spectral\n\n    The spectral centroid indicates where the "center of mass" of the spectrum is located.\n    Perceptually, it has a connection with the impression of "brightness" of a sound.\n\n    Use cases:\n    - Analyze the timbral characteristics of audio\n    - Track changes in sound brightness over time\n    - Feature extraction for music genre classification\n    - Audio effect design and sound manipulation';
+  static readonly metadataOutputTypes = {
     output: "np_array"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to analyze." })
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The audio file to analyze."
+  })
   declare audio: any;
 
-  @prop({ type: "int", default: 2048, title: "N Fft", description: "The length of the FFT window.", min: 128, max: 8192 })
+  @prop({
+    type: "int",
+    default: 2048,
+    title: "N Fft",
+    description: "The length of the FFT window.",
+    min: 128,
+    max: 8192
+  })
   declare n_fft: any;
 
-  @prop({ type: "int", default: 512, title: "Hop Length", description: "Number of samples between successive frames.", min: 64, max: 2048 })
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Hop Length",
+    description: "Number of samples between successive frames.",
+    min: 64,
+    max: 2048
+  })
   declare hop_length: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
     const nFft = Number(this.n_fft ?? 2048);
     const hopLength = Number(this.hop_length ?? 512);
 
@@ -713,35 +818,47 @@ export class SpectralCentroidNode extends BaseNode {
 
 export class SpectralContrastNode extends BaseNode {
   static readonly nodeType = "lib.librosa.analysis.SpectralContrast";
-            static readonly title = "Spectral Contrast";
-            static readonly description = "The spectral contrast measures the difference in amplitude between the most noticeable parts (peaks) and the less noticeable parts (valleys) in a sound spectrum.\n    audio, analysis, decibel, amplitude\n\n    #### Applications\n    - Music genre classification: distinguishing between different types of music based on the color of sound.\n    - Instrument recognition: recognizing different musical instruments by the difference in their spectral contrast.\n    - Audio analysis: determining various characteristics of audio files.\n\n    Useful note: The `n_fft` and `hop_length` parameters affect the resolution of the analysis. A higher `n_fft` provides better frequency resolution but worse time resolution, and vice versa for a lower `hop_length`.";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Spectral Contrast";
+  static readonly description =
+    "The spectral contrast measures the difference in amplitude between the most noticeable parts (peaks) and the less noticeable parts (valleys) in a sound spectrum.\n    audio, analysis, decibel, amplitude\n\n    #### Applications\n    - Music genre classification: distinguishing between different types of music based on the color of sound.\n    - Instrument recognition: recognizing different musical instruments by the difference in their spectral contrast.\n    - Audio analysis: determining various characteristics of audio files.\n\n    Useful note: The `n_fft` and `hop_length` parameters affect the resolution of the analysis. A higher `n_fft` provides better frequency resolution but worse time resolution, and vice versa for a lower `hop_length`.";
+  static readonly metadataOutputTypes = {
     output: "np_array"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to extract spectral contrast from." })
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The audio file to extract spectral contrast from."
+  })
   declare audio: any;
 
-  @prop({ type: "int", default: 2048, title: "N Fft", description: "The number of samples per frame.", min: 0 })
+  @prop({
+    type: "int",
+    default: 2048,
+    title: "N Fft",
+    description: "The number of samples per frame.",
+    min: 0
+  })
   declare n_fft: any;
 
-  @prop({ type: "int", default: 512, title: "Hop Length", description: "The number of samples between frames.", min: 0 })
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Hop Length",
+    description: "The number of samples between frames.",
+    min: 0
+  })
   declare hop_length: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
     const nFft = Number(this.n_fft ?? 2048);
     const hopLength = Number(this.hop_length ?? 512);
 
@@ -807,45 +924,82 @@ export class SpectralContrastNode extends BaseNode {
 
 export class GriffinLimNode extends BaseNode {
   static readonly nodeType = "lib.librosa.analysis.GriffinLim";
-            static readonly title = "Griffin Lim";
-            static readonly description = "GriffinLim Node performs phase reconstruction on a magnitude spectrogram utilizing the Griffin-Lim algorithm.\n    audio, synthesis, phase reconstruction\n\n    Applications:\n    - Audio synthesis from spectrograms\n    - Phase reconstruction in audio processing pipelines";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Griffin Lim";
+  static readonly description =
+    "GriffinLim Node performs phase reconstruction on a magnitude spectrogram utilizing the Griffin-Lim algorithm.\n    audio, synthesis, phase reconstruction\n\n    Applications:\n    - Audio synthesis from spectrograms\n    - Phase reconstruction in audio processing pipelines";
+  static readonly metadataOutputTypes = {
     output: "np_array"
   };
-  
-  @prop({ type: "np_array", default: {
-  "type": "np_array",
-  "value": null,
-  "dtype": "<i8",
-  "shape": [
-    1
-  ]
-}, title: "Magnitude Spectrogram", description: "Magnitude spectrogram input for phase reconstruction." })
+
+  @prop({
+    type: "np_array",
+    default: {
+      type: "np_array",
+      value: null,
+      dtype: "<i8",
+      shape: [1]
+    },
+    title: "Magnitude Spectrogram",
+    description: "Magnitude spectrogram input for phase reconstruction."
+  })
   declare magnitude_spectrogram: any;
 
-  @prop({ type: "int", default: 32, title: "N Iter", description: "Number of iterations for the Griffin-Lim algorithm." })
+  @prop({
+    type: "int",
+    default: 32,
+    title: "N Iter",
+    description: "Number of iterations for the Griffin-Lim algorithm."
+  })
   declare n_iter: any;
 
-  @prop({ type: "int", default: 512, title: "Hop Length", description: "Number of samples between successive frames." })
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Hop Length",
+    description: "Number of samples between successive frames."
+  })
   declare hop_length: any;
 
-  @prop({ type: "int", default: null, title: "Win Length", description: "Each frame of audio is windowed by `window()`. The window will be of length `win_length` and then padded with zeros to match `n_fft`." })
+  @prop({
+    type: "int",
+    default: null,
+    title: "Win Length",
+    description:
+      "Each frame of audio is windowed by `window()`. The window will be of length `win_length` and then padded with zeros to match `n_fft`."
+  })
   declare win_length: any;
 
-  @prop({ type: "str", default: "hann", title: "Window", description: "Type of window to use for Griffin-Lim transformation." })
+  @prop({
+    type: "str",
+    default: "hann",
+    title: "Window",
+    description: "Type of window to use for Griffin-Lim transformation."
+  })
   declare window: any;
 
-  @prop({ type: "bool", default: true, title: "Center", description: "If True, the signal `y` is padded so that frame `D[:, t]` is centered at `y[t * hop_length]`." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Center",
+    description:
+      "If True, the signal `y` is padded so that frame `D[:, t]` is centered at `y[t * hop_length]`."
+  })
   declare center: any;
 
-  @prop({ type: "int", default: null, title: "Length", description: "If given, the resulting signal will be zero-padded or clipped to this length." })
+  @prop({
+    type: "int",
+    default: null,
+    title: "Length",
+    description:
+      "If given, the resulting signal will be zero-padded or clipped to this length."
+  })
   declare length: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const magSpec = (this.magnitude_spectrogram ?? {}) as Record<string, unknown>;
+    const magSpec = (this.magnitude_spectrogram ?? {}) as Record<
+      string,
+      unknown
+    >;
     const nIter = Number(this.n_iter ?? 32);
     const hopLength = Number(this.hop_length ?? 512);
 
@@ -870,32 +1024,37 @@ export class GriffinLimNode extends BaseNode {
 
 export class DetectOnsetsNode extends BaseNode {
   static readonly nodeType = "lib.librosa.segmentation.DetectOnsets";
-            static readonly title = "Detect Onsets";
-            static readonly description = "Detect onsets in an audio file.\n    audio, analysis, segmentation\n\n    Use cases:\n    - Identify beat locations in music\n    - Segment audio based on changes in energy or spectral content\n    - Prepare audio for further processing or analysis";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Detect Onsets";
+  static readonly description =
+    "Detect onsets in an audio file.\n    audio, analysis, segmentation\n\n    Use cases:\n    - Identify beat locations in music\n    - Segment audio based on changes in energy or spectral content\n    - Prepare audio for further processing or analysis";
+  static readonly metadataOutputTypes = {
     output: "np_array"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The input audio file to analyze." })
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The input audio file to analyze."
+  })
   declare audio: any;
 
-  @prop({ type: "int", default: 512, title: "Hop Length", description: "Number of samples between successive frames." })
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Hop Length",
+    description: "Number of samples between successive frames."
+  })
   declare hop_length: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
     const hopLength = Number(this.hop_length ?? 512);
 
     if (!audio.data) return { output: { data: [] } };
@@ -942,9 +1101,7 @@ export class DetectOnsetsNode extends BaseNode {
     }
 
     // Convert frames to times
-    const onsetTimes = onsetFrames.map(
-      (f) => (f * hopLength) / wav.sampleRate
-    );
+    const onsetTimes = onsetFrames.map((f) => (f * hopLength) / wav.sampleRate);
 
     return { output: { data: onsetTimes } };
   }
@@ -952,48 +1109,54 @@ export class DetectOnsetsNode extends BaseNode {
 
 export class SegmentAudioByOnsetsNode extends BaseNode {
   static readonly nodeType = "lib.librosa.segmentation.SegmentAudioByOnsets";
-            static readonly title = "Segment Audio By Onsets";
-            static readonly description = "Segment an audio file based on detected onsets.\n    audio, segmentation, processing\n\n    Use cases:\n    - Split a long audio recording into individual segments\n    - Prepare audio clips for further analysis or processing\n    - Extract specific parts of an audio file based on onset locations";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Segment Audio By Onsets";
+  static readonly description =
+    "Segment an audio file based on detected onsets.\n    audio, segmentation, processing\n\n    Use cases:\n    - Split a long audio recording into individual segments\n    - Prepare audio clips for further analysis or processing\n    - Extract specific parts of an audio file based on onset locations";
+  static readonly metadataOutputTypes = {
     output: "list[audio]"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The input audio file to segment." })
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The input audio file to segment."
+  })
   declare audio: any;
 
-  @prop({ type: "np_array", default: {
-  "type": "np_array",
-  "value": null,
-  "dtype": "<i8",
-  "shape": [
-    1
-  ]
-}, title: "Onsets", description: "The onset times detected in the audio." })
+  @prop({
+    type: "np_array",
+    default: {
+      type: "np_array",
+      value: null,
+      dtype: "<i8",
+      shape: [1]
+    },
+    title: "Onsets",
+    description: "The onset times detected in the audio."
+  })
   declare onsets: any;
 
-  @prop({ type: "float", default: 0.1, title: "Min Segment Length", description: "Minimum length of a segment in seconds." })
+  @prop({
+    type: "float",
+    default: 0.1,
+    title: "Min Segment Length",
+    description: "Minimum length of a segment in seconds."
+  })
   declare min_segment_length: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const audio = (this.audio ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
     const onsetsInput = (this.onsets ?? {
-      data: [],
+      data: []
     }) as { data: number[] };
-    const minSegLen = Number(
-      this.min_segment_length ?? 0.1
-    );
+    const minSegLen = Number(this.min_segment_length ?? 0.1);
 
     if (!audio.data) return { output: [] };
 
@@ -1002,9 +1165,7 @@ export class SegmentAudioByOnsetsNode extends BaseNode {
     const onsetTimes = onsetsInput.data || [];
 
     // Convert times to sample indices
-    const onsetSamples = onsetTimes.map((t) =>
-      Math.floor(t * wav.sampleRate)
-    );
+    const onsetSamples = onsetTimes.map((t) => Math.floor(t * wav.sampleRate));
     onsetSamples.push(mono.length); // Add end
 
     const segments: Record<string, unknown>[] = [];
@@ -1015,7 +1176,11 @@ export class SegmentAudioByOnsetsNode extends BaseNode {
 
       if (segDuration >= minSegLen) {
         const segment = mono.slice(start, end);
-        segments.push(audioRefFromWav(encodeWav(segment, wav.sampleRate)) as unknown as Record<string, unknown>);
+        segments.push(
+          audioRefFromWav(
+            encodeWav(segment, wav.sampleRate)
+          ) as unknown as Record<string, unknown>
+        );
       }
     }
 
@@ -1025,45 +1190,53 @@ export class SegmentAudioByOnsetsNode extends BaseNode {
 
 export class SaveAudioSegmentsNode extends BaseNode {
   static readonly nodeType = "lib.librosa.segmentation.SaveAudioSegments";
-            static readonly title = "Save Audio Segments";
-            static readonly description = "Save a list of audio segments to a specified folder.\n    audio, save, export\n\n    Use cases:\n    - Export segmented audio files for further processing or analysis\n    - Create a dataset of audio clips from a longer recording\n    - Organize audio segments into a structured format";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Save Audio Segments";
+  static readonly description =
+    "Save a list of audio segments to a specified folder.\n    audio, save, export\n\n    Use cases:\n    - Export segmented audio files for further processing or analysis\n    - Create a dataset of audio clips from a longer recording\n    - Organize audio segments into a structured format";
+  static readonly metadataOutputTypes = {
     output: "folder"
   };
-  
-  @prop({ type: "list[audio]", default: [], title: "Segments", description: "The list of audio segments to save." })
+
+  @prop({
+    type: "list[audio]",
+    default: [],
+    title: "Segments",
+    description: "The list of audio segments to save."
+  })
   declare segments: any;
 
-  @prop({ type: "folder", default: {
-  "type": "folder",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Output Folder", description: "The folder to save the audio segments in." })
+  @prop({
+    type: "folder",
+    default: {
+      type: "folder",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Output Folder",
+    description: "The folder to save the audio segments in."
+  })
   declare output_folder: any;
 
-  @prop({ type: "str", default: "segment", title: "Name Prefix", description: "Prefix for the saved audio file names." })
+  @prop({
+    type: "str",
+    default: "segment",
+    title: "Name Prefix",
+    description: "Prefix for the saved audio file names."
+  })
   declare name_prefix: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const { promises: fs } = await import("node:fs");
     const path = await import("node:path");
 
-    const segments = (this.segments ?? []) as Record<
-      string,
-      unknown
-    >[];
+    const segments = (this.segments ?? []) as Record<string, unknown>[];
     const folder = (this.output_folder ?? {}) as {
       uri?: string;
       path?: string;
     };
-    const prefix = String(
-      this.name_prefix ?? "segment"
-    );
+    const prefix = String(this.name_prefix ?? "segment");
 
     let folderPath = folder.path || folder.uri || "";
     if (folderPath.startsWith("file://")) folderPath = folderPath.slice(7);
@@ -1077,9 +1250,10 @@ export class SaveAudioSegmentsNode extends BaseNode {
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
       if (!seg.data) continue;
-      const bytes = typeof seg.data === "string"
-        ? Buffer.from(seg.data, "base64")
-        : Buffer.from(seg.data as Uint8Array);
+      const bytes =
+        typeof seg.data === "string"
+          ? Buffer.from(seg.data, "base64")
+          : Buffer.from(seg.data as Uint8Array);
       const name = `${prefix}_${String(i).padStart(4, "0")}.wav`;
       await fs.writeFile(path.join(folderPath, name), bytes);
     }
@@ -1098,5 +1272,5 @@ export const LIB_LIBROSA_SPECTRAL_NODES = [
   GriffinLimNode,
   DetectOnsetsNode,
   SegmentAudioByOnsetsNode,
-  SaveAudioSegmentsNode,
+  SaveAudioSegmentsNode
 ] as const;

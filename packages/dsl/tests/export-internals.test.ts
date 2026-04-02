@@ -14,7 +14,7 @@ const {
   topologicalSort,
   workflowConstName,
   formatHandleExpression,
-  buildCreateNodeOptions,
+  buildCreateNodeOptions
 } = _testing;
 
 // ---------------------------------------------------------------------------
@@ -232,7 +232,7 @@ describe("normalizeGraph", () => {
   test("normalizes a valid graph", () => {
     const result = normalizeGraph({
       nodes: [{ id: "n1", type: "foo.Bar", properties: { x: 1 } }],
-      edges: [],
+      edges: []
     });
     expect(result.nodes).toHaveLength(1);
     expect(result.nodes[0].id).toBe("n1");
@@ -253,16 +253,27 @@ describe("normalizeGraph", () => {
   });
 
   test("throws for node missing type", () => {
-    expect(() =>
-      normalizeGraph({ nodes: [{ id: "n1" }], edges: [] })
-    ).toThrow("missing a type");
+    expect(() => normalizeGraph({ nodes: [{ id: "n1" }], edges: [] })).toThrow(
+      "missing a type"
+    );
   });
 
   test("throws for control edges", () => {
     expect(() =>
       normalizeGraph({
-        nodes: [{ id: "n1", type: "A" }, { id: "n2", type: "B" }],
-        edges: [{ source: "n1", sourceHandle: "out", target: "n2", targetHandle: "in", edge_type: "control" }],
+        nodes: [
+          { id: "n1", type: "A" },
+          { id: "n2", type: "B" }
+        ],
+        edges: [
+          {
+            source: "n1",
+            sourceHandle: "out",
+            target: "n2",
+            targetHandle: "in",
+            edge_type: "control"
+          }
+        ]
       })
     ).toThrow("control edges");
   });
@@ -270,8 +281,13 @@ describe("normalizeGraph", () => {
   test("throws for edge missing fields", () => {
     expect(() =>
       normalizeGraph({
-        nodes: [{ id: "n1", type: "A" }, { id: "n2", type: "B" }],
-        edges: [{ source: "n1", sourceHandle: "", target: "n2", targetHandle: "in" }],
+        nodes: [
+          { id: "n1", type: "A" },
+          { id: "n2", type: "B" }
+        ],
+        edges: [
+          { source: "n1", sourceHandle: "", target: "n2", targetHandle: "in" }
+        ]
       })
     ).toThrow("missing required fields");
   });
@@ -279,7 +295,7 @@ describe("normalizeGraph", () => {
   test("reads properties from data field as fallback", () => {
     const result = normalizeGraph({
       nodes: [{ id: "n1", type: "A", data: { x: 1 } }],
-      edges: [],
+      edges: []
     });
     expect(result.nodes[0].properties).toEqual({ x: 1 });
   });
@@ -287,7 +303,7 @@ describe("normalizeGraph", () => {
   test("detects streaming flag", () => {
     const result = normalizeGraph({
       nodes: [{ id: "n1", type: "A", streaming: true }],
-      edges: [],
+      edges: []
     });
     expect(result.nodes[0].streaming).toBe(true);
   });
@@ -295,7 +311,7 @@ describe("normalizeGraph", () => {
   test("detects is_streaming_output flag", () => {
     const result = normalizeGraph({
       nodes: [{ id: "n1", type: "A", is_streaming_output: true }],
-      edges: [],
+      edges: []
     });
     expect(result.nodes[0].streaming).toBe(true);
   });
@@ -381,7 +397,7 @@ describe("topologicalSort", () => {
     properties: {},
     outputs: [],
     dynamicOutputs: [],
-    streaming: false,
+    streaming: false
   });
 
   test("returns single node", () => {
@@ -392,8 +408,20 @@ describe("topologicalSort", () => {
   test("sorts a linear chain", () => {
     const nodes = [node("a"), node("b"), node("c")];
     const edges = [
-      { source: "a", sourceHandle: "out", target: "b", targetHandle: "in", edge_type: "data" as const },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "in", edge_type: "data" as const },
+      {
+        source: "a",
+        sourceHandle: "out",
+        target: "b",
+        targetHandle: "in",
+        edge_type: "data" as const
+      },
+      {
+        source: "b",
+        sourceHandle: "out",
+        target: "c",
+        targetHandle: "in",
+        edge_type: "data" as const
+      }
     ];
     const sorted = topologicalSort(nodes, edges);
     expect(sorted.map((n) => n.id)).toEqual(["a", "b", "c"]);
@@ -402,10 +430,34 @@ describe("topologicalSort", () => {
   test("sorts a diamond graph", () => {
     const nodes = [node("a"), node("b"), node("c"), node("d")];
     const edges = [
-      { source: "a", sourceHandle: "out", target: "b", targetHandle: "in", edge_type: "data" as const },
-      { source: "a", sourceHandle: "out", target: "c", targetHandle: "in", edge_type: "data" as const },
-      { source: "b", sourceHandle: "out", target: "d", targetHandle: "in", edge_type: "data" as const },
-      { source: "c", sourceHandle: "out", target: "d", targetHandle: "in", edge_type: "data" as const },
+      {
+        source: "a",
+        sourceHandle: "out",
+        target: "b",
+        targetHandle: "in",
+        edge_type: "data" as const
+      },
+      {
+        source: "a",
+        sourceHandle: "out",
+        target: "c",
+        targetHandle: "in",
+        edge_type: "data" as const
+      },
+      {
+        source: "b",
+        sourceHandle: "out",
+        target: "d",
+        targetHandle: "in",
+        edge_type: "data" as const
+      },
+      {
+        source: "c",
+        sourceHandle: "out",
+        target: "d",
+        targetHandle: "in",
+        edge_type: "data" as const
+      }
     ];
     const sorted = topologicalSort(nodes, edges);
     const ids = sorted.map((n) => n.id);
@@ -418,8 +470,20 @@ describe("topologicalSort", () => {
   test("throws on cycle", () => {
     const nodes = [node("a"), node("b")];
     const edges = [
-      { source: "a", sourceHandle: "out", target: "b", targetHandle: "in", edge_type: "data" as const },
-      { source: "b", sourceHandle: "out", target: "a", targetHandle: "in", edge_type: "data" as const },
+      {
+        source: "a",
+        sourceHandle: "out",
+        target: "b",
+        targetHandle: "in",
+        edge_type: "data" as const
+      },
+      {
+        source: "b",
+        sourceHandle: "out",
+        target: "a",
+        targetHandle: "in",
+        edge_type: "data" as const
+      }
     ];
     expect(() => topologicalSort(nodes, edges)).toThrow("cycle");
   });
@@ -427,7 +491,13 @@ describe("topologicalSort", () => {
   test("throws on missing source node", () => {
     const nodes = [node("a")];
     const edges = [
-      { source: "missing", sourceHandle: "out", target: "a", targetHandle: "in", edge_type: "data" as const },
+      {
+        source: "missing",
+        sourceHandle: "out",
+        target: "a",
+        targetHandle: "in",
+        edge_type: "data" as const
+      }
     ];
     expect(() => topologicalSort(nodes, edges)).toThrow("missing source node");
   });
@@ -435,7 +505,13 @@ describe("topologicalSort", () => {
   test("throws on missing target node", () => {
     const nodes = [node("a")];
     const edges = [
-      { source: "a", sourceHandle: "out", target: "missing", targetHandle: "in", edge_type: "data" as const },
+      {
+        source: "a",
+        sourceHandle: "out",
+        target: "missing",
+        targetHandle: "in",
+        edge_type: "data" as const
+      }
     ];
     expect(() => topologicalSort(nodes, edges)).toThrow("missing target node");
   });
@@ -447,14 +523,20 @@ describe("topologicalSort", () => {
 describe("formatHandleExpression", () => {
   test("uses .output() for default output", () => {
     const vars = new Map([["n1", "myNode"]]);
-    const outputs = new Map([["n1", { outputNames: ["out"], defaultOutput: "out" }]]);
-    expect(formatHandleExpression("n1", "out", vars, outputs)).toBe("myNode.output()");
+    const outputs = new Map([
+      ["n1", { outputNames: ["out"], defaultOutput: "out" }]
+    ]);
+    expect(formatHandleExpression("n1", "out", vars, outputs)).toBe(
+      "myNode.output()"
+    );
   });
 
   test("uses .output(name) for non-default", () => {
     const vars = new Map([["n1", "myNode"]]);
     const outputs = new Map([["n1", { outputNames: ["out1", "out2"] }]]);
-    expect(formatHandleExpression("n1", "out2", vars, outputs)).toBe('myNode.output("out2")');
+    expect(formatHandleExpression("n1", "out2", vars, outputs)).toBe(
+      'myNode.output("out2")'
+    );
   });
 
   test("throws for missing variable name", () => {
@@ -474,7 +556,7 @@ describe("buildCreateNodeOptions", () => {
     properties: {},
     outputs: [],
     dynamicOutputs: [],
-    streaming: false,
+    streaming: false
   };
 
   test("returns empty string for no outputs and no streaming", () => {

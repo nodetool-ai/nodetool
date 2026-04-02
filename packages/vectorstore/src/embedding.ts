@@ -55,7 +55,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
       openai: "OPENAI_API_KEY",
       ollama: "OLLAMA_API_URL",
       gemini: "GEMINI_API_KEY",
-      mistral: "MISTRAL_API_KEY",
+      mistral: "MISTRAL_API_KEY"
     };
 
     const envKey = envKeyMap[this.provider];
@@ -91,7 +91,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
 
     const body: Record<string, unknown> = {
       model: this.model,
-      input: texts,
+      input: texts
     };
     if (this.dimensions) body.dimensions = this.dimensions;
 
@@ -99,9 +99,9 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!resp.ok) {
@@ -127,7 +127,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
     const resp = await fetch(`${baseUrl}/api/embed`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: this.model, input: texts }),
+      body: JSON.stringify({ model: this.model, input: texts })
     });
 
     if (!resp.ok) {
@@ -153,8 +153,8 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: { parts: [{ text }] },
-        }),
+          content: { parts: [{ text }] }
+        })
       });
 
       if (!resp.ok) {
@@ -180,12 +180,12 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: this.model,
-        input: texts,
-      }),
+        input: texts
+      })
     });
 
     if (!resp.ok) {
@@ -268,12 +268,12 @@ export class MistralEmbeddingFunction extends ProviderEmbeddingFunction {
  */
 export function getProviderEmbeddingFunction(
   embeddingModel: string,
-  provider?: string | null,
+  provider?: string | null
 ): EmbeddingFunction | null {
   if (provider) {
     return new ProviderEmbeddingFunction({
       provider: provider as EmbeddingProvider,
-      model: embeddingModel,
+      model: embeddingModel
     });
   }
 
@@ -301,7 +301,7 @@ export function getProviderEmbeddingFunction(
 
   log.warn(
     `Could not determine provider for embedding model '${embeddingModel}'. ` +
-      `Set OLLAMA_API_URL or pass an explicit provider.`,
+      `Set OLLAMA_API_URL or pass an explicit provider.`
   );
   return null;
 }

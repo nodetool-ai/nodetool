@@ -8,16 +8,38 @@ import WebSocket from "ws";
 
 export type ChatEvent =
   | { type: "chunk"; content: string }
-  | { type: "tool_call"; id: string; name: string; args: Record<string, unknown> }
+  | {
+      type: "tool_call";
+      id: string;
+      name: string;
+      args: Record<string, unknown>;
+    }
   | { type: "tool_result"; id: string; name: string; content: string }
-  | { type: "output_update"; node_id: string; value: unknown; output_type?: string }
+  | {
+      type: "output_update";
+      node_id: string;
+      value: unknown;
+      output_type?: string;
+    }
   | { type: "error"; message: string }
   | { type: "done" };
 
 export type JobEvent =
-  | { type: "job_update"; status: string; job_id?: string; workflow_id?: string; error?: string; result?: unknown }
+  | {
+      type: "job_update";
+      status: string;
+      job_id?: string;
+      workflow_id?: string;
+      error?: string;
+      result?: unknown;
+    }
   | { type: "node_update"; node_id: string; status: string; error?: string }
-  | { type: "output_update"; node_id: string; value: unknown; output_type?: string }
+  | {
+      type: "output_update";
+      node_id: string;
+      value: unknown;
+      output_type?: string;
+    }
   | { type: "node_progress"; node_id: string; progress: number; total?: number }
   | { type: "error"; message: string }
   | { type: "done" };
@@ -25,7 +47,9 @@ export type JobEvent =
 export class WebSocketChatClient {
   private ws: WebSocket | null = null;
   private contentQueue: Array<Record<string, unknown>> = [];
-  private contentWaiters: Array<(event: Record<string, unknown> | null) => void> = [];
+  private contentWaiters: Array<
+    (event: Record<string, unknown> | null) => void
+  > = [];
 
   constructor(private readonly wsUrl: string) {}
 
@@ -36,7 +60,9 @@ export class WebSocketChatClient {
       ws.on("open", () => {
         this.ws = ws;
         // Switch server to text/JSON mode
-        ws.send(JSON.stringify({ command: "set_mode", data: { mode: "text" } }));
+        ws.send(
+          JSON.stringify({ command: "set_mode", data: { mode: "text" } })
+        );
         resolve();
       });
 
@@ -45,7 +71,7 @@ export class WebSocketChatClient {
       ws.on("message", (data: Buffer | string) => {
         try {
           const msg = JSON.parse(
-            typeof data === "string" ? data : data.toString("utf8"),
+            typeof data === "string" ? data : data.toString("utf8")
           ) as Record<string, unknown>;
           this.handleMessage(msg);
         } catch {
@@ -73,7 +99,10 @@ export class WebSocketChatClient {
 
     // Treat command-level errors (no type field but has error field) as error content events
     if (!type && typeof msg.error === "string") {
-      const errorEvent: Record<string, unknown> = { type: "error", message: msg.error };
+      const errorEvent: Record<string, unknown> = {
+        type: "error",
+        message: msg.error
+      };
       const waiter = this.contentWaiters.shift();
       if (waiter) {
         waiter(errorEvent);
@@ -131,12 +160,22 @@ export class WebSocketChatClient {
     threadId: string,
     model: string,
     provider: string,
-    tools?: unknown[],
+    tools?: unknown[]
   ): AsyncGenerator<ChatEvent> {
     // Drain stale events from previous responses (extra done chunks, final messages, etc.)
     // that arrived between the previous chat completing and this one starting.
     this.contentQueue.length = 0;
-    this.send({ command: "chat_message", data: { role: "user", content, thread_id: threadId, model, provider, tools: tools ?? [] } });
+    this.send({
+      command: "chat_message",
+      data: {
+        role: "user",
+        content,
+        thread_id: threadId,
+        model,
+        provider,
+        tools: tools ?? []
+      }
+    });
     while (true) {
       const event = await this.nextContent();
       if (!event) {
@@ -146,7 +185,8 @@ export class WebSocketChatClient {
       const type = event.type as string;
       if (type === "chunk") {
         // Yield content from every chunk — including the done chunk which may carry the last piece
-        const chunkContent = typeof event.content === "string" ? event.content : "";
+        const chunkContent =
+          typeof event.content === "string" ? event.content : "";
         if (chunkContent) {
           yield { type: "chunk", content: chunkContent };
         }
@@ -164,16 +204,17 @@ export class WebSocketChatClient {
               type: "tool_call" as const,
               id: typeof tc.id === "string" ? tc.id : "",
               name: typeof tc.name === "string" ? tc.name : "",
-              args: (tc.args ?? {}) as Record<string, unknown>,
+              args: (tc.args ?? {}) as Record<string, unknown>
             };
           }
         } else if (role === "tool") {
           // Tool result — yield for display
           yield {
             type: "tool_result" as const,
-            id: typeof event.tool_call_id === "string" ? event.tool_call_id : "",
+            id:
+              typeof event.tool_call_id === "string" ? event.tool_call_id : "",
             name: typeof event.name === "string" ? event.name : "",
-            content: typeof event.content === "string" ? event.content : "",
+            content: typeof event.content === "string" ? event.content : ""
           };
         }
         // Final assistant message (no tool_calls) is ignored — content already streamed via chunks
@@ -183,13 +224,20 @@ export class WebSocketChatClient {
           type: "output_update" as const,
           node_id: typeof event.node_id === "string" ? event.node_id : "",
           value: event.value,
-          output_type: typeof event.output_type === "string" ? event.output_type : undefined,
+          output_type:
+            typeof event.output_type === "string"
+              ? event.output_type
+              : undefined
         };
       } else if (type === "job_update" || type === "generation_stopped") {
         yield { type: "done" };
         return;
       } else if (type === "error") {
-        yield { type: "error", message: typeof event.message === "string" ? event.message : "Unknown error" };
+        yield {
+          type: "error",
+          message:
+            typeof event.message === "string" ? event.message : "Unknown error"
+        };
         return;
       }
     }
@@ -200,9 +248,12 @@ export class WebSocketChatClient {
     messages: unknown[],
     model: string,
     provider: string,
-    tools?: unknown[],
+    tools?: unknown[]
   ): AsyncGenerator<ChatEvent> {
-    this.send({ command: "inference", data: { messages, model, provider, tools: tools ?? [] } });
+    this.send({
+      command: "inference",
+      data: { messages, model, provider, tools: tools ?? [] }
+    });
     while (true) {
       const event = await this.nextContent();
       if (!event) {
@@ -211,7 +262,8 @@ export class WebSocketChatClient {
       }
       const type = event.type as string;
       if (type === "chunk") {
-        const chunkContent = typeof event.content === "string" ? event.content : "";
+        const chunkContent =
+          typeof event.content === "string" ? event.content : "";
         if (chunkContent) {
           yield { type: "chunk", content: chunkContent };
         }
@@ -224,13 +276,17 @@ export class WebSocketChatClient {
           type: "tool_call",
           id: typeof event.id === "string" ? event.id : "",
           name: typeof event.name === "string" ? event.name : "",
-          args: (event.args ?? {}) as Record<string, unknown>,
+          args: (event.args ?? {}) as Record<string, unknown>
         };
       } else if (type === "inference_done" || type === "generation_stopped") {
         yield { type: "done" };
         return;
       } else if (type === "error") {
-        yield { type: "error", message: typeof event.message === "string" ? event.message : "Unknown error" };
+        yield {
+          type: "error",
+          message:
+            typeof event.message === "string" ? event.message : "Unknown error"
+        };
         return;
       }
     }
@@ -242,7 +298,10 @@ export class WebSocketChatClient {
    */
   async *runJob(opts: {
     workflowId?: string;
-    graph?: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+    graph?: {
+      nodes: Array<Record<string, unknown>>;
+      edges: Array<Record<string, unknown>>;
+    };
     params?: Record<string, unknown>;
     jobId?: string;
   }): AsyncGenerator<JobEvent> {
@@ -253,23 +312,35 @@ export class WebSocketChatClient {
         workflow_id: opts.workflowId,
         graph: opts.graph,
         params: opts.params ?? {},
-        job_id: opts.jobId,
-      },
+        job_id: opts.jobId
+      }
     });
     yield* this.consumeJobEvents();
   }
 
   /** Reconnect to a running job's event stream. */
-  async *reconnectJob(jobId: string, workflowId?: string): AsyncGenerator<JobEvent> {
+  async *reconnectJob(
+    jobId: string,
+    workflowId?: string
+  ): AsyncGenerator<JobEvent> {
     this.contentQueue.length = 0;
-    this.send({ command: "reconnect_job", data: { job_id: jobId, workflow_id: workflowId } });
+    this.send({
+      command: "reconnect_job",
+      data: { job_id: jobId, workflow_id: workflowId }
+    });
     yield* this.consumeJobEvents();
   }
 
   /** Resume a paused/interrupted job. */
-  async *resumeJob(jobId: string, workflowId?: string): AsyncGenerator<JobEvent> {
+  async *resumeJob(
+    jobId: string,
+    workflowId?: string
+  ): AsyncGenerator<JobEvent> {
     this.contentQueue.length = 0;
-    this.send({ command: "resume_job", data: { job_id: jobId, workflow_id: workflowId } });
+    this.send({
+      command: "resume_job",
+      data: { job_id: jobId, workflow_id: workflowId }
+    });
     yield* this.consumeJobEvents();
   }
 
@@ -284,14 +355,18 @@ export class WebSocketChatClient {
       const type = event.type as string;
 
       if (type === "job_update") {
-        const status = typeof event.status === "string" ? event.status : "unknown";
+        const status =
+          typeof event.status === "string" ? event.status : "unknown";
         yield {
           type: "job_update",
           status,
           job_id: typeof event.job_id === "string" ? event.job_id : undefined,
-          workflow_id: typeof event.workflow_id === "string" ? event.workflow_id : undefined,
+          workflow_id:
+            typeof event.workflow_id === "string"
+              ? event.workflow_id
+              : undefined,
           error: typeof event.error === "string" ? event.error : undefined,
-          result: event.result,
+          result: event.result
         };
         if (["completed", "failed", "cancelled", "error"].includes(status)) {
           yield { type: "done" };
@@ -302,24 +377,31 @@ export class WebSocketChatClient {
           type: "node_update",
           node_id: typeof event.node_id === "string" ? event.node_id : "",
           status: typeof event.status === "string" ? event.status : "unknown",
-          error: typeof event.error === "string" ? event.error : undefined,
+          error: typeof event.error === "string" ? event.error : undefined
         };
       } else if (type === "output_update") {
         yield {
           type: "output_update",
           node_id: typeof event.node_id === "string" ? event.node_id : "",
           value: event.value,
-          output_type: typeof event.output_type === "string" ? event.output_type : undefined,
+          output_type:
+            typeof event.output_type === "string"
+              ? event.output_type
+              : undefined
         };
       } else if (type === "node_progress") {
         yield {
           type: "node_progress",
           node_id: typeof event.node_id === "string" ? event.node_id : "",
           progress: typeof event.progress === "number" ? event.progress : 0,
-          total: typeof event.total === "number" ? event.total : undefined,
+          total: typeof event.total === "number" ? event.total : undefined
         };
       } else if (type === "error") {
-        yield { type: "error", message: typeof event.message === "string" ? event.message : "Unknown error" };
+        yield {
+          type: "error",
+          message:
+            typeof event.message === "string" ? event.message : "Unknown error"
+        };
         return;
       } else if (type === "generation_stopped") {
         yield { type: "done" };

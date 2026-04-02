@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { ControlNodeTool, sanitizeToolName } from "../../src/tools/control-tool.js";
+import {
+  ControlNodeTool,
+  sanitizeToolName
+} from "../../src/tools/control-tool.js";
 import type { ControlNodeInfo } from "../../src/tools/control-tool.js";
 
 // ---------------------------------------------------------------------------
@@ -54,10 +57,10 @@ const baseInfo: ControlNodeInfo = {
     run: {
       properties: {
         width: { type: "integer", description: "Target width" },
-        height: { type: "integer", description: "Target height" },
-      },
-    },
-  },
+        height: { type: "integer", description: "Target height" }
+      }
+    }
+  }
 };
 
 describe("ControlNodeTool", () => {
@@ -91,7 +94,7 @@ describe("ControlNodeTool", () => {
     const info: ControlNodeInfo = {
       node_id: "node_2",
       node_type: "text.Echo",
-      node_title: "Echo",
+      node_title: "Echo"
     };
     const tool = new ControlNodeTool("node_2", info);
     expect(tool.name).toBe("echo");
@@ -103,9 +106,11 @@ describe("ControlNodeTool", () => {
     const event = tool.createControlEvent({ width: 800, height: 600 });
     expect(event.event_type).toBe("run");
     expect(event).toHaveProperty("properties");
-    expect((event as { properties: Record<string, unknown> }).properties).toEqual({
+    expect(
+      (event as { properties: Record<string, unknown> }).properties
+    ).toEqual({
       width: 800,
-      height: 600,
+      height: 600
     });
   });
 
@@ -118,7 +123,7 @@ describe("ControlNodeTool", () => {
   it("userMessage with params", () => {
     const tool = new ControlNodeTool("node_1", baseInfo);
     expect(tool.userMessage({ width: 100 })).toBe(
-      "Triggering Image Resizer with properties: width",
+      "Triggering Image Resizer with properties: width"
     );
   });
 

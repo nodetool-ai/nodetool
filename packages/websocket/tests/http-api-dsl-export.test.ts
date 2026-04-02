@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  initTestDb,
-  Workflow,
-} from "@nodetool/models";
+import { initTestDb, Workflow } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
 
 describe("HTTP API: workflow DSL export", () => {
@@ -21,29 +18,29 @@ describe("HTTP API: workflow DSL export", () => {
             id: "const_1",
             type: "nodetool.constant.String",
             name: "Greeting",
-            properties: { value: "hello" },
+            properties: { value: "hello" }
           },
           {
             id: "out_1",
             type: "nodetool.output.Output",
             name: "Output",
-            properties: {},
-          },
+            properties: {}
+          }
         ],
         edges: [
           {
             source: "const_1",
             sourceHandle: "output",
             target: "out_1",
-            targetHandle: "value",
-          },
-        ],
-      },
+            targetHandle: "value"
+          }
+        ]
+      }
     })) as Workflow;
 
     const response = await handleApiRequest(
       new Request(`http://localhost/api/workflows/${created.id}/dsl-export`, {
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
 
@@ -51,8 +48,12 @@ describe("HTTP API: workflow DSL export", () => {
     expect(response.headers.get("content-type")).toContain("text/plain");
 
     const body = await response.text();
-    expect(body).toContain('import { constant, output, workflow } from "@nodetool/dsl";');
+    expect(body).toContain(
+      'import { constant, output, workflow } from "@nodetool/dsl";'
+    );
     expect(body).toContain("const greeting = constant.string({");
-    expect(body).toContain("export const exportMeWorkflow = workflow(outputNode);");
+    expect(body).toContain(
+      "export const exportMeWorkflow = workflow(outputNode);"
+    );
   });
 });

@@ -27,7 +27,7 @@ export class UserManager {
       id: randomUUID(),
       username: opts.username,
       email: opts.email,
-      role: opts.role ?? "user",
+      role: opts.role ?? "user"
     };
     this._users.set(user.id, user);
     return user;

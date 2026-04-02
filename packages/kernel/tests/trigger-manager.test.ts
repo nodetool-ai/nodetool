@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   TriggerWorkflowManager,
   type StartJobFn,
-  type HasTriggerNodesFn,
+  type HasTriggerNodesFn
 } from "../src/trigger-manager.js";
 
 describe("TriggerWorkflowManager", () => {
@@ -19,7 +19,7 @@ describe("TriggerWorkflowManager", () => {
       jobCounter++;
       return {
         jobId: `job-${jobCounter}`,
-        completion: new Promise<void>(() => {}), // never resolves
+        completion: new Promise<void>(() => {}) // never resolves
       };
     });
 
@@ -27,7 +27,7 @@ describe("TriggerWorkflowManager", () => {
 
     manager = TriggerWorkflowManager.getInstance({
       startJob,
-      hasTriggerNodes,
+      hasTriggerNodes
     });
   });
 
@@ -37,7 +37,11 @@ describe("TriggerWorkflowManager", () => {
   });
 
   it("startTriggerWorkflow() calls startJob and tracks the job", async () => {
-    const job = await manager.startTriggerWorkflow("wf-1", "user-1", "My Workflow");
+    const job = await manager.startTriggerWorkflow(
+      "wf-1",
+      "user-1",
+      "My Workflow"
+    );
 
     expect(job).not.toBeNull();
     expect(job!.jobId).toBe("job-1");
@@ -50,8 +54,8 @@ describe("TriggerWorkflowManager", () => {
     expect(startJob).toHaveBeenCalledWith(
       expect.objectContaining({
         workflowId: "wf-1",
-        userId: "user-1",
-      }),
+        userId: "user-1"
+      })
     );
   });
 

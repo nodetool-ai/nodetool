@@ -39,7 +39,7 @@ import {
   ScalarToArrayNode,
   ArrayToScalarNode,
   // Utils
-  BinaryOperationNode,
+  BinaryOperationNode
 } from "../src/index.js";
 
 // Helper to build NdArray inputs
@@ -79,13 +79,16 @@ describe("lib.numpy.arithmetic", () => {
   it("ModulusArray — element-wise modulus", async () => {
     const res = await new ModulusArrayNode({
       a: arr([10, 7, 5], [3]),
-      b: arr([3, 4, 2], [3]),
+      b: arr([3, 4, 2], [3])
     }).process();
     expect(res).toEqual({ output: arr([1, 3, 1], [3]) });
   });
 
   it("AddArray — scalar broadcast", async () => {
-    const res = await new AddArrayNode({ a: arr([1, 2, 3], [3]), b: 10 }).process();
+    const res = await new AddArrayNode({
+      a: arr([1, 2, 3], [3]),
+      b: 10
+    }).process();
     expect(res).toEqual({ output: arr([11, 12, 13], [3]) });
   });
 
@@ -101,12 +104,16 @@ describe("lib.numpy.arithmetic", () => {
 
 describe("lib.numpy.math", () => {
   it("AbsArray — absolute values", async () => {
-    const res = await new AbsArrayNode({ values: arr([-3, -1, 0, 2], [4]) }).process();
+    const res = await new AbsArrayNode({
+      values: arr([-3, -1, 0, 2], [4])
+    }).process();
     expect(res).toEqual({ output: arr([3, 1, 0, 2], [4]) });
   });
 
   it("SineArray — sin of angles", async () => {
-    const res = await new SineArrayNode({ angle_rad: arr([0, Math.PI / 2, Math.PI], [3]) }).process();
+    const res = await new SineArrayNode({
+      angle_rad: arr([0, Math.PI / 2, Math.PI], [3])
+    }).process();
     const out = res.output as any;
     expect(out.data[0]).toBeCloseTo(0);
     expect(out.data[1]).toBeCloseTo(1);
@@ -114,14 +121,18 @@ describe("lib.numpy.math", () => {
   });
 
   it("CosineArray — cos of angles", async () => {
-    const res = await new CosineArrayNode({ angle_rad: arr([0, Math.PI], [2]) }).process();
+    const res = await new CosineArrayNode({
+      angle_rad: arr([0, Math.PI], [2])
+    }).process();
     const out = res.output as any;
     expect(out.data[0]).toBeCloseTo(1);
     expect(out.data[1]).toBeCloseTo(-1);
   });
 
   it("ExpArray — e^x", async () => {
-    const res = await new ExpArrayNode({ values: arr([0, 1, 2], [3]) }).process();
+    const res = await new ExpArrayNode({
+      values: arr([0, 1, 2], [3])
+    }).process();
     const out = res.output as any;
     expect(out.data[0]).toBeCloseTo(1);
     expect(out.data[1]).toBeCloseTo(Math.E);
@@ -129,7 +140,9 @@ describe("lib.numpy.math", () => {
   });
 
   it("LogArray — natural log", async () => {
-    const res = await new LogArrayNode({ values: arr([1, Math.E, Math.E * Math.E], [3]) }).process();
+    const res = await new LogArrayNode({
+      values: arr([1, Math.E, Math.E * Math.E], [3])
+    }).process();
     const out = res.output as any;
     expect(out.data[0]).toBeCloseTo(0);
     expect(out.data[1]).toBeCloseTo(1);
@@ -137,14 +150,16 @@ describe("lib.numpy.math", () => {
   });
 
   it("SqrtArray — square root", async () => {
-    const res = await new SqrtArrayNode({ values: arr([0, 1, 4, 9], [4]) }).process();
+    const res = await new SqrtArrayNode({
+      values: arr([0, 1, 4, 9], [4])
+    }).process();
     expect(res).toEqual({ output: arr([0, 1, 2, 3], [4]) });
   });
 
   it("PowerArray — element-wise exponentiation", async () => {
     const res = await new PowerArrayNode({
       base: arr([2, 3, 4], [3]),
-      exponent: arr([3, 2, 0.5], [3]),
+      exponent: arr([3, 2, 0.5], [3])
     }).process();
     const out = res.output as any;
     expect(out.data[0]).toBeCloseTo(8);
@@ -155,7 +170,7 @@ describe("lib.numpy.math", () => {
   it("PowerArray — scalar exponent broadcast", async () => {
     const res = await new PowerArrayNode({
       base: arr([1, 2, 3], [3]),
-      exponent: 2,
+      exponent: 2
     }).process();
     const out = res.output as any;
     expect(out.data).toEqual([1, 4, 9]);
@@ -195,12 +210,18 @@ describe("lib.numpy.statistics", () => {
   });
 
   it("ArgMinArray — index of min", async () => {
-    const res = await new ArgMinArrayNode({ values: arr([5, 3, 8, 1], [4]), axis: 0 }).process();
+    const res = await new ArgMinArrayNode({
+      values: arr([5, 3, 8, 1], [4]),
+      axis: 0
+    }).process();
     expect(res).toEqual({ output: 3 });
   });
 
   it("ArgMaxArray — index of max", async () => {
-    const res = await new ArgMaxArrayNode({ values: arr([5, 3, 8, 1], [4]), axis: 0 }).process();
+    const res = await new ArgMaxArrayNode({
+      values: arr([5, 3, 8, 1], [4]),
+      axis: 0
+    }).process();
     expect(res).toEqual({ output: 2 });
   });
 
@@ -208,7 +229,7 @@ describe("lib.numpy.statistics", () => {
     // [[1, 2], [3, 4]] sum along axis 0 => [4, 6]
     const res = await new SumArrayNode({
       values: arr([1, 2, 3, 4], [2, 2]),
-      axis: 0,
+      axis: 0
     }).process();
     expect(res).toEqual({ output: arr([4, 6], [2]) });
   });
@@ -217,7 +238,7 @@ describe("lib.numpy.statistics", () => {
     // [[1, 2], [3, 4]] sum along axis 1 => [3, 7]
     const res = await new SumArrayNode({
       values: arr([1, 2, 3, 4], [2, 2]),
-      axis: 1,
+      axis: 1
     }).process();
     expect(res).toEqual({ output: arr([3, 7], [2]) });
   });
@@ -225,13 +246,16 @@ describe("lib.numpy.statistics", () => {
   it("MeanArray — 2D along axis 1", async () => {
     const res = await new MeanArrayNode({
       values: arr([2, 4, 6, 8], [2, 2]),
-      axis: 1,
+      axis: 1
     }).process();
     expect(res).toEqual({ output: arr([3, 7], [2]) });
   });
 
   it("MinArray — single element", async () => {
-    const res = await new MinArrayNode({ values: arr([42], [1]), axis: 0 }).process();
+    const res = await new MinArrayNode({
+      values: arr([42], [1]),
+      axis: 0
+    }).process();
     expect(res).toEqual({ output: 42 });
   });
 });
@@ -247,7 +271,7 @@ describe("lib.numpy.manipulation", () => {
       start: 1,
       stop: 4,
       step: 1,
-      axis: 0,
+      axis: 0
     }).process();
     expect(res).toEqual({ output: arr([20, 30, 40], [3]) });
   });
@@ -258,7 +282,7 @@ describe("lib.numpy.manipulation", () => {
       start: 0,
       stop: 6,
       step: 2,
-      axis: 0,
+      axis: 0
     }).process();
     expect(res).toEqual({ output: arr([0, 2, 4], [3]) });
   });
@@ -269,7 +293,7 @@ describe("lib.numpy.manipulation", () => {
       start: 1,
       stop: 0,
       step: 1,
-      axis: 0,
+      axis: 0
     }).process();
     expect(res).toEqual({ output: arr([20, 30], [2]) });
   });
@@ -278,7 +302,7 @@ describe("lib.numpy.manipulation", () => {
     const res = await new IndexArrayNode({
       values: arr([10, 20, 30, 40, 50], [5]),
       indices: "0, 2, 4",
-      axis: 0,
+      axis: 0
     }).process();
     expect(res).toEqual({ output: arr([10, 30, 50], [3]) });
   });
@@ -287,7 +311,7 @@ describe("lib.numpy.manipulation", () => {
     const res = await new IndexArrayNode({
       values: arr([1, 2, 3], [3]),
       indices: "",
-      axis: 0,
+      axis: 0
     }).process();
     expect(res).toEqual({ output: arr([], [0]) });
   });
@@ -295,14 +319,14 @@ describe("lib.numpy.manipulation", () => {
   it("TransposeArray — 2D transpose", async () => {
     // [[1, 2, 3], [4, 5, 6]] => [[1, 4], [2, 5], [3, 6]]
     const res = await new TransposeArrayNode({
-      values: arr([1, 2, 3, 4, 5, 6], [2, 3]),
+      values: arr([1, 2, 3, 4, 5, 6], [2, 3])
     }).process();
     expect(res).toEqual({ output: arr([1, 4, 2, 5, 3, 6], [3, 2]) });
   });
 
   it("TransposeArray — 1D is identity", async () => {
     const res = await new TransposeArrayNode({
-      values: arr([1, 2, 3], [3]),
+      values: arr([1, 2, 3], [3])
     }).process();
     expect(res).toEqual({ output: arr([1, 2, 3], [3]) });
   });
@@ -311,7 +335,7 @@ describe("lib.numpy.manipulation", () => {
     // [[1,2],[3,4]] * [[5,6],[7,8]] = [[19,22],[43,50]]
     const res = await new MatMulNode({
       a: arr([1, 2, 3, 4], [2, 2]),
-      b: arr([5, 6, 7, 8], [2, 2]),
+      b: arr([5, 6, 7, 8], [2, 2])
     }).process();
     expect(res).toEqual({ output: arr([19, 22, 43, 50], [2, 2]) });
   });
@@ -320,7 +344,7 @@ describe("lib.numpy.manipulation", () => {
     // [[1,2,3],[4,5,6]] * [[1],[1],[1]] = [[6],[15]]
     const res = await new MatMulNode({
       a: arr([1, 2, 3, 4, 5, 6], [2, 3]),
-      b: arr([1, 1, 1], [3, 1]),
+      b: arr([1, 1, 1], [3, 1])
     }).process();
     expect(res).toEqual({ output: arr([6, 15], [2, 1]) });
   });
@@ -329,7 +353,7 @@ describe("lib.numpy.manipulation", () => {
     await expect(
       new MatMulNode({
         a: arr([1, 2, 3], [1, 3]),
-        b: arr([1, 2], [1, 2]),
+        b: arr([1, 2], [1, 2])
       }).process()
     ).rejects.toThrow("Shape mismatch");
   });
@@ -337,7 +361,7 @@ describe("lib.numpy.manipulation", () => {
   it("Stack — stack two 1D arrays along axis 0", async () => {
     const res = await new StackNode({
       arrays: [arr([1, 2, 3], [3]), arr([4, 5, 6], [3])],
-      axis: 0,
+      axis: 0
     }).process();
     expect(res).toEqual({ output: arr([1, 2, 3, 4, 5, 6], [2, 3]) });
   });
@@ -351,7 +375,7 @@ describe("lib.numpy.manipulation", () => {
     const res = await new SplitArrayNode({
       values: arr([1, 2, 3, 4], [4]),
       num_splits: 2,
-      axis: 0,
+      axis: 0
     }).process();
     const out = res.output as any[];
     expect(out).toHaveLength(2);
@@ -363,7 +387,7 @@ describe("lib.numpy.manipulation", () => {
     const res = await new SplitArrayNode({
       values: arr([1, 2, 3, 4, 5], [5]),
       num_splits: 2,
-      axis: 0,
+      axis: 0
     }).process();
     const out = res.output as any[];
     expect(out).toHaveLength(2);
@@ -382,7 +406,7 @@ describe("lib.numpy.reshaping", () => {
   it("Reshape1D — flatten to 1D", async () => {
     const res = await new Reshape1DNode({
       values: arr(data, [2, 3]),
-      num_elements: 6,
+      num_elements: 6
     }).process();
     expect(res).toEqual({ output: arr(data, [6]) });
   });
@@ -390,7 +414,7 @@ describe("lib.numpy.reshaping", () => {
   it("Reshape1D — num_elements=0 uses data length", async () => {
     const res = await new Reshape1DNode({
       values: arr(data, [2, 3]),
-      num_elements: 0,
+      num_elements: 0
     }).process();
     expect(res).toEqual({ output: arr(data, [6]) });
   });
@@ -399,7 +423,7 @@ describe("lib.numpy.reshaping", () => {
     const res = await new Reshape2DNode({
       values: arr(data, [6]),
       num_rows: 2,
-      num_cols: 3,
+      num_cols: 3
     }).process();
     expect(res).toEqual({ output: arr(data, [2, 3]) });
   });
@@ -409,7 +433,7 @@ describe("lib.numpy.reshaping", () => {
       values: arr(data, [6]),
       num_rows: 1,
       num_cols: 2,
-      num_depths: 3,
+      num_depths: 3
     }).process();
     expect(res).toEqual({ output: arr(data, [1, 2, 3]) });
   });
@@ -420,7 +444,7 @@ describe("lib.numpy.reshaping", () => {
       num_rows: 1,
       num_cols: 1,
       num_depths: 2,
-      num_channels: 3,
+      num_channels: 3
     }).process();
     expect(res).toEqual({ output: arr(data, [1, 1, 2, 3]) });
   });
@@ -440,24 +464,28 @@ describe("lib.numpy.conversion", () => {
     const res = await new ListToArrayNode({
       values: [
         [1, 2],
-        [3, 4],
-      ],
+        [3, 4]
+      ]
     }).process();
     expect(res).toEqual({ output: arr([1, 2, 3, 4], [2, 2]) });
   });
 
   it("ArrayToList — 1D array to list", async () => {
-    const res = await new ArrayToListNode({ values: arr([1, 2, 3], [3]) }).process();
+    const res = await new ArrayToListNode({
+      values: arr([1, 2, 3], [3])
+    }).process();
     expect(res).toEqual({ output: [1, 2, 3] });
   });
 
   it("ArrayToList — 2D array to nested list", async () => {
-    const res = await new ArrayToListNode({ values: arr([1, 2, 3, 4], [2, 2]) }).process();
+    const res = await new ArrayToListNode({
+      values: arr([1, 2, 3, 4], [2, 2])
+    }).process();
     expect(res).toEqual({
       output: [
         [1, 2],
-        [3, 4],
-      ],
+        [3, 4]
+      ]
     });
   });
 
@@ -467,7 +495,9 @@ describe("lib.numpy.conversion", () => {
   });
 
   it("ArrayToScalar — extracts first element", async () => {
-    const res = await new ArrayToScalarNode({ values: arr([7, 8, 9], [3]) }).process();
+    const res = await new ArrayToScalarNode({
+      values: arr([7, 8, 9], [3])
+    }).process();
     expect(res).toEqual({ output: 7 });
   });
 
@@ -490,7 +520,7 @@ describe("lib.numpy.utils", () => {
   it("BinaryOperation — default is addition", async () => {
     const res = await new BinaryOperationNode({
       a: arr([1, 2], [2]),
-      b: arr([3, 4], [2]),
+      b: arr([3, 4], [2])
     }).process();
     expect(res).toEqual({ output: arr([4, 6], [2]) });
   });

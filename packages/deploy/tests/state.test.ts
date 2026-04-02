@@ -8,11 +8,11 @@ import * as yaml from "js-yaml";
 import {
   StateManager,
   createStateSnapshot,
-  restoreStateFromSnapshot,
+  restoreStateFromSnapshot
 } from "../src/state.js";
 import {
   parseDeploymentConfig,
-  type DeploymentConfig,
+  type DeploymentConfig
 } from "../src/deployment-config.js";
 
 // ============================================================================
@@ -43,25 +43,25 @@ async function writeTestConfig(
         type: "docker",
         host: "server1",
         image: { name: "nodetool/api" },
-        container: { name: "nodetool", port: 8000 },
+        container: { name: "nodetool", port: 8000 }
       },
       staging: {
         type: "runpod",
-        image: { name: "nodetool/api", tag: "staging" },
+        image: { name: "nodetool/api", tag: "staging" }
       },
       dev: {
         type: "docker",
         host: "localhost",
         image: { name: "nodetool/api" },
-        container: { name: "nodetool-dev", port: 8000 },
+        container: { name: "nodetool-dev", port: 8000 }
       },
       cloud: {
         type: "gcp",
         project_id: "my-project",
         service_name: "nodetool",
-        image: { repository: "proj/repo", tag: "v1" },
-      },
-    },
+        image: { repository: "proj/repo", tag: "v1" }
+      }
+    }
   };
 
   const yamlStr = yaml.dump(defaultConfig);
@@ -164,7 +164,10 @@ describe("StateManager", () => {
 
   describe("writeState", () => {
     it("updates state fields", async () => {
-      await manager.writeState("prod", { status: "running", container_id: "abc123" });
+      await manager.writeState("prod", {
+        status: "running",
+        container_id: "abc123"
+      });
       const state = await manager.readState("prod");
       expect(state!.status).toBe("running");
       expect(state!.container_id).toBe("abc123");
@@ -195,7 +198,7 @@ describe("StateManager", () => {
       await manager.writeState("prod", {
         status: "active",
         container_id: "xyz",
-        url: "http://server1:8000",
+        url: "http://server1:8000"
       });
 
       // Create a new manager to verify persistence
@@ -211,7 +214,7 @@ describe("StateManager", () => {
         status: "running",
         template_id: "tmpl-123",
         endpoint_id: "ep-456",
-        endpoint_url: "https://api.runpod.io/v2/ep-456",
+        endpoint_url: "https://api.runpod.io/v2/ep-456"
       });
       const state = await manager.readState("staging");
       expect(state!.status).toBe("running");
@@ -223,7 +226,7 @@ describe("StateManager", () => {
       await manager.writeState("cloud", {
         status: "serving",
         service_url: "https://nodetool-abc.run.app",
-        revision: "nodetool-00001-abc",
+        revision: "nodetool-00001-abc"
       });
       const state = await manager.readState("cloud");
       expect(state!.status).toBe("serving");
@@ -340,7 +343,7 @@ describe("StateManager", () => {
       await manager.writeState("prod", {
         status: "running",
         container_id: "abc",
-        url: "http://test",
+        url: "http://test"
       });
       await manager.clearState("prod");
       const state = await manager.readState("prod");
@@ -360,7 +363,7 @@ describe("StateManager", () => {
       await manager.writeState("staging", {
         status: "running",
         template_id: "tmpl-123",
-        endpoint_id: "ep-456",
+        endpoint_id: "ep-456"
       });
       await manager.clearState("staging");
       const state = await manager.readState("staging");
@@ -487,14 +490,17 @@ describe("createStateSnapshot", () => {
           type: "docker",
           host: "h",
           image: { name: "img" },
-          container: { name: "c", port: 8000 },
-        },
-      },
+          container: { name: "c", port: 8000 }
+        }
+      }
     });
     const snapshot = createStateSnapshot(config);
     expect(snapshot.timestamp).toBeDefined();
     expect(snapshot.version).toBe("2.0");
-    const deps = snapshot.deployments as Record<string, Record<string, unknown>>;
+    const deps = snapshot.deployments as Record<
+      string,
+      Record<string, unknown>
+    >;
     expect(deps.prod).toBeDefined();
     expect(deps.prod.type).toBe("docker");
     expect(deps.prod.enabled).toBe(true);
@@ -520,13 +526,13 @@ describe("createStateSnapshot", () => {
           type: "docker",
           host: "h",
           image: { name: "i" },
-          container: { name: "c", port: 1 },
+          container: { name: "c", port: 1 }
         },
         b: {
           type: "runpod",
-          image: { name: "i", tag: "t" },
-        },
-      },
+          image: { name: "i", tag: "t" }
+        }
+      }
     });
     const snapshot = createStateSnapshot(config);
     const deps = snapshot.deployments as Record<string, unknown>;
@@ -541,12 +547,15 @@ describe("createStateSnapshot", () => {
           host: "h",
           image: { name: "i" },
           container: { name: "c", port: 1 },
-          state: { status: "running", container_id: "abc" },
-        },
-      },
+          state: { status: "running", container_id: "abc" }
+        }
+      }
     });
     const snapshot = createStateSnapshot(config);
-    const deps = snapshot.deployments as Record<string, Record<string, unknown>>;
+    const deps = snapshot.deployments as Record<
+      string,
+      Record<string, unknown>
+    >;
     const state = deps.prod.state as Record<string, unknown>;
     expect(state.status).toBe("running");
     expect(state.container_id).toBe("abc");
@@ -578,10 +587,15 @@ describe("restoreStateFromSnapshot", () => {
   it("restores state from snapshot", async () => {
     // First, update state
     const manager = new StateManager(configPath);
-    await manager.writeState("prod", { status: "running", container_id: "xyz" });
+    await manager.writeState("prod", {
+      status: "running",
+      container_id: "xyz"
+    });
 
     // Create snapshot
-    const rawConfig = yaml.load(await fs.readFile(configPath, "utf-8")) as Record<string, unknown>;
+    const rawConfig = yaml.load(
+      await fs.readFile(configPath, "utf-8")
+    ) as Record<string, unknown>;
     const config = parseDeploymentConfig(rawConfig);
     const snapshot = createStateSnapshot(config, configPath);
 
@@ -604,7 +618,9 @@ describe("restoreStateFromSnapshot", () => {
     await manager.writeState("prod", { status: "running" });
     await manager.writeState("staging", { status: "active" });
 
-    const rawConfig = yaml.load(await fs.readFile(configPath, "utf-8")) as Record<string, unknown>;
+    const rawConfig = yaml.load(
+      await fs.readFile(configPath, "utf-8")
+    ) as Record<string, unknown>;
     const config = parseDeploymentConfig(rawConfig);
     const snapshot = createStateSnapshot(config, configPath);
 
@@ -625,7 +641,7 @@ describe("restoreStateFromSnapshot", () => {
       timestamp: new Date().toISOString(),
       version: "2.0",
       deployments: {},
-      config_path: configPath,
+      config_path: configPath
     };
 
     await expect(
@@ -637,7 +653,9 @@ describe("restoreStateFromSnapshot", () => {
     const manager = new StateManager(configPath);
     await manager.writeState("prod", { status: "active" });
 
-    const rawConfig = yaml.load(await fs.readFile(configPath, "utf-8")) as Record<string, unknown>;
+    const rawConfig = yaml.load(
+      await fs.readFile(configPath, "utf-8")
+    ) as Record<string, unknown>;
     const config = parseDeploymentConfig(rawConfig);
     const snapshot = createStateSnapshot(config, configPath);
 

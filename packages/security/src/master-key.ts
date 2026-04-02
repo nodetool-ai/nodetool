@@ -29,7 +29,11 @@ let cachedMasterKey: string | null = null;
 /** Minimal keytar interface for the methods we use. */
 interface KeytarModule {
   getPassword(service: string, account: string): Promise<string | null>;
-  setPassword(service: string, account: string, password: string): Promise<void>;
+  setPassword(
+    service: string,
+    account: string,
+    password: string
+  ): Promise<void>;
   deletePassword(service: string, account: string): Promise<boolean>;
 }
 
@@ -57,7 +61,9 @@ async function tryLoadKeytar(): Promise<KeytarModule | null> {
  *
  * @param loader - A function returning a KeytarModule or null.
  */
-export function setKeytarLoader(loader: () => Promise<KeytarModule | null>): void {
+export function setKeytarLoader(
+  loader: () => Promise<KeytarModule | null>
+): void {
   _keytarLoader = loader;
 }
 
@@ -101,7 +107,10 @@ async function getFromAwsSecrets(secretName: string): Promise<string | null> {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     // Log but don't throw -- caller will fall back to next source
-    log.warn("Master key source failed, trying next", { source: "aws", error: message });
+    log.warn("Master key source failed, trying next", {
+      source: "aws",
+      error: message
+    });
     return null;
   }
 }
@@ -182,7 +191,10 @@ export async function initMasterKey(): Promise<string> {
   const keytar = await tryLoadKeytar();
   if (keytar) {
     try {
-      const storedKey = await keytar.getPassword(KEYRING_SERVICE, KEYRING_ACCOUNT);
+      const storedKey = await keytar.getPassword(
+        KEYRING_SERVICE,
+        KEYRING_ACCOUNT
+      );
       if (storedKey) {
         log.debug("Master key source", { source: "keychain" });
         cachedMasterKey = storedKey;
@@ -190,7 +202,10 @@ export async function initMasterKey(): Promise<string> {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      log.warn("Master key source failed, trying next", { source: "keychain", error: message });
+      log.warn("Master key source failed, trying next", {
+        source: "keychain",
+        error: message
+      });
     }
 
     // 4. Auto-generate and persist to keychain
@@ -243,7 +258,7 @@ export async function setMasterKeyPersistent(masterKey: string): Promise<void> {
   if (!keytar) {
     throw new Error(
       "keytar is not available. Install keytar to use keychain storage, " +
-      "or set SECRETS_MASTER_KEY environment variable."
+        "or set SECRETS_MASTER_KEY environment variable."
     );
   }
   await keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, masterKey);

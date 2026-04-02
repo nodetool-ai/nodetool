@@ -14,13 +14,15 @@ export async function renderMarkdown(text: string): Promise<string> {
       // marked-terminal v7 exports markedTerminal() as a MarkedExtension factory
       const mod = await import("marked-terminal");
       const markedTerminal = mod.markedTerminal ?? mod.default;
-      marked.use(markedTerminal({
-        width: process.stdout.columns ?? 80,
-        emoji: false,
-        tab: 2,
-        showSectionPrefix: false,
-        reflowText: false,
-      }));
+      marked.use(
+        markedTerminal({
+          width: process.stdout.columns ?? 80,
+          emoji: false,
+          tab: 2,
+          showSectionPrefix: false,
+          reflowText: false
+        })
+      );
     } catch {
       // marked-terminal unavailable — fall back to plain marked output
     }

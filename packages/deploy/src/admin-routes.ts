@@ -22,7 +22,7 @@ import {
   downloadOllamaModel,
   scanHFCache,
   calculateCacheSize,
-  deleteHFModel,
+  deleteHFModel
 } from "./admin-operations.js";
 
 // ── Shared types ───────────────────────────────────────────
@@ -161,7 +161,7 @@ export const SSE_HEADERS: Record<string, string> = {
   Connection: "keep-alive",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Authorization, Content-Type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
 // ── Injectable adapters ────────────────────────────────────
@@ -306,7 +306,7 @@ async function assetFromRecord(
     created_at: asset.created_at,
     get_url: getUrl,
     thumb_url: thumbUrl,
-    duration: asset.duration,
+    duration: asset.duration
   };
 }
 
@@ -334,7 +334,7 @@ export async function* handleDownloadHuggingfaceModel(
     ignorePatterns: data.ignore_patterns,
     allowPatterns: data.allow_patterns,
     stream: data.stream ?? true,
-    getSecret: deps.getSecret,
+    getSecret: deps.getSecret
   });
 
   yield* encodeSSE(source as AsyncGenerator<Record<string, unknown>>);
@@ -465,12 +465,12 @@ export async function handleCreateCollection(
   const metadata = { embedding_model: req.embedding_model };
   const collection = await deps.vecStore.createCollection({
     name: req.name,
-    metadata,
+    metadata
   });
   return {
     name: collection.name,
     metadata: collection.metadata,
-    count: 0,
+    count: 0
   };
 }
 
@@ -486,7 +486,9 @@ export async function handleListCollections(
     collections.map(async (col) => {
       const count = await col.count();
       let workflowName: string | null = null;
-      const workflowId = (col.metadata as Record<string, unknown>)?.["workflow"];
+      const workflowId = (col.metadata as Record<string, unknown>)?.[
+        "workflow"
+      ];
       if (typeof workflowId === "string") {
         const wf = await deps.workflowModel.get(workflowId);
         if (wf) workflowName = wf.name;
@@ -495,7 +497,7 @@ export async function handleListCollections(
         name: col.name,
         metadata: col.metadata ?? {},
         workflow_name: workflowName,
-        count,
+        count
       } satisfies CollectionResponse;
     })
   );
@@ -515,7 +517,7 @@ export async function handleGetCollection(
   return {
     name: collection.name,
     metadata: collection.metadata,
-    count,
+    count
   };
 }
 
@@ -534,7 +536,7 @@ export async function handleUpdateCollection(
   return {
     name: collection.name,
     metadata: collection.metadata,
-    count: await collection.count(),
+    count: await collection.count()
   };
 }
 
@@ -562,7 +564,7 @@ export async function handleAddToCollection(
     documents: req.documents,
     ids: req.ids,
     metadatas: req.metadatas,
-    embeddings: req.embeddings,
+    embeddings: req.embeddings
   });
   return { message: `Documents added to collection ${name} successfully` };
 }
@@ -596,7 +598,7 @@ export async function handleListAssets(
     parent_id: parentId,
     content_type: opts.contentType ?? null,
     limit: pageSize,
-    start_key: opts.cursor ?? null,
+    start_key: opts.cursor ?? null
   });
 
   const assetResponses = await Promise.all(
@@ -618,7 +620,7 @@ export async function handleCreateAsset(
     ...data,
     user_id: data.user_id ?? currentUser,
     name: data.name ?? "",
-    content_type: data.content_type ?? "",
+    content_type: data.content_type ?? ""
   };
 
   const asset = await deps.assetModel.create(createData);
@@ -645,7 +647,7 @@ export async function handleGetAsset(
       size: null,
       get_url: null,
       thumb_url: null,
-      created_at: "",
+      created_at: ""
     };
   }
 
@@ -698,7 +700,7 @@ export async function handleDeleteAsset(
     const [children] = await deps.assetModel.paginate({
       user_id: uid,
       parent_id: folderId,
-      limit: 10000,
+      limit: 10000
     });
 
     for (const child of children) {

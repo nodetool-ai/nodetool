@@ -5,7 +5,12 @@
  * of available image models (ported from get_available_image_models).
  */
 
-import { getFalApiKey, falSubmit, falUpload, imageToDataUrl } from "./fal-base.js";
+import {
+  getFalApiKey,
+  falSubmit,
+  falUpload,
+  imageToDataUrl
+} from "./fal-base.js";
 
 // ---------------------------------------------------------------------------
 // Model catalogue
@@ -34,8 +39,14 @@ export const FAL_IMAGE_MODELS: readonly FalImageModel[] = [
   { id: "fal-ai/recraft-v3", name: "Recraft v3" },
   { id: "fal-ai/recraft-20b", name: "Recraft 20B" },
   // Stable Diffusion Models
-  { id: "fal-ai/stable-diffusion-v3-medium", name: "Stable Diffusion v3 Medium" },
-  { id: "fal-ai/stable-diffusion-v35-large", name: "Stable Diffusion v3.5 Large" },
+  {
+    id: "fal-ai/stable-diffusion-v3-medium",
+    name: "Stable Diffusion v3 Medium"
+  },
+  {
+    id: "fal-ai/stable-diffusion-v35-large",
+    name: "Stable Diffusion v3.5 Large"
+  },
   { id: "fal-ai/fast-sdxl", name: "Fast SDXL" },
   { id: "fal-ai/stable-cascade", name: "Stable Cascade" },
   { id: "fal-ai/fast-lightning-sdxl", name: "Fast Lightning SDXL" },
@@ -58,7 +69,7 @@ export const FAL_IMAGE_MODELS: readonly FalImageModel[] = [
   { id: "fal-ai/fooocus", name: "Fooocus" },
   { id: "fal-ai/illusion-diffusion", name: "Illusion Diffusion" },
   { id: "fal-ai/imagen4/preview", name: "Imagen 4 Preview" },
-  { id: "fal-ai/lora", name: "LoRA Text-to-Image" },
+  { id: "fal-ai/lora", name: "LoRA Text-to-Image" }
 ];
 
 // ---------------------------------------------------------------------------
@@ -127,15 +138,21 @@ function formatValidationError(errorStr: string): string {
           const errorType = (error.type as string) ?? "";
 
           if (errorType === "less_than_equal" && "le" in ctx) {
-            formatted.push(`Parameter '${fieldName}' must be ${ctx.le} or less (you provided ${inputValue})`);
+            formatted.push(
+              `Parameter '${fieldName}' must be ${ctx.le} or less (you provided ${inputValue})`
+            );
           } else if (errorType === "greater_than_equal" && "ge" in ctx) {
-            formatted.push(`Parameter '${fieldName}' must be ${ctx.ge} or greater (you provided ${inputValue})`);
+            formatted.push(
+              `Parameter '${fieldName}' must be ${ctx.ge} or greater (you provided ${inputValue})`
+            );
           } else if (errorType === "missing") {
             formatted.push(`Required parameter '${fieldName}' is missing`);
           } else if (errorType === "value_error") {
             formatted.push(`Parameter '${fieldName}': ${msg}`);
           } else if (inputValue !== undefined) {
-            formatted.push(`Parameter '${fieldName}': ${msg} (you provided ${inputValue})`);
+            formatted.push(
+              `Parameter '${fieldName}': ${msg} (you provided ${inputValue})`
+            );
           } else {
             formatted.push(`Parameter '${fieldName}': ${msg}`);
           }
@@ -179,17 +196,20 @@ export class FalProvider {
   async textToImage(params: TextToImageParams): Promise<Uint8Array> {
     const args: Record<string, unknown> = {
       prompt: params.prompt,
-      output_format: "png",
+      output_format: "png"
     };
 
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
-    if (params.guidanceScale != null) args.guidance_scale = params.guidanceScale;
-    if (params.numInferenceSteps != null) args.num_inference_steps = params.numInferenceSteps;
+    if (params.guidanceScale != null)
+      args.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps != null)
+      args.num_inference_steps = params.numInferenceSteps;
     if (params.width && params.height) {
       args.image_size = { width: params.width, height: params.height };
     }
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;
-    if (params.safetyCheck != null) args.enable_safety_checker = params.safetyCheck;
+    if (params.safetyCheck != null)
+      args.enable_safety_checker = params.safetyCheck;
 
     try {
       this.totalRequests++;
@@ -219,15 +239,20 @@ export class FalProvider {
     const args: Record<string, unknown> = {
       prompt: params.prompt,
       image_url: imageDataUri,
-      output_format: "png",
+      output_format: "png"
     };
 
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
-    if (params.guidanceScale != null) args.guidance_scale = params.guidanceScale;
-    if (params.numInferenceSteps != null) args.num_inference_steps = params.numInferenceSteps;
+    if (params.guidanceScale != null)
+      args.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps != null)
+      args.num_inference_steps = params.numInferenceSteps;
     if (params.strength != null) args.strength = params.strength;
     if (params.targetWidth && params.targetHeight) {
-      args.image_size = { width: params.targetWidth, height: params.targetHeight };
+      args.image_size = {
+        width: params.targetWidth,
+        height: params.targetHeight
+      };
     }
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;
 
@@ -267,7 +292,9 @@ export class FalProvider {
       const result = await falSubmit(this.apiKey, params.model, args);
       const audioField = result.audio as Record<string, unknown> | undefined;
       if (!audioField?.url) {
-        throw new Error(`Unexpected FAL response format: ${JSON.stringify(result)}`);
+        throw new Error(
+          `Unexpected FAL response format: ${JSON.stringify(result)}`
+        );
       }
       return downloadBytes(audioField.url as string);
     } catch (e) {
@@ -301,7 +328,9 @@ export class FalProvider {
    * Convert an image ref ({data, uri}) to a data: URI or FAL CDN URL
    * suitable for passing as image_url in API arguments.
    */
-  async imageRefToUrl(imageRef: Record<string, unknown>): Promise<string | null> {
+  async imageRefToUrl(
+    imageRef: Record<string, unknown>
+  ): Promise<string | null> {
     return imageToDataUrl(imageRef);
   }
 }

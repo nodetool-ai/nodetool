@@ -9,7 +9,6 @@
 import type { EnumDef, FieldDef, NodeSpec } from "./types.js";
 import { SchemaParser } from "./schema-parser.js";
 
- 
 type AnyRecord = Record<string, any>;
 
 /** A single node entry from the Python metadata JSON. */
@@ -26,7 +25,12 @@ export interface MetadataNodeEntry {
 
 interface MetadataProperty {
   name: string;
-  type: { type: string; values?: string[]; optional?: boolean; type_args?: unknown[] };
+  type: {
+    type: string;
+    values?: string[];
+    optional?: boolean;
+    type_args?: unknown[];
+  };
   default: unknown;
   title: string;
   description: string;
@@ -92,8 +96,7 @@ export class MetadataParser {
     const modelId = owner && name ? `${owner}/${name}` : "";
 
     // Determine output type from first output
-    const outputTypeStr =
-      entry.outputs?.[0]?.type?.type ?? "str";
+    const outputTypeStr = entry.outputs?.[0]?.type?.type ?? "str";
     const { propType: outputType } = mapType(outputTypeStr);
 
     return {
@@ -105,7 +108,7 @@ export class MetadataParser {
       inputFields,
       outputType,
       outputFields: [],
-      enums,
+      enums
     };
   }
 
@@ -151,7 +154,7 @@ export class MetadataParser {
    */
   private _parseProperties(
     properties: MetadataProperty[],
-    enums: EnumDef[],
+    enums: EnumDef[]
   ): FieldDef[] {
     const fields: FieldDef[] = [];
 
@@ -169,9 +172,9 @@ export class MetadataParser {
           name: enumName,
           values: rawValues.map((v) => [
             this.schemaParser.toEnumKey(String(v)),
-            String(v),
+            String(v)
           ]),
-          description: prop.description ?? "",
+          description: prop.description ?? ""
         };
         enums.push(enumDef);
         enumRef = enumName;
@@ -183,7 +186,11 @@ export class MetadataParser {
         : mapType(typeStr);
 
       // Determine default value
-      const defaultVal = this._getDefault(prop.default, propType, prop.type.optional);
+      const defaultVal = this._getDefault(
+        prop.default,
+        propType,
+        prop.type.optional
+      );
 
       fields.push({
         name: prop.name,
@@ -194,7 +201,7 @@ export class MetadataParser {
         fieldType: "input",
         required: !prop.type.optional,
         enumRef,
-        enumValues,
+        enumValues
       });
     }
 
@@ -207,7 +214,7 @@ export class MetadataParser {
   private _getDefault(
     rawDefault: unknown,
     propType: string,
-    optional?: boolean,
+    optional?: boolean
   ): unknown {
     // Asset refs always default to null
     if (propType === "image" || propType === "video" || propType === "audio") {
@@ -239,8 +246,6 @@ export class MetadataParser {
    */
   private _generateEnumName(fieldName: string): string {
     const words = fieldName.replace(/-/g, "_").split("_");
-    return words
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join("");
+    return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("");
   }
 }

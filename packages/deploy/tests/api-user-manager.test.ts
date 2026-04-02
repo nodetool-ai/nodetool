@@ -4,7 +4,7 @@ import {
   APIUserManager,
   type UserRecord,
   type UserListResponse,
-  type RemoveUserResponse,
+  type RemoveUserResponse
 } from "../src/api-user-manager.js";
 
 // Mock global fetch
@@ -27,7 +27,7 @@ function jsonResponse(data: unknown, status = 200): Response {
     bodyUsed: false,
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
     blob: () => Promise.resolve(new Blob()),
-    formData: () => Promise.resolve(new FormData()),
+    formData: () => Promise.resolve(new FormData())
   } as Response;
 }
 
@@ -47,7 +47,7 @@ function errorResponse(status: number, body: string): Response {
     bodyUsed: false,
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
     blob: () => Promise.resolve(new Blob()),
-    formData: () => Promise.resolve(new FormData()),
+    formData: () => Promise.resolve(new FormData())
   } as Response;
 }
 
@@ -97,8 +97,8 @@ describe("APIUserManager", () => {
           user_id: "u1",
           username: "alice",
           role: "admin",
-          created_at: "2024-01-01",
-        },
+          created_at: "2024-01-01"
+        }
       ];
       mockFetch.mockResolvedValue(jsonResponse({ users }));
       const result = await mgr.listUsers();
@@ -148,9 +148,24 @@ describe("APIUserManager", () => {
 
     it("should return multiple users", async () => {
       const users: UserRecord[] = [
-        { user_id: "u1", username: "alice", role: "admin", created_at: "2024-01-01" },
-        { user_id: "u2", username: "bob", role: "user", created_at: "2024-01-02" },
-        { user_id: "u3", username: "carol", role: "user", created_at: "2024-01-03" },
+        {
+          user_id: "u1",
+          username: "alice",
+          role: "admin",
+          created_at: "2024-01-01"
+        },
+        {
+          user_id: "u2",
+          username: "bob",
+          role: "user",
+          created_at: "2024-01-02"
+        },
+        {
+          user_id: "u3",
+          username: "carol",
+          role: "user",
+          created_at: "2024-01-03"
+        }
       ];
       mockFetch.mockResolvedValue(jsonResponse({ users }));
       const result = await mgr.listUsers();
@@ -169,7 +184,7 @@ describe("APIUserManager", () => {
         username: "newuser",
         role: "user",
         token: "generated-tok",
-        created_at: "2024-01-01",
+        created_at: "2024-01-01"
       };
       mockFetch.mockResolvedValue(jsonResponse(userRecord));
       const result = await mgr.addUser("newuser", "user");
@@ -178,19 +193,29 @@ describe("APIUserManager", () => {
 
     it("should send JSON body with username and role", async () => {
       mockFetch.mockResolvedValue(
-        jsonResponse({ user_id: "u", username: "x", role: "admin", created_at: "" })
+        jsonResponse({
+          user_id: "u",
+          username: "x",
+          role: "admin",
+          created_at: ""
+        })
       );
       await mgr.addUser("x", "admin");
       const init = mockFetch.mock.calls[0]![1] as RequestInit;
       expect(JSON.parse(init.body as string)).toEqual({
         username: "x",
-        role: "admin",
+        role: "admin"
       });
     });
 
     it("should use POST method", async () => {
       mockFetch.mockResolvedValue(
-        jsonResponse({ user_id: "u", username: "x", role: "user", created_at: "" })
+        jsonResponse({
+          user_id: "u",
+          username: "x",
+          role: "user",
+          created_at: ""
+        })
       );
       await mgr.addUser("x");
       const init = mockFetch.mock.calls[0]![1] as RequestInit;
@@ -199,7 +224,12 @@ describe("APIUserManager", () => {
 
     it("should default role to 'user'", async () => {
       mockFetch.mockResolvedValue(
-        jsonResponse({ user_id: "u", username: "x", role: "user", created_at: "" })
+        jsonResponse({
+          user_id: "u",
+          username: "x",
+          role: "user",
+          created_at: ""
+        })
       );
       await mgr.addUser("x");
       const init = mockFetch.mock.calls[0]![1] as RequestInit;
@@ -228,7 +258,7 @@ describe("APIUserManager", () => {
         username: "alice",
         role: "admin",
         token: "new-tok",
-        created_at: "2024-01-01",
+        created_at: "2024-01-01"
       };
       mockFetch.mockResolvedValue(jsonResponse(userRecord));
       const result = await mgr.resetToken("alice");
@@ -237,7 +267,12 @@ describe("APIUserManager", () => {
 
     it("should send username in body", async () => {
       mockFetch.mockResolvedValue(
-        jsonResponse({ user_id: "u", username: "alice", role: "user", created_at: "" })
+        jsonResponse({
+          user_id: "u",
+          username: "alice",
+          role: "user",
+          created_at: ""
+        })
       );
       await mgr.resetToken("alice");
       const init = mockFetch.mock.calls[0]![1] as RequestInit;
@@ -251,7 +286,12 @@ describe("APIUserManager", () => {
 
     it("should use POST method", async () => {
       mockFetch.mockResolvedValue(
-        jsonResponse({ user_id: "u", username: "x", role: "user", created_at: "" })
+        jsonResponse({
+          user_id: "u",
+          username: "x",
+          role: "user",
+          created_at: ""
+        })
       );
       await mgr.resetToken("x");
       const init = mockFetch.mock.calls[0]![1] as RequestInit;

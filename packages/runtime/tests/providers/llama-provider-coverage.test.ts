@@ -16,14 +16,14 @@ function makeAsyncIterable(items: unknown[]) {
     },
     async close() {
       return;
-    },
+    }
   };
 }
 
 describe("LlamaProvider – message normalization for strict alternation", () => {
   it("inserts empty messages to maintain user/assistant alternation", async () => {
     const create = vi.fn().mockResolvedValue({
-      choices: [{ message: { content: "ok" } }],
+      choices: [{ message: { content: "ok" } }]
     });
 
     const provider = new LlamaProvider(
@@ -36,8 +36,8 @@ describe("LlamaProvider – message normalization for strict alternation", () =>
       model: "test",
       messages: [
         { role: "user", content: "first" },
-        { role: "user", content: "second" },
-      ],
+        { role: "user", content: "second" }
+      ]
     });
 
     const sentMessages = create.mock.calls[0][0].messages;
@@ -54,7 +54,7 @@ describe("LlamaProvider – message normalization for strict alternation", () =>
 
   it("converts system messages into a merged system message", async () => {
     const create = vi.fn().mockResolvedValue({
-      choices: [{ message: { content: "ok" } }],
+      choices: [{ message: { content: "ok" } }]
     });
 
     const provider = new LlamaProvider(
@@ -67,8 +67,8 @@ describe("LlamaProvider – message normalization for strict alternation", () =>
       messages: [
         { role: "system", content: "Be concise." },
         { role: "system", content: "Be helpful." },
-        { role: "user", content: "hi" },
-      ],
+        { role: "user", content: "hi" }
+      ]
     });
 
     const sentMessages = create.mock.calls[0][0].messages;
@@ -79,7 +79,7 @@ describe("LlamaProvider – message normalization for strict alternation", () =>
 
   it("converts tool messages to user messages", async () => {
     const create = vi.fn().mockResolvedValue({
-      choices: [{ message: { content: "ok" } }],
+      choices: [{ message: { content: "ok" } }]
     });
 
     const provider = new LlamaProvider(
@@ -94,10 +94,10 @@ describe("LlamaProvider – message normalization for strict alternation", () =>
         {
           role: "assistant",
           content: "calling tool",
-          toolCalls: [{ id: "tc1", name: "calc", args: {} }],
+          toolCalls: [{ id: "tc1", name: "calc", args: {} }]
         },
-        { role: "tool", content: { result: 42 }, toolCallId: "tc1" },
-      ],
+        { role: "tool", content: { result: 42 }, toolCallId: "tc1" }
+      ]
     });
 
     const sentMessages = create.mock.calls[0][0].messages;
@@ -118,7 +118,7 @@ describe("LlamaProvider – convertMessage system message", () => {
 
     const result = await provider.convertMessage({
       role: "system",
-      content: "Be helpful",
+      content: "Be helpful"
     });
     expect(result).toEqual({ role: "system", content: "Be helpful" });
   });
@@ -131,7 +131,7 @@ describe("LlamaProvider – convertMessage system message", () => {
 
     const result = await provider.convertMessage({
       role: "system",
-      content: [{ type: "text", text: "part1" }],
+      content: [{ type: "text", text: "part1" }]
     });
     expect(result).toEqual({ role: "system", content: "part1" });
   });
@@ -148,8 +148,8 @@ describe("LlamaProvider – formatTools", () => {
       {
         name: "search",
         description: "Search the web",
-        inputSchema: { type: "object", properties: { q: { type: "string" } } },
-      },
+        inputSchema: { type: "object", properties: { q: { type: "string" } } }
+      }
     ]);
 
     expect(result).toEqual([
@@ -158,9 +158,9 @@ describe("LlamaProvider – formatTools", () => {
         function: {
           name: "search",
           description: "Search the web",
-          parameters: { type: "object", properties: { q: { type: "string" } } },
-        },
-      },
+          parameters: { type: "object", properties: { q: { type: "string" } } }
+        }
+      }
     ]);
   });
 });
@@ -168,7 +168,7 @@ describe("LlamaProvider – formatTools", () => {
 describe("LlamaProvider – generateMessage with responseFormat", () => {
   it("passes responseFormat to request", async () => {
     const create = vi.fn().mockResolvedValue({
-      choices: [{ message: { content: '{"result": 42}' } }],
+      choices: [{ message: { content: '{"result": 42}' } }]
     });
 
     const provider = new LlamaProvider(
@@ -179,11 +179,11 @@ describe("LlamaProvider – generateMessage with responseFormat", () => {
     await provider.generateMessage({
       model: "test",
       messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" },
+      responseFormat: { type: "json_object" }
     });
 
     expect(create.mock.calls[0][0].response_format).toEqual({
-      type: "json_object",
+      type: "json_object"
     });
   });
 
@@ -197,7 +197,7 @@ describe("LlamaProvider – generateMessage with responseFormat", () => {
       provider.generateMessage({
         model: "test",
         messages: [{ role: "user", content: "hi" }],
-        jsonSchema: { type: "object" },
+        jsonSchema: { type: "object" }
       })
     ).rejects.toThrow("jsonSchema is not supported");
   });
@@ -214,17 +214,17 @@ describe("LlamaProvider – generateMessages with native tool_calls in stream", 
                 {
                   index: 0,
                   id: "tc1",
-                  function: { name: "search", arguments: '{"q":"x"}' },
-                },
-              ],
+                  function: { name: "search", arguments: '{"q":"x"}' }
+                }
+              ]
             },
-            finish_reason: null,
-          },
-        ],
+            finish_reason: null
+          }
+        ]
       },
       {
-        choices: [{ delta: {}, finish_reason: "tool_calls" }],
-      },
+        choices: [{ delta: {}, finish_reason: "tool_calls" }]
+      }
     ]);
 
     const create = vi.fn().mockResolvedValue(stream);
@@ -236,14 +236,12 @@ describe("LlamaProvider – generateMessages with native tool_calls in stream", 
     const out: unknown[] = [];
     for await (const item of provider.generateMessages({
       model: "test",
-      messages: [{ role: "user", content: "search" }],
+      messages: [{ role: "user", content: "search" }]
     })) {
       out.push(item);
     }
 
-    expect(out).toEqual([
-      { id: "tc1", name: "search", args: { q: "x" } },
-    ]);
+    expect(out).toEqual([{ id: "tc1", name: "search", args: { q: "x" } }]);
   });
 
   it("throws on jsonSchema in streaming", async () => {
@@ -255,7 +253,7 @@ describe("LlamaProvider – generateMessages with native tool_calls in stream", 
     const gen = provider.generateMessages({
       model: "test",
       messages: [{ role: "user", content: "hi" }],
-      jsonSchema: { type: "object" },
+      jsonSchema: { type: "object" }
     });
 
     await expect(gen.next()).rejects.toThrow("jsonSchema is not supported");
@@ -272,12 +270,12 @@ describe("LlamaProvider – generateMessage with native tool calls", () => {
             tool_calls: [
               {
                 id: "tc1",
-                function: { name: "calc", arguments: '{"expr":"1+1"}' },
-              },
-            ],
-          },
-        },
-      ],
+                function: { name: "calc", arguments: '{"expr":"1+1"}' }
+              }
+            ]
+          }
+        }
+      ]
     });
 
     const provider = new LlamaProvider(
@@ -288,11 +286,11 @@ describe("LlamaProvider – generateMessage with native tool calls", () => {
     const result = await provider.generateMessage({
       model: "test",
       messages: [{ role: "user", content: "calc" }],
-      tools: [{ name: "calc" }],
+      tools: [{ name: "calc" }]
     });
 
     expect(result.toolCalls).toEqual([
-      { id: "tc1", name: "calc", args: { expr: "1+1" } },
+      { id: "tc1", name: "calc", args: { expr: "1+1" } }
     ]);
   });
 });
@@ -301,7 +299,7 @@ describe("LlamaProvider – getAvailableLanguageModels fallback", () => {
   it("uses models key as fallback", async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ models: [{ id: "model1" }] }),
+      json: async () => ({ models: [{ id: "model1" }] })
     });
 
     const provider = new LlamaProvider(
@@ -311,7 +309,7 @@ describe("LlamaProvider – getAvailableLanguageModels fallback", () => {
 
     const models = await provider.getAvailableLanguageModels();
     expect(models).toEqual([
-      { id: "model1", name: "model1", provider: "llama_cpp" },
+      { id: "model1", name: "model1", provider: "llama_cpp" }
     ]);
   });
 
@@ -331,14 +329,16 @@ describe("LlamaProvider – emulated tool calls in streaming (hasToolSupport=fal
   it("parses emulated tool calls on stop when tools are provided", async () => {
     const stream = makeAsyncIterable([
       {
-        choices: [{
-          delta: { content: "search(q=\"test\")" },
-          finish_reason: null,
-        }],
+        choices: [
+          {
+            delta: { content: 'search(q="test")' },
+            finish_reason: null
+          }
+        ]
       },
       {
-        choices: [{ delta: { content: "" }, finish_reason: "stop" }],
-      },
+        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
+      }
     ]);
 
     const create = vi.fn().mockResolvedValue(stream);
@@ -351,7 +351,13 @@ describe("LlamaProvider – emulated tool calls in streaming (hasToolSupport=fal
     for await (const item of provider.generateMessages({
       model: "test",
       messages: [{ role: "user", content: "search for test" }],
-      tools: [{ name: "search", description: "Search", inputSchema: { type: "object" } }],
+      tools: [
+        {
+          name: "search",
+          description: "Search",
+          inputSchema: { type: "object" }
+        }
+      ]
     })) {
       out.push(item);
     }
@@ -365,9 +371,11 @@ describe("LlamaProvider – emulated tool calls in streaming (hasToolSupport=fal
 describe("LlamaProvider – emulated tool calls in generateMessage (non-streaming)", () => {
   it("parses emulated tool calls when no native tool_calls", async () => {
     const create = vi.fn().mockResolvedValue({
-      choices: [{
-        message: { content: "search(q=\"test\")" },
-      }],
+      choices: [
+        {
+          message: { content: 'search(q="test")' }
+        }
+      ]
     });
 
     const provider = new LlamaProvider(
@@ -378,7 +386,7 @@ describe("LlamaProvider – emulated tool calls in generateMessage (non-streamin
     const result = await provider.generateMessage({
       model: "test",
       messages: [{ role: "user", content: "search" }],
-      tools: [{ name: "search", description: "Search" }],
+      tools: [{ name: "search", description: "Search" }]
     });
 
     expect(result.toolCalls).toBeDefined();
@@ -391,14 +399,16 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
   it("parses JSON objects and arrays in arguments", async () => {
     const stream = makeAsyncIterable([
       {
-        choices: [{
-          delta: { content: 'calc(data={"x":1}, items=[1,2])' },
-          finish_reason: null,
-        }],
+        choices: [
+          {
+            delta: { content: 'calc(data={"x":1}, items=[1,2])' },
+            finish_reason: null
+          }
+        ]
       },
       {
-        choices: [{ delta: { content: "" }, finish_reason: "stop" }],
-      },
+        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
+      }
     ]);
 
     const create = vi.fn().mockResolvedValue(stream);
@@ -411,7 +421,7 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
     for await (const item of provider.generateMessages({
       model: "test",
       messages: [{ role: "user", content: "calc" }],
-      tools: [{ name: "calc" }],
+      tools: [{ name: "calc" }]
     })) {
       out.push(item);
     }
@@ -425,14 +435,18 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
   it("parses quoted strings, booleans, nulls, numbers", async () => {
     const stream = makeAsyncIterable([
       {
-        choices: [{
-          delta: { content: 'fn(a="hello", b=true, c=false, d=null, e=42.5, f=plain)' },
-          finish_reason: null,
-        }],
+        choices: [
+          {
+            delta: {
+              content: 'fn(a="hello", b=true, c=false, d=null, e=42.5, f=plain)'
+            },
+            finish_reason: null
+          }
+        ]
       },
       {
-        choices: [{ delta: { content: "" }, finish_reason: "stop" }],
-      },
+        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
+      }
     ]);
 
     const create = vi.fn().mockResolvedValue(stream);
@@ -445,7 +459,7 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
     for await (const item of provider.generateMessages({
       model: "test",
       messages: [{ role: "user", content: "fn" }],
-      tools: [{ name: "fn" }],
+      tools: [{ name: "fn" }]
     })) {
       out.push(item);
     }
@@ -462,14 +476,16 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
   it("handles single-quoted strings", async () => {
     const stream = makeAsyncIterable([
       {
-        choices: [{
-          delta: { content: "fn(a='hello')" },
-          finish_reason: null,
-        }],
+        choices: [
+          {
+            delta: { content: "fn(a='hello')" },
+            finish_reason: null
+          }
+        ]
       },
       {
-        choices: [{ delta: { content: "" }, finish_reason: "stop" }],
-      },
+        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
+      }
     ]);
 
     const create = vi.fn().mockResolvedValue(stream);
@@ -482,7 +498,7 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
     for await (const item of provider.generateMessages({
       model: "test",
       messages: [{ role: "user", content: "fn" }],
-      tools: [{ name: "fn" }],
+      tools: [{ name: "fn" }]
     })) {
       out.push(item);
     }
@@ -495,7 +511,7 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
 describe("LlamaProvider – generateMessages with responseFormat", () => {
   it("passes responseFormat in streaming request", async () => {
     const stream = makeAsyncIterable([
-      { choices: [{ delta: { content: "{}" }, finish_reason: "stop" }] },
+      { choices: [{ delta: { content: "{}" }, finish_reason: "stop" }] }
     ]);
     const create = vi.fn().mockResolvedValue(stream);
 
@@ -508,12 +524,14 @@ describe("LlamaProvider – generateMessages with responseFormat", () => {
     for await (const item of provider.generateMessages({
       model: "test",
       messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" },
+      responseFormat: { type: "json_object" }
     })) {
       out.push(item);
     }
 
-    expect(create.mock.calls[0][0].response_format).toEqual({ type: "json_object" });
+    expect(create.mock.calls[0][0].response_format).toEqual({
+      type: "json_object"
+    });
   });
 });
 
@@ -537,7 +555,7 @@ describe("LlamaProvider – convertMessage tool role", () => {
 
     const result = await provider.convertMessage({
       role: "tool",
-      content: { result: 42 } as any,
+      content: { result: 42 } as any
     });
     expect((result as any).content).toContain("Tool result:");
     expect((result as any).content).toContain("42");

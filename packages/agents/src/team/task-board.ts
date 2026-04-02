@@ -7,7 +7,13 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { AgentIdentity, BoardTask, ITaskBoard, TaskStatus, TeamEvent } from "./types.js";
+import type {
+  AgentIdentity,
+  BoardTask,
+  ITaskBoard,
+  TaskStatus,
+  TeamEvent
+} from "./types.js";
 
 export type BoardEventHandler = (event: TeamEvent) => void;
 
@@ -42,7 +48,7 @@ export class TaskBoard implements ITaskBoard {
       artifacts: [],
       parentTaskId: opts.parentTaskId,
       createdAt: now,
-      updatedAt: now,
+      updatedAt: now
     };
 
     // Validate dependencies exist
@@ -57,7 +63,9 @@ export class TaskBoard implements ITaskBoard {
       this.tasks.set(task.id, task); // temporarily add
       if (this.hasCycle()) {
         this.tasks.delete(task.id);
-        throw new Error(`Adding task ${task.id} would create a dependency cycle`);
+        throw new Error(
+          `Adding task ${task.id} would create a dependency cycle`
+        );
       }
     } else {
       this.tasks.set(task.id, task);
@@ -91,7 +99,7 @@ export class TaskBoard implements ITaskBoard {
         type: "task_claimed",
         taskId,
         agentId,
-        timestamp: task.updatedAt,
+        timestamp: task.updatedAt
       });
       return true;
     } finally {
@@ -113,7 +121,7 @@ export class TaskBoard implements ITaskBoard {
       type: "task_working",
       taskId,
       agentId,
-      timestamp: task.updatedAt,
+      timestamp: task.updatedAt
     });
     return true;
   }
@@ -140,7 +148,7 @@ export class TaskBoard implements ITaskBoard {
       type: "task_completed",
       taskId,
       artifacts: task.artifacts,
-      timestamp: task.updatedAt,
+      timestamp: task.updatedAt
     });
     return true;
   }
@@ -161,7 +169,7 @@ export class TaskBoard implements ITaskBoard {
       type: "task_failed",
       taskId,
       reason,
-      timestamp: task.updatedAt,
+      timestamp: task.updatedAt
     });
     return true;
   }
@@ -215,7 +223,7 @@ export class TaskBoard implements ITaskBoard {
         this.create({
           ...sub,
           parentTaskId,
-          dependsOn: sub.dependsOn ?? [],
+          dependsOn: sub.dependsOn ?? []
         })
       );
     }
@@ -326,7 +334,9 @@ export class TaskBoard implements ITaskBoard {
       if (task.status !== "blocked") continue;
       const subtasks = this.getSubtasks(task.id);
       if (subtasks.length === 0) continue;
-      const allFinished = subtasks.every((s) => s.status === "done" || s.status === "failed");
+      const allFinished = subtasks.every(
+        (s) => s.status === "done" || s.status === "failed"
+      );
       if (allFinished) {
         const anyFailed = subtasks.some((s) => s.status === "failed");
         task.status = anyFailed ? "failed" : "done";
@@ -342,14 +352,14 @@ export class TaskBoard implements ITaskBoard {
             type: "task_failed",
             taskId: task.id,
             reason: `Subtask(s) failed: ${failedNames}`,
-            timestamp: task.updatedAt,
+            timestamp: task.updatedAt
           });
         } else {
           this.emit({
             type: "task_completed",
             taskId: task.id,
             artifacts: task.artifacts,
-            timestamp: task.updatedAt,
+            timestamp: task.updatedAt
           });
         }
       }

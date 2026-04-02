@@ -19,7 +19,7 @@ export type FloatRGBResult = {
 const ASSET_EXTENSIONS: Record<string, string[]> = {
   image: ["png", "jpg", "jpeg", "webp"],
   audio: ["mp3", "wav", "ogg"],
-  video: ["mp4", "webm"],
+  video: ["mp4", "webm"]
 };
 
 export async function decodeImage(
@@ -40,7 +40,9 @@ export async function decodeImage(
     const candidates: string[] = [];
     if (r.uri) candidates.push(r.uri);
     if (r.asset_id) {
-      const exts = ASSET_EXTENSIONS[(r.type ?? "image").toLowerCase()] ?? ["png"];
+      const exts = ASSET_EXTENSIONS[(r.type ?? "image").toLowerCase()] ?? [
+        "png"
+      ];
       for (const ext of exts) {
         candidates.push(`/api/storage/${r.asset_id}.${ext}`);
       }
@@ -57,12 +59,26 @@ export async function decodeImage(
 }
 
 export function toRef(buf: Buffer, base?: unknown): Record<string, unknown> {
-  const seed = base && typeof base === "object" ? (base as Record<string, unknown>) : {};
+  const seed =
+    base && typeof base === "object" ? (base as Record<string, unknown>) : {};
   return { ...seed, data: buf.toString("base64") };
 }
 
-export function pickImage(inputs: Record<string, unknown>, props: Record<string, unknown>): unknown {
-  const keys = ["image", "input", "source", "foreground", "background", "image1", "image2", "base_image", "mask"];
+export function pickImage(
+  inputs: Record<string, unknown>,
+  props: Record<string, unknown>
+): unknown {
+  const keys = [
+    "image",
+    "input",
+    "source",
+    "foreground",
+    "background",
+    "image1",
+    "image2",
+    "base_image",
+    "mask"
+  ];
   for (const key of keys) {
     if (key in inputs) return inputs[key];
   }
@@ -80,7 +96,11 @@ export function getLuminance(r: number, g: number, b: number): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-export function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
+export function rgbToHsv(
+  r: number,
+  g: number,
+  b: number
+): [number, number, number] {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   const d = max - min;
@@ -95,20 +115,31 @@ export function rgbToHsv(r: number, g: number, b: number): [number, number, numb
   return [h, s, v];
 }
 
-export function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
+export function hsvToRgb(
+  h: number,
+  s: number,
+  v: number
+): [number, number, number] {
   const i = Math.floor(h * 6);
   const f = h * 6 - i;
   const p = v * (1 - s);
   const q = v * (1 - f * s);
   const t = v * (1 - (1 - f) * s);
   switch (i % 6) {
-    case 0: return [v, t, p];
-    case 1: return [q, v, p];
-    case 2: return [p, v, t];
-    case 3: return [p, q, v];
-    case 4: return [t, p, v];
-    case 5: return [v, p, q];
-    default: return [0, 0, 0];
+    case 0:
+      return [v, t, p];
+    case 1:
+      return [q, v, p];
+    case 2:
+      return [p, v, t];
+    case 3:
+      return [p, q, v];
+    case 4:
+      return [t, p, v];
+    case 5:
+      return [v, p, q];
+    default:
+      return [0, 0, 0];
   }
 }
 
@@ -116,7 +147,10 @@ export async function toFloatRGB(buf: Buffer): Promise<FloatRGBResult> {
   const img = sharp(buf, { failOn: "none" });
   const meta = await img.metadata();
   const hasAlpha = meta.channels === 4 || meta.hasAlpha;
-  const { data: raw, info } = await img.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { data: raw, info } = await img
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   const w = info.width;
   const h = info.height;
   const pixelCount = w * h;

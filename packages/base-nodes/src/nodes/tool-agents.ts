@@ -53,14 +53,19 @@ function isAssetRef(v: unknown): v is AssetRef {
 }
 
 /** Infer the asset kind from type field, field name context, uri, or mimeType. */
-function inferAssetKind(asset: AssetRef, fieldHint?: string): "image" | "audio" | "video" | "unknown" {
+function inferAssetKind(
+  asset: AssetRef,
+  fieldHint?: string
+): "image" | "audio" | "video" | "unknown" {
   // Check explicit type field
   const t = (asset.type || "").toLowerCase();
   if (t.includes("image")) return "image";
   if (t.includes("audio")) return "audio";
   if (t.includes("video")) return "video";
   // Check mimeType field (set by image nodes)
-  const mime = String((asset as Record<string, unknown>).mimeType ?? "").toLowerCase();
+  const mime = String(
+    (asset as Record<string, unknown>).mimeType ?? ""
+  ).toLowerCase();
   if (mime.startsWith("image/")) return "image";
   if (mime.startsWith("audio/")) return "audio";
   if (mime.startsWith("video/")) return "video";
@@ -81,7 +86,9 @@ function inferAssetKind(asset: AssetRef, fieldHint?: string): "image" | "audio" 
 
 function guessMime(asset: AssetRef, fieldHint?: string): string {
   // Use explicit mimeType if present
-  const explicit = String((asset as Record<string, unknown>).mimeType ?? "").trim();
+  const explicit = String(
+    (asset as Record<string, unknown>).mimeType ?? ""
+  ).trim();
   if (explicit && explicit.includes("/")) return explicit;
   const kind = inferAssetKind(asset, fieldHint);
   if (kind === "image") return "image/png";
@@ -100,14 +107,18 @@ async function getAssetBytes(
     if (asset.data instanceof Uint8Array) return asset.data;
     if (typeof asset.data === "string" && asset.data.length > 0) {
       // Handle data: URI format
-      const dataUriMatch = (asset.data as string).match(/^data:[^;]*;base64,(.+)$/s);
+      const dataUriMatch = (asset.data as string).match(
+        /^data:[^;]*;base64,(.+)$/s
+      );
       if (dataUriMatch) {
         return Buffer.from(dataUriMatch[1], "base64");
       }
       // Plain base64 string
       try {
         return Buffer.from(asset.data, "base64");
-      } catch { /* fall through */ }
+      } catch {
+        /* fall through */
+      }
     }
   }
   // Handle data: URIs in the uri field
@@ -123,7 +134,9 @@ async function getAssetBytes(
         const { fileURLToPath } = await import("node:url");
         const filePath = fileURLToPath(asset.uri);
         return await readFile(filePath);
-      } catch { /* fall through */ }
+      } catch {
+        /* fall through */
+      }
     }
     // Handle /api/storage/ paths — resolve to local asset files on disk
     if (asset.uri.startsWith("/api/storage/")) {
@@ -134,24 +147,31 @@ async function getAssetBytes(
           ? asset.uri.slice("/api/storage/temp/".length)
           : asset.uri.slice("/api/storage/".length);
         const rootDir = isTemp
-          ? (process.env.TEMP_STORAGE_PATH ?? path.join(tmpdir(), "nodetool", "temp"))
+          ? (process.env.TEMP_STORAGE_PATH ??
+            path.join(tmpdir(), "nodetool", "temp"))
           : getDefaultAssetsPath();
         return await readFile(path.join(rootDir, key));
-      } catch { /* fall through */ }
+      } catch {
+        /* fall through */
+      }
     }
     // Fetch from https:// URLs
     if (asset.uri.startsWith("https://")) {
       try {
         const res = await fetch(asset.uri);
         if (res.ok) return new Uint8Array(await res.arrayBuffer());
-      } catch { /* fall through */ }
+      } catch {
+        /* fall through */
+      }
     }
   }
   // Load from storage via URI (if storage adapter available)
   if (asset.uri && context?.storage) {
     try {
       return await context.storage.retrieve(asset.uri);
-    } catch { /* fall through */ }
+    } catch {
+      /* fall through */
+    }
   }
   return null;
 }
@@ -161,7 +181,16 @@ async function getAssetBytes(
  */
 function collectAssets(self: Record<string, unknown>): AssetRef[] {
   const assets: AssetRef[] = [];
-  const assetFields = ["image", "audio", "video", "document", "images", "audios", "videos", "documents"];
+  const assetFields = [
+    "image",
+    "audio",
+    "video",
+    "document",
+    "images",
+    "audios",
+    "videos",
+    "documents"
+  ];
   for (const field of assetFields) {
     const val = self[field];
     if (!val) continue;
@@ -191,7 +220,13 @@ async function buildAssetContentParts(
     const base64 = Buffer.from(bytes).toString("base64");
     if (kind === "image" || kind === "unknown") {
       // Default unknown assets to image (most common multimodal case)
-      parts.push({ type: "image", image: { data: base64, mimeType: mime === "application/octet-stream" ? "image/png" : mime } });
+      parts.push({
+        type: "image",
+        image: {
+          data: base64,
+          mimeType: mime === "application/octet-stream" ? "image/png" : mime
+        }
+      });
     } else if (kind === "audio") {
       parts.push({ type: "audio", audio: { data: base64, mimeType: mime } });
     }
@@ -204,31 +239,42 @@ async function buildAssetContentParts(
 // Tool factories for skill agent loop
 // ---------------------------------------------------------------------------
 
-export function makeExecuteBashTool(workspaceDir: string, timeoutMs = 120_000): ToolLike {
+export function makeExecuteBashTool(
+  workspaceDir: string,
+  timeoutMs = 120_000
+): ToolLike {
   return {
     name: "execute_bash",
     description: "Execute a bash command in the workspace directory.",
     inputSchema: {
       type: "object",
       properties: {
-        command: { type: "string", description: "Bash command to execute" },
+        command: { type: "string", description: "Bash command to execute" }
       },
-      required: ["command"],
+      required: ["command"]
     },
     process: async (_context, params) => {
       const command = String(params.command ?? "");
       if (!command) return { success: false, error: "No command provided" };
       return new Promise((resolve) => {
-        exec(command, { cwd: workspaceDir, timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
-          resolve({
-            success: !error,
-            stdout: stdout ?? "",
-            stderr: stderr ?? "",
-            ...(error ? { error: error.message } : {}),
-          });
-        });
+        exec(
+          command,
+          {
+            cwd: workspaceDir,
+            timeout: timeoutMs,
+            maxBuffer: 10 * 1024 * 1024
+          },
+          (error, stdout, stderr) => {
+            resolve({
+              success: !error,
+              stdout: stdout ?? "",
+              stderr: stderr ?? "",
+              ...(error ? { error: error.message } : {})
+            });
+          }
+        );
       });
-    },
+    }
   };
 }
 
@@ -244,15 +290,21 @@ export function makeSetOutputTool(
     inputSchema: {
       type: "object",
       properties: {
-        path: { type: "string", description: "Workspace-relative path to the output file." },
+        path: {
+          type: "string",
+          description: "Workspace-relative path to the output file."
+        }
       },
-      required: ["path"],
+      required: ["path"]
     },
     process: async (_context, params) => {
       const relPath = String(params.path ?? "");
       if (!relPath) return { success: false, error: "No path provided" };
       const absPath = path.resolve(workspaceDir, relPath);
-      if (!absPath.startsWith(path.resolve(workspaceDir) + path.sep) && absPath !== path.resolve(workspaceDir)) {
+      if (
+        !absPath.startsWith(path.resolve(workspaceDir) + path.sep) &&
+        absPath !== path.resolve(workspaceDir)
+      ) {
         return { success: false, error: "Path is outside workspace directory" };
       }
       try {
@@ -262,7 +314,7 @@ export function makeSetOutputTool(
       }
       outputSink.push(relPath);
       return { success: true, path: relPath };
-    },
+    }
   };
 }
 
@@ -287,25 +339,32 @@ class ToolAgentNode extends BaseNode {
   /** Build tools for the agent loop. Includes execute_bash + any output sink tools. */
   getTools(workspaceDir: string): ToolLike[] {
     const tools: ToolLike[] = [
-      makeExecuteBashTool(workspaceDir, ((this as any).timeout_seconds ?? 120) * 1000),
+      makeExecuteBashTool(
+        workspaceDir,
+        ((this as any).timeout_seconds ?? 120) * 1000
+      )
     ];
     const config = (this.constructor as typeof ToolAgentNode)._outputSinkConfig;
     this._outputSinks = {};
     for (const [outputName, toolName] of Object.entries(config)) {
       const sink: string[] = [];
       this._outputSinks[outputName] = sink;
-      tools.push(makeSetOutputTool(
-        toolName,
-        `Set the ${outputName} output file path.`,
-        sink,
-        workspaceDir,
-      ));
+      tools.push(
+        makeSetOutputTool(
+          toolName,
+          `Set the ${outputName} output file path.`,
+          sink,
+          workspaceDir
+        )
+      );
     }
     return tools;
   }
 
   /** Read output sinks and load files as asset refs. */
-  protected async readOutputSinks(workspaceDir: string): Promise<Record<string, unknown>> {
+  protected async readOutputSinks(
+    workspaceDir: string
+  ): Promise<Record<string, unknown>> {
     const result: Record<string, unknown> = {};
     for (const [outputName, sink] of Object.entries(this._outputSinks)) {
       if (sink.length === 0) continue;
@@ -316,7 +375,7 @@ class ToolAgentNode extends BaseNode {
         result[outputName] = {
           type: outputName,
           data: base64,
-          uri: pathToFileURL(absPath).toString(),
+          uri: pathToFileURL(absPath).toString()
         };
       } catch {
         // File doesn't exist or can't be read — skip
@@ -325,9 +384,7 @@ class ToolAgentNode extends BaseNode {
     return result;
   }
 
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = String((this as any).prompt ?? "").trim();
     if (!prompt) throw new Error("Prompt is required");
 
@@ -342,8 +399,9 @@ class ToolAgentNode extends BaseNode {
     }
 
     // Determine workspace directory
-    const workspaceDir = (context as any).workspaceDir
-      ?? path.join(tmpdir(), `nodetool-skill-${Date.now()}`);
+    const workspaceDir =
+      (context as any).workspaceDir ??
+      path.join(tmpdir(), `nodetool-skill-${Date.now()}`);
     await mkdir(workspaceDir, { recursive: true });
 
     // Collect multimodal asset inputs
@@ -371,10 +429,16 @@ class ToolAgentNode extends BaseNode {
     // Convert skills-local MessageContentPart[] to runtime MessageContent[] format
     const contentParts = assetParts.map((part) => {
       if (part.type === "image") {
-        return { type: "image" as const, image: { data: part.image.data, mimeType: part.image.mimeType } };
+        return {
+          type: "image" as const,
+          image: { data: part.image.data, mimeType: part.image.mimeType }
+        };
       }
       if (part.type === "audio") {
-        return { type: "audio" as const, audio: { data: part.audio.data, mimeType: part.audio.mimeType } };
+        return {
+          type: "audio" as const,
+          audio: { data: part.audio.data, mimeType: part.audio.mimeType }
+        };
       }
       return { type: "text" as const, text: (part as any).text ?? "" };
     });
@@ -382,10 +446,11 @@ class ToolAgentNode extends BaseNode {
     // Augment prompt with workspace file info
     let augmentedPrompt = prompt;
     if (workspaceFiles.length > 0) {
-      augmentedPrompt += `\n\nInput files available in the workspace directory:\n${workspaceFiles.map(f => `- ${f}`).join("\n")}`;
+      augmentedPrompt += `\n\nInput files available in the workspace directory:\n${workspaceFiles.map((f) => `- ${f}`).join("\n")}`;
     }
 
-    const systemPrompt = (this.constructor as typeof ToolAgentNode)._systemPrompt;
+    const systemPrompt = (this.constructor as typeof ToolAgentNode)
+      ._systemPrompt;
     const { text } = await runAgentLoop({
       context,
       providerId,
@@ -395,7 +460,7 @@ class ToolAgentNode extends BaseNode {
       tools,
       contentParts: contentParts.length > 0 ? contentParts : undefined,
       maxTokens: 4096,
-      maxIterations: 10,
+      maxIterations: 10
     });
 
     return { text, ...(await this.readOutputSinks(workspaceDir)) };
@@ -408,33 +473,57 @@ class ToolAgentNode extends BaseNode {
 
 export class ShellAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.ShellAgent";
-      static readonly title = "Shell Agent";
-      static readonly description = "Reusable prompt-driven skill backed by execute_bash.";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Shell Agent";
+  static readonly description =
+    "Reusable prompt-driven skill backed by execute_bash.";
+  static readonly metadataOutputTypes = {
     text: "str"
   };
   static readonly _systemPrompt =
     "You are a bounded workspace agent. Use execute_bash for concrete actions. " +
     "Ground all claims in command output and keep results concise.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for task planning and execution reasoning." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for task planning and execution reasoning."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the requested task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the requested task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
 }
 
 // ---------------------------------------------------------------------------
@@ -443,9 +532,10 @@ export class ShellAgentNode extends ToolAgentNode {
 
 export class BrowserAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.BrowserAgent";
-      static readonly title = "Browser Agent";
-      static readonly description = "Prompt-driven browser skill with bounded tool validation and schema outputs.\n    Supports extraction and browser automation workflows.\n    skills, browser, scrape, extraction, automation";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Browser Agent";
+  static readonly description =
+    "Prompt-driven browser skill with bounded tool validation and schema outputs.\n    Supports extraction and browser automation workflows.\n    skills, browser, scrape, extraction, automation";
+  static readonly metadataOutputTypes = {
     text: "str"
   };
   static readonly _systemPrompt =
@@ -454,27 +544,48 @@ export class BrowserAgentNode extends ToolAgentNode {
     "and DOM tools (`dom_examine`, `dom_search`, `dom_extract`) for structured inspection. " +
     "The `browser` tool returns JSON fields like `success`, `url`, `content`, `metadata`, or `error`. " +
     "Do not browse search engine result pages directly; explain that direct SERP browsing is disabled.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for free-form browsing tasks." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for free-form browsing tasks."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt for browser navigation/extraction." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt for browser navigation/extraction."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 150, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 150,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 180000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 180000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -483,9 +594,10 @@ export class BrowserAgentNode extends ToolAgentNode {
 
 export class SQLiteAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.SQLiteAgent";
-      static readonly title = "SQLite Agent";
-      static readonly description = "Prompt-driven SQLite skill with guarded query execution.\n    skills, data, sqlite, query";
-    static readonly metadataOutputTypes = {
+  static readonly title = "SQLite Agent";
+  static readonly description =
+    "Prompt-driven SQLite skill with guarded query execution.\n    skills, data, sqlite, query";
+  static readonly metadataOutputTypes = {
     text: "str",
     json: "dict[str, any]",
     dataframe: "dataframe"
@@ -493,33 +605,64 @@ export class SQLiteAgentNode extends ToolAgentNode {
   static readonly _systemPrompt =
     "You are a data analysis skill. Use tools to run queries and ground every " +
     "answer in tool outputs. Keep answers concise and factual.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for optional agent reasoning over query results." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for optional agent reasoning over query results."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt for data query/transform task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt for data query/transform task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 120, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 120,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
 
-  @prop({ type: "str", default: "memory.db", title: "Db Path", description: "Path to SQLite database relative to workspace." })
+  @prop({
+    type: "str",
+    default: "memory.db",
+    title: "Db Path",
+    description: "Path to SQLite database relative to workspace."
+  })
   declare db_path: any;
 
-  @prop({ type: "bool", default: false, title: "Allow Mutation", description: "Allow INSERT/UPDATE/DELETE/DDL statements when enabled." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Allow Mutation",
+    description: "Allow INSERT/UPDATE/DELETE/DDL statements when enabled."
+  })
   declare allow_mutation: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -528,9 +671,10 @@ export class SQLiteAgentNode extends ToolAgentNode {
 
 export class SupabaseAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.SupabaseAgent";
-      static readonly title = "Supabase Agent";
-      static readonly description = "Prompt-driven Supabase skill with guarded SELECT execution.\n    skills, data, supabase, query";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Supabase Agent";
+  static readonly description =
+    "Prompt-driven Supabase skill with guarded SELECT execution.\n    skills, data, supabase, query";
+  static readonly metadataOutputTypes = {
     text: "str",
     json: "dict[str, any]",
     dataframe: "dataframe"
@@ -538,27 +682,48 @@ export class SupabaseAgentNode extends ToolAgentNode {
   static readonly _systemPrompt =
     "You are a data analysis skill. Use tools to run queries and ground every " +
     "answer in tool outputs. Keep answers concise and factual.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for optional agent reasoning over query results." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for optional agent reasoning over query results."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt for data query/transform task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt for data query/transform task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 120, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 120,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -567,36 +732,58 @@ export class SupabaseAgentNode extends ToolAgentNode {
 
 export class DocumentAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.DocumentAgent";
-      static readonly title = "Document Agent";
-      static readonly description = "Prompt-driven document skill for model-based document analysis.\n    skills, document, extraction, conversion, markdown";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Document Agent";
+  static readonly description =
+    "Prompt-driven document skill for model-based document analysis.\n    skills, document, extraction, conversion, markdown";
+  static readonly metadataOutputTypes = {
     text: "str",
     document: "document"
   };
   static readonly _outputSinkConfig = { document: "set_output_document" };
   static readonly _systemPrompt =
     "You are a document skill. Use attached document/text inputs and return concise results.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for free-form document tasks." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for free-form document tasks."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the document task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the document task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 120, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 120,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 150000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 150000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -605,9 +792,10 @@ export class DocumentAgentNode extends ToolAgentNode {
 
 export class DocxAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.DocxAgent";
-      static readonly title = "DOCX Agent";
-      static readonly description = "Prompt-driven DOCX creation skill.\n    skills, docx, word, document creation, docx-js";
-    static readonly metadataOutputTypes = {
+  static readonly title = "DOCX Agent";
+  static readonly description =
+    "Prompt-driven DOCX creation skill.\n    skills, docx, word, document creation, docx-js";
+  static readonly metadataOutputTypes = {
     document: "document",
     text: "str"
   };
@@ -648,27 +836,48 @@ export class DocxAgentNode extends ToolAgentNode {
     "Output rules:\n" +
     "- Keep response concise and include output path.\n" +
     "- If no DOCX was produced, clearly explain why.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for DOCX creation planning and execution." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for DOCX creation planning and execution."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing what DOCX to create." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing what DOCX to create."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 300, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 300,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 220000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 220000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -677,9 +886,10 @@ export class DocxAgentNode extends ToolAgentNode {
 
 export class EmailAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.EmailAgent";
-      static readonly title = "Email Agent";
-      static readonly description = "Prompt-driven email skill for IMAP/SMTP and message processing tasks.\n    skills, email, imap, smtp, messaging";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Email Agent";
+  static readonly description =
+    "Prompt-driven email skill for IMAP/SMTP and message processing tasks.\n    skills, email, imap, smtp, messaging";
+  static readonly metadataOutputTypes = {
     text: "str"
   };
   static readonly _systemPrompt =
@@ -687,25 +897,48 @@ export class EmailAgentNode extends ToolAgentNode {
     "(parse RFC822/EML, summarize threads, draft content, IMAP/SMTP workflows). " +
     "Protect sensitive data and redact secrets or private message content unless requested. " +
     "For outbound actions, clearly state recipients, subject, and intent before execution.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for task planning and execution reasoning." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for task planning and execution reasoning."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the requested task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the requested task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
 }
 
 // ---------------------------------------------------------------------------
@@ -715,14 +948,18 @@ export class EmailAgentNode extends ToolAgentNode {
 export class FfmpegAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.FfmpegAgent";
   static readonly requiredRuntimes = ["ffmpeg"];
-      static readonly title = "FFmpeg Agent";
-      static readonly description = "Prompt-driven FFmpeg skill for audio/video editing, conversion, and packaging.\n    skills, ffmpeg, media, video, audio, transcode, remux";
-    static readonly metadataOutputTypes = {
+  static readonly title = "FFmpeg Agent";
+  static readonly description =
+    "Prompt-driven FFmpeg skill for audio/video editing, conversion, and packaging.\n    skills, ffmpeg, media, video, audio, transcode, remux";
+  static readonly metadataOutputTypes = {
     video: "video",
     audio: "audio",
     text: "str"
   };
-  static readonly _outputSinkConfig = { audio: "set_output_audio", video: "set_output_video" };
+  static readonly _outputSinkConfig = {
+    audio: "set_output_audio",
+    video: "set_output_video"
+  };
   static readonly _systemPrompt =
     "You are an FFmpeg specialist skill for audio/video processing. " +
     "Use attached media inputs when provided and return concise results.\n\n" +
@@ -752,47 +989,78 @@ export class FfmpegAgentNode extends ToolAgentNode {
     "- Clip segment: ffmpeg -ss 00:00:30 -to 00:01:00 -i in.ext -c copy clip.ext\n" +
     "- Extract MP3: ffmpeg -i in.ext -vn -c:a libmp3lame -b:a 192k out.mp3\n" +
     "- Burn subtitles: ffmpeg -i in.ext -vf subtitles=subs.srt -c:v libx264 -c:a copy out_subbed.mp4";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for media prompts." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for media prompts."
+  })
   declare model: any;
 
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "Optional audio input for media reasoning tasks." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Optional audio input for media reasoning tasks."
+  })
   declare audio: any;
 
-  @prop({ type: "video", default: {
-  "type": "video",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "duration": null,
-  "format": null
-}, title: "Video", description: "Optional video input for media reasoning tasks." })
+  @prop({
+    type: "video",
+    default: {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    },
+    title: "Video",
+    description: "Optional video input for media reasoning tasks."
+  })
   declare video: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt for media task execution." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt for media task execution."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -801,9 +1069,10 @@ export class FfmpegAgentNode extends ToolAgentNode {
 
 export class FilesystemAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.FilesystemAgent";
-      static readonly title = "Filesystem Agent";
-      static readonly description = "Prompt-driven filesystem skill for file inspection and transformations.\n    skills, filesystem, files, directories, io";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Filesystem Agent";
+  static readonly description =
+    "Prompt-driven filesystem skill for file inspection and transformations.\n    skills, filesystem, files, directories, io";
+  static readonly metadataOutputTypes = {
     text: "str"
   };
   static readonly _systemPrompt =
@@ -811,25 +1080,48 @@ export class FilesystemAgentNode extends ToolAgentNode {
     "Use execute_bash for listing, searching, creating, moving, copying, and deleting files. " +
     "Prefer reversible actions and confirm paths before mutating data. " +
     "When changing files, summarize what changed and where.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for task planning and execution reasoning." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for task planning and execution reasoning."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the requested task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the requested task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
 }
 
 // ---------------------------------------------------------------------------
@@ -838,9 +1130,10 @@ export class FilesystemAgentNode extends ToolAgentNode {
 
 export class GitAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.GitAgent";
-      static readonly title = "Git Agent";
-      static readonly description = "Prompt-driven Git skill for repository inspection and change management.\n    skills, git, repository, version-control";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Git Agent";
+  static readonly description =
+    "Prompt-driven Git skill for repository inspection and change management.\n    skills, git, repository, version-control";
+  static readonly metadataOutputTypes = {
     text: "str"
   };
   static readonly _systemPrompt =
@@ -848,25 +1141,48 @@ export class GitAgentNode extends ToolAgentNode {
     "Prefer non-destructive commands (status, diff, log, branch, add, commit, fetch, pull). " +
     "Do not run destructive history-rewriting commands unless explicitly requested. " +
     "Report exact files, commit IDs, and branch names from command output.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for task planning and execution reasoning." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for task planning and execution reasoning."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the requested task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the requested task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
 }
 
 // ---------------------------------------------------------------------------
@@ -875,9 +1191,10 @@ export class GitAgentNode extends ToolAgentNode {
 
 export class HtmlAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.HtmlAgent";
-      static readonly title = "HTML Agent";
-      static readonly description = "Prompt-driven HTML creation skill.\n    skills, html, web, template, static-site";
-    static readonly metadataOutputTypes = {
+  static readonly title = "HTML Agent";
+  static readonly description =
+    "Prompt-driven HTML creation skill.\n    skills, html, web, template, static-site";
+  static readonly metadataOutputTypes = {
     html: "html",
     text: "str"
   };
@@ -898,27 +1215,48 @@ export class HtmlAgentNode extends ToolAgentNode {
     "Output rules:\n" +
     "- Keep response concise and include final save path.\n" +
     "- If no HTML file was produced, clearly explain why.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for HTML generation planning/execution." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for HTML generation planning/execution."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing HTML to create." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing HTML to create."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 180000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 180000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -927,9 +1265,10 @@ export class HtmlAgentNode extends ToolAgentNode {
 
 export class HttpApiAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.HttpApiAgent";
-      static readonly title = "HTTP API Agent";
-      static readonly description = "Prompt-driven HTTP API skill for calling REST/GraphQL endpoints.\n    skills, http, api, rest, graphql";
-    static readonly metadataOutputTypes = {
+  static readonly title = "HTTP API Agent";
+  static readonly description =
+    "Prompt-driven HTTP API skill for calling REST/GraphQL endpoints.\n    skills, http, api, rest, graphql";
+  static readonly metadataOutputTypes = {
     text: "str"
   };
   static readonly _systemPrompt =
@@ -945,25 +1284,48 @@ export class HttpApiAgentNode extends ToolAgentNode {
     "1) Direct answer in 1-3 sentences. " +
     "2) Evidence: status code(s) and key response fields used. " +
     "3) If unresolved, the exact missing data needed.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for API planning and response interpretation." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for API planning and response interpretation."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the HTTP API task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the HTTP API task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
 }
 
 // ---------------------------------------------------------------------------
@@ -972,9 +1334,10 @@ export class HttpApiAgentNode extends ToolAgentNode {
 
 export class ImageAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.ImageAgent";
-      static readonly title = "Image Agent";
-      static readonly description = "Prompt-driven image skill for model-based image reasoning.\n    skills, image, agent, transform, extraction";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Image Agent";
+  static readonly description =
+    "Prompt-driven image skill for model-based image reasoning.\n    skills, image, agent, transform, extraction";
+  static readonly metadataOutputTypes = {
     image: "image",
     text: "str"
   };
@@ -983,36 +1346,62 @@ export class ImageAgentNode extends ToolAgentNode {
     "You are an image skill. Use attached inputs and return concise results. " +
     "Use execute_bash when shell-based processing is needed. " +
     "When you create a final output image file, call set_output_image with that path.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for image prompts." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for image prompts."
+  })
   declare model: any;
 
-  @prop({ type: "image", default: {
-  "type": "image",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Image", description: "Optional image input for image reasoning tasks." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Optional image input for image reasoning tasks."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the image task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the image task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 90, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 90,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 120000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 120000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -1021,61 +1410,96 @@ export class ImageAgentNode extends ToolAgentNode {
 
 export class MediaAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.MediaAgent";
-      static readonly title = "Media Agent";
-      static readonly description = "Prompt-driven media skill for model-based audio/video reasoning.\n    skills, media, audio, video, agent";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Media Agent";
+  static readonly description =
+    "Prompt-driven media skill for model-based audio/video reasoning.\n    skills, media, audio, video, agent";
+  static readonly metadataOutputTypes = {
     video: "video",
     audio: "audio",
     text: "str"
   };
-  static readonly _outputSinkConfig = { audio: "set_output_audio", video: "set_output_video" };
+  static readonly _outputSinkConfig = {
+    audio: "set_output_audio",
+    video: "set_output_video"
+  };
   static readonly _systemPrompt =
     "You are a media skill for audio/video tasks. " +
     "Use attached media inputs when provided and return concise results. " +
     "Use execute_bash for shell-based operations. " +
     "When you create final media files, call set_output_audio and/or " +
     "set_output_video using workspace-relative paths.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for media prompts." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for media prompts."
+  })
   declare model: any;
 
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "Optional audio input for media reasoning tasks." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Optional audio input for media reasoning tasks."
+  })
   declare audio: any;
 
-  @prop({ type: "video", default: {
-  "type": "video",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "duration": null,
-  "format": null
-}, title: "Video", description: "Optional video input for media reasoning tasks." })
+  @prop({
+    type: "video",
+    default: {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    },
+    title: "Video",
+    description: "Optional video input for media reasoning tasks."
+  })
   declare video: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt for media task execution." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt for media task execution."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -1084,9 +1508,10 @@ export class MediaAgentNode extends ToolAgentNode {
 
 export class PdfLibAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.PdfLibAgent";
-      static readonly title = "PDF-lib Agent";
-      static readonly description = "Prompt-driven PDF processing skill with pdf-lib and complementary tooling.\n    skills, pdf, pdf-lib, qpdf, poppler, pdfjs, pypdfium2";
-    static readonly metadataOutputTypes = {
+  static readonly title = "PDF-lib Agent";
+  static readonly description =
+    "Prompt-driven PDF processing skill with pdf-lib and complementary tooling.\n    skills, pdf, pdf-lib, qpdf, poppler, pdfjs, pypdfium2";
+  static readonly metadataOutputTypes = {
     document: "document",
     text: "str"
   };
@@ -1139,36 +1564,62 @@ export class PdfLibAgentNode extends ToolAgentNode {
     "- Keep responses concise.\n" +
     "- If a final PDF was produced, publish it with set_output_document.\n" +
     "- If no PDF was produced, clearly explain why.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for PDF task planning and execution reasoning." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for PDF task planning and execution reasoning."
+  })
   declare model: any;
 
-  @prop({ type: "document", default: {
-  "type": "document",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Document", description: "Optional PDF/document input for transformation or analysis." })
+  @prop({
+    type: "document",
+    default: {
+      type: "document",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Document",
+    description: "Optional PDF/document input for transformation or analysis."
+  })
   declare document: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the PDF processing task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the PDF processing task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 300, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 300,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 220000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 220000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -1177,9 +1628,10 @@ export class PdfLibAgentNode extends ToolAgentNode {
 
 export class PptxAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.PptxAgent";
-      static readonly title = "PPTX Agent";
-      static readonly description = "Prompt-driven PowerPoint generation skill with PptxGenJS.\n    skills, pptx, powerpoint, pptxgenjs, slides";
-    static readonly metadataOutputTypes = {
+  static readonly title = "PPTX Agent";
+  static readonly description =
+    "Prompt-driven PowerPoint generation skill with PptxGenJS.\n    skills, pptx, powerpoint, pptxgenjs, slides";
+  static readonly metadataOutputTypes = {
     document: "document",
     text: "str"
   };
@@ -1216,36 +1668,62 @@ export class PptxAgentNode extends ToolAgentNode {
     "- Add slides/text/shapes/tables/charts/images as requested.\n" +
     "- pres.writeFile({ fileName: 'out/deck.pptx' }).\n" +
     "- Call set_output_document with out/deck.pptx.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for PPTX planning and generation reasoning." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for PPTX planning and generation reasoning."
+  })
   declare model: any;
 
-  @prop({ type: "document", default: {
-  "type": "document",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Document", description: "Optional source PPTX/document input." })
+  @prop({
+    type: "document",
+    default: {
+      type: "document",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Document",
+    description: "Optional source PPTX/document input."
+  })
   declare document: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing PPTX task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing PPTX task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 300, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 300,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 220000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 220000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -1254,9 +1732,10 @@ export class PptxAgentNode extends ToolAgentNode {
 
 export class SpreadsheetAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.SpreadsheetAgent";
-      static readonly title = "Spreadsheet Agent";
-      static readonly description = "Prompt-driven spreadsheet skill for CSV/XLSX processing.\n    skills, spreadsheet, csv, xlsx, tabular";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Spreadsheet Agent";
+  static readonly description =
+    "Prompt-driven spreadsheet skill for CSV/XLSX processing.\n    skills, spreadsheet, csv, xlsx, tabular";
+  static readonly metadataOutputTypes = {
     text: "str"
   };
   static readonly _systemPrompt =
@@ -1264,25 +1743,48 @@ export class SpreadsheetAgentNode extends ToolAgentNode {
     "using tools like Python/pandas, csvkit, or shell utilities. Preserve data fidelity and " +
     "call out schema/column assumptions before applying formulas or joins. " +
     "Return concise summaries plus output file paths for generated tables.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for task planning and execution reasoning." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for task planning and execution reasoning."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the requested task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the requested task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
 }
 
 // ---------------------------------------------------------------------------
@@ -1291,34 +1793,58 @@ export class SpreadsheetAgentNode extends ToolAgentNode {
 
 export class VectorStoreAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.VectorStoreAgent";
-      static readonly title = "Vector Store Agent";
-      static readonly description = "Prompt-driven vector store skill for indexing and similarity search workflows.\n    skills, vectorstore, embeddings, rag, retrieval";
-    static readonly metadataOutputTypes = {
+  static readonly title = "Vector Store Agent";
+  static readonly description =
+    "Prompt-driven vector store skill for indexing and similarity search workflows.\n    skills, vectorstore, embeddings, rag, retrieval";
+  static readonly metadataOutputTypes = {
     text: "str"
   };
   static readonly _systemPrompt =
     "You are a vector retrieval specialist. Use execute_bash to run embedding/indexing/search " +
     "operations with local or remote vector stores. Be explicit about embedding model, chunking, " +
     "distance metric, and top-k parameters. Ground retrieval quality claims in measurable outputs.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for task planning and execution reasoning." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for task planning and execution reasoning."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the requested task." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the requested task."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 180,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 200000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 200000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
 }
 
 // ---------------------------------------------------------------------------
@@ -1327,9 +1853,10 @@ export class VectorStoreAgentNode extends ToolAgentNode {
 
 export class YtDlpDownloaderAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.YtDlpDownloaderAgent";
-      static readonly title = "yt-dlp Downloader Agent";
-      static readonly description = "Download videos from YouTube/Bilibili/Twitter and other sites via yt-dlp.\n    skills, media, yt-dlp, downloader, youtube, bilibili, twitter";
-    static readonly metadataOutputTypes = {
+  static readonly title = "yt-dlp Downloader Agent";
+  static readonly description =
+    "Download videos from YouTube/Bilibili/Twitter and other sites via yt-dlp.\n    skills, media, yt-dlp, downloader, youtube, bilibili, twitter";
+  static readonly metadataOutputTypes = {
     video: "video",
     text: "str"
   };
@@ -1356,33 +1883,64 @@ export class YtDlpDownloaderAgentNode extends ToolAgentNode {
     "- Keep response concise and include final save location.\n" +
     "- Always save outputs under workspace-relative output_dir.\n" +
     "- If no video file is produced, clearly explain why.";
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model used for yt-dlp planning and execution reasoning." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used for yt-dlp planning and execution reasoning."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing what to download." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing what to download."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Url", description: "Optional explicit video URL to download." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "Optional explicit video URL to download."
+  })
   declare url: any;
 
-  @prop({ type: "str", default: "downloads/yt-dlp", title: "Output Dir", description: "Workspace-relative output directory for downloads." })
+  @prop({
+    type: "str",
+    default: "downloads/yt-dlp",
+    title: "Output Dir",
+    description: "Workspace-relative output directory for downloads."
+  })
   declare output_dir: any;
 
-  @prop({ type: "int", default: 300, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
+  @prop({
+    type: "int",
+    default: 300,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for agent execution.",
+    min: 1,
+    max: 3600
+  })
   declare timeout_seconds: any;
 
-  @prop({ type: "int", default: 220000, title: "Max Output Chars", description: "Maximum serialized output chars before truncation.", min: 1000, max: 2000000 })
+  @prop({
+    type: "int",
+    default: 220000,
+    title: "Max Output Chars",
+    description: "Maximum serialized output chars before truncation.",
+    min: 1000,
+    max: 2000000
+  })
   declare max_output_chars: any;
-
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -1408,5 +1966,5 @@ export const TOOL_AGENT_NODES: readonly NodeClass[] = [
   PptxAgentNode,
   SpreadsheetAgentNode,
   VectorStoreAgentNode,
-  YtDlpDownloaderAgentNode,
+  YtDlpDownloaderAgentNode
 ];

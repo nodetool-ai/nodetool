@@ -4,9 +4,7 @@ import type { Message } from "../../src/providers/types.js";
 
 describe("VLLMProvider", () => {
   it("throws if baseURL is not provided", () => {
-    expect(() => new VLLMProvider({}, {})).toThrow(
-      "VLLM_BASE_URL is required"
-    );
+    expect(() => new VLLMProvider({}, {})).toThrow("VLLM_BASE_URL is required");
   });
 
   it("creates with baseURL", () => {
@@ -27,7 +25,7 @@ describe("VLLMProvider", () => {
       { baseURL: "http://localhost:8000", client: {} as any }
     );
     expect(provider.getContainerEnv()).toEqual({
-      VLLM_BASE_URL: "http://localhost:8000",
+      VLLM_BASE_URL: "http://localhost:8000"
     });
   });
 
@@ -53,11 +51,8 @@ describe("VLLMProvider", () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        data: [
-          { id: "meta-llama/Llama-3-70b" },
-          { id: "mistralai/Mistral-7B" },
-        ],
-      }),
+        data: [{ id: "meta-llama/Llama-3-70b" }, { id: "mistralai/Mistral-7B" }]
+      })
     });
 
     const provider = new VLLMProvider(
@@ -65,7 +60,7 @@ describe("VLLMProvider", () => {
       {
         baseURL: "http://localhost:8000",
         client: {} as any,
-        fetchFn: mockFetch as any,
+        fetchFn: mockFetch as any
       }
     );
 
@@ -74,26 +69,24 @@ describe("VLLMProvider", () => {
       {
         id: "meta-llama/Llama-3-70b",
         name: "meta-llama/Llama-3-70b",
-        provider: "vllm",
+        provider: "vllm"
       },
       {
         id: "mistralai/Mistral-7B",
         name: "mistralai/Mistral-7B",
-        provider: "vllm",
-      },
+        provider: "vllm"
+      }
     ]);
   });
 
   it("returns empty list when server not available", async () => {
-    const mockFetch = vi
-      .fn()
-      .mockRejectedValue(new Error("ECONNREFUSED"));
+    const mockFetch = vi.fn().mockRejectedValue(new Error("ECONNREFUSED"));
     const provider = new VLLMProvider(
       {},
       {
         baseURL: "http://localhost:8000",
         client: {} as any,
-        fetchFn: mockFetch as any,
+        fetchFn: mockFetch as any
       }
     );
 
@@ -108,7 +101,7 @@ describe("VLLMProvider", () => {
       {
         baseURL: "http://localhost:8000",
         client: {} as any,
-        fetchFn: mockFetch as any,
+        fetchFn: mockFetch as any
       }
     );
 
@@ -122,10 +115,10 @@ describe("VLLMProvider", () => {
         {
           message: {
             content: "vllm response",
-            tool_calls: null,
-          },
-        },
-      ],
+            tool_calls: null
+          }
+        }
+      ]
     });
 
     const provider = new VLLMProvider(
@@ -133,15 +126,15 @@ describe("VLLMProvider", () => {
       {
         baseURL: "http://localhost:8000",
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
     const result = await provider.generateMessage({
       messages,
-      model: "meta-llama/Llama-3-70b",
+      model: "meta-llama/Llama-3-70b"
     });
 
     expect(result.role).toBe("assistant");

@@ -96,7 +96,10 @@ export class DockerRunGenerator {
   public readonly container: ContainerConfig;
   public readonly runtimeCommand: string;
 
-  constructor(deployment: DockerRunDeployment, runtimeCommand: string = "docker") {
+  constructor(
+    deployment: DockerRunDeployment,
+    runtimeCommand: string = "docker"
+  ) {
     this.deployment = deployment;
     this.container = deployment.container;
     this.runtimeCommand = runtimeCommand;
@@ -162,9 +165,12 @@ export class DockerRunGenerator {
       port: this.resolveHostPort(),
       volumes: this.buildVolumes(),
       environment: this.buildEnvironment().sort(),
-      gpu: this.container.gpu ?? null,
+      gpu: this.container.gpu ?? null
     };
-    const configStr = JSON.stringify(configDict, Object.keys(configDict).sort());
+    const configStr = JSON.stringify(
+      configDict,
+      Object.keys(configDict).sort()
+    );
     return crypto.createHash("sha256").update(configStr).digest("hex");
   }
 
@@ -197,7 +203,9 @@ export class DockerRunGenerator {
 
   private buildEnvironment(): string[] {
     // Start with container environment
-    const env: Record<string, string> = { ...(this.container.environment ?? {}) };
+    const env: Record<string, string> = {
+      ...(this.container.environment ?? {})
+    };
 
     // Add container-specific settings
     env["PORT"] = String(APP_ENV_PORT);
@@ -232,7 +240,9 @@ export class DockerRunGenerator {
     }
 
     // Convert to KEY=value format and quote
-    return Object.entries(env).map(([key, value]) => safeShellQuote(`${key}=${value}`));
+    return Object.entries(env).map(([key, value]) =>
+      safeShellQuote(`${key}=${value}`)
+    );
   }
 
   private resolveHostPort(): number {
@@ -260,7 +270,9 @@ export class DockerRunGenerator {
 /**
  * Generate docker run command from deployment configuration.
  */
-export function generateDockerRunCommand(deployment: DockerRunDeployment): string {
+export function generateDockerRunCommand(
+  deployment: DockerRunDeployment
+): string {
   const generator = new DockerRunGenerator(deployment);
   return generator.generateCommand();
 }

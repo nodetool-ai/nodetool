@@ -14,7 +14,7 @@ import {
   StreamRunnerBase,
   type StreamRunnerOptions,
   type StreamOptions,
-  type Slot,
+  type Slot
 } from "./stream-runner-base.js";
 
 // ---------------------------------------------------------------------------
@@ -75,9 +75,17 @@ export { parseMemLimit as _parseMemLimit };
  * Attempt a TCP connection to `host:port`. Resolves `true` if successful,
  * `false` on connection error (with a per-attempt timeout).
  */
-function tcpProbe(host: string, port: number, timeoutMs = 1000): Promise<boolean> {
+function tcpProbe(
+  host: string,
+  port: number,
+  timeoutMs = 1000
+): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
-    const sock: NetSocket = createConnection({ host, port, timeout: timeoutMs });
+    const sock: NetSocket = createConnection({
+      host,
+      port,
+      timeout: timeoutMs
+    });
     sock.once("connect", () => {
       sock.destroy();
       resolve(true);
@@ -125,7 +133,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       memLimit: options.memLimit ?? "256m",
       nanoCpus: options.nanoCpus ?? 1_000_000_000,
       networkDisabled: false,
-      mode: "docker",
+      mode: "docker"
     };
     super(baseOptions);
 
@@ -145,7 +153,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
 
   override buildContainerCommand(
     userCode: string,
-    _envLocals: Record<string, unknown>,
+    _envLocals: Record<string, unknown>
   ): string[] {
     const cmd = userCode.trim() || "sleep infinity";
     return ["bash", "-lc", cmd];
@@ -159,7 +167,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
   async *stream(
     userCode: string,
     envLocals: Record<string, unknown>,
-    options?: StreamOptions,
+    options?: StreamOptions
   ): AsyncGenerator<[string, string], void> {
     const command = this.buildContainerCommand(userCode, envLocals);
     const environment = this.buildContainerEnvironment({});
@@ -172,7 +180,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       await docker.ping();
     } catch (e) {
       throw new Error(
-        `Docker daemon is not available. Please start Docker and try again. (${e})`,
+        `Docker daemon is not available. Please start Docker and try again. (${e})`
       );
     }
 
@@ -183,9 +191,8 @@ export class ServerDockerRunner extends StreamRunnerBase {
     } catch {
       const pullStream = await docker.pull(imageName);
       await new Promise<void>((resolve, reject) => {
-        docker.modem.followProgress(
-          pullStream,
-          (err: Error | null) => (err ? reject(err) : resolve()),
+        docker.modem.followProgress(pullStream, (err: Error | null) =>
+          err ? reject(err) : resolve()
         );
       });
     }
@@ -205,8 +212,8 @@ export class ServerDockerRunner extends StreamRunnerBase {
       Binds: binds.length > 0 ? binds : undefined,
       IpcMode: this.ipcMode ?? undefined,
       PortBindings: {
-        [portKey]: [{ HostIp: this.hostIp, HostPort: "" }],
-      },
+        [portKey]: [{ HostIp: this.hostIp, HostPort: "" }]
+      }
     };
 
     const container = await docker.createContainer({
@@ -217,7 +224,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       OpenStdin: stdinStream !== null,
       Tty: false,
       ExposedPorts: { [portKey]: {} },
-      HostConfig: hostConfig,
+      HostConfig: hostConfig
     });
 
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
@@ -228,7 +235,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
         stream: true,
         stdout: true,
         stderr: true,
-        stdin: stdinStream !== null,
+        stdin: stdinStream !== null
       });
 
       await container.start();
@@ -331,7 +338,11 @@ export class ServerDockerRunner extends StreamRunnerBase {
                   const nlIdx = stdoutBuf.indexOf("\n");
                   const line = stdoutBuf.substring(0, nlIdx);
                   stdoutBuf = stdoutBuf.substring(nlIdx + 1);
-                  pushLog({ type: "line", slot: "stdout", value: line.endsWith("\n") ? line : line + "\n" });
+                  pushLog({
+                    type: "line",
+                    slot: "stdout",
+                    value: line.endsWith("\n") ? line : line + "\n"
+                  });
                 }
               } else if (streamType === 2) {
                 stderrBuf += text;
@@ -339,7 +350,11 @@ export class ServerDockerRunner extends StreamRunnerBase {
                   const nlIdx = stderrBuf.indexOf("\n");
                   const line = stderrBuf.substring(0, nlIdx);
                   stderrBuf = stderrBuf.substring(nlIdx + 1);
-                  pushLog({ type: "line", slot: "stderr", value: line.endsWith("\n") ? line : line + "\n" });
+                  pushLog({
+                    type: "line",
+                    slot: "stderr",
+                    value: line.endsWith("\n") ? line : line + "\n"
+                  });
                 }
               }
             }
@@ -349,10 +364,18 @@ export class ServerDockerRunner extends StreamRunnerBase {
 
           // Flush remaining
           if (stdoutBuf) {
-            pushLog({ type: "line", slot: "stdout", value: stdoutBuf.endsWith("\n") ? stdoutBuf : stdoutBuf + "\n" });
+            pushLog({
+              type: "line",
+              slot: "stdout",
+              value: stdoutBuf.endsWith("\n") ? stdoutBuf : stdoutBuf + "\n"
+            });
           }
           if (stderrBuf) {
-            pushLog({ type: "line", slot: "stderr", value: stderrBuf.endsWith("\n") ? stderrBuf : stderrBuf + "\n" });
+            pushLog({
+              type: "line",
+              slot: "stderr",
+              value: stderrBuf.endsWith("\n") ? stderrBuf : stderrBuf + "\n"
+            });
           }
         } catch {
           // demux error - ignore
@@ -370,11 +393,11 @@ export class ServerDockerRunner extends StreamRunnerBase {
         this.hostIp,
         hostPort,
         container,
-        this.readyTimeoutSeconds,
+        this.readyTimeoutSeconds
       );
       if (!ready) {
         throw new Error(
-          `Server did not become ready on ${this.hostIp}:${hostPort}`,
+          `Server did not become ready on ${this.hostIp}:${hostPort}`
         );
       }
 
@@ -434,7 +457,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
    */
   private async _waitForHostPort(
     container: Dockerode.Container,
-    timeout = 20_000,
+    timeout = 20_000
   ): Promise<number> {
     const deadline = Date.now() + timeout;
     const portKey = `${this.containerPort}/tcp`;
@@ -468,7 +491,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       await sleep(200);
     }
     throw new Error(
-      "Failed to resolve published host port for server container",
+      "Failed to resolve published host port for server container"
     );
   }
 
@@ -479,7 +502,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
     host: string,
     port: number,
     container: Dockerode.Container,
-    timeoutSeconds: number,
+    timeoutSeconds: number
   ): Promise<boolean> {
     const deadline = Date.now() + timeoutSeconds * 1000;
 

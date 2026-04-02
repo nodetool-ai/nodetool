@@ -22,7 +22,7 @@ import {
   stepScript,
   textScript,
   autoScript,
-  toolThenFinishScript,
+  toolThenFinishScript
 } from "@nodetool/runtime";
 import type { Task } from "../../src/types.js";
 import type { ProcessingMessage, StepResult } from "@nodetool/protocol";
@@ -38,16 +38,23 @@ function makeContext() {
       store.set(key, value);
       return key;
     },
-    loadStepResult: async <T = unknown>(key: string, defaultValue?: T): Promise<T> => {
+    loadStepResult: async <T = unknown>(
+      key: string,
+      defaultValue?: T
+    ): Promise<T> => {
       return (store.has(key) ? store.get(key) : defaultValue) as T;
     },
-    set: (key: string, value: unknown) => { store.set(key, value); },
+    set: (key: string, value: unknown) => {
+      store.set(key, value);
+    },
     get: (key: string) => store.get(key),
-    _store: store,
+    _store: store
   } as any;
 }
 
-async function collectMessages(gen: AsyncGenerator<ProcessingMessage>): Promise<ProcessingMessage[]> {
+async function collectMessages(
+  gen: AsyncGenerator<ProcessingMessage>
+): Promise<ProcessingMessage[]> {
   const messages: ProcessingMessage[] = [];
   for await (const msg of gen) {
     messages.push(msg);
@@ -71,10 +78,14 @@ function makeSimpleTask(overrides?: Partial<Task>): Task {
         completed: false,
         dependsOn: [],
         logs: [],
-        outputSchema: JSON.stringify({ type: "object", properties: { answer: { type: "number" } }, required: ["answer"] }),
-      },
+        outputSchema: JSON.stringify({
+          type: "object",
+          properties: { answer: { type: "number" } },
+          required: ["answer"]
+        })
+      }
     ],
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -94,7 +105,7 @@ describe("StepExecutor E2E", () => {
       step,
       context,
       provider,
-      model: "fake-model",
+      model: "fake-model"
     });
 
     const messages = await collectMessages(executor.execute());
@@ -106,7 +117,9 @@ describe("StepExecutor E2E", () => {
   });
 
   it("completes an unstructured step (no schema) via plain text", async () => {
-    const provider = new ScriptedProvider([textScript("The capital of France is Paris.")]);
+    const provider = new ScriptedProvider([
+      textScript("The capital of France is Paris.")
+    ]);
     const context = makeContext();
     const task: Task = {
       id: "task-text",
@@ -117,10 +130,10 @@ describe("StepExecutor E2E", () => {
           instructions: "What is the capital of France?",
           completed: false,
           dependsOn: [],
-          logs: [],
+          logs: []
           // No outputSchema — unstructured mode
-        },
-      ],
+        }
+      ]
     };
 
     const executor = new StepExecutor({
@@ -128,7 +141,7 @@ describe("StepExecutor E2E", () => {
       step: task.steps[0],
       context,
       provider,
-      model: "fake-model",
+      model: "fake-model"
     });
 
     const messages = await collectMessages(executor.execute());
@@ -155,9 +168,13 @@ describe("StepExecutor E2E", () => {
           completed: false,
           dependsOn: ["step_prev"],
           logs: [],
-          outputSchema: JSON.stringify({ type: "object", properties: { doubled: { type: "number" } }, required: ["doubled"] }),
-        },
-      ],
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { doubled: { type: "number" } },
+            required: ["doubled"]
+          })
+        }
+      ]
     };
 
     const executor = new StepExecutor({
@@ -165,7 +182,7 @@ describe("StepExecutor E2E", () => {
       step: task.steps[0],
       context,
       provider,
-      model: "fake-model",
+      model: "fake-model"
     });
 
     const messages = await collectMessages(executor.execute());
@@ -173,7 +190,9 @@ describe("StepExecutor E2E", () => {
     // The user message sent to the provider should include the dep result
     const firstCall = provider.callLog[0];
     const userMsg = firstCall.messages.find((m) => m.role === "user");
-    expect(typeof userMsg?.content === "string" ? userMsg.content : "").toContain("step_prev");
+    expect(
+      typeof userMsg?.content === "string" ? userMsg.content : ""
+    ).toContain("step_prev");
     expect(findStepResults(messages)[0].result).toEqual({ doubled: 84 });
   });
 
@@ -182,7 +201,7 @@ describe("StepExecutor E2E", () => {
     // Second call: finish_step with correct result
     const provider = new ScriptedProvider([
       stepScript({ wrong_key: "oops" }), // missing required "answer" key
-      stepScript({ answer: 42 }),        // correct
+      stepScript({ answer: 42 }) // correct
     ]);
     const context = makeContext();
     const task = makeSimpleTask();
@@ -194,7 +213,7 @@ describe("StepExecutor E2E", () => {
       context,
       provider,
       model: "fake-model",
-      maxIterations: 5,
+      maxIterations: 5
     });
 
     const messages = await collectMessages(executor.execute());
@@ -216,7 +235,7 @@ describe("StepExecutor E2E", () => {
       context,
       provider,
       model: "fake-model",
-      maxIterations: 2,
+      maxIterations: 2
     });
 
     const messages = await collectMessages(executor.execute());
@@ -234,8 +253,8 @@ describe("StepExecutor E2E", () => {
 describe("TaskExecutor E2E", () => {
   it("executes a 2-step sequential task", async () => {
     const provider = new ScriptedProvider([
-      stepScript({ value: 10 }),   // step_1
-      stepScript({ result: 20 }), // step_2
+      stepScript({ value: 10 }), // step_1
+      stepScript({ result: 20 }) // step_2
     ]);
     const context = makeContext();
     const task: Task = {
@@ -248,7 +267,11 @@ describe("TaskExecutor E2E", () => {
           completed: false,
           dependsOn: [],
           logs: [],
-          outputSchema: JSON.stringify({ type: "object", properties: { value: { type: "number" } }, required: ["value"] }),
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { value: { type: "number" } },
+            required: ["value"]
+          })
         },
         {
           id: "step_2",
@@ -256,9 +279,13 @@ describe("TaskExecutor E2E", () => {
           completed: false,
           dependsOn: ["step_1"],
           logs: [],
-          outputSchema: JSON.stringify({ type: "object", properties: { result: { type: "number" } }, required: ["result"] }),
-        },
-      ],
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { result: { type: "number" } },
+            required: ["result"]
+          })
+        }
+      ]
     };
 
     const executor = new TaskExecutor({
@@ -266,7 +293,7 @@ describe("TaskExecutor E2E", () => {
       model: "fake-model",
       context,
       tools: [],
-      task,
+      task
     });
 
     const messages = await collectMessages(executor.executeTasks());
@@ -284,7 +311,7 @@ describe("TaskExecutor E2E", () => {
   it("executes independent steps (no deps) both to completion", async () => {
     const provider = new ScriptedProvider([
       stepScript({ a: 1 }),
-      stepScript({ b: 2 }),
+      stepScript({ b: 2 })
     ]);
     const context = makeContext();
     const task: Task = {
@@ -297,7 +324,11 @@ describe("TaskExecutor E2E", () => {
           completed: false,
           dependsOn: [],
           logs: [],
-          outputSchema: JSON.stringify({ type: "object", properties: { a: { type: "number" } }, required: ["a"] }),
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { a: { type: "number" } },
+            required: ["a"]
+          })
         },
         {
           id: "step_b",
@@ -305,17 +336,30 @@ describe("TaskExecutor E2E", () => {
           completed: false,
           dependsOn: [],
           logs: [],
-          outputSchema: JSON.stringify({ type: "object", properties: { b: { type: "number" } }, required: ["b"] }),
-        },
-      ],
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { b: { type: "number" } },
+            required: ["b"]
+          })
+        }
+      ]
     };
 
-    const executor = new TaskExecutor({ provider, model: "fake-model", context, tools: [], task });
+    const executor = new TaskExecutor({
+      provider,
+      model: "fake-model",
+      context,
+      tools: [],
+      task
+    });
     const messages = await collectMessages(executor.executeTasks());
     const results = findStepResults(messages);
 
     expect(results).toHaveLength(2);
-    const combined = Object.assign({}, ...results.map((r) => r.result as object));
+    const combined = Object.assign(
+      {},
+      ...results.map((r) => r.result as object)
+    );
     expect(combined).toMatchObject({ a: 1, b: 2 });
   });
 });
@@ -331,9 +375,13 @@ describe("TaskPlanner E2E", () => {
         title: "Research Plan",
         steps: [
           { id: "gather", instructions: "Gather data.", depends_on: [] },
-          { id: "analyze", instructions: "Analyze gathered data.", depends_on: ["gather"] },
-        ],
-      }),
+          {
+            id: "analyze",
+            instructions: "Analyze gathered data.",
+            depends_on: ["gather"]
+          }
+        ]
+      })
     ]);
     const context = makeContext();
 
@@ -357,16 +405,21 @@ describe("TaskPlanner E2E", () => {
   it("retries when LLM returns text instead of tool call", async () => {
     // Fail twice with text, succeed on 3rd
     const provider = new ScriptedProvider([
-      textScript("Let me think about this..."),  // attempt 1: no tool call
-      textScript("Still thinking..."),            // attempt 2: no tool call
-      planScript({                                // attempt 3: valid plan
+      textScript("Let me think about this..."), // attempt 1: no tool call
+      textScript("Still thinking..."), // attempt 2: no tool call
+      planScript({
+        // attempt 3: valid plan
         title: "Retry Plan",
-        steps: [{ id: "step_1", instructions: "Do it.", depends_on: [] }],
-      }),
+        steps: [{ id: "step_1", instructions: "Do it.", depends_on: [] }]
+      })
     ]);
     const context = makeContext();
 
-    const planner = new TaskPlanner({ provider, model: "fake-model", maxRetries: 3 });
+    const planner = new TaskPlanner({
+      provider,
+      model: "fake-model",
+      maxRetries: 3
+    });
     const gen = planner.plan("Do something", context);
 
     let task: Task | null = null;
@@ -385,7 +438,11 @@ describe("TaskPlanner E2E", () => {
     const provider = new ScriptedProvider([textScript("I refuse to plan.")]);
     const context = makeContext();
 
-    const planner = new TaskPlanner({ provider, model: "fake-model", maxRetries: 2 });
+    const planner = new TaskPlanner({
+      provider,
+      model: "fake-model",
+      maxRetries: 2
+    });
     const gen = planner.plan("Plan something", context);
 
     let result = await gen.next();
@@ -402,21 +459,25 @@ describe("TaskPlanner E2E", () => {
         title: "Cyclic Plan",
         steps: [
           { id: "a", instructions: "Step A.", depends_on: ["b"] },
-          { id: "b", instructions: "Step B.", depends_on: ["a"] },
-        ],
+          { id: "b", instructions: "Step B.", depends_on: ["a"] }
+        ]
       }),
       // Retry: valid plan after cycle rejection
       planScript({
         title: "Fixed Plan",
         steps: [
           { id: "a", instructions: "Step A.", depends_on: [] },
-          { id: "b", instructions: "Step B.", depends_on: ["a"] },
-        ],
-      }),
+          { id: "b", instructions: "Step B.", depends_on: ["a"] }
+        ]
+      })
     ]);
     const context = makeContext();
 
-    const planner = new TaskPlanner({ provider, model: "fake-model", maxRetries: 3 });
+    const planner = new TaskPlanner({
+      provider,
+      model: "fake-model",
+      maxRetries: 3
+    });
     const gen = planner.plan("Do something", context);
 
     let task: Task | null = null;
@@ -442,15 +503,23 @@ describe("Agent E2E (full pipeline)", () => {
     const plan = {
       title: "Auto Plan",
       steps: [
-        { id: "step_1", instructions: "Compute the result.", depends_on: [],
-          output_schema: JSON.stringify({ type: "object", properties: { value: { type: "number" } }, required: ["value"] }) },
-      ],
+        {
+          id: "step_1",
+          instructions: "Compute the result.",
+          depends_on: [],
+          output_schema: JSON.stringify({
+            type: "object",
+            properties: { value: { type: "number" } },
+            required: ["value"]
+          })
+        }
+      ]
     };
 
     // autoScript: first call gets create_task (planning), subsequent calls get finish_step
     const provider = new ScriptedProvider([
       autoScript({ plan, result: { value: 99 } }),
-      autoScript({ plan, result: { value: 99 } }),
+      autoScript({ plan, result: { value: 99 } })
     ]);
     const context = makeContext();
 
@@ -458,7 +527,7 @@ describe("Agent E2E (full pipeline)", () => {
       name: "test-agent",
       objective: "Compute the result.",
       provider,
-      model: "fake-model",
+      model: "fake-model"
     });
 
     const messages = await collectMessages(agent.execute(context));
@@ -469,7 +538,9 @@ describe("Agent E2E (full pipeline)", () => {
   });
 
   it("skips planning when task is pre-provided", async () => {
-    const provider = new ScriptedProvider([stepScript({ output: "hello world" })]);
+    const provider = new ScriptedProvider([
+      stepScript({ output: "hello world" })
+    ]);
     const context = makeContext();
 
     const task = makeSimpleTask({
@@ -480,9 +551,13 @@ describe("Agent E2E (full pipeline)", () => {
           completed: false,
           dependsOn: [],
           logs: [],
-          outputSchema: JSON.stringify({ type: "object", properties: { output: { type: "string" } }, required: ["output"] }),
-        },
-      ],
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { output: { type: "string" } },
+            required: ["output"]
+          })
+        }
+      ]
     });
 
     const agent = new Agent({
@@ -490,7 +565,7 @@ describe("Agent E2E (full pipeline)", () => {
       objective: "Say hello.",
       provider,
       model: "fake-model",
-      task,
+      task
     });
 
     const messages = await collectMessages(agent.execute(context));
@@ -504,7 +579,7 @@ describe("Agent E2E (full pipeline)", () => {
   it("captures final result from the last task step", async () => {
     const provider = new ScriptedProvider([
       stepScript({ step1: "done" }),
-      stepScript({ final: "answer" }),
+      stepScript({ final: "answer" })
     ]);
     const context = makeContext();
 
@@ -518,7 +593,11 @@ describe("Agent E2E (full pipeline)", () => {
           completed: false,
           dependsOn: [],
           logs: [],
-          outputSchema: JSON.stringify({ type: "object", properties: { step1: { type: "string" } }, required: ["step1"] }),
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { step1: { type: "string" } },
+            required: ["step1"]
+          })
         },
         {
           id: "step_2",
@@ -526,9 +605,13 @@ describe("Agent E2E (full pipeline)", () => {
           completed: false,
           dependsOn: ["step_1"],
           logs: [],
-          outputSchema: JSON.stringify({ type: "object", properties: { final: { type: "string" } }, required: ["final"] }),
-        },
-      ],
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { final: { type: "string" } },
+            required: ["final"]
+          })
+        }
+      ]
     };
 
     const agent = new Agent({
@@ -536,7 +619,7 @@ describe("Agent E2E (full pipeline)", () => {
       objective: "Complete both steps.",
       provider,
       model: "fake-model",
-      task,
+      task
     });
 
     const messages = await collectMessages(agent.execute(context));
@@ -559,12 +642,15 @@ describe("ScriptedProvider", () => {
     const provider = new ScriptedProvider([
       textScript("first"),
       textScript("second"),
-      textScript("third"),
+      textScript("third")
     ]);
 
     const chunks: string[] = [];
     for (let i = 0; i < 3; i++) {
-      for await (const item of provider.generateMessages({ messages: [], model: "m" })) {
+      for await (const item of provider.generateMessages({
+        messages: [],
+        model: "m"
+      })) {
         if ("type" in item && (item as any).type === "chunk") {
           chunks.push((item as any).content);
         }
@@ -575,11 +661,17 @@ describe("ScriptedProvider", () => {
   });
 
   it("repeats last script when call count exceeds script count", async () => {
-    const provider = new ScriptedProvider([textScript("only"), textScript("last")]);
+    const provider = new ScriptedProvider([
+      textScript("only"),
+      textScript("last")
+    ]);
 
     const chunks: string[] = [];
     for (let i = 0; i < 4; i++) {
-      for await (const item of provider.generateMessages({ messages: [], model: "m" })) {
+      for await (const item of provider.generateMessages({
+        messages: [],
+        model: "m"
+      })) {
         if ("type" in item && (item as any).type === "chunk") {
           chunks.push((item as any).content);
         }
@@ -591,14 +683,19 @@ describe("ScriptedProvider", () => {
 
   it("autoScript detects create_task tool", async () => {
     const provider = new ScriptedProvider([
-      autoScript({ plan: { title: "T", steps: [{ id: "s1", instructions: "x", depends_on: [] }] } }),
+      autoScript({
+        plan: {
+          title: "T",
+          steps: [{ id: "s1", instructions: "x", depends_on: [] }]
+        }
+      })
     ]);
 
     const items: any[] = [];
     for await (const item of provider.generateMessages({
       messages: [],
       model: "m",
-      tools: [{ name: "create_task", description: "", inputSchema: {} }],
+      tools: [{ name: "create_task", description: "", inputSchema: {} }]
     })) {
       items.push(item);
     }
@@ -614,7 +711,7 @@ describe("ScriptedProvider", () => {
     for await (const item of provider.generateMessages({
       messages: [],
       model: "m",
-      tools: [{ name: "finish_step", description: "", inputSchema: {} }],
+      tools: [{ name: "finish_step", description: "", inputSchema: {} }]
     })) {
       items.push(item);
     }
@@ -627,7 +724,11 @@ describe("ScriptedProvider", () => {
     const provider = new ScriptedProvider([autoScript({ text: "fallback" })]);
 
     const items: any[] = [];
-    for await (const item of provider.generateMessages({ messages: [], model: "m", tools: [] })) {
+    for await (const item of provider.generateMessages({
+      messages: [],
+      model: "m",
+      tools: []
+    })) {
       items.push(item);
     }
 
@@ -640,8 +741,13 @@ describe("ScriptedProvider", () => {
 
     for (let i = 0; i < 2; i++) {
       // consume
-       
-      for await (const _ of provider.generateMessages({ messages: [{ role: "user", content: `call ${i}` }], model: "m" })) {/* */}
+
+      for await (const _ of provider.generateMessages({
+        messages: [{ role: "user", content: `call ${i}` }],
+        model: "m"
+      })) {
+        /* */
+      }
     }
 
     expect(provider.callLog).toHaveLength(2);
@@ -654,8 +760,12 @@ describe("ScriptedProvider", () => {
 
     // Use both scripts
     for (let i = 0; i < 2; i++) {
-       
-      for await (const _ of provider.generateMessages({ messages: [], model: "m" })) {/* */}
+      for await (const _ of provider.generateMessages({
+        messages: [],
+        model: "m"
+      })) {
+        /* */
+      }
     }
     expect(provider.callLog).toHaveLength(2);
 
@@ -664,7 +774,10 @@ describe("ScriptedProvider", () => {
 
     // After reset, starts from script 0 again
     const chunks: string[] = [];
-    for await (const item of provider.generateMessages({ messages: [], model: "m" })) {
+    for await (const item of provider.generateMessages({
+      messages: [],
+      model: "m"
+    })) {
       if ("type" in item && (item as any).type === "chunk") {
         chunks.push((item as any).content);
       }

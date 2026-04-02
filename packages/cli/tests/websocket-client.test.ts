@@ -25,15 +25,21 @@ class FakeWebSocket {
     this.listeners[event]!.push(cb);
   }
 
-  send(data: string) { this.sent.push(data); }
+  send(data: string) {
+    this.sent.push(data);
+  }
 
   close() {
     this.readyState = 3;
     this._emit("close");
   }
 
-  open() { this._emit("open"); }
-  error(err: Error) { this._emit("error", err); }
+  open() {
+    this._emit("open");
+  }
+  error(err: Error) {
+    this._emit("error", err);
+  }
 
   /** Push a server-side message to the client. */
   push(msg: Record<string, unknown>) {
@@ -61,7 +67,9 @@ vi.mock("ws", () => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function makeConnectedClient(url = "ws://test"): Promise<WebSocketChatClient> {
+async function makeConnectedClient(
+  url = "ws://test"
+): Promise<WebSocketChatClient> {
   const client = new WebSocketChatClient(url);
   const connectPromise = client.connect();
   // Allow connect()'s Promise constructor to run and register "open" listener
@@ -90,7 +98,9 @@ describe("WebSocketChatClient connect/disconnect", () => {
 
   it("sends set_mode text after connection", async () => {
     await makeConnectedClient();
-    const parsed = currentFakeWs.sent.map((s) => JSON.parse(s) as Record<string, unknown>);
+    const parsed = currentFakeWs.sent.map(
+      (s) => JSON.parse(s) as Record<string, unknown>
+    );
     const setMode = parsed.find((m) => m["command"] === "set_mode");
     expect(setMode).toBeDefined();
     expect((setMode!["data"] as Record<string, unknown>)["mode"]).toBe("text");
@@ -143,7 +153,10 @@ describe("WebSocketChatClient.chat", () => {
     const gen = client.chat("hi", "t1", "gpt-4o", "openai");
     const p = gen.next();
     currentFakeWs.push({ type: "error", message: "server error" });
-    expect((await p).value).toMatchObject({ type: "error", message: "server error" });
+    expect((await p).value).toMatchObject({
+      type: "error",
+      message: "server error"
+    });
   });
 
   it("yields tool_call from assistant message with tool_calls", async () => {
@@ -156,7 +169,7 @@ describe("WebSocketChatClient.chat", () => {
     currentFakeWs.push({
       type: "message",
       role: "assistant",
-      tool_calls: [{ id: "tc1", name: "read_file", args: { path: "a.txt" } }],
+      tool_calls: [{ id: "tc1", name: "read_file", args: { path: "a.txt" } }]
     });
     const r1 = await p1;
 
@@ -169,10 +182,14 @@ describe("WebSocketChatClient.chat", () => {
       currentFakeWs.push({ type: "chunk", content: "", done: true });
       const r2 = await p2;
       toolCallEvent = [r1.value, r2.value].find(
-        (e) => (e as { type: string }).type === "tool_call",
+        (e) => (e as { type: string }).type === "tool_call"
       );
     }
-    expect(toolCallEvent).toMatchObject({ type: "tool_call", id: "tc1", name: "read_file" });
+    expect(toolCallEvent).toMatchObject({
+      type: "tool_call",
+      id: "tc1",
+      name: "read_file"
+    });
   });
 
   it("yields done when WebSocket closes mid-stream", async () => {
@@ -187,8 +204,15 @@ describe("WebSocketChatClient.chat", () => {
     const client = await makeConnectedClient();
     const gen = client.chat("hi", "t1", "gpt-4o", "openai");
     const p = gen.next();
-    currentFakeWs.push({ type: "output_update", node_id: "n1", value: { text: "result" } });
-    expect((await p).value).toMatchObject({ type: "output_update", node_id: "n1" });
+    currentFakeWs.push({
+      type: "output_update",
+      node_id: "n1",
+      value: { text: "result" }
+    });
+    expect((await p).value).toMatchObject({
+      type: "output_update",
+      node_id: "n1"
+    });
   });
 
   it("yields done on job_update event", async () => {
@@ -204,7 +228,10 @@ describe("WebSocketChatClient.chat", () => {
     const gen = client.chat("hi", "t1", "gpt-4o", "openai");
     const p = gen.next();
     currentFakeWs.push({ error: "internal server error" });
-    expect((await p).value).toMatchObject({ type: "error", message: "internal server error" });
+    expect((await p).value).toMatchObject({
+      type: "error",
+      message: "internal server error"
+    });
   });
 
   it("ignores non-content events like system_stats", async () => {
@@ -246,15 +273,27 @@ describe("WebSocketChatClient.inference", () => {
     const gen = client.inference([], "gpt-4o", "openai");
     const p = gen.next();
     currentFakeWs.push({ type: "error", message: "inference failed" });
-    expect((await p).value).toMatchObject({ type: "error", message: "inference failed" });
+    expect((await p).value).toMatchObject({
+      type: "error",
+      message: "inference failed"
+    });
   });
 
   it("yields tool_call events from inference", async () => {
     const client = await makeConnectedClient();
     const gen = client.inference([], "gpt-4o", "openai");
     const p = gen.next();
-    currentFakeWs.push({ type: "tool_call", id: "tc1", name: "search", args: { q: "test" } });
-    expect((await p).value).toMatchObject({ type: "tool_call", id: "tc1", name: "search" });
+    currentFakeWs.push({
+      type: "tool_call",
+      id: "tc1",
+      name: "search",
+      args: { q: "test" }
+    });
+    expect((await p).value).toMatchObject({
+      type: "tool_call",
+      id: "tc1",
+      name: "search"
+    });
   });
 });
 
@@ -266,20 +305,50 @@ describe("WebSocketChatClient.runJob", () => {
     const gen = client.runJob({ workflowId: "wf1" });
 
     let p = gen.next();
-    currentFakeWs.push({ type: "node_update", node_id: "n1", status: "running" });
-    expect((await p).value).toMatchObject({ type: "node_update", node_id: "n1" });
+    currentFakeWs.push({
+      type: "node_update",
+      node_id: "n1",
+      status: "running"
+    });
+    expect((await p).value).toMatchObject({
+      type: "node_update",
+      node_id: "n1"
+    });
 
     p = gen.next();
-    currentFakeWs.push({ type: "node_progress", node_id: "n1", progress: 50, total: 100 });
-    expect((await p).value).toMatchObject({ type: "node_progress", progress: 50, total: 100 });
+    currentFakeWs.push({
+      type: "node_progress",
+      node_id: "n1",
+      progress: 50,
+      total: 100
+    });
+    expect((await p).value).toMatchObject({
+      type: "node_progress",
+      progress: 50,
+      total: 100
+    });
 
     p = gen.next();
-    currentFakeWs.push({ type: "output_update", node_id: "n1", value: { text: "hi" } });
-    expect((await p).value).toMatchObject({ type: "output_update", value: { text: "hi" } });
+    currentFakeWs.push({
+      type: "output_update",
+      node_id: "n1",
+      value: { text: "hi" }
+    });
+    expect((await p).value).toMatchObject({
+      type: "output_update",
+      value: { text: "hi" }
+    });
 
     p = gen.next();
-    currentFakeWs.push({ type: "job_update", status: "completed", job_id: "j1" });
-    expect((await p).value).toMatchObject({ type: "job_update", status: "completed" });
+    currentFakeWs.push({
+      type: "job_update",
+      status: "completed",
+      job_id: "j1"
+    });
+    expect((await p).value).toMatchObject({
+      type: "job_update",
+      status: "completed"
+    });
 
     expect((await gen.next()).value).toMatchObject({ type: "done" });
   });
@@ -289,7 +358,10 @@ describe("WebSocketChatClient.runJob", () => {
     const gen = client.runJob({ workflowId: "wf1" });
     const p = gen.next();
     currentFakeWs.push({ type: "error", message: "workflow failed" });
-    expect((await p).value).toMatchObject({ type: "error", message: "workflow failed" });
+    expect((await p).value).toMatchObject({
+      type: "error",
+      message: "workflow failed"
+    });
   });
 
   it("sends run_job command with workflow_id", async () => {
@@ -303,7 +375,9 @@ describe("WebSocketChatClient.runJob", () => {
       .map((s) => JSON.parse(s) as Record<string, unknown>)
       .find((m) => m["command"] === "run_job");
     expect(runCmd).toBeDefined();
-    expect((runCmd!["data"] as Record<string, unknown>)["workflow_id"]).toBe("wf42");
+    expect((runCmd!["data"] as Record<string, unknown>)["workflow_id"]).toBe(
+      "wf42"
+    );
   });
 });
 
@@ -376,7 +450,9 @@ describe("WebSocketChatClient command methods", () => {
     const cmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
       .find((m) => m["command"] === "stop");
-    expect((cmd!["data"] as Record<string, unknown>)["thread_id"]).toBe("thread-abc");
+    expect((cmd!["data"] as Record<string, unknown>)["thread_id"]).toBe(
+      "thread-abc"
+    );
   });
 
   it("stop without threadId omits thread_id", async () => {
@@ -385,6 +461,8 @@ describe("WebSocketChatClient command methods", () => {
     const cmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
       .find((m) => m["command"] === "stop");
-    expect((cmd!["data"] as Record<string, unknown>)["thread_id"]).toBeUndefined();
+    expect(
+      (cmd!["data"] as Record<string, unknown>)["thread_id"]
+    ).toBeUndefined();
   });
 });

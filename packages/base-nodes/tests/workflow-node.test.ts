@@ -18,7 +18,7 @@ function makeResolveExecutor(registry: NodeRegistry) {
       return {
         async process(inputs: Record<string, unknown>) {
           return inputs;
-        },
+        }
       };
     }
     return registry.resolve(node as NodeDescriptor);
@@ -38,7 +38,7 @@ function makeRunner(
   const context = ctx ?? makeContext(registry);
   return new WorkflowRunner("test-job", {
     resolveExecutor: makeResolveExecutor(registry),
-    executionContext: context,
+    executionContext: context
   });
 }
 
@@ -54,30 +54,32 @@ function makeStringPassthroughSubWorkflow() {
         {
           id: "inp1",
           type: "nodetool.input.StringInput",
-          data: { name: "text", value: "default_value" },
+          data: { name: "text", value: "default_value" }
         },
         {
           id: "out1",
           type: "nodetool.output.Output",
-          data: { name: "result", value: "" },
-        },
+          data: { name: "result", value: "" }
+        }
       ],
       edges: [
         {
           source: "inp1",
           sourceHandle: "output",
           target: "out1",
-          targetHandle: "value",
-        },
-      ],
-    },
+          targetHandle: "value"
+        }
+      ]
+    }
   };
 }
 
 describe("WorkflowNode", () => {
   it("is registered with the correct node type", () => {
     const registry = makeRegistry();
-    expect(registry.has("nodetool.workflows.workflow_node.Workflow")).toBe(true);
+    expect(registry.has("nodetool.workflows.workflow_node.Workflow")).toBe(
+      true
+    );
   });
 
   it("has correct static properties", () => {
@@ -101,7 +103,7 @@ describe("WorkflowNode", () => {
     const subWf = makeStringPassthroughSubWorkflow();
     const node = new WorkflowNode({
       workflow_id: subWf.id,
-      workflow_json: subWf,
+      workflow_json: subWf
     });
     await expect(node.process(ctx)).rejects.toThrow("resolveExecutor");
   });
@@ -115,7 +117,7 @@ describe("WorkflowNode: string passthrough", () => {
 
     const node = new WorkflowNode({
       workflow_id: subWf.id,
-      workflow_json: subWf,
+      workflow_json: subWf
     });
     const result = await node.process(ctx);
 
@@ -123,7 +125,8 @@ describe("WorkflowNode: string passthrough", () => {
     const values = Object.values(result);
     expect(values.length).toBeGreaterThan(0);
     const hasDefault = values.some(
-      (v) => v === "default_value" || JSON.stringify(v).includes("default_value")
+      (v) =>
+        v === "default_value" || JSON.stringify(v).includes("default_value")
     );
     expect(hasDefault).toBe(true);
   });
@@ -136,14 +139,16 @@ describe("WorkflowNode: string passthrough", () => {
     const node = new WorkflowNode({
       workflow_id: subWf.id,
       workflow_json: subWf,
-      text: "overridden_value",
+      text: "overridden_value"
     });
     const result = await node.process(ctx);
 
     const values = Object.values(result);
     expect(values.length).toBeGreaterThan(0);
     const hasOverridden = values.some(
-      (v) => v === "overridden_value" || JSON.stringify(v).includes("overridden_value")
+      (v) =>
+        v === "overridden_value" ||
+        JSON.stringify(v).includes("overridden_value")
     );
     expect(hasOverridden).toBe(true);
   });
@@ -159,23 +164,23 @@ describe("WorkflowNode: integer input type", () => {
           {
             id: "inp1",
             type: "nodetool.input.IntegerInput",
-            data: { name: "count", value: 42 },
+            data: { name: "count", value: 42 }
           },
           {
             id: "out1",
             type: "nodetool.output.Output",
-            data: { name: "result", value: 0 },
-          },
+            data: { name: "result", value: 0 }
+          }
         ],
         edges: [
           {
             source: "inp1",
             sourceHandle: "output",
             target: "out1",
-            targetHandle: "value",
-          },
-        ],
-      },
+            targetHandle: "value"
+          }
+        ]
+      }
     };
   }
 
@@ -186,7 +191,7 @@ describe("WorkflowNode: integer input type", () => {
 
     const node = new WorkflowNode({
       workflow_id: subWf.id,
-      workflow_json: subWf,
+      workflow_json: subWf
     });
     const result = await node.process(ctx);
 
@@ -202,7 +207,7 @@ describe("WorkflowNode: integer input type", () => {
     const node = new WorkflowNode({
       workflow_id: subWf.id,
       workflow_json: subWf,
-      count: 99,
+      count: 99
     });
     const result = await node.process(ctx);
 
@@ -221,23 +226,23 @@ describe("WorkflowNode: float input type", () => {
           {
             id: "inp1",
             type: "nodetool.input.FloatInput",
-            data: { name: "ratio", value: 3.14 },
+            data: { name: "ratio", value: 3.14 }
           },
           {
             id: "out1",
             type: "nodetool.output.Output",
-            data: { name: "result", value: 0 },
-          },
+            data: { name: "result", value: 0 }
+          }
         ],
         edges: [
           {
             source: "inp1",
             sourceHandle: "output",
             target: "out1",
-            targetHandle: "value",
-          },
-        ],
-      },
+            targetHandle: "value"
+          }
+        ]
+      }
     };
   }
 
@@ -249,7 +254,7 @@ describe("WorkflowNode: float input type", () => {
     const node = new WorkflowNode({
       workflow_id: subWf.id,
       workflow_json: subWf,
-      ratio: 2.718,
+      ratio: 2.718
     });
     const result = await node.process(ctx);
 
@@ -268,23 +273,23 @@ describe("WorkflowNode: boolean input type", () => {
           {
             id: "inp1",
             type: "nodetool.input.BooleanInput",
-            data: { name: "flag", value: false },
+            data: { name: "flag", value: false }
           },
           {
             id: "out1",
             type: "nodetool.output.Output",
-            data: { name: "result", value: false },
-          },
+            data: { name: "result", value: false }
+          }
         ],
         edges: [
           {
             source: "inp1",
             sourceHandle: "output",
             target: "out1",
-            targetHandle: "value",
-          },
-        ],
-      },
+            targetHandle: "value"
+          }
+        ]
+      }
     };
   }
 
@@ -296,7 +301,7 @@ describe("WorkflowNode: boolean input type", () => {
     const node = new WorkflowNode({
       workflow_id: subWf.id,
       workflow_json: subWf,
-      flag: true,
+      flag: true
     });
     const result = await node.process(ctx);
 
@@ -315,39 +320,39 @@ describe("WorkflowNode: multiple inputs and outputs", () => {
           {
             id: "inp1",
             type: "nodetool.input.StringInput",
-            data: { name: "greeting", value: "hello" },
+            data: { name: "greeting", value: "hello" }
           },
           {
             id: "inp2",
             type: "nodetool.input.IntegerInput",
-            data: { name: "count", value: 1 },
+            data: { name: "count", value: 1 }
           },
           {
             id: "out1",
             type: "nodetool.output.Output",
-            data: { name: "message", value: "" },
+            data: { name: "message", value: "" }
           },
           {
             id: "out2",
             type: "nodetool.output.Output",
-            data: { name: "number", value: 0 },
-          },
+            data: { name: "number", value: 0 }
+          }
         ],
         edges: [
           {
             source: "inp1",
             sourceHandle: "output",
             target: "out1",
-            targetHandle: "value",
+            targetHandle: "value"
           },
           {
             source: "inp2",
             sourceHandle: "output",
             target: "out2",
-            targetHandle: "value",
-          },
-        ],
-      },
+            targetHandle: "value"
+          }
+        ]
+      }
     };
   }
 
@@ -360,7 +365,7 @@ describe("WorkflowNode: multiple inputs and outputs", () => {
       workflow_id: subWf.id,
       workflow_json: subWf,
       greeting: "hi",
-      count: 5,
+      count: 5
     });
     const result = await node.process(ctx);
 
@@ -378,7 +383,7 @@ describe("WorkflowNode: multiple inputs and outputs", () => {
     const node = new WorkflowNode({
       workflow_id: subWf.id,
       workflow_json: subWf,
-      greeting: "world",
+      greeting: "world"
     });
     const result = await node.process(ctx);
 
@@ -397,7 +402,7 @@ describe("WorkflowNode: streaming via genProcess", () => {
     const node = new WorkflowNode({
       workflow_id: subWf.id,
       workflow_json: subWf,
-      text: "streamed",
+      text: "streamed"
     });
 
     const results: Record<string, unknown>[] = [];
@@ -431,32 +436,32 @@ describe("WorkflowNode: embedded in parent workflow", () => {
         is_streaming_output: true,
         properties: {
           workflow_id: subWf.id,
-          workflow_json: subWf,
+          workflow_json: subWf
         },
         dynamic_outputs: {
-          result: { type: "str", type_args: [] },
-        },
+          result: { type: "str", type_args: [] }
+        }
       },
       {
         id: "parent-out",
         type: "nodetool.output.Output",
         name: "final",
-        properties: { name: "final", value: "" },
-      },
+        properties: { name: "final", value: "" }
+      }
     ];
     const edges: Edge[] = [
       {
         source: "parent-inp",
         sourceHandle: "value",
         target: "wf-node",
-        targetHandle: "text",
+        targetHandle: "text"
       },
       {
         source: "wf-node",
         sourceHandle: "result",
         target: "parent-out",
-        targetHandle: "value",
-      },
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner(registry, ctx);
@@ -469,9 +474,7 @@ describe("WorkflowNode: embedded in parent workflow", () => {
     const outputValues = Object.values(result.outputs).flat();
     expect(
       outputValues.some(
-        (v) =>
-          v === "from_parent" ||
-          JSON.stringify(v).includes("from_parent")
+        (v) => v === "from_parent" || JSON.stringify(v).includes("from_parent")
       )
     ).toBe(true);
   });
@@ -493,29 +496,29 @@ describe("WorkflowNode: dynamic_properties propagation (no edge)", () => {
         is_streaming_output: true,
         properties: {
           workflow_id: subWf.id,
-          workflow_json: subWf,
+          workflow_json: subWf
         },
         dynamic_properties: {
-          text: "from_dynamic_props",
+          text: "from_dynamic_props"
         },
         dynamic_outputs: {
-          result: { type: "str", type_args: [] },
-        },
+          result: { type: "str", type_args: [] }
+        }
       },
       {
         id: "parent-out",
         type: "nodetool.output.Output",
         name: "final",
-        properties: { name: "final", value: "" },
-      },
+        properties: { name: "final", value: "" }
+      }
     ];
     const edges: Edge[] = [
       {
         source: "wf-node",
         sourceHandle: "result",
         target: "parent-out",
-        targetHandle: "value",
-      },
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner(registry, ctx);
@@ -543,7 +546,7 @@ describe("WorkflowNode: error handling", () => {
 
     const node = new WorkflowNode({
       workflow_id: "missing",
-      workflow_json: { id: "missing", name: "Missing" },
+      workflow_json: { id: "missing", name: "Missing" }
     });
     const result = await node.process(ctx);
     expect(result).toEqual({});
@@ -555,7 +558,7 @@ describe("WorkflowNode: error handling", () => {
 
     const node = new WorkflowNode({
       workflow_id: "empty",
-      workflow_json: { id: "empty", name: "Empty", graph: {} },
+      workflow_json: { id: "empty", name: "Empty", graph: {} }
     });
     const result = await node.process(ctx);
     expect(result).toEqual({});
@@ -570,8 +573,8 @@ describe("WorkflowNode: error handling", () => {
       workflow_json: {
         id: "no-edges",
         name: "NoEdges",
-        graph: { nodes: [], edges: undefined },
-      },
+        graph: { nodes: [], edges: undefined }
+      }
     });
     const result = await node.process(ctx);
     expect(result).toEqual({});
@@ -589,41 +592,41 @@ describe("WorkflowNode: sub-workflow with intermediate node", () => {
           {
             id: "inp1",
             type: "nodetool.input.StringInput",
-            data: { name: "text", value: "default" },
+            data: { name: "text", value: "default" }
           },
           {
             id: "reroute1",
             type: "nodetool.control.Reroute",
-            data: {},
+            data: {}
           },
           {
             id: "out1",
             type: "nodetool.output.Output",
-            data: { name: "result", value: "" },
-          },
+            data: { name: "result", value: "" }
+          }
         ],
         edges: [
           {
             source: "inp1",
             sourceHandle: "output",
             target: "reroute1",
-            targetHandle: "input_value",
+            targetHandle: "input_value"
           },
           {
             source: "reroute1",
             sourceHandle: "output",
             target: "out1",
-            targetHandle: "value",
-          },
-        ],
-      },
+            targetHandle: "value"
+          }
+        ]
+      }
     };
 
     const ctx = makeContext(registry);
     const node = new WorkflowNode({
       workflow_id: subWf.id,
       workflow_json: subWf,
-      text: "through_reroute",
+      text: "through_reroute"
     });
     const result = await node.process(ctx);
 

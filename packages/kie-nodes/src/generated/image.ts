@@ -4,7 +4,7 @@ import {
   getApiKey,
   kieExecuteTask,
   isRefSet,
-  uploadImageInput,
+  uploadImageInput
 } from "../kie-base.js";
 
 export class Flux2ProTextToImageNode extends BaseNode {
@@ -22,24 +22,49 @@ export class Flux2ProTextToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","4:3","3:4","16:9","9:16","3:2","2:3","auto"], title: "Aspect Ratio", description: "The aspect ratio of the generated image. 'auto' matches the first input image ratio." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"],
+    title: "Aspect Ratio",
+    description:
+      "The aspect ratio of the generated image. 'auto' matches the first input image ratio."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "1K", values: ["1K","2K"], title: "Resolution", description: "Output image resolution." })
+  @prop({
+    type: "enum",
+    default: "1K",
+    values: ["1K", "2K"],
+    title: "Resolution",
+    description: "Output image resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["resolution"] = String(this.resolution ?? "1K");
 
-    const result = await kieExecuteTask(apiKey, "flux-2/pro-text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "flux-2/pro-text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -60,21 +85,45 @@ export class Flux2ProImageToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing how to transform the image."
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Images", description: "Source images to transform (1-8 images supported)." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description: "Source images to transform (1-8 images supported)."
+  })
   declare images: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","4:3","3:4","16:9","9:16","3:2","2:3","auto"], title: "Aspect Ratio", description: "The aspect ratio of the generated image. 'auto' matches the first input image ratio." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"],
+    title: "Aspect Ratio",
+    description:
+      "The aspect ratio of the generated image. 'auto' matches the first input image ratio."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "1K", values: ["1K","2K"], title: "Resolution", description: "Output image resolution." })
+  @prop({
+    type: "enum",
+    default: "1K",
+    values: ["1K", "2K"],
+    title: "Resolution",
+    description: "Output image resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const imagesUrls: string[] = [];
     const imagesList = Array.isArray(this.images) ? this.images : [];
     for (const item of imagesList) {
@@ -86,7 +135,13 @@ export class Flux2ProImageToImageNode extends BaseNode {
     params["resolution"] = String(this.resolution ?? "1K");
     if (imagesUrls.length) params["input_urls"] = imagesUrls;
 
-    const result = await kieExecuteTask(apiKey, "flux-2/pro-image-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "flux-2/pro-image-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -106,24 +161,49 @@ export class Flux2FlexTextToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","4:3","3:4","16:9","9:16","3:2","2:3","auto"], title: "Aspect Ratio", description: "The aspect ratio of the generated image. 'auto' matches the first input image ratio." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"],
+    title: "Aspect Ratio",
+    description:
+      "The aspect ratio of the generated image. 'auto' matches the first input image ratio."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "1K", values: ["1K","2K"], title: "Resolution", description: "Output image resolution." })
+  @prop({
+    type: "enum",
+    default: "1K",
+    values: ["1K", "2K"],
+    title: "Resolution",
+    description: "Output image resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["resolution"] = String(this.resolution ?? "1K");
 
-    const result = await kieExecuteTask(apiKey, "flux-2/flex-text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "flux-2/flex-text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -144,21 +224,45 @@ export class Flux2FlexImageToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing how to transform the image."
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Images", description: "Source images to transform (1-8 images supported)." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description: "Source images to transform (1-8 images supported)."
+  })
   declare images: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","4:3","3:4","16:9","9:16","3:2","2:3","auto"], title: "Aspect Ratio", description: "The aspect ratio of the generated image. 'auto' matches the first input image ratio." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"],
+    title: "Aspect Ratio",
+    description:
+      "The aspect ratio of the generated image. 'auto' matches the first input image ratio."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "1K", values: ["1K","2K"], title: "Resolution", description: "Output image resolution." })
+  @prop({
+    type: "enum",
+    default: "1K",
+    values: ["1K", "2K"],
+    title: "Resolution",
+    description: "Output image resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const imagesUrls: string[] = [];
     const imagesList = Array.isArray(this.images) ? this.images : [];
     for (const item of imagesList) {
@@ -170,7 +274,13 @@ export class Flux2FlexImageToImageNode extends BaseNode {
     params["resolution"] = String(this.resolution ?? "1K");
     if (imagesUrls.length) params["input_urls"] = imagesUrls;
 
-    const result = await kieExecuteTask(apiKey, "flux-2/flex-image-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "flux-2/flex-image-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -193,24 +303,48 @@ export class Seedream45TextToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "basic", values: ["basic","high"], title: "Quality", description: "Basic outputs 2K images, while High outputs 4K images." })
+  @prop({
+    type: "enum",
+    default: "basic",
+    values: ["basic", "high"],
+    title: "Quality",
+    description: "Basic outputs 2K images, while High outputs 4K images."
+  })
   declare quality: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["resolution"] = String(this.quality ?? "basic");
 
-    const result = await kieExecuteTask(apiKey, "seedream/4-5-text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "seedream/4-5-text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -234,30 +368,60 @@ export class Seedream45EditNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to edit the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing how to edit the image."
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Image Input", description: "The source images to edit." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Image Input",
+    description: "The source images to edit."
+  })
   declare image_input: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the output image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the output image."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "basic", values: ["basic","high"], title: "Quality", description: "Basic outputs 2K images, while High outputs 4K images." })
+  @prop({
+    type: "enum",
+    default: "basic",
+    values: ["basic", "high"],
+    title: "Quality",
+    description: "Basic outputs 2K images, while High outputs 4K images."
+  })
   declare quality: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     let imageInputUrl = "";
-    if (isRefSet(this.image_input)) imageInputUrl = await uploadImageInput(apiKey, this.image_input);
+    if (isRefSet(this.image_input))
+      imageInputUrl = await uploadImageInput(apiKey, this.image_input);
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["resolution"] = String(this.quality ?? "basic");
     if (imageInputUrl) params["image_url"] = imageInputUrl;
 
-    const result = await kieExecuteTask(apiKey, "seedream/4-5-edit", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "seedream/4-5-edit",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -281,20 +445,38 @@ export class ZImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
 
-    const result = await kieExecuteTask(apiKey, "z-image/turbo", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "z-image/turbo",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -309,20 +491,50 @@ export class NanoBananaNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","9:16","16:9","3:4","4:3","3:2","2:3","5:4","4:5","21:9","auto"], title: "Image Size", description: "The size of the output image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: [
+      "1:1",
+      "9:16",
+      "16:9",
+      "3:4",
+      "4:3",
+      "3:2",
+      "2:3",
+      "5:4",
+      "4:5",
+      "21:9",
+      "auto"
+    ],
+    title: "Image Size",
+    description: "The size of the output image."
+  })
   declare image_size: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.image_size ?? "1:1");
 
-    const result = await kieExecuteTask(apiKey, "nano-banana/text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "nano-banana/text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -337,27 +549,56 @@ export class NanoBananaProNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Image Input", description: "Optional image inputs for multimodal generation." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Image Input",
+    description: "Optional image inputs for multimodal generation."
+  })
   declare image_input: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "2K", values: ["1K","2K","4K"], title: "Resolution", description: "Output image resolution." })
+  @prop({
+    type: "enum",
+    default: "2K",
+    values: ["1K", "2K", "4K"],
+    title: "Resolution",
+    description: "Output image resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["resolution"] = String(this.resolution ?? "2K");
 
-    const result = await kieExecuteTask(apiKey, "nano-banana-pro/text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "nano-banana-pro/text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -381,24 +622,48 @@ export class FluxKontextNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "pro", values: ["pro","max"], title: "Mode", description: "Generation mode: 'pro' for speed, 'max' for quality." })
+  @prop({
+    type: "enum",
+    default: "pro",
+    values: ["pro", "max"],
+    title: "Mode",
+    description: "Generation mode: 'pro' for speed, 'max' for quality."
+  })
   declare mode: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["mode"] = String(this.mode ?? "pro");
 
-    const result = await kieExecuteTask(apiKey, "flux-kontext/text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "flux-kontext/text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -420,20 +685,38 @@ export class GrokImagineTextToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
 
-    const result = await kieExecuteTask(apiKey, "grok-imagine/text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "grok-imagine/text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -454,17 +737,36 @@ export class GrokImagineUpscaleNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The image to upscale. Must be an image previously generated by a Kie.ai node." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description:
+      "The image to upscale. Must be an image previously generated by a Kie.ai node."
+  })
   declare image: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "grok-imagine/upscale", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "grok-imagine/upscale",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -486,20 +788,38 @@ export class QwenTextToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
 
-    const result = await kieExecuteTask(apiKey, "qwen/text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "qwen/text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -522,26 +842,56 @@ export class QwenImageToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing how to transform the image."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The source image to transform." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The source image to transform."
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the output image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the output image."
+  })
   declare aspect_ratio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "qwen/image-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "qwen/image-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -564,21 +914,45 @@ export class TopazImageUpscaleNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The image to upscale." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to upscale."
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "2", values: ["2","4"], title: "Upscale Factor", description: "The upscaling factor (2x or 4x)." })
+  @prop({
+    type: "enum",
+    default: "2",
+    values: ["2", "4"],
+    title: "Upscale Factor",
+    description: "The upscaling factor (2x or 4x)."
+  })
   declare upscale_factor: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
     params["scale_factor"] = String(this.upscale_factor ?? "2");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "topaz/image-upscale", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "topaz/image-upscale",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -598,17 +972,35 @@ export class RecraftRemoveBackgroundNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The image to remove the background from." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to remove the background from."
+  })
   declare image: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "recraft/remove-background", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "recraft/remove-background",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -631,37 +1023,92 @@ export class IdeogramCharacterNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Text description for the character image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Text description for the character image."
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Reference Images", description: "Reference images for character guidance." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Reference Images",
+    description: "Reference images for character guidance."
+  })
   declare reference_images: any;
 
-  @prop({ type: "enum", default: "BALANCED", values: ["TURBO","BALANCED","QUALITY"], title: "Rendering Speed", description: "Rendering speed preference." })
+  @prop({
+    type: "enum",
+    default: "BALANCED",
+    values: ["TURBO", "BALANCED", "QUALITY"],
+    title: "Rendering Speed",
+    description: "Rendering speed preference."
+  })
   declare rendering_speed: any;
 
-  @prop({ type: "enum", default: "AUTO", values: ["AUTO","REALISTIC","FICTION"], title: "Style", description: "Generation style." })
+  @prop({
+    type: "enum",
+    default: "AUTO",
+    values: ["AUTO", "REALISTIC", "FICTION"],
+    title: "Style",
+    description: "Generation style."
+  })
   declare style: any;
 
-  @prop({ type: "bool", default: true, title: "Expand Prompt", description: "Whether to expand/augment the prompt." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Expand Prompt",
+    description: "Whether to expand/augment the prompt."
+  })
   declare expand_prompt: any;
 
-  @prop({ type: "enum", default: "square_hd", values: ["square","square_hd","portrait_4_3","portrait_16_9","landscape_4_3","landscape_16_9"], title: "Image Size", description: "The size of the output image." })
+  @prop({
+    type: "enum",
+    default: "square_hd",
+    values: [
+      "square",
+      "square_hd",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+    ],
+    title: "Image Size",
+    description: "The size of the output image."
+  })
   declare image_size: any;
 
-  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Undesired elements to exclude from the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Undesired elements to exclude from the image."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "int", default: 0, title: "Seed", description: "Random seed for generation.", min: 0 })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Seed",
+    description: "Random seed for generation.",
+    min: 0
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const referenceImagesUrls: string[] = [];
-    const referenceImagesList = Array.isArray(this.reference_images) ? this.reference_images : [];
+    const referenceImagesList = Array.isArray(this.reference_images)
+      ? this.reference_images
+      : [];
     for (const item of referenceImagesList) {
-      if (isRefSet(item)) referenceImagesUrls.push(await uploadImageInput(apiKey, item));
+      if (isRefSet(item))
+        referenceImagesUrls.push(await uploadImageInput(apiKey, item));
     }
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
@@ -673,7 +1120,13 @@ export class IdeogramCharacterNode extends BaseNode {
     params["seed"] = Number(this.seed ?? 0);
     if (referenceImagesUrls.length) params["input_urls"] = referenceImagesUrls;
 
-    const result = await kieExecuteTask(apiKey, "ideogram/v3-character", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "ideogram/v3-character",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -696,41 +1149,102 @@ export class IdeogramCharacterEditNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Text description for the masked area." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Text description for the masked area."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "Base image with masked area to fill." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Base image with masked area to fill."
+  })
   declare image: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Mask", description: "Mask image indicating areas to edit." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Mask",
+    description: "Mask image indicating areas to edit."
+  })
   declare mask: any;
 
-  @prop({ type: "list[image]", default: [], title: "Reference Images", description: "Reference images for character guidance." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Reference Images",
+    description: "Reference images for character guidance."
+  })
   declare reference_images: any;
 
-  @prop({ type: "enum", default: "BALANCED", values: ["TURBO","BALANCED","QUALITY"], title: "Rendering Speed", description: "Rendering speed preference." })
+  @prop({
+    type: "enum",
+    default: "BALANCED",
+    values: ["TURBO", "BALANCED", "QUALITY"],
+    title: "Rendering Speed",
+    description: "Rendering speed preference."
+  })
   declare rendering_speed: any;
 
-  @prop({ type: "enum", default: "AUTO", values: ["AUTO","REALISTIC","FICTION"], title: "Style", description: "Generation style." })
+  @prop({
+    type: "enum",
+    default: "AUTO",
+    values: ["AUTO", "REALISTIC", "FICTION"],
+    title: "Style",
+    description: "Generation style."
+  })
   declare style: any;
 
-  @prop({ type: "bool", default: true, title: "Expand Prompt", description: "Whether to expand/augment the prompt." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Expand Prompt",
+    description: "Whether to expand/augment the prompt."
+  })
   declare expand_prompt: any;
 
-  @prop({ type: "int", default: 0, title: "Seed", description: "Random seed for generation.", min: 0 })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Seed",
+    description: "Random seed for generation.",
+    min: 0
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     let maskUrl = "";
-    if (isRefSet(this.mask)) maskUrl = await uploadImageInput(apiKey, this.mask);
+    if (isRefSet(this.mask))
+      maskUrl = await uploadImageInput(apiKey, this.mask);
     const referenceImagesUrls: string[] = [];
-    const referenceImagesList = Array.isArray(this.reference_images) ? this.reference_images : [];
+    const referenceImagesList = Array.isArray(this.reference_images)
+      ? this.reference_images
+      : [];
     for (const item of referenceImagesList) {
-      if (isRefSet(item)) referenceImagesUrls.push(await uploadImageInput(apiKey, item));
+      if (isRefSet(item))
+        referenceImagesUrls.push(await uploadImageInput(apiKey, item));
     }
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
@@ -740,9 +1254,16 @@ export class IdeogramCharacterEditNode extends BaseNode {
     params["seed"] = Number(this.seed ?? 0);
     if (imageUrl) params["image_url"] = imageUrl;
     if (maskUrl) params["mask_url"] = maskUrl;
-    if (referenceImagesUrls.length) params["reference_image_urls"] = referenceImagesUrls;
+    if (referenceImagesUrls.length)
+      params["reference_image_urls"] = referenceImagesUrls;
 
-    const result = await kieExecuteTask(apiKey, "ideogram/v3-character-edit", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "ideogram/v3-character-edit",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -760,48 +1281,126 @@ export class IdeogramCharacterRemixNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Text description for remixing." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Text description for remixing."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "Base image to remix." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Base image to remix."
+  })
   declare image: any;
 
-  @prop({ type: "list[image]", default: [], title: "Reference Images", description: "Reference images for character guidance." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Reference Images",
+    description: "Reference images for character guidance."
+  })
   declare reference_images: any;
 
-  @prop({ type: "enum", default: "BALANCED", values: ["TURBO","BALANCED","QUALITY"], title: "Rendering Speed", description: "Rendering speed preference." })
+  @prop({
+    type: "enum",
+    default: "BALANCED",
+    values: ["TURBO", "BALANCED", "QUALITY"],
+    title: "Rendering Speed",
+    description: "Rendering speed preference."
+  })
   declare rendering_speed: any;
 
-  @prop({ type: "enum", default: "AUTO", values: ["AUTO","GENERAL","REALISTIC","DESIGN"], title: "Style", description: "Generation style." })
+  @prop({
+    type: "enum",
+    default: "AUTO",
+    values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"],
+    title: "Style",
+    description: "Generation style."
+  })
   declare style: any;
 
-  @prop({ type: "bool", default: true, title: "Expand Prompt", description: "Whether to expand/augment the prompt." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Expand Prompt",
+    description: "Whether to expand/augment the prompt."
+  })
   declare expand_prompt: any;
 
-  @prop({ type: "enum", default: "square_hd", values: ["square","square_hd","portrait_4_3","portrait_16_9","landscape_4_3","landscape_16_9"], title: "Image Size", description: "The size of the output image." })
+  @prop({
+    type: "enum",
+    default: "square_hd",
+    values: [
+      "square",
+      "square_hd",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+    ],
+    title: "Image Size",
+    description: "The size of the output image."
+  })
   declare image_size: any;
 
-  @prop({ type: "float", default: 0.8, title: "Strength", description: "How strongly to apply the remix (0.0 to 1.0).", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0.8,
+    title: "Strength",
+    description: "How strongly to apply the remix (0.0 to 1.0).",
+    min: 0,
+    max: 1
+  })
   declare strength: any;
 
-  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Undesired elements to exclude from the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Undesired elements to exclude from the image."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Additional Images", description: "Additional image this." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Additional Images",
+    description: "Additional image this."
+  })
   declare additional_images: any;
 
-  @prop({ type: "str", default: "", title: "Reference Mask Urls", description: "URL(s) to masks for references (comma-separated)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Reference Mask Urls",
+    description: "URL(s) to masks for references (comma-separated)."
+  })
   declare reference_mask_urls: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const referenceImagesUrls: string[] = [];
-    const referenceImagesList = Array.isArray(this.reference_images) ? this.reference_images : [];
+    const referenceImagesList = Array.isArray(this.reference_images)
+      ? this.reference_images
+      : [];
     for (const item of referenceImagesList) {
-      if (isRefSet(item)) referenceImagesUrls.push(await uploadImageInput(apiKey, item));
+      if (isRefSet(item))
+        referenceImagesUrls.push(await uploadImageInput(apiKey, item));
     }
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
@@ -813,9 +1412,16 @@ export class IdeogramCharacterRemixNode extends BaseNode {
     params["negative_prompt"] = String(this.negative_prompt ?? "");
     params["reference_mask_urls"] = String(this.reference_mask_urls ?? "");
     if (imageUrl) params["image_url"] = imageUrl;
-    if (referenceImagesUrls.length) params["reference_image_urls"] = referenceImagesUrls;
+    if (referenceImagesUrls.length)
+      params["reference_image_urls"] = referenceImagesUrls;
 
-    const result = await kieExecuteTask(apiKey, "ideogram/v3-character-remix", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "ideogram/v3-character-remix",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -834,16 +1440,52 @@ export class IdeogramV3ReframeNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "URL of the image to reframe." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "URL of the image to reframe."
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "square_hd", values: ["square","square_hd","portrait_4_3","portrait_16_9","landscape_4_3","landscape_16_9"], title: "Image Size", description: "Output resolution preset." })
+  @prop({
+    type: "enum",
+    default: "square_hd",
+    values: [
+      "square",
+      "square_hd",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+    ],
+    title: "Image Size",
+    description: "Output resolution preset."
+  })
   declare image_size: any;
 
-  @prop({ type: "enum", default: "BALANCED", values: ["TURBO","BALANCED","QUALITY"], title: "Rendering Speed", description: "Rendering speed preference." })
+  @prop({
+    type: "enum",
+    default: "BALANCED",
+    values: ["TURBO", "BALANCED", "QUALITY"],
+    title: "Rendering Speed",
+    description: "Rendering speed preference."
+  })
   declare rendering_speed: any;
 
-  @prop({ type: "enum", default: "AUTO", values: ["AUTO","GENERAL","REALISTIC","DESIGN"], title: "Style", description: "Generation style." })
+  @prop({
+    type: "enum",
+    default: "AUTO",
+    values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"],
+    title: "Style",
+    description: "Generation style."
+  })
   declare style: any;
 
   @prop({ type: "int", default: 0, title: "Seed", description: "RNG seed." })
@@ -852,7 +1494,8 @@ export class IdeogramV3ReframeNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
     params["image_size"] = String(this.image_size ?? "square_hd");
     params["rendering_speed"] = String(this.rendering_speed ?? "BALANCED");
@@ -860,7 +1503,13 @@ export class IdeogramV3ReframeNode extends BaseNode {
     params["seed"] = Number(this.seed ?? 0);
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "ideogram/v3-reframe", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "ideogram/v3-reframe",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -875,17 +1524,35 @@ export class RecraftCrispUpscaleNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The image to upscale." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to upscale."
+  })
   declare image: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "recraft/crisp-upscale", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "recraft/crisp-upscale",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -900,24 +1567,47 @@ export class Imagen4FastNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Undesired elements to exclude." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Undesired elements to exclude."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["negative_prompt"] = String(this.negative_prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
 
-    const result = await kieExecuteTask(apiKey, "imagen-4/fast", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "imagen-4/fast",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -932,13 +1622,29 @@ export class Imagen4UltraNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Undesired elements to exclude." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Undesired elements to exclude."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
   @prop({ type: "int", default: 0, title: "Seed", description: "RNG seed." })
@@ -946,14 +1652,21 @@ export class Imagen4UltraNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["negative_prompt"] = String(this.negative_prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["seed"] = Number(this.seed ?? 0);
 
-    const result = await kieExecuteTask(apiKey, "imagen-4/ultra", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "imagen-4/ultra",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -968,13 +1681,29 @@ export class Imagen4Node extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Undesired elements to exclude." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Undesired elements to exclude."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
   @prop({ type: "int", default: 0, title: "Seed", description: "RNG seed." })
@@ -982,14 +1711,21 @@ export class Imagen4Node extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["negative_prompt"] = String(this.negative_prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["seed"] = Number(this.seed ?? 0);
 
-    const result = await kieExecuteTask(apiKey, "imagen-4/standard", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "imagen-4/standard",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1004,26 +1740,62 @@ export class NanoBananaEditNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Text description of the changes to make." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Text description of the changes to make."
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Image Input", description: "Images to edit." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Image Input",
+    description: "Images to edit."
+  })
   declare image_input: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","9:16","16:9","3:4","4:3","3:2","2:3","5:4","4:5","21:9","auto"], title: "Image Size", description: "The size of the output image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: [
+      "1:1",
+      "9:16",
+      "16:9",
+      "3:4",
+      "4:3",
+      "3:2",
+      "2:3",
+      "5:4",
+      "4:5",
+      "21:9",
+      "auto"
+    ],
+    title: "Image Size",
+    description: "The size of the output image."
+  })
   declare image_size: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     let imageInputUrl = "";
-    if (isRefSet(this.image_input)) imageInputUrl = await uploadImageInput(apiKey, this.image_input);
+    if (isRefSet(this.image_input))
+      imageInputUrl = await uploadImageInput(apiKey, this.image_input);
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["image_size"] = String(this.image_size ?? "1:1");
     if (imageInputUrl) params["image_url"] = imageInputUrl;
 
-    const result = await kieExecuteTask(apiKey, "nano-banana/edit", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "nano-banana/edit",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1048,28 +1820,58 @@ export class GPTImage4oTextToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","3:2","2:3"], title: "Size", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "3:2", "2:3"],
+    title: "Size",
+    description: "The aspect ratio of the generated image."
+  })
   declare size: any;
 
-  @prop({ type: "int", default: 1, title: "N Variants", description: "Number of image variants to generate (1, 2, or 4).", min: 1, max: 4 })
+  @prop({
+    type: "int",
+    default: 1,
+    title: "N Variants",
+    description: "Number of image variants to generate (1, 2, or 4).",
+    min: 1,
+    max: 4
+  })
   declare n_variants: any;
 
-  @prop({ type: "bool", default: false, title: "Is Enhance", description: "Enable prompt enhancement for more refined effects." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Is Enhance",
+    description: "Enable prompt enhancement for more refined effects."
+  })
   declare is_enhance: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["size"] = String(this.size ?? "1:1");
     params["n_variants"] = Number(this.n_variants ?? 1);
     params["is_enhance"] = Boolean(this.is_enhance ?? false);
 
-    const result = await kieExecuteTask(apiKey, "gpt-image-4o/text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "gpt-image-4o/text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1093,21 +1895,45 @@ export class GPTImage4oImageToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to edit the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing how to edit the image."
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Images", description: "Input images to edit (supports up to 5 images)." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description: "Input images to edit (supports up to 5 images)."
+  })
   declare images: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","3:2","2:3"], title: "Size", description: "The aspect ratio of the output image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "3:2", "2:3"],
+    title: "Size",
+    description: "The aspect ratio of the output image."
+  })
   declare size: any;
 
-  @prop({ type: "int", default: 1, title: "N Variants", description: "Number of image variants to generate (1, 2, or 4).", min: 1, max: 4 })
+  @prop({
+    type: "int",
+    default: 1,
+    title: "N Variants",
+    description: "Number of image variants to generate (1, 2, or 4).",
+    min: 1,
+    max: 4
+  })
   declare n_variants: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const imagesUrls: string[] = [];
     const imagesList = Array.isArray(this.images) ? this.images : [];
     for (const item of imagesList) {
@@ -1119,7 +1945,13 @@ export class GPTImage4oImageToImageNode extends BaseNode {
     params["n_variants"] = Number(this.n_variants ?? 1);
     if (imagesUrls.length) params["input_urls"] = imagesUrls;
 
-    const result = await kieExecuteTask(apiKey, "gpt-image-4o/image-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "gpt-image-4o/image-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1144,24 +1976,49 @@ export class GPTImage15TextToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","2:3","3:2"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "2:3", "3:2"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "medium", values: ["medium","high"], title: "Quality", description: "Image quality setting. Medium = balanced, High = slow/detailed." })
+  @prop({
+    type: "enum",
+    default: "medium",
+    values: ["medium", "high"],
+    title: "Quality",
+    description:
+      "Image quality setting. Medium = balanced, High = slow/detailed."
+  })
   declare quality: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["quality"] = String(this.quality ?? "medium");
 
-    const result = await kieExecuteTask(apiKey, "gpt-image-1-5/text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "gpt-image-1-5/text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1185,21 +2042,45 @@ export class GPTImage15ImageToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to edit the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing how to edit the image."
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Images", description: "Input images to edit (supports up to 16 images)." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description: "Input images to edit (supports up to 16 images)."
+  })
   declare images: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","2:3","3:2"], title: "Aspect Ratio", description: "The aspect ratio of the output image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "2:3", "3:2"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the output image."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "medium", values: ["medium","high"], title: "Quality", description: "Image quality setting. Medium = balanced, High = slow/detailed." })
+  @prop({
+    type: "enum",
+    default: "medium",
+    values: ["medium", "high"],
+    title: "Quality",
+    description:
+      "Image quality setting. Medium = balanced, High = slow/detailed."
+  })
   declare quality: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const imagesUrls: string[] = [];
     const imagesList = Array.isArray(this.images) ? this.images : [];
     for (const item of imagesList) {
@@ -1211,7 +2092,13 @@ export class GPTImage15ImageToImageNode extends BaseNode {
     params["quality"] = String(this.quality ?? "medium");
     if (imagesUrls.length) params["input_urls"] = imagesUrls;
 
-    const result = await kieExecuteTask(apiKey, "gpt-image-1-5/image-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "gpt-image-1-5/image-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1234,40 +2121,93 @@ export class IdeogramV3TextToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Elements to avoid in the generated image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Elements to avoid in the generated image."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "enum", default: "BALANCED", values: ["TURBO","BALANCED","QUALITY"], title: "Rendering Speed", description: "Rendering speed preference." })
+  @prop({
+    type: "enum",
+    default: "BALANCED",
+    values: ["TURBO", "BALANCED", "QUALITY"],
+    title: "Rendering Speed",
+    description: "Rendering speed preference."
+  })
   declare rendering_speed: any;
 
-  @prop({ type: "enum", default: "AUTO", values: ["AUTO","GENERAL","REALISTIC","DESIGN"], title: "Style", description: "Generation style." })
+  @prop({
+    type: "enum",
+    default: "AUTO",
+    values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"],
+    title: "Style",
+    description: "Generation style."
+  })
   declare style: any;
 
-  @prop({ type: "enum", default: "square", values: ["square","square_hd","portrait_4_3","portrait_16_9","landscape_4_3","landscape_16_9"], title: "Image Size", description: "The resolution of the generated image." })
+  @prop({
+    type: "enum",
+    default: "square",
+    values: [
+      "square",
+      "square_hd",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+    ],
+    title: "Image Size",
+    description: "The resolution of the generated image."
+  })
   declare image_size: any;
 
-  @prop({ type: "bool", default: true, title: "Expand Prompt", description: "Whether to expand/augment the prompt with MagicPrompt." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Expand Prompt",
+    description: "Whether to expand/augment the prompt with MagicPrompt."
+  })
   declare expand_prompt: any;
 
-  @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducible results. Use -1 for random." })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "Seed",
+    description: "Random seed for reproducible results. Use -1 for random."
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
-    if (this.negative_prompt) params["negative_prompt"] = String(this.negative_prompt ?? "");
+    if (this.negative_prompt)
+      params["negative_prompt"] = String(this.negative_prompt ?? "");
     params["rendering_speed"] = String(this.rendering_speed ?? "BALANCED");
     params["style"] = String(this.style ?? "AUTO");
     params["image_size"] = String(this.image_size ?? "square");
     params["expand_prompt"] = Boolean(this.expand_prompt ?? true);
     params["seed"] = Number(this.seed ?? -1);
 
-    const result = await kieExecuteTask(apiKey, "ideogram/v3-text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "ideogram/v3-text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1290,38 +2230,104 @@ export class IdeogramV3ImageToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing how to transform the image."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The source image to transform." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The source image to transform."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Elements to avoid in the output." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Elements to avoid in the output."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "enum", default: "BALANCED", values: ["TURBO","BALANCED","QUALITY"], title: "Rendering Speed", description: "Rendering speed preference." })
+  @prop({
+    type: "enum",
+    default: "BALANCED",
+    values: ["TURBO", "BALANCED", "QUALITY"],
+    title: "Rendering Speed",
+    description: "Rendering speed preference."
+  })
   declare rendering_speed: any;
 
-  @prop({ type: "enum", default: "AUTO", values: ["AUTO","GENERAL","REALISTIC","DESIGN"], title: "Style", description: "Generation style." })
+  @prop({
+    type: "enum",
+    default: "AUTO",
+    values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"],
+    title: "Style",
+    description: "Generation style."
+  })
   declare style: any;
 
-  @prop({ type: "enum", default: "square", values: ["square","square_hd","portrait_4_3","portrait_16_9","landscape_4_3","landscape_16_9"], title: "Image Size", description: "The resolution of the output image." })
+  @prop({
+    type: "enum",
+    default: "square",
+    values: [
+      "square",
+      "square_hd",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+    ],
+    title: "Image Size",
+    description: "The resolution of the output image."
+  })
   declare image_size: any;
 
-  @prop({ type: "float", default: 0.5, title: "Strength", description: "Strength of the input image in the remix (0-1). Lower = more original preserved.", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0.5,
+    title: "Strength",
+    description:
+      "Strength of the input image in the remix (0-1). Lower = more original preserved.",
+    min: 0,
+    max: 1
+  })
   declare strength: any;
 
-  @prop({ type: "bool", default: true, title: "Expand Prompt", description: "Whether to expand/augment the prompt with MagicPrompt." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Expand Prompt",
+    description: "Whether to expand/augment the prompt with MagicPrompt."
+  })
   declare expand_prompt: any;
 
-  @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducible results. Use -1 for random." })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "Seed",
+    description: "Random seed for reproducible results. Use -1 for random."
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["negative_prompt"] = String(this.negative_prompt ?? "");
@@ -1333,7 +2339,13 @@ export class IdeogramV3ImageToImageNode extends BaseNode {
     params["seed"] = Number(this.seed ?? -1);
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "ideogram/v3-image-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "ideogram/v3-image-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1356,24 +2368,48 @@ export class Seedream40TextToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing the image to generate."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "basic", values: ["basic","high"], title: "Quality", description: "Basic outputs 2K images, while High outputs 4K images." })
+  @prop({
+    type: "enum",
+    default: "basic",
+    values: ["basic", "high"],
+    title: "Quality",
+    description: "Basic outputs 2K images, while High outputs 4K images."
+  })
   declare quality: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["resolution"] = String(this.quality ?? "basic");
 
-    const result = await kieExecuteTask(apiKey, "seedream/4-0-text-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "seedream/4-0-text-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1396,30 +2432,66 @@ export class Seedream40ImageToImageNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The text prompt describing how to transform the image."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The source image to transform." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The source image to transform."
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "1:1", values: ["1:1","16:9","9:16","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the output image." })
+  @prop({
+    type: "enum",
+    default: "1:1",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the output image."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "basic", values: ["basic","high"], title: "Quality", description: "Basic outputs 2K images, while High outputs 4K images." })
+  @prop({
+    type: "enum",
+    default: "basic",
+    values: ["basic", "high"],
+    title: "Quality",
+    description: "Basic outputs 2K images, while High outputs 4K images."
+  })
   declare quality: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt cannot be empty");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt cannot be empty");
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "1:1");
     params["resolution"] = String(this.quality ?? "basic");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "seedream/4-0-image-to-image", params, 1500, 200);
+    const result = await kieExecuteTask(
+      apiKey,
+      "seedream/4-0-image-to-image",
+      params,
+      1500,
+      200
+    );
     return { output: { type: "image", data: result.data } };
   }
 }
@@ -1457,5 +2529,5 @@ export const KIE_IMAGE_NODES: readonly NodeClass[] = [
   IdeogramV3TextToImageNode,
   IdeogramV3ImageToImageNode,
   Seedream40TextToImageNode,
-  Seedream40ImageToImageNode,
+  Seedream40ImageToImageNode
 ] as const;

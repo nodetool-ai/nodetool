@@ -22,7 +22,7 @@ import {
   GCPStateSchema,
   FlyStateSchema,
   RailwayStateSchema,
-  HuggingFaceStateSchema,
+  HuggingFaceStateSchema
 } from "./deployment-config.js";
 
 // ============================================================================
@@ -165,11 +165,13 @@ export class StateManager {
 
   /** Atomically write a DeploymentConfig to disk. */
   private async saveConfig(config: DeploymentConfig): Promise<void> {
-    const data = JSON.parse(JSON.stringify(config, (_k, v) => v === null ? undefined : v));
+    const data = JSON.parse(
+      JSON.stringify(config, (_k, v) => (v === null ? undefined : v))
+    );
     const yamlStr = yaml.dump(data, {
       flowLevel: -1,
       sortKeys: false,
-      noCompatMode: true,
+      noCompatMode: true
     });
     const tempPath = this.configPath + ".tmp";
     await fs.writeFile(tempPath, yamlStr, { encoding: "utf-8", mode: 0o600 });
@@ -233,11 +235,7 @@ export class StateManager {
     status: string,
     updateTimestamp = true
   ): Promise<void> {
-    await this.writeState(
-      deploymentName,
-      { status },
-      updateTimestamp
-    );
+    await this.writeState(deploymentName, { status }, updateTimestamp);
   }
 
   /**
@@ -275,9 +273,7 @@ export class StateManager {
         return String(existing);
       }
 
-      const secretValue = crypto
-        .randomBytes(byteLength)
-        .toString("base64url");
+      const secretValue = crypto.randomBytes(byteLength).toString("base64url");
       stateDict[fieldName] = secretValue;
 
       deployment.state = revalidateState(deployment, stateDict);
@@ -373,7 +369,7 @@ export function createStateSnapshot(
   const snapshot: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     version: config.version,
-    deployments: {} as Record<string, unknown>,
+    deployments: {} as Record<string, unknown>
   };
 
   if (configPath) {
@@ -385,7 +381,7 @@ export function createStateSnapshot(
     deployments[name] = {
       type: deployment.type,
       enabled: deployment.enabled,
-      state: { ...deployment.state },
+      state: { ...deployment.state }
     };
   }
 
@@ -448,12 +444,17 @@ export async function restoreStateFromSnapshot(
     }
 
     if (resolvedConfigPath) {
-      const data = JSON.parse(JSON.stringify(config, (_k, v) => v === null ? undefined : v));
+      const data = JSON.parse(
+        JSON.stringify(config, (_k, v) => (v === null ? undefined : v))
+      );
       const yamlStr = yaml.dump(data, {
         flowLevel: -1,
-        sortKeys: false,
+        sortKeys: false
       });
-      await fs.writeFile(resolvedConfigPath, yamlStr, { encoding: "utf-8", mode: 0o600 });
+      await fs.writeFile(resolvedConfigPath, yamlStr, {
+        encoding: "utf-8",
+        mode: 0o600
+      });
     } else {
       await saveDeploymentConfig(config);
     }

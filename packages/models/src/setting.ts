@@ -37,7 +37,9 @@ export class Setting extends DBModel {
   /** Find a setting by user_id and key. */
   static async find(userId: string, key: string): Promise<Setting | null> {
     const db = getDb();
-    const row = db.select().from(appSettings)
+    const row = db
+      .select()
+      .from(appSettings)
       .where(and(eq(appSettings.user_id, userId), eq(appSettings.key, key)))
       .limit(1)
       .get();
@@ -71,7 +73,7 @@ export class Setting extends DBModel {
       value: opts.value,
       description: opts.description ?? "",
       created_at: now,
-      updated_at: now,
+      updated_at: now
     });
   }
 
@@ -88,10 +90,12 @@ export class Setting extends DBModel {
   /** List all settings for a user. */
   static async listForUser(userId: string): Promise<Setting[]> {
     const db = getDb();
-    const rows = db.select().from(appSettings)
+    const rows = db
+      .select()
+      .from(appSettings)
       .where(eq(appSettings.user_id, userId))
       .all();
-    return rows.map(r => new Setting(r as Record<string, unknown>));
+    return rows.map((r) => new Setting(r as Record<string, unknown>));
   }
 
   /** Get the plaintext value. */

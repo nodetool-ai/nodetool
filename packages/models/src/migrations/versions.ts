@@ -49,7 +49,7 @@ export const migrations: MigrationDef[] = [
     async down(db) {
       await db.execute("DROP INDEX IF EXISTS idx_nodetool_workflows_user_id");
       await db.execute("DROP TABLE IF EXISTS nodetool_workflows");
-    },
+    }
   },
 
   // ── 002: Create assets ─────────────────────────────────────────────
@@ -81,10 +81,10 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute(
-        "DROP INDEX IF EXISTS idx_nodetool_assets_user_id_parent_id",
+        "DROP INDEX IF EXISTS idx_nodetool_assets_user_id_parent_id"
       );
       await db.execute("DROP TABLE IF EXISTS nodetool_assets");
-    },
+    }
   },
 
   // ── 003: Create threads ────────────────────────────────────────────
@@ -106,7 +106,7 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS nodetool_threads");
-    },
+    }
   },
 
   // ── 004: Create messages ───────────────────────────────────────────
@@ -146,7 +146,7 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS nodetool_messages");
-    },
+    }
   },
 
   // ── 005: Create jobs ───────────────────────────────────────────────
@@ -173,7 +173,7 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS nodetool_jobs");
-    },
+    }
   },
 
   // ── 006: Create predictions ────────────────────────────────────────
@@ -207,7 +207,7 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS nodetool_predictions");
-    },
+    }
   },
 
   // ── Add run_mode to workflows ──────────────────────────────────────
@@ -220,13 +220,13 @@ export const migrations: MigrationDef[] = [
       const columns = await db.getColumns("nodetool_workflows");
       if (!columns.includes("run_mode")) {
         await db.execute(
-          "ALTER TABLE nodetool_workflows ADD COLUMN run_mode TEXT",
+          "ALTER TABLE nodetool_workflows ADD COLUMN run_mode TEXT"
         );
       }
     },
     async down() {
       // no-op
-    },
+    }
   },
 
   // ── Add package_name and thumbnail_url to workflows ────────────────
@@ -239,18 +239,18 @@ export const migrations: MigrationDef[] = [
       const columns = await db.getColumns("nodetool_workflows");
       if (!columns.includes("package_name")) {
         await db.execute(
-          "ALTER TABLE nodetool_workflows ADD COLUMN package_name TEXT",
+          "ALTER TABLE nodetool_workflows ADD COLUMN package_name TEXT"
         );
       }
       if (!columns.includes("thumbnail_url")) {
         await db.execute(
-          "ALTER TABLE nodetool_workflows ADD COLUMN thumbnail_url TEXT",
+          "ALTER TABLE nodetool_workflows ADD COLUMN thumbnail_url TEXT"
         );
       }
     },
     async down() {
       // no-op
-    },
+    }
   },
 
   // ── Add size to assets ─────────────────────────────────────────────
@@ -262,14 +262,12 @@ export const migrations: MigrationDef[] = [
     async up(db) {
       const columns = await db.getColumns("nodetool_assets");
       if (!columns.includes("size")) {
-        await db.execute(
-          "ALTER TABLE nodetool_assets ADD COLUMN size INTEGER",
-        );
+        await db.execute("ALTER TABLE nodetool_assets ADD COLUMN size INTEGER");
       }
     },
     async down() {
       // no-op
-    },
+    }
   },
 
   // ── Add tool_name to workflows ─────────────────────────────────────
@@ -282,13 +280,13 @@ export const migrations: MigrationDef[] = [
       const columns = await db.getColumns("nodetool_workflows");
       if (!columns.includes("tool_name")) {
         await db.execute(
-          "ALTER TABLE nodetool_workflows ADD COLUMN tool_name TEXT",
+          "ALTER TABLE nodetool_workflows ADD COLUMN tool_name TEXT"
         );
       }
     },
     async down() {
       // no-op
-    },
+    }
   },
 
   // ── Add params to jobs ─────────────────────────────────────────────
@@ -300,14 +298,12 @@ export const migrations: MigrationDef[] = [
     async up(db) {
       const columns = await db.getColumns("nodetool_jobs");
       if (!columns.includes("params")) {
-        await db.execute(
-          "ALTER TABLE nodetool_jobs ADD COLUMN params TEXT",
-        );
+        await db.execute("ALTER TABLE nodetool_jobs ADD COLUMN params TEXT");
       }
     },
     async down() {
       // no-op
-    },
+    }
   },
 
   // ── Add logs to jobs ───────────────────────────────────────────────
@@ -319,14 +315,12 @@ export const migrations: MigrationDef[] = [
     async up(db) {
       const columns = await db.getColumns("nodetool_jobs");
       if (!columns.includes("logs")) {
-        await db.execute(
-          "ALTER TABLE nodetool_jobs ADD COLUMN logs TEXT",
-        );
+        await db.execute("ALTER TABLE nodetool_jobs ADD COLUMN logs TEXT");
       }
     },
     async down() {
       // no-op
-    },
+    }
   },
 
   // ── Add agent execution fields to messages ─────────────────────────
@@ -339,18 +333,18 @@ export const migrations: MigrationDef[] = [
       const columns = await db.getColumns("nodetool_messages");
       if (!columns.includes("agent_execution_id")) {
         await db.execute(
-          "ALTER TABLE nodetool_messages ADD COLUMN agent_execution_id TEXT",
+          "ALTER TABLE nodetool_messages ADD COLUMN agent_execution_id TEXT"
         );
       }
       if (!columns.includes("execution_event_type")) {
         await db.execute(
-          "ALTER TABLE nodetool_messages ADD COLUMN execution_event_type TEXT",
+          "ALTER TABLE nodetool_messages ADD COLUMN execution_event_type TEXT"
         );
       }
     },
     async down() {
       // no-op
-    },
+    }
   },
 
   // ── Create secrets ─────────────────────────────────────────────────
@@ -381,12 +375,10 @@ export const migrations: MigrationDef[] = [
       `);
     },
     async down(db) {
-      await db.execute(
-        "DROP INDEX IF EXISTS idx_nodetool_secrets_user_id_key",
-      );
+      await db.execute("DROP INDEX IF EXISTS idx_nodetool_secrets_user_id_key");
       await db.execute("DROP INDEX IF EXISTS idx_nodetool_secrets_user_id");
       await db.execute("DROP TABLE IF EXISTS nodetool_secrets");
-    },
+    }
   },
 
   // ── Add cost tracking to predictions ───────────────────────────────
@@ -404,12 +396,12 @@ export const migrations: MigrationDef[] = [
         ["input_size", "INTEGER"],
         ["output_size", "INTEGER"],
         ["parameters", "TEXT"],
-        ["metadata", "TEXT"],
+        ["metadata", "TEXT"]
       ];
       for (const [colName, colType] of newColumns) {
         if (!columns.includes(colName)) {
           await db.execute(
-            `ALTER TABLE nodetool_predictions ADD COLUMN ${colName} ${colType}`,
+            `ALTER TABLE nodetool_predictions ADD COLUMN ${colName} ${colType}`
           );
         }
       }
@@ -427,12 +419,10 @@ export const migrations: MigrationDef[] = [
       `);
     },
     async down(db) {
-      await db.execute(
-        "DROP INDEX IF EXISTS idx_prediction_user_provider",
-      );
+      await db.execute("DROP INDEX IF EXISTS idx_prediction_user_provider");
       await db.execute("DROP INDEX IF EXISTS idx_prediction_user_model");
       await db.execute("DROP INDEX IF EXISTS idx_prediction_created_at");
-    },
+    }
   },
 
   // ── Create oauth_credentials ───────────────────────────────────────
@@ -470,13 +460,13 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute(
-        "DROP INDEX IF EXISTS idx_oauth_credentials_user_provider",
+        "DROP INDEX IF EXISTS idx_oauth_credentials_user_provider"
       );
       await db.execute(
-        "DROP INDEX IF EXISTS idx_oauth_credentials_user_provider_account",
+        "DROP INDEX IF EXISTS idx_oauth_credentials_user_provider_account"
       );
       await db.execute("DROP TABLE IF EXISTS nodetool_oauth_credentials");
-    },
+    }
   },
 
   // ── Create run_state ───────────────────────────────────────────────
@@ -515,7 +505,7 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_run_state_status");
       await db.execute("DROP INDEX IF EXISTS idx_run_state_updated");
       await db.execute("DROP TABLE IF EXISTS run_state");
-    },
+    }
   },
 
   // ── Create run_node_state ──────────────────────────────────────────
@@ -555,14 +545,10 @@ export const migrations: MigrationDef[] = [
       `);
     },
     async down(db) {
-      await db.execute(
-        "DROP INDEX IF EXISTS idx_run_node_state_run_status",
-      );
-      await db.execute(
-        "DROP INDEX IF EXISTS idx_run_node_state_run_node",
-      );
+      await db.execute("DROP INDEX IF EXISTS idx_run_node_state_run_status");
+      await db.execute("DROP INDEX IF EXISTS idx_run_node_state_run_node");
       await db.execute("DROP TABLE IF EXISTS run_node_state");
-    },
+    }
   },
 
   // ── Create run_inbox_messages ──────────────────────────────────────
@@ -604,15 +590,11 @@ export const migrations: MigrationDef[] = [
       `);
     },
     async down(db) {
-      await db.execute(
-        "DROP INDEX IF EXISTS idx_inbox_run_node_handle_seq",
-      );
-      await db.execute(
-        "DROP INDEX IF EXISTS idx_inbox_run_node_handle_status",
-      );
+      await db.execute("DROP INDEX IF EXISTS idx_inbox_run_node_handle_seq");
+      await db.execute("DROP INDEX IF EXISTS idx_inbox_run_node_handle_status");
       await db.execute("DROP INDEX IF EXISTS idx_inbox_message_id");
       await db.execute("DROP TABLE IF EXISTS run_inbox_messages");
-    },
+    }
   },
 
   // ── Create trigger_inputs ──────────────────────────────────────────
@@ -647,11 +629,11 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute(
-        "DROP INDEX IF EXISTS idx_trigger_input_run_node_processed",
+        "DROP INDEX IF EXISTS idx_trigger_input_run_node_processed"
       );
       await db.execute("DROP INDEX IF EXISTS idx_trigger_input_id");
       await db.execute("DROP TABLE IF EXISTS trigger_inputs");
-    },
+    }
   },
 
   // ── Add job execution fields to run_state ──────────────────────────
@@ -668,23 +650,23 @@ export const migrations: MigrationDef[] = [
         ["heartbeat_at", "TEXT"],
         ["retry_count", "INTEGER DEFAULT 0"],
         ["max_retries", "INTEGER DEFAULT 3"],
-        ["metadata_json", "TEXT"],
+        ["metadata_json", "TEXT"]
       ];
       for (const [colName, colType] of newColumns) {
         if (!(await db.columnExists("run_state", colName))) {
           await db.execute(
-            `ALTER TABLE run_state ADD COLUMN ${colName} ${colType}`,
+            `ALTER TABLE run_state ADD COLUMN ${colName} ${colType}`
           );
         }
       }
       await db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_run_state_worker ON run_state(worker_id)",
+        "CREATE INDEX IF NOT EXISTS idx_run_state_worker ON run_state(worker_id)"
       );
       await db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_run_state_heartbeat ON run_state(heartbeat_at)",
+        "CREATE INDEX IF NOT EXISTS idx_run_state_heartbeat ON run_state(heartbeat_at)"
       );
       await db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_run_state_recovery ON run_state(status, heartbeat_at)",
+        "CREATE INDEX IF NOT EXISTS idx_run_state_recovery ON run_state(status, heartbeat_at)"
       );
     },
     async down(db) {
@@ -698,7 +680,7 @@ export const migrations: MigrationDef[] = [
         "heartbeat_at",
         "worker_id",
         "execution_id",
-        "execution_strategy",
+        "execution_strategy"
       ];
       for (const col of columns) {
         try {
@@ -709,7 +691,7 @@ export const migrations: MigrationDef[] = [
           // SQLite < 3.35 doesn't support DROP COLUMN
         }
       }
-    },
+    }
   },
 
   // ── Create workflow_versions ────────────────────────────────────────
@@ -742,13 +724,13 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute(
-        "DROP INDEX IF EXISTS idx_nodetool_workflow_versions_workflow_id",
+        "DROP INDEX IF EXISTS idx_nodetool_workflow_versions_workflow_id"
       );
       await db.execute(
-        "DROP INDEX IF EXISTS idx_nodetool_workflow_versions_workflow_version",
+        "DROP INDEX IF EXISTS idx_nodetool_workflow_versions_workflow_version"
       );
       await db.execute("DROP TABLE IF EXISTS nodetool_workflow_versions");
-    },
+    }
   },
 
   // ── Create run_events ──────────────────────────────────────────────
@@ -787,7 +769,7 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_run_events_run_node");
       await db.execute("DROP INDEX IF EXISTS idx_run_events_run_type");
       await db.execute("DROP TABLE IF EXISTS run_events");
-    },
+    }
   },
 
   // ── Create run_leases ──────────────────────────────────────────────
@@ -813,7 +795,7 @@ export const migrations: MigrationDef[] = [
     async down(db) {
       await db.execute("DROP INDEX IF EXISTS idx_run_leases_expires");
       await db.execute("DROP TABLE IF EXISTS run_leases");
-    },
+    }
   },
 
   // ── Add autosave fields to workflow_versions ───────────────────────
@@ -850,23 +832,23 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute(
-        "DROP INDEX IF EXISTS idx_nodetool_workflow_versions_save_type",
+        "DROP INDEX IF EXISTS idx_nodetool_workflow_versions_save_type"
       );
       try {
         await db.execute(
-          "ALTER TABLE nodetool_workflow_versions DROP COLUMN autosave_metadata",
+          "ALTER TABLE nodetool_workflow_versions DROP COLUMN autosave_metadata"
         );
       } catch {
         // ignore
       }
       try {
         await db.execute(
-          "ALTER TABLE nodetool_workflow_versions DROP COLUMN save_type",
+          "ALTER TABLE nodetool_workflow_versions DROP COLUMN save_type"
         );
       } catch {
         // ignore
       }
-    },
+    }
   },
 
   // ── Create workspaces ──────────────────────────────────────────────
@@ -894,16 +876,14 @@ export const migrations: MigrationDef[] = [
       const columns = await db.getColumns("nodetool_workflows");
       if (!columns.includes("workspace_id")) {
         await db.execute(
-          "ALTER TABLE nodetool_workflows ADD COLUMN workspace_id TEXT",
+          "ALTER TABLE nodetool_workflows ADD COLUMN workspace_id TEXT"
         );
       }
     },
     async down(db) {
-      await db.execute(
-        "DROP INDEX IF EXISTS idx_nodetool_workspaces_user_id",
-      );
+      await db.execute("DROP INDEX IF EXISTS idx_nodetool_workspaces_user_id");
       await db.execute("DROP TABLE IF EXISTS nodetool_workspaces");
-    },
+    }
   },
 
   // ── Add node_id and job_id to assets ───────────────────────────────
@@ -915,14 +895,14 @@ export const migrations: MigrationDef[] = [
     async up(db) {
       try {
         await db.execute(
-          "ALTER TABLE nodetool_assets ADD COLUMN node_id TEXT DEFAULT NULL",
+          "ALTER TABLE nodetool_assets ADD COLUMN node_id TEXT DEFAULT NULL"
         );
       } catch {
         // column may already exist
       }
       try {
         await db.execute(
-          "ALTER TABLE nodetool_assets ADD COLUMN job_id TEXT DEFAULT NULL",
+          "ALTER TABLE nodetool_assets ADD COLUMN job_id TEXT DEFAULT NULL"
         );
       } catch {
         // column may already exist
@@ -930,20 +910,16 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       try {
-        await db.execute(
-          "ALTER TABLE nodetool_assets DROP COLUMN job_id",
-        );
+        await db.execute("ALTER TABLE nodetool_assets DROP COLUMN job_id");
       } catch {
         // ignore
       }
       try {
-        await db.execute(
-          "ALTER TABLE nodetool_assets DROP COLUMN node_id",
-        );
+        await db.execute("ALTER TABLE nodetool_assets DROP COLUMN node_id");
       } catch {
         // ignore
       }
-    },
+    }
   },
 
   // ── Add execution state to jobs ────────────────────────────────────
@@ -970,29 +946,29 @@ export const migrations: MigrationDef[] = [
         ["retry_count", "INTEGER DEFAULT 0"],
         ["max_retries", "INTEGER DEFAULT 3"],
         ["metadata_json", "TEXT"],
-        ["version", "INTEGER DEFAULT 0"],
+        ["version", "INTEGER DEFAULT 0"]
       ];
       for (const [colName, colType] of newColumns) {
         if (!(await db.columnExists("nodetool_jobs", colName))) {
           await db.execute(
-            `ALTER TABLE nodetool_jobs ADD COLUMN ${colName} ${colType}`,
+            `ALTER TABLE nodetool_jobs ADD COLUMN ${colName} ${colType}`
           );
         }
       }
       await db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_job_status ON nodetool_jobs(status)",
+        "CREATE INDEX IF NOT EXISTS idx_job_status ON nodetool_jobs(status)"
       );
       await db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_job_updated ON nodetool_jobs(updated_at)",
+        "CREATE INDEX IF NOT EXISTS idx_job_updated ON nodetool_jobs(updated_at)"
       );
       await db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_job_worker ON nodetool_jobs(worker_id)",
+        "CREATE INDEX IF NOT EXISTS idx_job_worker ON nodetool_jobs(worker_id)"
       );
       await db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_job_heartbeat ON nodetool_jobs(heartbeat_at)",
+        "CREATE INDEX IF NOT EXISTS idx_job_heartbeat ON nodetool_jobs(heartbeat_at)"
       );
       await db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_job_recovery ON nodetool_jobs(status, heartbeat_at)",
+        "CREATE INDEX IF NOT EXISTS idx_job_recovery ON nodetool_jobs(status, heartbeat_at)"
       );
     },
     async down(db) {
@@ -1018,20 +994,18 @@ export const migrations: MigrationDef[] = [
         "suspension_state_json",
         "suspension_reason",
         "suspended_node_id",
-        "updated_at",
+        "updated_at"
       ];
       for (const col of columns) {
         try {
           if (await db.columnExists("nodetool_jobs", col)) {
-            await db.execute(
-              `ALTER TABLE nodetool_jobs DROP COLUMN ${col}`,
-            );
+            await db.execute(`ALTER TABLE nodetool_jobs DROP COLUMN ${col}`);
           }
         } catch {
           // SQLite < 3.35 doesn't support DROP COLUMN
         }
       }
-    },
+    }
   },
 
   // ── Add html_app to workflows ──────────────────────────────────────
@@ -1044,13 +1018,13 @@ export const migrations: MigrationDef[] = [
       const columns = await db.getColumns("nodetool_workflows");
       if (!columns.includes("html_app")) {
         await db.execute(
-          "ALTER TABLE nodetool_workflows ADD COLUMN html_app TEXT",
+          "ALTER TABLE nodetool_workflows ADD COLUMN html_app TEXT"
         );
       }
     },
     async down() {
       // no-op
-    },
+    }
   },
 
   // ── Add updated_at to assets ───────────────────────────────────────
@@ -1063,16 +1037,16 @@ export const migrations: MigrationDef[] = [
       const columns = await db.getColumns("nodetool_assets");
       if (!columns.includes("updated_at")) {
         await db.execute(
-          "ALTER TABLE nodetool_assets ADD COLUMN updated_at TEXT",
+          "ALTER TABLE nodetool_assets ADD COLUMN updated_at TEXT"
         );
         await db.execute(
-          "UPDATE nodetool_assets SET updated_at = created_at WHERE updated_at IS NULL",
+          "UPDATE nodetool_assets SET updated_at = created_at WHERE updated_at IS NULL"
         );
       }
     },
     async down() {
       // no-op
-    },
+    }
   },
 
   // ── Create settings ─────────────────────────────────────────────────
@@ -1106,6 +1080,6 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_settings_user_key");
       await db.execute("DROP INDEX IF EXISTS idx_settings_user_id");
       await db.execute("DROP TABLE IF EXISTS nodetool_settings");
-    },
-  },
+    }
+  }
 ];

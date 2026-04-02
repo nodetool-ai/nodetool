@@ -20,7 +20,7 @@ import type {
   StreamingAudioChunk,
   TextToImageParams,
   ImageToImageParams,
-  ToolCall,
+  ToolCall
 } from "./types.js";
 import type { Chunk } from "@nodetool/protocol";
 import type { PythonBridge } from "../python-bridge.js";
@@ -33,7 +33,7 @@ export class PythonProvider extends BaseProvider {
   constructor(
     providerId: string,
     bridge: PythonBridge,
-    secrets: Record<string, string> = {},
+    secrets: Record<string, string> = {}
   ) {
     super(providerId);
     this._bridge = bridge;
@@ -75,7 +75,7 @@ export class PythonProvider extends BaseProvider {
     return this._bridge.getProviderModels(
       this._pythonProviderId,
       modelType,
-      this._secrets,
+      this._secrets
     );
   }
 
@@ -104,8 +104,8 @@ export class PythonProvider extends BaseProvider {
         max_tokens: args.maxTokens,
         temperature: args.temperature,
         top_p: args.topP,
-        response_format: args.responseFormat,
-      },
+        response_format: args.responseFormat
+      }
     );
     return deserializeMessage(result);
   }
@@ -136,20 +136,20 @@ export class PythonProvider extends BaseProvider {
         max_tokens: args.maxTokens,
         temperature: args.temperature,
         top_p: args.topP,
-        response_format: args.responseFormat,
-      },
+        response_format: args.responseFormat
+      }
     )) {
       if (chunk.type === "tool_call") {
         yield {
           id: chunk.id as string,
           name: chunk.name as string,
-          args: (chunk.args as Record<string, unknown>) ?? {},
+          args: (chunk.args as Record<string, unknown>) ?? {}
         } as ToolCall;
       } else {
         yield {
           type: "chunk",
           content: (chunk.content as string) ?? "",
-          done: (chunk.done as boolean) ?? false,
+          done: (chunk.done as boolean) ?? false
         } as Chunk;
       }
     }
@@ -161,16 +161,19 @@ export class PythonProvider extends BaseProvider {
     return this._bridge.providerTextToImage(
       this._pythonProviderId,
       params as unknown as Record<string, unknown>,
-      this._secrets,
+      this._secrets
     );
   }
 
-  async imageToImage(image: Uint8Array, params: ImageToImageParams): Promise<Uint8Array> {
+  async imageToImage(
+    image: Uint8Array,
+    params: ImageToImageParams
+  ): Promise<Uint8Array> {
     return this._bridge.providerImageToImage(
       this._pythonProviderId,
       image,
       params as unknown as Record<string, unknown>,
-      this._secrets,
+      this._secrets
     );
   }
 
@@ -184,7 +187,7 @@ export class PythonProvider extends BaseProvider {
       this._pythonProviderId,
       args.text,
       args.model,
-      { voice: args.voice, speed: args.speed, secrets: this._secrets },
+      { voice: args.voice, speed: args.speed, secrets: this._secrets }
     )) {
       yield { samples: new Int16Array(audioBytes.buffer) };
     }
@@ -205,8 +208,8 @@ export class PythonProvider extends BaseProvider {
         language: args.language,
         prompt: args.prompt,
         temperature: args.temperature,
-        secrets: this._secrets,
-      },
+        secrets: this._secrets
+      }
     );
   }
 
@@ -219,7 +222,7 @@ export class PythonProvider extends BaseProvider {
       this._pythonProviderId,
       args.text,
       args.model,
-      args.dimensions,
+      args.dimensions
     );
   }
 }
@@ -241,7 +244,7 @@ function serializeMessage(msg: Message): Record<string, unknown> {
     result.tool_calls = msg.toolCalls.map((tc) => ({
       id: tc.id,
       name: tc.name,
-      args: tc.args,
+      args: tc.args
     }));
   }
 
@@ -254,7 +257,7 @@ function serializeMessage(msg: Message): Record<string, unknown> {
 
 function deserializeMessage(wire: Record<string, unknown>): Message {
   const msg: Message = {
-    role: wire.role as Message["role"],
+    role: wire.role as Message["role"]
   };
 
   if (wire.content != null) {
@@ -266,8 +269,8 @@ function deserializeMessage(wire: Record<string, unknown>): Message {
       (tc) => ({
         id: tc.id as string,
         name: tc.name as string,
-        args: (tc.args as Record<string, unknown>) ?? {},
-      }),
+        args: (tc.args as Record<string, unknown>) ?? {}
+      })
     );
   }
 

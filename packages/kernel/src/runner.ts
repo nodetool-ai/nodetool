@@ -19,7 +19,7 @@ import type {
   NodeDescriptor,
   Edge,
   ProcessingMessage,
-  ControlEvent,
+  ControlEvent
 } from "@nodetool/protocol";
 import { TypeMetadata } from "@nodetool/protocol";
 
@@ -119,7 +119,10 @@ export class WorkflowRunner {
   /** Pending response resolvers for sendControlEvent. nodeId → resolver */
   private _pendingControlResponses = new Map<
     string,
-    { resolve: (outputs: Record<string, unknown>) => void; reject: (err: Error) => void }
+    {
+      resolve: (outputs: Record<string, unknown>) => void;
+      reject: (err: Error) => void;
+    }
   >();
 
   constructor(jobId: string, options: WorkflowRunnerOptions) {
@@ -150,7 +153,9 @@ export class WorkflowRunner {
     }
 
     for (const node of inputNodes) {
-      const outgoing = this._graph.findOutgoingEdges(node.id).filter(isDataEdge);
+      const outgoing = this._graph
+        .findOutgoingEdges(node.id)
+        .filter(isDataEdge);
       for (const edge of outgoing) {
         if (sourceHandle && edge.sourceHandle !== sourceHandle) {
           continue;
@@ -177,7 +182,9 @@ export class WorkflowRunner {
     }
 
     for (const node of inputNodes) {
-      const outgoing = this._graph.findOutgoingEdges(node.id).filter(isDataEdge);
+      const outgoing = this._graph
+        .findOutgoingEdges(node.id)
+        .filter(isDataEdge);
       for (const edge of outgoing) {
         if (sourceHandle && edge.sourceHandle !== sourceHandle) {
           continue;
@@ -192,11 +199,17 @@ export class WorkflowRunner {
   /**
    * Execute a workflow graph.
    */
-  async run(request: RunJobRequest, graphData: { nodes: NodeDescriptor[]; edges: Edge[] }): Promise<RunResult> {
+  async run(
+    request: RunJobRequest,
+    graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
+  ): Promise<RunResult> {
     this._resetRunState();
 
     try {
-      log.info("Workflow started", { jobId: request.job_id, workflowId: request.workflow_id });
+      log.info("Workflow started", {
+        jobId: request.job_id,
+        workflowId: request.workflow_id
+      });
       this._graph = new Graph(graphData);
 
       // Python parity: _filter_invalid_edges — silently remove edges
@@ -214,7 +227,7 @@ export class WorkflowRunner {
         type: "job_update",
         status: "running",
         job_id: request.job_id,
-        workflow_id: request.workflow_id ?? null,
+        workflow_id: request.workflow_id ?? null
       });
 
       // Detect multi-edge list inputs
@@ -231,7 +244,10 @@ export class WorkflowRunner {
 
       // Bind sendControlEvent to processing context so agent nodes can dispatch
       // control events to controlled nodes and await their results.
-      if (this._options.executionContext && typeof this._options.executionContext.setSendControlEvent === "function") {
+      if (
+        this._options.executionContext &&
+        typeof this._options.executionContext.setSendControlEvent === "function"
+      ) {
         this._options.executionContext.setSendControlEvent(
           (targetNodeId: string, properties: Record<string, unknown>) =>
             this.sendControlEvent(targetNodeId, properties)
@@ -251,13 +267,13 @@ export class WorkflowRunner {
         type: "job_update",
         status,
         job_id: request.job_id,
-        workflow_id: request.workflow_id ?? null,
+        workflow_id: request.workflow_id ?? null
       });
 
       return {
         outputs: Object.fromEntries(this._outputs),
         messages: this._messages,
-        status,
+        status
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -269,13 +285,13 @@ export class WorkflowRunner {
         status: "failed",
         job_id: request.job_id,
         workflow_id: request.workflow_id ?? null,
-        error: message,
+        error: message
       });
       return {
         outputs: Object.fromEntries(this._outputs),
         messages: this._messages,
         status: "failed",
-        error: message,
+        error: message
       };
     }
   }
@@ -321,11 +337,11 @@ export class WorkflowRunner {
     if (validEdges.length < this._graph.edges.length) {
       log.warn("Filtered invalid edges", {
         removed: this._graph.edges.length - validEdges.length,
-        remaining: validEdges.length,
+        remaining: validEdges.length
       });
       this._graph = new Graph({
         nodes: [...this._graph.nodes],
-        edges: validEdges,
+        edges: validEdges
       });
     }
   }
@@ -364,13 +380,14 @@ export class WorkflowRunner {
         .findIncomingEdges(node.id)
         .filter(isControlEdge);
       if (incomingControl.length > 0) {
-        const uniqueControllerCount = new Set(incomingControl.map(e => e.source)).size;
+        const uniqueControllerCount = new Set(
+          incomingControl.map((e) => e.source)
+        ).size;
         handleCounts.set(
           "__control__",
           (handleCounts.get("__control__") ?? 0) + uniqueControllerCount
         );
       }
-
 
       for (const [handle, count] of handleCounts) {
         inbox.addUpstream(handle, count);
@@ -448,8 +465,14 @@ export class WorkflowRunner {
         node.properties && typeof node.properties === "object"
           ? (node.properties as Record<string, unknown>)
           : {};
-      const hasRuntimeParam = Object.prototype.hasOwnProperty.call(params, inputName);
-      const hasDefaultValue = Object.prototype.hasOwnProperty.call(properties, "value");
+      const hasRuntimeParam = Object.prototype.hasOwnProperty.call(
+        params,
+        inputName
+      );
+      const hasDefaultValue = Object.prototype.hasOwnProperty.call(
+        properties,
+        "value"
+      );
 
       // Streaming output input nodes (e.g. RealtimeAudioInput) should NOT
       // push empty defaults — real data will arrive later via pushInputValue().
@@ -460,7 +483,9 @@ export class WorkflowRunner {
       }
 
       const value = hasRuntimeParam ? params[inputName] : properties.value;
-      const outgoing = this._graph.findOutgoingEdges(node.id).filter(isDataEdge);
+      const outgoing = this._graph
+        .findOutgoingEdges(node.id)
+        .filter(isDataEdge);
       for (const edge of outgoing) {
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
@@ -543,7 +568,7 @@ export class WorkflowRunner {
         },
         executionContext: this._options.executionContext,
         stickyHandles,
-        controlContext,
+        controlContext
       });
 
       actorPromises.push(
@@ -582,9 +607,12 @@ export class WorkflowRunner {
     // Check for in-flight messages after all actors complete (Python parity: _check_pending_inbox_work)
     const pendingNodes = this._checkPendingInboxWork();
     if (pendingNodes.length > 0) {
-      log.warn("Pending inbox work detected after all actors completed — possible data loss", {
-        pendingNodes,
-      });
+      log.warn(
+        "Pending inbox work detected after all actors completed — possible data loss",
+        {
+          pendingNodes
+        }
+      );
     }
   }
 
@@ -607,21 +635,26 @@ export class WorkflowRunner {
     // send_messages wraps __control_output__ in RunEvent and routes to
     // all controlled nodes via control edges).
     if ("__control_output__" in outputs) {
-      await this._routeControlOutput(sourceNodeId, outputs["__control_output__"]);
+      await this._routeControlOutput(
+        sourceNodeId,
+        outputs["__control_output__"]
+      );
     }
 
     const outgoing = this._graph.findOutgoingEdges(sourceNodeId);
-    const outputKeys = Object.keys(outputs).filter(k => outputs[k] !== undefined);
+    const outputKeys = Object.keys(outputs).filter(
+      (k) => outputs[k] !== undefined
+    );
     log.debug("_sendMessages", {
       sourceNodeId,
       outputKeys,
       outgoingEdgeCount: outgoing.length,
-      outgoingEdges: outgoing.map(e => ({
+      outgoingEdges: outgoing.map((e) => ({
         sourceHandle: e.sourceHandle,
         target: e.target,
         targetHandle: e.targetHandle,
-        isControl: isControlEdge(e),
-      })),
+        isControl: isControlEdge(e)
+      }))
     });
 
     for (const edge of outgoing) {
@@ -653,7 +686,9 @@ export class WorkflowRunner {
           const raw = value as Record<string, unknown>;
           // Support nested {properties: {...}} shape from LLM output
           const properties =
-            "properties" in raw && typeof raw.properties === "object" && raw.properties !== null
+            "properties" in raw &&
+            typeof raw.properties === "object" &&
+            raw.properties !== null
               ? (raw.properties as Record<string, unknown>)
               : raw;
           controlEvent = { event_type: "run", properties };
@@ -663,7 +698,9 @@ export class WorkflowRunner {
 
         await targetInbox.put("__control__", controlEvent);
         // Track that this edge has routed at least one event
-        const ctrlEdgeId = edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+        const ctrlEdgeId =
+          edge.id ??
+          `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
         this._controlEdgesRouted.add(ctrlEdgeId);
         continue;
       }
@@ -673,14 +710,16 @@ export class WorkflowRunner {
         log.debug("_sendMessages skip edge (no matching output)", {
           sourceNodeId,
           sourceHandle: edge.sourceHandle,
-          availableKeys: outputKeys,
+          availableKeys: outputKeys
         });
         continue;
       }
 
       const targetInbox = this._inboxes.get(edge.target);
       if (!targetInbox) {
-        log.debug("_sendMessages skip edge (no target inbox)", { target: edge.target });
+        log.debug("_sendMessages skip edge (no target inbox)", {
+          target: edge.target
+        });
         continue;
       }
 
@@ -688,7 +727,7 @@ export class WorkflowRunner {
         sourceNodeId,
         sourceHandle: edge.sourceHandle,
         target: edge.target,
-        targetHandle: edge.targetHandle,
+        targetHandle: edge.targetHandle
       });
       await targetInbox.put(edge.targetHandle, value);
       this._incrementEdgeCounter(edge);
@@ -700,7 +739,8 @@ export class WorkflowRunner {
       const declaredOutputs = sourceNode.outputs ?? {};
       for (const [handle, value] of Object.entries(outputs)) {
         if (value === undefined) continue;
-        if (handle === "__control__" || handle === "__control_output__") continue;
+        if (handle === "__control__" || handle === "__control_output__")
+          continue;
         this._emit({
           type: "output_update",
           node_id: sourceNodeId,
@@ -708,7 +748,7 @@ export class WorkflowRunner {
           output_name: handle,
           value,
           output_type: declaredOutputs[handle] ?? "any",
-          metadata: {},
+          metadata: {}
         });
       }
     }
@@ -745,13 +785,15 @@ export class WorkflowRunner {
       if (targetInbox) {
         targetInbox.markSourceDone(edge.targetHandle);
       }
-      const edgeId = edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+      const edgeId =
+        edge.id ??
+        `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
       this._emit({
         type: "edge_update",
         workflow_id: this.jobId,
         edge_id: edgeId,
         status: "completed",
-        counter: this._edgeCounters.get(edgeId) ?? null,
+        counter: this._edgeCounters.get(edgeId) ?? null
       });
     }
   }
@@ -790,7 +832,9 @@ export class WorkflowRunner {
       const targetInbox = this._inboxes.get(edge.target);
       if (!targetInbox) continue;
       await targetInbox.put("__control__", event);
-      const ctrlEdgeId = edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+      const ctrlEdgeId =
+        edge.id ??
+        `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
       this._controlEdgesRouted.add(ctrlEdgeId);
     }
   }
@@ -844,7 +888,7 @@ export class WorkflowRunner {
 
     const event: ControlEvent = {
       event_type: "run",
-      properties,
+      properties
     };
     await inbox.put("__control__", event);
 
@@ -856,7 +900,9 @@ export class WorkflowRunner {
   // -----------------------------------------------------------------------
 
   private _incrementEdgeCounter(edge: Edge): void {
-    const id = edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+    const id =
+      edge.id ??
+      `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
     const counter = (this._edgeCounters.get(id) ?? 0) + 1;
     this._edgeCounters.set(id, counter);
 
@@ -865,7 +911,7 @@ export class WorkflowRunner {
       workflow_id: this.jobId,
       edge_id: id,
       status: "active",
-      counter,
+      counter
     });
   }
 
@@ -885,14 +931,19 @@ export class WorkflowRunner {
       try {
         const inbox = this._inboxes.get(edge.target);
         if (!inbox) continue;
-        const edgeId = edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
-        if (inbox.hasBuffered(edge.targetHandle) || inbox.isOpen(edge.targetHandle)) {
+        const edgeId =
+          edge.id ??
+          `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+        if (
+          inbox.hasBuffered(edge.targetHandle) ||
+          inbox.isOpen(edge.targetHandle)
+        ) {
           this._emit({
             type: "edge_update",
             workflow_id: this.jobId,
             edge_id: edgeId,
             status: "drained",
-            counter: this._edgeCounters.get(edgeId) ?? null,
+            counter: this._edgeCounters.get(edgeId) ?? null
           });
         }
       } catch {
@@ -906,7 +957,10 @@ export class WorkflowRunner {
   // -----------------------------------------------------------------------
 
   private _edgeKey(edge: Edge): string {
-    return edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+    return (
+      edge.id ??
+      `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`
+    );
   }
 
   private _analyzeStreaming(): void {
@@ -948,7 +1002,6 @@ export class WorkflowRunner {
     return this._streamingEdges.get(this._edgeKey(edge)) ?? false;
   }
 
-
   // -----------------------------------------------------------------------
   // Pending work detection
   // -----------------------------------------------------------------------
@@ -976,7 +1029,9 @@ export class WorkflowRunner {
    * They should not execute as normal source actors.
    */
   private _isExternalInputNode(node: NodeDescriptor): boolean {
-    return node.type.startsWith("nodetool.input.") || node.type === "test.Input";
+    return (
+      node.type.startsWith("nodetool.input.") || node.type === "test.Input"
+    );
   }
 
   private _getExternalInputName(node: NodeDescriptor): string {
@@ -984,7 +1039,8 @@ export class WorkflowRunner {
       node.properties && typeof node.properties === "object"
         ? (node.properties as Record<string, unknown>)
         : {};
-    const propertyName = typeof properties.name === "string" ? properties.name.trim() : "";
+    const propertyName =
+      typeof properties.name === "string" ? properties.name.trim() : "";
     if (propertyName) {
       return propertyName;
     }
@@ -1002,7 +1058,11 @@ export class WorkflowRunner {
   private _resolveInputNodes(inputName: string): NodeDescriptor[] {
     return this._graph
       .inputNodes()
-      .filter((node) => this._getExternalInputName(node) === inputName || node.id === inputName);
+      .filter(
+        (node) =>
+          this._getExternalInputName(node) === inputName ||
+          node.id === inputName
+      );
   }
 
   // -----------------------------------------------------------------------
@@ -1025,7 +1085,9 @@ export class WorkflowRunner {
 
     if (outgoingControlEdges.length === 0) return null;
 
-    const controlledNodeIds = new Set(outgoingControlEdges.map((e) => e.target));
+    const controlledNodeIds = new Set(
+      outgoingControlEdges.map((e) => e.target)
+    );
     const context: Record<string, unknown> = {};
 
     for (const targetId of controlledNodeIds) {
@@ -1046,10 +1108,12 @@ export class WorkflowRunner {
             | undefined;
           properties[propName] = {
             value: propValue,
-            type: (propTypes as Record<string, string>)[propName] ?? typeof propValue,
+            type:
+              (propTypes as Record<string, string>)[propName] ??
+              typeof propValue,
             ...(meta?.description ? { description: meta.description } : {}),
             ...(meta?.min != null ? { min: meta.min } : {}),
-            ...(meta?.max != null ? { max: meta.max } : {}),
+            ...(meta?.max != null ? { max: meta.max } : {})
           };
         }
       }
@@ -1061,9 +1125,9 @@ export class WorkflowRunner {
         properties,
         control_actions: {
           run: {
-            properties: this._buildControlActionProperties(targetNode),
-          },
-        },
+            properties: this._buildControlActionProperties(targetNode)
+          }
+        }
       };
     }
 
@@ -1093,8 +1157,10 @@ export class WorkflowRunner {
         if (lower === "int" || lower === "integer") jsonType = "integer";
         else if (lower === "float" || lower === "number") jsonType = "number";
         else if (lower === "bool" || lower === "boolean") jsonType = "boolean";
-        else if (lower.startsWith("list") || lower === "array") jsonType = "array";
-        else if (lower.startsWith("dict") || lower === "object") jsonType = "object";
+        else if (lower.startsWith("list") || lower === "array")
+          jsonType = "array";
+        else if (lower.startsWith("dict") || lower === "object")
+          jsonType = "object";
       } else if (typeof value === "number") {
         jsonType = Number.isInteger(value) ? "integer" : "number";
       } else if (typeof value === "boolean") {
@@ -1106,10 +1172,12 @@ export class WorkflowRunner {
         | undefined;
       result[name] = {
         type: jsonType,
-        description: meta?.description ?? `Property '${name}' (${declaredType ?? jsonType})`,
+        description:
+          meta?.description ??
+          `Property '${name}' (${declaredType ?? jsonType})`,
         default: value,
         ...(meta?.min != null ? { minimum: meta.min } : {}),
-        ...(meta?.max != null ? { maximum: meta.max } : {}),
+        ...(meta?.max != null ? { maximum: meta.max } : {})
       };
     }
 

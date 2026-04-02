@@ -37,7 +37,7 @@ const EXTENSION_TO_CONTENT_TYPE: Record<string, string> = {
   xml: "application/xml",
   zip: "application/zip",
   tar: "application/x-tar",
-  gz: "application/gzip",
+  gz: "application/gzip"
 };
 
 /** Minimal storage interface expected by the route handlers. */
@@ -121,8 +121,8 @@ export async function headFile(
   return {
     status: 200,
     headers: {
-      "Last-Modified": lastModified.toUTCString(),
-    },
+      "Last-Modified": lastModified.toUTCString()
+    }
   };
 }
 
@@ -160,7 +160,7 @@ export async function getFile(
   const headers: Record<string, string> = {
     "Last-Modified": lastModified.toUTCString(),
     "Accept-Ranges": "bytes",
-    "Content-Type": mediaType,
+    "Content-Type": mediaType
   };
 
   // Range request handling
@@ -170,9 +170,7 @@ export async function getFile(
     if (rangeMatch) {
       const start = parseInt(rangeMatch[1], 10);
       const data = await storage.download(safeKey);
-      const end = rangeMatch[2]
-        ? parseInt(rangeMatch[2], 10)
-        : data.length - 1;
+      const end = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : data.length - 1;
 
       headers["Content-Range"] = `bytes ${start}-${end}/${data.length}`;
       headers["Content-Length"] = String(end - start + 1);
@@ -180,7 +178,7 @@ export async function getFile(
       return {
         status: 206,
         headers,
-        body: data.slice(start, end + 1),
+        body: data.slice(start, end + 1)
       };
     }
     // If range is invalid, fall through to full content
@@ -192,7 +190,7 @@ export async function getFile(
   return {
     status: 200,
     headers,
-    body: storage.downloadStream(safeKey),
+    body: storage.downloadStream(safeKey)
   };
 }
 

@@ -70,7 +70,7 @@ describe("MemoryStorage edge cases", () => {
     await Promise.all([
       storage.upload("k1", Buffer.from("v1")),
       storage.upload("k2", Buffer.from("v2")),
-      storage.upload("k3", Buffer.from("v3")),
+      storage.upload("k3", Buffer.from("v3"))
     ]);
 
     expect(await storage.exists("k1")).toBe(true);

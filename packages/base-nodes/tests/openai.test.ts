@@ -10,7 +10,7 @@ import {
   TranscribeNode,
   RealtimeAgentNode,
   RealtimeTranscriptionNode,
-  OPENAI_NODES,
+  OPENAI_NODES
 } from "../src/nodes/openai.js";
 
 const originalFetch = global.fetch;
@@ -48,17 +48,15 @@ describe("EmbeddingNode (OpenAI)", () => {
     delete process.env.OPENAI_API_KEY;
     const node = new EmbeddingNode();
     node.assign({ input: "hi" });
-    await expect(node.process()).rejects.toThrow(
-      /OPENAI_API_KEY/i
-    );
+    await expect(node.process()).rejects.toThrow(/OPENAI_API_KEY/i);
   });
 
   it("calls embeddings endpoint and returns averaged embedding", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [{ embedding: [0.5, 1.0, 1.5] }],
-      }),
+        data: [{ embedding: [0.5, 1.0, 1.5] }]
+      })
     });
 
     const node = new EmbeddingNode();
@@ -78,11 +76,8 @@ describe("EmbeddingNode (OpenAI)", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [
-          { embedding: [2.0, 4.0] },
-          { embedding: [4.0, 6.0] },
-        ],
-      }),
+        data: [{ embedding: [2.0, 4.0] }, { embedding: [4.0, 6.0] }]
+      })
     });
 
     const node = new EmbeddingNode();
@@ -126,8 +121,8 @@ describe("WebSearchNode (OpenAI)", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        choices: [{ message: { content: "Search result text" } }],
-      }),
+        choices: [{ message: { content: "Search result text" } }]
+      })
     });
 
     const node = new WebSearchNode();
@@ -176,10 +171,10 @@ describe("ModerationNode", () => {
           {
             flagged: true,
             categories: { hate: true, violence: false },
-            category_scores: { hate: 0.95, violence: 0.01 },
-          },
-        ],
-      }),
+            category_scores: { hate: 0.95, violence: 0.01 }
+          }
+        ]
+      })
     });
 
     const node = new ModerationNode();
@@ -198,7 +193,7 @@ describe("ModerationNode", () => {
   it("returns defaults when no results", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ results: [] }),
+      json: async () => ({ results: [] })
     });
 
     const node = new ModerationNode();
@@ -242,8 +237,8 @@ describe("CreateImageNode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [{ b64_json: "imgbase64data" }],
-      }),
+        data: [{ b64_json: "imgbase64data" }]
+      })
     });
 
     const node = new CreateImageNode();
@@ -263,8 +258,8 @@ describe("CreateImageNode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [{ url: "https://images.openai.com/img.png" }],
-      }),
+        data: [{ url: "https://images.openai.com/img.png" }]
+      })
     });
 
     const node = new CreateImageNode();
@@ -303,7 +298,9 @@ describe("EditImageNode", () => {
       image: { data: "abc" }
     });
     node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
-    await expect(node.process()).rejects.toThrow(/Edit prompt cannot be empty/i);
+    await expect(node.process()).rejects.toThrow(
+      /Edit prompt cannot be empty/i
+    );
   });
 
   it("throws when image is missing", async () => {
@@ -320,8 +317,8 @@ describe("EditImageNode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [{ b64_json: "editedimg" }],
-      }),
+        data: [{ b64_json: "editedimg" }]
+      })
     });
 
     const node = new EditImageNode();
@@ -363,7 +360,7 @@ describe("TextToSpeechNode", () => {
     const audioBytes = new Uint8Array([1, 2, 3, 4]);
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      arrayBuffer: async () => audioBytes.buffer,
+      arrayBuffer: async () => audioBytes.buffer
     });
 
     const node = new TextToSpeechNode();
@@ -403,7 +400,7 @@ describe("TranslateNode", () => {
   it("sends multipart form data and returns text", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ text: "Translated text" }),
+      json: async () => ({ text: "Translated text" })
     });
 
     const node = new TranslateNode();
@@ -449,7 +446,7 @@ describe("TranscribeNode", () => {
   it("transcribes audio and returns text", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ text: "Hello world" }),
+      json: async () => ({ text: "Hello world" })
     });
 
     const node = new TranscribeNode();
@@ -471,8 +468,8 @@ describe("TranscribeNode", () => {
       json: async () => ({
         text: "Hello",
         segments: [{ start: 0, end: 1.5, text: "Hello" }],
-        words: [{ start: 0, end: 0.5, word: "Hello" }],
-      }),
+        words: [{ start: 0, end: 0.5, word: "Hello" }]
+      })
     });
 
     const node = new TranscribeNode();
@@ -499,7 +496,9 @@ describe("TranscribeNode", () => {
       timestamps: true
     });
     node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
-    await expect(node.process()).rejects.toThrow(/do not support verbose_json/i);
+    await expect(node.process()).rejects.toThrow(
+      /do not support verbose_json/i
+    );
   });
 });
 
@@ -517,19 +516,25 @@ describe("RealtimeAgentNode", () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ text: "hello from audio" }),
+        json: async () => ({ text: "hello from audio" })
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: "assistant reply" } }] }),
+        json: async () => ({
+          choices: [{ message: { content: "assistant reply" } }]
+        })
       })
       .mockResolvedValueOnce({
         ok: true,
-        arrayBuffer: async () => new ArrayBuffer(4),
+        arrayBuffer: async () => new ArrayBuffer(4)
       });
 
     node.assign({
-      chunk: { content_type: "audio", content: Buffer.from("wav").toString("base64") } });
+      chunk: {
+        content_type: "audio",
+        content: Buffer.from("wav").toString("base64")
+      }
+    });
     node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
     const result = await node.process();
     expect(result.text).toBe("assistant reply");
@@ -537,7 +542,9 @@ describe("RealtimeAgentNode", () => {
 
     // audio should be an object with a base64 data URI
     expect(result.audio).toEqual(
-      expect.objectContaining({ data: expect.stringContaining("data:audio/mp3;base64,") })
+      expect.objectContaining({
+        data: expect.stringContaining("data:audio/mp3;base64,")
+      })
     );
 
     // chunk should be a well-formed chunk object
@@ -545,7 +552,7 @@ describe("RealtimeAgentNode", () => {
       type: "chunk",
       content_type: "text",
       content: "assistant reply",
-      done: true,
+      done: true
     });
   });
 });
@@ -561,7 +568,7 @@ describe("RealtimeTranscriptionNode", () => {
     const node = new RealtimeTranscriptionNode();
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ text: "transcribed text" }),
+      json: async () => ({ text: "transcribed text" })
     });
     (node as any).chunk = { content: Buffer.from("wav").toString("base64") };
     node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
@@ -574,7 +581,7 @@ describe("RealtimeTranscriptionNode", () => {
       type: "chunk",
       content_type: "text",
       content: "transcribed text",
-      done: true,
+      done: true
     });
   });
 });

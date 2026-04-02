@@ -29,10 +29,10 @@ export class FinishStepTool extends Tool {
       this.inputSchema = {
         type: "object",
         properties: {
-          result: schemaCopy,
+          result: schemaCopy
         },
         required: ["result"],
-        additionalProperties: false,
+        additionalProperties: false
       };
     } else {
       this.inputSchema = {
@@ -40,18 +40,18 @@ export class FinishStepTool extends Tool {
         properties: {
           result: {
             type: "string",
-            description: "The result of the step.",
-          },
+            description: "The result of the step."
+          }
         },
         required: ["result"],
-        additionalProperties: false,
+        additionalProperties: false
       };
     }
   }
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     // The actual completion handling is done in StepExecutor.
     // This method just returns the params for logging/history purposes.

@@ -18,7 +18,7 @@ const ENTITY_MAP: Record<string, string> = {
   "&quot;": '"',
   "&#39;": "'",
   "&apos;": "'",
-  "&nbsp;": " ",
+  "&nbsp;": " "
 };
 
 const ENTITY_RE = new RegExp(Object.keys(ENTITY_MAP).join("|"), "gi");
@@ -51,7 +51,10 @@ export function htmlToText(html: string, maxLength = 50_000): string {
   text = text.replace(/<[^>]+>/g, "");
 
   // Decode named entities
-  text = text.replace(ENTITY_RE, (match) => ENTITY_MAP[match.toLowerCase()] ?? match);
+  text = text.replace(
+    ENTITY_RE,
+    (match) => ENTITY_MAP[match.toLowerCase()] ?? match
+  );
 
   // Decode numeric entities
   text = text.replace(NUMERIC_ENTITY_RE, (_match, hex, dec) => {
@@ -83,7 +86,7 @@ const SEARCH_ENGINE_HOSTS = [
   "yandex",
   "baidu",
   "ask.",
-  "jina.ai",
+  "jina.ai"
 ];
 
 function isSearchEngine(hostname: string): boolean {
@@ -103,10 +106,10 @@ export class BrowserTool extends Tool {
     properties: {
       url: {
         type: "string",
-        description: "URL to navigate to",
-      },
+        description: "URL to navigate to"
+      }
     },
-    required: ["url"],
+    required: ["url"]
   };
 
   userMessage(params: Record<string, unknown>): string {
@@ -117,7 +120,7 @@ export class BrowserTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const url = params.url as string | undefined;
     if (!url) {
@@ -131,7 +134,7 @@ export class BrowserTool extends Tool {
         return {
           error:
             "Direct browsing of search engine result pages is disabled. Use a SERP tool (e.g., google_search) instead.",
-          url,
+          url
         };
       }
     } catch {
@@ -143,16 +146,17 @@ export class BrowserTool extends Tool {
         headers: {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
-          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.5",
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.5"
         },
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(30_000)
       });
 
       if (!response.ok) {
         return {
           error: `HTTP ${response.status}: ${response.statusText}`,
-          url,
+          url
         };
       }
 
@@ -162,7 +166,7 @@ export class BrowserTool extends Tool {
       return {
         success: true,
         url,
-        content,
+        content
       };
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
@@ -184,15 +188,15 @@ export class ScreenshotTool extends Tool {
     properties: {
       url: {
         type: "string",
-        description: "URL to navigate to before taking screenshot",
+        description: "URL to navigate to before taking screenshot"
       },
       output_file: {
         type: "string",
         description: "Workspace relative path to save the screenshot",
-        default: "screenshot.png",
-      },
+        default: "screenshot.png"
+      }
     },
-    required: ["url", "output_file"],
+    required: ["url", "output_file"]
   };
 
   userMessage(params: Record<string, unknown>): string {
@@ -206,7 +210,7 @@ export class ScreenshotTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const url = params.url as string | undefined;
     if (!url) {
@@ -218,7 +222,7 @@ export class ScreenshotTool extends Tool {
       return {
         error:
           "Screenshots require a remote browser service. Set the BROWSER_URL environment variable to the browser service endpoint.",
-        url,
+        url
       };
     }
 
@@ -229,13 +233,13 @@ export class ScreenshotTool extends Tool {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, output_file: outputFile }),
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(30_000)
       });
 
       if (!response.ok) {
         return {
           error: `Browser service returned HTTP ${response.status}: ${response.statusText}`,
-          url,
+          url
         };
       }
 

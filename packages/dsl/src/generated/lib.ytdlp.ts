@@ -24,6 +24,12 @@ export interface YtDlpDownloadOutputs {
   thumbnail: ImageRef;
 }
 
-export function ytDlpDownload(inputs: YtDlpDownloadInputs): DslNode<YtDlpDownloadOutputs> {
-  return createNode("lib.ytdlp.YtDlpDownload", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"] });
+export function ytDlpDownload(
+  inputs: YtDlpDownloadInputs
+): DslNode<YtDlpDownloadOutputs> {
+  return createNode(
+    "lib.ytdlp.YtDlpDownload",
+    inputs as Record<string, unknown>,
+    { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"] }
+  );
 }

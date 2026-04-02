@@ -19,7 +19,7 @@ import {
   ensureProjectSet,
   pushToGcr,
   deleteCloudRunService,
-  listCloudRunServices,
+  listCloudRunServices
 } from "./google-cloud-run-api.js";
 
 import { buildDockerImage, runCommand } from "./docker.js";
@@ -142,7 +142,7 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
     skipPush = false,
     skipDeploy = false,
     noCache = false,
-    skipPermissionSetup = false,
+    skipPermissionSetup = false
   } = options;
 
   const env: Record<string, string> = envInput ? { ...envInput } : {};
@@ -154,8 +154,7 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
   const cpu = deployment.resources.cpu;
   const memory = deployment.resources.memory;
   const gpuType = deployment.resources.gpu_type ?? null;
-  const gpuCount =
-    deployment.resources.gpu_count ?? (gpuType ? 1 : 0);
+  const gpuCount = deployment.resources.gpu_count ?? (gpuType ? 1 : 0);
   const minInstances = deployment.resources.min_instances;
   const maxInstances = deployment.resources.max_instances;
   const concurrency = deployment.resources.concurrency;
@@ -226,7 +225,7 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
         tag: imageTag,
         platform,
         useCache: !noCache,
-        autoPush: false, // Always disable auto_push for GCP to keep image local
+        autoPush: false // Always disable auto_push for GCP to keep image local
       });
     }
 
@@ -272,7 +271,7 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
         envVars: env,
         serviceAccount,
         gcsBucket,
-        gcsMountPath,
+        gcsMountPath
       });
     }
 
@@ -284,7 +283,7 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
       serviceName,
       region,
       projectId,
-      deploymentInfo,
+      deploymentInfo
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

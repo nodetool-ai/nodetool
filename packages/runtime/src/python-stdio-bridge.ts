@@ -25,7 +25,7 @@ import type {
   ProgressEvent,
   StreamCallback,
   PythonProviderInfo,
-  PythonBridgeOptions,
+  PythonBridgeOptions
 } from "./python-bridge.js";
 
 // Re-export types so consumers can import from either module.
@@ -36,7 +36,7 @@ export type {
   ProgressEvent,
   StreamCallback,
   PythonProviderInfo,
-  PythonBridgeOptions,
+  PythonBridgeOptions
 };
 
 interface PendingRequest {
@@ -84,8 +84,13 @@ export class PythonStdioBridge extends EventEmitter {
     if (this._connected) return Promise.resolve();
     if (!this._connectPromise) {
       this._connectPromise = this.connect().then(
-        () => { this._connectPromise = null; },
-        (err) => { this._connectPromise = null; throw err; },
+        () => {
+          this._connectPromise = null;
+        },
+        (err) => {
+          this._connectPromise = null;
+          throw err;
+        }
       );
     }
     return this._connectPromise;
@@ -106,25 +111,30 @@ export class PythonStdioBridge extends EventEmitter {
       }
     }
 
-    throw lastError ?? new Error(
-      candidates.length === 0
-        ? "No Python interpreter found — Python nodes will not be available"
-        : "Failed to start Python worker (stdio)",
+    throw (
+      lastError ??
+      new Error(
+        candidates.length === 0
+          ? "No Python interpreter found — Python nodes will not be available"
+          : "Failed to start Python worker (stdio)"
+      )
     );
   }
 
-  private async _spawnCandidate(candidate: PythonLaunchCandidate): Promise<void> {
+  private async _spawnCandidate(
+    candidate: PythonLaunchCandidate
+  ): Promise<void> {
     const args = [
       ...(candidate.argsPrefix ?? []),
       "-m",
       "nodetool.worker",
       "--stdio",
-      ...(this._options.workerArgs ?? []),
+      ...(this._options.workerArgs ?? [])
     ];
 
     return new Promise<void>((resolve, reject) => {
       const proc = spawn(candidate.command, args, {
-        stdio: ["pipe", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"]
       });
       this._process = proc;
 
@@ -175,8 +185,8 @@ export class PythonStdioBridge extends EventEmitter {
           settleError(
             new Error(
               detail ||
-                `Python worker (${candidate.source}: ${candidate.command}) exited before startup with code ${code}`,
-            ),
+                `Python worker (${candidate.source}: ${candidate.command}) exited before startup with code ${code}`
+            )
           );
           return;
         }
@@ -301,7 +311,7 @@ export class PythonStdioBridge extends EventEmitter {
         reject: (err) => {
           this._pending.delete(requestId);
           reject(err);
-        },
+        }
       });
       this._send({ type: "discover", request_id: requestId, data: {} });
     });
@@ -314,7 +324,7 @@ export class PythonStdioBridge extends EventEmitter {
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void,
+    onProgress?: (event: ProgressEvent) => void
   ): Promise<ExecuteResult> {
     const requestId = randomUUID();
     return new Promise<ExecuteResult>((resolve, reject) => {
@@ -322,7 +332,7 @@ export class PythonStdioBridge extends EventEmitter {
       this._send({
         type: "execute",
         request_id: requestId,
-        data: { node_type: nodeType, fields, secrets, blobs },
+        data: { node_type: nodeType, fields, secrets, blobs }
       });
     });
   }
@@ -353,12 +363,12 @@ export class PythonStdioBridge extends EventEmitter {
   async getProviderModels(
     providerId: string,
     modelType: string,
-    secrets?: Record<string, string>,
+    secrets?: Record<string, string>
   ): Promise<Record<string, unknown>[]> {
     const result = await this._providerCall("provider.models", {
       provider: providerId,
       model_type: modelType,
-      secrets: secrets ?? {},
+      secrets: secrets ?? {}
     });
     return (result as { models: Record<string, unknown>[] }).models;
   }
@@ -367,10 +377,13 @@ export class PythonStdioBridge extends EventEmitter {
     providerId: string,
     messages: Record<string, unknown>[],
     model: string,
-    options?: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const result = await this._providerCall("provider.generate", {
-      provider: providerId, messages, model, ...options,
+      provider: providerId,
+      messages,
+      model,
+      ...options
     });
     return (result as { message: Record<string, unknown> }).message;
   }
@@ -379,7 +392,7 @@ export class PythonStdioBridge extends EventEmitter {
     providerId: string,
     messages: Record<string, unknown>[],
     model: string,
-    options?: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): AsyncGenerator<Record<string, unknown>> {
     const requestId = randomUUID();
     const chunks: Record<string, unknown>[] = [];
@@ -389,30 +402,48 @@ export class PythonStdioBridge extends EventEmitter {
 
     const onChunk = (chunk: Record<string, unknown>) => {
       chunks.push(chunk);
-      if (resolveWait) { resolveWait(); resolveWait = null; }
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
     };
 
     const streamPromise = new Promise<Record<string, unknown>>(
       (resolve, reject) => {
         this._pendingStream.set(requestId, { resolve, reject, onChunk });
-      },
+      }
     );
 
     streamPromise
-      .then(() => { done = true; if (resolveWait) { resolveWait(); resolveWait = null; } })
-      .catch((err) => { error = err; done = true; if (resolveWait) { resolveWait(); resolveWait = null; } });
+      .then(() => {
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      })
+      .catch((err) => {
+        error = err;
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      });
 
     this._send({
       type: "provider.stream",
       request_id: requestId,
-      data: { provider: providerId, messages, model, ...options },
+      data: { provider: providerId, messages, model, ...options }
     });
 
     while (true) {
       while (chunks.length > 0) yield chunks.shift()!;
       if (done) break;
       if (error) throw error;
-      await new Promise<void>((resolve) => { resolveWait = resolve; });
+      await new Promise<void>((resolve) => {
+        resolveWait = resolve;
+      });
     }
     if (error) throw error;
   }
@@ -420,10 +451,12 @@ export class PythonStdioBridge extends EventEmitter {
   async providerTextToImage(
     providerId: string,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>,
+    secrets?: Record<string, string>
   ): Promise<Uint8Array> {
     const result = await this._providerCall("provider.text_to_image", {
-      provider: providerId, params, secrets: secrets ?? {},
+      provider: providerId,
+      params,
+      secrets: secrets ?? {}
     });
     return (result as { blobs: Record<string, Uint8Array> }).blobs.image;
   }
@@ -432,10 +465,13 @@ export class PythonStdioBridge extends EventEmitter {
     providerId: string,
     image: Uint8Array,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>,
+    secrets?: Record<string, string>
   ): Promise<Uint8Array> {
     const result = await this._providerCall("provider.image_to_image", {
-      provider: providerId, image, params, secrets: secrets ?? {},
+      provider: providerId,
+      image,
+      params,
+      secrets: secrets ?? {}
     });
     return (result as { blobs: Record<string, Uint8Array> }).blobs.image;
   }
@@ -444,7 +480,7 @@ export class PythonStdioBridge extends EventEmitter {
     providerId: string,
     text: string,
     model: string,
-    options?: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): AsyncGenerator<Uint8Array> {
     const requestId = randomUUID();
     const chunks: Uint8Array[] = [];
@@ -455,30 +491,48 @@ export class PythonStdioBridge extends EventEmitter {
     const onChunk = (chunk: Record<string, unknown>) => {
       const blobs = chunk.blobs as Record<string, Uint8Array> | undefined;
       if (blobs?.audio) chunks.push(blobs.audio);
-      if (resolveWait) { resolveWait(); resolveWait = null; }
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
     };
 
     const streamPromise = new Promise<Record<string, unknown>>(
       (resolve, reject) => {
         this._pendingStream.set(requestId, { resolve, reject, onChunk });
-      },
+      }
     );
 
     streamPromise
-      .then(() => { done = true; if (resolveWait) { resolveWait(); resolveWait = null; } })
-      .catch((err) => { error = err; done = true; if (resolveWait) { resolveWait(); resolveWait = null; } });
+      .then(() => {
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      })
+      .catch((err) => {
+        error = err;
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      });
 
     this._send({
       type: "provider.tts",
       request_id: requestId,
-      data: { provider: providerId, text, model, ...options },
+      data: { provider: providerId, text, model, ...options }
     });
 
     while (true) {
       while (chunks.length > 0) yield chunks.shift()!;
       if (done) break;
       if (error) throw error;
-      await new Promise<void>((resolve) => { resolveWait = resolve; });
+      await new Promise<void>((resolve) => {
+        resolveWait = resolve;
+      });
     }
     if (error) throw error;
   }
@@ -487,10 +541,13 @@ export class PythonStdioBridge extends EventEmitter {
     providerId: string,
     audio: Uint8Array,
     model: string,
-    options?: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): Promise<string> {
     const result = await this._providerCall("provider.asr", {
-      provider: providerId, audio, model, ...options,
+      provider: providerId,
+      audio,
+      model,
+      ...options
     });
     return (result as { text: string }).text;
   }
@@ -499,21 +556,28 @@ export class PythonStdioBridge extends EventEmitter {
     providerId: string,
     text: string | string[],
     model: string,
-    dimensions?: number,
+    dimensions?: number
   ): Promise<number[][]> {
     const result = await this._providerCall("provider.embedding", {
-      provider: providerId, text, model, dimensions,
+      provider: providerId,
+      text,
+      model,
+      dimensions
     });
     return (result as { embeddings: number[][] }).embeddings;
   }
 
   private async _providerCall(
     type: string,
-    data: Record<string, unknown>,
+    data: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const requestId = randomUUID();
     return new Promise<Record<string, unknown>>((resolve, reject) => {
-      this._pendingStream.set(requestId, { resolve, reject, onChunk: () => {} });
+      this._pendingStream.set(requestId, {
+        resolve,
+        reject,
+        onChunk: () => {}
+      });
       this._send({ type, request_id: requestId, data });
     });
   }
@@ -538,7 +602,8 @@ export class PythonStdioBridge extends EventEmitter {
   // ── Python path detection (shared with PythonBridge) ───────────────
 
   private _getPythonLaunchCandidates(): PythonLaunchCandidate[] {
-    const explicitPythonPath = this._options.pythonPath ?? process.env.NODETOOL_PYTHON;
+    const explicitPythonPath =
+      this._options.pythonPath ?? process.env.NODETOOL_PYTHON;
     if (explicitPythonPath) {
       return [{ command: explicitPythonPath, source: "NODETOOL_PYTHON" }];
     }
@@ -556,14 +621,18 @@ export class PythonStdioBridge extends EventEmitter {
 
     return this._getManagedPythonPaths().map((command) => ({
       command,
-      source: "NodeTool-managed env",
+      source: "NodeTool-managed env"
     }));
   }
 
   private _looksLikeNodeToolEnv(envPath: string): boolean {
     const normalized = envPath.replaceAll("\\", "/").toLowerCase();
     const envName = basename(envPath).toLowerCase();
-    return envName === "nodetool" || envName === "conda_env" || normalized.includes("/nodetool/conda_env");
+    return (
+      envName === "nodetool" ||
+      envName === "conda_env" ||
+      normalized.includes("/nodetool/conda_env")
+    );
   }
 
   private _getManagedPythonPaths(): string[] {
@@ -571,27 +640,37 @@ export class PythonStdioBridge extends EventEmitter {
     if (process.platform === "win32") {
       return [
         process.env.ALLUSERSPROFILE
-          ? join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env", "python.exe")
-          : join(process.env.APPDATA ?? join(home, "AppData", "Roaming"), "nodetool", "conda_env", "python.exe"),
+          ? join(
+              process.env.ALLUSERSPROFILE,
+              "nodetool",
+              "conda_env",
+              "python.exe"
+            )
+          : join(
+              process.env.APPDATA ?? join(home, "AppData", "Roaming"),
+              "nodetool",
+              "conda_env",
+              "python.exe"
+            ),
         join(home, "Miniconda3", "envs", "nodetool", "python.exe"),
         join(home, "miniconda3", "envs", "nodetool", "python.exe"),
         join(home, "Anaconda3", "envs", "nodetool", "python.exe"),
         join(home, "anaconda3", "envs", "nodetool", "python.exe"),
-        String.raw`C:\ProgramData\nodetool\conda_env\python.exe`,
+        String.raw`C:\ProgramData\nodetool\conda_env\python.exe`
       ].filter((c, i, a) => existsSync(c) && a.indexOf(c) === i);
     }
     if (process.platform === "darwin") {
       return [
         join(home, "nodetool_env", "bin", "python"),
         join(home, "miniconda3", "envs", "nodetool", "bin", "python"),
-        join(home, "anaconda3", "envs", "nodetool", "bin", "python"),
+        join(home, "anaconda3", "envs", "nodetool", "bin", "python")
       ].filter((c, i, a) => existsSync(c) && a.indexOf(c) === i);
     }
     return [
       join(home, ".local", "share", "nodetool", "conda_env", "bin", "python"),
       "/opt/nodetool/conda_env/bin/python",
       join(home, "miniconda3", "envs", "nodetool", "bin", "python"),
-      join(home, "anaconda3", "envs", "nodetool", "bin", "python"),
+      join(home, "anaconda3", "envs", "nodetool", "bin", "python")
     ].filter((c, i, a) => existsSync(c) && a.indexOf(c) === i);
   }
 }

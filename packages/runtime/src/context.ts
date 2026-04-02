@@ -13,10 +13,22 @@
 import type { ProcessingMessage } from "@nodetool/protocol";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
+import {
+  dirname,
+  isAbsolute,
+  join,
+  normalize,
+  relative,
+  resolve,
+  sep
+} from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { BaseProvider } from "./providers/base-provider.js";
-import type { Message, MessageContent, ProviderStreamItem } from "./providers/types.js";
+import type {
+  Message,
+  MessageContent,
+  ProviderStreamItem
+} from "./providers/types.js";
 import type { NodeExecutor } from "./node-executor.js";
 
 // ---------------------------------------------------------------------------
@@ -34,7 +46,10 @@ export interface CacheAdapter {
  * In-memory cache adapter (default for tests and single-process execution).
  */
 export class MemoryCache implements CacheAdapter {
-  private _store = new Map<string, { value: unknown; expires: number | null }>();
+  private _store = new Map<
+    string,
+    { value: unknown; expires: number | null }
+  >();
 
   async get(key: string): Promise<unknown | undefined> {
     const entry = this._store.get(key);
@@ -111,7 +126,10 @@ export type HttpRetryOptions = {
   headers?: Record<string, string>;
 };
 
-export type HttpRequestOptions = Omit<RequestInit, "method" | "headers" | "body"> & {
+export type HttpRequestOptions = Omit<
+  RequestInit,
+  "method" | "headers" | "body"
+> & {
   headers?: Record<string, string>;
   body?: RequestInit["body"] | null;
   retry?: HttpRetryOptions;
@@ -166,7 +184,12 @@ function isWithinRoot(root: string, target: string): boolean {
 
 function normalizeStorageKey(key: string): string {
   const cleaned = normalize(key.replaceAll("\\", "/")).replace(/^\/+/, "");
-  if (!cleaned || cleaned === "." || cleaned.startsWith("..") || cleaned.includes(`..${sep}`)) {
+  if (
+    !cleaned ||
+    cleaned === "." ||
+    cleaned.startsWith("..") ||
+    cleaned.includes(`..${sep}`)
+  ) {
     throw new Error(`Invalid storage key: ${key}`);
   }
   return cleaned;
@@ -185,7 +208,11 @@ function joinStorageKey(prefix: string | undefined, key: string): string {
 export class InMemoryStorageAdapter implements StorageAdapter {
   private _store = new Map<string, Uint8Array>();
 
-  async store(key: string, data: Uint8Array, _contentType?: string): Promise<string> {
+  async store(
+    key: string,
+    data: Uint8Array,
+    _contentType?: string
+  ): Promise<string> {
     const normalized = normalizeStorageKey(key);
     this._store.set(normalized, new Uint8Array(data));
     return `memory://${normalized}`;
@@ -234,7 +261,10 @@ export class FileStorageAdapter implements StorageAdapter {
         // Invalid file:// URI — treat as unresolvable.
         return null;
       }
-    } else if (uri.startsWith("/api/storage/") || uri.startsWith("api/storage/")) {
+    } else if (
+      uri.startsWith("/api/storage/") ||
+      uri.startsWith("api/storage/")
+    ) {
       const key = uri.replace(/^\/?api\/storage\//, "");
       absolute = this.resolvePathFromKey(key);
     } else if (/^https?:\/\//.test(uri)) {
@@ -258,7 +288,11 @@ export class FileStorageAdapter implements StorageAdapter {
     return absolute;
   }
 
-  async store(key: string, data: Uint8Array, _contentType?: string): Promise<string> {
+  async store(
+    key: string,
+    data: Uint8Array,
+    _contentType?: string
+  ): Promise<string> {
     const absolutePath = this.resolvePathFromKey(key);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, data);
@@ -336,13 +370,17 @@ export class S3StorageAdapter implements StorageAdapter {
     return { bucket, key };
   }
 
-  async store(key: string, data: Uint8Array, contentType?: string): Promise<string> {
+  async store(
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ): Promise<string> {
     const objectKey = this.keyForStore(key);
     await this.client.putObject({
       bucket: this.bucket,
       key: objectKey,
       body: data,
-      contentType,
+      contentType
     });
     return `s3://${this.bucket}/${objectKey}`;
   }
@@ -371,7 +409,10 @@ export class S3StorageAdapter implements StorageAdapter {
  * - absolute paths (treated as workspace-relative)
  * - relative paths
  */
-export function resolveWorkspacePath(workspaceDir: string | null | undefined, path: string): string {
+export function resolveWorkspacePath(
+  workspaceDir: string | null | undefined,
+  path: string
+): string {
   if (workspaceDir == null) {
     throw new Error(
       "No workspace is assigned. File operations require a user-defined workspace. Please configure a workspace before performing disk I/O operations."
@@ -389,7 +430,10 @@ export function resolveWorkspacePath(workspaceDir: string | null | undefined, pa
     relativePath = normalizedPath.slice("/workspace/".length);
   } else if (normalizedPath.startsWith("workspace/")) {
     relativePath = normalizedPath.slice("workspace/".length);
-  } else if (isAbsolute(normalizedPath) || /^[A-Za-z]:\//.test(normalizedPath)) {
+  } else if (
+    isAbsolute(normalizedPath) ||
+    /^[A-Za-z]:\//.test(normalizedPath)
+  ) {
     if (normalizedPath.startsWith("/")) {
       relativePath = normalizedPath.slice(1);
     } else {
@@ -401,7 +445,9 @@ export function resolveWorkspacePath(workspaceDir: string | null | undefined, pa
 
   const absPath = resolve(join(workspaceRoot, relativePath));
   if (!isWithinRoot(workspaceRoot, absPath)) {
-    throw new Error(`Resolved path '${absPath}' is outside the workspace directory.`);
+    throw new Error(
+      `Resolved path '${absPath}' is outside the workspace directory.`
+    );
   }
   return absPath;
 }
@@ -437,12 +483,16 @@ export class ProcessingContext {
   private _variables: Record<string, unknown>;
   /** Optional async secret resolver. */
   private _secretResolver:
-    | ((key: string, userId: string) => Promise<string | null | undefined> | string | null | undefined)
+    | ((
+        key: string,
+        userId: string
+      ) => Promise<string | null | undefined> | string | null | undefined)
     | null = null;
   /** Fetch function used by HTTP helpers. */
   private _fetch: (input: string, init?: RequestInit) => Promise<Response>;
   /** Optional temporary URL resolver for stored assets. */
-  private _tempUrlResolver: ((uri: string) => Promise<string> | string) | null = null;
+  private _tempUrlResolver: ((uri: string) => Promise<string> | string) | null =
+    null;
   /** Optional async provider resolver by provider id. */
   private _providerResolver:
     | ((providerId: string) => Promise<BaseProvider> | BaseProvider)
@@ -455,15 +505,28 @@ export class ProcessingContext {
   private _memory = new Map<string, unknown>();
   /** Optional control event dispatcher (set by workflow runner). */
   private _sendControlEvent:
-    | ((targetNodeId: string, properties: Record<string, unknown>) => Promise<Record<string, unknown>>)
+    | ((
+        targetNodeId: string,
+        properties: Record<string, unknown>
+      ) => Promise<Record<string, unknown>>)
     | null = null;
   /** Optional executor resolver for sub-workflow execution. */
   private _resolveExecutor:
-    | ((node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor)
+    | ((node: {
+        id: string;
+        type: string;
+        [key: string]: unknown;
+      }) => NodeExecutor)
     | null = null;
   /** Optional node type resolver for sub-workflow graph hydration. */
   private _resolveNodeType:
-    | ((nodeType: string) => Promise<{ nodeType: string; propertyTypes?: Record<string, string>; outputs?: Record<string, string>; isDynamic?: boolean; descriptorDefaults?: Record<string, unknown> } | null>)
+    | ((nodeType: string) => Promise<{
+        nodeType: string;
+        propertyTypes?: Record<string, string>;
+        outputs?: Record<string, string>;
+        isDynamic?: boolean;
+        descriptorDefaults?: Record<string, unknown>;
+      } | null>)
     | null = null;
   /** Total cost tracked for operations executed via this context. */
   private _totalCost = 0;
@@ -504,7 +567,9 @@ export class ProcessingContext {
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
     this._secretResolver = opts.secretResolver ?? null;
-    this._fetch = opts.fetchFn ?? ((input: string, init?: RequestInit) => fetch(input, init));
+    this._fetch =
+      opts.fetchFn ??
+      ((input: string, init?: RequestInit) => fetch(input, init));
     this._tempUrlResolver = opts.tempUrlResolver ?? null;
     this._modelInterfaces = opts.modelInterfaces ?? null;
   }
@@ -523,7 +588,7 @@ export class ProcessingContext {
       environment: { ...this.environment },
       fetchFn: this._fetch,
       secretResolver: this._secretResolver ?? undefined,
-      tempUrlResolver: this._tempUrlResolver ?? undefined,
+      tempUrlResolver: this._tempUrlResolver ?? undefined
     });
     next._providerResolver = this._providerResolver;
     next._modelInterfaces = this._modelInterfaces;
@@ -558,7 +623,10 @@ export class ProcessingContext {
    * and await their results.
    */
   setSendControlEvent(
-    fn: (targetNodeId: string, properties: Record<string, unknown>) => Promise<Record<string, unknown>>
+    fn: (
+      targetNodeId: string,
+      properties: Record<string, unknown>
+    ) => Promise<Record<string, unknown>>
   ): void {
     this._sendControlEvent = fn;
   }
@@ -580,22 +648,46 @@ export class ProcessingContext {
   // -----------------------------------------------------------------------
 
   setResolveExecutor(
-    fn: (node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor
+    fn: (node: {
+      id: string;
+      type: string;
+      [key: string]: unknown;
+    }) => NodeExecutor
   ): void {
     this._resolveExecutor = fn;
   }
 
-  get resolveExecutor(): ((node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor) | null {
+  get resolveExecutor():
+    | ((node: {
+        id: string;
+        type: string;
+        [key: string]: unknown;
+      }) => NodeExecutor)
+    | null {
     return this._resolveExecutor;
   }
 
   setResolveNodeType(
-    fn: (nodeType: string) => Promise<{ nodeType: string; propertyTypes?: Record<string, string>; outputs?: Record<string, string>; isDynamic?: boolean; descriptorDefaults?: Record<string, unknown> } | null>
+    fn: (nodeType: string) => Promise<{
+      nodeType: string;
+      propertyTypes?: Record<string, string>;
+      outputs?: Record<string, string>;
+      isDynamic?: boolean;
+      descriptorDefaults?: Record<string, unknown>;
+    } | null>
   ): void {
     this._resolveNodeType = fn;
   }
 
-  get resolveNodeType(): ((nodeType: string) => Promise<{ nodeType: string; propertyTypes?: Record<string, string>; outputs?: Record<string, string>; isDynamic?: boolean; descriptorDefaults?: Record<string, unknown> } | null>) | null {
+  get resolveNodeType():
+    | ((nodeType: string) => Promise<{
+        nodeType: string;
+        propertyTypes?: Record<string, string>;
+        outputs?: Record<string, string>;
+        isDynamic?: boolean;
+        descriptorDefaults?: Record<string, unknown>;
+      } | null>)
+    | null {
     return this._resolveNodeType;
   }
 
@@ -641,13 +733,17 @@ export class ProcessingContext {
       }
       const resolved = new reg.cls(kwargs);
       this._providers.set(providerId, resolved);
-      resolved.setMessageEmitter((msg) => this.postMessage(msg as ProcessingMessage));
+      resolved.setMessageEmitter((msg) =>
+        this.postMessage(msg as ProcessingMessage)
+      );
       return resolved;
     }
 
     const resolved = await this._providerResolver(providerId);
     this._providers.set(providerId, resolved);
-    resolved.setMessageEmitter((msg) => this.postMessage(msg as ProcessingMessage));
+    resolved.setMessageEmitter((msg) =>
+      this.postMessage(msg as ProcessingMessage)
+    );
     return resolved;
   }
 
@@ -668,7 +764,9 @@ export class ProcessingContext {
     this._secretResolver = resolver;
   }
 
-  setTempUrlResolver(resolver: (uri: string) => Promise<string> | string): void {
+  setTempUrlResolver(
+    resolver: (uri: string) => Promise<string> | string
+  ): void {
     this._tempUrlResolver = resolver;
   }
 
@@ -719,8 +817,13 @@ export class ProcessingContext {
 
   async loadStepResult<T = unknown>(key: string, defaultValue?: T): Promise<T> {
     const marker = this._variables[key];
-    if (marker && typeof marker === "object" && "__workspace_result__" in marker) {
-      const rel = (marker as { __workspace_result__: unknown }).__workspace_result__;
+    if (
+      marker &&
+      typeof marker === "object" &&
+      "__workspace_result__" in marker
+    ) {
+      const rel = (marker as { __workspace_result__: unknown })
+        .__workspace_result__;
       const path = this.workspacePathFor(String(rel));
       try {
         const raw = await readFile(path, "utf8");
@@ -738,15 +841,25 @@ export class ProcessingContext {
 
   private workspacePathFor(fileName: string): string {
     if (!this.workspaceDir) {
-      throw new Error("workspace_dir is required to persist workflow variables");
+      throw new Error(
+        "workspace_dir is required to persist workflow variables"
+      );
     }
     return resolveWorkspacePath(this.workspaceDir, fileName);
   }
 
-  private async persistVariableIfNeeded(key: string, value: unknown): Promise<void> {
+  private async persistVariableIfNeeded(
+    key: string,
+    value: unknown
+  ): Promise<void> {
     if (!this.workspaceDir) return;
     if (value === undefined || value === null) return;
-    if (typeof value === "function" || typeof value === "symbol" || typeof value === "bigint") return;
+    if (
+      typeof value === "function" ||
+      typeof value === "symbol" ||
+      typeof value === "bigint"
+    )
+      return;
     const filePath = this.workspacePathFor(`var_${key}.json`);
     try {
       await mkdir(dirname(filePath), { recursive: true });
@@ -763,12 +876,18 @@ export class ProcessingContext {
   generateNodeCacheKey(nodeType: string, nodeProps: unknown): string {
     const normalizedProps =
       nodeProps && typeof nodeProps === "object"
-        ? JSON.stringify(nodeProps, Object.keys(nodeProps as Record<string, unknown>).sort())
+        ? JSON.stringify(
+            nodeProps,
+            Object.keys(nodeProps as Record<string, unknown>).sort()
+          )
         : JSON.stringify(nodeProps ?? null);
     return `${this.userId}:${nodeType}:${normalizedProps}`;
   }
 
-  async getCachedResult(nodeType: string, nodeProps: unknown): Promise<unknown> {
+  async getCachedResult(
+    nodeType: string,
+    nodeProps: unknown
+  ): Promise<unknown> {
     const key = this.generateNodeCacheKey(nodeType, nodeProps);
     return this.cache.get(key);
   }
@@ -878,7 +997,7 @@ export class ProcessingContext {
       operation,
       cost: safeCost,
       timestamp: new Date().toISOString(),
-      ...(metadata ?? {}),
+      ...(metadata ?? {})
     });
   }
 
@@ -920,7 +1039,9 @@ export class ProcessingContext {
     const byPrefix: Record<string, number> = {};
     for (const key of this._memory.keys()) {
       const withoutScheme = key.replace(/^memory:\/\//, "");
-      const prefix = withoutScheme.includes("/") ? withoutScheme.split("/")[0] : withoutScheme;
+      const prefix = withoutScheme.includes("/")
+        ? withoutScheme.split("/")[0]
+        : withoutScheme;
       byPrefix[prefix] = (byPrefix[prefix] ?? 0) + 1;
     }
     return { total: this._memory.size, byPrefix };
@@ -938,11 +1059,13 @@ export class ProcessingContext {
     const retry = opts.retry ?? {};
     const maxRetries = retry.maxRetries ?? 3;
     const backoffMs = retry.backoffMs ?? 500;
-    const retryStatuses = retry.retryStatuses ?? [408, 425, 429, 500, 502, 503, 504];
+    const retryStatuses = retry.retryStatuses ?? [
+      408, 425, 429, 500, 502, 503, 504
+    ];
     const headers = {
       "User-Agent": "nodetool-ts-runtime/0.1",
       Accept: "*/*",
-      ...(opts.headers ?? {}),
+      ...(opts.headers ?? {})
     };
     let lastError: unknown;
 
@@ -951,17 +1074,24 @@ export class ProcessingContext {
         const response = await this._fetch(url, {
           ...opts,
           method,
-          headers,
+          headers
         });
-        if (retryStatuses.includes(response.status) && attempt < maxRetries - 1) {
+        if (
+          retryStatuses.includes(response.status) &&
+          attempt < maxRetries - 1
+        ) {
           const retryAfter = response.headers.get("Retry-After");
           const retryDelay = retryAfter ? Number(retryAfter) * 1000 : NaN;
-          const delayMs = Number.isFinite(retryDelay) ? retryDelay : backoffMs * 2 ** attempt;
+          const delayMs = Number.isFinite(retryDelay)
+            ? retryDelay
+            : backoffMs * 2 ** attempt;
           await new Promise((r) => setTimeout(r, Math.max(0, delayMs)));
           continue;
         }
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status} ${response.statusText} for ${method} ${url}`);
+          throw new Error(
+            `HTTP ${response.status} ${response.statusText} for ${method} ${url}`
+          );
         }
         return response;
       } catch (error) {
@@ -972,18 +1102,26 @@ export class ProcessingContext {
       }
     }
 
-    throw lastError instanceof Error ? lastError : new Error(`HTTP request failed: ${method} ${url}`);
+    throw lastError instanceof Error
+      ? lastError
+      : new Error(`HTTP request failed: ${method} ${url}`);
   }
 
   async httpGet(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
     return this.httpRequestWithRetries("GET", url, opts);
   }
 
-  async httpPost(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async httpPost(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpRequestWithRetries("POST", url, opts);
   }
 
-  async httpPatch(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async httpPatch(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpRequestWithRetries("PATCH", url, opts);
   }
 
@@ -991,55 +1129,87 @@ export class ProcessingContext {
     return this.httpRequestWithRetries("PUT", url, opts);
   }
 
-  async httpDelete(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async httpDelete(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpRequestWithRetries("DELETE", url, opts);
   }
 
-  async httpHead(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async httpHead(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpRequestWithRetries("HEAD", url, opts);
   }
 
-  async downloadFile(url: string, opts: HttpRequestOptions = {}): Promise<Uint8Array> {
+  async downloadFile(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Uint8Array> {
     const response = await this.httpGet(url, opts);
     const arr = await response.arrayBuffer();
     return new Uint8Array(arr);
   }
 
-  async downloadText(url: string, opts: HttpRequestOptions = {}): Promise<string> {
+  async downloadText(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<string> {
     const response = await this.httpGet(url, opts);
     return response.text();
   }
 
-  async http_get(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async http_get(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpGet(url, opts);
   }
 
-  async http_post(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async http_post(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpPost(url, opts);
   }
 
-  async http_patch(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async http_patch(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpPatch(url, opts);
   }
 
-  async http_put(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async http_put(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpPut(url, opts);
   }
 
-  async http_delete(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async http_delete(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpDelete(url, opts);
   }
 
-  async http_head(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
+  async http_head(
+    url: string,
+    opts: HttpRequestOptions = {}
+  ): Promise<Response> {
     return this.httpHead(url, opts);
   }
 
-  private requireModelInterface<K extends keyof ProcessingContextModelInterfaces>(
-    name: K
-  ): NonNullable<ProcessingContextModelInterfaces[K]> {
+  private requireModelInterface<
+    K extends keyof ProcessingContextModelInterfaces
+  >(name: K): NonNullable<ProcessingContextModelInterfaces[K]> {
     const fn = this._modelInterfaces?.[name];
     if (!fn) {
-      throw new Error(`ProcessingContext model interface '${String(name)}' is not configured`);
+      throw new Error(
+        `ProcessingContext model interface '${String(name)}' is not configured`
+      );
     }
     return fn as NonNullable<ProcessingContextModelInterfaces[K]>;
   }
@@ -1074,7 +1244,7 @@ export class ProcessingContext {
       contentType: args.contentType,
       content,
       parentId: args.parentId ?? null,
-      nodeId: args.nodeId ?? null,
+      nodeId: args.nodeId ?? null
     });
   }
 
@@ -1113,7 +1283,7 @@ export class ProcessingContext {
       threadId,
       limit,
       startKey,
-      reverse,
+      reverse
     });
   }
 
@@ -1166,7 +1336,7 @@ export class ProcessingContext {
       params: req.params ?? {},
       data: data ?? null,
       error: error ?? null,
-      duration: startedAt ? Date.now() - startedAt : null,
+      duration: startedAt ? Date.now() - startedAt : null
     });
   }
 
@@ -1174,7 +1344,9 @@ export class ProcessingContext {
    * Resolve /api/storage/ URIs in message content to data URIs so providers
    * can fetch them without needing a base URL.
    */
-  private async resolveMessageMediaUris(messages: Message[]): Promise<Message[]> {
+  private async resolveMessageMediaUris(
+    messages: Message[]
+  ): Promise<Message[]> {
     if (!this.storage) return messages;
     const resolved: Message[] = [];
     for (const msg of messages) {
@@ -1184,25 +1356,53 @@ export class ProcessingContext {
       }
       const parts: MessageContent[] = [];
       for (const part of msg.content) {
-        if (part.type === "image" && part.image.uri && !part.image.uri.startsWith("data:") && !part.image.uri.startsWith("http")) {
+        if (
+          part.type === "image" &&
+          part.image.uri &&
+          !part.image.uri.startsWith("data:") &&
+          !part.image.uri.startsWith("http")
+        ) {
           const bytes = await this.storage.retrieve(part.image.uri);
           if (bytes) {
             const ext = part.image.uri.split(".").pop()?.toLowerCase() ?? "png";
-            const mime: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
+            const mime: Record<string, string> = {
+              png: "image/png",
+              jpg: "image/jpeg",
+              jpeg: "image/jpeg",
+              gif: "image/gif",
+              webp: "image/webp"
+            };
             const mimeType = mime[ext] ?? part.image.mimeType ?? "image/png";
             const b64 = Buffer.from(bytes).toString("base64");
-            parts.push({ type: "image", image: { uri: `data:${mimeType};base64,${b64}`, mimeType } });
+            parts.push({
+              type: "image",
+              image: { uri: `data:${mimeType};base64,${b64}`, mimeType }
+            });
             continue;
           }
         }
-        if (part.type === "audio" && part.audio.uri && !part.audio.uri.startsWith("data:") && !part.audio.uri.startsWith("http")) {
+        if (
+          part.type === "audio" &&
+          part.audio.uri &&
+          !part.audio.uri.startsWith("data:") &&
+          !part.audio.uri.startsWith("http")
+        ) {
           const bytes = await this.storage.retrieve(part.audio.uri);
           if (bytes) {
             const ext = part.audio.uri.split(".").pop()?.toLowerCase() ?? "mp3";
-            const mime: Record<string, string> = { mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg", m4a: "audio/mp4", flac: "audio/flac" };
+            const mime: Record<string, string> = {
+              mp3: "audio/mpeg",
+              wav: "audio/wav",
+              ogg: "audio/ogg",
+              m4a: "audio/mp4",
+              flac: "audio/flac"
+            };
             const mimeType = mime[ext] ?? part.audio.mimeType ?? "audio/mpeg";
             const b64 = Buffer.from(bytes).toString("base64");
-            parts.push({ type: "audio", audio: { uri: `data:${mimeType};base64,${b64}`, mimeType } });
+            parts.push({
+              type: "audio",
+              audio: { uri: `data:${mimeType};base64,${b64}`, mimeType }
+            });
             continue;
           }
         }
@@ -1221,17 +1421,23 @@ export class ProcessingContext {
     switch (req.capability) {
       case "generate_message":
         return provider.generateMessageTraced({
-          messages: await this.resolveMessageMediaUris((params.messages as Message[]) ?? []),
+          messages: await this.resolveMessageMediaUris(
+            (params.messages as Message[]) ?? []
+          ),
           model: req.model,
-          tools: params.tools as Parameters<BaseProvider["generateMessage"]>[0]["tools"],
+          tools: params.tools as Parameters<
+            BaseProvider["generateMessage"]
+          >[0]["tools"],
           toolChoice: params.tool_choice as string | undefined,
           maxTokens: params.max_tokens as number | undefined,
-          responseFormat: params.response_format as Record<string, unknown> | undefined,
+          responseFormat: params.response_format as
+            | Record<string, unknown>
+            | undefined,
           jsonSchema: params.json_schema as Record<string, unknown> | undefined,
           temperature: params.temperature as number | undefined,
           topP: params.top_p as number | undefined,
           presencePenalty: params.presence_penalty as number | undefined,
-          frequencyPenalty: params.frequency_penalty as number | undefined,
+          frequencyPenalty: params.frequency_penalty as number | undefined
         });
       case "text_to_image":
         return provider.textToImage({
@@ -1240,7 +1446,7 @@ export class ProcessingContext {
           width: params.width as number | undefined,
           height: params.height as number | undefined,
           negativePrompt: params.negative_prompt as string | undefined,
-          quality: params.quality as string | undefined,
+          quality: params.quality as string | undefined
         });
       case "image_to_image":
         return provider.imageToImage(params.image as Uint8Array, {
@@ -1249,7 +1455,7 @@ export class ProcessingContext {
           negativePrompt: params.negative_prompt as string | undefined,
           targetWidth: params.target_width as number | undefined,
           targetHeight: params.target_height as number | undefined,
-          quality: params.quality as string | undefined,
+          quality: params.quality as string | undefined
         });
       case "text_to_video":
         return provider.textToVideo({
@@ -1258,7 +1464,7 @@ export class ProcessingContext {
           negativePrompt: params.negative_prompt as string | undefined,
           numFrames: params.num_frames as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined,
+          resolution: params.resolution as string | undefined
         });
       case "image_to_video":
         return provider.imageToVideo(params.image as Uint8Array, {
@@ -1267,7 +1473,7 @@ export class ProcessingContext {
           negativePrompt: params.negative_prompt as string | undefined,
           numFrames: params.num_frames as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined,
+          resolution: params.resolution as string | undefined
         });
       case "automatic_speech_recognition":
         return provider.automaticSpeechRecognition({
@@ -1275,20 +1481,24 @@ export class ProcessingContext {
           model: req.model,
           language: params.language as string | undefined,
           prompt: params.prompt as string | undefined,
-          temperature: params.temperature as number | undefined,
+          temperature: params.temperature as number | undefined
         });
       case "generate_embedding":
         return provider.generateEmbedding({
           text: (params.text as string | string[]) ?? "",
           model: req.model,
-          dimensions: params.dimensions as number | undefined,
+          dimensions: params.dimensions as number | undefined
         });
       default:
-        throw new Error(`Capability '${req.capability}' requires streaming API`);
+        throw new Error(
+          `Capability '${req.capability}' requires streaming API`
+        );
     }
   }
 
-  async runProviderPrediction(req: ProviderPredictionRequest): Promise<unknown> {
+  async runProviderPrediction(
+    req: ProviderPredictionRequest
+  ): Promise<unknown> {
     const id = randomUUID();
     const startedAt = Date.now();
     this.emitPrediction("running", req, id, null, undefined, startedAt);
@@ -1316,18 +1526,24 @@ export class ProcessingContext {
 
       if (req.capability === "generate_messages") {
         for await (const item of provider.generateMessagesTraced({
-          messages: await this.resolveMessageMediaUris((params.messages as Message[]) ?? []),
+          messages: await this.resolveMessageMediaUris(
+            (params.messages as Message[]) ?? []
+          ),
           model: req.model,
-          tools: params.tools as Parameters<BaseProvider["generateMessages"]>[0]["tools"],
+          tools: params.tools as Parameters<
+            BaseProvider["generateMessages"]
+          >[0]["tools"],
           maxTokens: params.max_tokens as number | undefined,
-          responseFormat: params.response_format as Record<string, unknown> | undefined,
+          responseFormat: params.response_format as
+            | Record<string, unknown>
+            | undefined,
           jsonSchema: params.json_schema as Record<string, unknown> | undefined,
           temperature: params.temperature as number | undefined,
           topP: params.top_p as number | undefined,
           presencePenalty: params.presence_penalty as number | undefined,
           frequencyPenalty: params.frequency_penalty as number | undefined,
           audio: params.audio as Record<string, unknown> | undefined,
-          threadId: params.thread_id as string | undefined,
+          threadId: params.thread_id as string | undefined
         })) {
           yield item;
         }
@@ -1336,7 +1552,7 @@ export class ProcessingContext {
           text: String(params.text ?? ""),
           model: req.model,
           voice: params.voice as string | undefined,
-          speed: params.speed as number | undefined,
+          speed: params.speed as number | undefined
         })) {
           yield item;
         }
@@ -1409,7 +1625,8 @@ export class ProcessingContext {
   }
 
   private static isAssetLike(value: unknown): value is Record<string, unknown> {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      return false;
     const v = value as Record<string, unknown>;
     return "type" in v && ("uri" in v || "data" in v || "asset_id" in v);
   }
@@ -1437,7 +1654,7 @@ export class ProcessingContext {
       "video/mp4": "mp4",
       "text/plain": "txt",
       "application/json": "json",
-      "model/gltf-binary": "glb",
+      "model/gltf-binary": "glb"
     };
     return map[mime] ?? "bin";
   }
@@ -1454,7 +1671,9 @@ export class ProcessingContext {
     return null;
   }
 
-  private async getAssetBytes(asset: Record<string, unknown>): Promise<Uint8Array | null> {
+  private async getAssetBytes(
+    asset: Record<string, unknown>
+  ): Promise<Uint8Array | null> {
     const decoded = ProcessingContext.decodeAssetData(asset.data);
     if (decoded) return decoded;
 
@@ -1480,7 +1699,7 @@ export class ProcessingContext {
       const encoded = Buffer.from(bytes).toString("base64");
       return {
         ...asset,
-        uri: `data:${mime};base64,${encoded}`,
+        uri: `data:${mime};base64,${encoded}`
       };
     }
 
@@ -1491,7 +1710,7 @@ export class ProcessingContext {
       return {
         ...asset,
         uri,
-        data: undefined,
+        data: undefined
       };
     }
 
@@ -1499,11 +1718,13 @@ export class ProcessingContext {
       if (!this.storage) return asset;
       const key = `temp/${randomUUID()}.${ProcessingContext.extForMime(mime)}`;
       const storedUri = await this.storage.store(key, bytes, mime);
-      const resolvedUri = this._tempUrlResolver ? await this._tempUrlResolver(storedUri) : storedUri;
+      const resolvedUri = this._tempUrlResolver
+        ? await this._tempUrlResolver(storedUri)
+        : storedUri;
       return {
         ...asset,
         uri: resolvedUri,
-        data: undefined,
+        data: undefined
       };
     }
 
@@ -1511,13 +1732,15 @@ export class ProcessingContext {
       if (!this.workspaceDir) {
         throw new Error("workspace_dir is required for workspace asset output");
       }
-      const workspaceAssets = new FileStorageAdapter(resolveWorkspacePath(this.workspaceDir, "assets"));
+      const workspaceAssets = new FileStorageAdapter(
+        resolveWorkspacePath(this.workspaceDir, "assets")
+      );
       const key = `${randomUUID()}.${ProcessingContext.extForMime(mime)}`;
       const uri = await workspaceAssets.store(key, bytes, mime);
       return {
         ...asset,
         uri,
-        data: undefined,
+        data: undefined
       };
     }
 
@@ -1528,11 +1751,16 @@ export class ProcessingContext {
    * Recursively normalize workflow outputs, materializing asset-like values
    * according to the selected output mode.
    */
-  async normalizeOutputValue(value: unknown, mode: AssetOutputMode = this.assetOutputMode): Promise<unknown> {
+  async normalizeOutputValue(
+    value: unknown,
+    mode: AssetOutputMode = this.assetOutputMode
+  ): Promise<unknown> {
     if (value === null || value === undefined) return value;
 
     if (Array.isArray(value)) {
-      return Promise.all(value.map((item) => this.normalizeOutputValue(item, mode)));
+      return Promise.all(
+        value.map((item) => this.normalizeOutputValue(item, mode))
+      );
     }
 
     if (ProcessingContext.isAssetLike(value)) {
@@ -1542,7 +1770,10 @@ export class ProcessingContext {
     if (typeof value === "object") {
       const entries = Object.entries(value as Record<string, unknown>);
       const normalized = await Promise.all(
-        entries.map(async ([k, v]) => [k, await this.normalizeOutputValue(v, mode)] as const)
+        entries.map(
+          async ([k, v]) =>
+            [k, await this.normalizeOutputValue(v, mode)] as const
+        )
       );
       return Object.fromEntries(normalized);
     }

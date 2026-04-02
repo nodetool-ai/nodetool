@@ -20,19 +20,76 @@ import { runInSandbox } from "@nodetool/agents";
 
 /** JS keywords that cannot be used as variable names. */
 const JS_RESERVED = new Set([
-  "abstract", "arguments", "await", "boolean", "break", "byte", "case", "catch",
-  "char", "class", "const", "continue", "debugger", "default", "delete", "do",
-  "double", "else", "enum", "eval", "export", "extends", "false", "final",
-  "finally", "float", "for", "function", "goto", "if", "implements", "import",
-  "in", "instanceof", "int", "interface", "let", "long", "native", "new", "null",
-  "package", "private", "protected", "public", "return", "short", "static",
-  "super", "switch", "synchronized", "this", "throw", "throws", "transient",
-  "true", "try", "typeof", "undefined", "var", "void", "volatile", "while",
-  "with", "yield",
+  "abstract",
+  "arguments",
+  "await",
+  "boolean",
+  "break",
+  "byte",
+  "case",
+  "catch",
+  "char",
+  "class",
+  "const",
+  "continue",
+  "debugger",
+  "default",
+  "delete",
+  "do",
+  "double",
+  "else",
+  "enum",
+  "eval",
+  "export",
+  "extends",
+  "false",
+  "final",
+  "finally",
+  "float",
+  "for",
+  "function",
+  "goto",
+  "if",
+  "implements",
+  "import",
+  "in",
+  "instanceof",
+  "int",
+  "interface",
+  "let",
+  "long",
+  "native",
+  "new",
+  "null",
+  "package",
+  "private",
+  "protected",
+  "public",
+  "return",
+  "short",
+  "static",
+  "super",
+  "switch",
+  "synchronized",
+  "this",
+  "throw",
+  "throws",
+  "transient",
+  "true",
+  "try",
+  "typeof",
+  "undefined",
+  "var",
+  "void",
+  "volatile",
+  "while",
+  "with",
+  "yield"
 ]);
 
 /** Statement keywords that should never be wrapped with `return (...)`. */
-const STATEMENT_KEYWORDS = /^(if|else|for|while|do|switch|try|catch|finally|throw|const|let|var|class|function|with|debugger|break|continue|return)\b/;
+const STATEMENT_KEYWORDS =
+  /^(if|else|for|while|do|switch|try|catch|finally|throw|const|let|var|class|function|with|debugger|break|continue|return)\b/;
 
 export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
@@ -59,7 +116,7 @@ export class CodeNode extends BaseNode {
       "Libraries: _ (lodash), dayjs (dates), cheerio (HTML parsing), csvParse (CSV), validator (string validation). " +
       "APIs: fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
       "A persistent `state` object survives across streaming invocations. " +
-      "Return an object — its keys become output handles.",
+      "Return an object — its keys become output handles."
   })
   declare code: string;
 
@@ -67,7 +124,7 @@ export class CodeNode extends BaseNode {
     type: "int",
     default: 30,
     title: "Timeout",
-    description: "Max seconds before execution is aborted (0 = no limit).",
+    description: "Max seconds before execution is aborted (0 = no limit)."
   })
   declare timeout: number;
 
@@ -79,7 +136,7 @@ export class CodeNode extends BaseNode {
       "How to handle streaming inputs. " +
       "'zip_all' waits for all inputs before executing. " +
       "'on_any' fires each time any input arrives (for stream processing).",
-    values: ["zip_all", "on_any"],
+    values: ["zip_all", "on_any"]
   })
   declare sync_mode: string;
 
@@ -95,7 +152,7 @@ export class CodeNode extends BaseNode {
     // Merge declared props with dynamicProps so that dynamic inputs are available.
     const allInputs = {
       ...this.serialize(),
-      ...Object.fromEntries(this.dynamicProps),
+      ...Object.fromEntries(this.dynamicProps)
     };
     const dynamicInputs = extractDynamicInputs(allInputs);
 
@@ -109,7 +166,7 @@ export class CodeNode extends BaseNode {
       code: body,
       context,
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
-      globals,
+      globals
     });
 
     if (!sandboxResult.success) {
@@ -119,7 +176,9 @@ export class CodeNode extends BaseNode {
     return normalizeOutput(sandboxResult.result);
   }
 
-  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
     const code = String(this.code ?? "return {};");
     const timeout = Number(this.timeout ?? 30);
 
@@ -132,7 +191,7 @@ export class CodeNode extends BaseNode {
     // For streaming: collect all yielded values, then emit them.
     const allInputs = {
       ...this.serialize(),
-      ...Object.fromEntries(this.dynamicProps),
+      ...Object.fromEntries(this.dynamicProps)
     };
     const dynamicInputs = extractDynamicInputs(allInputs);
 
@@ -150,7 +209,7 @@ export class CodeNode extends BaseNode {
       code: wrappedBody,
       context,
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
-      globals,
+      globals
     });
 
     if (!sandboxResult.success) {
@@ -173,7 +232,9 @@ export class CodeNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 /** Extract dynamic inputs, filtering reserved/invalid keys. */
-function extractDynamicInputs(inputs: Record<string, unknown>): Record<string, unknown> {
+function extractDynamicInputs(
+  inputs: Record<string, unknown>
+): Record<string, unknown> {
   const reserved = new Set(["code", "timeout", "sync_mode"]);
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
@@ -189,7 +250,9 @@ function extractDynamicInputs(inputs: Record<string, unknown>): Record<string, u
  * Deep-copy all input values to make them safe for the sandbox.
  * Strips functions, symbols, and other non-serializable types.
  */
-function deepCopyInputs(inputs: Record<string, unknown>): Record<string, unknown> {
+function deepCopyInputs(
+  inputs: Record<string, unknown>
+): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
     if (value === null || value === undefined) {

@@ -9,7 +9,7 @@ import {
   outputToImageRef,
   outputToVideoRef,
   outputToAudioRef,
-  outputToString,
+  outputToString
 } from "../replicate-base.js";
 
 const ReplicateNode = BaseNode;
@@ -27,7 +27,11 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "A single string to encode." })
   declare text: any;
 
-  @prop({ type: "str", default: "", description: "A JSON-formatted list of strings to encode." })
+  @prop({
+    type: "str",
+    default: "",
+    description: "A JSON-formatted list of strings to encode."
+  })
   declare text_batch: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -36,12 +40,16 @@ replicate, ai`;
     const textBatch = String(this.text_batch ?? "");
 
     const args: Record<string, unknown> = {
-      "text": text,
-      "text_batch": textBatch,
+      text: text,
+      text_batch: textBatch
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "replicate/all-mpnet-base-v2:b6b7585c9640cd7a9572c6e129c9549d79c9c31f0d3fdce7baac7c67ca38f305", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "replicate/all-mpnet-base-v2:b6b7585c9640cd7a9572c6e129c9549d79c9c31f0d3fdce7baac7c67ca38f305",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -56,7 +64,11 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "Snowflake is the Data Cloud!", description: "Prompt to generate a vector embedding for" })
+  @prop({
+    type: "str",
+    default: "Snowflake is the Data Cloud!",
+    description: "Prompt to generate a vector embedding for"
+  })
   declare prompt: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -64,11 +76,15 @@ replicate, ai`;
     const prompt = String(this.prompt ?? "Snowflake is the Data Cloud!");
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
+      prompt: prompt
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "lucataco/snowflake-arctic-embed-l:38f2c666dd6a9f96c50eca69bbb0029ed03cba002a289983dc0b487a93cfb1b4", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "lucataco/snowflake-arctic-embed-l:38f2c666dd6a9f96c50eca69bbb0029ed03cba002a289983dc0b487a93cfb1b4",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -83,7 +99,12 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Input Sentence list - Each sentence should be split by a newline" })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Input Sentence list - Each sentence should be split by a newline"
+  })
   declare sentences: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -91,11 +112,15 @@ replicate, ai`;
     const sentences = String(this.sentences ?? "");
 
     const args: Record<string, unknown> = {
-      "sentences": sentences,
+      sentences: sentences
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "lucataco/nomic-embed-text-v1:9f7155ca8f3a5596300cac0801815fa5a930a9b5339725fd085ac6f81598b7ed", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "lucataco/nomic-embed-text-v1:9f7155ca8f3a5596300cac0801815fa5a930a9b5339725fd085ac6f81598b7ed",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -110,19 +135,42 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "int", default: 32, description: "Batch size to use when processing text data." })
+  @prop({
+    type: "int",
+    default: 32,
+    description: "Batch size to use when processing text data."
+  })
   declare batch_size: any;
 
-  @prop({ type: "bool", default: false, description: "When true, return output as npy file. By default, we return JSON" })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "When true, return output as npy file. By default, we return JSON"
+  })
   declare convert_to_numpy: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to normalize embeddings." })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to normalize embeddings."
+  })
   declare normalize_embeddings: any;
 
-  @prop({ type: "image", default: "", description: "Path to file containing text as JSONL with 'text' field or valid JSON string list." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Path to file containing text as JSONL with 'text' field or valid JSON string list."
+  })
   declare path: any;
 
-  @prop({ type: "str", default: "", description: "text to embed, formatted as JSON list of strings (e.g. [\"hello\", \"world\"])" })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      'text to embed, formatted as JSON list of strings (e.g. ["hello", "world"])'
+  })
   declare texts: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -133,10 +181,10 @@ replicate, ai`;
     const texts = String(this.texts ?? "");
 
     const args: Record<string, unknown> = {
-      "batch_size": batchSize,
-      "convert_to_numpy": convertToNumpy,
-      "normalize_embeddings": normalizeEmbeddings,
-      "texts": texts,
+      batch_size: batchSize,
+      convert_to_numpy: convertToNumpy,
+      normalize_embeddings: normalizeEmbeddings,
+      texts: texts
     };
 
     const pathRef = this.path as Record<string, unknown> | undefined;
@@ -146,7 +194,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "nateraw/bge-large-en-v1.5:9cf9f015a9cb9c61d1a2610659cdac4a4ca222f2d3707a68517b18c198a9add1", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "nateraw/bge-large-en-v1.5:9cf9f015a9cb9c61d1a2610659cdac4a4ca222f2d3707a68517b18c198a9add1",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -161,7 +213,11 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "list[str]", default: [], description: "A list of texts to embed." })
+  @prop({
+    type: "list[str]",
+    default: [],
+    description: "A list of texts to embed."
+  })
   declare texts: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -169,11 +225,15 @@ replicate, ai`;
     const texts = String(this.texts ?? []);
 
     const args: Record<string, unknown> = {
-      "texts": texts,
+      texts: texts
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "ibm-granite/granite-embedding-278m-multilingual:1f76d42a05f120e12272746d5a2d86b525c13420773f795a4cbef9117d8685f1", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "ibm-granite/granite-embedding-278m-multilingual:1f76d42a05f120e12272746d5a2d86b525c13420773f795a4cbef9117d8685f1",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -188,29 +248,50 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "int", default: 32, description: "Batch size to use when processing text data." })
+  @prop({
+    type: "int",
+    default: 32,
+    description: "Batch size to use when processing text data."
+  })
   declare batch_size: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to normalize embeddings." })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to normalize embeddings."
+  })
   declare normalize_embeddings: any;
 
-  @prop({ type: "str", default: "[\"In the water, fish are swimming.\", \"Fish swim in the water.\", \"A book lies open on the table.\"]", description: "text to embed, formatted as JSON list of strings (e.g. [\"hello\", \"world\"])" })
+  @prop({
+    type: "str",
+    default:
+      '["In the water, fish are swimming.", "Fish swim in the water.", "A book lies open on the table."]',
+    description:
+      'text to embed, formatted as JSON list of strings (e.g. ["hello", "world"])'
+  })
   declare texts: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(this._secrets);
     const batchSize = Number(this.batch_size ?? 32);
     const normalizeEmbeddings = Boolean(this.normalize_embeddings ?? true);
-    const texts = String(this.texts ?? "[\"In the water, fish are swimming.\", \"Fish swim in the water.\", \"A book lies open on the table.\"]");
+    const texts = String(
+      this.texts ??
+        '["In the water, fish are swimming.", "Fish swim in the water.", "A book lies open on the table."]'
+    );
 
     const args: Record<string, unknown> = {
-      "batch_size": batchSize,
-      "normalize_embeddings": normalizeEmbeddings,
-      "texts": texts,
+      batch_size: batchSize,
+      normalize_embeddings: normalizeEmbeddings,
+      texts: texts
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "beautyyuyanli/multilingual-e5-large:a06276a89f1a902d5fc225a9ca32b6e8e6292b7f3b136518878da97c458e2bad", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "beautyyuyanli/multilingual-e5-large:a06276a89f1a902d5fc225a9ca32b6e8e6292b7f3b136518878da97c458e2bad",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -225,16 +306,35 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "int", default: 64, description: "Matryoshka dimension - output embedding dimension (64-1024)" })
+  @prop({
+    type: "int",
+    default: 64,
+    description: "Matryoshka dimension - output embedding dimension (64-1024)"
+  })
   declare embedding_dim: any;
 
-  @prop({ type: "image", default: "", description: "Image file to embed (optimal size: 512x512). If both text and image provided, image embedding will be second in returned list." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Image file to embed (optimal size: 512x512). If both text and image provided, image embedding will be second in returned list."
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "base64", values: ["base64", "array"], description: "Format to use in outputs" })
+  @prop({
+    type: "enum",
+    default: "base64",
+    values: ["base64", "array"],
+    description: "Format to use in outputs"
+  })
   declare output_format: any;
 
-  @prop({ type: "str", default: "", description: "Text content to embed (up to 8192 tokens). If both text and image provided, text embedding will be first in returned list." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Text content to embed (up to 8192 tokens). If both text and image provided, text embedding will be first in returned list."
+  })
   declare text: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -244,9 +344,9 @@ replicate, ai`;
     const text = String(this.text ?? "");
 
     const args: Record<string, unknown> = {
-      "embedding_dim": embeddingDim,
-      "output_format": outputFormat,
-      "text": text,
+      embedding_dim: embeddingDim,
+      output_format: outputFormat,
+      text: text
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -256,7 +356,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "zsxkib/jina-clip-v2:5050c3108bab23981802011a3c76ee327cc0dbfdd31a2f4ef1ee8ef0d3f0b448", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "zsxkib/jina-clip-v2:5050c3108bab23981802011a3c76ee327cc0dbfdd31a2f4ef1ee8ef0d3f0b448",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -279,11 +383,15 @@ replicate, ai`;
     const text = String(this.text ?? []);
 
     const args: Record<string, unknown> = {
-      "text": text,
+      text: text
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "cuuupid/gte-qwen2-7b-instruct:67b1736bae9312a321217b2e10547882943b9e4a285eac4cba4043fab954b954", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "cuuupid/gte-qwen2-7b-instruct:67b1736bae9312a321217b2e10547882943b9e4a285eac4cba4043fab954b954",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -301,7 +409,11 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "The document to be used." })
   declare document: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to output the normalized embeddings or not." })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Whether to output the normalized embeddings or not."
+  })
   declare normalize: any;
 
   @prop({ type: "str", default: "", description: "The query to be used." })
@@ -318,14 +430,18 @@ replicate, ai`;
     const task = String(this.task ?? "");
 
     const args: Record<string, unknown> = {
-      "document": document,
-      "normalize": normalize,
-      "query": query,
-      "task": task,
+      document: document,
+      normalize: normalize,
+      query: query,
+      task: task
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "adirik/e5-mistral-7b-instruct:68a9e0387243c2aa73d8e1aa81303f9859e6e4365622a832f7a582722e5d3283", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "adirik/e5-mistral-7b-instruct:68a9e0387243c2aa73d8e1aa81303f9859e6e4365622a832f7a582722e5d3283",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -340,7 +456,12 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "a\nb", description: "Newline-separated inputs. Can either be strings of text or image URIs starting with http[s]://" })
+  @prop({
+    type: "str",
+    default: "a\nb",
+    description:
+      "Newline-separated inputs. Can either be strings of text or image URIs starting with http[s]://"
+  })
   declare inputs: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -348,11 +469,15 @@ replicate, ai`;
     const field_inputs = String(this.inputs ?? "a\nb");
 
     const args: Record<string, unknown> = {
-      "inputs": field_inputs,
+      inputs: field_inputs
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "andreasjansson/clip-features:75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "andreasjansson/clip-features:75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -367,13 +492,28 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "image", default: "", description: "file that you want to embed. Needs to be text, vision, or audio." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "file that you want to embed. Needs to be text, vision, or audio."
+  })
   declare input: any;
 
-  @prop({ type: "enum", default: "vision", values: ["text", "vision", "audio"], description: "modality of the input you'd like to embed" })
+  @prop({
+    type: "enum",
+    default: "vision",
+    values: ["text", "vision", "audio"],
+    description: "modality of the input you'd like to embed"
+  })
   declare modality: any;
 
-  @prop({ type: "str", default: "", description: "text that you want to embed. Provide a string here instead of a text file to input if you'd like." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "text that you want to embed. Provide a string here instead of a text file to input if you'd like."
+  })
   declare text_input: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -382,8 +522,8 @@ replicate, ai`;
     const textInput = String(this.text_input ?? "");
 
     const args: Record<string, unknown> = {
-      "modality": modality,
-      "text_input": textInput,
+      modality: modality,
+      text_input: textInput
     };
 
     const inputRef = this.input as Record<string, unknown> | undefined;
@@ -393,7 +533,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "daanelson/imagebind:0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "daanelson/imagebind:0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -419,7 +563,7 @@ replicate, ai`;
     const text = String(this.text ?? "");
 
     const args: Record<string, unknown> = {
-      "text": text,
+      text: text
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -429,7 +573,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "krthr/clip-embeddings:1c0371070cb827ec3c7f2f28adcdde54b50dcd239aa6faea0bc98b174ef03fb4", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "krthr/clip-embeddings:1c0371070cb827ec3c7f2f28adcdde54b50dcd239aa6faea0bc98b174ef03fb4",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -452,11 +600,15 @@ replicate, ai`;
     const text = String(this.text ?? "");
 
     const args: Record<string, unknown> = {
-      "text": text,
+      text: text
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "mark3labs/embeddings-gte-base:d619cff29338b9a37c3d06605042e1ff0594a8c3eff0175fd6967f5643fc4d47", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "mark3labs/embeddings-gte-base:d619cff29338b9a37c3d06605042e1ff0594a8c3eff0175fd6967f5643fc4d47",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -471,10 +623,19 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "\n\n", description: "Separator between prompts" })
+  @prop({
+    type: "str",
+    default: "\n\n",
+    description: "Separator between prompts"
+  })
   declare prompt_separator: any;
 
-  @prop({ type: "str", default: "", description: "List of prompts, separated by prompt_separator. Maximum 100 prompts per prediction." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "List of prompts, separated by prompt_separator. Maximum 100 prompts per prediction."
+  })
   declare prompts: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -483,12 +644,16 @@ replicate, ai`;
     const prompts = String(this.prompts ?? "");
 
     const args: Record<string, unknown> = {
-      "prompt_separator": promptSeparator,
-      "prompts": prompts,
+      prompt_separator: promptSeparator,
+      prompts: prompts
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "andreasjansson/llama-2-13b-embeddings:7115a4c65b86815e31412e53de1211c520164c190945a84c425b59dccbc47148", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "andreasjansson/llama-2-13b-embeddings:7115a4c65b86815e31412e53de1211c520164c190945a84c425b59dccbc47148",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -503,16 +668,37 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "float", default: 200, description: "You probably don't need to worry about this parameter if you're just getting the embeddings for a handful of queries. This parameter sets the maximumum number of kibiTokens (1 kibiToken = 1024 tokens) to try to stuff into a batch (to avoid out of memory errors but maximize throughput). If the total number of tokens across the flattened list of requested embeddings exceed this value, the list will be split internally and run across multiple forward passes. This will not affect the shape of your output, just the time it takes to run." })
+  @prop({
+    type: "float",
+    default: 200,
+    description:
+      "You probably don't need to worry about this parameter if you're just getting the embeddings for a handful of queries. This parameter sets the maximumum number of kibiTokens (1 kibiToken = 1024 tokens) to try to stuff into a batch (to avoid out of memory errors but maximize throughput). If the total number of tokens across the flattened list of requested embeddings exceed this value, the list will be split internally and run across multiple forward passes. This will not affect the shape of your output, just the time it takes to run."
+  })
   declare batchtoken_max: any;
 
-  @prop({ type: "bool", default: true, description: "normalizes returned embedding vectors to a magnitude of 1. (default: true, as this model presumes cosine similarity comparisons downstream)" })
+  @prop({
+    type: "bool",
+    default: true,
+    description:
+      "normalizes returned embedding vectors to a magnitude of 1. (default: true, as this model presumes cosine similarity comparisons downstream)"
+  })
   declare normalize: any;
 
-  @prop({ type: "enum", default: "full", values: ["full", "half"], description: "numerical precision for inference computations. Either full or half. Defaults to a paranoid value of full. You may want to test if 'half' is sufficient for your needs, though regardless you should probably prefer to use the same precision for querying as you do for archiving." })
+  @prop({
+    type: "enum",
+    default: "full",
+    values: ["full", "half"],
+    description:
+      "numerical precision for inference computations. Either full or half. Defaults to a paranoid value of full. You may want to test if 'half' is sufficient for your needs, though regardless you should probably prefer to use the same precision for querying as you do for archiving."
+  })
   declare precision: any;
 
-  @prop({ type: "str", default: "[]", description: "A serialized JSON array of strings you wish to generate *retreival* embeddings for. (note, that you should keep this list short to avoid Replicate response size limitations). Use this to embed short text queries intended for comparison against document text. A vector will be returned corresponding to each line of text in the input array (in order of input). This endpoint will automatically format your query strings for retrieval, you do not need to preprocess them." })
+  @prop({
+    type: "str",
+    default: "[]",
+    description:
+      "A serialized JSON array of strings you wish to generate *retreival* embeddings for. (note, that you should keep this list short to avoid Replicate response size limitations). Use this to embed short text queries intended for comparison against document text. A vector will be returned corresponding to each line of text in the input array (in order of input). This endpoint will automatically format your query strings for retrieval, you do not need to preprocess them."
+  })
   declare query_texts: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -523,14 +709,18 @@ replicate, ai`;
     const queryTexts = String(this.query_texts ?? "[]");
 
     const args: Record<string, unknown> = {
-      "batchtoken_max": batchtokenMax,
-      "normalize": normalize,
-      "precision": precision,
-      "query_texts": queryTexts,
+      batchtoken_max: batchtokenMax,
+      normalize: normalize,
+      precision: precision,
+      query_texts: queryTexts
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "center-for-curriculum-redesign/bge_1-5_query_embeddings:438621acdb4511d2d9c6296860588ee6c60c3df63c93e2012297db8bb965732d", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "center-for-curriculum-redesign/bge_1-5_query_embeddings:438621acdb4511d2d9c6296860588ee6c60c3df63c93e2012297db8bb965732d",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -550,5 +740,5 @@ export const REPLICATE_EMBEDDING_NODES: readonly NodeClass[] = [
   CLIP_Embeddings,
   GTE_Base,
   Llama2_13B_Embeddings,
-  BGE_1_5_Query,
+  BGE_1_5_Query
 ] as const;

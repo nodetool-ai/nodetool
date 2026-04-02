@@ -8,7 +8,7 @@ import {
   Job,
   Message,
   Thread,
-  Asset,
+  Asset
 } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
 
@@ -33,8 +33,8 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
         body: JSON.stringify({
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        }),
+          graph: { nodes: [], edges: [] }
+        })
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -48,8 +48,8 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
         body: JSON.stringify({
           name: "WF Autosaved",
           access: "private",
-          graph: { nodes: [{ id: "n1" }], edges: [] },
-        }),
+          graph: { nodes: [{ id: "n1" }], edges: [] }
+        })
       })
     );
     expect(autosaveRes.status).toBe(200);
@@ -66,8 +66,8 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
         body: JSON.stringify({
           name: "X",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        }),
+          graph: { nodes: [], edges: [] }
+        })
       })
     );
     expect(res.status).toBe(404);
@@ -81,8 +81,8 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
         body: JSON.stringify({
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        }),
+          graph: { nodes: [], edges: [] }
+        })
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -92,7 +92,7 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
       new Request(`http://localhost/api/workflows/${wfId}/autosave`, {
         method: "PUT",
         headers: { "content-type": "application/json", "x-user-id": "u1" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({})
       })
     );
     expect(res.status).toBe(400);
@@ -106,8 +106,8 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
         body: JSON.stringify({
           name: "Alpha",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        }),
+          graph: { nodes: [], edges: [] }
+        })
       })
     );
     await handleApiRequest(
@@ -117,14 +117,14 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
         body: JSON.stringify({
           name: "Beta",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        }),
+          graph: { nodes: [], edges: [] }
+        })
       })
     );
 
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/names", {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -138,7 +138,7 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
   it("GET /api/workflows/names returns empty object for no workflows", async () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/names", {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -159,17 +159,17 @@ describe("T-WS-2: Job API — running + delete", () => {
       user_id: "u1",
       workflow_id: "wf1",
       status: "running",
-      started_at: new Date().toISOString(),
+      started_at: new Date().toISOString()
     });
     await Job.create({
       user_id: "u1",
       workflow_id: "wf2",
-      status: "completed",
+      status: "completed"
     });
 
     const res = await handleApiRequest(
       new Request("http://localhost/api/jobs/running/all", {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -182,7 +182,7 @@ describe("T-WS-2: Job API — running + delete", () => {
   it("GET /api/jobs/running/all returns empty when no running jobs", async () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/jobs/running/all", {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -194,13 +194,13 @@ describe("T-WS-2: Job API — running + delete", () => {
     const job = (await Job.create({
       user_id: "u1",
       workflow_id: "wf1",
-      status: "completed",
+      status: "completed"
     })) as Job;
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/jobs/${job.id}`, {
         method: "DELETE",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(204);
@@ -208,7 +208,7 @@ describe("T-WS-2: Job API — running + delete", () => {
     // Verify it's gone
     const getRes = await handleApiRequest(
       new Request(`http://localhost/api/jobs/${job.id}`, {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(getRes.status).toBe(404);
@@ -218,7 +218,7 @@ describe("T-WS-2: Job API — running + delete", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/jobs/nonexistent", {
         method: "DELETE",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(404);
@@ -228,13 +228,13 @@ describe("T-WS-2: Job API — running + delete", () => {
     const job = (await Job.create({
       user_id: "u2",
       workflow_id: "wf1",
-      status: "completed",
+      status: "completed"
     })) as Job;
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/jobs/${job.id}`, {
         method: "DELETE",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(404);
@@ -253,18 +253,18 @@ describe("T-WS-3: Asset API — search + children", () => {
       user_id: "u1",
       name: "foo-image.png",
       content_type: "image/png",
-      parent_id: "u1",
+      parent_id: "u1"
     });
     await Asset.create({
       user_id: "u1",
       name: "bar-doc.pdf",
       content_type: "application/pdf",
-      parent_id: "u1",
+      parent_id: "u1"
     });
 
     const res = await handleApiRequest(
       new Request("http://localhost/api/assets/search?query=foo", {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -278,7 +278,7 @@ describe("T-WS-3: Asset API — search + children", () => {
   it("GET /api/assets/search returns 400 without query param", async () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/assets/search", {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(400);
@@ -289,25 +289,25 @@ describe("T-WS-3: Asset API — search + children", () => {
       user_id: "u1",
       name: "My Folder",
       content_type: "folder",
-      parent_id: "u1",
+      parent_id: "u1"
     })) as Asset;
 
     await Asset.create({
       user_id: "u1",
       name: "child1.txt",
       content_type: "text/plain",
-      parent_id: folder.id,
+      parent_id: folder.id
     });
     await Asset.create({
       user_id: "u1",
       name: "child2.txt",
       content_type: "text/plain",
-      parent_id: folder.id,
+      parent_id: folder.id
     });
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/assets/${folder.id}/children`, {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -322,12 +322,12 @@ describe("T-WS-3: Asset API — search + children", () => {
       user_id: "u1",
       name: "Empty Folder",
       content_type: "folder",
-      parent_id: "u1",
+      parent_id: "u1"
     })) as Asset;
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/assets/${folder.id}/children`, {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -348,20 +348,20 @@ describe("T-WS-4: Message API — delete", () => {
   it("DELETE /api/messages/{id} returns 204", async () => {
     const thread = (await Thread.create({
       user_id: "u1",
-      title: "Test",
+      title: "Test"
     })) as Thread;
 
     const msg = (await Message.create({
       user_id: "u1",
       thread_id: thread.id,
       role: "user",
-      content: "hello",
+      content: "hello"
     })) as Message;
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/messages/${msg.id}`, {
         method: "DELETE",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(204);
@@ -369,7 +369,7 @@ describe("T-WS-4: Message API — delete", () => {
     // Verify it's gone
     const getRes = await handleApiRequest(
       new Request(`http://localhost/api/messages/${msg.id}`, {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(getRes.status).toBe(404);
@@ -379,7 +379,7 @@ describe("T-WS-4: Message API — delete", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/messages/nonexistent", {
         method: "DELETE",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(404);
@@ -388,19 +388,19 @@ describe("T-WS-4: Message API — delete", () => {
   it("DELETE /api/messages/{id} returns 404 for other user's message", async () => {
     const thread = (await Thread.create({
       user_id: "u2",
-      title: "Test",
+      title: "Test"
     })) as Thread;
     const msg = (await Message.create({
       user_id: "u2",
       thread_id: thread.id,
       role: "user",
-      content: "hello",
+      content: "hello"
     })) as Message;
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/messages/${msg.id}`, {
         method: "DELETE",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(404);
@@ -417,14 +417,14 @@ describe("T-WS-5: Thread API — update title", () => {
   it("PUT /api/threads/{id} updates title", async () => {
     const thread = (await Thread.create({
       user_id: "u1",
-      title: "Old Title",
+      title: "Old Title"
     })) as Thread;
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/threads/${thread.id}`, {
         method: "PUT",
         headers: { "content-type": "application/json", "x-user-id": "u1" },
-        body: JSON.stringify({ title: "New Title" }),
+        body: JSON.stringify({ title: "New Title" })
       })
     );
     expect(res.status).toBe(200);
@@ -463,11 +463,11 @@ describe("T-WS-8: Workflow generate-name", () => {
           graph: {
             nodes: [
               { id: "n1", type: "nodetool.text.Generate" },
-              { id: "n2", type: "nodetool.image.Transform" },
+              { id: "n2", type: "nodetool.image.Transform" }
             ],
-            edges: [],
-          },
-        }),
+            edges: []
+          }
+        })
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -476,7 +476,7 @@ describe("T-WS-8: Workflow generate-name", () => {
     const res = await handleApiRequest(
       new Request(`http://localhost/api/workflows/${wfId}/generate-name`, {
         method: "POST",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -489,7 +489,7 @@ describe("T-WS-8: Workflow generate-name", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/nonexistent/generate-name", {
         method: "POST",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(404);
@@ -503,17 +503,20 @@ describe("T-WS-8: Workflow generate-name", () => {
         body: JSON.stringify({
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        }),
+          graph: { nodes: [], edges: [] }
+        })
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
 
     const res = await handleApiRequest(
-      new Request(`http://localhost/api/workflows/${String(created.id)}/generate-name`, {
-        method: "POST",
-        headers: { "x-user-id": "other-user" },
-      })
+      new Request(
+        `http://localhost/api/workflows/${String(created.id)}/generate-name`,
+        {
+          method: "POST",
+          headers: { "x-user-id": "other-user" }
+        }
+      )
     );
     expect(res.status).toBe(404);
   });
@@ -522,7 +525,7 @@ describe("T-WS-8: Workflow generate-name", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/any-id/generate-name", {
         method: "GET",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(405);
@@ -544,16 +547,19 @@ describe("T-WS-9: Workflow DSL export", () => {
         body: JSON.stringify({
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        }),
+          graph: { nodes: [], edges: [] }
+        })
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
 
     const res = await handleApiRequest(
-      new Request(`http://localhost/api/workflows/${String(created.id)}/dsl-export`, {
-        headers: { "x-user-id": "u1" },
-      })
+      new Request(
+        `http://localhost/api/workflows/${String(created.id)}/dsl-export`,
+        {
+          headers: { "x-user-id": "u1" }
+        }
+      )
     );
     // dsl-export is now fully implemented; empty graph may return 200 or 400
     expect([200, 400]).toContain(res.status);
@@ -562,7 +568,7 @@ describe("T-WS-9: Workflow DSL export", () => {
   it("GET /api/workflows/{id}/dsl-export returns 404 for missing workflow", async () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/nonexistent/dsl-export", {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(404);
@@ -572,7 +578,7 @@ describe("T-WS-9: Workflow DSL export", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/any-id/dsl-export", {
         method: "POST",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(405);
@@ -594,17 +600,20 @@ describe("T-WS-10: Workflow Gradio export", () => {
         body: JSON.stringify({
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        }),
+          graph: { nodes: [], edges: [] }
+        })
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
 
     const res = await handleApiRequest(
-      new Request(`http://localhost/api/workflows/${String(created.id)}/gradio-export`, {
-        method: "POST",
-        headers: { "x-user-id": "u1" },
-      })
+      new Request(
+        `http://localhost/api/workflows/${String(created.id)}/gradio-export`,
+        {
+          method: "POST",
+          headers: { "x-user-id": "u1" }
+        }
+      )
     );
     expect(res.status).toBe(501);
   });
@@ -613,7 +622,7 @@ describe("T-WS-10: Workflow Gradio export", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/nonexistent/gradio-export", {
         method: "POST",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(404);
@@ -623,7 +632,7 @@ describe("T-WS-10: Workflow Gradio export", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/any-id/gradio-export", {
         method: "GET",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(405);
@@ -640,20 +649,20 @@ describe("T-WS-11: Thread summarize", () => {
   it("POST /api/threads/{id}/summarize returns title derived from messages", async () => {
     const thread = (await Thread.create({
       user_id: "u1",
-      title: "Old Title",
+      title: "Old Title"
     })) as Thread;
 
     await Message.create({
       user_id: "u1",
       thread_id: thread.id,
       role: "user",
-      content: "What is the capital of France?",
+      content: "What is the capital of France?"
     });
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/threads/${thread.id}/summarize`, {
         method: "POST",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -666,7 +675,7 @@ describe("T-WS-11: Thread summarize", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/threads/nonexistent/summarize", {
         method: "POST",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(404);
@@ -675,13 +684,13 @@ describe("T-WS-11: Thread summarize", () => {
   it("POST /api/threads/{id}/summarize returns 404 for another user's thread", async () => {
     const thread = (await Thread.create({
       user_id: "owner",
-      title: "Owner's Thread",
+      title: "Owner's Thread"
     })) as Thread;
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/threads/${thread.id}/summarize`, {
         method: "POST",
-        headers: { "x-user-id": "other-user" },
+        headers: { "x-user-id": "other-user" }
       })
     );
     expect(res.status).toBe(404);
@@ -691,7 +700,7 @@ describe("T-WS-11: Thread summarize", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/threads/any-id/summarize", {
         method: "GET",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(405);
@@ -704,7 +713,7 @@ describe("T-WS-12: Trigger job endpoints", () => {
   it("GET /api/triggers/running returns empty list", async () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/jobs/triggers/running", {
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(200);
@@ -716,7 +725,7 @@ describe("T-WS-12: Trigger job endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/jobs/triggers/some-workflow/start", {
         method: "POST",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(501);
@@ -726,7 +735,7 @@ describe("T-WS-12: Trigger job endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/jobs/triggers/some-workflow/stop", {
         method: "POST",
-        headers: { "x-user-id": "u1" },
+        headers: { "x-user-id": "u1" }
       })
     );
     expect(res.status).toBe(501);

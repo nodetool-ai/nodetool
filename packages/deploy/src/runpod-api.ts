@@ -43,13 +43,13 @@ export enum GPUType {
   AMPERE_80 = "AMPERE_80",
 
   // Hopper Architecture
-  HOPPER_141 = "HOPPER_141",
+  HOPPER_141 = "HOPPER_141"
 }
 
 /** Compute types for RunPod endpoints. */
 export enum ComputeType {
   CPU = "CPU",
-  GPU = "GPU",
+  GPU = "GPU"
 }
 
 /** CPU flavor IDs for RunPod endpoints. */
@@ -57,7 +57,7 @@ export enum CPUFlavor {
   CPU_3C = "cpu3c",
   CPU_3G = "cpu3g",
   CPU_5C = "cpu5c",
-  CPU_5G = "cpu5g",
+  CPU_5G = "cpu5g"
 }
 
 /** Data center locations for RunPod endpoints. */
@@ -98,7 +98,7 @@ export enum DataCenter {
   AP_JAPAN_1 = "AP-JP-1",
 
   // Oceania
-  OC_AUSTRALIA_1 = "OC-AU-1",
+  OC_AUSTRALIA_1 = "OC-AU-1"
 }
 
 /** CUDA versions available in RunPod. */
@@ -112,7 +112,7 @@ export enum CUDAVersion {
   CUDA_12_5 = "12.5",
   CUDA_12_6 = "12.6",
   CUDA_12_7 = "12.7",
-  CUDA_12_8 = "12.8",
+  CUDA_12_8 = "12.8"
 }
 
 // ---------------------------------------------------------------------------
@@ -162,8 +162,7 @@ export interface GraphQLResponse {
 export async function runGraphqlQuery(
   query: string
 ): Promise<Record<string, unknown>> {
-  const apiUrlBase =
-    process.env.RUNPOD_API_BASE_URL ?? "https://api.runpod.io";
+  const apiUrlBase = process.env.RUNPOD_API_BASE_URL ?? "https://api.runpod.io";
   const url = `${apiUrlBase}/graphql`;
   const apiKey = getApiKey();
 
@@ -172,16 +171,14 @@ export async function runGraphqlQuery(
     headers: {
       "Content-Type": "application/json",
       "User-Agent": USER_AGENT,
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({ query }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(30_000)
   });
 
   if (response.status === HTTP_STATUS_UNAUTHORIZED) {
-    throw new Error(
-      "Unauthorized request, please check your API key."
-    );
+    throw new Error("Unauthorized request, please check your API key.");
   }
 
   const json = (await response.json()) as GraphQLResponse;
@@ -220,13 +217,13 @@ export async function makeRunpodApiCall(
     "Content-Type": "application/json",
     "User-Agent": USER_AGENT,
     Accept: "*/*",
-    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Language": "en-US,en;q=0.9"
   };
 
   const init: RequestInit = {
     method,
     headers,
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(60_000)
   };
 
   if (data && (method === "POST" || method === "PUT" || method === "PATCH")) {
@@ -280,7 +277,7 @@ export async function createNetworkVolume(
   return makeRunpodApiCall("networkvolumes", "POST", {
     dataCenterId,
     name,
-    size,
+    size
   });
 }
 
@@ -329,7 +326,7 @@ export async function getRunpodTemplateByName(
 
     const templates: Record<string, unknown>[] = Array.isArray(result)
       ? result
-      : (result.templates as Record<string, unknown>[]) ?? [];
+      : ((result.templates as Record<string, unknown>[]) ?? []);
 
     for (const tpl of templates) {
       if (tpl.name === templateName) {
@@ -390,7 +387,7 @@ export async function updateRunpodTemplate(
       volumeInGb: templateData.volumeInGb ?? 0,
       volumeMountPath: templateData.volumeMountPath ?? "/workspace",
       isPublic: templateData.isPublic ?? false,
-      env,
+      env
     };
 
     if (templateData.dockerEntrypoint) {
@@ -451,9 +448,7 @@ export async function createOrUpdateRunpodTemplate(
   }
 
   // Create new template
-  console.log(
-    `Template not found, creating new template: ${templateName}`
-  );
+  console.log(`Template not found, creating new template: ${templateName}`);
 
   const templateData: Record<string, unknown> = {
     containerDiskInGb: 20,
@@ -463,7 +458,7 @@ export async function createOrUpdateRunpodTemplate(
     volumeInGb: 0,
     volumeMountPath: "/workspace",
     isPublic: false,
-    env: envVars,
+    env: envVars
   };
 
   console.log("Creating template with data:");
@@ -497,7 +492,7 @@ export async function getRunpodEndpointByName(
 
   const endpoints: Record<string, unknown>[] = Array.isArray(endpointsResponse)
     ? endpointsResponse
-    : (endpointsResponse.endpoints as Record<string, unknown>[]) ?? [];
+    : ((endpointsResponse.endpoints as Record<string, unknown>[]) ?? []);
 
   if (!quiet) {
     console.log(`Looking for endpoint: '${endpointName}'`);
@@ -552,7 +547,7 @@ export async function updateRunpodEndpoint(
   try {
     const updateData: Record<string, unknown> = {
       templateId,
-      ...extra,
+      ...extra
     };
 
     // Remove undefined values
@@ -562,9 +557,7 @@ export async function updateRunpodEndpoint(
       }
     }
 
-    console.log(
-      `Updating endpoint ${endpointId} with template ${templateId}`
-    );
+    console.log(`Updating endpoint ${endpointId} with template ${templateId}`);
     await makeRunpodApiCall(`endpoints/${endpointId}`, "PATCH", updateData);
     console.log(
       `Endpoint '${endpointId}' updated successfully with template: ${templateId}`
@@ -584,8 +577,7 @@ export async function deleteRunpodEndpointByName(
 ): Promise<boolean> {
   try {
     const result = await makeRunpodApiCall("endpoints", "GET");
-    const endpoints =
-      (result.endpoints as Record<string, unknown>[]) ?? [];
+    const endpoints = (result.endpoints as Record<string, unknown>[]) ?? [];
 
     let endpointId: string | undefined;
 
@@ -618,9 +610,7 @@ export async function deleteRunpodEndpointByName(
     }
 
     if (!endpointId) {
-      console.log(
-        `Endpoint '${endpointName}' not found (may not exist)`
-      );
+      console.log(`Endpoint '${endpointName}' not found (may not exist)`);
       return true;
     }
 
@@ -681,7 +671,7 @@ export async function createOrUpdateRunpodEndpoint(
     executionTimeoutMs,
     flashboot = false,
     networkVolumeId,
-    allowedCudaVersions,
+    allowedCudaVersions
   } = opts;
 
   let gpuTypeIds = opts.gpuTypeIds;
@@ -724,9 +714,7 @@ export async function createOrUpdateRunpodEndpoint(
       console.log(`Endpoint '${name}' updated successfully`);
       return endpointId;
     }
-    console.log(
-      `Failed to update endpoint '${name}', creating new one...`
-    );
+    console.log(`Failed to update endpoint '${name}', creating new one...`);
     await deleteRunpodEndpointByName(name);
   }
 
@@ -753,7 +741,7 @@ export async function createOrUpdateRunpodEndpoint(
     scalerType: "REQUEST_COUNT",
     scalerValue: 4,
     idleTimeout,
-    flashboot,
+    flashboot
   };
 
   if (computeType === ComputeType.GPU) {
@@ -842,7 +830,7 @@ export async function createRunpodEndpointGraphql(
     idleTimeout = 5,
     executionTimeoutMs,
     flashboot = false,
-    networkVolumeId,
+    networkVolumeId
   } = opts;
 
   const dataCenterIds = opts.dataCenterIds ?? [];
@@ -884,9 +872,7 @@ export async function createRunpodEndpointGraphql(
   mutationParts.push(`idleTimeout: ${idleTimeout}`);
   mutationParts.push('scalerType: "REQUEST_COUNT"');
   mutationParts.push("scalerValue: 4");
-  mutationParts.push(
-    `executionTimeoutMs: ${executionTimeoutMs ?? 300000}`
-  );
+  mutationParts.push(`executionTimeoutMs: ${executionTimeoutMs ?? 300000}`);
   mutationParts.push(`gpuIds: "${gqlEscape(gpuIdsStr)}"`);
   mutationParts.push(`gpuCount: ${gpuCount ?? 1}`);
 
@@ -895,7 +881,9 @@ export async function createRunpodEndpointGraphql(
   }
 
   if (dataCenterIds.length > 0) {
-    mutationParts.push(`locations: ${JSON.stringify(dataCenterIds.map(gqlEscape))}`);
+    mutationParts.push(
+      `locations: ${JSON.stringify(dataCenterIds.map(gqlEscape))}`
+    );
   } else {
     mutationParts.push("locations: null");
   }

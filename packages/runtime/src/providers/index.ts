@@ -5,7 +5,7 @@ export {
   calculateEmbeddingCost,
   calculateSpeechCost,
   calculateWhisperCost,
-  calculateImageCost,
+  calculateImageCost
 } from "./cost-calculator.js";
 export type { PricingTier, UsageInfo } from "./cost-calculator.js";
 import { BaseProvider } from "./base-provider.js";
@@ -50,7 +50,7 @@ export {
   createFakeToolCall,
   createSimpleFakeProvider,
   createStreamingFakeProvider,
-  createToolCallingFakeProvider,
+  createToolCallingFakeProvider
 } from "./fake-provider.js";
 export type { FakeProviderOptions } from "./fake-provider.js";
 export {
@@ -60,9 +60,13 @@ export {
   textScript,
   toolCallScript,
   autoScript,
-  toolThenFinishScript,
+  toolThenFinishScript
 } from "./scripted-provider.js";
-export type { ScriptFn, ScriptItem, TaskPlanSpec } from "./scripted-provider.js";
+export type {
+  ScriptFn,
+  ScriptItem,
+  TaskPlanSpec
+} from "./scripted-provider.js";
 export {
   registerProvider,
   getRegisteredProvider,
@@ -71,7 +75,7 @@ export {
   isProviderConfigured,
   clearProviderCache,
   listRegisteredProviderIds,
-  setSecretResolver,
+  setSecretResolver
 } from "./provider-registry.js";
 import { registerProvider as registerBuiltinProvider } from "./provider-registry.js";
 export type {
@@ -94,44 +98,44 @@ export type {
   TextToVideoParams,
   ImageToVideoParams,
   ProviderStreamItem,
-  StreamingAudioChunk,
+  StreamingAudioChunk
 } from "./types.js";
 
 registerBuiltinProvider("openai", OpenAIProvider, {
-  OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
+  OPENAI_API_KEY: process.env["OPENAI_API_KEY"]
 });
 registerBuiltinProvider("anthropic", AnthropicProvider, {
-  ANTHROPIC_API_KEY: process.env["ANTHROPIC_API_KEY"],
+  ANTHROPIC_API_KEY: process.env["ANTHROPIC_API_KEY"]
 });
 registerBuiltinProvider("gemini", GeminiProvider, {
-  GEMINI_API_KEY: process.env["GEMINI_API_KEY"],
+  GEMINI_API_KEY: process.env["GEMINI_API_KEY"]
 });
 registerBuiltinProvider("groq", GroqProvider, {
-  GROQ_API_KEY: process.env["GROQ_API_KEY"],
+  GROQ_API_KEY: process.env["GROQ_API_KEY"]
 });
 registerBuiltinProvider("mistral", MistralProvider, {
-  MISTRAL_API_KEY: process.env["MISTRAL_API_KEY"],
+  MISTRAL_API_KEY: process.env["MISTRAL_API_KEY"]
 });
 registerBuiltinProvider("replicate", ReplicateProvider, {
-  REPLICATE_API_TOKEN: process.env["REPLICATE_API_TOKEN"],
+  REPLICATE_API_TOKEN: process.env["REPLICATE_API_TOKEN"]
 });
 registerBuiltinProvider("fal_ai", FalProvider, {
-  FAL_API_KEY: process.env["FAL_API_KEY"],
+  FAL_API_KEY: process.env["FAL_API_KEY"]
 });
 registerBuiltinProvider("openrouter", OpenRouterProvider, {
-  OPENROUTER_API_KEY: process.env["OPENROUTER_API_KEY"],
+  OPENROUTER_API_KEY: process.env["OPENROUTER_API_KEY"]
 });
 registerBuiltinProvider("together", TogetherProvider, {
-  TOGETHER_API_KEY: process.env["TOGETHER_API_KEY"],
+  TOGETHER_API_KEY: process.env["TOGETHER_API_KEY"]
 });
 registerBuiltinProvider("cerebras", CerebrasProvider, {
-  CEREBRAS_API_KEY: process.env["CEREBRAS_API_KEY"],
+  CEREBRAS_API_KEY: process.env["CEREBRAS_API_KEY"]
 });
 
 // Local-only providers — require local servers/CLIs, skip in production
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerBuiltinProvider("ollama", OllamaProvider, {
-    OLLAMA_API_URL: process.env["OLLAMA_API_URL"],
+    OLLAMA_API_URL: process.env["OLLAMA_API_URL"]
   });
   registerBuiltinProvider("lmstudio", LMStudioProvider, {});
   registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});

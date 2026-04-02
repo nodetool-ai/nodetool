@@ -10,7 +10,7 @@ import {
   TranslateNode,
   TranscribeNode,
   RealtimeAgentNode,
-  RealtimeTranscriptionNode,
+  RealtimeTranscriptionNode
 } from "../src/nodes/openai.js";
 
 const originalFetch = globalThis.fetch;
@@ -35,7 +35,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     json: async () => body,
     text: async () => JSON.stringify(body),
     arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
-    blob: async () => new Blob([new Uint8Array([1, 2, 3])]),
+    blob: async () => new Blob([new Uint8Array([1, 2, 3])])
   } as unknown as Response;
 }
 
@@ -61,7 +61,7 @@ describe("EmbeddingNode", () => {
     const node = new EmbeddingNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        data: [{ embedding: [0.1, 0.2, 0.3] }],
+        data: [{ embedding: [0.1, 0.2, 0.3] }]
       })
     );
 
@@ -78,10 +78,7 @@ describe("EmbeddingNode", () => {
     const node = new EmbeddingNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        data: [
-          { embedding: [1.0, 2.0] },
-          { embedding: [3.0, 4.0] },
-        ],
+        data: [{ embedding: [1.0, 2.0] }, { embedding: [3.0, 4.0] }]
       })
     );
 
@@ -160,7 +157,7 @@ describe("WebSearchNode", () => {
     const node = new WebSearchNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "search result text" } }],
+        choices: [{ message: { content: "search result text" } }]
       })
     );
 
@@ -208,9 +205,9 @@ describe("WebSearchNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("OpenAI WebSearch API error 500");
+    await expect(node.process()).rejects.toThrow(
+      "OpenAI WebSearch API error 500"
+    );
   });
 });
 
@@ -225,9 +222,9 @@ describe("ModerationNode", () => {
           {
             flagged: true,
             categories: { hate: true },
-            category_scores: { hate: 0.9 },
-          },
-        ],
+            category_scores: { hate: 0.9 }
+          }
+        ]
       })
     );
 
@@ -262,9 +259,7 @@ describe("ModerationNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(node.process()).rejects.toThrow(
-      "Input text cannot be empty"
-    );
+    await expect(node.process()).rejects.toThrow("Input text cannot be empty");
   });
 
   it("throws on API error", async () => {
@@ -276,9 +271,9 @@ describe("ModerationNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("OpenAI Moderation API error 403");
+    await expect(node.process()).rejects.toThrow(
+      "OpenAI Moderation API error 403"
+    );
   });
 });
 
@@ -298,7 +293,7 @@ describe("CreateImageNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual({
-      data: "data:image/png;base64,abc123",
+      data: "data:image/png;base64,abc123"
     });
   });
 
@@ -306,7 +301,7 @@ describe("CreateImageNode", () => {
     const node = new CreateImageNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        data: [{ url: "https://example.com/img.png" }],
+        data: [{ url: "https://example.com/img.png" }]
       })
     );
 
@@ -328,9 +323,7 @@ describe("CreateImageNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No image data in response");
+    await expect(node.process()).rejects.toThrow("No image data in response");
   });
 
   it("throws on empty prompt", async () => {
@@ -341,9 +334,7 @@ describe("CreateImageNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(node.process()).rejects.toThrow(
-      "Prompt cannot be empty"
-    );
+    await expect(node.process()).rejects.toThrow("Prompt cannot be empty");
   });
 
   it("throws on API error", async () => {
@@ -355,9 +346,9 @@ describe("CreateImageNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("OpenAI CreateImage API error 400");
+    await expect(node.process()).rejects.toThrow(
+      "OpenAI CreateImage API error 400"
+    );
   });
 });
 
@@ -379,7 +370,7 @@ describe("EditImageNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual({
-      data: "data:image/png;base64,edited123",
+      data: "data:image/png;base64,edited123"
     });
   });
 
@@ -415,7 +406,7 @@ describe("EditImageNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual({
-      data: "data:image/png;base64,result",
+      data: "data:image/png;base64,result"
     });
   });
 
@@ -425,15 +416,13 @@ describe("EditImageNode", () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        blob: async () => new Blob([new Uint8Array([1])]),
+        blob: async () => new Blob([new Uint8Array([1])])
       } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
-        blob: async () => new Blob([new Uint8Array([2])]),
+        blob: async () => new Blob([new Uint8Array([2])])
       } as unknown as Response)
-      .mockResolvedValueOnce(
-        jsonResponse({ data: [{ b64_json: "masked" }] })
-      );
+      .mockResolvedValueOnce(jsonResponse({ data: [{ b64_json: "masked" }] }));
 
     node.assign({
       prompt: "inpaint",
@@ -444,7 +433,7 @@ describe("EditImageNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual({
-      data: "data:image/png;base64,masked",
+      data: "data:image/png;base64,masked"
     });
   });
 
@@ -458,9 +447,7 @@ describe("EditImageNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow();
+    await expect(node.process()).rejects.toThrow();
   });
 
   it("throws on empty prompt", async () => {
@@ -472,9 +459,7 @@ describe("EditImageNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Edit prompt cannot be empty");
+    await expect(node.process()).rejects.toThrow("Edit prompt cannot be empty");
   });
 
   it("throws when no image provided", async () => {
@@ -485,9 +470,7 @@ describe("EditImageNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Input image is required");
+    await expect(node.process()).rejects.toThrow("Input image is required");
   });
 
   it("throws when image has no data or uri", async () => {
@@ -499,9 +482,7 @@ describe("EditImageNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Input image is required");
+    await expect(node.process()).rejects.toThrow("Input image is required");
   });
 
   it("throws on no image data in response", async () => {
@@ -515,9 +496,7 @@ describe("EditImageNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No image data in response");
+    await expect(node.process()).rejects.toThrow("No image data in response");
   });
 
   it("throws on API error", async () => {
@@ -531,9 +510,9 @@ describe("EditImageNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("OpenAI EditImage API error 500");
+    await expect(node.process()).rejects.toThrow(
+      "OpenAI EditImage API error 500"
+    );
   });
 });
 
@@ -546,7 +525,7 @@ describe("TextToSpeechNode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      arrayBuffer: async () => audioBytes.buffer,
+      arrayBuffer: async () => audioBytes.buffer
     } as unknown as Response);
 
     node.assign({
@@ -568,9 +547,7 @@ describe("TextToSpeechNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("OpenAI TTS API error 500");
+    await expect(node.process()).rejects.toThrow("OpenAI TTS API error 500");
   });
 });
 
@@ -580,9 +557,7 @@ describe("TranslateNode", () => {
   it("returns translated text", async () => {
     const node = new TranslateNode();
     const b64 = Buffer.from("audio-data").toString("base64");
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ text: "Hello world" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ text: "Hello world" }));
 
     node.assign({
       audio: { data: b64 }
@@ -596,9 +571,7 @@ describe("TranslateNode", () => {
   it("throws when audio not provided", async () => {
     const node = new TranslateNode();
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(node.process()).rejects.toThrow(
-      "Audio input is required"
-    );
+    await expect(node.process()).rejects.toThrow("Audio input is required");
   });
 
   it("throws when audio has no data", async () => {
@@ -609,9 +582,7 @@ describe("TranslateNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Audio input is required");
+    await expect(node.process()).rejects.toThrow("Audio input is required");
   });
 
   it("throws on API error", async () => {
@@ -624,9 +595,9 @@ describe("TranslateNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("OpenAI Translate API error 400");
+    await expect(node.process()).rejects.toThrow(
+      "OpenAI Translate API error 400"
+    );
   });
 });
 
@@ -636,9 +607,7 @@ describe("TranscribeNode", () => {
   it("returns transcribed text", async () => {
     const node = new TranscribeNode();
     const b64 = Buffer.from("audio").toString("base64");
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ text: "Transcribed text" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ text: "Transcribed text" }));
 
     node.assign({
       audio: { data: b64 }
@@ -658,7 +627,7 @@ describe("TranscribeNode", () => {
       jsonResponse({
         text: "Hello",
         segments: [{ start: 0, end: 1.5, text: "Hello" }],
-        words: [{ start: 0, end: 0.5, word: "Hello" }],
+        words: [{ start: 0, end: 0.5, word: "Hello" }]
       })
     );
 
@@ -686,17 +655,15 @@ describe("TranscribeNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("New transcription models do not support");
+    await expect(node.process()).rejects.toThrow(
+      "New transcription models do not support"
+    );
   });
 
   it("throws when audio not provided", async () => {
     const node = new TranscribeNode();
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(node.process()).rejects.toThrow(
-      "Audio input is required"
-    );
+    await expect(node.process()).rejects.toThrow("Audio input is required");
   });
 
   it("throws on API error", async () => {
@@ -709,9 +676,9 @@ describe("TranscribeNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("OpenAI Transcribe API error 500");
+    await expect(node.process()).rejects.toThrow(
+      "OpenAI Transcribe API error 500"
+    );
   });
 
   it("passes language and prompt when set", async () => {
@@ -799,9 +766,11 @@ describe("RealtimeAgentNode", () => {
   it("returns realtime fallback output", async () => {
     const node = new RealtimeAgentNode();
     mockFetch
-      .mockResolvedValueOnce(jsonResponse({
-        choices: [{ message: { content: "ok" } }],
-      }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          choices: [{ message: { content: "ok" } }]
+        })
+      )
       .mockResolvedValueOnce(jsonResponse({}));
 
     node.assign({

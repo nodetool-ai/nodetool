@@ -8,7 +8,11 @@
 
 import { createLogger } from "@nodetool/config";
 import type { BaseProvider, Message, ProviderTool } from "@nodetool/runtime";
-import type { ProcessingMessage, LogUpdate, PlanningUpdate } from "@nodetool/protocol";
+import type {
+  ProcessingMessage,
+  LogUpdate,
+  PlanningUpdate
+} from "@nodetool/protocol";
 import type { Tool } from "./tools/base-tool.js";
 import type { SubAgentConfig } from "./types.js";
 import { extractJSON } from "./utils/json-parser.js";
@@ -46,15 +50,15 @@ const CREATE_TEAM_SCHEMA: Record<string, unknown> = {
           skills: {
             type: "array",
             items: { type: "string" },
-            description: "Skill tags for task matching",
-          },
+            description: "Skill tags for task matching"
+          }
         },
-        required: ["name", "role", "skills"],
+        required: ["name", "role", "skills"]
       },
-      description: "List of agent definitions",
-    },
+      description: "List of agent definitions"
+    }
   },
-  required: ["agents"],
+  required: ["agents"]
 };
 
 export interface SubAgentPlannerOptions {
@@ -83,7 +87,9 @@ export class SubAgentPlanner {
     objective: string,
     numAgents: number
   ): AsyncGenerator<ProcessingMessage, SubAgentConfig[]> {
-    const toolNames = this.tools.map((t) => `${t.name}: ${t.description}`).join("\n");
+    const toolNames = this.tools
+      .map((t) => `${t.name}: ${t.description}`)
+      .join("\n");
 
     const userPrompt = [
       `Design a team of exactly ${numAgents} specialized agents for this objective:`,
@@ -93,60 +99,69 @@ export class SubAgentPlanner {
       "Available tools:",
       toolNames || "(no specific tools available)",
       "",
-      "Call the create_team tool with your team design.",
+      "Call the create_team tool with your team design."
     ].join("\n");
 
     const messages: Message[] = [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: userPrompt },
+      { role: "user", content: userPrompt }
     ];
 
     const providerTools: ProviderTool[] = [
       {
         name: "create_team",
         description: "Define the team of specialized agents",
-        inputSchema: CREATE_TEAM_SCHEMA,
-      },
+        inputSchema: CREATE_TEAM_SCHEMA
+      }
     ];
 
     yield {
       type: "planning_update",
       phase: "initialization",
       status: "started",
-      content: `Designing team of ${numAgents} agents...`,
+      content: `Designing team of ${numAgents} agents...`
     } satisfies PlanningUpdate;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      log.debug("Generating sub-agent team", { objective: objective.slice(0, 60), attempt: attempt + 1 });
+      log.debug("Generating sub-agent team", {
+        objective: objective.slice(0, 60),
+        attempt: attempt + 1
+      });
 
       yield {
         type: "planning_update",
         phase: "generation",
         status: "running",
-        content: attempt > 0
-          ? `Retry attempt ${attempt + 1}/${MAX_RETRIES}...`
-          : "Generating team composition...",
+        content:
+          attempt > 0
+            ? `Retry attempt ${attempt + 1}/${MAX_RETRIES}...`
+            : "Generating team composition..."
       } satisfies PlanningUpdate;
 
       try {
         const response = await this.provider.generateMessageTraced({
           messages,
           model: this.model,
-          tools: providerTools,
+          tools: providerTools
         });
 
         // Extract team data from tool call or text response
         let teamData: Record<string, unknown> | null = null;
 
         if (response.toolCalls && response.toolCalls.length > 0) {
-          const createTeamCall = response.toolCalls.find((tc) => tc.name === "create_team");
+          const createTeamCall = response.toolCalls.find(
+            (tc) => tc.name === "create_team"
+          );
           if (createTeamCall) {
             teamData = createTeamCall.args as Record<string, unknown>;
           }
         }
 
         if (!teamData && response.content) {
-          teamData = extractJSON(String(response.content)) as Record<string, unknown> | null;
+          teamData = extractJSON(String(response.content)) as Record<
+            string,
+            unknown
+          > | null;
         }
 
         if (!teamData || !Array.isArray(teamData.agents)) {
@@ -155,7 +170,8 @@ export class SubAgentPlanner {
             { role: "assistant", content: String(response.content ?? "") },
             {
               role: "user",
-              content: "The response was not valid. Please call the create_team tool with an 'agents' array.",
+              content:
+                "The response was not valid. Please call the create_team tool with an 'agents' array."
             }
           );
           continue;
@@ -165,12 +181,10 @@ export class SubAgentPlanner {
         const configs: SubAgentConfig[] = agents.map((agent) => ({
           name: String(agent.name ?? "agent"),
           role: String(agent.role ?? "general assistant"),
-          skills: Array.isArray(agent.skills)
-            ? agent.skills.map(String)
-            : [],
+          skills: Array.isArray(agent.skills) ? agent.skills.map(String) : [],
           tools: Array.isArray(agent.tools)
             ? agent.tools.map(String)
-            : undefined,
+            : undefined
         }));
 
         log.info("Sub-agent team planned", { count: configs.length });
@@ -179,15 +193,18 @@ export class SubAgentPlanner {
           type: "planning_update",
           phase: "complete",
           status: "completed",
-          content: `Team of ${configs.length} agents designed: ${configs.map((c) => c.name).join(", ")}`,
+          content: `Team of ${configs.length} agents designed: ${configs.map((c) => c.name).join(", ")}`
         } satisfies PlanningUpdate;
 
         return configs;
       } catch (err) {
-        log.error("Sub-agent planning error", { attempt: attempt + 1, error: String(err) });
+        log.error("Sub-agent planning error", {
+          attempt: attempt + 1,
+          error: String(err)
+        });
         messages.push({
           role: "user",
-          content: `Error occurred: ${String(err)}. Please try again.`,
+          content: `Error occurred: ${String(err)}. Please try again.`
         });
       }
     }
@@ -200,7 +217,7 @@ export class SubAgentPlanner {
       node_id: "sub_agent_planner",
       node_name: "SubAgentPlanner",
       content: "Using fallback generic team composition",
-      severity: "warning",
+      severity: "warning"
     } satisfies LogUpdate;
 
     return this.generateFallbackAgents(numAgents);
@@ -214,23 +231,23 @@ export class SubAgentPlanner {
       {
         name: "coordinator",
         role: "Lead coordinator who decomposes the objective and delegates tasks",
-        skills: ["planning", "coordination", "delegation"],
+        skills: ["planning", "coordination", "delegation"]
       },
       {
         name: "researcher",
         role: "Researches and gathers information relevant to the objective",
-        skills: ["web_search", "data_gathering", "analysis"],
+        skills: ["web_search", "data_gathering", "analysis"]
       },
       {
         name: "executor",
         role: "Executes specific tasks and produces deliverables",
-        skills: ["execution", "writing", "implementation"],
+        skills: ["execution", "writing", "implementation"]
       },
       {
         name: "reviewer",
         role: "Reviews work quality and suggests improvements",
-        skills: ["review", "quality_assurance", "feedback"],
-      },
+        skills: ["review", "quality_assurance", "feedback"]
+      }
     ];
 
     return templates.slice(0, Math.min(count, templates.length));

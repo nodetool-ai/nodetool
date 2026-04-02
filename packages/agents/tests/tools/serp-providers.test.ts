@@ -11,7 +11,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SerpApiProvider } from "../../src/tools/serp-providers/serpapi-provider.js";
 import { DataForSeoProvider } from "../../src/tools/serp-providers/dataforseo-provider.js";
-import type { SerpProvider, SearchResult } from "../../src/tools/serp-providers/index.js";
+import type {
+  SerpProvider,
+  SearchResult
+} from "../../src/tools/serp-providers/index.js";
 import { GoogleSearchTool } from "../../src/tools/search-tools.js";
 import { DataForSEOSearchTool } from "../../src/tools/dataseo-tools.js";
 import type { ProcessingContext } from "@nodetool/runtime";
@@ -21,11 +24,9 @@ import { Buffer } from "buffer";
 /*  Mock helpers                                                      */
 /* ------------------------------------------------------------------ */
 
-function makeContext(
-  secrets: Record<string, string> = {},
-): ProcessingContext {
+function makeContext(secrets: Record<string, string> = {}): ProcessingContext {
   return {
-    getSecret: vi.fn(async (key: string) => secrets[key] ?? null),
+    getSecret: vi.fn(async (key: string) => secrets[key] ?? null)
   } as unknown as ProcessingContext;
 }
 
@@ -35,7 +36,7 @@ function mockFetch(body: unknown, ok = true, status = 200) {
     status,
     statusText: ok ? "OK" : "Bad Request",
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   });
 }
 
@@ -46,7 +47,7 @@ function mockFetch(body: unknown, ok = true, status = 200) {
 function createMockProvider(results: SearchResult[] = []): SerpProvider {
   return {
     search: vi.fn(async () => results),
-    searchRaw: vi.fn(async () => ({ results })),
+    searchRaw: vi.fn(async () => ({ results }))
   };
 }
 
@@ -62,9 +63,19 @@ describe("SerpApiProvider", () => {
   it("normalises organic_results into SearchResult[]", async () => {
     const rawResponse = {
       organic_results: [
-        { title: "Result 1", link: "https://example.com/1", snippet: "First", position: 1 },
-        { title: "Result 2", link: "https://example.com/2", snippet: "Second", position: 2 },
-      ],
+        {
+          title: "Result 1",
+          link: "https://example.com/1",
+          snippet: "First",
+          position: 1
+        },
+        {
+          title: "Result 2",
+          link: "https://example.com/2",
+          snippet: "Second",
+          position: 2
+        }
+      ]
     };
 
     const originalFetch = globalThis.fetch;
@@ -78,7 +89,7 @@ describe("SerpApiProvider", () => {
         title: "Result 1",
         url: "https://example.com/1",
         snippet: "First",
-        position: 1,
+        position: 1
       });
       expect(results[1].position).toBe(2);
     } finally {
@@ -117,7 +128,9 @@ describe("SerpApiProvider", () => {
     globalThis.fetch = mockFetch("error", false, 500);
     try {
       const provider = new SerpApiProvider("test-key");
-      await expect(provider.search("test")).rejects.toThrow("SerpAPI request failed");
+      await expect(provider.search("test")).rejects.toThrow(
+        "SerpAPI request failed"
+      );
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -142,14 +155,31 @@ describe("DataForSeoProvider", () => {
           result: [
             {
               items: [
-                { type: "organic", title: "R1", url: "https://a.com", description: "Snip1", rank_absolute: 1 },
-                { type: "organic", title: "R2", url: "https://b.com", description: "Snip2", rank_absolute: 2 },
-                { type: "paid", title: "Ad", url: "https://ad.com", description: "Ad snip" },
-              ],
-            },
-          ],
-        },
-      ],
+                {
+                  type: "organic",
+                  title: "R1",
+                  url: "https://a.com",
+                  description: "Snip1",
+                  rank_absolute: 1
+                },
+                {
+                  type: "organic",
+                  title: "R2",
+                  url: "https://b.com",
+                  description: "Snip2",
+                  rank_absolute: 2
+                },
+                {
+                  type: "paid",
+                  title: "Ad",
+                  url: "https://ad.com",
+                  description: "Ad snip"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     };
 
     const originalFetch = globalThis.fetch;
@@ -164,7 +194,7 @@ describe("DataForSeoProvider", () => {
         title: "R1",
         url: "https://a.com",
         snippet: "Snip1",
-        position: 1,
+        position: 1
       });
     } finally {
       globalThis.fetch = originalFetch;
@@ -172,7 +202,11 @@ describe("DataForSeoProvider", () => {
   });
 
   it("searchRaw returns raw DataForSEO response", async () => {
-    const rawResponse = { status_code: 20000, status_message: "Ok.", tasks: [] };
+    const rawResponse = {
+      status_code: 20000,
+      status_message: "Ok.",
+      tasks: []
+    };
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
@@ -187,13 +221,15 @@ describe("DataForSeoProvider", () => {
   it("throws on API error status", async () => {
     const rawResponse = {
       status_code: 40000,
-      status_message: "Bad Request",
+      status_message: "Bad Request"
     };
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
       const provider = new DataForSeoProvider("login", "pass");
-      await expect(provider.search("test")).rejects.toThrow("DataForSEO API Error");
+      await expect(provider.search("test")).rejects.toThrow(
+        "DataForSEO API Error"
+      );
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -207,13 +243,21 @@ describe("DataForSeoProvider", () => {
 describe("GoogleSearchTool with SerpProvider", () => {
   it("delegates to injected provider", async () => {
     const mockResults: SearchResult[] = [
-      { title: "Mock Result", url: "https://mock.com", snippet: "Mock snip", position: 1 },
+      {
+        title: "Mock Result",
+        url: "https://mock.com",
+        snippet: "Mock snip",
+        position: 1
+      }
     ];
     const provider = createMockProvider(mockResults);
     const tool = new GoogleSearchTool(provider);
     const ctx = makeContext();
 
-    const result = (await tool.process(ctx, { keyword: "test", num_results: 5 })) as {
+    const result = (await tool.process(ctx, {
+      keyword: "test",
+      num_results: 5
+    })) as {
       success: boolean;
       results: Array<Record<string, unknown>>;
     };
@@ -260,7 +304,7 @@ describe("DataForSEOSearchTool with SerpProvider", () => {
 describe("SerpProvider interface", () => {
   it("mock provider satisfies the interface", async () => {
     const provider = createMockProvider([
-      { title: "A", url: "https://a.com", snippet: "s", position: 1 },
+      { title: "A", url: "https://a.com", snippet: "s", position: 1 }
     ]);
 
     const results = await provider.search("q");
@@ -289,7 +333,7 @@ describe("SerpApiProvider (extended)", () => {
         ok: true,
         status: 200,
         json: async () => ({ organic_results: [] }),
-        text: async () => "{}",
+        text: async () => "{}"
       } as Response;
     });
 
@@ -315,7 +359,7 @@ describe("SerpApiProvider (extended)", () => {
         ok: true,
         status: 200,
         json: async () => ({ organic_results: [] }),
-        text: async () => "{}",
+        text: async () => "{}"
       } as Response;
     });
 
@@ -344,9 +388,7 @@ describe("SerpApiProvider (extended)", () => {
 
   it("handles null fields in results gracefully", async () => {
     const rawResponse = {
-      organic_results: [
-        { title: null, link: null, snippet: null, position: 1 },
-      ],
+      organic_results: [{ title: null, link: null, snippet: null, position: 1 }]
     };
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
@@ -376,19 +418,22 @@ describe("DataForSeoProvider (extended)", () => {
   it("encodes Basic auth header correctly as base64", async () => {
     let capturedAuth = "";
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-      capturedAuth = (init?.headers as Record<string, string>)?.Authorization ?? "";
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status_code: 20000,
-          status_message: "Ok.",
-          tasks: [{ result: [{ items: [] }] }],
-        }),
-        text: async () => "{}",
-      } as Response;
-    });
+    globalThis.fetch = vi.fn(
+      async (_url: string | URL | Request, init?: RequestInit) => {
+        capturedAuth =
+          (init?.headers as Record<string, string>)?.Authorization ?? "";
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status_code: 20000,
+            status_message: "Ok.",
+            tasks: [{ result: [{ items: [] }] }]
+          }),
+          text: async () => "{}"
+        } as Response;
+      }
+    );
 
     try {
       const provider = new DataForSeoProvider("mylogin", "mypass");
@@ -405,7 +450,7 @@ describe("DataForSeoProvider (extended)", () => {
     const rawResponse = {
       status_code: 20000,
       status_message: "Ok.",
-      tasks: [{ result: [{ items: [] }] }],
+      tasks: [{ result: [{ items: [] }] }]
     };
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
@@ -422,7 +467,7 @@ describe("DataForSeoProvider (extended)", () => {
     const rawResponse = {
       status_code: 20000,
       status_message: "Ok.",
-      tasks: [],
+      tasks: []
     };
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
@@ -445,15 +490,37 @@ describe("DataForSeoProvider (extended)", () => {
           result: [
             {
               items: [
-                { type: "organic", title: "Real Result", url: "https://real.com", description: "real", rank_absolute: 1 },
-                { type: "paid", title: "Ad", url: "https://ad.com", description: "ad" },
-                { type: "featured_snippet", title: "Featured", url: "https://f.com", description: "feat" },
-                { type: "organic", title: "Second", url: "https://second.com", description: "second", rank_absolute: 2 },
-              ],
-            },
-          ],
-        },
-      ],
+                {
+                  type: "organic",
+                  title: "Real Result",
+                  url: "https://real.com",
+                  description: "real",
+                  rank_absolute: 1
+                },
+                {
+                  type: "paid",
+                  title: "Ad",
+                  url: "https://ad.com",
+                  description: "ad"
+                },
+                {
+                  type: "featured_snippet",
+                  title: "Featured",
+                  url: "https://f.com",
+                  description: "feat"
+                },
+                {
+                  type: "organic",
+                  title: "Second",
+                  url: "https://second.com",
+                  description: "second",
+                  rank_absolute: 2
+                }
+              ]
+            }
+          ]
+        }
+      ]
     };
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
@@ -482,9 +549,21 @@ describe("GoogleNewsTool", () => {
     const { GoogleNewsTool } = await import("../../src/tools/search-tools.js");
     const rawResponse = {
       news_results: [
-        { title: "News 1", link: "https://news1.com", snippet: "Breaking", date: "2h ago", source: { name: "CNN" } },
-        { title: "News 2", link: "https://news2.com", snippet: "Update", date: "5h ago", source: { name: "BBC" } },
-      ],
+        {
+          title: "News 1",
+          link: "https://news1.com",
+          snippet: "Breaking",
+          date: "2h ago",
+          source: { name: "CNN" }
+        },
+        {
+          title: "News 2",
+          link: "https://news2.com",
+          snippet: "Update",
+          date: "5h ago",
+          source: { name: "BBC" }
+        }
+      ]
     };
 
     const originalFetch = globalThis.fetch;
@@ -492,7 +571,10 @@ describe("GoogleNewsTool", () => {
     try {
       const tool = new GoogleNewsTool();
       const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
-      const result = (await tool.process(ctx, { keyword: "breaking news", num_results: 5 })) as {
+      const result = (await tool.process(ctx, {
+        keyword: "breaking news",
+        num_results: 5
+      })) as {
         success: boolean;
         results: Array<Record<string, unknown>>;
       };
@@ -518,12 +600,23 @@ describe("GoogleImagesTool", () => {
   });
 
   it("extracts images_results from SerpAPI response", async () => {
-    const { GoogleImagesTool } = await import("../../src/tools/search-tools.js");
+    const { GoogleImagesTool } =
+      await import("../../src/tools/search-tools.js");
     const rawResponse = {
       images_results: [
-        { title: "Image 1", link: "https://img1.com", original: "https://img1.com/full.jpg", thumbnail: "https://img1.com/thumb.jpg" },
-        { title: "Image 2", link: "https://img2.com", original: "https://img2.com/full.png", thumbnail: "https://img2.com/thumb.png" },
-      ],
+        {
+          title: "Image 1",
+          link: "https://img1.com",
+          original: "https://img1.com/full.jpg",
+          thumbnail: "https://img1.com/thumb.jpg"
+        },
+        {
+          title: "Image 2",
+          link: "https://img2.com",
+          original: "https://img2.com/full.png",
+          thumbnail: "https://img2.com/thumb.png"
+        }
+      ]
     };
 
     const originalFetch = globalThis.fetch;
@@ -531,7 +624,10 @@ describe("GoogleImagesTool", () => {
     try {
       const tool = new GoogleImagesTool();
       const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
-      const result = (await tool.process(ctx, { keyword: "cats", num_results: 5 })) as {
+      const result = (await tool.process(ctx, {
+        keyword: "cats",
+        num_results: 5
+      })) as {
         success: boolean;
         results: Array<Record<string, unknown>>;
       };
@@ -557,7 +653,8 @@ describe("DataForSEONewsTool", () => {
   });
 
   it("extracts news results with mock context credentials", async () => {
-    const { DataForSEONewsTool } = await import("../../src/tools/dataseo-tools.js");
+    const { DataForSEONewsTool } =
+      await import("../../src/tools/dataseo-tools.js");
     const rawResponse = {
       status_code: 20000,
       status_message: "Ok.",
@@ -566,14 +663,33 @@ describe("DataForSEONewsTool", () => {
           result: [
             {
               items: [
-                { type: "news_search", title: "Breaking", url: "https://news.com", description: "Details", timestamp: "2025-01-15 10:30:00", source: "Reuters" },
-                { type: "top_stories", title: "Top Story", url: "https://top.com", description: "Top details", timestamp: "2025-01-15 09:00:00", source: "AP" },
-                { type: "paid", title: "Ad", url: "https://ad.com", description: "Ad" },
-              ],
-            },
-          ],
-        },
-      ],
+                {
+                  type: "news_search",
+                  title: "Breaking",
+                  url: "https://news.com",
+                  description: "Details",
+                  timestamp: "2025-01-15 10:30:00",
+                  source: "Reuters"
+                },
+                {
+                  type: "top_stories",
+                  title: "Top Story",
+                  url: "https://top.com",
+                  description: "Top details",
+                  timestamp: "2025-01-15 09:00:00",
+                  source: "AP"
+                },
+                {
+                  type: "paid",
+                  title: "Ad",
+                  url: "https://ad.com",
+                  description: "Ad"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     };
 
     const originalFetch = globalThis.fetch;
@@ -582,7 +698,7 @@ describe("DataForSEONewsTool", () => {
       const tool = new DataForSEONewsTool();
       const ctx = makeContext({
         DATA_FOR_SEO_LOGIN: "testlogin",
-        DATA_FOR_SEO_PASSWORD: "testpass",
+        DATA_FOR_SEO_PASSWORD: "testpass"
       });
       const result = (await tool.process(ctx, { keyword: "tech news" })) as {
         success: boolean;
@@ -610,7 +726,8 @@ describe("DataForSEOImagesTool", () => {
   });
 
   it("extracts image results from DataForSEO response", async () => {
-    const { DataForSEOImagesTool } = await import("../../src/tools/dataseo-tools.js");
+    const { DataForSEOImagesTool } =
+      await import("../../src/tools/dataseo-tools.js");
     const rawResponse = {
       status_code: 20000,
       status_message: "Ok.",
@@ -619,13 +736,25 @@ describe("DataForSEOImagesTool", () => {
           result: [
             {
               items: [
-                { type: "images_search", title: "Cat", image_url: "https://cat.jpg", source_url: "https://cats.com", alt: "A cute cat" },
-                { type: "images_search", title: "Dog", image_url: "https://dog.jpg", source_url: "https://dogs.com", alt: "A happy dog" },
-              ],
-            },
-          ],
-        },
-      ],
+                {
+                  type: "images_search",
+                  title: "Cat",
+                  image_url: "https://cat.jpg",
+                  source_url: "https://cats.com",
+                  alt: "A cute cat"
+                },
+                {
+                  type: "images_search",
+                  title: "Dog",
+                  image_url: "https://dog.jpg",
+                  source_url: "https://dogs.com",
+                  alt: "A happy dog"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     };
 
     const originalFetch = globalThis.fetch;
@@ -634,7 +763,7 @@ describe("DataForSEOImagesTool", () => {
       const tool = new DataForSEOImagesTool();
       const ctx = makeContext({
         DATA_FOR_SEO_LOGIN: "testlogin",
-        DATA_FOR_SEO_PASSWORD: "testpass",
+        DATA_FOR_SEO_PASSWORD: "testpass"
       });
       const result = (await tool.process(ctx, { keyword: "cute animals" })) as {
         success: boolean;
@@ -664,8 +793,8 @@ describe("GoogleSearchTool legacy path (no provider)", () => {
   it("uses direct SerpAPI fetch when no provider injected", async () => {
     const rawResponse = {
       organic_results: [
-        { title: "Result 1", link: "https://example.com/1", snippet: "First" },
-      ],
+        { title: "Result 1", link: "https://example.com/1", snippet: "First" }
+      ]
     };
 
     const originalFetch = globalThis.fetch;
@@ -673,7 +802,10 @@ describe("GoogleSearchTool legacy path (no provider)", () => {
     try {
       const tool = new GoogleSearchTool(); // no provider
       const ctx = makeContext({ SERPAPI_API_KEY: "legacy-key" });
-      const result = (await tool.process(ctx, { keyword: "test", num_results: 3 })) as {
+      const result = (await tool.process(ctx, {
+        keyword: "test",
+        num_results: 3
+      })) as {
         success: boolean;
         results: Array<Record<string, unknown>>;
       };

@@ -7,7 +7,7 @@ import {
   ImageToVideoGeminiNode,
   TextToSpeechGeminiNode,
   TranscribeGeminiNode,
-  GEMINI_NODES,
+  GEMINI_NODES
 } from "../src/nodes/gemini.js";
 
 const originalFetch = global.fetch;
@@ -42,9 +42,7 @@ describe("GroundedSearchNode", () => {
   it("throws without API key", async () => {
     const node = new GroundedSearchNode();
     node.assign({ query: "test" });
-    await expect(node.process()).rejects.toThrow(
-      /GEMINI_API_KEY/i
-    );
+    await expect(node.process()).rejects.toThrow(/GEMINI_API_KEY/i);
   });
 
   it("throws when query is empty", async () => {
@@ -65,12 +63,12 @@ describe("GroundedSearchNode", () => {
             content: { parts: [{ text: "Result text" }] },
             groundingMetadata: {
               groundingChunks: [
-                { web: { title: "Source 1", uri: "https://example.com" } },
-              ],
-            },
-          },
-        ],
-      }),
+                { web: { title: "Source 1", uri: "https://example.com" } }
+              ]
+            }
+          }
+        ]
+      })
     });
 
     const node = new GroundedSearchNode();
@@ -88,7 +86,7 @@ describe("GroundedSearchNode", () => {
 
     expect(result.results).toEqual(["Result text"]);
     expect(result.sources).toEqual([
-      { title: "Source 1", url: "https://example.com" },
+      { title: "Source 1", url: "https://example.com" }
     ]);
   });
 
@@ -96,7 +94,7 @@ describe("GroundedSearchNode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 400,
-      text: async () => "Bad request",
+      text: async () => "Bad request"
     });
 
     const node = new GroundedSearchNode();
@@ -110,7 +108,7 @@ describe("GroundedSearchNode", () => {
   it("throws when no candidates returned", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ candidates: [] }),
+      json: async () => ({ candidates: [] })
     });
 
     const node = new GroundedSearchNode();
@@ -132,12 +130,12 @@ describe("GroundedSearchNode", () => {
               groundingChunks: [
                 { web: { title: "A", uri: "https://a.com" } },
                 { web: { title: "A duplicate", uri: "https://a.com" } },
-                { web: { title: "B", uri: "https://b.com" } },
-              ],
-            },
-          },
-        ],
-      }),
+                { web: { title: "B", uri: "https://b.com" } }
+              ]
+            }
+          }
+        ]
+      })
     });
 
     const node = new GroundedSearchNode();
@@ -173,9 +171,7 @@ describe("EmbeddingNode (Gemini)", () => {
   it("throws without API key", async () => {
     const node = new EmbeddingNode();
     node.assign({ input: "hello" });
-    await expect(node.process()).rejects.toThrow(
-      /GEMINI_API_KEY/i
-    );
+    await expect(node.process()).rejects.toThrow(/GEMINI_API_KEY/i);
   });
 
   it("throws when input is empty", async () => {
@@ -189,8 +185,8 @@ describe("EmbeddingNode (Gemini)", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        embedding: { values: [0.1, 0.2, 0.3] },
-      }),
+        embedding: { values: [0.1, 0.2, 0.3] }
+      })
     });
 
     const node = new EmbeddingNode();
@@ -238,8 +234,8 @@ describe("ImageGenerationNode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        predictions: [{ bytesBase64Encoded: "abc123base64" }],
-      }),
+        predictions: [{ bytesBase64Encoded: "abc123base64" }]
+      })
     });
 
     const node = new ImageGenerationNode();
@@ -263,11 +259,11 @@ describe("ImageGenerationNode", () => {
         candidates: [
           {
             content: {
-              parts: [{ inlineData: { data: "imagedata" } }],
-            },
-          },
-        ],
-      }),
+              parts: [{ inlineData: { data: "imagedata" } }]
+            }
+          }
+        ]
+      })
     });
 
     const node = new ImageGenerationNode();
@@ -287,8 +283,8 @@ describe("ImageGenerationNode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        candidates: [{ finishReason: "PROHIBITED_CONTENT", content: null }],
-      }),
+        candidates: [{ finishReason: "PROHIBITED_CONTENT", content: null }]
+      })
     });
 
     const node = new ImageGenerationNode();
@@ -335,9 +331,9 @@ describe("TextToVideoGeminiNode", () => {
       json: async () => ({
         done: true,
         response: {
-          generatedVideos: [{ video: { videoBytes: "videobase64" } }],
-        },
-      }),
+          generatedVideos: [{ video: { videoBytes: "videobase64" } }]
+        }
+      })
     });
 
     const node = new TextToVideoGeminiNode();
@@ -347,21 +343,19 @@ describe("TextToVideoGeminiNode", () => {
     node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
     const result = await node.process();
 
-    expect((result.output as Record<string, unknown>).data).toBe(
-      "videobase64"
-    );
+    expect((result.output as Record<string, unknown>).data).toBe("videobase64");
   });
 
   it("polls operation until done", async () => {
     // Initial response: not done, returns operation name
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ done: false, name: "operations/123" }),
+      json: async () => ({ done: false, name: "operations/123" })
     });
     // First poll: not done
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ done: false }),
+      json: async () => ({ done: false })
     });
     // Second poll: done
     mockFetch.mockResolvedValueOnce({
@@ -369,9 +363,9 @@ describe("TextToVideoGeminiNode", () => {
       json: async () => ({
         done: true,
         response: {
-          generatedVideos: [{ video: { videoBytes: "finalvideo" } }],
-        },
-      }),
+          generatedVideos: [{ video: { videoBytes: "finalvideo" } }]
+        }
+      })
     });
 
     const node = new TextToVideoGeminiNode();
@@ -428,9 +422,9 @@ describe("ImageToVideoGeminiNode", () => {
       json: async () => ({
         done: true,
         response: {
-          generatedVideos: [{ video: { videoBytes: "vid" } }],
-        },
-      }),
+          generatedVideos: [{ video: { videoBytes: "vid" } }]
+        }
+      })
     });
 
     const node = new ImageToVideoGeminiNode();
@@ -484,11 +478,11 @@ describe("TextToSpeechGeminiNode", () => {
         candidates: [
           {
             content: {
-              parts: [{ inlineData: { data: pcmBase64 } }],
-            },
-          },
-        ],
-      }),
+              parts: [{ inlineData: { data: pcmBase64 } }]
+            }
+          }
+        ]
+      })
     });
 
     const node = new TextToSpeechGeminiNode();
@@ -516,11 +510,11 @@ describe("TextToSpeechGeminiNode", () => {
         candidates: [
           {
             content: {
-              parts: [{ inlineData: { data: pcmBase64 } }],
-            },
-          },
-        ],
-      }),
+              parts: [{ inlineData: { data: pcmBase64 } }]
+            }
+          }
+        ]
+      })
     });
 
     const node = new TextToSpeechGeminiNode();
@@ -571,11 +565,11 @@ describe("TranscribeGeminiNode", () => {
         candidates: [
           {
             content: {
-              parts: [{ text: "Hello world" }],
-            },
-          },
-        ],
-      }),
+              parts: [{ text: "Hello world" }]
+            }
+          }
+        ]
+      })
     });
 
     // WAV magic bytes for mime detection

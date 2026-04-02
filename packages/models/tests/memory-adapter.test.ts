@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { MemoryAdapter } from "../src/memory-adapter.js";
-import { Condition, ConditionBuilder, ConditionGroup, LogicalOperator, Operator, Variable, field } from "../src/condition-builder.js";
+import {
+  Condition,
+  ConditionBuilder,
+  ConditionGroup,
+  LogicalOperator,
+  Operator,
+  Variable,
+  field
+} from "../src/condition-builder.js";
 import type { TableSchema } from "../src/database-adapter.js";
 
 const SCHEMA: TableSchema = {
@@ -11,8 +19,8 @@ const SCHEMA: TableSchema = {
     name: { type: "string" },
     age: { type: "number" },
     status: { type: "string" },
-    created_at: { type: "datetime" },
-  },
+    created_at: { type: "datetime" }
+  }
 };
 
 describe("MemoryAdapter", () => {
@@ -40,7 +48,12 @@ describe("MemoryAdapter", () => {
 
     it("save overwrites existing row (upsert)", async () => {
       await adapter.save({ id: "1", name: "Alice", age: 30, status: "active" });
-      await adapter.save({ id: "1", name: "Alice Updated", age: 31, status: "active" });
+      await adapter.save({
+        id: "1",
+        name: "Alice Updated",
+        age: 31,
+        status: "active"
+      });
       const row = await adapter.get("1");
       expect(row!.name).toBe("Alice Updated");
       expect(row!.age).toBe(31);
@@ -55,7 +68,7 @@ describe("MemoryAdapter", () => {
 
     it("throws on save without primary key", async () => {
       await expect(adapter.save({ name: "No ID" })).rejects.toThrow(
-        /Missing primary key/,
+        /Missing primary key/
       );
     });
   });
@@ -64,9 +77,27 @@ describe("MemoryAdapter", () => {
 
   describe("query", () => {
     beforeEach(async () => {
-      await adapter.save({ id: "1", name: "Alice", age: 30, status: "active", created_at: "2024-01-01" });
-      await adapter.save({ id: "2", name: "Bob", age: 25, status: "inactive", created_at: "2024-01-02" });
-      await adapter.save({ id: "3", name: "Charlie", age: 35, status: "active", created_at: "2024-01-03" });
+      await adapter.save({
+        id: "1",
+        name: "Alice",
+        age: 30,
+        status: "active",
+        created_at: "2024-01-01"
+      });
+      await adapter.save({
+        id: "2",
+        name: "Bob",
+        age: 25,
+        status: "inactive",
+        created_at: "2024-01-02"
+      });
+      await adapter.save({
+        id: "3",
+        name: "Charlie",
+        age: 35,
+        status: "active",
+        created_at: "2024-01-03"
+      });
     });
 
     it("query all rows", async () => {
@@ -89,14 +120,18 @@ describe("MemoryAdapter", () => {
     });
 
     it("query with AND conditions", async () => {
-      const cond = field("status").equals("active").and(field("age").greaterThan(30));
+      const cond = field("status")
+        .equals("active")
+        .and(field("age").greaterThan(30));
       const [rows] = await adapter.query({ condition: cond });
       expect(rows).toHaveLength(1);
       expect(rows[0].name).toBe("Charlie");
     });
 
     it("query with OR conditions", async () => {
-      const cond = field("name").equals("Alice").or(field("name").equals("Bob"));
+      const cond = field("name")
+        .equals("Alice")
+        .or(field("name").equals("Bob"));
       const [rows] = await adapter.query({ condition: cond });
       expect(rows).toHaveLength(2);
     });
@@ -157,7 +192,7 @@ describe("MemoryAdapter", () => {
       await adapter.createIndex("idx_unique_name", ["name"], true);
       await adapter.save({ id: "1", name: "Alice", age: 30, status: "active" });
       await expect(
-        adapter.save({ id: "2", name: "Alice", age: 25, status: "inactive" }),
+        adapter.save({ id: "2", name: "Alice", age: 25, status: "inactive" })
       ).rejects.toThrow(/Unique index/);
     });
 
@@ -175,14 +210,32 @@ describe("MemoryAdapter", () => {
 
   describe("additional operators", () => {
     beforeEach(async () => {
-      await adapter.save({ id: "1", name: "Alice", age: 30, status: "active", created_at: "2024-01-01" });
-      await adapter.save({ id: "2", name: "Bob", age: 25, status: "inactive", created_at: "2024-01-02" });
-      await adapter.save({ id: "3", name: "Charlie", age: 35, status: "active", created_at: "2024-01-03" });
+      await adapter.save({
+        id: "1",
+        name: "Alice",
+        age: 30,
+        status: "active",
+        created_at: "2024-01-01"
+      });
+      await adapter.save({
+        id: "2",
+        name: "Bob",
+        age: 25,
+        status: "inactive",
+        created_at: "2024-01-02"
+      });
+      await adapter.save({
+        id: "3",
+        name: "Charlie",
+        age: 35,
+        status: "active",
+        created_at: "2024-01-03"
+      });
     });
 
     it("query with CONTAINS operator", async () => {
       const cond = new ConditionBuilder(
-        new Condition("name", Operator.CONTAINS, ["Alice", "Bob"]),
+        new Condition("name", Operator.CONTAINS, ["Alice", "Bob"])
       );
       const [rows] = await adapter.query({ condition: cond });
       expect(rows).toHaveLength(2);
@@ -217,7 +270,7 @@ describe("MemoryAdapter", () => {
 
     it("evaluateCondition with Variable value returns null comparison", async () => {
       const cond = new ConditionBuilder(
-        new Condition("name", Operator.EQ, new Variable("some_var")),
+        new Condition("name", Operator.EQ, new Variable("some_var"))
       );
       const [rows] = await adapter.query({ condition: cond });
       // Variable resolves to null, so only rows where name === null match
@@ -226,14 +279,16 @@ describe("MemoryAdapter", () => {
 
     it("evaluateCondition returns false for unknown operator", async () => {
       const cond = new ConditionBuilder(
-        new Condition("name", "UNKNOWN" as Operator, "Alice"),
+        new Condition("name", "UNKNOWN" as Operator, "Alice")
       );
       const [rows] = await adapter.query({ condition: cond });
       expect(rows).toHaveLength(0);
     });
 
     it("evaluateGroup with OR logic across groups", async () => {
-      const cond = field("name").equals("Alice").or(field("name").equals("Charlie"));
+      const cond = field("name")
+        .equals("Alice")
+        .or(field("name").equals("Charlie"));
       const [rows] = await adapter.query({ condition: cond });
       expect(rows).toHaveLength(2);
     });
@@ -248,9 +303,9 @@ describe("MemoryAdapter", () => {
       const innerGroup = new ConditionGroup(
         [
           new Condition("name", Operator.EQ, "Alice"),
-          new Condition("name", Operator.EQ, "Bob"),
+          new Condition("name", Operator.EQ, "Bob")
         ],
-        LogicalOperator.OR,
+        LogicalOperator.OR
       );
       const cond = new ConditionBuilder(innerGroup);
       const [rows] = await adapter.query({ condition: cond });
@@ -260,7 +315,7 @@ describe("MemoryAdapter", () => {
     it("LIKE with non-string value returns false", async () => {
       // LIKE operator should return false when target or val is not a string
       const cond = new ConditionBuilder(
-        new Condition("age", Operator.LIKE, "%30%"),
+        new Condition("age", Operator.LIKE, "%30%")
       );
       const [rows] = await adapter.query({ condition: cond });
       // age is a number, not a string, so LIKE should not match
@@ -269,7 +324,7 @@ describe("MemoryAdapter", () => {
 
     it("LIKE with non-string pattern returns false", async () => {
       const cond = new ConditionBuilder(
-        new Condition("name", Operator.LIKE, 42),
+        new Condition("name", Operator.LIKE, 42)
       );
       const [rows] = await adapter.query({ condition: cond });
       expect(rows).toHaveLength(0);
@@ -279,12 +334,9 @@ describe("MemoryAdapter", () => {
       // Test the else-if path for ConditionGroup inside evaluateGroup (line 63-64)
       const innerGroup = new ConditionGroup(
         [new Condition("name", Operator.EQ, "Nonexistent")],
-        LogicalOperator.AND,
+        LogicalOperator.AND
       );
-      const outerGroup = new ConditionGroup(
-        [innerGroup],
-        LogicalOperator.AND,
-      );
+      const outerGroup = new ConditionGroup([innerGroup], LogicalOperator.AND);
       const cond = new ConditionBuilder(outerGroup);
       const [rows] = await adapter.query({ condition: cond });
       expect(rows).toHaveLength(0);
@@ -299,8 +351,8 @@ describe("MemoryAdapter", () => {
         table_name: "no_pk",
         columns: {
           id: { type: "string" },
-          name: { type: "string" },
-        },
+          name: { type: "string" }
+        }
       } as any;
       const noPkAdapter = new MemoryAdapter(schemaNoKey);
       expect(noPkAdapter.getPrimaryKey()).toBe("id");
@@ -335,14 +387,17 @@ describe("MemoryAdapter", () => {
       await adapter.save({ id: "3", name: "Carol", age: 35, status: "active" });
 
       // Build a nested condition: (age > 20 AND (status = "active" OR name = "Bob"))
-      const inner = new ConditionGroup([
-        new Condition("status", Operator.EQ, "active"),
-        new Condition("name", Operator.EQ, "Bob"),
-      ], LogicalOperator.OR);
-      const outer = new ConditionGroup([
-        new Condition("age", Operator.GT, 20),
-        inner,
-      ], LogicalOperator.AND);
+      const inner = new ConditionGroup(
+        [
+          new Condition("status", Operator.EQ, "active"),
+          new Condition("name", Operator.EQ, "Bob")
+        ],
+        LogicalOperator.OR
+      );
+      const outer = new ConditionGroup(
+        [new Condition("age", Operator.GT, 20), inner],
+        LogicalOperator.AND
+      );
       const builder = new ConditionBuilder(outer);
 
       const [rows] = await adapter.query({ condition: builder });
@@ -354,9 +409,10 @@ describe("MemoryAdapter", () => {
 
       // Create a group with an invalid condition type - we need to bypass
       // the ConditionGroup constructor's type checking by modifying after creation
-      const group = new ConditionGroup([
-        new Condition("name", Operator.EQ, "Alice"),
-      ], LogicalOperator.AND);
+      const group = new ConditionGroup(
+        [new Condition("name", Operator.EQ, "Alice")],
+        LogicalOperator.AND
+      );
       // Force an invalid condition into the array
       (group.conditions as any).push("not-a-condition");
       const builder = new ConditionBuilder(group);

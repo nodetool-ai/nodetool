@@ -10,7 +10,7 @@ import {
   loadEnvironment,
   getEnv,
   requireEnv,
-  resetEnvironment,
+  resetEnvironment
 } from "../src/environment.js";
 import * as fs from "node:fs";
 import * as path from "node:path";

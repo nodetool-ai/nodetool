@@ -9,7 +9,7 @@ import {
   HTMLToTextLibNode,
   WebsiteContentExtractorLibNode,
   ConvertToMarkdownLibNode,
-  ChartRendererLibNode,
+  ChartRendererLibNode
 } from "../src/index.js";
 
 const SAMPLE_HTML = `<html>
@@ -40,14 +40,14 @@ const BASE_URL = "https://example.com";
 describe("lib.beautifulsoup.BaseUrl", () => {
   it("extracts protocol and host from a URL", async () => {
     const result = await new BaseUrlLibNode({
-      url: "https://example.com/path/to/page?q=1",
+      url: "https://example.com/path/to/page?q=1"
     }).process();
     expect(result).toEqual({ output: "https://example.com" });
   });
 
   it("handles URLs with ports", async () => {
     const result = await new BaseUrlLibNode({
-      url: "http://localhost:3000/api",
+      url: "http://localhost:3000/api"
     }).process();
     expect(result).toEqual({ output: "http://localhost:3000" });
   });
@@ -61,7 +61,7 @@ describe("lib.beautifulsoup.ExtractLinks", () => {
   it("extracts links with text and type classification", async () => {
     const result = await new ExtractLinksLibNode({
       html: SAMPLE_HTML,
-      base_url: BASE_URL,
+      base_url: BASE_URL
     }).process();
     const output = result.output as { columns: unknown[]; data: string[][] };
     expect(output.columns).toHaveLength(3);
@@ -71,7 +71,7 @@ describe("lib.beautifulsoup.ExtractLinks", () => {
     expect(output.data[0]).toEqual([
       "https://example.com",
       "Example Link",
-      "internal",
+      "internal"
     ]);
     // Second link is internal (starts with /)
     expect(output.data[1]).toEqual(["/about", "About", "internal"]);
@@ -79,7 +79,7 @@ describe("lib.beautifulsoup.ExtractLinks", () => {
     expect(output.data[2]).toEqual([
       "https://external.com/page",
       "External",
-      "external",
+      "external"
     ]);
   });
 });
@@ -88,17 +88,17 @@ describe("lib.beautifulsoup.ExtractImages", () => {
   it("extracts image sources resolved against base URL", async () => {
     const result = await new ExtractImagesLibNode({
       html: SAMPLE_HTML,
-      base_url: BASE_URL,
+      base_url: BASE_URL
     }).process();
     const output = result.output as Array<{ uri: string; type: string }>;
     expect(output).toHaveLength(2);
     expect(output[0]).toEqual({
       uri: "https://example.com/img.png",
-      type: "image",
+      type: "image"
     });
     expect(output[1]).toEqual({
       uri: "https://cdn.example.com/photo.jpg",
-      type: "image",
+      type: "image"
     });
   });
 });
@@ -107,17 +107,17 @@ describe("lib.beautifulsoup.ExtractAudio", () => {
   it("extracts audio sources from audio and source tags", async () => {
     const result = await new ExtractAudioLibNode({
       html: SAMPLE_HTML,
-      base_url: BASE_URL,
+      base_url: BASE_URL
     }).process();
     const output = result.output as Array<{ uri: string; type: string }>;
     expect(output).toHaveLength(2);
     expect(output[0]).toEqual({
       uri: "https://example.com/song.mp3",
-      type: "audio",
+      type: "audio"
     });
     expect(output[1]).toEqual({
       uri: "https://cdn.example.com/track.ogg",
-      type: "audio",
+      type: "audio"
     });
   });
 });
@@ -126,21 +126,21 @@ describe("lib.beautifulsoup.ExtractVideos", () => {
   it("extracts video sources from video, source, and iframe tags", async () => {
     const result = await new ExtractVideosLibNode({
       html: SAMPLE_HTML,
-      base_url: BASE_URL,
+      base_url: BASE_URL
     }).process();
     const output = result.output as Array<{ uri: string; type: string }>;
     expect(output).toHaveLength(3);
     expect(output[0]).toEqual({
       uri: "https://example.com/clip.mp4",
-      type: "video",
+      type: "video"
     });
     expect(output[1]).toEqual({
       uri: "https://cdn.example.com/movie.webm",
-      type: "video",
+      type: "video"
     });
     expect(output[2]).toEqual({
       uri: "https://youtube.com/embed/abc",
-      type: "video",
+      type: "video"
     });
   });
 });
@@ -148,7 +148,7 @@ describe("lib.beautifulsoup.ExtractVideos", () => {
 describe("lib.beautifulsoup.ExtractMetadata", () => {
   it("extracts title, description, and keywords", async () => {
     const result = await new ExtractMetadataLibNode({
-      html: SAMPLE_HTML,
+      html: SAMPLE_HTML
     }).process();
     expect(result.title).toBe("Test Page");
     expect(result.description).toBe("A test page for extraction");
@@ -157,7 +157,7 @@ describe("lib.beautifulsoup.ExtractMetadata", () => {
 
   it("returns null for missing metadata", async () => {
     const result = await new ExtractMetadataLibNode({
-      html: "<html><body>No meta</body></html>",
+      html: "<html><body>No meta</body></html>"
     }).process();
     expect(result.title).toBeNull();
     expect(result.description).toBeNull();
@@ -168,7 +168,7 @@ describe("lib.beautifulsoup.ExtractMetadata", () => {
 describe("lib.beautifulsoup.HTMLToText", () => {
   it("converts HTML to plain text", async () => {
     const result = await new HTMLToTextLibNode({
-      text: "<p>Hello <b>World</b></p><p>Second paragraph</p>",
+      text: "<p>Hello <b>World</b></p><p>Second paragraph</p>"
     }).process();
     const output = String(result.output);
     expect(output).toContain("Hello World");
@@ -177,7 +177,7 @@ describe("lib.beautifulsoup.HTMLToText", () => {
 
   it("strips tags from complex HTML", async () => {
     const result = await new HTMLToTextLibNode({
-      text: '<div><h1>Title</h1><ul><li>Item 1</li><li>Item 2</li></ul></div>',
+      text: "<div><h1>Title</h1><ul><li>Item 1</li><li>Item 2</li></ul></div>"
     }).process();
     const output = String(result.output);
     expect(output.toUpperCase()).toContain("TITLE");
@@ -194,7 +194,7 @@ describe("lib.beautifulsoup.WebsiteContentExtractor", () => {
       <footer>Footer info</footer>
     </body></html>`;
     const result = await new WebsiteContentExtractorLibNode({
-      html_content: html,
+      html_content: html
     }).process();
     const output = String(result.output);
     expect(output).toContain("Main Article");
@@ -209,8 +209,8 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
     const result = await new ConvertToMarkdownLibNode({
       document: {
         uri: "",
-        data: "<h1>Hello</h1><p>World with <strong>bold</strong> text</p>",
-      },
+        data: "<h1>Hello</h1><p>World with <strong>bold</strong> text</p>"
+      }
     }).process();
     const output = result.output as { type: string; uri: string; data: string };
     expect(output.type).toBe("document");
@@ -220,7 +220,7 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
 
   it("returns plain text data as-is", async () => {
     const result = await new ConvertToMarkdownLibNode({
-      document: { uri: "", data: "Just plain text, no HTML." },
+      document: { uri: "", data: "Just plain text, no HTML." }
     }).process();
     const output = result.output as { type: string; data: string };
     expect(output.data).toBe("Just plain text, no HTML.");
@@ -228,7 +228,9 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
 
   it("throws when no uri or data is provided", async () => {
     await expect(
-      new ConvertToMarkdownLibNode({ document: { uri: "", data: "" } }).process()
+      new ConvertToMarkdownLibNode({
+        document: { uri: "", data: "" }
+      }).process()
     ).rejects.toThrow("A document URI or data is required");
   });
 });
@@ -236,7 +238,12 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
 // ── lib.seaborn (ChartRenderer) ────────────────────────────────────
 
 let hasCanvas = false;
-try { require("canvas"); hasCanvas = true; } catch { /* not installed */ }
+try {
+  require("canvas");
+  hasCanvas = true;
+} catch {
+  /* not installed */
+}
 
 describe.skipIf(!hasCanvas)("lib.seaborn.ChartRenderer", () => {
   it("renders a bar chart and returns base64 image data", async () => {
@@ -246,22 +253,22 @@ describe.skipIf(!hasCanvas)("lib.seaborn.ChartRenderer", () => {
         x_label: "Month",
         y_label: "Sales",
         data: {
-          series: [{ x: "month", y: "sales", plot_type: "barplot" }],
-        },
+          series: [{ x: "month", y: "sales", plot_type: "barplot" }]
+        }
       },
       width: 400,
       height: 300,
       data: {
         columns: [
           { name: "month", data_type: "string" },
-          { name: "sales", data_type: "float" },
+          { name: "sales", data_type: "float" }
         ],
         data: [
           ["Jan", 100],
           ["Feb", 200],
-          ["Mar", 150],
-        ],
-      },
+          ["Mar", 150]
+        ]
+      }
     }).process();
     const output = result.output as { type: string; data: string };
     expect(output.type).toBe("image");
@@ -282,12 +289,12 @@ describe.skipIf(!hasCanvas)("lib.seaborn.ChartRenderer", () => {
       new ChartRendererLibNode({
         chart_config: {
           title: "Empty",
-          data: { series: [{ x: "x", y: "y", plot_type: "line" }] },
+          data: { series: [{ x: "x", y: "y", plot_type: "line" }] }
         },
         data: {
           columns: [{ name: "x" }, { name: "y" }],
-          data: [],
-        },
+          data: []
+        }
       }).process()
     ).rejects.toThrow("Data is required");
   });
@@ -297,22 +304,22 @@ describe.skipIf(!hasCanvas)("lib.seaborn.ChartRenderer", () => {
       chart_config: {
         title: "Temperature",
         data: {
-          series: [{ x: "day", y: "temp", plot_type: "line" }],
-        },
+          series: [{ x: "day", y: "temp", plot_type: "line" }]
+        }
       },
       width: 300,
       height: 200,
       data: {
         columns: [
           { name: "day", data_type: "string" },
-          { name: "temp", data_type: "float" },
+          { name: "temp", data_type: "float" }
         ],
         data: [
           ["Mon", 20],
           ["Tue", 22],
-          ["Wed", 19],
-        ],
-      },
+          ["Wed", 19]
+        ]
+      }
     }).process();
     const output = result.output as { type: string; data: string };
     expect(output.type).toBe("image");

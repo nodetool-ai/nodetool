@@ -13,8 +13,14 @@ export interface DetectOnsetsOutputs {
   output: unknown;
 }
 
-export function detectOnsets(inputs: DetectOnsetsInputs): DslNode<DetectOnsetsOutputs, "output"> {
-  return createNode("lib.librosa.segmentation.DetectOnsets", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function detectOnsets(
+  inputs: DetectOnsetsInputs
+): DslNode<DetectOnsetsOutputs, "output"> {
+  return createNode(
+    "lib.librosa.segmentation.DetectOnsets",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Segment Audio By Onsets — lib.librosa.segmentation.SegmentAudioByOnsets
@@ -28,8 +34,14 @@ export interface SegmentAudioByOnsetsOutputs {
   output: AudioRef[];
 }
 
-export function segmentAudioByOnsets(inputs: SegmentAudioByOnsetsInputs): DslNode<SegmentAudioByOnsetsOutputs, "output"> {
-  return createNode("lib.librosa.segmentation.SegmentAudioByOnsets", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function segmentAudioByOnsets(
+  inputs: SegmentAudioByOnsetsInputs
+): DslNode<SegmentAudioByOnsetsOutputs, "output"> {
+  return createNode(
+    "lib.librosa.segmentation.SegmentAudioByOnsets",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Save Audio Segments — lib.librosa.segmentation.SaveAudioSegments
@@ -43,6 +55,12 @@ export interface SaveAudioSegmentsOutputs {
   output: FolderRef;
 }
 
-export function saveAudioSegments(inputs: SaveAudioSegmentsInputs): DslNode<SaveAudioSegmentsOutputs, "output"> {
-  return createNode("lib.librosa.segmentation.SaveAudioSegments", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saveAudioSegments(
+  inputs: SaveAudioSegmentsInputs
+): DslNode<SaveAudioSegmentsOutputs, "output"> {
+  return createNode(
+    "lib.librosa.segmentation.SaveAudioSegments",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

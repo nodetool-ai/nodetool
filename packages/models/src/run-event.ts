@@ -53,7 +53,9 @@ export class RunEvent extends DBModel {
   /** Get the next sequence number for a run. */
   static async getNextSeq(runId: string): Promise<number> {
     const db = getDb();
-    const rows = db.select({ seq: runEvents.seq }).from(runEvents)
+    const rows = db
+      .select({ seq: runEvents.seq })
+      .from(runEvents)
       .where(eq(runEvents.run_id, runId))
       .orderBy(desc(runEvents.seq))
       .limit(1)
@@ -68,7 +70,7 @@ export class RunEvent extends DBModel {
     runId: string,
     eventType: EventType,
     payload: Record<string, unknown>,
-    nodeId?: string,
+    nodeId?: string
   ): Promise<RunEvent> {
     const seq = await RunEvent.getNextSeq(runId);
     return RunEvent.create<RunEvent>({
@@ -78,7 +80,7 @@ export class RunEvent extends DBModel {
       event_type: eventType,
       event_time: new Date().toISOString(),
       node_id: nodeId ?? null,
-      payload,
+      payload
     });
   }
 
@@ -91,7 +93,7 @@ export class RunEvent extends DBModel {
       eventType?: EventType;
       nodeId?: string;
       limit?: number;
-    } = {},
+    } = {}
   ): Promise<RunEvent[]> {
     const { seqGt, seqLte, eventType, nodeId, limit = 1000 } = opts;
     const db = getDb();
@@ -99,16 +101,19 @@ export class RunEvent extends DBModel {
     const conditions = [eq(runEvents.run_id, runId)];
     if (seqGt !== undefined) conditions.push(gt(runEvents.seq, seqGt));
     if (seqLte !== undefined) conditions.push(lte(runEvents.seq, seqLte));
-    if (eventType !== undefined) conditions.push(eq(runEvents.event_type, eventType));
+    if (eventType !== undefined)
+      conditions.push(eq(runEvents.event_type, eventType));
     if (nodeId !== undefined) conditions.push(eq(runEvents.node_id, nodeId));
 
-    const rows = db.select().from(runEvents)
+    const rows = db
+      .select()
+      .from(runEvents)
       .where(and(...conditions))
       .orderBy(asc(runEvents.seq))
       .limit(limit)
       .all();
 
-    return rows.map(r => new RunEvent(r as Record<string, unknown>));
+    return rows.map((r) => new RunEvent(r as Record<string, unknown>));
   }
 
   /** Deserialize a RunEvent from a plain object (e.g. from JSON). */
@@ -120,26 +125,31 @@ export class RunEvent extends DBModel {
       event_type: (data.event_type as string) ?? "RunCreated",
       event_time: (data.event_time as string) ?? new Date().toISOString(),
       node_id: (data.node_id as string) ?? null,
-      payload: (data.payload as Record<string, unknown>) ?? null,
+      payload: (data.payload as Record<string, unknown>) ?? null
     });
   }
 
   /** Get the most recent event for a run, optionally filtered. */
   static async getLastEvent(
     runId: string,
-    opts: { eventType?: EventType; nodeId?: string } = {},
+    opts: { eventType?: EventType; nodeId?: string } = {}
   ): Promise<RunEvent | null> {
     const db = getDb();
     const conditions = [eq(runEvents.run_id, runId)];
-    if (opts.eventType) conditions.push(eq(runEvents.event_type, opts.eventType));
+    if (opts.eventType)
+      conditions.push(eq(runEvents.event_type, opts.eventType));
     if (opts.nodeId) conditions.push(eq(runEvents.node_id, opts.nodeId));
 
-    const rows = db.select().from(runEvents)
+    const rows = db
+      .select()
+      .from(runEvents)
       .where(and(...conditions))
       .orderBy(desc(runEvents.seq))
       .limit(1)
       .all();
 
-    return rows.length > 0 ? new RunEvent(rows[0] as Record<string, unknown>) : null;
+    return rows.length > 0
+      ? new RunEvent(rows[0] as Record<string, unknown>)
+      : null;
   }
 }

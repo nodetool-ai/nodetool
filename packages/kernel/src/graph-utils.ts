@@ -10,10 +10,7 @@ import { Graph } from "./graph.js";
 /**
  * Find a node by ID or throw.
  */
-export function findNodeOrThrow(
-  graph: Graph,
-  nodeId: string
-): NodeDescriptor {
+export function findNodeOrThrow(graph: Graph, nodeId: string): NodeDescriptor {
   const node = graph.findNode(nodeId);
   if (!node) {
     throw new Error(`Node with ID ${nodeId} does not exist`);

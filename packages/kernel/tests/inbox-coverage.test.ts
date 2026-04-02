@@ -170,7 +170,7 @@ describe("NodeInbox – prepend edge cases", () => {
       data: "test",
       metadata: {},
       timestamp: Date.now(),
-      event_id: "test-id",
+      event_id: "test-id"
     });
     expect(inbox.hasAny()).toBe(false);
   });

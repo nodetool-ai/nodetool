@@ -12,8 +12,14 @@ export interface AddArrayOutputs {
   output: number | unknown;
 }
 
-export function addArray(inputs: AddArrayInputs): DslNode<AddArrayOutputs, "output"> {
-  return createNode("lib.numpy.arithmetic.AddArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addArray(
+  inputs: AddArrayInputs
+): DslNode<AddArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.arithmetic.AddArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Subtract Array — lib.numpy.arithmetic.SubtractArray
@@ -26,8 +32,14 @@ export interface SubtractArrayOutputs {
   output: number | unknown;
 }
 
-export function subtractArray(inputs: SubtractArrayInputs): DslNode<SubtractArrayOutputs, "output"> {
-  return createNode("lib.numpy.arithmetic.SubtractArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function subtractArray(
+  inputs: SubtractArrayInputs
+): DslNode<SubtractArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.arithmetic.SubtractArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Multiply Array — lib.numpy.arithmetic.MultiplyArray
@@ -40,8 +52,14 @@ export interface MultiplyArrayOutputs {
   output: number | unknown;
 }
 
-export function multiplyArray(inputs: MultiplyArrayInputs): DslNode<MultiplyArrayOutputs, "output"> {
-  return createNode("lib.numpy.arithmetic.MultiplyArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function multiplyArray(
+  inputs: MultiplyArrayInputs
+): DslNode<MultiplyArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.arithmetic.MultiplyArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Divide Array — lib.numpy.arithmetic.DivideArray
@@ -54,8 +72,14 @@ export interface DivideArrayOutputs {
   output: number | unknown;
 }
 
-export function divideArray(inputs: DivideArrayInputs): DslNode<DivideArrayOutputs, "output"> {
-  return createNode("lib.numpy.arithmetic.DivideArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function divideArray(
+  inputs: DivideArrayInputs
+): DslNode<DivideArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.arithmetic.DivideArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Modulus Array — lib.numpy.arithmetic.ModulusArray
@@ -68,6 +92,12 @@ export interface ModulusArrayOutputs {
   output: number | unknown;
 }
 
-export function modulusArray(inputs: ModulusArrayInputs): DslNode<ModulusArrayOutputs, "output"> {
-  return createNode("lib.numpy.arithmetic.ModulusArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function modulusArray(
+  inputs: ModulusArrayInputs
+): DslNode<ModulusArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.arithmetic.ModulusArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

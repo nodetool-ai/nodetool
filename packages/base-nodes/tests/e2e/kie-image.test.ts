@@ -5,16 +5,14 @@ vi.mock("../../src/nodes/kie-base.js", () => ({
   getApiKey: vi.fn(() => "test-api-key"),
   kieExecuteTask: vi.fn(async () => ({
     data: "base64data",
-    taskId: "task_123",
+    taskId: "task_123"
   })),
-  uploadImageInput: vi.fn(
-    async () => "https://uploaded.example.com/image.png"
-  ),
+  uploadImageInput: vi.fn(async () => "https://uploaded.example.com/image.png"),
   isRefSet: vi.fn((ref: unknown) => {
     if (!ref || typeof ref !== "object") return false;
     const r = ref as Record<string, unknown>;
     return !!(r.data || r.uri);
-  }),
+  })
 }));
 
 import {
@@ -51,13 +49,13 @@ import {
   IdeogramV3ImageToImageNode,
   Seedream40TextToImageNode,
   Seedream40ImageToImageNode,
-  KIE_IMAGE_NODES,
+  KIE_IMAGE_NODES
 } from "../../src/nodes/kie-image.js";
 import {
   getApiKey,
   kieExecuteTask,
   uploadImageInput,
-  isRefSet,
+  isRefSet
 } from "../../src/nodes/kie-base.js";
 
 const fakeImage = { data: "abc123", uri: "" };
@@ -75,7 +73,6 @@ function metadataDefaults(NodeCls: any) {
 function expectMetadataDefaults(NodeCls: any) {
   expect(new NodeCls().serialize()).toEqual(metadataDefaults(NodeCls));
 }
-
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -114,7 +111,11 @@ describe("Flux2ProTextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Flux2ProTextToImageNode as any)();
-    n.assign({ prompt: "A beautiful sunset", aspect_ratio: "16:9", resolution: "2K" });
+    n.assign({
+      prompt: "A beautiful sunset",
+      aspect_ratio: "16:9",
+      resolution: "2K"
+    });
     const result = await n.process();
     expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
@@ -128,9 +129,7 @@ describe("Flux2ProTextToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Flux2ProTextToImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -168,9 +167,7 @@ describe("Flux2ProImageToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Flux2ProImageToImageNode as any)();
     n.assign({ images: fakeImages });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -206,9 +203,7 @@ describe("Flux2FlexTextToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Flux2FlexTextToImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -246,9 +241,7 @@ describe("Flux2FlexImageToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Flux2FlexImageToImageNode as any)();
     n.assign({ images: fakeImages });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -284,9 +277,7 @@ describe("Seedream45TextToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Seedream45TextToImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -322,9 +313,7 @@ describe("Seedream45EditNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Seedream45EditNode as any)();
     n.assign({ image: fakeImage });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -372,9 +361,7 @@ describe("ZImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (ZImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -408,9 +395,7 @@ describe("NanoBananaNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (NanoBananaNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -444,9 +429,7 @@ describe("NanoBananaProNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (NanoBananaProNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -488,9 +471,7 @@ describe("FluxKontextNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (FluxKontextNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -527,9 +508,7 @@ describe("GrokImagineTextToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (GrokImagineTextToImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -596,9 +575,7 @@ describe("QwenTextToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (QwenTextToImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -634,9 +611,7 @@ describe("QwenImageToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (QwenImageToImageNode as any)();
     n.assign({ image: fakeImage });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -695,7 +670,9 @@ describe("RecraftRemoveBackgroundNode", () => {
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "recraft/remove-background",
-      expect.objectContaining({ image_url: "https://uploaded.example.com/image.png" }),
+      expect.objectContaining({
+        image_url: "https://uploaded.example.com/image.png"
+      }),
       1500,
       200
     );
@@ -735,9 +712,7 @@ describe("IdeogramCharacterNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (IdeogramCharacterNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -782,14 +757,16 @@ describe("IdeogramCharacterEditNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (IdeogramCharacterEditNode as any)();
     n.assign({ image: fakeImage });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 
   it("process with reference images uploads them", async () => {
     const n = new (IdeogramCharacterEditNode as any)();
-    n.assign({ prompt: "Edit character", image: fakeImage, reference_images: [fakeImage, fakeImage] });
+    n.assign({
+      prompt: "Edit character",
+      image: fakeImage,
+      reference_images: [fakeImage, fakeImage]
+    });
     (n as any).character_description = "A warrior";
     const result = await n.process();
     expect(result.output).toEqual({ type: "image", data: "base64data" });
@@ -799,7 +776,11 @@ describe("IdeogramCharacterEditNode", () => {
 
   it("process skips null/invalid reference images", async () => {
     const n = new (IdeogramCharacterEditNode as any)();
-    n.assign({ prompt: "Edit character", image: fakeImage, images: [null, {}, "not-an-object", fakeImage] });
+    n.assign({
+      prompt: "Edit character",
+      image: fakeImage,
+      images: [null, {}, "not-an-object", fakeImage]
+    });
     const result = await n.process();
     expect(result.output).toEqual({ type: "image", data: "base64data" });
   });
@@ -839,14 +820,16 @@ describe("IdeogramCharacterRemixNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (IdeogramCharacterRemixNode as any)();
     n.assign({ image: fakeImage });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 
   it("process with reference images uploads them", async () => {
     const n = new (IdeogramCharacterRemixNode as any)();
-    n.assign({ prompt: "Remix character", image: fakeImage, reference_images: [fakeImage, fakeImage] });
+    n.assign({
+      prompt: "Remix character",
+      image: fakeImage,
+      reference_images: [fakeImage, fakeImage]
+    });
     (n as any).character_description = "A wizard";
     const result = await n.process();
     expect(result.output).toEqual({ type: "image", data: "base64data" });
@@ -856,7 +839,11 @@ describe("IdeogramCharacterRemixNode", () => {
 
   it("process skips null/invalid reference images in remix", async () => {
     const n = new (IdeogramCharacterRemixNode as any)();
-    n.assign({ prompt: "Remix", image: fakeImage, images: [null, {}, fakeImage] });
+    n.assign({
+      prompt: "Remix",
+      image: fakeImage,
+      images: [null, {}, fakeImage]
+    });
     const result = await n.process();
     expect(result.output).toEqual({ type: "image", data: "base64data" });
   });
@@ -886,7 +873,7 @@ describe("IdeogramV3ReframeNode", () => {
       "test-api-key",
       "ideogram/v3-reframe",
       expect.objectContaining({
-        image_url: "https://uploaded.example.com/image.png",
+        image_url: "https://uploaded.example.com/image.png"
       }),
       1500,
       200
@@ -920,7 +907,7 @@ describe("RecraftCrispUpscaleNode", () => {
       "test-api-key",
       "recraft/crisp-upscale",
       expect.objectContaining({
-        image_url: "https://uploaded.example.com/image.png",
+        image_url: "https://uploaded.example.com/image.png"
       }),
       1500,
       200
@@ -958,9 +945,7 @@ describe("Imagen4FastNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Imagen4FastNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -994,9 +979,7 @@ describe("Imagen4UltraNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Imagen4UltraNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1030,9 +1013,7 @@ describe("Imagen4Node", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Imagen4Node as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1079,9 +1060,7 @@ describe("NanoBananaEditNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (NanoBananaEditNode as any)();
     (n as any).image = fakeImage;
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1118,9 +1097,7 @@ describe("GPTImage4oTextToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (GPTImage4oTextToImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1158,9 +1135,7 @@ describe("GPTImage4oImageToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (GPTImage4oImageToImageNode as any)();
     n.assign({ images: fakeImages });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1196,9 +1171,7 @@ describe("GPTImage15TextToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (GPTImage15TextToImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1236,9 +1209,7 @@ describe("GPTImage15ImageToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (GPTImage15ImageToImageNode as any)();
     n.assign({ images: fakeImages });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1268,7 +1239,7 @@ describe("IdeogramV3TextToImageNode", () => {
       "ideogram/v3-text-to-image",
       expect.objectContaining({
         prompt: "Ideogram art",
-        negative_prompt: "ugly",
+        negative_prompt: "ugly"
       }),
       1500,
       200
@@ -1285,9 +1256,7 @@ describe("IdeogramV3TextToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (IdeogramV3TextToImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1319,7 +1288,7 @@ describe("IdeogramV3ImageToImageNode", () => {
       "ideogram/v3-image-to-image",
       expect.objectContaining({
         prompt: "Ideogram transform",
-        image_weight: 75,
+        image_weight: 75
       }),
       1500,
       200
@@ -1329,9 +1298,7 @@ describe("IdeogramV3ImageToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (IdeogramV3ImageToImageNode as any)();
     n.assign({ image: fakeImage });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1367,9 +1334,7 @@ describe("Seedream40TextToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Seedream40TextToImageNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });
 
@@ -1407,8 +1372,6 @@ describe("Seedream40ImageToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Seedream40ImageToImageNode as any)();
     n.assign({ image: fakeImage });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(n.process()).rejects.toThrow("Prompt cannot be empty");
   });
 });

@@ -8,13 +8,12 @@ import {
   ApifyYouTubeScraperNode,
   ApifyTwitterScraperNode,
   ApifyLinkedInScraperNode,
-  APIFY_NODES,
+  APIFY_NODES
 } from "../src/nodes/apify.js";
 
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
-
 
 function metadataDefaults(NodeCls: any) {
   const metadata = getNodeMetadata(NodeCls);
@@ -39,13 +38,13 @@ function mockActorRun(datasetItems: Record<string, unknown>[]) {
   mockFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => ({
-      data: { id: "run-1", defaultDatasetId: "ds-1", status: "SUCCEEDED" },
-    }),
+      data: { id: "run-1", defaultDatasetId: "ds-1", status: "SUCCEEDED" }
+    })
   });
   // Second call: GET dataset items
   mockFetch.mockResolvedValueOnce({
     ok: true,
-    json: async () => datasetItems,
+    json: async () => datasetItems
   });
 }
 
@@ -88,7 +87,7 @@ describe("ApifyWebScraperNode", () => {
     expect(runUrl).toContain("apify~web-scraper");
     expect(runOpts.headers.Authorization).toBe("Bearer test-key");
     expect(result.output).toEqual([
-      { url: "https://example.com", title: "Example" },
+      { url: "https://example.com", title: "Example" }
     ]);
   });
 
@@ -96,7 +95,7 @@ describe("ApifyWebScraperNode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 403,
-      text: async () => "Forbidden",
+      text: async () => "Forbidden"
     });
 
     const node = new ApifyWebScraperNode();
@@ -110,7 +109,7 @@ describe("ApifyWebScraperNode", () => {
   it("returns empty array when no dataset id", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ data: { id: "run-1" } }),
+      json: async () => ({ data: { id: "run-1" } })
     });
 
     const node = new ApifyWebScraperNode();
@@ -149,7 +148,7 @@ describe("ApifyGoogleSearchScraperNode", () => {
     const node = new ApifyGoogleSearchScraperNode();
     node.assign({
       queries: ["test"],
-      results_per_page: 5, // below MIN_RESULTS_PER_PAGE (10)
+      results_per_page: 5 // below MIN_RESULTS_PER_PAGE (10)
     });
     node.setDynamic("_secrets", { APIFY_API_KEY: "k" });
     await node.process();
@@ -297,9 +296,7 @@ describe("ApifyTwitterScraperNode", () => {
     await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.startUrls).toContain(
-      "https://twitter.com/search?q=AI"
-    );
+    expect(body.startUrls).toContain("https://twitter.com/search?q=AI");
     expect(body.startUrls).toContain("https://twitter.com/elonmusk");
   });
 });

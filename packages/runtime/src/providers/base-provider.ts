@@ -14,7 +14,7 @@ import type {
   TextToVideoParams,
   ToolCall,
   TTSModel,
-  VideoModel,
+  VideoModel
 } from "./types.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
@@ -85,7 +85,7 @@ export abstract class BaseProvider {
       provider: args.provider,
       model: args.model,
       cost: args.cost,
-      workflowId: args.workflowId ?? null,
+      workflowId: args.workflowId ?? null
     });
   }
 
@@ -133,7 +133,10 @@ export abstract class BaseProvider {
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
     /** Optional callback for native tool execution (used by providers with in-process MCP). */
-    onToolCall?: (name: string, args: Record<string, unknown>) => Promise<string>;
+    onToolCall?: (
+      name: string,
+      args: Record<string, unknown>
+    ) => Promise<string>;
   }): Promise<Message>;
 
   abstract generateMessages(args: {
@@ -153,43 +156,57 @@ export abstract class BaseProvider {
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
     /** Optional callback for native tool execution (used by providers with in-process MCP). */
-    onToolCall?: (name: string, args: Record<string, unknown>) => Promise<string>;
+    onToolCall?: (
+      name: string,
+      args: Record<string, unknown>
+    ) => Promise<string>;
   }): AsyncGenerator<ProviderStreamItem>;
 
   /** Traced wrapper around generateMessage. Use this instead of calling generateMessage directly. */
-  async generateMessageTraced(args: Parameters<this["generateMessage"]>[0]): Promise<Message> {
+  async generateMessageTraced(
+    args: Parameters<this["generateMessage"]>[0]
+  ): Promise<Message> {
     const startTime = Date.now();
     const tracer = getTracer();
 
     const doCall = async (): Promise<Message> => {
       if (!tracer) return this.generateMessage(args);
-      return tracer.startActiveSpan(`llm.chat ${this.provider}/${args.model}`, async (span) => {
-        span.setAttributes({
-          "llm.provider": this.provider,
-          "llm.model": args.model,
-          "llm.request.message_count": args.messages.length,
-          "llm.request.tools_count": args.tools?.length ?? 0,
-          "llm.request.max_tokens": args.maxTokens ?? 0,
-          "llm.request.stream": false,
-        });
-        try {
-          const result = await this.generateMessage(args);
-          const content = typeof result.content === "string" ? result.content : JSON.stringify(result.content);
+      return tracer.startActiveSpan(
+        `llm.chat ${this.provider}/${args.model}`,
+        async (span) => {
           span.setAttributes({
-            "llm.response.role": result.role,
-            "llm.response.content": content.slice(0, 2000),
-            "llm.response.tool_calls_count": result.toolCalls?.length ?? 0,
+            "llm.provider": this.provider,
+            "llm.model": args.model,
+            "llm.request.message_count": args.messages.length,
+            "llm.request.tools_count": args.tools?.length ?? 0,
+            "llm.request.max_tokens": args.maxTokens ?? 0,
+            "llm.request.stream": false
           });
-          span.setStatus({ code: SpanStatusCode.OK });
-          return result;
-        } catch (err) {
-          span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
-          span.recordException(err as Error);
-          throw err;
-        } finally {
-          span.end();
+          try {
+            const result = await this.generateMessage(args);
+            const content =
+              typeof result.content === "string"
+                ? result.content
+                : JSON.stringify(result.content);
+            span.setAttributes({
+              "llm.response.role": result.role,
+              "llm.response.content": content.slice(0, 2000),
+              "llm.response.tool_calls_count": result.toolCalls?.length ?? 0
+            });
+            span.setStatus({ code: SpanStatusCode.OK });
+            return result;
+          } catch (err) {
+            span.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: String(err)
+            });
+            span.recordException(err as Error);
+            throw err;
+          } finally {
+            span.end();
+          }
         }
-      });
+      );
     };
 
     let result: Message | undefined;
@@ -206,27 +223,41 @@ export abstract class BaseProvider {
         node_id: "",
         provider: this.provider,
         model: args.model,
-        messages: args.messages.map((m) => ({ role: m.role, content: m.content })),
+        messages: args.messages.map((m) => ({
+          role: m.role,
+          content: m.content
+        })),
         response: result?.content ?? null,
-        tool_calls: result?.toolCalls?.map((tc) => ({ id: tc.id, name: tc.name, args: tc.args })) ?? null,
+        tool_calls:
+          result?.toolCalls?.map((tc) => ({
+            id: tc.id,
+            name: tc.name,
+            args: tc.args
+          })) ?? null,
         tokens_input: null,
         tokens_output: null,
         cost: null,
         duration_ms: Date.now() - startTime,
         error: error ?? null,
-        timestamp: new Date(startTime).toISOString(),
+        timestamp: new Date(startTime).toISOString()
       });
     }
   }
 
   /** Traced wrapper around generateMessages. Use this instead of calling generateMessages directly. */
-  async *generateMessagesTraced(args: Parameters<this["generateMessages"]>[0]): AsyncGenerator<ProviderStreamItem> {
+  async *generateMessagesTraced(
+    args: Parameters<this["generateMessages"]>[0]
+  ): AsyncGenerator<ProviderStreamItem> {
     const startTime = Date.now();
     log.debug("LLM call", { provider: this.provider, model: args.model });
     const tracer = getTracer();
 
     let fullResponse = "";
-    const collectedToolCalls: Array<{ id: string; name: string; args: unknown }> = [];
+    const collectedToolCalls: Array<{
+      id: string;
+      name: string;
+      args: unknown;
+    }> = [];
     let error: string | undefined;
 
     try {
@@ -247,7 +278,10 @@ export abstract class BaseProvider {
         }
         yield item;
       }
-      log.debug("LLM call complete", { provider: this.provider, model: args.model });
+      log.debug("LLM call complete", {
+        provider: this.provider,
+        model: args.model
+      });
     } catch (err) {
       error = String(err);
       throw err;
@@ -257,7 +291,10 @@ export abstract class BaseProvider {
         node_id: "",
         provider: this.provider,
         model: args.model,
-        messages: args.messages.map((m) => ({ role: m.role, content: m.content })),
+        messages: args.messages.map((m) => ({
+          role: m.role,
+          content: m.content
+        })),
         response: fullResponse || null,
         tool_calls: collectedToolCalls.length > 0 ? collectedToolCalls : null,
         tokens_input: null,
@@ -265,7 +302,7 @@ export abstract class BaseProvider {
         cost: null,
         duration_ms: Date.now() - startTime,
         error: error ?? null,
-        timestamp: new Date(startTime).toISOString(),
+        timestamp: new Date(startTime).toISOString()
       });
     }
   }
@@ -273,7 +310,7 @@ export abstract class BaseProvider {
   /** Internal: wrap generateMessages with OTel span */
   private async *_tracedStream(
     args: Parameters<this["generateMessages"]>[0],
-    tracer: ReturnType<typeof getTracer> & object,
+    tracer: ReturnType<typeof getTracer> & object
   ): AsyncGenerator<ProviderStreamItem> {
     const span = tracer.startSpan(`llm.stream ${this.provider}/${args.model}`);
     span.setAttributes({
@@ -282,7 +319,7 @@ export abstract class BaseProvider {
       "llm.request.message_count": args.messages.length,
       "llm.request.tools_count": args.tools?.length ?? 0,
       "llm.request.max_tokens": args.maxTokens ?? 0,
-      "llm.request.stream": true,
+      "llm.request.stream": true
     });
     let chunkCount = 0;
     try {
@@ -305,7 +342,10 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support textToImage`);
   }
 
-  async imageToImage(_image: Uint8Array, _params: ImageToImageParams): Promise<Uint8Array> {
+  async imageToImage(
+    _image: Uint8Array,
+    _params: ImageToImageParams
+  ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToImage`);
   }
 
@@ -326,14 +366,19 @@ export abstract class BaseProvider {
     prompt?: string;
     temperature?: number;
   }): Promise<string> {
-    throw new Error(`${this.provider} does not support automaticSpeechRecognition`);
+    throw new Error(
+      `${this.provider} does not support automaticSpeechRecognition`
+    );
   }
 
   async textToVideo(_params: TextToVideoParams): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support textToVideo`);
   }
 
-  async imageToVideo(_image: Uint8Array, _params: ImageToVideoParams): Promise<Uint8Array> {
+  async imageToVideo(
+    _image: Uint8Array,
+    _params: ImageToVideoParams
+  ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToVideo`);
   }
 
@@ -365,7 +410,9 @@ export abstract class BaseProvider {
    */
   isAuthError(error: unknown): boolean {
     const msg = error instanceof Error ? error.message : String(error);
-    return /401|403|unauthorized|forbidden|invalid.*api.*key|authentication/i.test(msg);
+    return /401|403|unauthorized|forbidden|invalid.*api.*key|authentication/i.test(
+      msg
+    );
   }
 
   protected parseToolCallArgs(raw: unknown): Record<string, unknown> {
@@ -387,7 +434,7 @@ export abstract class BaseProvider {
     return {
       id,
       name,
-      args: this.parseToolCallArgs(args),
+      args: this.parseToolCallArgs(args)
     };
   }
 }

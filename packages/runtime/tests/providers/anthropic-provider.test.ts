@@ -8,7 +8,7 @@ function makeAsyncIterable(items: unknown[]) {
       for (const item of items) {
         yield item;
       }
-    },
+    }
   };
 }
 
@@ -40,11 +40,11 @@ describe("AnthropicProvider", () => {
             value: { type: "string", minLength: 2 },
             nested: {
               type: "object",
-              properties: { n: { type: "number", minimum: 0 } },
-            },
-          },
-        },
-      },
+              properties: { n: { type: "number", minimum: 0 } }
+            }
+          }
+        }
+      }
     ];
 
     expect(provider.formatTools(tools)).toEqual([
@@ -59,11 +59,11 @@ describe("AnthropicProvider", () => {
             nested: {
               type: "object",
               additionalProperties: false,
-              properties: { n: { type: "number" } },
-            },
-          },
-        },
-      },
+              properties: { n: { type: "number" } }
+            }
+          }
+        }
+      }
     ]);
   });
 
@@ -77,7 +77,7 @@ describe("AnthropicProvider", () => {
       provider.convertMessage({
         role: "tool",
         toolCallId: "tool_1",
-        content: { ok: true },
+        content: { ok: true }
       })
     ).resolves.toEqual({
       role: "user",
@@ -85,23 +85,23 @@ describe("AnthropicProvider", () => {
         {
           type: "tool_result",
           tool_use_id: "tool_1",
-          content: "{\"ok\":true}",
-        },
-      ],
+          content: '{"ok":true}'
+        }
+      ]
     });
 
     await expect(
       provider.convertMessage({
         role: "assistant",
         content: "Working on it",
-        toolCalls: [{ id: "tc1", name: "search", args: { q: "x" } }],
+        toolCalls: [{ id: "tc1", name: "search", args: { q: "x" } }]
       })
     ).resolves.toEqual({
       role: "assistant",
       content: [
         { type: "text", text: "Working on it" },
-        { type: "tool_use", id: "tc1", name: "search", input: { q: "x" } },
-      ],
+        { type: "tool_use", id: "tc1", name: "search", input: { q: "x" } }
+      ]
     });
   });
 
@@ -109,7 +109,7 @@ describe("AnthropicProvider", () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       headers: { get: () => "image/jpeg" },
-      arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer,
+      arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
     });
 
     const provider = new AnthropicProvider(
@@ -120,7 +120,9 @@ describe("AnthropicProvider", () => {
     await expect(
       provider.convertMessage({
         role: "user",
-        content: [{ type: "image", image: { uri: "https://example.com/a.jpg" } }],
+        content: [
+          { type: "image", image: { uri: "https://example.com/a.jpg" } }
+        ]
       })
     ).resolves.toEqual({
       role: "user",
@@ -130,10 +132,10 @@ describe("AnthropicProvider", () => {
           source: {
             type: "base64",
             media_type: "image/jpeg",
-            data: "AQID",
-          },
-        },
-      ],
+            data: "AQID"
+          }
+        }
+      ]
     });
 
     expect(fetchFn).toHaveBeenCalledWith("https://example.com/a.jpg");
@@ -143,8 +145,8 @@ describe("AnthropicProvider", () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        data: [{ id: "claude-sonnet-4" }, { name: "claude-haiku-4" }, {}],
-      }),
+        data: [{ id: "claude-sonnet-4" }, { name: "claude-haiku-4" }, {}]
+      })
     });
 
     const provider = new AnthropicProvider(
@@ -154,7 +156,7 @@ describe("AnthropicProvider", () => {
 
     await expect(provider.getAvailableLanguageModels()).resolves.toEqual([
       { id: "claude-sonnet-4", name: "claude-sonnet-4", provider: "anthropic" },
-      { id: "claude-haiku-4", name: "claude-haiku-4", provider: "anthropic" },
+      { id: "claude-haiku-4", name: "claude-haiku-4", provider: "anthropic" }
     ]);
   });
 
@@ -164,8 +166,8 @@ describe("AnthropicProvider", () => {
       .mockResolvedValueOnce({
         content: [
           { type: "text", text: "before tool" },
-          { type: "tool_use", id: "tc1", name: "sum", input: { a: 1 } },
-        ],
+          { type: "tool_use", id: "tc1", name: "sum", input: { a: 1 } }
+        ]
       })
       .mockResolvedValueOnce({
         content: [
@@ -173,41 +175,41 @@ describe("AnthropicProvider", () => {
             type: "tool_use",
             id: "tc2",
             name: "json_output",
-            input: { output: { result: 42 } },
-          },
-        ],
+            input: { output: { result: 42 } }
+          }
+        ]
       });
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
       {
         client: {
-          messages: { create },
-        } as any,
+          messages: { create }
+        } as any
       }
     );
 
     await expect(
       provider.generateMessage({
         model: "claude-sonnet",
-        messages: [{ role: "user", content: "hi" }],
+        messages: [{ role: "user", content: "hi" }]
       })
     ).resolves.toEqual({
       role: "assistant",
       content: "before tool",
-      toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }],
+      toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }]
     });
 
     await expect(
       provider.generateMessage({
         model: "claude-sonnet",
         messages: [{ role: "user", content: "json please" }],
-        responseFormat: { type: "json_object" },
+        responseFormat: { type: "json_object" }
       })
     ).resolves.toEqual({
       role: "assistant",
-      content: "{\"result\":42}",
-      toolCalls: [],
+      content: '{"result":42}',
+      toolCalls: []
     });
   });
 
@@ -224,20 +226,24 @@ describe("AnthropicProvider", () => {
             content_block: {
               type: "tool_use",
               id: "tc1",
-              name: "lookup",
-            },
+              name: "lookup"
+            }
           },
-          { type: "content_block_delta", index: 1, delta: { partial_json: "{\"q\":\"x\"}" } },
+          {
+            type: "content_block_delta",
+            index: 1,
+            delta: { partial_json: '{"q":"x"}' }
+          },
           { type: "content_block_stop", index: 1 },
-          { type: "message_stop" },
+          { type: "message_stop" }
         ])
       )
       .mockReturnValueOnce(
         makeAsyncIterable([
-          { type: "content_block_delta", delta: { partial_json: "{\"a\":" } },
+          { type: "content_block_delta", delta: { partial_json: '{"a":' } },
           { type: "content_block_delta", delta: { partial_json: "1}" } },
           { type: "content_block_stop" },
-          { type: "message_stop" },
+          { type: "message_stop" }
         ])
       );
 
@@ -245,15 +251,15 @@ describe("AnthropicProvider", () => {
       { ANTHROPIC_API_KEY: "k" },
       {
         client: {
-          messages: { stream },
-        } as any,
+          messages: { stream }
+        } as any
       }
     );
 
     const out1: Array<unknown> = [];
     for await (const item of provider.generateMessages({
       model: "claude-sonnet",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     })) {
       out1.push(item);
     }
@@ -262,7 +268,7 @@ describe("AnthropicProvider", () => {
     for await (const item of provider.generateMessages({
       model: "claude-sonnet",
       messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" },
+      responseFormat: { type: "json_object" }
     })) {
       out2.push(item);
     }
@@ -271,13 +277,13 @@ describe("AnthropicProvider", () => {
       { type: "chunk", content: "Hel", done: false },
       { type: "chunk", content: "lo", done: false },
       { id: "tc1", name: "lookup", args: { q: "x" } },
-      { type: "chunk", content: "", done: true },
+      { type: "chunk", content: "", done: true }
     ]);
 
     expect(out2).toEqual([
-      { type: "chunk", content: "{\"a\":", done: false },
+      { type: "chunk", content: '{"a":', done: false },
       { type: "chunk", content: "1}", done: false },
-      { type: "chunk", content: "", done: true },
+      { type: "chunk", content: "", done: true }
     ]);
   });
 
@@ -287,9 +293,15 @@ describe("AnthropicProvider", () => {
       { client: {} as any }
     );
 
-    expect(provider.isContextLengthError(new Error("maximum context exceeded"))).toBe(true);
-    expect(provider.isContextLengthError(new Error("context window too long"))).toBe(true);
-    expect(provider.isContextLengthError(new Error("network timeout"))).toBe(false);
+    expect(
+      provider.isContextLengthError(new Error("maximum context exceeded"))
+    ).toBe(true);
+    expect(
+      provider.isContextLengthError(new Error("context window too long"))
+    ).toBe(true);
+    expect(provider.isContextLengthError(new Error("network timeout"))).toBe(
+      false
+    );
   });
 
   describe("getAvailableLanguageModels retry logic", () => {
@@ -320,7 +332,10 @@ describe("AnthropicProvider", () => {
     async function runWithTimers<T>(promise: Promise<T>): Promise<T> {
       let result: T | undefined;
       let done = false;
-      promise.then((r) => { result = r; done = true; });
+      promise.then((r) => {
+        result = r;
+        done = true;
+      });
       while (!done) {
         await vi.advanceTimersByTimeAsync(5000);
       }
@@ -398,7 +413,10 @@ describe("AnthropicProvider", () => {
     });
 
     it("retries on AbortError (timeout) and eventually returns empty", async () => {
-      const abortError = new DOMException("The operation was aborted", "AbortError");
+      const abortError = new DOMException(
+        "The operation was aborted",
+        "AbortError"
+      );
       const fetchFn = vi.fn().mockRejectedValue(abortError);
       const provider = makeProvider(fetchFn);
 
@@ -418,7 +436,11 @@ describe("AnthropicProvider", () => {
       const result = await runWithTimers(provider.getAvailableLanguageModels());
 
       expect(result).toEqual([
-        { id: "claude-sonnet-4", name: "claude-sonnet-4", provider: "anthropic" },
+        {
+          id: "claude-sonnet-4",
+          name: "claude-sonnet-4",
+          provider: "anthropic"
+        }
       ]);
       expect(fetchFn).toHaveBeenCalledTimes(2);
     });
@@ -443,7 +465,7 @@ describe("AnthropicProvider", () => {
       const result = await runWithTimers(provider.getAvailableLanguageModels());
 
       expect(result).toEqual([
-        { id: "claude-haiku-4", name: "claude-haiku-4", provider: "anthropic" },
+        { id: "claude-haiku-4", name: "claude-haiku-4", provider: "anthropic" }
       ]);
       expect(fetchFn).toHaveBeenCalledTimes(2);
     });
@@ -470,6 +492,8 @@ describe("AnthropicProvider", () => {
     );
 
     const msg: Message = { role: "tool", content: "x" };
-    await expect(provider.convertMessage(msg)).rejects.toThrow("Tool call ID must not be None");
+    await expect(provider.convertMessage(msg)).rejects.toThrow(
+      "Tool call ID must not be None"
+    );
   });
 });

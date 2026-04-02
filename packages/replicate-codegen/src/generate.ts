@@ -29,22 +29,23 @@ const { values } = parseArgs({
     "from-metadata": { type: "string" },
     "output-dir": {
       type: "string",
-      default: join(process.cwd(), "..", "replicate-nodes", "src", "generated"),
-    },
-  },
+      default: join(process.cwd(), "..", "replicate-nodes", "src", "generated")
+    }
+  }
 });
 
 async function generateModule(
   moduleName: string,
   config: ModuleConfig,
   outputDir: string,
-  useCache: boolean,
+  useCache: boolean
 ): Promise<number> {
   const fetcher = new SchemaFetcher();
   const parser = new SchemaParser();
   const generator = new NodeGenerator();
 
-  const specs: { spec: ReturnType<SchemaParser["parse"]>; modelId: string }[] = [];
+  const specs: { spec: ReturnType<SchemaParser["parse"]>; modelId: string }[] =
+    [];
   for (const modelId of Object.keys(config.configs)) {
     try {
       console.log(`  Fetching ${modelId}...`);
@@ -52,7 +53,9 @@ async function generateModule(
       const spec = parser.parse(schema);
       // Apply config overrides
       const nodeConfig = config.configs[modelId];
-      const applied = nodeConfig ? generator.applyConfig(spec, nodeConfig) : spec;
+      const applied = nodeConfig
+        ? generator.applyConfig(spec, nodeConfig)
+        : spec;
       specs.push({ spec: applied, modelId });
     } catch (e) {
       console.error(`  ERROR: ${modelId}: ${e}`);
@@ -64,7 +67,7 @@ async function generateModule(
   const moduleCode = generator.generateModule(
     moduleName,
     specs.map((s) => s.spec),
-    config,
+    config
   );
 
   await mkdir(outputDir, { recursive: true });
@@ -82,7 +85,10 @@ async function generateModule(
  * Build a reverse lookup: className → { configKey (modelId), moduleDotName }
  * from the allConfigs structure.
  */
-function buildConfigIndex(): Map<string, { modelId: string; moduleDotName: string }> {
+function buildConfigIndex(): Map<
+  string,
+  { modelId: string; moduleDotName: string }
+> {
   const index = new Map<string, { modelId: string; moduleDotName: string }>();
   for (const [moduleDotName, modCfg] of Object.entries(allConfigs)) {
     for (const [modelId, nodeCfg] of Object.entries(modCfg.configs)) {
@@ -96,7 +102,7 @@ function buildConfigIndex(): Map<string, { modelId: string; moduleDotName: strin
 
 async function generateFromMetadata(
   metadataPath: string,
-  outputDir: string,
+  outputDir: string
 ): Promise<void> {
   const raw = await readFile(metadataPath, "utf-8");
   const metadata: PackageMetadata = JSON.parse(raw);
@@ -116,7 +122,9 @@ async function generateFromMetadata(
     const moduleConfig = allConfigs[dotName];
 
     if (!moduleConfig) {
-      console.warn(`  WARN: No config found for module "${dotName}", skipping ${specs.length} nodes`);
+      console.warn(
+        `  WARN: No config found for module "${dotName}", skipping ${specs.length} nodes`
+      );
       continue;
     }
 
@@ -138,7 +146,9 @@ async function generateFromMetadata(
         // Match by className
         modelId = indexEntry.modelId;
       } else {
-        console.warn(`  WARN: No config for node "${spec.className}" (model: ${modelId}), skipping`);
+        console.warn(
+          `  WARN: No config for node "${spec.className}" (model: ${modelId}), skipping`
+        );
         continue;
       }
 
@@ -165,7 +175,7 @@ async function generateFromMetadata(
     const moduleCode = generator.generateModule(
       dashName,
       finalSpecs,
-      moduleConfig,
+      moduleConfig
     );
 
     await mkdir(outputDir, { recursive: true });

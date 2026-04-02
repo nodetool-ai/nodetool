@@ -76,11 +76,15 @@ export class RunNodeState extends DBModel {
   /** Get state for a specific node in a run. */
   static async getNodeState(
     runId: string,
-    nodeId: string,
+    nodeId: string
   ): Promise<RunNodeState | null> {
     const db = getDb();
-    const row = db.select().from(runNodeState)
-      .where(and(eq(runNodeState.run_id, runId), eq(runNodeState.node_id, nodeId)))
+    const row = db
+      .select()
+      .from(runNodeState)
+      .where(
+        and(eq(runNodeState.run_id, runId), eq(runNodeState.node_id, nodeId))
+      )
       .limit(1)
       .get();
     return row ? new RunNodeState(row as Record<string, unknown>) : null;
@@ -89,7 +93,7 @@ export class RunNodeState extends DBModel {
   /** Get existing node state or create an idle one. */
   static async getOrCreate(
     runId: string,
-    nodeId: string,
+    nodeId: string
   ): Promise<RunNodeState> {
     const existing = await RunNodeState.getNodeState(runId, nodeId);
     if (existing) return existing;
@@ -98,35 +102,42 @@ export class RunNodeState extends DBModel {
       run_id: runId,
       node_id: nodeId,
       status: "idle",
-      attempt: 1,
+      attempt: 1
     });
   }
 
   /** Get all incomplete (scheduled or running) nodes for a run. */
-  static async getIncompleteNodes(
-    runId: string,
-  ): Promise<RunNodeState[]> {
+  static async getIncompleteNodes(runId: string): Promise<RunNodeState[]> {
     const db = getDb();
-    const rows = db.select().from(runNodeState)
-      .where(and(
-        eq(runNodeState.run_id, runId),
-        inArray(runNodeState.status, ["scheduled", "running"]),
-      ))
+    const rows = db
+      .select()
+      .from(runNodeState)
+      .where(
+        and(
+          eq(runNodeState.run_id, runId),
+          inArray(runNodeState.status, ["scheduled", "running"])
+        )
+      )
       .limit(10000)
       .all();
-    return rows.map(r => new RunNodeState(r as Record<string, unknown>));
+    return rows.map((r) => new RunNodeState(r as Record<string, unknown>));
   }
 
   /** Get all suspended nodes for a run. */
-  static async getSuspendedNodes(
-    runId: string,
-  ): Promise<RunNodeState[]> {
+  static async getSuspendedNodes(runId: string): Promise<RunNodeState[]> {
     const db = getDb();
-    const rows = db.select().from(runNodeState)
-      .where(and(eq(runNodeState.run_id, runId), eq(runNodeState.status, "suspended")))
+    const rows = db
+      .select()
+      .from(runNodeState)
+      .where(
+        and(
+          eq(runNodeState.run_id, runId),
+          eq(runNodeState.status, "suspended")
+        )
+      )
       .limit(10000)
       .all();
-    return rows.map(r => new RunNodeState(r as Record<string, unknown>));
+    return rows.map((r) => new RunNodeState(r as Record<string, unknown>));
   }
 
   // ── State transitions ─────────────────────────────────────────────
@@ -148,9 +159,7 @@ export class RunNodeState extends DBModel {
     await this.save();
   }
 
-  async markCompleted(
-    outputs?: Record<string, unknown>,
-  ): Promise<void> {
+  async markCompleted(outputs?: Record<string, unknown>): Promise<void> {
     this.status = "completed";
     this.completed_at = new Date().toISOString();
     if (outputs !== undefined) {
@@ -169,7 +178,7 @@ export class RunNodeState extends DBModel {
 
   async markSuspended(
     reason: string,
-    state: Record<string, unknown>,
+    state: Record<string, unknown>
   ): Promise<void> {
     this.status = "suspended";
     this.suspended_at = new Date().toISOString();

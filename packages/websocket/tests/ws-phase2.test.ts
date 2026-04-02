@@ -2,13 +2,13 @@
  * Tests for WebSocket Phase 2 endpoints: T-WS-8, T-WS-9, T-WS-11, T-WS-18.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  initTestDb,
-  Job,
-} from "@nodetool/models";
+import { initTestDb, Job } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
 import { handleFileRequest, type FileApiOptions } from "../src/file-api.js";
-import { handleStorageRequest, createStorageHandler } from "../src/storage-api.js";
+import {
+  handleStorageRequest,
+  createStorageHandler
+} from "../src/storage-api.js";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
@@ -23,10 +23,15 @@ async function jsonBody(response: Response): Promise<unknown> {
 describe("T-WS-8: Username validation", () => {
   it("GET /api/users/validate_username?username=foo returns valid+available", async () => {
     const res = await handleApiRequest(
-      new Request("http://localhost/api/users/validate_username?username=gooduser123")
+      new Request(
+        "http://localhost/api/users/validate_username?username=gooduser123"
+      )
     );
     expect(res.status).toBe(200);
-    const body = (await jsonBody(res)) as { valid: boolean; available: boolean };
+    const body = (await jsonBody(res)) as {
+      valid: boolean;
+      available: boolean;
+    };
     expect(typeof body.valid).toBe("boolean");
     expect(typeof body.available).toBe("boolean");
     expect(body.valid).toBe(true);
@@ -52,16 +57,24 @@ describe("T-WS-8: Username validation", () => {
       new Request("http://localhost/api/users/validate_username?username=ab")
     );
     expect(res.status).toBe(200);
-    const body = (await jsonBody(res)) as { valid: boolean; available: boolean };
+    const body = (await jsonBody(res)) as {
+      valid: boolean;
+      available: boolean;
+    };
     expect(body.valid).toBe(false);
   });
 
   it("GET /api/users/validate_username with special chars returns invalid", async () => {
     const res = await handleApiRequest(
-      new Request("http://localhost/api/users/validate_username?username=bad%20user!")
+      new Request(
+        "http://localhost/api/users/validate_username?username=bad%20user!"
+      )
     );
     expect(res.status).toBe(200);
-    const body = (await jsonBody(res)) as { valid: boolean; available: boolean };
+    const body = (await jsonBody(res)) as {
+      valid: boolean;
+      available: boolean;
+    };
     expect(body.valid).toBe(false);
   });
 });
@@ -78,7 +91,10 @@ describe("T-WS-9: File browser API", () => {
     // Create test structure
     await fs.mkdir(path.join(tmpDir, "subdir"));
     await fs.writeFile(path.join(tmpDir, "hello.txt"), "hello world");
-    await fs.writeFile(path.join(tmpDir, "subdir", "nested.txt"), "nested content");
+    await fs.writeFile(
+      path.join(tmpDir, "subdir", "nested.txt"),
+      "nested content"
+    );
   });
 
   afterEach(async () => {
@@ -91,7 +107,10 @@ describe("T-WS-9: File browser API", () => {
       fileOpts
     );
     expect(res.status).toBe(200);
-    const body = (await jsonBody(res)) as Array<{ name: string; is_dir: boolean }>;
+    const body = (await jsonBody(res)) as Array<{
+      name: string;
+      is_dir: boolean;
+    }>;
     const names = body.map((f) => f.name);
     expect(names).toContain("hello.txt");
     expect(names).toContain("subdir");
@@ -169,7 +188,9 @@ describe("T-WS-9: File browser API", () => {
 
   it("GET /api/files/download with path traversal returns 403", async () => {
     const res = await handleFileRequest(
-      new Request("http://localhost/api/files/download?path=/../../../etc/passwd"),
+      new Request(
+        "http://localhost/api/files/download?path=/../../../etc/passwd"
+      ),
       fileOpts
     );
     expect(res.status).toBe(403);
@@ -200,7 +221,10 @@ describe("T-WS-11: Storage KV API", () => {
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ws-storage-test-"));
-    handler = createStorageHandler({ storagePath: tmpDir, tempStoragePath: path.join(tmpDir, "temp") });
+    handler = createStorageHandler({
+      storagePath: tmpDir,
+      tempStoragePath: path.join(tmpDir, "temp")
+    });
   });
 
   afterEach(async () => {
@@ -211,7 +235,7 @@ describe("T-WS-11: Storage KV API", () => {
     const res = await handler(
       new Request("http://localhost/api/storage/mykey.txt", {
         method: "PUT",
-        body: "hello world",
+        body: "hello world"
       })
     );
     expect(res.status).toBe(200);
@@ -222,7 +246,7 @@ describe("T-WS-11: Storage KV API", () => {
     await handler(
       new Request("http://localhost/api/storage/mykey.txt", {
         method: "PUT",
-        body: "hello world",
+        body: "hello world"
       })
     );
 
@@ -246,12 +270,14 @@ describe("T-WS-11: Storage KV API", () => {
     await handler(
       new Request("http://localhost/api/storage/mykey.txt", {
         method: "PUT",
-        body: "hello",
+        body: "hello"
       })
     );
 
     const delRes = await handler(
-      new Request("http://localhost/api/storage/mykey.txt", { method: "DELETE" })
+      new Request("http://localhost/api/storage/mykey.txt", {
+        method: "DELETE"
+      })
     );
     expect(delRes.status).toBe(200);
 
@@ -273,7 +299,7 @@ describe("T-WS-11: Storage KV API", () => {
     const res = await handler(
       new Request("http://localhost/api/storage/", {
         method: "PUT",
-        body: "data",
+        body: "data"
       })
     );
     expect(res.status).toBe(400);
@@ -288,12 +314,13 @@ describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
   });
 
   it("Job record exists with status completed after successful run_job", async () => {
-    const { UnifiedWebSocketRunner } = await import("../src/unified-websocket-runner.js");
+    const { UnifiedWebSocketRunner } =
+      await import("../src/unified-websocket-runner.js");
 
     const runner = new UnifiedWebSocketRunner({
       resolveExecutor: () => ({
-        process: async () => ({ output: "done" }),
-      }),
+        process: async () => ({ output: "done" })
+      })
     });
 
     const messages: Record<string, unknown>[] = [];
@@ -307,12 +334,16 @@ describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
       job_id: jobId,
       graph: {
         nodes: [{ id: "n1", type: "test.Node" }],
-        edges: [],
-      },
+        edges: []
+      }
     });
 
     // Wait for the stream task to finish
-    const active = (runner as unknown as { activeJobs: Map<string, { streamTask?: Promise<void> }> }).activeJobs;
+    const active = (
+      runner as unknown as {
+        activeJobs: Map<string, { streamTask?: Promise<void> }>;
+      }
+    ).activeJobs;
     // The job may already be removed from activeJobs if streamTask completed synchronously,
     // so we wait a bit for the async streaming to finish
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -324,15 +355,16 @@ describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
   });
 
   it("Job record exists with status failed after failed run_job", async () => {
-    const { UnifiedWebSocketRunner } = await import("../src/unified-websocket-runner.js");
+    const { UnifiedWebSocketRunner } =
+      await import("../src/unified-websocket-runner.js");
 
     const runner = new UnifiedWebSocketRunner({
       resolveExecutor: () => ({
         process: async () => ({ output: "ok" }),
         initialize: async () => {
           throw new Error("init boom");
-        },
-      }),
+        }
+      })
     });
 
     const messages: Record<string, unknown>[] = [];
@@ -346,8 +378,8 @@ describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
       job_id: jobId,
       graph: {
         nodes: [{ id: "n1", type: "test.Node" }],
-        edges: [],
-      },
+        edges: []
+      }
     });
 
     await new Promise((resolve) => setTimeout(resolve, 200));

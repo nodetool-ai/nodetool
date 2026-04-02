@@ -20,7 +20,7 @@ import {
   SpreadsheetAgentNode,
   VectorStoreAgentNode,
   YtDlpDownloaderAgentNode,
-  TOOL_AGENT_NODES,
+  TOOL_AGENT_NODES
 } from "../src/nodes/tool-agents.js";
 
 const originalFetch = globalThis.fetch;
@@ -63,7 +63,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   } as Response;
 }
 
@@ -127,7 +127,7 @@ describe("Tool agent node defaults", () => {
       uri: "",
       asset_id: null,
       data: null,
-      metadata: null,
+      metadata: null
     });
     expect(d.video).toEqual({
       type: "video",
@@ -136,7 +136,7 @@ describe("Tool agent node defaults", () => {
       data: null,
       metadata: null,
       duration: null,
-      format: null,
+      format: null
     });
   });
 
@@ -168,7 +168,7 @@ describe("Tool agent node defaults", () => {
       uri: "",
       asset_id: null,
       data: null,
-      metadata: null,
+      metadata: null
     });
     expect(d.timeout_seconds).toBe(90);
     expect(d.max_output_chars).toBe(120000);
@@ -182,7 +182,7 @@ describe("Tool agent node defaults", () => {
       uri: "",
       asset_id: null,
       data: null,
-      metadata: null,
+      metadata: null
     });
     expect(d.video).toEqual({
       type: "video",
@@ -191,7 +191,7 @@ describe("Tool agent node defaults", () => {
       data: null,
       metadata: null,
       duration: null,
-      format: null,
+      format: null
     });
   });
 
@@ -203,7 +203,7 @@ describe("Tool agent node defaults", () => {
       uri: "",
       asset_id: null,
       data: null,
-      metadata: null,
+      metadata: null
     });
     expect(d.timeout_seconds).toBe(300);
     expect(d.max_output_chars).toBe(220000);
@@ -217,7 +217,7 @@ describe("Tool agent node defaults", () => {
       uri: "",
       asset_id: null,
       data: null,
-      metadata: null,
+      metadata: null
     });
     expect(d.timeout_seconds).toBe(300);
     expect(d.max_output_chars).toBe(220000);
@@ -265,7 +265,7 @@ describe("Tool agent node types", () => {
     ["nodetool.agents.PptxAgent", PptxAgentNode],
     ["nodetool.agents.SpreadsheetAgent", SpreadsheetAgentNode],
     ["nodetool.agents.VectorStoreAgent", VectorStoreAgentNode],
-    ["nodetool.agents.YtDlpDownloaderAgent", YtDlpDownloaderAgentNode],
+    ["nodetool.agents.YtDlpDownloaderAgent", YtDlpDownloaderAgentNode]
   ];
   for (const [nodeType, NodeClass] of expected) {
     it(`${NodeClass.name} has nodeType ${nodeType}`, () => {
@@ -301,9 +301,9 @@ describe("ToolAgentNode process", () => {
       model: { provider: "", id: "" }
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Select a model for this skill.");
+    await expect(node.process()).rejects.toThrow(
+      "Select a model for this skill."
+    );
   });
 
   it("throws Select a model when model id is empty", async () => {
@@ -314,9 +314,9 @@ describe("ToolAgentNode process", () => {
       model: { provider: "openai", id: "" }
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Select a model for this skill.");
+    await expect(node.process()).rejects.toThrow(
+      "Select a model for this skill."
+    );
   });
 
   it("throws no API key when key is missing for openai", async () => {
@@ -327,9 +327,9 @@ describe("ToolAgentNode process", () => {
       model: { provider: "openai", id: "gpt-4" }
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Processing context with provider access is required");
+    await expect(node.process()).rejects.toThrow(
+      "Processing context with provider access is required"
+    );
   });
 
   it("throws no API key when key is missing for anthropic", async () => {
@@ -340,9 +340,9 @@ describe("ToolAgentNode process", () => {
       model: { provider: "anthropic", id: "claude-3" }
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Processing context with provider access is required");
+    await expect(node.process()).rejects.toThrow(
+      "Processing context with provider access is required"
+    );
   });
 });
 
@@ -358,9 +358,9 @@ describe("ToolAgentNode requires processing context", () => {
     });
 
     node.setDynamic("_secrets", { OPENAI_API_KEY: "sk-test" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("Processing context with provider access is required");
+    await expect(node.process()).rejects.toThrow(
+      "Processing context with provider access is required"
+    );
   });
 
   it("throws when no context provided for Anthropic", async () => {
@@ -372,9 +372,9 @@ describe("ToolAgentNode requires processing context", () => {
     });
 
     node.setDynamic("_secrets", { ANTHROPIC_API_KEY: "ak-test" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("Processing context with provider access is required");
+    await expect(node.process()).rejects.toThrow(
+      "Processing context with provider access is required"
+    );
   });
 
   it("throws when no context provided for Ollama", async () => {
@@ -385,9 +385,9 @@ describe("ToolAgentNode requires processing context", () => {
       model: { provider: "ollama", id: "llama3" }
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Processing context with provider access is required");
+    await expect(node.process()).rejects.toThrow(
+      "Processing context with provider access is required"
+    );
   });
 
   it("throws when no context provided for unsupported provider", async () => {
@@ -399,9 +399,9 @@ describe("ToolAgentNode requires processing context", () => {
     });
 
     node.setDynamic("_secrets", { GEMINI_API_KEY: "gk-test" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("Processing context with provider access is required");
+    await expect(node.process()).rejects.toThrow(
+      "Processing context with provider access is required"
+    );
   });
 });
 
@@ -411,10 +411,10 @@ describe("ToolAgentNode runtime provider path", () => {
   it("uses context.getProvider when available", async () => {
     const node = new ShellAgentNode();
     const mockProvider = {
-      generateMessage: vi.fn().mockResolvedValue({ content: "from provider" }),
+      generateMessage: vi.fn().mockResolvedValue({ content: "from provider" })
     };
     const context = {
-      getProvider: vi.fn().mockResolvedValue(mockProvider),
+      getProvider: vi.fn().mockResolvedValue(mockProvider)
     };
 
     node.assign({
@@ -430,10 +430,10 @@ describe("ToolAgentNode runtime provider path", () => {
   it("handles non-string content from provider", async () => {
     const node = new ShellAgentNode();
     const mockProvider = {
-      generateMessage: vi.fn().mockResolvedValue({ content: { key: "val" } }),
+      generateMessage: vi.fn().mockResolvedValue({ content: { key: "val" } })
     };
     const context = {
-      getProvider: vi.fn().mockResolvedValue(mockProvider),
+      getProvider: vi.fn().mockResolvedValue(mockProvider)
     };
 
     node.assign({
@@ -448,10 +448,10 @@ describe("ToolAgentNode runtime provider path", () => {
   it("handles null content from provider", async () => {
     const node = new ShellAgentNode();
     const mockProvider = {
-      generateMessage: vi.fn().mockResolvedValue({ content: null }),
+      generateMessage: vi.fn().mockResolvedValue({ content: null })
     };
     const context = {
-      getProvider: vi.fn().mockResolvedValue(mockProvider),
+      getProvider: vi.fn().mockResolvedValue(mockProvider)
     };
 
     node.assign({
@@ -466,7 +466,7 @@ describe("ToolAgentNode runtime provider path", () => {
   it("throws when provider rejects", async () => {
     const node = new ShellAgentNode();
     const context = {
-      getProvider: vi.fn().mockRejectedValue(new Error("no provider")),
+      getProvider: vi.fn().mockRejectedValue(new Error("no provider"))
     };
 
     node.assign({
@@ -475,9 +475,7 @@ describe("ToolAgentNode runtime provider path", () => {
     });
 
     node.setDynamic("_secrets", { OPENAI_API_KEY: "sk-test" });
-    await expect(
-      node.process(context as any)
-    ).rejects.toThrow("no provider");
+    await expect(node.process(context as any)).rejects.toThrow("no provider");
   });
 });
 
@@ -493,9 +491,9 @@ describe("secretsMap handling", () => {
     });
 
     node.setDynamic("_secrets", ["not", "a", "map"]);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Processing context with provider access is required");
+    await expect(node.process()).rejects.toThrow(
+      "Processing context with provider access is required"
+    );
   });
 
   it("handles _secrets as null (requires context)", async () => {
@@ -507,8 +505,8 @@ describe("secretsMap handling", () => {
     });
 
     node.setDynamic("_secrets", null);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Processing context with provider access is required");
+    await expect(node.process()).rejects.toThrow(
+      "Processing context with provider access is required"
+    );
   });
 });

@@ -38,9 +38,9 @@ export class VLLMProvider extends OpenAIProvider {
           ((key) =>
             new OpenAI({
               apiKey: key,
-              baseURL: `${baseURL}/v1`,
+              baseURL: `${baseURL}/v1`
             })),
-        fetchFn,
+        fetchFn
       }
     );
 
@@ -51,7 +51,7 @@ export class VLLMProvider extends OpenAIProvider {
 
   override getContainerEnv(): Record<string, string> {
     const env: Record<string, string> = {
-      VLLM_BASE_URL: this._vllmBaseURL,
+      VLLM_BASE_URL: this._vllmBaseURL
     };
     if (this.apiKey && this.apiKey !== "sk-no-key-required") {
       env.VLLM_API_KEY = this.apiKey;
@@ -65,14 +65,11 @@ export class VLLMProvider extends OpenAIProvider {
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     try {
-      const response = await this._vllmFetch(
-        `${this._vllmBaseURL}/v1/models`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-          },
+      const response = await this._vllmFetch(`${this._vllmBaseURL}/v1/models`, {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`
         }
-      );
+      });
 
       if (!response.ok) {
         return [];
@@ -90,7 +87,7 @@ export class VLLMProvider extends OpenAIProvider {
         .map((row) => ({
           id: row.id,
           name: row.id,
-          provider: "vllm",
+          provider: "vllm"
         }));
     } catch {
       return [];

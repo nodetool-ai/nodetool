@@ -9,7 +9,6 @@
 
 import type { EnumDef, FieldDef, NodeSpec } from "./types.js";
 
- 
 type AnyRecord = Record<string, any>;
 
 export class SchemaParser {
@@ -31,7 +30,7 @@ export class SchemaParser {
       (inputSchema["properties"] as AnyRecord | undefined) ?? {},
       (inputSchema["required"] as string[] | undefined) ?? [],
       "input",
-      enums,
+      enums
     );
     inputFields = this.normalizeAssetUrlFields(inputFields);
     inputFields = this.normalizeImageUrlsFields(inputFields);
@@ -40,7 +39,7 @@ export class SchemaParser {
       (outputSchema["properties"] as AnyRecord | undefined) ?? {},
       (outputSchema["required"] as string[] | undefined) ?? [],
       "output",
-      enums,
+      enums
     );
 
     const outputType = this._determineOutputType(outputSchema, outputFields);
@@ -55,7 +54,7 @@ export class SchemaParser {
       inputFields,
       outputType,
       outputFields,
-      enums,
+      enums
     };
   }
 
@@ -94,7 +93,8 @@ export class SchemaParser {
       const requestBody = (post as AnyRecord)["requestBody"] ?? {};
       const content =
         ((requestBody as AnyRecord)["content"] as AnyRecord | undefined) ?? {};
-      const appJson = (content["application/json"] as AnyRecord | undefined) ?? {};
+      const appJson =
+        (content["application/json"] as AnyRecord | undefined) ?? {};
       const inputSchemaRef = appJson["schema"] as AnyRecord | undefined;
 
       if (inputSchemaRef) {
@@ -124,7 +124,8 @@ export class SchemaParser {
 
       const content =
         ((response200 as AnyRecord)["content"] as AnyRecord | undefined) ?? {};
-      const appJson = (content["application/json"] as AnyRecord | undefined) ?? {};
+      const appJson =
+        (content["application/json"] as AnyRecord | undefined) ?? {};
       const outputSchemaRef = appJson["schema"] as AnyRecord | undefined;
       if (!outputSchemaRef) continue;
 
@@ -164,7 +165,7 @@ export class SchemaParser {
       const refPath = schemaObj["$ref"] as string;
       if (refPath.startsWith("#/")) {
         const parts = refPath.replace(/^#\//, "").split("/");
-         
+
         let current: any = schema;
         for (const part of parts) {
           current = (current as AnyRecord)?.[part] ?? {};
@@ -175,18 +176,22 @@ export class SchemaParser {
 
     // Handle allOf
     if ("allOf" in schemaObj) {
-      const merged: AnyRecord = { type: "object", properties: {}, required: [] };
+      const merged: AnyRecord = {
+        type: "object",
+        properties: {},
+        required: []
+      };
       for (const subSchema of schemaObj["allOf"] as AnyRecord[]) {
         const resolved = this._resolveRef(schema, subSchema);
         if (resolved["properties"]) {
           Object.assign(
             merged["properties"] as AnyRecord,
-            resolved["properties"] as AnyRecord,
+            resolved["properties"] as AnyRecord
           );
         }
         if (resolved["required"]) {
           (merged["required"] as string[]).push(
-            ...(resolved["required"] as string[]),
+            ...(resolved["required"] as string[])
           );
         }
       }
@@ -203,14 +208,14 @@ export class SchemaParser {
     properties: AnyRecord,
     required: string[],
     fieldType: "input" | "output",
-    enums: EnumDef[],
+    enums: EnumDef[]
   ): FieldDef[] {
     const fields: FieldDef[] = [];
 
     for (const [name, prop] of Object.entries(properties)) {
       // Check if this is a nested asset structure
       const [nestedAssetKey, extraFields] = this._getNestedAssetInfo(
-        prop as AnyRecord,
+        prop as AnyRecord
       );
 
       if (nestedAssetKey) {
@@ -235,7 +240,7 @@ export class SchemaParser {
         const defaultVal = this._getDefaultValue(
           { type: "asset" },
           propType,
-          required.includes(name),
+          required.includes(name)
         );
 
         fields.push({
@@ -243,11 +248,12 @@ export class SchemaParser {
           tsType,
           propType,
           default: defaultVal,
-          description: ((prop as AnyRecord)["description"] as string | undefined) ?? "",
+          description:
+            ((prop as AnyRecord)["description"] as string | undefined) ?? "",
           fieldType,
           required: required.includes(name),
           enumRef: undefined,
-          nestedAssetKey,
+          nestedAssetKey
         });
 
         // Add extra fields from the nested schema
@@ -261,7 +267,7 @@ export class SchemaParser {
             fieldType,
             required: false,
             enumRef: undefined,
-            parentField: name,
+            parentField: name
           });
         }
         continue;
@@ -275,9 +281,10 @@ export class SchemaParser {
           name: enumName,
           values: ((prop as AnyRecord)["enum"] as string[]).map((v) => [
             this.toEnumValue(v),
-            v,
+            v
           ]),
-          description: ((prop as AnyRecord)["description"] as string | undefined) ?? "",
+          description:
+            ((prop as AnyRecord)["description"] as string | undefined) ?? ""
         };
         enums.push(enumDef);
         enumRef = enumName;
@@ -287,7 +294,7 @@ export class SchemaParser {
       const { tsType, propType } = this.jsonTypeToTs(
         prop as AnyRecord,
         enumRef,
-        name,
+        name
       );
 
       // Determine default value
@@ -295,7 +302,7 @@ export class SchemaParser {
         prop as AnyRecord,
         propType,
         required.includes(name),
-        enumRef,
+        enumRef
       );
 
       fields.push({
@@ -303,13 +310,14 @@ export class SchemaParser {
         tsType,
         propType,
         default: defaultVal,
-        description: ((prop as AnyRecord)["description"] as string | undefined) ?? "",
+        description:
+          ((prop as AnyRecord)["description"] as string | undefined) ?? "",
         fieldType,
         required: required.includes(name),
         enumRef,
         enumValues: enumRef
           ? ((prop as AnyRecord)["enum"] as string[] | undefined)
-          : undefined,
+          : undefined
       });
     }
 
@@ -326,7 +334,7 @@ export class SchemaParser {
   jsonTypeToTs(
     prop: AnyRecord,
     enumRef: string | undefined,
-    propName: string = "",
+    propName: string = ""
   ): { tsType: string; propType: string } {
     if (enumRef) {
       return { tsType: "enum", propType: "enum" };
@@ -337,12 +345,13 @@ export class SchemaParser {
     if (jsonType === "string") {
       const nameLower = propName.toLowerCase();
 
-      if (
-        nameLower.endsWith("_url") ||
-        nameLower.endsWith("_urls")
-      ) {
-        const descLower = ((prop["description"] as string | undefined) ?? "").toLowerCase();
-        const titleLower = ((prop["title"] as string | undefined) ?? "").toLowerCase();
+      if (nameLower.endsWith("_url") || nameLower.endsWith("_urls")) {
+        const descLower = (
+          (prop["description"] as string | undefined) ?? ""
+        ).toLowerCase();
+        const titleLower = (
+          (prop["title"] as string | undefined) ?? ""
+        ).toLowerCase();
 
         if (
           nameLower.includes("image") ||
@@ -387,7 +396,7 @@ export class SchemaParser {
         if (refTypeName) {
           return {
             tsType: `${refTypeName}[]`,
-            propType: `list[${refTypeName}]`,
+            propType: `list[${refTypeName}]`
           };
         }
       }
@@ -395,7 +404,7 @@ export class SchemaParser {
       const inner = this.jsonTypeToTs(items, undefined, propName);
       return {
         tsType: `${inner.tsType}[]`,
-        propType: `list[${inner.propType}]`,
+        propType: `list[${inner.propType}]`
       };
     } else if (jsonType === "object") {
       return { tsType: "object", propType: "dict[str, any]" };
@@ -410,13 +419,13 @@ export class SchemaParser {
   private _resolveRefTypeName(refPath: string): string | null {
     if (!refPath.startsWith("#/")) return null;
     const parts = refPath.replace(/^#\//, "").split("/");
-     
+
     let current: any = this._rootSchema;
     for (const part of parts) {
       current = (current as AnyRecord)?.[part];
       if (!current) return null;
     }
-    return (current as AnyRecord)?.["title"] as string | null ?? null;
+    return ((current as AnyRecord)?.["title"] as string | null) ?? null;
   }
 
   /**
@@ -426,9 +435,16 @@ export class SchemaParser {
    * - nestedAssetKey: The key for the asset URL inside the nested object
    * - extraFields: List of additional field definitions from the nested schema
    */
-  private _getNestedAssetInfo(
-    prop: AnyRecord,
-  ): [string | null, Array<{ name: string; tsType: string; propType: string; default: unknown; description: string }>] {
+  private _getNestedAssetInfo(prop: AnyRecord): [
+    string | null,
+    Array<{
+      name: string;
+      tsType: string;
+      propType: string;
+      default: unknown;
+      description: string;
+    }>
+  ] {
     const resolved = this._resolveRef(this._rootSchema, prop);
 
     if (!resolved || !("properties" in resolved)) {
@@ -437,7 +453,13 @@ export class SchemaParser {
 
     const properties = (resolved["properties"] as AnyRecord | undefined) ?? {};
     let nestedAssetKey: string | null = null;
-    const extraFields: Array<{ name: string; tsType: string; propType: string; default: unknown; description: string }> = [];
+    const extraFields: Array<{
+      name: string;
+      tsType: string;
+      propType: string;
+      default: unknown;
+      description: string;
+    }> = [];
 
     for (const [key, subProp] of Object.entries(properties)) {
       const keyLower = key.toLowerCase();
@@ -451,7 +473,8 @@ export class SchemaParser {
         }
       } else {
         // Collect non-asset fields to add as separate node fields
-        const subType = ((subProp as AnyRecord)["type"] as string | undefined) ?? "string";
+        const subType =
+          ((subProp as AnyRecord)["type"] as string | undefined) ?? "string";
         let tsType: string;
         let propType: string;
         let defaultVal: unknown;
@@ -479,7 +502,8 @@ export class SchemaParser {
           tsType,
           propType,
           default: defaultVal,
-          description: ((subProp as AnyRecord)["description"] as string | undefined) ?? "",
+          description:
+            ((subProp as AnyRecord)["description"] as string | undefined) ?? ""
         });
       }
     }
@@ -494,7 +518,7 @@ export class SchemaParser {
     prop: AnyRecord,
     propType: string,
     required: boolean,
-    enumName?: string,
+    enumName?: string
   ): unknown {
     // Asset refs should always default to empty objects
     if (propType === "image") return null;
@@ -518,7 +542,9 @@ export class SchemaParser {
     // Generate sensible defaults based on type
     if (propType === "str") return "";
     if (propType === "int") {
-      const desc = ((prop["description"] as string | undefined) ?? "").toLowerCase();
+      const desc = (
+        (prop["description"] as string | undefined) ?? ""
+      ).toLowerCase();
       return desc.includes("seed") ? -1 : 0;
     }
     if (propType === "float") return 0.0;
@@ -534,9 +560,10 @@ export class SchemaParser {
    */
   private _determineOutputType(
     outputSchema: AnyRecord,
-    _outputFields: FieldDef[],
+    _outputFields: FieldDef[]
   ): string {
-    const properties = (outputSchema["properties"] as AnyRecord | undefined) ?? {};
+    const properties =
+      (outputSchema["properties"] as AnyRecord | undefined) ?? {};
     const keys = Object.keys(properties);
 
     // Single output patterns
@@ -552,7 +579,8 @@ export class SchemaParser {
     }
 
     // Check for 3D model output fields
-    if ("model_glb" in properties || "model_mesh" in properties) return "model_3d";
+    if ("model_glb" in properties || "model_mesh" in properties)
+      return "model_3d";
 
     // Check if video is present (even with other properties)
     if ("video" in properties) return "video";
@@ -589,7 +617,9 @@ export class SchemaParser {
       // Replace dots with nothing (v5.6 -> v56)
       const cleaned = part.replace(/\./g, "");
       const words = cleaned.split("-");
-      nameParts.push(...words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)));
+      nameParts.push(
+        ...words.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      );
     }
 
     return nameParts.join("");
@@ -712,13 +742,31 @@ export class SchemaParser {
         if (lower.includes("image")) {
           // Rename image_url → image (store original as apiParamName)
           const shortName = f.name.replace(/_url$/i, "");
-          return { ...f, name: shortName, apiParamName: f.name, tsType: "image", propType: "image" };
+          return {
+            ...f,
+            name: shortName,
+            apiParamName: f.name,
+            tsType: "image",
+            propType: "image"
+          };
         } else if (lower.includes("video")) {
           const shortName = f.name.replace(/_url$/i, "");
-          return { ...f, name: shortName, apiParamName: f.name, tsType: "video", propType: "video" };
+          return {
+            ...f,
+            name: shortName,
+            apiParamName: f.name,
+            tsType: "video",
+            propType: "video"
+          };
         } else if (lower.includes("audio")) {
           const shortName = f.name.replace(/_url$/i, "");
-          return { ...f, name: shortName, apiParamName: f.name, tsType: "audio", propType: "audio" };
+          return {
+            ...f,
+            name: shortName,
+            apiParamName: f.name,
+            tsType: "audio",
+            propType: "audio"
+          };
         }
       }
       return f;
@@ -733,7 +781,13 @@ export class SchemaParser {
       const lower = f.name.toLowerCase();
       if (lower.endsWith("_urls") && lower.includes("image")) {
         const shortName = f.name.replace(/_urls$/i, "s");
-        return { ...f, name: shortName, apiParamName: f.name, tsType: "image[]", propType: "list[image]" };
+        return {
+          ...f,
+          name: shortName,
+          apiParamName: f.name,
+          tsType: "image[]",
+          propType: "list[image]"
+        };
       }
       return f;
     });

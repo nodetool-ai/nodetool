@@ -12,7 +12,7 @@ function mockContext(opts?: {
   const sendControlEvent = vi.fn().mockResolvedValue(opts?.sendResult ?? {});
   return {
     hasControlEventSupport: opts?.hasControlSupport ?? false,
-    sendControlEvent,
+    sendControlEvent
   } as unknown as ProcessingContext;
 }
 
@@ -27,7 +27,7 @@ describe("EdgeMessageBus", () => {
       to: "bob",
       type: "info",
       subject: "hello",
-      body: "Hi!",
+      body: "Hi!"
     });
 
     expect(bus.receive("bob")).toHaveLength(1);
@@ -45,7 +45,7 @@ describe("EdgeMessageBus", () => {
       to: "all",
       type: "info",
       subject: "news",
-      body: "update",
+      body: "update"
     });
 
     expect(bus.receive("bob")).toHaveLength(1);
@@ -65,7 +65,7 @@ describe("EdgeMessageBus", () => {
       to: "bob",
       type: "request",
       subject: "help",
-      body: "Need help",
+      body: "Need help"
     });
 
     // Should have called sendControlEvent for the node
@@ -76,8 +76,8 @@ describe("EdgeMessageBus", () => {
         message: expect.objectContaining({
           from: "alice",
           to: "bob",
-          subject: "help",
-        }),
+          subject: "help"
+        })
       })
     );
   });
@@ -94,7 +94,7 @@ describe("EdgeMessageBus", () => {
       to: "bob",
       type: "info",
       subject: "test",
-      body: "msg",
+      body: "msg"
     });
 
     // Should NOT have called sendControlEvent
@@ -110,7 +110,13 @@ describe("EdgeMessageBus", () => {
     bus.register("bob");
     bus.mapAgentToNode("bob", "node_bob");
 
-    bus.send({ from: "alice", to: "bob", type: "info", subject: "s1", body: "b1" });
+    bus.send({
+      from: "alice",
+      to: "bob",
+      type: "info",
+      subject: "s1",
+      body: "b1"
+    });
 
     const history = bus.getHistory();
     expect(history).toHaveLength(1);
@@ -125,7 +131,13 @@ describe("EdgeMessageBus", () => {
     const handler = vi.fn();
     bus.subscribe("bob", handler);
 
-    bus.send({ from: "alice", to: "bob", type: "info", subject: "test", body: "msg" });
+    bus.send({
+      from: "alice",
+      to: "bob",
+      type: "info",
+      subject: "test",
+      body: "msg"
+    });
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
@@ -134,7 +146,13 @@ describe("EdgeMessageBus", () => {
     bus.register("bob");
 
     expect(bus.pendingCount("bob")).toBe(0);
-    bus.send({ from: "alice", to: "bob", type: "info", subject: "s", body: "b" });
+    bus.send({
+      from: "alice",
+      to: "bob",
+      type: "info",
+      subject: "s",
+      body: "b"
+    });
     // In fallback mode, message goes to inbox
     expect(bus.pendingCount("bob")).toBe(1);
   });
@@ -147,7 +165,7 @@ describe("EdgeTaskBoard", () => {
     const task = edge.create({
       title: "Test task",
       description: "Do something",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     expect(task.id).toBeDefined();
@@ -172,7 +190,7 @@ describe("EdgeTaskBoard", () => {
     edge.create({
       title: "Task",
       description: "desc",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     // Should have fired notification
@@ -180,7 +198,7 @@ describe("EdgeTaskBoard", () => {
       "board_node",
       expect.objectContaining({
         __task_board_op__: true,
-        operation: "task_created",
+        operation: "task_created"
       })
     );
   });
@@ -192,7 +210,7 @@ describe("EdgeTaskBoard", () => {
     edge.create({
       title: "Task",
       description: "desc",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     expect(ctx.sendControlEvent).not.toHaveBeenCalled();
@@ -203,7 +221,7 @@ describe("EdgeTaskBoard", () => {
     const t1 = inner.create({
       title: "Existing",
       description: "pre-populated",
-      createdBy: "system",
+      createdBy: "system"
     });
 
     const edge = new EdgeTaskBoard({ inner });
@@ -217,13 +235,13 @@ describe("EdgeTaskBoard", () => {
     const taskA = edge.create({
       title: "First",
       description: "d",
-      createdBy: "c",
+      createdBy: "c"
     });
     const taskB = edge.create({
       title: "Second",
       description: "d",
       createdBy: "c",
-      dependsOn: [taskA.id],
+      dependsOn: [taskA.id]
     });
 
     // Can't claim B yet
@@ -245,14 +263,14 @@ describe("EdgeTaskBoard", () => {
     const parent = edge.create({
       title: "Big task",
       description: "d",
-      createdBy: "c",
+      createdBy: "c"
     });
     edge.claim(parent.id, "w");
     edge.startWork(parent.id, "w");
 
     const subs = edge.decompose(parent.id, [
       { title: "Sub 1", description: "d1", createdBy: "c" },
-      { title: "Sub 2", description: "d2", createdBy: "c" },
+      { title: "Sub 2", description: "d2", createdBy: "c" }
     ]);
 
     expect(subs).toHaveLength(2);
@@ -262,7 +280,7 @@ describe("EdgeTaskBoard", () => {
     expect(ctx.sendControlEvent).toHaveBeenCalledWith(
       "bn",
       expect.objectContaining({
-        operation: "task_decomposed",
+        operation: "task_decomposed"
       })
     );
   });
@@ -275,7 +293,7 @@ describe("EdgeTaskBoard", () => {
     const task = edge.create({
       title: "T",
       description: "d",
-      createdBy: "c",
+      createdBy: "c"
     });
     edge.claim(task.id, "w");
     edge.startWork(task.id, "w");
@@ -285,19 +303,23 @@ describe("EdgeTaskBoard", () => {
       "task_created",
       "task_claimed",
       "task_working",
-      "task_completed",
+      "task_completed"
     ]);
   });
 
   it("resolveParents works", () => {
     const edge = new EdgeTaskBoard();
 
-    const parent = edge.create({ title: "P", description: "d", createdBy: "c" });
+    const parent = edge.create({
+      title: "P",
+      description: "d",
+      createdBy: "c"
+    });
     edge.claim(parent.id, "w");
     edge.startWork(parent.id, "w");
 
     const subs = edge.decompose(parent.id, [
-      { title: "S1", description: "d", createdBy: "c" },
+      { title: "S1", description: "d", createdBy: "c" }
     ]);
 
     edge.claim(subs[0].id, "w");

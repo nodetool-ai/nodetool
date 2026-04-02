@@ -85,7 +85,7 @@ describe("NodeInbox – iterAny", () => {
     expect(items).toEqual([
       ["a", "a1"],
       ["b", "b1"],
-      ["a", "a2"],
+      ["a", "a2"]
     ]);
   });
 
@@ -250,7 +250,7 @@ describe("NodeInbox – prepend", () => {
       data: "first",
       metadata: {},
       timestamp: Date.now(),
-      event_id: "test",
+      event_id: "test"
     });
 
     inbox.markSourceDone("a");

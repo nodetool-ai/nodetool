@@ -2,10 +2,14 @@ import { BaseNode, prop } from "@nodetool/node-sdk";
 import type {
   NodeClass,
   StreamingInputs,
-  StreamingOutputs,
+  StreamingOutputs
 } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
-import { getElevenLabsApiKey, VOICE_ID_MAP, VOICE_NAMES } from "../elevenlabs-base.js";
+import {
+  getElevenLabsApiKey,
+  VOICE_ID_MAP,
+  VOICE_NAMES
+} from "../elevenlabs-base.js";
 
 export class RealtimeTextToSpeechNode extends BaseNode {
   static readonly nodeType = "elevenlabs.RealtimeTextToSpeech";
@@ -29,7 +33,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     default: "Aria",
     title: "Voice",
     description: "Voice to use for generation.",
-    values: VOICE_NAMES,
+    values: VOICE_NAMES
   })
   declare voice: any;
 
@@ -37,7 +41,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     type: "chunk",
     default: "",
     title: "Chunk",
-    description: "Text chunk input stream.",
+    description: "Text chunk input stream."
   })
   declare chunk: any;
 
@@ -51,8 +55,8 @@ export class RealtimeTextToSpeechNode extends BaseNode {
       "eleven_turbo_v2_5",
       "eleven_flash_v2_5",
       "eleven_turbo_v2",
-      "eleven_flash_v2",
-    ],
+      "eleven_flash_v2"
+    ]
   })
   declare model_id: any;
 
@@ -62,10 +66,40 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     title: "Language",
     description: "Language code to enforce (works with Turbo v2.5+).",
     values: [
-      "none", "en", "ja", "zh", "de", "hi", "fr", "ko", "pt", "it", "es",
-      "ru", "id", "nl", "tr", "fil", "pl", "sv", "bg", "ro", "ar", "cs",
-      "el", "fi", "hr", "ms", "sk", "da", "ta", "uk", "vi", "no", "hu",
-    ],
+      "none",
+      "en",
+      "ja",
+      "zh",
+      "de",
+      "hi",
+      "fr",
+      "ko",
+      "pt",
+      "it",
+      "es",
+      "ru",
+      "id",
+      "nl",
+      "tr",
+      "fil",
+      "pl",
+      "sv",
+      "bg",
+      "ro",
+      "ar",
+      "cs",
+      "el",
+      "fi",
+      "hr",
+      "ms",
+      "sk",
+      "da",
+      "ta",
+      "uk",
+      "vi",
+      "no",
+      "hu"
+    ]
   })
   declare language_code: any;
 
@@ -75,13 +109,25 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     title: "Output Format",
     description: "Audio output format for streaming.",
     values: [
-      "mp3_22050_32", "mp3_44100_32", "mp3_44100_64", "mp3_44100_96",
-      "mp3_44100_128", "mp3_44100_192",
-      "pcm_8000", "pcm_16000", "pcm_22050", "pcm_24000", "pcm_44100",
-      "ulaw_8000", "alaw_8000",
-      "opus_48000_32", "opus_48000_64", "opus_48000_96",
-      "opus_48000_128", "opus_48000_192",
-    ],
+      "mp3_22050_32",
+      "mp3_44100_32",
+      "mp3_44100_64",
+      "mp3_44100_96",
+      "mp3_44100_128",
+      "mp3_44100_192",
+      "pcm_8000",
+      "pcm_16000",
+      "pcm_22050",
+      "pcm_24000",
+      "pcm_44100",
+      "ulaw_8000",
+      "alaw_8000",
+      "opus_48000_32",
+      "opus_48000_64",
+      "opus_48000_96",
+      "opus_48000_128",
+      "opus_48000_192"
+    ]
   })
   declare output_format: any;
 
@@ -91,7 +137,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     title: "Stability",
     description: "Voice stability (0-1).",
     min: 0.0,
-    max: 1.0,
+    max: 1.0
   })
   declare stability: any;
 
@@ -101,7 +147,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     title: "Similarity Boost",
     description: "Similarity to original voice (0-1).",
     min: 0.0,
-    max: 1.0,
+    max: 1.0
   })
   declare similarity_boost: any;
 
@@ -111,7 +157,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     title: "Style",
     description: "Speaking style emphasis (0-1).",
     min: 0.0,
-    max: 1.0,
+    max: 1.0
   })
   declare style: any;
 
@@ -119,7 +165,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     type: "bool",
     default: true,
     title: "Speaker Boost",
-    description: "Use speaker boost for clearer output.",
+    description: "Use speaker boost for clearer output."
   })
   declare use_speaker_boost: any;
 
@@ -129,7 +175,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     title: "Speed",
     description: "Speed of generated speech (0.7-1.2).",
     min: 0.7,
-    max: 1.2,
+    max: 1.2
   })
   declare speed: any;
 
@@ -137,7 +183,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     type: "bool",
     default: false,
     title: "Enable SSML",
-    description: "Enable SSML parsing in text input.",
+    description: "Enable SSML parsing in text input."
   })
   declare enable_ssml_parsing: any;
 
@@ -155,7 +201,8 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     const secretsCtx = context as Record<string, unknown> | undefined;
     let apiKey = "";
     if (secretsCtx && typeof (secretsCtx as any).getSecret === "function") {
-      apiKey = (await (secretsCtx as any).getSecret("ELEVENLABS_API_KEY")) || "";
+      apiKey =
+        (await (secretsCtx as any).getSecret("ELEVENLABS_API_KEY")) || "";
     }
     if (!apiKey) apiKey = process.env.ELEVENLABS_API_KEY || "";
     if (!apiKey) throw new Error("ELEVENLABS_API_KEY is not configured");
@@ -173,7 +220,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     const params = new URLSearchParams({
       model_id: modelId,
       output_format: outputFormat,
-      enable_ssml_parsing: enableSsml,
+      enable_ssml_parsing: enableSsml
     });
     if (languageCode !== "none") {
       params.set("language_code", languageCode);
@@ -188,7 +235,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
       sample_rate: sampleRate,
       channels: 1,
       encoding,
-      format: outputFormat,
+      format: outputFormat
     };
 
     // Dynamic import of ws for WebSocket support in Node.js
@@ -201,16 +248,18 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     });
 
     // Send initialization message with voice settings
-    ws.send(JSON.stringify({
-      text: " ",
-      voice_settings: {
-        stability: Number(this.stability ?? 0.5),
-        similarity_boost: Number(this.similarity_boost ?? 0.75),
-        style: Number(this.style ?? 0.0),
-        use_speaker_boost: Boolean(this.use_speaker_boost ?? true),
-        speed: Number(this.speed ?? 1.0),
-      },
-    }));
+    ws.send(
+      JSON.stringify({
+        text: " ",
+        voice_settings: {
+          stability: Number(this.stability ?? 0.5),
+          similarity_boost: Number(this.similarity_boost ?? 0.75),
+          style: Number(this.style ?? 0.0),
+          use_speaker_boost: Boolean(this.use_speaker_boost ?? true),
+          speed: Number(this.speed ?? 1.0)
+        }
+      })
+    );
 
     // Set up consumer: listen for WebSocket messages and emit audio chunks
     let consumerDone = false;
@@ -225,7 +274,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
               content: "",
               done: true,
               content_type: "audio",
-              content_metadata: audioMetadata,
+              content_metadata: audioMetadata
             });
             consumerDone = true;
             resolve();
@@ -238,7 +287,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
               content: msg.audio,
               done: false,
               content_type: "audio",
-              content_metadata: audioMetadata,
+              content_metadata: audioMetadata
             });
           }
         } catch (err) {
@@ -294,4 +343,6 @@ export class RealtimeTextToSpeechNode extends BaseNode {
   }
 }
 
-export const REALTIME_TTS_NODES: readonly NodeClass[] = [RealtimeTextToSpeechNode];
+export const REALTIME_TTS_NODES: readonly NodeClass[] = [
+  RealtimeTextToSpeechNode
+];

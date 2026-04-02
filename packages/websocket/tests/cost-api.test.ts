@@ -25,18 +25,18 @@ function makePrediction(overrides: Partial<Prediction> = {}): Prediction {
     cached_tokens: 0,
     reasoning_tokens: 0,
     created_at: new Date().toISOString(),
-    ...overrides,
+    ...overrides
   });
 }
 
 function makeRequest(
   urlPath: string,
   method = "GET",
-  userId = "user-1",
+  userId = "user-1"
 ): Request {
   return new Request(`http://localhost${urlPath}`, {
     method,
-    headers: { "x-user-id": userId },
+    headers: { "x-user-id": userId }
   });
 }
 
@@ -50,18 +50,12 @@ describe("handleCostRequest", () => {
   });
 
   it("returns null for non-cost routes", async () => {
-    const res = await handleCostRequest(
-      makeRequest("/api/other"),
-      {},
-    );
+    const res = await handleCostRequest(makeRequest("/api/other"), {});
     expect(res).toBeNull();
   });
 
   it("returns 405 for non-GET methods", async () => {
-    const res = await handleCostRequest(
-      makeRequest("/api/costs", "POST"),
-      {},
-    );
+    const res = await handleCostRequest(makeRequest("/api/costs", "POST"), {});
     expect(res).not.toBeNull();
     expect(res!.status).toBe(405);
   });
@@ -70,10 +64,7 @@ describe("handleCostRequest", () => {
     const pred = makePrediction();
     vi.spyOn(Prediction, "paginate").mockResolvedValue([[pred], null]);
 
-    const res = await handleCostRequest(
-      makeRequest("/api/costs"),
-      {},
-    );
+    const res = await handleCostRequest(makeRequest("/api/costs"), {});
     expect(res).not.toBeNull();
     expect(res!.status).toBe(200);
     const body = await res!.json();
@@ -86,30 +77,24 @@ describe("handleCostRequest", () => {
   it("GET /api/costs respects limit clamping", async () => {
     vi.spyOn(Prediction, "paginate").mockResolvedValue([[], null]);
 
-    await handleCostRequest(
-      makeRequest("/api/costs?limit=9999"),
-      {},
-    );
+    await handleCostRequest(makeRequest("/api/costs?limit=9999"), {});
 
     // Limit should be clamped to 500
     expect(Prediction.paginate).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ limit: 500 }),
+      expect.objectContaining({ limit: 500 })
     );
   });
 
   it("GET /api/costs defaults limit for invalid values", async () => {
     vi.spyOn(Prediction, "paginate").mockResolvedValue([[], null]);
 
-    await handleCostRequest(
-      makeRequest("/api/costs?limit=0"),
-      {},
-    );
+    await handleCostRequest(makeRequest("/api/costs?limit=0"), {});
 
     // 0 is falsy for parseInt, falls back to default 50, then clamps to max(50,1)=50
     expect(Prediction.paginate).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ limit: 50 }),
+      expect.objectContaining({ limit: 50 })
     );
   });
 
@@ -119,7 +104,7 @@ describe("handleCostRequest", () => {
 
     const res = await handleCostRequest(
       makeRequest("/api/costs/aggregate"),
-      {},
+      {}
     );
     expect(res!.status).toBe(200);
     const body = await res!.json();
@@ -128,11 +113,13 @@ describe("handleCostRequest", () => {
 
   it("GET /api/costs/aggregate/by-provider returns provider breakdown", async () => {
     const data = [{ provider: "openai", total_cost: 1.0 }];
-    vi.spyOn(Prediction, "aggregateByProvider").mockResolvedValue(data as never);
+    vi.spyOn(Prediction, "aggregateByProvider").mockResolvedValue(
+      data as never
+    );
 
     const res = await handleCostRequest(
       makeRequest("/api/costs/aggregate/by-provider"),
-      {},
+      {}
     );
     expect(res!.status).toBe(200);
     const body = await res!.json();
@@ -145,7 +132,7 @@ describe("handleCostRequest", () => {
 
     const res = await handleCostRequest(
       makeRequest("/api/costs/aggregate/by-model"),
-      {},
+      {}
     );
     expect(res!.status).toBe(200);
     const body = await res!.json();
@@ -154,16 +141,13 @@ describe("handleCostRequest", () => {
 
   it("GET /api/costs/summary returns combined summary", async () => {
     vi.spyOn(Prediction, "aggregateByUser").mockResolvedValue({
-      total_cost: 2.0,
+      total_cost: 2.0
     } as never);
     vi.spyOn(Prediction, "aggregateByProvider").mockResolvedValue([] as never);
     vi.spyOn(Prediction, "aggregateByModel").mockResolvedValue([] as never);
     vi.spyOn(Prediction, "paginate").mockResolvedValue([[], null]);
 
-    const res = await handleCostRequest(
-      makeRequest("/api/costs/summary"),
-      {},
-    );
+    const res = await handleCostRequest(makeRequest("/api/costs/summary"), {});
     expect(res!.status).toBe(200);
     const body = await res!.json();
     expect(body.overall).toBeDefined();
@@ -177,25 +161,22 @@ describe("handleCostRequest", () => {
 
     await handleCostRequest(
       makeRequest("/api/costs?provider=anthropic&model=claude-3"),
-      {},
+      {}
     );
 
     expect(Prediction.paginate).toHaveBeenCalledWith(
       "user-1",
       expect.objectContaining({
         provider: "anthropic",
-        model: "claude-3",
-      }),
+        model: "claude-3"
+      })
     );
   });
 
   it("strips trailing slashes from pathname", async () => {
     vi.spyOn(Prediction, "paginate").mockResolvedValue([[], null]);
 
-    const res = await handleCostRequest(
-      makeRequest("/api/costs/"),
-      {},
-    );
+    const res = await handleCostRequest(makeRequest("/api/costs/"), {});
     expect(res).not.toBeNull();
     expect(res!.status).toBe(200);
   });

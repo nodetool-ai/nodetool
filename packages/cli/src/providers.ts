@@ -3,7 +3,12 @@
  * Creates the right BaseProvider instance based on name + available API keys.
  */
 
-import type { BaseProvider, Message, ProviderStreamItem, ProviderTool } from "@nodetool/runtime";
+import type {
+  BaseProvider,
+  Message,
+  ProviderStreamItem,
+  ProviderTool
+} from "@nodetool/runtime";
 import {
   AnthropicProvider,
   OpenAIProvider,
@@ -11,13 +16,20 @@ import {
   GeminiProvider,
   MistralProvider,
   GroqProvider,
-  BaseProvider as BaseProviderClass,
+  BaseProvider as BaseProviderClass
 } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 import { getSecret } from "@nodetool/security";
 import type { WebSocketChatClient } from "./websocket-client.js";
 
-export const KNOWN_PROVIDERS = ["anthropic", "openai", "ollama", "gemini", "mistral", "groq"] as const;
+export const KNOWN_PROVIDERS = [
+  "anthropic",
+  "openai",
+  "ollama",
+  "gemini",
+  "mistral",
+  "groq"
+] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
 /** Default models for each provider. */
@@ -27,7 +39,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   ollama: "llama3.2",
   gemini: "gemini-2.0-flash",
   mistral: "mistral-large-latest",
-  groq: "llama-3.3-70b-versatile",
+  groq: "llama-3.3-70b-versatile"
 };
 
 /** Resolve a secret: encrypted DB first (user "1"), then env var. */
@@ -35,22 +47,38 @@ async function resolveKey(key: string): Promise<string | undefined> {
   return (await getSecret(key, "1")) ?? undefined;
 }
 
-export async function createProvider(providerId: string): Promise<BaseProvider> {
+export async function createProvider(
+  providerId: string
+): Promise<BaseProvider> {
   switch (providerId.toLowerCase()) {
     case "anthropic":
-      return new AnthropicProvider({ ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY") });
+      return new AnthropicProvider({
+        ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY")
+      });
     case "openai":
-      return new OpenAIProvider({ OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY") });
+      return new OpenAIProvider({
+        OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY")
+      });
     case "ollama":
-      return new OllamaProvider({ OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL") });
+      return new OllamaProvider({
+        OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL")
+      });
     case "gemini":
-      return new GeminiProvider({ GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY") });
+      return new GeminiProvider({
+        GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY")
+      });
     case "mistral":
-      return new MistralProvider({ MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY") });
+      return new MistralProvider({
+        MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY")
+      });
     case "groq":
-      return new GroqProvider({ GROQ_API_KEY: await resolveKey("GROQ_API_KEY") });
+      return new GroqProvider({
+        GROQ_API_KEY: await resolveKey("GROQ_API_KEY")
+      });
     default:
-      return new OllamaProvider({ OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL") });
+      return new OllamaProvider({
+        OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL")
+      });
   }
 }
 
@@ -75,7 +103,7 @@ export class WebSocketProvider extends BaseProviderClass {
   constructor(
     private readonly client: WebSocketChatClient,
     private readonly defaultModel: string,
-    private readonly providerId: string,
+    private readonly providerId: string
   ) {
     // ProviderId = "openai" | "anthropic" | ... | string, which collapses to string
     super(providerId as string);
@@ -102,7 +130,12 @@ export class WebSocketProvider extends BaseProviderClass {
     tools?: ProviderTool[];
   }): AsyncGenerator<ProviderStreamItem> {
     const model = args.model || this.defaultModel;
-    for await (const event of this.client.inference(args.messages, model, this.providerId, args.tools)) {
+    for await (const event of this.client.inference(
+      args.messages,
+      model,
+      this.providerId,
+      args.tools
+    )) {
       if (event.type === "chunk") {
         yield { type: "chunk", content: event.content } as Chunk;
       } else if (event.type === "tool_call") {

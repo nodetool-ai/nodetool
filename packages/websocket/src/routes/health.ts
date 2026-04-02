@@ -28,8 +28,8 @@ const healthRoute: FastifyPluginAsync = async (app) => {
       uptime: Math.floor((Date.now() - serverStartTime) / 1000),
       services: {
         database: dbStatus,
-        server: "ok" as const,
-      },
+        server: "ok" as const
+      }
     };
 
     return reply.status(allOk ? 200 : 503).send(payload);

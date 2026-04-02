@@ -5,23 +5,19 @@ vi.mock("../../src/nodes/kie-base.js", () => ({
   getApiKey: vi.fn(() => "test-api-key"),
   kieExecuteTask: vi.fn(async () => ({
     data: "YXVkaW9kYXRh",
-    taskId: "task_789",
+    taskId: "task_789"
   })),
   kieExecuteSunoTask: vi.fn(async () => ({
     data: "c3Vub2RhdGE=",
-    taskId: "suno_123",
+    taskId: "suno_123"
   })),
-  uploadAudioInput: vi.fn(
-    async () => "https://uploaded.example.com/audio.mp3"
-  ),
-  uploadImageInput: vi.fn(
-    async () => "https://uploaded.example.com/image.png"
-  ),
+  uploadAudioInput: vi.fn(async () => "https://uploaded.example.com/audio.mp3"),
+  uploadImageInput: vi.fn(async () => "https://uploaded.example.com/image.png"),
   isRefSet: vi.fn((ref: unknown) => {
     if (!ref || typeof ref !== "object") return false;
     const r = ref as Record<string, unknown>;
     return !!(r.data || r.uri);
-  }),
+  })
 }));
 
 import {
@@ -36,7 +32,7 @@ import {
   ElevenLabsSoundEffectNode,
   ElevenLabsSpeechToTextNode,
   ElevenLabsV3DialogueNode,
-  KIE_AUDIO_NODES,
+  KIE_AUDIO_NODES
 } from "../../src/nodes/kie-audio.js";
 
 import {
@@ -44,7 +40,7 @@ import {
   kieExecuteTask,
   kieExecuteSunoTask,
   uploadAudioInput,
-  isRefSet,
+  isRefSet
 } from "../../src/nodes/kie-base.js";
 
 const audioRef = { uri: "file:///test/audio.mp3", data: "audio-data" };
@@ -61,7 +57,6 @@ function metadataDefaults(NodeCls: any) {
 function expectMetadataDefaults(NodeCls: any) {
   expect(new NodeCls().serialize()).toEqual(metadataDefaults(NodeCls));
 }
-
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -86,7 +81,7 @@ describe("KIE_AUDIO_NODES export", () => {
       ElevenLabsAudioIsolationNode,
       ElevenLabsSoundEffectNode,
       ElevenLabsSpeechToTextNode,
-      ElevenLabsV3DialogueNode,
+      ElevenLabsV3DialogueNode
     ]);
   });
 });
@@ -117,7 +112,7 @@ describe("GenerateMusicNode", () => {
     expect(call[0]).toBe("test-api-key");
     expect(call[1]).toMatchObject({
       customMode: false,
-      prompt: "a chill lo-fi beat",
+      prompt: "a chill lo-fi beat"
     });
     expect(result).toEqual({ output: { type: "audio", data: "c3Vub2RhdGE=" } });
   });
@@ -125,9 +120,7 @@ describe("GenerateMusicNode", () => {
   it("non-custom mode: throws on empty prompt", async () => {
     const node = new (GenerateMusicNode as any)();
     node.assign({ prompt: "" });
-    await expect(node.process()).rejects.toThrow(
-      "prompt is required"
-    );
+    await expect(node.process()).rejects.toThrow("prompt is required");
   });
 
   it("custom mode: requires style and title", async () => {
@@ -136,18 +129,22 @@ describe("GenerateMusicNode", () => {
       custom_mode: true,
       prompt: "lyrics",
       style: "",
-      title: "My Song",
+      title: "My Song"
     });
-    await expect(node.process()).rejects.toThrow("style is required in custom mode");
+    await expect(node.process()).rejects.toThrow(
+      "style is required in custom mode"
+    );
 
     const node2 = new (GenerateMusicNode as any)();
     node2.assign({
       custom_mode: true,
       prompt: "lyrics",
       style: "pop",
-      title: "",
+      title: ""
     });
-    await expect(node2.process()).rejects.toThrow("title is required in custom mode");
+    await expect(node2.process()).rejects.toThrow(
+      "title is required in custom mode"
+    );
   });
 
   it("custom mode with vocals: requires prompt", async () => {
@@ -157,9 +154,11 @@ describe("GenerateMusicNode", () => {
       instrumental: false,
       style: "pop",
       title: "My Song",
-      prompt: "",
+      prompt: ""
     });
-    await expect(node.process()).rejects.toThrow("prompt required in custom mode with vocals");
+    await expect(node.process()).rejects.toThrow(
+      "prompt required in custom mode with vocals"
+    );
   });
 
   it("custom mode instrumental: succeeds without prompt", async () => {
@@ -169,7 +168,7 @@ describe("GenerateMusicNode", () => {
       instrumental: true,
       style: "jazz",
       title: "Jazzy Tune",
-      prompt: "",
+      prompt: ""
     });
     const result = await node.process();
     expect(kieExecuteSunoTask).toHaveBeenCalledTimes(1);
@@ -189,7 +188,7 @@ describe("GenerateMusicNode", () => {
       style_weight: 5,
       weirdness_constraint: 3,
       audio_weight: 2,
-      persona_id: "p123",
+      persona_id: "p123"
     });
     await node.process();
 
@@ -218,7 +217,7 @@ describe("GenerateMusicNode", () => {
       style_weight: 0,
       weirdness_constraint: 0,
       audio_weight: 0,
-      persona_id: "",
+      persona_id: ""
     });
     await node.process();
 
@@ -266,7 +265,7 @@ describe("ExtendMusicNode", () => {
       audio_id: "audio_123",
       prompt: "continue with drums",
       style: "rock",
-      continue_at: 30,
+      continue_at: 30
     });
     const result = await node.process();
 
@@ -314,7 +313,7 @@ describe("CoverAudioNode", () => {
     node.assign({
       audio: audioRef,
       prompt: "jazz cover",
-      style: "jazz",
+      style: "jazz"
     });
     const result = await node.process();
 
@@ -326,9 +325,7 @@ describe("CoverAudioNode", () => {
       unknown
     >;
     expect(payload.cover).toBe(true);
-    expect(payload.audio_url).toBe(
-      "https://uploaded.example.com/audio.mp3"
-    );
+    expect(payload.audio_url).toBe("https://uploaded.example.com/audio.mp3");
     expect(result).toEqual({ output: { type: "audio", data: "c3Vub2RhdGE=" } });
   });
 
@@ -336,7 +333,7 @@ describe("CoverAudioNode", () => {
     const node = new (CoverAudioNode as any)();
     node.assign({
       audio: audioRef,
-      vocal_gender: "female",
+      vocal_gender: "female"
     });
     await node.process();
 
@@ -351,7 +348,7 @@ describe("CoverAudioNode", () => {
     const node = new (CoverAudioNode as any)();
     node.assign({
       audio: audioRef,
-      vocal_gender: "",
+      vocal_gender: ""
     });
     await node.process();
 
@@ -385,7 +382,7 @@ describe("AddInstrumentalNode", () => {
     node.assign({
       audio: audioRef,
       tags: "add piano",
-      title: "classical",
+      title: "classical"
     });
     const result = await node.process();
 
@@ -430,7 +427,7 @@ describe("AddVocalsNode", () => {
     node.assign({
       audio: audioRef,
       prompt: "sing along",
-      style: "pop",
+      style: "pop"
     });
     const result = await node.process();
 
@@ -448,7 +445,7 @@ describe("AddVocalsNode", () => {
     const node = new (AddVocalsNode as any)();
     node.assign({
       audio: audioRef,
-      vocal_gender: "male",
+      vocal_gender: "male"
     });
     await node.process();
 
@@ -463,7 +460,7 @@ describe("AddVocalsNode", () => {
     const node = new (AddVocalsNode as any)();
     node.assign({
       audio: audioRef,
-      vocal_gender: "",
+      vocal_gender: ""
     });
     await node.process();
 
@@ -508,7 +505,7 @@ describe("ReplaceMusicSectionNode", () => {
       prompt: "replace with guitar solo",
       tags: "rock",
       infill_start_s: 10,
-      infill_end_s: 45,
+      infill_end_s: 45
     });
     const result = await node.process();
 
@@ -558,7 +555,7 @@ describe("ElevenLabsTextToSpeechNode", () => {
     node.assign({
       text: "Hello world",
       voice: "voice_abc",
-      model: "text-to-speech-turbo-2-5",
+      model: "text-to-speech-turbo-2-5"
     });
     const result = await node.process();
 
@@ -568,7 +565,7 @@ describe("ElevenLabsTextToSpeechNode", () => {
       {
         text: "Hello world",
         voice_id: "voice_abc",
-        model_id: "text-to-speech-turbo-2-5",
+        model_id: "text-to-speech-turbo-2-5"
       }
     );
     expect(kieExecuteSunoTask).not.toHaveBeenCalled();
@@ -579,7 +576,7 @@ describe("ElevenLabsTextToSpeechNode", () => {
     const node = new (ElevenLabsTextToSpeechNode as any)();
     node.assign({
       text: "Hi",
-      voice: "v1",
+      voice: "v1"
     });
     await node.process();
 
@@ -656,7 +653,7 @@ describe("ElevenLabsSoundEffectNode", () => {
     node.assign({
       text: "thunder crash",
       duration_seconds: 5,
-      prompt_influence: 0.8,
+      prompt_influence: 0.8
     });
     const result = await node.process();
 
@@ -666,7 +663,7 @@ describe("ElevenLabsSoundEffectNode", () => {
       {
         text: "thunder crash",
         prompt_influence: 0.8,
-        duration_seconds: 5,
+        duration_seconds: 5
       }
     );
     expect(result).toEqual({ output: { type: "audio", data: "YXVkaW9kYXRh" } });
@@ -676,7 +673,7 @@ describe("ElevenLabsSoundEffectNode", () => {
     const node = new (ElevenLabsSoundEffectNode as any)();
     node.assign({
       text: "rain",
-      duration_seconds: 0,
+      duration_seconds: 0
     });
     await node.process();
 
@@ -691,7 +688,7 @@ describe("ElevenLabsSoundEffectNode", () => {
     const node = new (ElevenLabsSoundEffectNode as any)();
     node.assign({
       text: "rain",
-      duration_seconds: 10,
+      duration_seconds: 10
     });
     await node.process();
 
@@ -726,7 +723,7 @@ describe("ElevenLabsSpeechToTextNode", () => {
     const node = new (ElevenLabsSpeechToTextNode as any)();
     node.assign({
       audio: audioRef,
-      language_code: "fr",
+      language_code: "fr"
     });
     const result = await node.process();
 
@@ -736,7 +733,7 @@ describe("ElevenLabsSpeechToTextNode", () => {
       "elevenlabs/speech-to-text",
       {
         audio_url: "https://uploaded.example.com/audio.mp3",
-        language_code: "fr",
+        language_code: "fr"
       }
     );
     expect(result).toEqual({ output: "YXVkaW9kYXRh" });
@@ -778,7 +775,7 @@ describe("ElevenLabsV3DialogueNode", () => {
     const node = new (ElevenLabsV3DialogueNode as any)();
     node.assign({
       text: "Alice: Hello!\nBob: Hi!",
-      voice: "voice_1",
+      voice: "voice_1"
     });
     const result = await node.process();
 
@@ -787,7 +784,7 @@ describe("ElevenLabsV3DialogueNode", () => {
       "elevenlabs/v3-dialogue",
       {
         script: "Alice: Hello!\nBob: Hi!",
-        voice_assignments: "voice_1",
+        voice_assignments: "voice_1"
       }
     );
     expect(kieExecuteSunoTask).not.toHaveBeenCalled();
@@ -797,7 +794,7 @@ describe("ElevenLabsV3DialogueNode", () => {
   it("sends default voice when not provided", async () => {
     const node = new (ElevenLabsV3DialogueNode as any)();
     node.assign({
-      text: "Narrator: Once upon a time...",
+      text: "Narrator: Once upon a time..."
     });
     await node.process();
 

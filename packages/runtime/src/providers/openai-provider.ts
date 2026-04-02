@@ -23,7 +23,7 @@ import type {
   TextToVideoParams,
   ToolCall,
   TTSModel,
-  VideoModel,
+  VideoModel
 } from "./types.js";
 
 interface OpenAIProviderOptions {
@@ -55,8 +55,13 @@ function asUint8Array(data: unknown): Uint8Array {
 }
 
 function toInt16Samples(bytes: Uint8Array): Int16Array {
-  const aligned = bytes.length % 2 === 0 ? bytes : bytes.slice(0, bytes.length - 1);
-  return new Int16Array(aligned.buffer, aligned.byteOffset, aligned.byteLength / 2);
+  const aligned =
+    bytes.length % 2 === 0 ? bytes : bytes.slice(0, bytes.length - 1);
+  return new Int16Array(
+    aligned.buffer,
+    aligned.byteOffset,
+    aligned.byteLength / 2
+  );
 }
 
 function parseDataUri(uri: string): { mime: string; data: Uint8Array } {
@@ -74,7 +79,10 @@ function parseDataUri(uri: string): { mime: string; data: Uint8Array } {
     return { mime, data: Uint8Array.from(Buffer.from(payload, "base64")) };
   }
 
-  return { mime, data: Uint8Array.from(Buffer.from(decodeURIComponent(payload), "utf8")) };
+  return {
+    mime,
+    data: Uint8Array.from(Buffer.from(decodeURIComponent(payload), "utf8"))
+  };
 }
 
 function makeDataUri(mime: string, data: Uint8Array): string {
@@ -92,7 +100,11 @@ function defaultSerializer(_key: string, value: unknown): unknown {
   if (value instanceof Date) return value.toISOString();
   if (value instanceof Map) return Object.fromEntries(value);
   if (value instanceof Set) return [...value];
-  if (typeof value === "object" && "toJSON" in value && typeof (value as { toJSON: unknown }).toJSON === "function") {
+  if (
+    typeof value === "object" &&
+    "toJSON" in value &&
+    typeof (value as { toJSON: unknown }).toJSON === "function"
+  ) {
     return (value as { toJSON: () => unknown }).toJSON();
   }
   return value;
@@ -108,7 +120,10 @@ export class OpenAIProvider extends BaseProvider {
   private _clientFactory: (apiKey: string) => OpenAI;
   private _fetch: typeof fetch;
 
-  constructor(secrets: { OPENAI_API_KEY?: string }, options: OpenAIProviderOptions = {}) {
+  constructor(
+    secrets: { OPENAI_API_KEY?: string },
+    options: OpenAIProviderOptions = {}
+  ) {
     super("openai");
 
     const apiKey = secrets.OPENAI_API_KEY;
@@ -119,8 +134,7 @@ export class OpenAIProvider extends BaseProvider {
     this.apiKey = apiKey;
     this._client = options.client ?? null;
     this._clientFactory =
-      options.clientFactory ??
-      ((key) => new OpenAI({ apiKey: key }));
+      options.clientFactory ?? ((key) => new OpenAI({ apiKey: key }));
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
@@ -142,22 +156,27 @@ export class OpenAIProvider extends BaseProvider {
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     const response = await this._fetch("https://api.openai.com/v1/models", {
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-      },
+        Authorization: `Bearer ${this.apiKey}`
+      }
     });
 
     if (!response.ok) {
       return [];
     }
 
-    const payload = (await response.json()) as { data?: Array<{ id?: string }> };
+    const payload = (await response.json()) as {
+      data?: Array<{ id?: string }>;
+    };
     const rows = payload.data ?? [];
     return rows
-      .filter((row): row is { id: string } => typeof row.id === "string" && row.id.length > 0)
+      .filter(
+        (row): row is { id: string } =>
+          typeof row.id === "string" && row.id.length > 0
+      )
       .map((row) => ({
         id: row.id,
         name: row.id,
-        provider: "openai",
+        provider: "openai"
       }));
   }
 
@@ -167,14 +186,14 @@ export class OpenAIProvider extends BaseProvider {
         id: "tts-1",
         name: "TTS 1",
         provider: "openai",
-        voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+        voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
       },
       {
         id: "tts-1-hd",
         name: "TTS 1 HD",
         provider: "openai",
-        voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
-      },
+        voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+      }
     ];
   }
 
@@ -183,8 +202,8 @@ export class OpenAIProvider extends BaseProvider {
       {
         id: "whisper-1",
         name: "Whisper",
-        provider: "openai",
-      },
+        provider: "openai"
+      }
     ];
   }
 
@@ -194,14 +213,14 @@ export class OpenAIProvider extends BaseProvider {
         id: "sora-2",
         name: "Sora 2",
         provider: "openai",
-        supportedTasks: ["text_to_video"],
+        supportedTasks: ["text_to_video"]
       },
       {
         id: "sora-2-pro",
         name: "Sora 2 Pro",
         provider: "openai",
-        supportedTasks: ["text_to_video"],
-      },
+        supportedTasks: ["text_to_video"]
+      }
     ];
   }
 
@@ -211,20 +230,20 @@ export class OpenAIProvider extends BaseProvider {
         id: "gpt-image-1.5",
         name: "GPT Image 1.5",
         provider: "openai",
-        supportedTasks: ["text_to_image", "image_to_image"],
+        supportedTasks: ["text_to_image", "image_to_image"]
       },
       {
         id: "gpt-image-1",
         name: "GPT Image 1",
         provider: "openai",
-        supportedTasks: ["text_to_image", "image_to_image"],
+        supportedTasks: ["text_to_image", "image_to_image"]
       },
       {
         id: "gpt-image-1-mini",
         name: "GPT Image 1 Mini",
         provider: "openai",
-        supportedTasks: ["text_to_image", "image_to_image"],
-      },
+        supportedTasks: ["text_to_image", "image_to_image"]
+      }
     ];
   }
 
@@ -234,24 +253,27 @@ export class OpenAIProvider extends BaseProvider {
         id: "text-embedding-3-small",
         name: "Text Embedding 3 Small",
         provider: "openai",
-        dimensions: 1536,
+        dimensions: 1536
       },
       {
         id: "text-embedding-3-large",
         name: "Text Embedding 3 Large",
         provider: "openai",
-        dimensions: 3072,
+        dimensions: 3072
       },
       {
         id: "text-embedding-ada-002",
         name: "Text Embedding Ada 002",
         provider: "openai",
-        dimensions: 1536,
-      },
+        dimensions: 1536
+      }
     ];
   }
 
-  resolveImageSize(width?: number | null, height?: number | null): string | null {
+  resolveImageSize(
+    width?: number | null,
+    height?: number | null
+  ): string | null {
     if (!width || !height) {
       return null;
     }
@@ -259,7 +281,7 @@ export class OpenAIProvider extends BaseProvider {
     const supported: Array<[number, number]> = [
       [1024, 1024],
       [1024, 1536],
-      [1536, 1024],
+      [1536, 1024]
     ];
 
     const targetArea = width * height;
@@ -268,7 +290,8 @@ export class OpenAIProvider extends BaseProvider {
     const score = (w: number, h: number): number => {
       const area = w * h;
       const ratio = w / h;
-      const areaScore = Math.abs(area - targetArea) / Math.max(area, targetArea);
+      const areaScore =
+        Math.abs(area - targetArea) / Math.max(area, targetArea);
       const ratioScore = Math.abs(ratio - targetRatio);
       return areaScore * 0.7 + ratioScore * 0.3;
     };
@@ -282,7 +305,10 @@ export class OpenAIProvider extends BaseProvider {
     return `${best[0]}x${best[1]}`;
   }
 
-  static resolveVideoSize(aspectRatio?: string | null, resolution?: string | null): string | null {
+  static resolveVideoSize(
+    aspectRatio?: string | null,
+    resolution?: string | null
+  ): string | null {
     if (!resolution) {
       return null;
     }
@@ -291,7 +317,7 @@ export class OpenAIProvider extends BaseProvider {
       [1280, 720],
       [1792, 1024],
       [720, 1280],
-      [1024, 1792],
+      [1024, 1792]
     ];
 
     const aspect = (aspectRatio ?? "16:9").replaceAll(" ", "");
@@ -302,13 +328,19 @@ export class OpenAIProvider extends BaseProvider {
       "9:16": { "480p": "480x854", "720p": "720x1280", "1080p": "1080x1920" },
       "1:1": { "480p": "480x480", "720p": "720x720", "1080p": "1080x1080" },
       "4:3": { "480p": "640x480", "720p": "960x720", "1080p": "1440x1080" },
-      "3:4": { "480p": "480x640", "720p": "720x960", "1080p": "1080x1440" },
+      "3:4": { "480p": "480x640", "720p": "720x960", "1080p": "1080x1440" }
     };
 
-    const score = (targetW: number, targetH: number, candidate: [number, number]): number => {
+    const score = (
+      targetW: number,
+      targetH: number,
+      candidate: [number, number]
+    ): number => {
       const [w, h] = candidate;
       const ratioDiff = Math.abs(w / h - targetW / targetH);
-      const areaDiff = Math.abs(w * h - targetW * targetH) / Math.max(w * h, targetW * targetH);
+      const areaDiff =
+        Math.abs(w * h - targetW * targetH) /
+        Math.max(w * h, targetW * targetH);
       return ratioDiff * 5 + areaDiff;
     };
 
@@ -336,17 +368,27 @@ export class OpenAIProvider extends BaseProvider {
       ? aspect.split(":").map((n) => Number(n))
       : [1, 1];
 
-    if (!Number.isFinite(arW) || !Number.isFinite(arH) || arW <= 0 || arH <= 0) {
+    if (
+      !Number.isFinite(arW) ||
+      !Number.isFinite(arH) ||
+      arW <= 0 ||
+      arH <= 0
+    ) {
       return null;
     }
 
     const targetW = arW >= arH ? numeric * (arW / arH) : numeric;
     const targetH = arW >= arH ? numeric : numeric * (arH / arW);
 
-    return closest(Math.max(2, Math.round(targetW)), Math.max(2, Math.round(targetH)));
+    return closest(
+      Math.max(2, Math.round(targetW)),
+      Math.max(2, Math.round(targetH))
+    );
   }
 
-  static secondsFromParams(params: { numFrames?: number | null }): number | null {
+  static secondsFromParams(params: {
+    numFrames?: number | null;
+  }): number | null {
     const numFrames = params.numFrames;
     if (!numFrames || numFrames <= 0) {
       return null;
@@ -361,7 +403,7 @@ export class OpenAIProvider extends BaseProvider {
   static snapToValidVideoDimensions(width: number, height: number): string {
     const supported: Array<[number, number]> = [
       [1280, 720],
-      [720, 1280],
+      [720, 1280]
     ];
 
     const targetRatio = width / height;
@@ -369,7 +411,8 @@ export class OpenAIProvider extends BaseProvider {
 
     const score = ([w, h]: [number, number]): number => {
       const ratioDiff = Math.abs(w / h - targetRatio);
-      const areaDiff = Math.abs(w * h - targetArea) / Math.max(w * h, targetArea);
+      const areaDiff =
+        Math.abs(w * h - targetArea) / Math.max(w * h, targetArea);
       return ratioDiff * 3 + areaDiff;
     };
 
@@ -389,7 +432,11 @@ export class OpenAIProvider extends BaseProvider {
       image[2] === 0x4e &&
       image[3] === 0x47
     ) {
-      const view = new DataView(image.buffer, image.byteOffset, image.byteLength);
+      const view = new DataView(
+        image.buffer,
+        image.byteOffset,
+        image.byteLength
+      );
       const width = view.getUint32(16, false);
       const height = view.getUint32(20, false);
       return [width, height];
@@ -433,7 +480,8 @@ export class OpenAIProvider extends BaseProvider {
       throw new Error(`Failed to fetch URI: ${response.status}`);
     }
 
-    const mime = response.headers.get("content-type") ?? "application/octet-stream";
+    const mime =
+      response.headers.get("content-type") ?? "application/octet-stream";
     const data = new Uint8Array(await response.arrayBuffer());
     return makeDataUri(mime, data);
   }
@@ -455,25 +503,30 @@ export class OpenAIProvider extends BaseProvider {
       const c = content as MessageAudioContent;
       const base64 = c.audio.uri
         ? (await this.uriToBase64(c.audio.uri)).split(",", 2)[1]
-        : Buffer.from(asUint8Array(c.audio.data ?? new Uint8Array())).toString("base64");
+        : Buffer.from(asUint8Array(c.audio.data ?? new Uint8Array())).toString(
+            "base64"
+          );
 
       return {
         type: "input_audio",
         input_audio: {
           format: "mp3",
-          data: base64,
-        },
+          data: base64
+        }
       };
     }
 
     const c = content as MessageImageContent;
     const imageUrl = c.image.uri
       ? await this.uriToBase64(c.image.uri)
-      : makeDataUri(c.image.mimeType ?? "image/jpeg", asUint8Array(c.image.data ?? new Uint8Array()));
+      : makeDataUri(
+          c.image.mimeType ?? "image/jpeg",
+          asUint8Array(c.image.data ?? new Uint8Array())
+        );
 
     return {
       type: "image_url",
-      image_url: { url: imageUrl },
+      image_url: { url: imageUrl }
     };
   }
 
@@ -493,14 +546,14 @@ export class OpenAIProvider extends BaseProvider {
       return {
         role: "tool",
         content,
-        tool_call_id: message.toolCallId,
+        tool_call_id: message.toolCallId
       };
     }
 
     if (message.role === "system") {
       return {
         role: "system",
-        content: typeof message.content === "string" ? message.content : "",
+        content: typeof message.content === "string" ? message.content : ""
       };
     }
 
@@ -510,15 +563,15 @@ export class OpenAIProvider extends BaseProvider {
         id: tc.id,
         function: {
           name: tc.name,
-          arguments: JSON.stringify(tc.args, defaultSerializer),
-        },
+          arguments: JSON.stringify(tc.args, defaultSerializer)
+        }
       }));
 
       if (typeof message.content === "string" || message.content == null) {
         return {
           role: "assistant",
           content: message.content,
-          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
         };
       }
 
@@ -531,7 +584,7 @@ export class OpenAIProvider extends BaseProvider {
       return {
         role: "assistant",
         content: parts,
-        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
       };
     }
 
@@ -542,23 +595,28 @@ export class OpenAIProvider extends BaseProvider {
     if (typeof message.content === "string") {
       return {
         role: "user",
-        content: message.content,
+        content: message.content
       };
     }
 
     const parts = await Promise.all(
-      (message.content ?? []).map((part) => this.messageContentToOpenAIContentPart(part))
+      (message.content ?? []).map((part) =>
+        this.messageContentToOpenAIContentPart(part)
+      )
     );
 
     return {
       role: "user",
-      content: parts,
+      content: parts
     };
   }
 
   formatTools(tools: ProviderTool[]): Array<Record<string, unknown>> {
     return tools.map((tool) => {
-      if (tool.type === "code_interpreter" || tool.name === "code_interpreter") {
+      if (
+        tool.type === "code_interpreter" ||
+        tool.name === "code_interpreter"
+      ) {
         return { type: "code_interpreter" };
       }
 
@@ -567,13 +625,16 @@ export class OpenAIProvider extends BaseProvider {
         function: {
           name: tool.name,
           description: tool.description ?? "",
-          parameters: tool.inputSchema ?? { type: "object", properties: {} },
-        },
+          parameters: tool.inputSchema ?? { type: "object", properties: {} }
+        }
       };
     });
   }
 
-  private convertSystemToUserForOModels(messages: Message[], model: string): Message[] {
+  private convertSystemToUserForOModels(
+    messages: Message[],
+    model: string
+  ): Message[] {
     if (!model.startsWith("o")) {
       return messages;
     }
@@ -583,7 +644,7 @@ export class OpenAIProvider extends BaseProvider {
         ? {
             ...msg,
             role: "user",
-            content: `Instructions: ${typeof msg.content === "string" ? msg.content : ""}`,
+            content: `Instructions: ${typeof msg.content === "string" ? msg.content : ""}`
           }
         : msg
     );
@@ -612,7 +673,7 @@ export class OpenAIProvider extends BaseProvider {
       topP,
       presencePenalty,
       frequencyPenalty,
-      audio,
+      audio
     } = args;
 
     if (responseFormat && jsonSchema) {
@@ -620,14 +681,16 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     const messages = this.convertSystemToUserForOModels(args.messages, model);
-    const openaiMessages = await Promise.all(messages.map((m) => this.convertMessage(m)));
+    const openaiMessages = await Promise.all(
+      messages.map((m) => this.convertMessage(m))
+    );
 
     const request: Record<string, unknown> = {
       model,
       messages: openaiMessages,
       max_completion_tokens: maxTokens,
       stream: true,
-      stream_options: { include_usage: true },
+      stream_options: { include_usage: true }
     };
 
     if (responseFormat) {
@@ -635,7 +698,7 @@ export class OpenAIProvider extends BaseProvider {
     } else if (jsonSchema) {
       request.response_format = {
         type: "json_schema",
-        json_schema: jsonSchema,
+        json_schema: jsonSchema
       };
     }
 
@@ -667,7 +730,7 @@ export class OpenAIProvider extends BaseProvider {
           this.trackUsage(model, {
             inputTokens: chunk.usage.prompt_tokens ?? 0,
             outputTokens: chunk.usage.completion_tokens ?? 0,
-            cachedTokens: chunk.usage.prompt_tokens_details?.cached_tokens ?? 0,
+            cachedTokens: chunk.usage.prompt_tokens_details?.cached_tokens ?? 0
           });
         }
 
@@ -680,7 +743,7 @@ export class OpenAIProvider extends BaseProvider {
           const audioChunk: Chunk = {
             type: "chunk",
             content_type: "audio",
-            content: String(delta.audio.data),
+            content: String(delta.audio.data)
           };
           yield audioChunk;
         }
@@ -688,16 +751,16 @@ export class OpenAIProvider extends BaseProvider {
         if (Array.isArray(delta?.tool_calls)) {
           for (const tc of delta.tool_calls) {
             const index = Number(tc.index ?? 0);
-            const current =
-              deltaToolCalls.get(index) ?? {
-                id: String(tc.id ?? ""),
-                name: String(tc.function?.name ?? ""),
-                arguments: "",
-              };
+            const current = deltaToolCalls.get(index) ?? {
+              id: String(tc.id ?? ""),
+              name: String(tc.function?.name ?? ""),
+              arguments: ""
+            };
 
             if (tc.id) current.id = String(tc.id);
             if (tc.function?.name) current.name = String(tc.function.name);
-            if (tc.function?.arguments) current.arguments += String(tc.function.arguments);
+            if (tc.function?.arguments)
+              current.arguments += String(tc.function.arguments);
 
             deltaToolCalls.set(index, current);
           }
@@ -707,7 +770,7 @@ export class OpenAIProvider extends BaseProvider {
           const item: Chunk = {
             type: "chunk",
             content: String(delta?.content ?? ""),
-            done: choice.finish_reason === "stop",
+            done: choice.finish_reason === "stop"
           };
           yield item;
         }
@@ -754,7 +817,7 @@ export class OpenAIProvider extends BaseProvider {
       temperature,
       topP,
       presencePenalty,
-      frequencyPenalty,
+      frequencyPenalty
     } = args;
 
     if (responseFormat && jsonSchema) {
@@ -762,13 +825,15 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     const messages = this.convertSystemToUserForOModels(args.messages, model);
-    const openaiMessages = await Promise.all(messages.map((m) => this.convertMessage(m)));
+    const openaiMessages = await Promise.all(
+      messages.map((m) => this.convertMessage(m))
+    );
 
     const request: Record<string, unknown> = {
       model,
       messages: openaiMessages,
       stream: false,
-      max_completion_tokens: maxTokens,
+      max_completion_tokens: maxTokens
     };
 
     if (responseFormat) {
@@ -776,7 +841,7 @@ export class OpenAIProvider extends BaseProvider {
     } else if (jsonSchema) {
       request.response_format = {
         type: "json_schema",
-        json_schema: jsonSchema,
+        json_schema: jsonSchema
       };
     }
 
@@ -788,9 +853,10 @@ export class OpenAIProvider extends BaseProvider {
     if (tools.length > 0 && (await this.hasToolSupport(model))) {
       request.tools = this.formatTools(tools);
       if (toolChoice) {
-        request.tool_choice = toolChoice === "any"
-          ? "required"
-          : { type: "function", function: { name: toolChoice } };
+        request.tool_choice =
+          toolChoice === "any"
+            ? "required"
+            : { type: "function", function: { name: toolChoice } };
       }
     }
 
@@ -810,7 +876,7 @@ export class OpenAIProvider extends BaseProvider {
       this.trackUsage(model, {
         inputTokens: usage.prompt_tokens ?? 0,
         outputTokens: usage.completion_tokens ?? 0,
-        cachedTokens: usage.prompt_tokens_details?.cached_tokens ?? 0,
+        cachedTokens: usage.prompt_tokens_details?.cached_tokens ?? 0
       });
     }
 
@@ -818,18 +884,14 @@ export class OpenAIProvider extends BaseProvider {
 
     const toolCalls = Array.isArray(responseMessage.tool_calls)
       ? responseMessage.tool_calls.map((tc) =>
-          this.buildToolCall(
-            tc.id,
-            tc.function.name,
-            tc.function.arguments
-          )
+          this.buildToolCall(tc.id, tc.function.name, tc.function.arguments)
         )
       : undefined;
 
     return {
       role: "assistant",
       content: responseMessage.content ?? null,
-      toolCalls,
+      toolCalls
     };
   }
 
@@ -844,10 +906,13 @@ export class OpenAIProvider extends BaseProvider {
 
     const request: Record<string, unknown> = {
       model: params.model.id,
-      prompt,
+      prompt
     };
 
-    const size = this.resolveImageSize(params.width ?? undefined, params.height ?? undefined);
+    const size = this.resolveImageSize(
+      params.width ?? undefined,
+      params.height ?? undefined
+    );
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
@@ -893,10 +958,13 @@ export class OpenAIProvider extends BaseProvider {
     const request: Record<string, unknown> = {
       model: params.model.id,
       image: ["image.png", image, "image/png"],
-      prompt,
+      prompt
     };
 
-    const size = this.resolveImageSize(params.targetWidth ?? undefined, params.targetHeight ?? undefined);
+    const size = this.resolveImageSize(
+      params.targetWidth ?? undefined,
+      params.targetHeight ?? undefined
+    );
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
@@ -945,7 +1013,7 @@ export class OpenAIProvider extends BaseProvider {
         input: args.text,
         voice,
         speed,
-        response_format: "pcm",
+        response_format: "pcm"
       });
 
       for await (const chunk of response.iterBytes(4096)) {
@@ -960,7 +1028,7 @@ export class OpenAIProvider extends BaseProvider {
       input: args.text,
       voice,
       speed,
-      response_format: "pcm",
+      response_format: "pcm"
     });
 
     const bytes = asUint8Array(
@@ -989,15 +1057,17 @@ export class OpenAIProvider extends BaseProvider {
       typeof File !== "undefined"
         ? new File([audioPart], "audio.mp3", { type: "audio/mpeg" })
         : Object.assign(new Blob([audioPart], { type: "audio/mpeg" }), {
-            name: "audio.mp3",
+            name: "audio.mp3"
           });
 
-    const response = await (this.getClient().audio.transcriptions as any).create({
+    const response = await (
+      this.getClient().audio.transcriptions as any
+    ).create({
       file: fileLike,
       model: args.model,
       language: args.language,
       prompt: args.prompt,
-      temperature,
+      temperature
     });
 
     return String(response.text ?? "");
@@ -1008,19 +1078,26 @@ export class OpenAIProvider extends BaseProvider {
       throw new Error("The input prompt cannot be empty.");
     }
 
-    const size = OpenAIProvider.resolveVideoSize(params.aspectRatio, params.resolution);
+    const size = OpenAIProvider.resolveVideoSize(
+      params.aspectRatio,
+      params.resolution
+    );
     const seconds = OpenAIProvider.secondsFromParams(params) ?? 4;
 
     const request: Record<string, unknown> = {
       model: params.model.id,
       prompt: params.prompt,
       size: size ?? "1024x1024",
-      seconds: String(seconds),
+      seconds: String(seconds)
     };
 
-    const video = await ((this.getClient() as any).videos as any).create(request);
+    const video = await ((this.getClient() as any).videos as any).create(
+      request
+    );
     if (!video?.id) {
-      throw new Error("OpenAI video create response did not contain a video id");
+      throw new Error(
+        "OpenAI video create response did not contain a video id"
+      );
     }
 
     const timeoutMs = 10 * 60 * 1000;
@@ -1034,26 +1111,37 @@ export class OpenAIProvider extends BaseProvider {
       }
 
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      latest = await (((this.getClient() as any).videos as any).retrieve({
-        video_id: video.id,
-      }));
+      latest = await ((this.getClient() as any).videos as any).retrieve({
+        video_id: video.id
+      });
     }
 
     if (latest.status !== "completed") {
-      throw new Error(String(latest.error ?? `Video generation ended with status '${latest.status}'`));
+      throw new Error(
+        String(
+          latest.error ??
+            `Video generation ended with status '${latest.status}'`
+        )
+      );
     }
 
-    const bytes = await (this.getClient() as any).get(`/videos/${video.id}/content`, {
-      cast_to: Uint8Array,
-      options: {
-        params: { variant: "video" },
-      },
-    });
+    const bytes = await (this.getClient() as any).get(
+      `/videos/${video.id}/content`,
+      {
+        cast_to: Uint8Array,
+        options: {
+          params: { variant: "video" }
+        }
+      }
+    );
 
     return asUint8Array(bytes);
   }
 
-  async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
+  async imageToVideo(
+    image: Uint8Array,
+    params: ImageToVideoParams
+  ): Promise<Uint8Array> {
     if (!image || image.length === 0) {
       throw new Error("The input image cannot be empty.");
     }
@@ -1065,16 +1153,18 @@ export class OpenAIProvider extends BaseProvider {
     const [ext] = size.startsWith("720x1280") ? ["png"] : ["png"];
     const mimeType = `image/${ext}`;
 
-    const video = await (((this.getClient() as any).videos as any).create({
+    const video = await ((this.getClient() as any).videos as any).create({
       model: params.model.id,
       prompt: params.prompt ?? "",
       input_reference: [`input_image.${ext}`, image, mimeType],
       size,
-      seconds: String(seconds),
-    }));
+      seconds: String(seconds)
+    });
 
     if (!video?.id) {
-      throw new Error("OpenAI image-to-video create response did not contain a video id");
+      throw new Error(
+        "OpenAI image-to-video create response did not contain a video id"
+      );
     }
 
     const timeoutMs = 10 * 60 * 1000;
@@ -1088,23 +1178,29 @@ export class OpenAIProvider extends BaseProvider {
       }
 
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      latest = await (((this.getClient() as any).videos as any).retrieve({
-        video_id: video.id,
-      }));
+      latest = await ((this.getClient() as any).videos as any).retrieve({
+        video_id: video.id
+      });
     }
 
     if (latest.status !== "completed") {
       throw new Error(
-        String(latest.error ?? `Image-to-video generation ended with status '${latest.status}'`)
+        String(
+          latest.error ??
+            `Image-to-video generation ended with status '${latest.status}'`
+        )
       );
     }
 
-    const bytes = await (this.getClient() as any).get(`/videos/${video.id}/content`, {
-      cast_to: Uint8Array,
-      options: {
-        params: { variant: "video" },
-      },
-    });
+    const bytes = await (this.getClient() as any).get(
+      `/videos/${video.id}/content`,
+      {
+        cast_to: Uint8Array,
+        options: {
+          params: { variant: "video" }
+        }
+      }
+    );
 
     return asUint8Array(bytes);
   }
@@ -1122,7 +1218,7 @@ export class OpenAIProvider extends BaseProvider {
     const response = await this.getClient().embeddings.create({
       model: args.model,
       input,
-      ...(args.dimensions ? { dimensions: args.dimensions } : {}),
+      ...(args.dimensions ? { dimensions: args.dimensions } : {})
     });
 
     return response.data.map((row) => row.embedding as number[]);

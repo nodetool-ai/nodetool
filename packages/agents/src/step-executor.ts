@@ -11,7 +11,13 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { createHash } from "node:crypto";
-import type { BaseProvider, ProcessingContext, Message, ToolCall, ProviderStreamItem } from "@nodetool/runtime";
+import type {
+  BaseProvider,
+  ProcessingContext,
+  Message,
+  ToolCall,
+  ProviderStreamItem
+} from "@nodetool/runtime";
 import { createLogger } from "@nodetool/config";
 import {
   TaskUpdateEvent,
@@ -20,7 +26,7 @@ import {
   type ToolCallUpdate,
   type StepResult,
   type TaskUpdate,
-  type LogUpdate,
+  type LogUpdate
 } from "@nodetool/protocol";
 import type { Step, Task } from "./types.js";
 import type { Tool } from "./tools/base-tool.js";
@@ -129,7 +135,7 @@ Before making tool calls, provide clear progress updates:
 
 function validateAndSanitizeSchema(
   schema: unknown,
-  defaultDescription = "Result object",
+  defaultDescription = "Result object"
 ): Record<string, unknown> {
   if (schema === null || schema === undefined) {
     throw new Error("Schema is null or undefined");
@@ -155,12 +161,22 @@ function validateAndSanitizeSchema(
   }
 
   const disallowedExtensionKeys = new Set([
-    "oneOf", "anyOf", "allOf", "not", "if", "then", "else", "patternProperties",
+    "oneOf",
+    "anyOf",
+    "allOf",
+    "not",
+    "if",
+    "then",
+    "else",
+    "patternProperties"
   ]);
 
-  function shouldDefaultAdditionalProperties(obj: Record<string, unknown>): boolean {
+  function shouldDefaultAdditionalProperties(
+    obj: Record<string, unknown>
+  ): boolean {
     if ("additionalProperties" in obj) return false;
-    if (Object.keys(obj).some((k) => disallowedExtensionKeys.has(k))) return false;
+    if (Object.keys(obj).some((k) => disallowedExtensionKeys.has(k)))
+      return false;
 
     const schemaType = obj["type"];
     if (Array.isArray(schemaType)) {
@@ -169,7 +185,10 @@ function validateAndSanitizeSchema(
       return false;
     }
 
-    return schemaType === "object" || (schemaType === undefined && obj["properties"] !== undefined);
+    return (
+      schemaType === "object" ||
+      (schemaType === undefined && obj["properties"] !== undefined)
+    );
   }
 
   function cleanSchemaRecursive(obj: unknown): unknown {
@@ -178,7 +197,9 @@ function validateAndSanitizeSchema(
     }
     if (obj !== null && typeof obj === "object") {
       const cleaned: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      for (const [key, value] of Object.entries(
+        obj as Record<string, unknown>
+      )) {
         cleaned[key] = cleanSchemaRecursive(value);
       }
       if (shouldDefaultAdditionalProperties(cleaned)) {
@@ -207,7 +228,12 @@ function removeThinkTags(text: string | null | undefined): string {
 
 function normalizeToolResult(value: unknown): unknown {
   if (value === null || value === undefined) return value;
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  )
+    return value;
   if (Array.isArray(value)) return value.map(normalizeToolResult);
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
@@ -227,7 +253,10 @@ function normalizeToolResult(value: unknown): unknown {
 // Simple template rendering (replaces Jinja2)
 // ---------------------------------------------------------------------------
 
-function renderTemplate(template: string, context: Record<string, string>): string {
+function renderTemplate(
+  template: string,
+  context: Record<string, string>
+): string {
   let result = template;
   for (const [key, value] of Object.entries(context)) {
     result = result.replaceAll(`{{ ${key} }}`, value);
@@ -277,7 +306,10 @@ export class StepExecutor {
   private sourcesSet = new Set<string>();
   private inputTokensTotal = 0;
   private outputTokensTotal = 0;
-  private _controlEvents: Array<{ targetNodeId: string; event: import("@nodetool/protocol").ControlEvent }> = [];
+  private _controlEvents: Array<{
+    targetNodeId: string;
+    event: import("@nodetool/protocol").ControlEvent;
+  }> = [];
   private threadId?: string;
 
   constructor(opts: StepExecutorOptions) {
@@ -318,11 +350,14 @@ export class StepExecutor {
   private loadResultSchema(): Record<string, unknown> | null {
     if (!this.step.outputSchema) return null;
 
-    const defaultDescription = this.useFinishTask ? "The task result" : "The step result";
+    const defaultDescription = this.useFinishTask
+      ? "The task result"
+      : "The step result";
     try {
-      const raw = typeof this.step.outputSchema === "string"
-        ? JSON.parse(this.step.outputSchema)
-        : this.step.outputSchema;
+      const raw =
+        typeof this.step.outputSchema === "string"
+          ? JSON.parse(this.step.outputSchema)
+          : this.step.outputSchema;
       return validateAndSanitizeSchema(raw, defaultDescription);
     } catch {
       // Fallback: permissive object schema
@@ -363,7 +398,7 @@ export class StepExecutor {
    * Returns [isValid, errorDetail, normalizedResult].
    */
   private validateResultPayload(
-    resultPayload: unknown,
+    resultPayload: unknown
   ): [boolean, string | null, unknown] {
     const normalized = normalizeToolResult(resultPayload);
 
@@ -372,12 +407,16 @@ export class StepExecutor {
     }
 
     // Basic structural validation: check required keys from schema
-    if (this.resultSchema["type"] === "object" && typeof normalized === "object" && normalized !== null) {
+    if (
+      this.resultSchema["type"] === "object" &&
+      typeof normalized === "object" &&
+      normalized !== null
+    ) {
       const requiredKeys = this.resultSchema["required"];
       if (Array.isArray(requiredKeys)) {
         const obj = normalized as Record<string, unknown>;
         for (const key of requiredKeys) {
-          if (!(key as string in obj)) {
+          if (!((key as string) in obj)) {
             return [false, `Missing required key: ${key}`, normalized];
           }
         }
@@ -389,7 +428,10 @@ export class StepExecutor {
     if (expectedType === "string" && typeof normalized !== "string") {
       return [false, `Expected string, got ${typeof normalized}`, normalized];
     }
-    if (expectedType === "object" && (typeof normalized !== "object" || normalized === null)) {
+    if (
+      expectedType === "object" &&
+      (typeof normalized !== "object" || normalized === null)
+    ) {
       return [false, `Expected object, got ${typeof normalized}`, normalized];
     }
     if (expectedType === "array" && !Array.isArray(normalized)) {
@@ -402,7 +444,9 @@ export class StepExecutor {
   /**
    * Persist the final result and mark the step as completed.
    */
-  private async storeCompletionResult(normalizedResult: unknown): Promise<void> {
+  private async storeCompletionResult(
+    normalizedResult: unknown
+  ): Promise<void> {
     this.step.completed = true;
     this.step.endTime = Date.now();
     await this.context.storeStepResult(this.step.id, normalizedResult);
@@ -415,7 +459,10 @@ export class StepExecutor {
   /**
    * Append a system message instructing the LLM to complete via finish_step.
    */
-  private appendCompletionFeedback(detail: string, submittedResult?: unknown): void {
+  private appendCompletionFeedback(
+    detail: string,
+    submittedResult?: unknown
+  ): void {
     const schemaStr = JSON.stringify(this.resultSchema, null, 2);
     const lines = [
       "SYSTEM: Step completion must be signaled via the `finish_step` tool.",
@@ -423,12 +470,16 @@ export class StepExecutor {
       "Call `finish_step` exactly once with:",
       '{"result": <result>}',
       "Schema for `result`:",
-      schemaStr,
+      schemaStr
     ];
 
     if (submittedResult !== undefined) {
       try {
-        const preview = JSON.stringify(normalizeToolResult(submittedResult), null, 2);
+        const preview = JSON.stringify(
+          normalizeToolResult(submittedResult),
+          null,
+          2
+        );
         lines.push("Previous submission preview:", preview);
       } catch {
         lines.push("Previous submission preview:", String(submittedResult));
@@ -441,7 +492,9 @@ export class StepExecutor {
   /**
    * Attempt to parse and store a completion payload from the assistant message.
    */
-  private maybeFinalizeFromMessage(message: Message | null): [boolean, unknown] {
+  private maybeFinalizeFromMessage(
+    message: Message | null
+  ): [boolean, unknown] {
     if (!message) return [false, null];
 
     // For unstructured steps (no schema), accept text content as the result
@@ -452,7 +505,8 @@ export class StepExecutor {
       return [false, null];
     }
 
-    if (!message.content || typeof message.content !== "string") return [false, null];
+    if (!message.content || typeof message.content !== "string")
+      return [false, null];
 
     const parsed = extractJSON(message.content);
     if (!parsed || typeof parsed !== "object") return [false, null];
@@ -465,18 +519,23 @@ export class StepExecutor {
       this.history.push({
         role: "system",
         content:
-          'Missing \'result\' in completion payload. Provide: {"status": "completed", "result": <your_result>}.',
+          'Missing \'result\' in completion payload. Provide: {"status": "completed", "result": <your_result>}.'
       });
       return [false, null];
     }
 
     const candidateResult = "result" in obj ? obj["result"] : parsed;
-    const [isValid, errorDetail, normalizedResult] = this.validateResultPayload(candidateResult);
+    const [isValid, errorDetail, normalizedResult] =
+      this.validateResultPayload(candidateResult);
 
-    if (!isValid || normalizedResult === null || normalizedResult === undefined) {
+    if (
+      !isValid ||
+      normalizedResult === null ||
+      normalizedResult === undefined
+    ) {
       this.history.push({
         role: "system",
-        content: `Schema validation failed: ${errorDetail ?? "unknown error"}`,
+        content: `Schema validation failed: ${errorDetail ?? "unknown error"}`
       });
       return [false, null];
     }
@@ -500,7 +559,7 @@ export class StepExecutor {
 
     if (this.jsonParseFailures >= MAX_JSON_PARSE_FAILURES) {
       throw new Error(
-        `Exceeded maximum JSON parse attempts (${MAX_JSON_PARSE_FAILURES}) for step ${this.step.id}. Last failure: ${detail}`,
+        `Exceeded maximum JSON parse attempts (${MAX_JSON_PARSE_FAILURES}) for step ${this.step.id}. Last failure: ${detail}`
       );
     }
   }
@@ -541,7 +600,14 @@ export class StepExecutor {
         "Tools are not available. Provide the final answer concisely.";
 
     // Prevent duplicate conclusion messages
-    if (!this.history.some((m) => m.role === "system" && typeof m.content === "string" && m.content.includes("ENTERING CONCLUSION STAGE"))) {
+    if (
+      !this.history.some(
+        (m) =>
+          m.role === "system" &&
+          typeof m.content === "string" &&
+          m.content.includes("ENTERING CONCLUSION STAGE")
+      )
+    ) {
       this.history.push({ role: "system", content: message });
     }
   }
@@ -557,17 +623,18 @@ export class StepExecutor {
 
     const prompt =
       "Summarize the following conversation concisely while preserving key facts, " +
-      "decisions, and results:\n\n" + joined;
+      "decisions, and results:\n\n" +
+      joined;
 
     try {
       const msg = await this.provider.generateMessageTraced({
         messages: [
           { role: "system", content: "Summarize previous context." },
-          { role: "user", content: prompt },
+          { role: "user", content: prompt }
         ],
         model: this.model,
         tools: [],
-        maxTokens: 512,
+        maxTokens: 512
       });
       return String(msg.content ?? "").trim();
     } catch {
@@ -589,7 +656,8 @@ export class StepExecutor {
     }
 
     const earlierCount = this.history.length - preserved.length;
-    const earlierContext = earlierCount > 1 ? this.history.slice(1, earlierCount) : [];
+    const earlierContext =
+      earlierCount > 1 ? this.history.slice(1, earlierCount) : [];
 
     if (earlierContext.length > 0) {
       const summary = await this.summarizeMessages(earlierContext);
@@ -600,7 +668,7 @@ export class StepExecutor {
       }
       this.history.push({
         role: "system",
-        content: `Summary of previous context:\n${summary}`,
+        content: `Summary of previous context:\n${summary}`
       });
     } else {
       this.history = this.history.slice(0, 1);
@@ -610,7 +678,10 @@ export class StepExecutor {
 
     // Trim further if still over budget
     let currentTokens = this.estimateTokens();
-    while (currentTokens > this.maxTokenLimit * 0.85 && this.history.length > 2) {
+    while (
+      currentTokens > this.maxTokenLimit * 0.85 &&
+      this.history.length > 2
+    ) {
       this.history.splice(2, 1);
       currentTokens = this.estimateTokens();
     }
@@ -619,7 +690,10 @@ export class StepExecutor {
   /**
    * Serialize a tool result for history, with truncation.
    */
-  private serializeToolResultForHistory(toolResult: unknown, _toolName: string): string {
+  private serializeToolResultForHistory(
+    toolResult: unknown,
+    _toolName: string
+  ): string {
     if (toolResult === null || toolResult === undefined) {
       return "Tool returned no output.";
     }
@@ -627,13 +701,16 @@ export class StepExecutor {
       const normalized = normalizeToolResult(toolResult);
       const serialized = JSON.stringify(normalized);
       if (serialized.length > MAX_TOOL_RESULT_CHARS) {
-        return serialized.slice(0, MAX_TOOL_RESULT_CHARS) + "... [truncated to maintain context size]";
+        return (
+          serialized.slice(0, MAX_TOOL_RESULT_CHARS) +
+          "... [truncated to maintain context size]"
+        );
       }
       return serialized;
     } catch (e) {
       return JSON.stringify({
         error: `Failed to serialize tool result: ${e}`,
-        result_repr: String(toolResult).slice(0, 500),
+        result_repr: String(toolResult).slice(0, 500)
       });
     }
   }
@@ -643,7 +720,11 @@ export class StepExecutor {
    * Mirrors Python's StepExecutor._handle_binary_artifact().
    */
   private async handleBinaryArtifact(toolResult: unknown): Promise<unknown> {
-    if (typeof toolResult !== "object" || toolResult === null || Array.isArray(toolResult)) {
+    if (
+      typeof toolResult !== "object" ||
+      toolResult === null ||
+      Array.isArray(toolResult)
+    ) {
       return toolResult;
     }
 
@@ -660,7 +741,10 @@ export class StepExecutor {
 
       const [, mimeType, base64Data] = dataUriMatch;
       const ext = mimeType!.split("/")[1] ?? "bin";
-      const hash = createHash("sha256").update(base64Data!).digest("hex").slice(0, 16);
+      const hash = createHash("sha256")
+        .update(base64Data!)
+        .digest("hex")
+        .slice(0, 16);
       const filename = `artifact_${hash}.${ext}`;
 
       const artifactsDir = path.join(workspaceDir, "artifacts");
@@ -683,7 +767,11 @@ export class StepExecutor {
    * Mirrors Python's _process_special_tool_side_effects().
    */
   private trackToolSideEffects(toolName: string, result: unknown): void {
-    if (toolName === "browser" && typeof result === "object" && result !== null) {
+    if (
+      toolName === "browser" &&
+      typeof result === "object" &&
+      result !== null
+    ) {
       const url = (result as Record<string, unknown>).url;
       if (typeof url === "string" && url && !this.sourcesSet.has(url)) {
         this.sources.push(url);
@@ -715,14 +803,14 @@ export class StepExecutor {
         const depResult = await this.context.loadStepResult(depId);
         if (depResult !== undefined && depResult !== null) {
           parts.push(
-            `**Result from Task ${depId}:**\n${JSON.stringify(depResult, null, 2)}\n`,
+            `**Result from Task ${depId}:**\n${JSON.stringify(depResult, null, 2)}\n`
           );
         }
       }
     }
 
     parts.push(
-      "Please perform the step based on the provided context, instructions, and upstream task results.",
+      "Please perform the step based on the provided context, instructions, and upstream task results."
     );
 
     return parts.join("\n");
@@ -736,7 +824,10 @@ export class StepExecutor {
    */
   private providerSupportsOnToolCall(): boolean {
     // ClaudeAgentProvider advertises MCP support. Detect by provider id.
-    return (this.provider as unknown as Record<string, unknown>).provider === "claude_agent";
+    return (
+      (this.provider as unknown as Record<string, unknown>).provider ===
+      "claude_agent"
+    );
   }
 
   /**
@@ -752,7 +843,10 @@ export class StepExecutor {
     let finishStepResult: unknown = undefined;
     let finishStepCalled = false;
 
-    const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
+    const onToolCall = async (
+      name: string,
+      args: Record<string, unknown>
+    ): Promise<string> => {
       const tool = this.tools.find((t) => t.name === name);
       if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
 
@@ -772,7 +866,9 @@ export class StepExecutor {
       try {
         const result = await tool.process(this.context, args);
         this.trackToolSideEffects(name, result);
-        return typeof result === "string" ? result : JSON.stringify(result ?? null);
+        return typeof result === "string"
+          ? result
+          : JSON.stringify(result ?? null);
       } catch (e) {
         return JSON.stringify({ error: String(e) });
       }
@@ -784,7 +880,7 @@ export class StepExecutor {
       node_id: this.step.id,
       node_name: `Step: ${this.step.id}`,
       content: "Executing step...",
-      severity: "info",
+      severity: "info"
     } satisfies LogUpdate;
 
     this.inputTokensTotal += this.estimateTokens();
@@ -797,7 +893,7 @@ export class StepExecutor {
       model: this.model,
       tools: providerTools.length > 0 ? providerTools : undefined,
       threadId: this.threadId,
-      onToolCall,
+      onToolCall
     });
 
     for await (const item of stream) {
@@ -807,7 +903,7 @@ export class StepExecutor {
           type: "chunk",
           node_id: this.step.id,
           content: item.content,
-          done: false,
+          done: false
         } satisfies Chunk;
       }
       if (isToolCall(item)) {
@@ -817,22 +913,36 @@ export class StepExecutor {
           node_id: this.step.id,
           name: item.name,
           args: item.args,
-          message: this.generateToolCallMessage(item),
+          message: this.generateToolCallMessage(item)
         } satisfies ToolCallUpdate;
       }
     }
 
     content = removeThinkTags(content);
-    this.outputTokensTotal += Math.ceil((content.length + JSON.stringify(toolCalls).length) / 4);
+    this.outputTokensTotal += Math.ceil(
+      (content.length + JSON.stringify(toolCalls).length) / 4
+    );
 
     // Check if finish_step was called within the agentic loop
-    if (finishStepCalled && finishStepResult !== undefined && finishStepResult !== null) {
-      const [isValid, errorDetail, normalizedResult] = this.validateResultPayload(finishStepResult);
-      if (isValid && normalizedResult !== null && normalizedResult !== undefined) {
+    if (
+      finishStepCalled &&
+      finishStepResult !== undefined &&
+      finishStepResult !== null
+    ) {
+      const [isValid, errorDetail, normalizedResult] =
+        this.validateResultPayload(finishStepResult);
+      if (
+        isValid &&
+        normalizedResult !== null &&
+        normalizedResult !== undefined
+      ) {
         await this.storeCompletionResult(normalizedResult);
         return;
       }
-      log.warn("finish_step result validation failed", { stepId: this.step.id, error: errorDetail });
+      log.warn("finish_step result validation failed", {
+        stepId: this.step.id,
+        error: errorDetail
+      });
     }
 
     // For unstructured steps (no schema), accept text content
@@ -844,8 +954,13 @@ export class StepExecutor {
     // Try JSON extraction from text
     if (content) {
       const message: Message = { role: "assistant", content };
-      const [completed, normalizedResult] = this.maybeFinalizeFromMessage(message);
-      if (completed && normalizedResult !== null && normalizedResult !== undefined) {
+      const [completed, normalizedResult] =
+        this.maybeFinalizeFromMessage(message);
+      if (
+        completed &&
+        normalizedResult !== null &&
+        normalizedResult !== undefined
+      ) {
         await this.storeCompletionResult(normalizedResult);
         return;
       }
@@ -853,7 +968,9 @@ export class StepExecutor {
 
     // Fallback: send a second query with a nudge to call finish_step
     if (this.finishStepTool && !this.step.completed) {
-      log.debug("Nudging provider to call finish_step", { stepId: this.step.id });
+      log.debug("Nudging provider to call finish_step", {
+        stepId: this.step.id
+      });
 
       // Build nudge with tool results context
       const toolResultsSummary = toolCalls
@@ -868,7 +985,7 @@ export class StepExecutor {
 
       const nudgeMessages: Message[] = [
         { role: "system", content: this.systemPrompt },
-        { role: "user", content: nudgePrompt },
+        { role: "user", content: nudgePrompt }
       ];
 
       finishStepCalled = false;
@@ -879,7 +996,7 @@ export class StepExecutor {
         model: this.model,
         tools: providerTools.length > 0 ? providerTools : undefined,
         threadId: this.threadId,
-        onToolCall,
+        onToolCall
       });
 
       let nudgeContent = "";
@@ -890,7 +1007,7 @@ export class StepExecutor {
             type: "chunk",
             node_id: this.step.id,
             content: item.content,
-            done: false,
+            done: false
           } satisfies Chunk;
         }
         if (isToolCall(item)) {
@@ -899,14 +1016,23 @@ export class StepExecutor {
             node_id: this.step.id,
             name: item.name,
             args: item.args,
-            message: this.generateToolCallMessage(item),
+            message: this.generateToolCallMessage(item)
           } satisfies ToolCallUpdate;
         }
       }
 
-      if (finishStepCalled && finishStepResult !== undefined && finishStepResult !== null) {
-        const [isValid, , normalizedResult] = this.validateResultPayload(finishStepResult);
-        if (isValid && normalizedResult !== null && normalizedResult !== undefined) {
+      if (
+        finishStepCalled &&
+        finishStepResult !== undefined &&
+        finishStepResult !== null
+      ) {
+        const [isValid, , normalizedResult] =
+          this.validateResultPayload(finishStepResult);
+        if (
+          isValid &&
+          normalizedResult !== null &&
+          normalizedResult !== undefined
+        ) {
           await this.storeCompletionResult(normalizedResult);
           return;
         }
@@ -916,8 +1042,13 @@ export class StepExecutor {
       nudgeContent = removeThinkTags(nudgeContent);
       if (nudgeContent) {
         const msg: Message = { role: "assistant", content: nudgeContent };
-        const [completed, normalizedResult] = this.maybeFinalizeFromMessage(msg);
-        if (completed && normalizedResult !== null && normalizedResult !== undefined) {
+        const [completed, normalizedResult] =
+          this.maybeFinalizeFromMessage(msg);
+        if (
+          completed &&
+          normalizedResult !== null &&
+          normalizedResult !== undefined
+        ) {
           await this.storeCompletionResult(normalizedResult);
           return;
         }
@@ -929,7 +1060,10 @@ export class StepExecutor {
    * Execute the step, yielding ProcessingMessages as progress updates.
    */
   async *execute(): AsyncGenerator<ProcessingMessage> {
-    log.debug("Step started", { stepId: this.step.id, instructions: this.step.instructions.slice(0, 60) });
+    log.debug("Step started", {
+      stepId: this.step.id,
+      instructions: this.step.instructions.slice(0, 60)
+    });
 
     // Initialize history with system prompt
     this.history.push({ role: "system" as const, content: this.systemPrompt });
@@ -946,7 +1080,7 @@ export class StepExecutor {
       node_id: this.step.id,
       task: { id: this.task.id, title: this.task.title },
       step: { id: this.step.id, instructions: this.step.instructions },
-      event: TaskUpdateEvent.StepStarted,
+      event: TaskUpdateEvent.StepStarted
     } satisfies TaskUpdate;
 
     // --- Agentic provider fast-path (e.g. Claude Agent SDK with MCP) ---
@@ -955,7 +1089,10 @@ export class StepExecutor {
       try {
         yield* this.executeWithAgenticProvider();
       } catch (e) {
-        log.error("Agentic execution failed", { stepId: this.step.id, error: String(e) });
+        log.error("Agentic execution failed", {
+          stepId: this.step.id,
+          error: String(e)
+        });
       }
 
       if (this.step.completed) {
@@ -964,20 +1101,23 @@ export class StepExecutor {
           node_id: this.step.id,
           task: { id: this.task.id, title: this.task.title },
           step: { id: this.step.id, instructions: this.step.instructions },
-          event: TaskUpdateEvent.StepCompleted,
+          event: TaskUpdateEvent.StepCompleted
         } satisfies TaskUpdate;
 
         yield {
           type: "step_result",
           step: { id: this.step.id, instructions: this.step.instructions },
           result: this.result,
-          is_task_result: this.useFinishTask,
+          is_task_result: this.useFinishTask
         } satisfies StepResult;
         return;
       }
 
       // Fall through to standard loop if agentic path didn't complete
-      log.warn("Agentic path did not complete step, falling back to standard loop", { stepId: this.step.id });
+      log.warn(
+        "Agentic path did not complete step, falling back to standard loop",
+        { stepId: this.step.id }
+      );
     }
 
     // --- Standard multi-iteration loop (for non-agentic providers) ---
@@ -993,7 +1133,7 @@ export class StepExecutor {
           node_id: this.step.id,
           task: { id: this.task.id, title: this.task.title },
           step: { id: this.step.id, instructions: this.step.instructions },
-          event: TaskUpdateEvent.EnteredConclusionStage,
+          event: TaskUpdateEvent.EnteredConclusionStage
         } satisfies TaskUpdate;
       }
 
@@ -1012,7 +1152,7 @@ export class StepExecutor {
         content: !this.inConclusionStage
           ? "Generating next steps..."
           : "Synthesizing final answer...",
-        severity: "info",
+        severity: "info"
       } satisfies LogUpdate;
 
       // Track input tokens
@@ -1028,7 +1168,7 @@ export class StepExecutor {
           messages: [...this.history],
           model: this.model,
           tools: providerTools.length > 0 ? providerTools : undefined,
-          threadId: this.threadId,
+          threadId: this.threadId
         });
 
         for await (const item of stream) {
@@ -1038,7 +1178,7 @@ export class StepExecutor {
               type: "chunk",
               node_id: this.step.id,
               content: item.content,
-              done: false,
+              done: false
             } satisfies Chunk;
           }
           if (isToolCall(item)) {
@@ -1056,19 +1196,25 @@ export class StepExecutor {
         }
 
         // Estimate output tokens
-        this.outputTokensTotal += Math.ceil((content.length + JSON.stringify(toolCalls).length) / 4);
+        this.outputTokensTotal += Math.ceil(
+          (content.length + JSON.stringify(toolCalls).length) / 4
+        );
       } catch (e) {
         log.error("Step failed", { stepId: this.step.id, error: String(e) });
         this.generationFailures++;
         if (this.generationFailures >= 3) throw e;
-        message = { role: "assistant", content: `Error generating message: ${e}` };
+        message = {
+          role: "assistant",
+          content: `Error generating message: ${e}`
+        };
       }
 
       // Filter tool calls for current stage
       const filteredToolCalls = message.toolCalls
         ? this.filterToolCallsForCurrentStage(message.toolCalls)
         : [];
-      message.toolCalls = filteredToolCalls.length > 0 ? filteredToolCalls : undefined;
+      message.toolCalls =
+        filteredToolCalls.length > 0 ? filteredToolCalls : undefined;
 
       // Add assistant message to history
       this.history.push(message);
@@ -1076,7 +1222,9 @@ export class StepExecutor {
       // Process tool calls
       if (filteredToolCalls.length > 0) {
         // Check for finish_step tool call first
-        const finishStepCall = filteredToolCalls.find((tc) => tc.name === "finish_step");
+        const finishStepCall = filteredToolCalls.find(
+          (tc) => tc.name === "finish_step"
+        );
 
         if (finishStepCall && this.finishStepTool) {
           // Yield tool call update
@@ -1085,20 +1233,26 @@ export class StepExecutor {
             node_id: this.step.id,
             name: finishStepCall.name,
             args: finishStepCall.args,
-            message: this.generateToolCallMessage(finishStepCall),
+            message: this.generateToolCallMessage(finishStepCall)
           } satisfies ToolCallUpdate;
 
           // Extract and validate result
-          const resultPayload = finishStepCall.args?.["result"] ?? finishStepCall.args;
+          const resultPayload =
+            finishStepCall.args?.["result"] ?? finishStepCall.args;
           if (resultPayload !== undefined && resultPayload !== null) {
-            const [isValid, errorDetail, normalizedResult] = this.validateResultPayload(resultPayload);
+            const [isValid, errorDetail, normalizedResult] =
+              this.validateResultPayload(resultPayload);
 
-            if (isValid && normalizedResult !== null && normalizedResult !== undefined) {
+            if (
+              isValid &&
+              normalizedResult !== null &&
+              normalizedResult !== undefined
+            ) {
               // Add tool result to history
               this.history.push({
                 role: "tool",
                 toolCallId: finishStepCall.id,
-                content: '{"status": "completed"}',
+                content: '{"status": "completed"}'
               });
 
               await this.storeCompletionResult(normalizedResult);
@@ -1108,15 +1262,21 @@ export class StepExecutor {
                 type: "task_update",
                 node_id: this.step.id,
                 task: { id: this.task.id, title: this.task.title },
-                step: { id: this.step.id, instructions: this.step.instructions },
-                event: TaskUpdateEvent.StepCompleted,
+                step: {
+                  id: this.step.id,
+                  instructions: this.step.instructions
+                },
+                event: TaskUpdateEvent.StepCompleted
               } satisfies TaskUpdate;
 
               yield {
                 type: "step_result",
-                step: { id: this.step.id, instructions: this.step.instructions },
+                step: {
+                  id: this.step.id,
+                  instructions: this.step.instructions
+                },
                 result: normalizedResult,
-                is_task_result: this.useFinishTask,
+                is_task_result: this.useFinishTask
               } satisfies StepResult;
               break;
             } else {
@@ -1124,23 +1284,27 @@ export class StepExecutor {
               this.history.push({
                 role: "tool",
                 toolCallId: finishStepCall.id,
-                content: JSON.stringify({ error: `Result validation failed: ${errorDetail}` }),
+                content: JSON.stringify({
+                  error: `Result validation failed: ${errorDetail}`
+                })
               });
               this.appendCompletionFeedback(
                 errorDetail ?? "Result failed schema validation.",
-                resultPayload,
+                resultPayload
               );
             }
           } else {
             this.history.push({
               role: "tool",
               toolCallId: finishStepCall.id,
-              content: '{"error": "Missing result in finish_step call"}',
+              content: '{"error": "Missing result in finish_step call"}'
             });
           }
         } else {
           // Process non-finish_step tool calls
-          const regularToolCalls = filteredToolCalls.filter((tc) => tc.name !== "finish_step");
+          const regularToolCalls = filteredToolCalls.filter(
+            (tc) => tc.name !== "finish_step"
+          );
 
           // Yield tool call updates
           for (const tc of regularToolCalls) {
@@ -1149,7 +1313,7 @@ export class StepExecutor {
               node_id: this.step.id,
               name: tc.name,
               args: tc.args,
-              message: this.generateToolCallMessage(tc),
+              message: this.generateToolCallMessage(tc)
             } satisfies ToolCallUpdate;
           }
 
@@ -1161,7 +1325,7 @@ export class StepExecutor {
             node_id: this.step.id,
             node_name: `Step: ${this.step.id}`,
             content: `Executing tools: ${toolNamesStr}...`,
-            severity: "info",
+            severity: "info"
           } satisfies LogUpdate;
 
           // Execute tool calls in parallel
@@ -1172,7 +1336,10 @@ export class StepExecutor {
               // Intercept ControlNodeTool: create event instead of calling process()
               if (tool instanceof ControlNodeTool) {
                 const event = tool.createControlEvent(tc.args ?? {});
-                this._controlEvents.push({ targetNodeId: tool.targetNodeId, event });
+                this._controlEvents.push({
+                  targetNodeId: tool.targetNodeId,
+                  event
+                });
                 return tool.userMessage(tc.args ?? {});
               }
               try {
@@ -1181,7 +1348,7 @@ export class StepExecutor {
               } catch (e) {
                 return { error: String(e) };
               }
-            }),
+            })
           );
 
           // Add tool results to history
@@ -1193,7 +1360,9 @@ export class StepExecutor {
             if (settledResult.status === "fulfilled") {
               toolResult = settledResult.value;
             } else {
-              toolResult = { error: `Tool execution failed: ${settledResult.reason}` };
+              toolResult = {
+                error: `Tool execution failed: ${settledResult.reason}`
+              };
             }
 
             // Save base64 binary artifacts (images, audio) to workspace files
@@ -1209,11 +1378,14 @@ export class StepExecutor {
             }
             this.trackToolSideEffects(tc.name, toolResult);
 
-            const resultStr = this.serializeToolResultForHistory(toolResult, tc.name);
+            const resultStr = this.serializeToolResultForHistory(
+              toolResult,
+              tc.name
+            );
             this.history.push({
               role: "tool",
               toolCallId: tc.id,
-              content: resultStr,
+              content: resultStr
             });
           }
 
@@ -1222,15 +1394,20 @@ export class StepExecutor {
             node_id: this.step.id,
             node_name: `Step: ${this.step.id}`,
             content: `Completed tool execution: ${toolNamesStr}.`,
-            severity: "info",
+            severity: "info"
           } satisfies LogUpdate;
         }
       }
 
       // Try to finalize from message content (inline JSON completion).
       if (!this.step.completed) {
-        const [completed, normalizedResult] = this.maybeFinalizeFromMessage(message);
-        if (completed && normalizedResult !== null && normalizedResult !== undefined) {
+        const [completed, normalizedResult] =
+          this.maybeFinalizeFromMessage(message);
+        if (
+          completed &&
+          normalizedResult !== null &&
+          normalizedResult !== undefined
+        ) {
           await this.storeCompletionResult(normalizedResult);
 
           yield {
@@ -1238,14 +1415,14 @@ export class StepExecutor {
             node_id: this.step.id,
             task: { id: this.task.id, title: this.task.title },
             step: { id: this.step.id, instructions: this.step.instructions },
-            event: TaskUpdateEvent.StepCompleted,
+            event: TaskUpdateEvent.StepCompleted
           } satisfies TaskUpdate;
 
           yield {
             type: "step_result",
             step: { id: this.step.id, instructions: this.step.instructions },
             result: normalizedResult,
-            is_task_result: this.useFinishTask,
+            is_task_result: this.useFinishTask
           } satisfies StepResult;
           break;
         }
@@ -1258,7 +1435,9 @@ export class StepExecutor {
       this.step.completed = true;
       this.step.endTime = Date.now();
 
-      const errorResult = { error: `Step failed: exceeded ${this.maxIterations} iterations without completion` };
+      const errorResult = {
+        error: `Step failed: exceeded ${this.maxIterations} iterations without completion`
+      };
       this.result = errorResult;
       await this.context.storeStepResult(this.step.id, errorResult);
 
@@ -1267,14 +1446,14 @@ export class StepExecutor {
         node_id: this.step.id,
         task: { id: this.task.id, title: this.task.title },
         step: { id: this.step.id, instructions: this.step.instructions },
-        event: TaskUpdateEvent.StepFailed,
+        event: TaskUpdateEvent.StepFailed
       } satisfies TaskUpdate;
 
       yield {
         type: "step_result",
         step: { id: this.step.id, instructions: this.step.instructions },
         result: errorResult,
-        is_task_result: this.useFinishTask,
+        is_task_result: this.useFinishTask
       } satisfies StepResult;
     }
   }
@@ -1299,7 +1478,7 @@ export class StepExecutor {
   getTokenUsage(): { inputTokensTotal: number; outputTokensTotal: number } {
     return {
       inputTokensTotal: this.inputTokensTotal,
-      outputTokensTotal: this.outputTokensTotal,
+      outputTokensTotal: this.outputTokensTotal
     };
   }
 
@@ -1307,7 +1486,10 @@ export class StepExecutor {
    * Get control events emitted during execution (from ControlNodeTool calls).
    * The caller (workflow actor/runner) is responsible for dispatching these.
    */
-  getControlEvents(): Array<{ targetNodeId: string; event: import("@nodetool/protocol").ControlEvent }> {
+  getControlEvents(): Array<{
+    targetNodeId: string;
+    event: import("@nodetool/protocol").ControlEvent;
+  }> {
     return [...this._controlEvents];
   }
 }
@@ -1325,5 +1507,9 @@ function isChunk(item: ProviderStreamItem): item is Chunk {
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {
-  return "name" in item && typeof (item as unknown as Record<string, unknown>)["name"] === "string" && "id" in item;
+  return (
+    "name" in item &&
+    typeof (item as unknown as Record<string, unknown>)["name"] === "string" &&
+    "id" in item
+  );
 }

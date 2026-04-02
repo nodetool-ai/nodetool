@@ -6,7 +6,7 @@ import {
   isRefSet,
   uploadImageInput,
   uploadAudioInput,
-  uploadVideoInput,
+  uploadVideoInput
 } from "../kie-base.js";
 
 export class KlingTextToVideoNode extends BaseNode {
@@ -22,32 +22,72 @@ export class KlingTextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16","1:1"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "int", default: 5, title: "Duration", description: "Video duration in seconds.", min: 1, max: 10 })
+  @prop({
+    type: "int",
+    default: 5,
+    title: "Duration",
+    description: "Video duration in seconds.",
+    min: 1,
+    max: 10
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "768P", values: ["768P"], title: "Resolution", description: "Video resolution." })
+  @prop({
+    type: "enum",
+    default: "768P",
+    values: ["768P"],
+    title: "Resolution",
+    description: "Video resolution."
+  })
   declare resolution: any;
 
-  @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducible results. Use -1 for random seed." })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "Seed",
+    description: "Random seed for reproducible results. Use -1 for random seed."
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["duration"] = Number(this.duration ?? 5);
     params["resolution"] = String(this.resolution ?? "768P");
     params["seed"] = Number(this.seed ?? -1);
 
-    const result = await kieExecuteTask(apiKey, "kling-2.6/text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "kling-2.6/text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -65,22 +105,71 @@ export class KlingImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text prompt to guide the video generation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text prompt to guide the video generation."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image1", description: "First source image for the video generation." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image1",
+    description: "First source image for the video generation."
+  })
   declare image1: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image2", description: "Second source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image2",
+    description: "Second source image (optional)."
+  })
   declare image2: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image3", description: "Third source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image3",
+    description: "Third source image (optional)."
+  })
   declare image3: any;
 
-  @prop({ type: "bool", default: false, title: "Sound", description: "Whether to generate sound for the video." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Sound",
+    description: "Whether to generate sound for the video."
+  })
   declare sound: any;
 
-  @prop({ type: "int", default: 5, title: "Duration", description: "Video duration in seconds." })
+  @prop({
+    type: "int",
+    default: 5,
+    title: "Duration",
+    description: "Video duration in seconds."
+  })
   declare duration: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -90,12 +179,21 @@ export class KlingImageToVideoNode extends BaseNode {
       if (isRefSet(img)) imageUrls.push(await uploadImageInput(apiKey, img));
     }
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["sound"] = Boolean(this.sound ?? false);
     params["duration"] = Number(this.duration ?? 5);
     if (imageUrls.length) params["image_urls"] = imageUrls;
 
-    const result = await kieExecuteTask(apiKey, "kling-2.6/image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "kling-2.6/image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -113,31 +211,76 @@ export class KlingAIAvatarStandardNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The face/character image to animate." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The face/character image to animate."
+  })
   declare image: any;
 
-  @prop({ type: "audio", default: {"type":"audio","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Audio", description: "The audio track for lip-syncing." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The audio track for lip-syncing."
+  })
   declare audio: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text to guide emotions and expressions." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text to guide emotions and expressions."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "standard", values: ["standard","pro"], title: "Mode", description: "Generation mode: 'standard' or 'pro' for higher quality." })
+  @prop({
+    type: "enum",
+    default: "standard",
+    values: ["standard", "pro"],
+    title: "Mode",
+    description: "Generation mode: 'standard' or 'pro' for higher quality."
+  })
   declare mode: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     let audioUrl = "";
-    if (isRefSet(this.audio)) audioUrl = await uploadAudioInput(apiKey, this.audio);
+    if (isRefSet(this.audio))
+      audioUrl = await uploadAudioInput(apiKey, this.audio);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["mode"] = String(this.mode ?? "standard");
     if (imageUrl) params["image_url"] = imageUrl;
     if (audioUrl) params["audio_url"] = audioUrl;
 
-    const result = await kieExecuteTask(apiKey, "kling/v1-avatar-standard", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "kling/v1-avatar-standard",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -155,31 +298,76 @@ export class KlingAIAvatarProNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The face/character image to animate." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The face/character image to animate."
+  })
   declare image: any;
 
-  @prop({ type: "audio", default: {"type":"audio","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Audio", description: "The audio track for lip-syncing." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The audio track for lip-syncing."
+  })
   declare audio: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text to guide emotions and expressions." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text to guide emotions and expressions."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "standard", values: ["standard","pro"], title: "Mode", description: "Generation mode: 'standard' or 'pro' for higher quality." })
+  @prop({
+    type: "enum",
+    default: "standard",
+    values: ["standard", "pro"],
+    title: "Mode",
+    description: "Generation mode: 'standard' or 'pro' for higher quality."
+  })
   declare mode: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     let audioUrl = "";
-    if (isRefSet(this.audio)) audioUrl = await uploadAudioInput(apiKey, this.audio);
+    if (isRefSet(this.audio))
+      audioUrl = await uploadAudioInput(apiKey, this.audio);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["mode"] = String(this.mode ?? "standard");
     if (imageUrl) params["image_url"] = imageUrl;
     if (audioUrl) params["audio_url"] = audioUrl;
 
-    const result = await kieExecuteTask(apiKey, "kling/v1-avatar-pro", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "kling/v1-avatar-pro",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -197,24 +385,52 @@ export class GrokImagineTextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["720p","1080p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["720p", "1080p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "medium", values: ["short","medium","long"], title: "Duration", description: "The duration tier of the video." })
+  @prop({
+    type: "enum",
+    default: "medium",
+    values: ["short", "medium", "long"],
+    title: "Duration",
+    description: "The duration tier of the video."
+  })
   declare duration: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["resolution"] = String(this.resolution ?? "1080p");
     params["duration"] = String(this.duration ?? "medium");
 
-    const result = await kieExecuteTask(apiKey, "grok-imagine/text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "grok-imagine/text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -232,25 +448,58 @@ export class GrokImagineImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text guide for the animation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text guide for the animation."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The source image to animate." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The source image to animate."
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "medium", values: ["short","medium","long"], title: "Duration", description: "The duration tier of the video." })
+  @prop({
+    type: "enum",
+    default: "medium",
+    values: ["short", "medium", "long"],
+    title: "Duration",
+    description: "The duration tier of the video."
+  })
   declare duration: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "medium");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "grok-imagine/image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "grok-imagine/image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -268,32 +517,71 @@ export class SeedanceV1LiteTextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "16:9", values: ["1:1","16:9","9:16","4:3","3:4","21:9","9:21"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["resolution"] = String(this.resolution ?? "720p");
     params["duration"] = String(this.duration ?? "5");
     params["remove_watermark"] = Boolean(this.remove_watermark ?? true);
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
 
-    const result = await kieExecuteTask(apiKey, "seedance/v1-lite-text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "seedance/v1-lite-text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -306,32 +594,71 @@ export class SeedanceV1ProTextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "16:9", values: ["1:1","16:9","9:16","4:3","3:4","21:9","9:21"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["resolution"] = String(this.resolution ?? "720p");
     params["duration"] = String(this.duration ?? "5");
     params["remove_watermark"] = Boolean(this.remove_watermark ?? true);
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
 
-    const result = await kieExecuteTask(apiKey, "seedance/v1-pro-text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "seedance/v1-pro-text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -344,28 +671,90 @@ export class SeedanceV1LiteImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "16:9", values: ["1:1","16:9","9:16","4:3","3:4","21:9","9:21"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text guide for the video generation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text guide for the video generation."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image1", description: "First source image for the video generation." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image1",
+    description: "First source image for the video generation."
+  })
   declare image1: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image2", description: "Second source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image2",
+    description: "Second source image (optional)."
+  })
   declare image2: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image3", description: "Third source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image3",
+    description: "Third source image (optional)."
+  })
   declare image3: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -379,10 +768,19 @@ export class SeedanceV1LiteImageToVideoNode extends BaseNode {
     params["resolution"] = String(this.resolution ?? "720p");
     params["duration"] = String(this.duration ?? "5");
     params["remove_watermark"] = Boolean(this.remove_watermark ?? true);
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     if (imageUrls.length) params["image_urls"] = imageUrls;
 
-    const result = await kieExecuteTask(apiKey, "seedance/v1-lite-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "seedance/v1-lite-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -395,28 +793,90 @@ export class SeedanceV1ProImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "16:9", values: ["1:1","16:9","9:16","4:3","3:4","21:9","9:21"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text guide for the video generation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text guide for the video generation."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image1", description: "First source image for the video generation." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image1",
+    description: "First source image for the video generation."
+  })
   declare image1: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image2", description: "Second source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image2",
+    description: "Second source image (optional)."
+  })
   declare image2: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image3", description: "Third source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image3",
+    description: "Third source image (optional)."
+  })
   declare image3: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -430,10 +890,19 @@ export class SeedanceV1ProImageToVideoNode extends BaseNode {
     params["resolution"] = String(this.resolution ?? "720p");
     params["duration"] = String(this.duration ?? "5");
     params["remove_watermark"] = Boolean(this.remove_watermark ?? true);
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     if (imageUrls.length) params["image_urls"] = imageUrls;
 
-    const result = await kieExecuteTask(apiKey, "seedance/v1-pro-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "seedance/v1-pro-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -446,25 +915,81 @@ export class SeedanceV1ProFastImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "16:9", values: ["1:1","16:9","9:16","4:3","3:4","21:9","9:21"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image1", description: "First source image for the video generation." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image1",
+    description: "First source image for the video generation."
+  })
   declare image1: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image2", description: "Second source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image2",
+    description: "Second source image (optional)."
+  })
   declare image2: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image3", description: "Third source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image3",
+    description: "Third source image (optional)."
+  })
   declare image3: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -480,7 +1005,13 @@ export class SeedanceV1ProFastImageToVideoNode extends BaseNode {
     params["remove_watermark"] = Boolean(this.remove_watermark ?? true);
     if (imageUrls.length) params["image_urls"] = imageUrls;
 
-    const result = await kieExecuteTask(apiKey, "seedance/v1-pro-fast-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "seedance/v1-pro-fast-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -498,24 +1029,53 @@ export class HailuoTextToVideoProNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "6", values: ["6","10"], title: "Duration", description: "The duration of the video in seconds. 10s is not supported for 1080p." })
+  @prop({
+    type: "enum",
+    default: "6",
+    values: ["6", "10"],
+    title: "Duration",
+    description:
+      "The duration of the video in seconds. 10s is not supported for 1080p."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "768P", values: ["768P","1080P"], title: "Resolution", description: "Video resolution." })
+  @prop({
+    type: "enum",
+    default: "768P",
+    values: ["768P", "1080P"],
+    title: "Resolution",
+    description: "Video resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "6");
     params["resolution"] = String(this.resolution ?? "768P");
 
-    const result = await kieExecuteTask(apiKey, "hailuo/2-3-text-to-video-pro", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "hailuo/2-3-text-to-video-pro",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -530,24 +1090,53 @@ export class HailuoTextToVideoStandardNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "6", values: ["6","10"], title: "Duration", description: "The duration of the video in seconds. 10s is not supported for 1080p." })
+  @prop({
+    type: "enum",
+    default: "6",
+    values: ["6", "10"],
+    title: "Duration",
+    description:
+      "The duration of the video in seconds. 10s is not supported for 1080p."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "768P", values: ["768P","1080P"], title: "Resolution", description: "Video resolution." })
+  @prop({
+    type: "enum",
+    default: "768P",
+    values: ["768P", "1080P"],
+    title: "Resolution",
+    description: "Video resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "6");
     params["resolution"] = String(this.resolution ?? "768P");
 
-    const result = await kieExecuteTask(apiKey, "hailuo/2-3-text-to-video-standard", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "hailuo/2-3-text-to-video-standard",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -565,29 +1154,69 @@ export class HailuoImageToVideoProNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The reference image to animate into a video." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The reference image to animate into a video."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text to guide the video generation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text to guide the video generation."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "6", values: ["6","10"], title: "Duration", description: "The duration of the video in seconds. 10s is not supported for 1080p." })
+  @prop({
+    type: "enum",
+    default: "6",
+    values: ["6", "10"],
+    title: "Duration",
+    description:
+      "The duration of the video in seconds. 10s is not supported for 1080p."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "768P", values: ["768P","1080P"], title: "Resolution", description: "Video resolution." })
+  @prop({
+    type: "enum",
+    default: "768P",
+    values: ["768P", "1080P"],
+    title: "Resolution",
+    description: "Video resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "6");
     params["resolution"] = String(this.resolution ?? "768P");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "hailuo/2-3-image-to-video-pro", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "hailuo/2-3-image-to-video-pro",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -605,29 +1234,69 @@ export class HailuoImageToVideoStandardNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The reference image to animate into a video." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The reference image to animate into a video."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text to guide the video generation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text to guide the video generation."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "6", values: ["6","10"], title: "Duration", description: "The duration of the video in seconds. 10s is not supported for 1080p." })
+  @prop({
+    type: "enum",
+    default: "6",
+    values: ["6", "10"],
+    title: "Duration",
+    description:
+      "The duration of the video in seconds. 10s is not supported for 1080p."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "768P", values: ["768P","1080P"], title: "Resolution", description: "Video resolution." })
+  @prop({
+    type: "enum",
+    default: "768P",
+    values: ["768P", "1080P"],
+    title: "Resolution",
+    description: "Video resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "6");
     params["resolution"] = String(this.resolution ?? "768P");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "hailuo/2-3-image-to-video-standard", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "hailuo/2-3-image-to-video-standard",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -645,32 +1314,73 @@ export class Kling25TurboTextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "Video duration in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "Video duration in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16","1:1"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Things to avoid in the generated video." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Things to avoid in the generated video."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "float", default: 0.5, title: "Cfg Scale", description: "The CFG scale for prompt adherence. Lower values allow more creativity.", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0.5,
+    title: "Cfg Scale",
+    description:
+      "The CFG scale for prompt adherence. Lower values allow more creativity.",
+    min: 0,
+    max: 1
+  })
   declare cfg_scale: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["negative_prompt"] = String(this.negative_prompt ?? "");
     params["cfg_scale"] = Number(this.cfg_scale ?? 0.5);
 
-    const result = await kieExecuteTask(apiKey, "kling/v2-5-turbo-text-to-video-pro", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "kling/v2-5-turbo-text-to-video-pro",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -688,36 +1398,93 @@ export class Kling25TurboImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Text description to guide the video generation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Text description to guide the video generation."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The source image to animate." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The source image to animate."
+  })
   declare image: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Tail Image", description: "Tail frame image for the video (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Tail Image",
+    description: "Tail frame image for the video (optional)."
+  })
   declare tail_image: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "Video duration in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "Video duration in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Elements to avoid in the video." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Elements to avoid in the video."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "float", default: 0.5, title: "Cfg Scale", description: "The CFG scale for prompt adherence. Lower values allow more creativity.", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0.5,
+    title: "Cfg Scale",
+    description:
+      "The CFG scale for prompt adherence. Lower values allow more creativity.",
+    min: 0,
+    max: 1
+  })
   declare cfg_scale: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5");
     params["negative_prompt"] = String(this.negative_prompt ?? "");
     params["cfg_scale"] = Number(this.cfg_scale ?? 0.5);
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "kling/v2-5-turbo-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "kling/v2-5-turbo-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -735,28 +1502,61 @@ export class Sora2ProTextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "landscape", values: ["landscape","portrait","square"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "landscape",
+    values: ["landscape", "portrait", "square"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
-  @prop({ type: "enum", default: "10", values: ["10","15"], title: "N Frames", description: "Number of frames for the video output." })
+  @prop({
+    type: "enum",
+    default: "10",
+    values: ["10", "15"],
+    title: "N Frames",
+    description: "Number of frames for the video output."
+  })
   declare n_frames: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
     params["aspect_ratio"] = String(this.aspect_ratio ?? "landscape");
     params["remove_watermark"] = Boolean(this.remove_watermark ?? true);
     params["n_frames"] = String(this.n_frames ?? "10");
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
 
-    const result = await kieExecuteTask(apiKey, "sora-2/pro-text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "sora-2/pro-text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -774,33 +1574,77 @@ export class Sora2ProImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "landscape", values: ["landscape","portrait","square"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "landscape",
+    values: ["landscape", "portrait", "square"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
-  @prop({ type: "enum", default: "10", values: ["10","15"], title: "N Frames", description: "Number of frames for the video output." })
+  @prop({
+    type: "enum",
+    default: "10",
+    values: ["10", "15"],
+    title: "N Frames",
+    description: "Number of frames for the video output."
+  })
   declare n_frames: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text guide for the video generation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text guide for the video generation."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The source image to animate." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The source image to animate."
+  })
   declare image: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
     params["aspect_ratio"] = String(this.aspect_ratio ?? "landscape");
     params["remove_watermark"] = Boolean(this.remove_watermark ?? true);
     params["n_frames"] = String(this.n_frames ?? "10");
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "sora-2/pro-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "sora-2/pro-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -818,19 +1662,46 @@ export class Sora2ProStoryboardNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "landscape", values: ["landscape","portrait","square"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "landscape",
+    values: ["landscape", "portrait", "square"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
-  @prop({ type: "enum", default: "10", values: ["10","15","25"], title: "N Frames", description: "Number of frames for the video output." })
+  @prop({
+    type: "enum",
+    default: "10",
+    values: ["10", "15", "25"],
+    title: "N Frames",
+    description: "Number of frames for the video output."
+  })
   declare n_frames: any;
 
-  @prop({ type: "str", default: "", title: "Shots", description: "The shots to generate, with columns: Scene, duration." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Shots",
+    description: "The shots to generate, with columns: Scene, duration."
+  })
   declare shots: any;
 
-  @prop({ type: "list[image]", default: [], title: "Images", description: "The images to use for the video generation." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description: "The images to use for the video generation."
+  })
   declare images: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -847,7 +1718,13 @@ export class Sora2ProStoryboardNode extends BaseNode {
     params["shots"] = String(this.shots ?? "");
     if (imagesUrls.length) params["image_urls"] = imagesUrls;
 
-    const result = await kieExecuteTask(apiKey, "sora-2/pro-storyboard", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "sora-2/pro-storyboard",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -865,28 +1742,61 @@ export class Sora2TextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "landscape", values: ["landscape","portrait","square"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "landscape",
+    values: ["landscape", "portrait", "square"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
-  @prop({ type: "enum", default: "10", values: ["10","15"], title: "N Frames", description: "Number of frames for the video output." })
+  @prop({
+    type: "enum",
+    default: "10",
+    values: ["10", "15"],
+    title: "N Frames",
+    description: "Number of frames for the video output."
+  })
   declare n_frames: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
     params["aspect_ratio"] = String(this.aspect_ratio ?? "landscape");
     params["remove_watermark"] = Boolean(this.remove_watermark ?? true);
     params["n_frames"] = String(this.n_frames ?? "10");
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
 
-    const result = await kieExecuteTask(apiKey, "sora-2/text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "sora-2/text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -904,32 +1814,71 @@ export class WanMultiShotTextToVideoProNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16","1:1","4:3","3:4"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1", "4:3", "3:4"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["720p","1080p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["720p", "1080p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Watermark",
+    description: "Whether to remove the watermark from the video."
+  })
   declare remove_watermark: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["resolution"] = String(this.resolution ?? "1080p");
     params["duration"] = String(this.duration ?? "5");
     params["remove_watermark"] = Boolean(this.remove_watermark ?? true);
 
-    const result = await kieExecuteTask(apiKey, "wan/multi-shot-text-to-video-pro", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/multi-shot-text-to-video-pro",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -947,24 +1896,52 @@ export class Wan26TextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5s", values: ["5s","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5s",
+    values: ["5s", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["1080p","720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["1080p", "720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5s");
     params["resolution"] = String(this.resolution ?? "1080p");
 
-    const result = await kieExecuteTask(apiKey, "wan/2-6-text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/2-6-text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -977,35 +1954,96 @@ export class Wan26ImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image1", description: "First source image for the video generation." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image1",
+    description: "First source image for the video generation."
+  })
   declare image1: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image2", description: "Second source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image2",
+    description: "Second source image (optional)."
+  })
   declare image2: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image3", description: "Third source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image3",
+    description: "Third source image (optional)."
+  })
   declare image3: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["1080p","720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["1080p", "720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let image1Url = "";
-    if (isRefSet(this.image1)) image1Url = await uploadImageInput(apiKey, this.image1);
+    if (isRefSet(this.image1))
+      image1Url = await uploadImageInput(apiKey, this.image1);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5");
     params["resolution"] = String(this.resolution ?? "1080p");
     if (image1Url) params["image_url"] = image1Url;
 
-    const result = await kieExecuteTask(apiKey, "wan/2-6-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/2-6-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1023,35 +2061,102 @@ export class Wan26VideoToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the changes." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the changes."
+  })
   declare prompt: any;
 
-  @prop({ type: "video", default: {"type":"video","uri":"","asset_id":null,"data":null,"metadata":null,"duration":null,"format":null}, title: "Video1", description: "First source video for the video-to-video task." })
+  @prop({
+    type: "video",
+    default: {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    },
+    title: "Video1",
+    description: "First source video for the video-to-video task."
+  })
   declare video1: any;
 
-  @prop({ type: "video", default: {"type":"video","uri":"","asset_id":null,"data":null,"metadata":null,"duration":null,"format":null}, title: "Video2", description: "Second source video (optional)." })
+  @prop({
+    type: "video",
+    default: {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    },
+    title: "Video2",
+    description: "Second source video (optional)."
+  })
   declare video2: any;
 
-  @prop({ type: "video", default: {"type":"video","uri":"","asset_id":null,"data":null,"metadata":null,"duration":null,"format":null}, title: "Video3", description: "Third source video (optional)." })
+  @prop({
+    type: "video",
+    default: {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    },
+    title: "Video3",
+    description: "Third source video (optional)."
+  })
   declare video3: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["1080p","720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["1080p", "720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let video1Url = "";
-    if (isRefSet(this.video1)) video1Url = await uploadVideoInput(apiKey, this.video1);
+    if (isRefSet(this.video1))
+      video1Url = await uploadVideoInput(apiKey, this.video1);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5");
     params["resolution"] = String(this.resolution ?? "1080p");
     if (video1Url) params["video_url"] = video1Url;
 
-    const result = await kieExecuteTask(apiKey, "wan/2-6-video-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/2-6-video-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1064,25 +2169,56 @@ export class TopazVideoUpscaleNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "video", default: {"type":"video","uri":"","asset_id":null,"data":null,"metadata":null,"duration":null,"format":null}, title: "Video", description: "The video to upscale." })
+  @prop({
+    type: "video",
+    default: {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    },
+    title: "Video",
+    description: "The video to upscale."
+  })
   declare video: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["1080p","4k"], title: "Resolution", description: "Target resolution for upscaling." })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["1080p", "4k"],
+    title: "Resolution",
+    description: "Target resolution for upscaling."
+  })
   declare resolution: any;
 
-  @prop({ type: "bool", default: true, title: "Denoise", description: "Apply denoising to reduce artifacts." })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Denoise",
+    description: "Apply denoising to reduce artifacts."
+  })
   declare denoise: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let videoUrl = "";
-    if (isRefSet(this.video)) videoUrl = await uploadVideoInput(apiKey, this.video);
+    if (isRefSet(this.video))
+      videoUrl = await uploadVideoInput(apiKey, this.video);
     const params: Record<string, unknown> = {};
     params["resolution"] = String(this.resolution ?? "1080p");
     params["denoise"] = Boolean(this.denoise ?? true);
     if (videoUrl) params["video_url"] = videoUrl;
 
-    const result = await kieExecuteTask(apiKey, "topaz/video-upscale", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "topaz/video-upscale",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1095,31 +2231,76 @@ export class InfinitalkV1Node extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text guide for the video generation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Optional text guide for the video generation."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "The source image." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The source image."
+  })
   declare image: any;
 
-  @prop({ type: "audio", default: {"type":"audio","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Audio", description: "The source audio track." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The source audio track."
+  })
   declare audio: any;
 
-  @prop({ type: "enum", default: "480p", values: ["480p"], title: "Resolution", description: "Video resolution." })
+  @prop({
+    type: "enum",
+    default: "480p",
+    values: ["480p"],
+    title: "Resolution",
+    description: "Video resolution."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     let audioUrl = "";
-    if (isRefSet(this.audio)) audioUrl = await uploadAudioInput(apiKey, this.audio);
+    if (isRefSet(this.audio))
+      audioUrl = await uploadAudioInput(apiKey, this.audio);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["resolution"] = String(this.resolution ?? "480p");
     if (imageUrl) params["image_url"] = imageUrl;
     if (audioUrl) params["audio_url"] = audioUrl;
 
-    const result = await kieExecuteTask(apiKey, "infinitalk/v1", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "infinitalk/v1",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1137,28 +2318,61 @@ export class Veo31TextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "veo3_fast", values: ["veo3","veo3_fast"], title: "Model", description: "The model to use for video generation." })
+  @prop({
+    type: "enum",
+    default: "veo3_fast",
+    values: ["veo3", "veo3_fast"],
+    title: "Model",
+    description: "The model to use for video generation."
+  })
   declare model: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16"], title: "Aspect Ratio", description: "Video aspect ratio." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    title: "Aspect Ratio",
+    description: "Video aspect ratio."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL for task completion." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Call Back Url",
+    description: "Optional callback URL for task completion."
+  })
   declare call_back_url: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
     params["model"] = String(this.model ?? "veo3_fast");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["call_back_url"] = String(this.call_back_url ?? "");
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
 
-    const result = await kieExecuteTask(apiKey, "veo-3-1/text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "veo-3-1/text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1176,36 +2390,84 @@ export class RunwayGen3AlphaTextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","4:3","1:1","3:4","9:16"], title: "Aspect Ratio", description: "The aspect ratio of the generated video. Required for text-to-video generation." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "4:3", "1:1", "3:4", "9:16"],
+    title: "Aspect Ratio",
+    description:
+      "The aspect ratio of the generated video. Required for text-to-video generation."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description:
+      "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p","1080p"], title: "Quality", description: "Video resolution. If 1080p is selected, 10-second video cannot be generated." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    title: "Quality",
+    description:
+      "Video resolution. If 1080p is selected, 10-second video cannot be generated."
+  })
   declare quality: any;
 
-  @prop({ type: "str", default: "", title: "Water Mark", description: "Video watermark text content. An empty string indicates no watermark." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Water Mark",
+    description:
+      "Video watermark text content. An empty string indicates no watermark."
+  })
   declare water_mark: any;
 
-  @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL to receive task completion updates." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Call Back Url",
+    description: "Optional callback URL to receive task completion updates."
+  })
   declare call_back_url: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["duration"] = String(this.duration ?? "5");
     params["quality"] = String(this.quality ?? "720p");
     params["water_mark"] = String(this.water_mark ?? "");
     params["call_back_url"] = String(this.call_back_url ?? "");
 
-    const result = await kieExecuteTask(apiKey, "runway/gen3-alpha-text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "runway/gen3-alpha-text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1223,37 +2485,90 @@ export class RunwayGen3AlphaImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "Reference image to base the video on." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Reference image to base the video on."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text to guide the video generation. Maximum length is 1800 characters." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description:
+      "Optional text to guide the video generation. Maximum length is 1800 characters."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description:
+      "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p","1080p"], title: "Quality", description: "Video resolution. If 1080p is selected, 10-second video cannot be generated." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    title: "Quality",
+    description:
+      "Video resolution. If 1080p is selected, 10-second video cannot be generated."
+  })
   declare quality: any;
 
-  @prop({ type: "str", default: "", title: "Water Mark", description: "Video watermark text content. An empty string indicates no watermark." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Water Mark",
+    description:
+      "Video watermark text content. An empty string indicates no watermark."
+  })
   declare water_mark: any;
 
-  @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL to receive task completion updates." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Call Back Url",
+    description: "Optional callback URL to receive task completion updates."
+  })
   declare call_back_url: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5");
     params["quality"] = String(this.quality ?? "720p");
     params["water_mark"] = String(this.water_mark ?? "");
     params["call_back_url"] = String(this.call_back_url ?? "");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "runway/gen3-alpha-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "runway/gen3-alpha-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1270,35 +2585,79 @@ export class RunwayGen3AlphaExtendVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Video Url", description: "The source video URL to extend." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Video Url",
+    description: "The source video URL to extend."
+  })
   declare video_url: any;
 
-  @prop({ type: "str", default: "Continue the motion naturally with smooth transitions.", title: "Prompt", description: "Text prompt to guide the video extension. Maximum length is 1800 characters." })
+  @prop({
+    type: "str",
+    default: "Continue the motion naturally with smooth transitions.",
+    title: "Prompt",
+    description:
+      "Text prompt to guide the video extension. Maximum length is 1800 characters."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "Duration to extend the video by in seconds. If 10-second extension is selected, 1080p resolution cannot be used." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description:
+      "Duration to extend the video by in seconds. If 10-second extension is selected, 1080p resolution cannot be used."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p","1080p"], title: "Quality", description: "Video resolution. If 1080p is selected, 10-second extension cannot be generated." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    title: "Quality",
+    description:
+      "Video resolution. If 1080p is selected, 10-second extension cannot be generated."
+  })
   declare quality: any;
 
-  @prop({ type: "str", default: "", title: "Water Mark", description: "Video watermark text content. An empty string indicates no watermark." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Water Mark",
+    description:
+      "Video watermark text content. An empty string indicates no watermark."
+  })
   declare water_mark: any;
 
-  @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL to receive task completion updates." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Call Back Url",
+    description: "Optional callback URL to receive task completion updates."
+  })
   declare call_back_url: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const params: Record<string, unknown> = {};
     params["video_url"] = String(this.video_url ?? "");
-    params["prompt"] = String(this.prompt ?? "Continue the motion naturally with smooth transitions.");
+    params["prompt"] = String(
+      this.prompt ?? "Continue the motion naturally with smooth transitions."
+    );
     params["duration"] = String(this.duration ?? "5");
     params["quality"] = String(this.quality ?? "720p");
     params["water_mark"] = String(this.water_mark ?? "");
     params["call_back_url"] = String(this.call_back_url ?? "");
 
-    const result = await kieExecuteTask(apiKey, "runway/gen3-alpha-extend-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "runway/gen3-alpha-extend-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1316,35 +2675,82 @@ export class RunwayAlephVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16","1:1"], title: "Aspect Ratio", description: "The aspect ratio of the generated video. Required for text-to-video generation." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    title: "Aspect Ratio",
+    description:
+      "The aspect ratio of the generated video. Required for text-to-video generation."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description:
+      "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p","1080p"], title: "Quality", description: "Video resolution. If 1080p is selected, 10-second video cannot be generated." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    title: "Quality",
+    description:
+      "Video resolution. If 1080p is selected, 10-second video cannot be generated."
+  })
   declare quality: any;
 
-  @prop({ type: "str", default: "", title: "Water Mark", description: "Video watermark text content. An empty string indicates no watermark." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Water Mark",
+    description:
+      "Video watermark text content. An empty string indicates no watermark."
+  })
   declare water_mark: any;
 
-  @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL to receive task completion updates." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Call Back Url",
+    description: "Optional callback URL to receive task completion updates."
+  })
   declare call_back_url: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["duration"] = String(this.duration ?? "5");
     params["quality"] = String(this.quality ?? "720p");
     params["water_mark"] = String(this.water_mark ?? "");
     params["call_back_url"] = String(this.call_back_url ?? "");
 
-    const result = await kieExecuteTask(apiKey, "runway/aleph-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "runway/aleph-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1362,29 +2768,68 @@ export class LumaModifyVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "video", default: {"type":"video","uri":"","asset_id":null,"data":null,"metadata":null,"duration":null,"format":null}, title: "Video", description: "The source video to modify." })
+  @prop({
+    type: "video",
+    default: {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    },
+    title: "Video",
+    description: "The source video to modify."
+  })
   declare video: any;
 
-  @prop({ type: "str", default: "Enhance the video quality and add smooth motion.", title: "Prompt", description: "Text prompt describing the modifications to make." })
+  @prop({
+    type: "str",
+    default: "Enhance the video quality and add smooth motion.",
+    title: "Prompt",
+    description: "Text prompt describing the modifications to make."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16","1:1"], title: "Aspect Ratio", description: "The aspect ratio of the output video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the output video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "Duration of the modified video segment." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "Duration of the modified video segment."
+  })
   declare duration: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let videoUrl = "";
-    if (isRefSet(this.video)) videoUrl = await uploadVideoInput(apiKey, this.video);
+    if (isRefSet(this.video))
+      videoUrl = await uploadVideoInput(apiKey, this.video);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "Enhance the video quality and add smooth motion.");
+    params["prompt"] = String(
+      this.prompt ?? "Enhance the video quality and add smooth motion."
+    );
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["duration"] = String(this.duration ?? "5");
     if (videoUrl) params["video_url"] = videoUrl;
 
-    const result = await kieExecuteTask(apiKey, "luma/modify-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "luma/modify-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1402,36 +2847,94 @@ export class Veo31ImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "veo3_fast", values: ["veo3","veo3_fast"], title: "Model", description: "The model to use for video generation." })
+  @prop({
+    type: "enum",
+    default: "veo3_fast",
+    values: ["veo3", "veo3_fast"],
+    title: "Model",
+    description: "The model to use for video generation."
+  })
   declare model: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16"], title: "Aspect Ratio", description: "Video aspect ratio." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    title: "Aspect Ratio",
+    description: "Video aspect ratio."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL for task completion." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Call Back Url",
+    description: "Optional callback URL for task completion."
+  })
   declare call_back_url: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text prompt describing how the image should come alive." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description:
+      "Optional text prompt describing how the image should come alive."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image1", description: "First source image. Required. Serves as the video's first frame." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image1",
+    description:
+      "First source image. Required. Serves as the video's first frame."
+  })
   declare image1: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image2", description: "Second source image (optional). If provided, serves as the video's last frame." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image2",
+    description:
+      "Second source image (optional). If provided, serves as the video's last frame."
+  })
   declare image2: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let image1Url = "";
-    if (isRefSet(this.image1)) image1Url = await uploadImageInput(apiKey, this.image1);
+    if (isRefSet(this.image1))
+      image1Url = await uploadImageInput(apiKey, this.image1);
     const params: Record<string, unknown> = {};
     params["model"] = String(this.model ?? "veo3_fast");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["call_back_url"] = String(this.call_back_url ?? "");
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     if (image1Url) params["image_url"] = image1Url;
 
-    const result = await kieExecuteTask(apiKey, "veo-3-1/image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "veo-3-1/image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1449,25 +2952,81 @@ export class Veo31ReferenceToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "enum", default: "veo3_fast", values: ["veo3","veo3_fast"], title: "Model", description: "The model to use for video generation." })
+  @prop({
+    type: "enum",
+    default: "veo3_fast",
+    values: ["veo3", "veo3_fast"],
+    title: "Model",
+    description: "The model to use for video generation."
+  })
   declare model: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16"], title: "Aspect Ratio", description: "Video aspect ratio." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    title: "Aspect Ratio",
+    description: "Video aspect ratio."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL for task completion." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Call Back Url",
+    description: "Optional callback URL for task completion."
+  })
   declare call_back_url: any;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Text prompt describing the desired video content." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Text prompt describing the desired video content."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image1", description: "First reference image. Required. Minimum 1, maximum 3 images." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image1",
+    description: "First reference image. Required. Minimum 1, maximum 3 images."
+  })
   declare image1: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image2", description: "Second reference image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image2",
+    description: "Second reference image (optional)."
+  })
   declare image2: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image3", description: "Third reference image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image3",
+    description: "Third reference image (optional)."
+  })
   declare image3: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1480,10 +3039,19 @@ export class Veo31ReferenceToVideoNode extends BaseNode {
     params["model"] = String(this.model ?? "veo3_fast");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["call_back_url"] = String(this.call_back_url ?? "");
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     if (imageUrls.length) params["image_urls"] = imageUrls;
 
-    const result = await kieExecuteTask(apiKey, "veo-3-1/reference-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "veo-3-1/reference-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1502,32 +3070,89 @@ export class KlingMotionControlNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "The cartoon character is dancing.", title: "Prompt", description: "A text description of the desired output. Maximum 2500 characters." })
+  @prop({
+    type: "str",
+    default: "The cartoon character is dancing.",
+    title: "Prompt",
+    description:
+      "A text description of the desired output. Maximum 2500 characters."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "Reference image. The characters, backgrounds, and other elements in the generated video are based on this image. Supports .jpg/.jpeg/.png, max 10MB, size needs to be greater than 300px, aspect ratio 2:5 to 5:2." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description:
+      "Reference image. The characters, backgrounds, and other elements in the generated video are based on this image. Supports .jpg/.jpeg/.png, max 10MB, size needs to be greater than 300px, aspect ratio 2:5 to 5:2."
+  })
   declare image: any;
 
-  @prop({ type: "video", default: {"type":"video","uri":"","asset_id":null,"data":null,"metadata":null,"duration":null,"format":null}, title: "Video", description: "Reference video. The character actions in the generated video will be consistent with this reference video. Supports .mp4/.mov, max 100MB, 3-30 seconds duration depending on character_orientation." })
+  @prop({
+    type: "video",
+    default: {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    },
+    title: "Video",
+    description:
+      "Reference video. The character actions in the generated video will be consistent with this reference video. Supports .mp4/.mov, max 100MB, 3-30 seconds duration depending on character_orientation."
+  })
   declare video: any;
 
-  @prop({ type: "enum", default: "video", values: ["image","video"], title: "Character Orientation", description: "Generate the orientation of the characters in the video. 'image': same orientation as the person in the picture (max 10s video). 'video': consistent with the orientation of the characters in the video (max 30s video)." })
+  @prop({
+    type: "enum",
+    default: "video",
+    values: ["image", "video"],
+    title: "Character Orientation",
+    description:
+      "Generate the orientation of the characters in the video. 'image': same orientation as the person in the picture (max 10s video). 'video': consistent with the orientation of the characters in the video (max 30s video)."
+  })
   declare character_orientation: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p","1080p"], title: "Mode", description: "Output resolution mode. Use '720p' for 720p or '1080p' for 1080p." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    title: "Mode",
+    description:
+      "Output resolution mode. Use '720p' for 720p or '1080p' for 1080p."
+  })
   declare mode: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "The cartoon character is dancing.");
-    params["character_orientation"] = String(this.character_orientation ?? "video");
+    params["prompt"] = String(
+      this.prompt ?? "The cartoon character is dancing."
+    );
+    params["character_orientation"] = String(
+      this.character_orientation ?? "video"
+    );
     params["mode"] = String(this.mode ?? "720p");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "kling/motion-control", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "kling/motion-control",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1550,36 +3175,82 @@ export class Kling21TextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16","1:1"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "int", default: 5, title: "Duration", description: "Video duration in seconds.", min: 1, max: 10 })
+  @prop({
+    type: "int",
+    default: 5,
+    title: "Duration",
+    description: "Video duration in seconds.",
+    min: 1,
+    max: 10
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720P", values: ["720P","1080P"], title: "Resolution", description: "Video resolution." })
+  @prop({
+    type: "enum",
+    default: "720P",
+    values: ["720P", "1080P"],
+    title: "Resolution",
+    description: "Video resolution."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "standard", values: ["standard","pro"], title: "Mode", description: "Generation mode: standard or pro for higher quality." })
+  @prop({
+    type: "enum",
+    default: "standard",
+    values: ["standard", "pro"],
+    title: "Mode",
+    description: "Generation mode: standard or pro for higher quality."
+  })
   declare mode: any;
 
-  @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducible results. Use -1 for random seed." })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "Seed",
+    description: "Random seed for reproducible results. Use -1 for random seed."
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
     params["duration"] = Number(this.duration ?? 5);
     params["resolution"] = String(this.resolution ?? "720P");
     params["mode"] = String(this.mode ?? "standard");
     params["seed"] = Number(this.seed ?? -1);
 
-    const result = await kieExecuteTask(apiKey, "kling/v2-1-text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "kling/v2-1-text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1602,39 +3273,104 @@ export class Kling21ImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Text prompt to guide the video generation." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "Text prompt to guide the video generation."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image1", description: "First source image for the video generation." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image1",
+    description: "First source image for the video generation."
+  })
   declare image1: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image2", description: "Second source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image2",
+    description: "Second source image (optional)."
+  })
   declare image2: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image3", description: "Third source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image3",
+    description: "Third source image (optional)."
+  })
   declare image3: any;
 
-  @prop({ type: "bool", default: false, title: "Sound", description: "Whether to generate sound for the video." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Sound",
+    description: "Whether to generate sound for the video."
+  })
   declare sound: any;
 
-  @prop({ type: "int", default: 5, title: "Duration", description: "Video duration in seconds." })
+  @prop({
+    type: "int",
+    default: 5,
+    title: "Duration",
+    description: "Video duration in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "standard", values: ["standard","pro"], title: "Mode", description: "Generation mode: standard or pro for higher quality." })
+  @prop({
+    type: "enum",
+    default: "standard",
+    values: ["standard", "pro"],
+    title: "Mode",
+    description: "Generation mode: standard or pro for higher quality."
+  })
   declare mode: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let image1Url = "";
-    if (isRefSet(this.image1)) image1Url = await uploadImageInput(apiKey, this.image1);
+    if (isRefSet(this.image1))
+      image1Url = await uploadImageInput(apiKey, this.image1);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["sound"] = Boolean(this.sound ?? false);
     params["duration"] = Number(this.duration ?? 5);
     params["mode"] = String(this.mode ?? "standard");
     if (image1Url) params["image_url"] = image1Url;
 
-    const result = await kieExecuteTask(apiKey, "kling/v2-1-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "kling/v2-1-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1657,28 +3393,62 @@ export class Wan25TextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5s", values: ["5s","10s"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5s",
+    values: ["5s", "10s"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["1080p","720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["1080p", "720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16","1:1"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5s");
     params["resolution"] = String(this.resolution ?? "1080p");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
 
-    const result = await kieExecuteTask(apiKey, "wan/2-5-text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/2-5-text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1701,35 +3471,96 @@ export class Wan25ImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image1", description: "First source image for the video generation." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image1",
+    description: "First source image for the video generation."
+  })
   declare image1: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image2", description: "Second source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image2",
+    description: "Second source image (optional)."
+  })
   declare image2: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image3", description: "Third source image (optional)." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image3",
+    description: "Third source image (optional)."
+  })
   declare image3: any;
 
-  @prop({ type: "enum", default: "5s", values: ["5s","10s"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5s",
+    values: ["5s", "10s"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["1080p","720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["1080p", "720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let image1Url = "";
-    if (isRefSet(this.image1)) image1Url = await uploadImageInput(apiKey, this.image1);
+    if (isRefSet(this.image1))
+      image1Url = await uploadImageInput(apiKey, this.image1);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5s");
     params["resolution"] = String(this.resolution ?? "1080p");
     if (image1Url) params["image_url"] = image1Url;
 
-    const result = await kieExecuteTask(apiKey, "wan/2-5-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/2-5-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1752,29 +3583,67 @@ export class WanAnimateNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "The character is moving naturally with realistic expressions.", title: "Prompt", description: "The text prompt describing the character animation." })
+  @prop({
+    type: "str",
+    default: "The character is moving naturally with realistic expressions.",
+    title: "Prompt",
+    description: "The text prompt describing the character animation."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "Character image to animate." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Character image to animate."
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "3", values: ["3","5"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "3",
+    values: ["3", "5"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p","1080p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "The character is moving naturally with realistic expressions.");
+    params["prompt"] = String(
+      this.prompt ??
+        "The character is moving naturally with realistic expressions."
+    );
     params["duration"] = String(this.duration ?? "3");
     params["resolution"] = String(this.resolution ?? "720p");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "wan/animate", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/animate",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1797,27 +3666,63 @@ export class WanSpeechToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "Character/face image to animate." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Character/face image to animate."
+  })
   declare image: any;
 
-  @prop({ type: "audio", default: {"type":"audio","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Audio", description: "Audio file for speech/lip-sync." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Audio file for speech/lip-sync."
+  })
   declare audio: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p","1080p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     let audioUrl = "";
-    if (isRefSet(this.audio)) audioUrl = await uploadAudioInput(apiKey, this.audio);
+    if (isRefSet(this.audio))
+      audioUrl = await uploadAudioInput(apiKey, this.audio);
     const params: Record<string, unknown> = {};
     params["resolution"] = String(this.resolution ?? "720p");
     if (imageUrl) params["image_url"] = imageUrl;
     if (audioUrl) params["audio_url"] = audioUrl;
 
-    const result = await kieExecuteTask(apiKey, "wan/speech-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/speech-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1840,28 +3745,62 @@ export class Wan22TextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "3", values: ["3","5"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "3",
+    values: ["3", "5"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16","1:1"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "3");
     params["resolution"] = String(this.resolution ?? "720p");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
 
-    const result = await kieExecuteTask(apiKey, "wan/2-2-text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/2-2-text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1884,29 +3823,68 @@ export class Wan22ImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "Source image for the video generation." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Source image for the video generation."
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "3", values: ["3","5"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "3",
+    values: ["3", "5"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "3");
     params["resolution"] = String(this.resolution ?? "720p");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "wan/2-2-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "wan/2-2-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1929,28 +3907,62 @@ export class Hailuo02TextToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p","1080p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9","9:16","1:1"], title: "Aspect Ratio", description: "The aspect ratio of the generated video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated video."
+  })
   declare aspect_ratio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("Prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("Prompt is required");
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5");
     params["resolution"] = String(this.resolution ?? "720p");
     params["aspect_ratio"] = String(this.aspect_ratio ?? "16:9");
 
-    const result = await kieExecuteTask(apiKey, "hailuo/0-2-text-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "hailuo/0-2-text-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -1973,29 +3985,68 @@ export class Hailuo02ImageToVideoNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
+  @prop({
+    type: "str",
+    default:
+      "A cinematic video with smooth motion, natural lighting, and high detail.",
+    title: "Prompt",
+    description: "The text prompt describing the video."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {"type":"image","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Image", description: "Source image for the video generation." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Source image for the video generation."
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "5", values: ["5","10"], title: "Duration", description: "The duration of the video in seconds." })
+  @prop({
+    type: "enum",
+    default: "5",
+    values: ["5", "10"],
+    title: "Duration",
+    description: "The duration of the video in seconds."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p","1080p"], title: "Resolution", description: "The resolution of the video." })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    title: "Resolution",
+    description: "The resolution of the video."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let imageUrl = "";
-    if (isRefSet(this.image)) imageUrl = await uploadImageInput(apiKey, this.image);
+    if (isRefSet(this.image))
+      imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {};
-    params["prompt"] = String(this.prompt ?? "A cinematic video with smooth motion, natural lighting, and high detail.");
+    params["prompt"] = String(
+      this.prompt ??
+        "A cinematic video with smooth motion, natural lighting, and high detail."
+    );
     params["duration"] = String(this.duration ?? "5");
     params["resolution"] = String(this.resolution ?? "720p");
     if (imageUrl) params["image_url"] = imageUrl;
 
-    const result = await kieExecuteTask(apiKey, "hailuo/0-2-image-to-video", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "hailuo/0-2-image-to-video",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -2018,17 +4069,37 @@ export class Sora2WatermarkRemoverNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "video", default: {"type":"video","uri":"","asset_id":null,"data":null,"metadata":null,"duration":null,"format":null}, title: "Video", description: "Video to remove watermark from. Must be publicly accessible." })
+  @prop({
+    type: "video",
+    default: {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    },
+    title: "Video",
+    description: "Video to remove watermark from. Must be publicly accessible."
+  })
   declare video: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     let videoUrl = "";
-    if (isRefSet(this.video)) videoUrl = await uploadVideoInput(apiKey, this.video);
+    if (isRefSet(this.video))
+      videoUrl = await uploadVideoInput(apiKey, this.video);
     const params: Record<string, unknown> = {};
     if (videoUrl) params["video_url"] = videoUrl;
 
-    const result = await kieExecuteTask(apiKey, "sora-2/watermark-remover", params, 8000, 450);
+    const result = await kieExecuteTask(
+      apiKey,
+      "sora-2/watermark-remover",
+      params,
+      8000,
+      450
+    );
     return { output: { type: "video", data: result.data } };
   }
 }
@@ -2080,5 +4151,5 @@ export const KIE_VIDEO_NODES: readonly NodeClass[] = [
   Wan22ImageToVideoNode,
   Hailuo02TextToVideoNode,
   Hailuo02ImageToVideoNode,
-  Sora2WatermarkRemoverNode,
+  Sora2WatermarkRemoverNode
 ] as const;

@@ -21,7 +21,7 @@ import {
   updateRunpodEndpoint,
   deleteRunpodEndpointByName,
   createOrUpdateRunpodEndpoint,
-  createRunpodEndpointGraphql,
+  createRunpodEndpointGraphql
 } from "../src/runpod-api.js";
 
 // ---------------------------------------------------------------------------
@@ -37,7 +37,7 @@ function jsonResponse(body: unknown, status = 200, ok = true): Response {
     status,
     json: () => Promise.resolve(body),
     text: () => Promise.resolve(JSON.stringify(body)),
-    headers: new Headers(),
+    headers: new Headers()
   } as unknown as Response;
 }
 
@@ -47,7 +47,7 @@ function textResponse(text: string, status = 200, ok = true): Response {
     status,
     json: () => Promise.resolve(JSON.parse(text)),
     text: () => Promise.resolve(text),
-    headers: new Headers(),
+    headers: new Headers()
   } as unknown as Response;
 }
 
@@ -137,16 +137,14 @@ describe("makeRunpodApiCall", () => {
   });
 
   it("returns empty object for DELETE 204", async () => {
-    mockFetch.mockResolvedValueOnce(
-      textResponse("", 204, true)
-    );
+    mockFetch.mockResolvedValueOnce(textResponse("", 204, true));
     // We need ok = true for 204
     mockFetch.mockReset();
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 204,
       text: () => Promise.resolve(""),
-      headers: new Headers(),
+      headers: new Headers()
     } as unknown as Response);
     const result = await makeRunpodApiCall("templates/t1", "DELETE");
     expect(result).toEqual({});
@@ -157,7 +155,7 @@ describe("makeRunpodApiCall", () => {
       ok: true,
       status: 200,
       text: () => Promise.resolve(""),
-      headers: new Headers(),
+      headers: new Headers()
     } as unknown as Response);
     const result = await makeRunpodApiCall("endpoints", "GET");
     expect(result).toEqual({});
@@ -168,7 +166,7 @@ describe("makeRunpodApiCall", () => {
       ok: false,
       status: 500,
       text: () => Promise.resolve("Internal Server Error"),
-      headers: new Headers(),
+      headers: new Headers()
     } as unknown as Response);
     await expect(makeRunpodApiCall("templates", "GET")).rejects.toThrow(
       /failed with status 500/
@@ -213,9 +211,7 @@ describe("runGraphqlQuery", () => {
     vi.stubEnv("RUNPOD_API_BASE_URL", "https://custom.runpod.io");
     mockFetch.mockResolvedValueOnce(jsonResponse({ data: {} }));
     await runGraphqlQuery("{ test }");
-    expect(mockFetch.mock.calls[0][0]).toBe(
-      "https://custom.runpod.io/graphql"
-    );
+    expect(mockFetch.mock.calls[0][0]).toBe("https://custom.runpod.io/graphql");
   });
 
   it("throws on 401 unauthorized", async () => {
@@ -234,9 +230,7 @@ describe("runGraphqlQuery", () => {
 
   it("throws when API key is missing", async () => {
     delete process.env.RUNPOD_API_KEY;
-    await expect(runGraphqlQuery("{ test }")).rejects.toThrow(
-      "RUNPOD_API_KEY"
-    );
+    await expect(runGraphqlQuery("{ test }")).rejects.toThrow("RUNPOD_API_KEY");
   });
 });
 
@@ -255,7 +249,7 @@ describe("Network Volume functions", () => {
     expect(JSON.parse(init.body)).toEqual({
       dataCenterId: "US-TX-3",
       name: "my-vol",
-      size: 50,
+      size: 50
     });
   });
 
@@ -308,7 +302,7 @@ describe("getRunpodTemplateByName", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse([
         { id: "t1", name: "my-template" },
-        { id: "t2", name: "other" },
+        { id: "t2", name: "other" }
       ])
     );
     const tpl = await getRunpodTemplateByName("my-template");
@@ -320,8 +314,8 @@ describe("getRunpodTemplateByName", () => {
       jsonResponse({
         templates: [
           { id: "t1", name: "my-template" },
-          { id: "t2", name: "other" },
-        ],
+          { id: "t2", name: "other" }
+        ]
       })
     );
     const tpl = await getRunpodTemplateByName("my-template");
@@ -352,7 +346,7 @@ describe("deleteRunpodTemplateByName", () => {
       ok: true,
       status: 204,
       text: () => Promise.resolve(""),
-      headers: new Headers(),
+      headers: new Headers()
     } as unknown as Response);
     const result = await deleteRunpodTemplateByName("my-tpl");
     expect(result).toBe(true);
@@ -372,7 +366,7 @@ describe("deleteRunpodTemplateByName", () => {
       ok: false,
       status: 500,
       text: () => Promise.resolve("Server error"),
-      headers: new Headers(),
+      headers: new Headers()
     } as unknown as Response);
     const result = await deleteRunpodTemplateByName("my-tpl");
     expect(result).toBe(false);
@@ -390,7 +384,7 @@ describe("updateRunpodTemplate", () => {
       volumeInGb: 10,
       volumeMountPath: "/data",
       isPublic: false,
-      env: {},
+      env: {}
     };
     const result = await updateRunpodTemplate(tplData, "myimage", "v1");
     expect(result).toBe(true);
@@ -406,7 +400,7 @@ describe("updateRunpodTemplate", () => {
       name: "my-tpl",
       dockerEntrypoint: "/start.sh",
       dockerStartCmd: "serve",
-      readme: "# Hello",
+      readme: "# Hello"
     };
     await updateRunpodTemplate(tplData, "img", "latest");
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -432,19 +426,18 @@ describe("createOrUpdateRunpodTemplate", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ templates: [] }));
     // createTemplate POST
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "new-tpl-1" }));
-    const id = await createOrUpdateRunpodTemplate(
-      "my-tpl",
-      "myimg",
-      "v1",
-      { KEY: "val" }
-    );
+    const id = await createOrUpdateRunpodTemplate("my-tpl", "myimg", "v1", {
+      KEY: "val"
+    });
     expect(id).toBe("new-tpl-1");
   });
 
   it("updates existing template", async () => {
     // getRunpodTemplateByName -> found
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ templates: [{ id: "t1", name: "my-tpl", imageName: "old:v0" }] })
+      jsonResponse({
+        templates: [{ id: "t1", name: "my-tpl", imageName: "old:v0" }]
+      })
     );
     // updateRunpodTemplate PATCH
     mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
@@ -483,8 +476,8 @@ describe("getRunpodEndpointByName", () => {
       jsonResponse({
         endpoints: [
           { id: "ep1", name: "my-endpoint" },
-          { id: "ep2", name: "other" },
-        ],
+          { id: "ep2", name: "other" }
+        ]
       })
     );
     const ep = await getRunpodEndpointByName("my-endpoint");
@@ -494,7 +487,7 @@ describe("getRunpodEndpointByName", () => {
   it("finds prefix match when no exact match", async () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        endpoints: [{ id: "ep1", name: "my-endpoint-v2" }],
+        endpoints: [{ id: "ep1", name: "my-endpoint-v2" }]
       })
     );
     const ep = await getRunpodEndpointByName("my-endpoint");
@@ -540,7 +533,7 @@ describe("updateRunpodEndpoint", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
     await updateRunpodEndpoint("ep1", "tpl1", {
       workersMin: 1,
-      foo: undefined,
+      foo: undefined
     });
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.workersMin).toBe(1);
@@ -558,14 +551,14 @@ describe("deleteRunpodEndpointByName", () => {
   it("deletes endpoint by exact name match", async () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        endpoints: [{ id: "ep1", name: "my-ep" }],
+        endpoints: [{ id: "ep1", name: "my-ep" }]
       })
     );
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 204,
       text: () => Promise.resolve(""),
-      headers: new Headers(),
+      headers: new Headers()
     } as unknown as Response);
     const result = await deleteRunpodEndpointByName("my-ep");
     expect(result).toBe(true);
@@ -574,14 +567,14 @@ describe("deleteRunpodEndpointByName", () => {
   it("deletes endpoint by case-insensitive match", async () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        endpoints: [{ id: "ep1", name: "My-EP" }],
+        endpoints: [{ id: "ep1", name: "My-EP" }]
       })
     );
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 204,
       text: () => Promise.resolve(""),
-      headers: new Headers(),
+      headers: new Headers()
     } as unknown as Response);
     const result = await deleteRunpodEndpointByName("my-ep");
     expect(result).toBe(true);
@@ -601,7 +594,7 @@ describe("deleteRunpodEndpointByName", () => {
       ok: false,
       status: 500,
       text: () => Promise.resolve("error"),
-      headers: new Headers(),
+      headers: new Headers()
     } as unknown as Response);
     const result = await deleteRunpodEndpointByName("my-ep");
     expect(result).toBe(false);
@@ -618,11 +611,17 @@ describe("createOrUpdateRunpodEndpoint", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ endpoints: [] }));
     // createEndpoint POST
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "ep-new", name: "test-ep", gpuTypeIds: ["ADA_24"], workersMin: 0, workersMax: 3 })
+      jsonResponse({
+        id: "ep-new",
+        name: "test-ep",
+        gpuTypeIds: ["ADA_24"],
+        workersMin: 0,
+        workersMax: 3
+      })
     );
     const id = await createOrUpdateRunpodEndpoint({
       templateId: "tpl1",
-      name: "test-ep",
+      name: "test-ep"
     });
     expect(id).toBe("ep-new");
   });
@@ -630,13 +629,15 @@ describe("createOrUpdateRunpodEndpoint", () => {
   it("updates existing endpoint", async () => {
     // getRunpodEndpointByName -> found
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ endpoints: [{ id: "ep1", name: "test-ep", templateId: "tpl-old" }] })
+      jsonResponse({
+        endpoints: [{ id: "ep1", name: "test-ep", templateId: "tpl-old" }]
+      })
     );
     // updateRunpodEndpoint PATCH
     mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
     const id = await createOrUpdateRunpodEndpoint({
       templateId: "tpl-new",
-      name: "test-ep",
+      name: "test-ep"
     });
     expect(id).toBe("ep1");
   });
@@ -646,7 +647,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "ep1" }));
     await createOrUpdateRunpodEndpoint({
       templateId: "tpl1",
-      name: "test",
+      name: "test"
     });
     const body = JSON.parse(mockFetch.mock.calls[1][1].body);
     expect(body.gpuTypeIds).toEqual(["NVIDIA GeForce RTX 4090"]);
@@ -659,7 +660,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
     await createOrUpdateRunpodEndpoint({
       templateId: "tpl1",
       name: "test",
-      computeType: ComputeType.CPU,
+      computeType: ComputeType.CPU
     });
     const body = JSON.parse(mockFetch.mock.calls[1][1].body);
     expect(body.cpuFlavorIds).toEqual(["cpu3c"]);
@@ -686,7 +687,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
     const id = await createOrUpdateRunpodEndpoint({
       templateId: "tpl1",
       name: "test",
-      networkVolumeId: "vol-1",
+      networkVolumeId: "vol-1"
     });
     expect(id).toBe("ep-1");
     const body = JSON.parse(mockFetch.mock.calls[2][1].body);
@@ -710,13 +711,13 @@ describe("createOrUpdateRunpodEndpoint", () => {
       ok: true,
       status: 204,
       text: () => Promise.resolve(""),
-      headers: new Headers(),
+      headers: new Headers()
     } as unknown as Response);
     // createEndpoint POST
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "ep-new" }));
     const id = await createOrUpdateRunpodEndpoint({
       templateId: "tpl1",
-      name: "test-ep",
+      name: "test-ep"
     });
     expect(id).toBe("ep-new");
   });
@@ -740,14 +741,14 @@ describe("createRunpodEndpointGraphql", () => {
             gpuIds: "AMPERE_24",
             workersMin: 0,
             workersMax: 3,
-            scalerType: "REQUEST_COUNT",
-          },
-        },
+            scalerType: "REQUEST_COUNT"
+          }
+        }
       })
     );
     const id = await createRunpodEndpointGraphql({
       templateId: "tpl1",
-      name: "test-ep",
+      name: "test-ep"
     });
     expect(id).toBe("ep-gql-1");
   });
@@ -757,14 +758,14 @@ describe("createRunpodEndpointGraphql", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         data: {
-          saveEndpoint: { id: "ep-1", name: "test-ep-fb" },
-        },
+          saveEndpoint: { id: "ep-1", name: "test-ep-fb" }
+        }
       })
     );
     await createRunpodEndpointGraphql({
       templateId: "tpl1",
       name: "test-ep",
-      flashboot: true,
+      flashboot: true
     });
     const gqlBody = JSON.parse(mockFetch.mock.calls[1][1].body);
     expect(gqlBody.query).toContain("test-ep-fb");
@@ -794,14 +795,14 @@ describe("createRunpodEndpointGraphql", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ endpoints: [] }));
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        data: { saveEndpoint: { id: "ep-1", name: "test" } },
+        data: { saveEndpoint: { id: "ep-1", name: "test" } }
       })
     );
     await createRunpodEndpointGraphql({
       templateId: "tpl1",
       name: "test",
       networkVolumeId: "vol-1",
-      dataCenterIds: ["US-TX-3"],
+      dataCenterIds: ["US-TX-3"]
     });
     const gqlBody = JSON.parse(mockFetch.mock.calls[1][1].body);
     expect(gqlBody.query).toContain('networkVolumeId: "vol-1"');

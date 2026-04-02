@@ -12,6 +12,12 @@ export interface BinaryOperationOutputs {
   output: number | unknown;
 }
 
-export function binaryOperation(inputs: BinaryOperationInputs): DslNode<BinaryOperationOutputs, "output"> {
-  return createNode("lib.numpy.utils.BinaryOperation", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function binaryOperation(
+  inputs: BinaryOperationInputs
+): DslNode<BinaryOperationOutputs, "output"> {
+  return createNode(
+    "lib.numpy.utils.BinaryOperation",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

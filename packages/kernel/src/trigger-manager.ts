@@ -99,7 +99,7 @@ export class TriggerWorkflowManager {
   async startTriggerWorkflow(
     workflowId: string,
     userId: string,
-    workflowName?: string,
+    workflowName?: string
   ): Promise<TriggerJob | null> {
     // Check if already running
     const existing = this._runningJobs.get(workflowId);
@@ -123,7 +123,7 @@ export class TriggerWorkflowManager {
       const { jobId, completion } = await this._startJob({
         workflowId,
         userId,
-        signal: abortController.signal,
+        signal: abortController.signal
       });
 
       const job: TriggerJob = {
@@ -132,7 +132,7 @@ export class TriggerWorkflowManager {
         status: "running",
         abortController,
         completion,
-        metadata: { userId, workflowName },
+        metadata: { userId, workflowName }
       };
 
       // Track completion
@@ -141,7 +141,7 @@ export class TriggerWorkflowManager {
           job.status = "completed";
           log.warn("Trigger workflow completed unexpectedly", {
             workflowId,
-            jobId,
+            jobId
           });
         })
         .catch((err) => {
@@ -152,7 +152,7 @@ export class TriggerWorkflowManager {
             log.error("Trigger workflow failed", {
               workflowId,
               jobId,
-              error: String(err),
+              error: String(err)
             });
           }
         });
@@ -164,7 +164,7 @@ export class TriggerWorkflowManager {
     } catch (err) {
       log.error("Failed to start trigger workflow", {
         workflowId,
-        error: String(err),
+        error: String(err)
       });
       return null;
     }
@@ -189,7 +189,7 @@ export class TriggerWorkflowManager {
     } catch (err) {
       log.error("Error stopping trigger workflow", {
         workflowId,
-        error: String(err),
+        error: String(err)
       });
       return false;
     }
@@ -271,7 +271,7 @@ export class TriggerWorkflowManager {
         log.warn("Trigger workflow needs restart", {
           workflowId,
           jobId: job.jobId,
-          status: job.status,
+          status: job.status
         });
         toRestart.push(workflowId);
       }
@@ -287,7 +287,7 @@ export class TriggerWorkflowManager {
       await this.startTriggerWorkflow(
         workflowId,
         job.metadata.userId,
-        job.metadata.workflowName,
+        job.metadata.workflowName
       );
     }
   }

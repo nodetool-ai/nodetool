@@ -14,7 +14,7 @@ import type {
   Edge,
   NodeDescriptor,
   GraphData,
-  SyncMode,
+  SyncMode
 } from "@nodetool/protocol";
 
 const log = createLogger("nodetool.kernel.graph");
@@ -46,14 +46,19 @@ export interface ResolvedNodeType {
 }
 
 export type NodeTypeResolver =
-  | ((nodeType: string) => Promise<ResolvedNodeType | null> | ResolvedNodeType | null)
+  | ((
+      nodeType: string
+    ) => Promise<ResolvedNodeType | null> | ResolvedNodeType | null)
   | {
       resolveNodeType: (
-        nodeType: string,
+        nodeType: string
       ) => Promise<ResolvedNodeType | null> | ResolvedNodeType | null;
     };
 
-export interface GraphLoadOptions extends Omit<GraphFromDictOptions, "validateNodeType"> {
+export interface GraphLoadOptions extends Omit<
+  GraphFromDictOptions,
+  "validateNodeType"
+> {
   resolver: NodeTypeResolver;
 }
 
@@ -81,7 +86,7 @@ function nodeTypeToJsonSchema(typeStr: string | undefined): string {
 
 function resolveNodeTypeWith(
   resolver: NodeTypeResolver,
-  nodeType: string,
+  nodeType: string
 ): Promise<ResolvedNodeType | null> | ResolvedNodeType | null {
   if (typeof resolver === "function") {
     return resolver(nodeType);
@@ -133,14 +138,16 @@ export class Graph {
     const {
       skipErrors = true,
       allowUndefinedProperties = true,
-      validateNodeType,
+      validateNodeType
     } = options;
     if (!data || typeof data !== "object") {
       throw new GraphValidationError("Graph data must be an object");
     }
     const obj = data as Record<string, unknown>;
     if (!("nodes" in obj) || !("edges" in obj)) {
-      throw new GraphValidationError("Graph data must have 'nodes' and 'edges' fields");
+      throw new GraphValidationError(
+        "Graph data must have 'nodes' and 'edges' fields"
+      );
     }
     if (!Array.isArray(obj.nodes)) {
       throw new GraphValidationError("'nodes' must be an array");
@@ -156,8 +163,12 @@ export class Graph {
         throw new GraphValidationError("Edge entries must be objects");
       }
       const edgeObj = edge as Record<string, unknown>;
-      const targetId = typeof edgeObj.target === "string" ? edgeObj.target : undefined;
-      const targetHandle = typeof edgeObj.targetHandle === "string" ? edgeObj.targetHandle : undefined;
+      const targetId =
+        typeof edgeObj.target === "string" ? edgeObj.target : undefined;
+      const targetHandle =
+        typeof edgeObj.targetHandle === "string"
+          ? edgeObj.targetHandle
+          : undefined;
       if (!targetId || !targetHandle) continue;
       let handles = propertiesWithEdges.get(targetId);
       if (!handles) {
@@ -180,7 +191,9 @@ export class Graph {
       const type = typeof nodeObj.type === "string" ? nodeObj.type : undefined;
       if (!id || !type) {
         if (skipErrors) continue;
-        throw new GraphValidationError("Each node must have string 'id' and 'type' fields");
+        throw new GraphValidationError(
+          "Each node must have string 'id' and 'type' fields"
+        );
       }
       if (validateNodeType && !validateNodeType(type)) {
         if (skipErrors) continue;
@@ -197,8 +210,14 @@ export class Graph {
       // Merge dynamic_properties into the node's properties so that
       // dynamic nodes (e.g. WorkflowNode) receive user-provided values
       // for inputs that aren't connected via edges.
-      if (nodeObj.dynamic_properties && typeof nodeObj.dynamic_properties === "object") {
-        Object.assign(rawProperties, nodeObj.dynamic_properties as Record<string, unknown>);
+      if (
+        nodeObj.dynamic_properties &&
+        typeof nodeObj.dynamic_properties === "object"
+      ) {
+        Object.assign(
+          rawProperties,
+          nodeObj.dynamic_properties as Record<string, unknown>
+        );
       }
 
       if (!allowUndefinedProperties) {
@@ -208,11 +227,12 @@ export class Graph {
         const hasPropertyTypes =
           nodeObj.propertyTypes != null &&
           typeof nodeObj.propertyTypes === "object" &&
-          Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0;
+          Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length >
+            0;
 
         if (hasPropertyTypes) {
           const definedProperties = new Set<string>(
-            Object.keys(nodeObj.propertyTypes as Record<string, unknown>),
+            Object.keys(nodeObj.propertyTypes as Record<string, unknown>)
           );
 
           for (const key of Object.keys(rawProperties)) {
@@ -220,7 +240,9 @@ export class Graph {
               if (skipErrors) {
                 delete rawProperties[key];
               } else {
-                throw new GraphValidationError(`Property ${key} does not exist on node ${id}`);
+                throw new GraphValidationError(
+                  `Property ${key} does not exist on node ${id}`
+                );
               }
             }
           }
@@ -261,7 +283,10 @@ export class Graph {
 
       const source = edgeObj.source as string;
       const target = edgeObj.target as string;
-      if (skipErrors && (!validNodeIds.has(source) || !validNodeIds.has(target))) {
+      if (
+        skipErrors &&
+        (!validNodeIds.has(source) || !validNodeIds.has(target))
+      ) {
         continue;
       }
 
@@ -271,11 +296,18 @@ export class Graph {
     return new Graph({ nodes: validNodes, edges: validEdges });
   }
 
-  static async loadFromDict(data: unknown, options: GraphLoadOptions): Promise<Graph> {
-    const { resolver, skipErrors = true, allowUndefinedProperties = true } = options;
+  static async loadFromDict(
+    data: unknown,
+    options: GraphLoadOptions
+  ): Promise<Graph> {
+    const {
+      resolver,
+      skipErrors = true,
+      allowUndefinedProperties = true
+    } = options;
     const normalized = Graph.fromDict(data, {
       skipErrors,
-      allowUndefinedProperties: true,
+      allowUndefinedProperties: true
     });
 
     const resolvedNodes: NodeDescriptor[] = [];
@@ -291,23 +323,27 @@ export class Graph {
       const resolvedPropertyTypes = resolved.propertyTypes ?? {};
       const allowedProperties = new Set(Object.keys(resolvedPropertyTypes));
       const mergedProperties = {
-        ...((node.properties as Record<string, unknown> | undefined) ?? {}),
+        ...((node.properties as Record<string, unknown> | undefined) ?? {})
       };
 
-      const effectiveAllowUndefined = resolved.isDynamic || allowUndefinedProperties;
+      const effectiveAllowUndefined =
+        resolved.isDynamic || allowUndefinedProperties;
       if (!effectiveAllowUndefined) {
         for (const key of Object.keys(mergedProperties)) {
           if (!allowedProperties.has(key)) {
             if (skipErrors) {
               delete mergedProperties[key];
             } else {
-              throw new GraphValidationError(`Property ${key} does not exist on node ${node.id}`);
+              throw new GraphValidationError(
+                `Property ${key} does not exist on node ${node.id}`
+              );
             }
           }
         }
       }
 
-      const descriptorDefaults: Partial<NodeDescriptor> = resolved.descriptorDefaults ?? {};
+      const descriptorDefaults: Partial<NodeDescriptor> =
+        resolved.descriptorDefaults ?? {};
       const hydratedNode: NodeDescriptor = {
         ...descriptorDefaults,
         ...node,
@@ -315,19 +351,31 @@ export class Graph {
         properties: mergedProperties,
         propertyTypes: {
           ...resolvedPropertyTypes,
-          ...(node.propertyTypes ?? {}),
+          ...(node.propertyTypes ?? {})
         },
         outputs: {
           ...(resolved.outputs ?? {}),
-          ...(node.outputs ?? {}),
+          ...(node.outputs ?? {})
         },
-        sync_mode: node.sync_mode ?? ((node.properties as Record<string, unknown> | undefined)?.sync_mode as SyncMode | undefined) ?? descriptorDefaults.sync_mode ?? "on_any",
+        sync_mode:
+          node.sync_mode ??
+          ((node.properties as Record<string, unknown> | undefined)
+            ?.sync_mode as SyncMode | undefined) ??
+          descriptorDefaults.sync_mode ??
+          "on_any",
         // Streaming/control flags: registry metadata (descriptorDefaults) is
         // the source of truth.  Saved graph data may have stale or missing
         // values, so always prefer the registry if it declares true.
-        is_streaming_input: descriptorDefaults.is_streaming_input || node.is_streaming_input || false,
-        is_streaming_output: descriptorDefaults.is_streaming_output || node.is_streaming_output || false,
-        is_controlled: descriptorDefaults.is_controlled || node.is_controlled || false,
+        is_streaming_input:
+          descriptorDefaults.is_streaming_input ||
+          node.is_streaming_input ||
+          false,
+        is_streaming_output:
+          descriptorDefaults.is_streaming_output ||
+          node.is_streaming_output ||
+          false,
+        is_controlled:
+          descriptorDefaults.is_controlled || node.is_controlled || false
       };
 
       resolvedNodes.push(hydratedNode);
@@ -335,7 +383,7 @@ export class Graph {
     }
 
     const validEdges = normalized.edges.filter(
-      (edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target),
+      (edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target)
     );
     return new Graph({ nodes: resolvedNodes, edges: validEdges });
   }
@@ -432,7 +480,9 @@ export class Graph {
   getControlEdges(targetId: string): Edge[];
   getControlEdges(targetId?: string): Edge[] {
     return this.edges.filter(
-      (edge) => isControlEdge(edge) && (targetId === undefined || edge.target === targetId),
+      (edge) =>
+        isControlEdge(edge) &&
+        (targetId === undefined || edge.target === targetId)
     );
   }
 
@@ -440,7 +490,10 @@ export class Graph {
   getControllerNodes(targetId: string): NodeDescriptor[];
   getControllerNodes(targetId?: string): NodeDescriptor[] {
     const ids = new Set(
-      (targetId === undefined ? this.getControlEdges() : this.getControlEdges(targetId)).map((e) => e.source),
+      (targetId === undefined
+        ? this.getControlEdges()
+        : this.getControlEdges(targetId)
+      ).map((e) => e.source)
     );
     return this.nodes.filter((n) => ids.has(n.id));
   }
@@ -466,9 +519,7 @@ export class Graph {
    * Return nodes that have no incoming data edges (source nodes).
    */
   inputNodes(): NodeDescriptor[] {
-    return this.nodes.filter(
-      (n) => this.findDataEdges(n.id).length === 0
-    );
+    return this.nodes.filter((n) => this.findDataEdges(n.id).length === 0);
   }
 
   /**
@@ -476,8 +527,7 @@ export class Graph {
    */
   outputNodes(): NodeDescriptor[] {
     return this.nodes.filter(
-      (n) =>
-        this.findOutgoingEdges(n.id).filter(isDataEdge).length === 0
+      (n) => this.findOutgoingEdges(n.id).filter(isDataEdge).length === 0
     );
   }
 
@@ -500,9 +550,7 @@ export class Graph {
     const result = new Set<string>();
 
     // BFS from every streaming-output node along data edges
-    const streamingSources = this.nodes.filter(
-      (n) => n.is_streaming_output
-    );
+    const streamingSources = this.nodes.filter((n) => n.is_streaming_output);
     const queue: string[] = [];
 
     for (const src of streamingSources) {
@@ -540,19 +588,23 @@ export class Graph {
       parentId === null
         ? new Set(
             this.nodes
-              .filter((node) => node.type === "GroupNode" || node.type.endsWith(".GroupNode"))
-              .map((node) => node.id),
+              .filter(
+                (node) =>
+                  node.type === "GroupNode" || node.type.endsWith(".GroupNode")
+              )
+              .map((node) => node.id)
           )
         : new Set<string>();
 
     const filteredNodes = this.nodes.filter(
       (node) =>
         (node.parent_id ?? null) === parentId ||
-        (node.parent_id != null && groupNodeIds.has(node.parent_id)),
+        (node.parent_id != null && groupNodeIds.has(node.parent_id))
     );
     const filteredNodeIds = new Set(filteredNodes.map((node) => node.id));
     const filteredEdges = this.edges.filter(
-      (edge) => filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target),
+      (edge) =>
+        filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
     );
 
     // In-degree count across filtered edges.
@@ -599,7 +651,7 @@ export class Graph {
     if (visited.size !== filteredNodes.length) {
       log.warn("Graph contains at least one cycle", {
         visited: visited.size,
-        total: filteredNodes.length,
+        total: filteredNodes.length
       });
     }
 
@@ -614,20 +666,27 @@ export class Graph {
    * Build a JSON Schema object from input nodes (type contains "Input").
    * Each input node contributes a property named after node.name (or node.id).
    */
-  getInputSchema(): { properties: Record<string, unknown>; required: string[] } {
+  getInputSchema(): {
+    properties: Record<string, unknown>;
+    required: string[];
+  } {
     return this._buildSchema((n) => n.type.includes("Input"));
   }
 
   /**
    * Build a JSON Schema object from output nodes (type contains "Output").
    */
-  getOutputSchema(): { properties: Record<string, unknown>; required: string[] } {
+  getOutputSchema(): {
+    properties: Record<string, unknown>;
+    required: string[];
+  } {
     return this._buildSchema((n) => n.type.includes("Output"));
   }
 
-  private _buildSchema(
-    filter: (n: NodeDescriptor) => boolean
-  ): { properties: Record<string, unknown>; required: string[] } {
+  private _buildSchema(filter: (n: NodeDescriptor) => boolean): {
+    properties: Record<string, unknown>;
+    required: string[];
+  } {
     const properties: Record<string, unknown> = {};
     const required: string[] = [];
 
@@ -635,7 +694,9 @@ export class Graph {
       if (!filter(node)) continue;
       const name = node.name || node.id;
       // Use the first output type to determine the JSON Schema type
-      const outputType = node.outputs ? Object.values(node.outputs)[0] : undefined;
+      const outputType = node.outputs
+        ? Object.values(node.outputs)[0]
+        : undefined;
       properties[name] = { type: nodeTypeToJsonSchema(outputType) };
       required.push(name);
     }
@@ -663,13 +724,17 @@ export class Graph {
   validateEdgeEndpoints(): void {
     for (const edge of this.edges) {
       if (!this._nodeIndex.has(edge.source)) {
-        log.error("Edge references unknown source node", { source: edge.source });
+        log.error("Edge references unknown source node", {
+          source: edge.source
+        });
         throw new GraphValidationError(
           `Edge references unknown source node: ${edge.source}`
         );
       }
       if (!this._nodeIndex.has(edge.target)) {
-        log.error("Edge references unknown target node", { target: edge.target });
+        log.error("Edge references unknown target node", {
+          target: edge.target
+        });
         throw new GraphValidationError(
           `Edge references unknown target node: ${edge.target}`
         );
@@ -719,7 +784,11 @@ export class Graph {
       // Get target input type from node.properties[targetHandle].type
       const targetProp = targetNode.properties?.[edge.targetHandle];
       let targetType: string | undefined;
-      if (typeof targetProp === "object" && targetProp !== null && "type" in targetProp) {
+      if (
+        typeof targetProp === "object" &&
+        targetProp !== null &&
+        "type" in targetProp
+      ) {
         targetType = (targetProp as { type: string }).type;
       } else if (typeof targetProp === "string") {
         targetType = targetProp;
@@ -731,10 +800,15 @@ export class Graph {
       const targetMeta = TypeMetadata.fromString(targetType);
 
       if (!sourceMeta.isCompatibleWith(targetMeta)) {
-        log.warn("Type mismatch on edge", { source: edge.source, target: edge.target, sourceType, targetType });
+        log.warn("Type mismatch on edge", {
+          source: edge.source,
+          target: edge.target,
+          sourceType,
+          targetType
+        });
         throw new GraphValidationError(
           `Type mismatch on edge ${edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`}: ` +
-          `source outputs "${sourceType}" but target expects "${targetType}"`
+            `source outputs "${sourceType}" but target expects "${targetType}"`
         );
       }
     }

@@ -4,7 +4,7 @@ import type { NodeClass } from "./base-node.js";
 import type {
   NodeMetadata,
   PythonMetadataLoadOptions,
-  PythonMetadataLoadResult,
+  PythonMetadataLoadResult
 } from "./metadata.js";
 import { loadPythonPackageMetadata } from "./metadata.js";
 import { getNodeMetadata } from "./node-metadata.js";
@@ -19,7 +19,10 @@ export interface RegisterNodeOptions {
 }
 
 export interface RegistryGraphResolverOptions {
-  loadNamespace?: (namespace: string, registry: NodeRegistry) => Promise<void> | void;
+  loadNamespace?: (
+    namespace: string,
+    registry: NodeRegistry
+  ) => Promise<void> | void;
 }
 
 export class NodeRegistry {
@@ -51,7 +54,9 @@ export class NodeRegistry {
     if (metadata) {
       this._registeredMetadataByType.set(nodeClass.nodeType, metadata);
     } else if (this._strictMetadata) {
-      throw new Error(`Missing resolved metadata for node type: ${nodeClass.nodeType}`);
+      throw new Error(
+        `Missing resolved metadata for node type: ${nodeClass.nodeType}`
+      );
     }
     this._classes.set(nodeClass.nodeType, nodeClass);
   }
@@ -61,7 +66,9 @@ export class NodeRegistry {
     if (!NodeClass) {
       throw new Error(`Unknown node type: ${descriptor.type}`);
     }
-    const instance = new NodeClass((descriptor.properties as Record<string, unknown> | undefined) ?? {});
+    const instance = new NodeClass(
+      (descriptor.properties as Record<string, unknown> | undefined) ?? {}
+    );
     instance.__node_id = descriptor.id;
     instance.__node_name = descriptor.name ?? descriptor.type;
     if (descriptor.dynamic_outputs) {
@@ -83,7 +90,10 @@ export class NodeRegistry {
   }
 
   getMetadata(nodeType: string): NodeMetadata | undefined {
-    return this._registeredMetadataByType.get(nodeType) ?? this._loadedMetadataByType.get(nodeType);
+    return (
+      this._registeredMetadataByType.get(nodeType) ??
+      this._loadedMetadataByType.get(nodeType)
+    );
   }
 
   resolveMetadata(nodeType: string): NodeMetadata | undefined {
@@ -100,17 +110,24 @@ export class NodeRegistry {
     for (const [nodeType, metadata] of this._loadedMetadataByType.entries()) {
       merged.set(nodeType, metadata);
     }
-    for (const [nodeType, metadata] of this._registeredMetadataByType.entries()) {
+    for (const [
+      nodeType,
+      metadata
+    ] of this._registeredMetadataByType.entries()) {
       merged.set(nodeType, metadata);
     }
     return [...merged.values()];
   }
 
   listRegisteredNodeTypesWithoutMetadata(): string[] {
-    return this.list().filter((nodeType) => this.getMetadata(nodeType) === undefined);
+    return this.list().filter(
+      (nodeType) => this.getMetadata(nodeType) === undefined
+    );
   }
 
-  loadPythonMetadata(options: PythonMetadataLoadOptions = {}): PythonMetadataLoadResult {
+  loadPythonMetadata(
+    options: PythonMetadataLoadOptions = {}
+  ): PythonMetadataLoadResult {
     const loaded = loadPythonPackageMetadata(options);
     for (const [nodeType, metadata] of loaded.nodesByType.entries()) {
       this._loadedMetadataByType.set(nodeType, metadata);
@@ -131,9 +148,17 @@ export function register(nodeClass: NodeClass): void {
   NodeRegistry.global.register(nodeClass);
 }
 
-function typeMetadataToString(typeMeta: NodeMetadata["properties"][number]["type"] | NodeMetadata["outputs"][number]["type"]): string {
-  const args = (typeMeta.type_args ?? []).map(typeMetadataToString).filter(Boolean);
-  return args.length > 0 ? `${typeMeta.type}[${args.join(", ")}]` : typeMeta.type;
+function typeMetadataToString(
+  typeMeta:
+    | NodeMetadata["properties"][number]["type"]
+    | NodeMetadata["outputs"][number]["type"]
+): string {
+  const args = (typeMeta.type_args ?? [])
+    .map(typeMetadataToString)
+    .filter(Boolean);
+  return args.length > 0
+    ? `${typeMeta.type}[${args.join(", ")}]`
+    : typeMeta.type;
 }
 
 function deriveNamespace(nodeType: string): string {
@@ -143,10 +168,12 @@ function deriveNamespace(nodeType: string): string {
 
 export function createGraphNodeTypeResolver(
   registry: NodeRegistry,
-  options: RegistryGraphResolverOptions = {},
+  options: RegistryGraphResolverOptions = {}
 ): { resolveNodeType: (nodeType: string) => Promise<ResolvedNodeType | null> } {
   return {
-    resolveNodeType: async (nodeType: string): Promise<ResolvedNodeType | null> => {
+    resolveNodeType: async (
+      nodeType: string
+    ): Promise<ResolvedNodeType | null> => {
       let metadata = registry.resolveMetadata(nodeType);
 
       if (!metadata) {
@@ -160,19 +187,28 @@ export function createGraphNodeTypeResolver(
       if (!metadata) return null;
 
       const propertyTypes = Object.fromEntries(
-        (metadata.properties ?? []).map((prop) => [prop.name, typeMetadataToString(prop.type)]),
+        (metadata.properties ?? []).map((prop) => [
+          prop.name,
+          typeMetadataToString(prop.type)
+        ])
       );
       const propertyMeta = Object.fromEntries(
         (metadata.properties ?? [])
           .filter((p) => p.description || p.min != null || p.max != null)
-          .map((p) => [p.name, {
-            ...(p.description ? { description: p.description } : {}),
-            ...(p.min != null ? { min: p.min } : {}),
-            ...(p.max != null ? { max: p.max } : {}),
-          }]),
+          .map((p) => [
+            p.name,
+            {
+              ...(p.description ? { description: p.description } : {}),
+              ...(p.min != null ? { min: p.min } : {}),
+              ...(p.max != null ? { max: p.max } : {})
+            }
+          ])
       );
       const outputs = Object.fromEntries(
-        (metadata.outputs ?? []).map((output) => [output.name, typeMetadataToString(output.type)]),
+        (metadata.outputs ?? []).map((output) => [
+          output.name,
+          typeMetadataToString(output.type)
+        ])
       );
       const NodeClass = registry.getClass(nodeType);
       const syncMode = NodeClass?.syncMode;
@@ -187,9 +223,9 @@ export function createGraphNodeTypeResolver(
           ...(metadata.is_streaming_output && { is_streaming_output: true }),
           ...(metadata.is_controlled && { is_controlled: true }),
           ...(syncMode !== undefined && { sync_mode: syncMode }),
-          ...(Object.keys(propertyMeta).length > 0 && { propertyMeta }),
-        },
+          ...(Object.keys(propertyMeta).length > 0 && { propertyMeta })
+        }
       };
-    },
+    }
   };
 }

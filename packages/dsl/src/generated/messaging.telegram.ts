@@ -28,8 +28,30 @@ export interface TelegramBotTriggerOutputs {
   event_type: string;
 }
 
-export function telegramBotTrigger(inputs: TelegramBotTriggerInputs): DslNode<TelegramBotTriggerOutputs> {
-  return createNode("messaging.telegram.TelegramBotTrigger", inputs as Record<string, unknown>, { outputNames: ["update_id", "update_type", "message_id", "text", "caption", "entities", "chat", "from_user", "attachments", "timestamp", "source", "event_type"], streaming: true });
+export function telegramBotTrigger(
+  inputs: TelegramBotTriggerInputs
+): DslNode<TelegramBotTriggerOutputs> {
+  return createNode(
+    "messaging.telegram.TelegramBotTrigger",
+    inputs as Record<string, unknown>,
+    {
+      outputNames: [
+        "update_id",
+        "update_type",
+        "message_id",
+        "text",
+        "caption",
+        "entities",
+        "chat",
+        "from_user",
+        "attachments",
+        "timestamp",
+        "source",
+        "event_type"
+      ],
+      streaming: true
+    }
+  );
 }
 
 // Telegram Send Message — messaging.telegram.TelegramSendMessage
@@ -47,6 +69,12 @@ export interface TelegramSendMessageOutputs {
   output: Record<string, unknown>;
 }
 
-export function telegramSendMessage(inputs: TelegramSendMessageInputs): DslNode<TelegramSendMessageOutputs, "output"> {
-  return createNode("messaging.telegram.TelegramSendMessage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function telegramSendMessage(
+  inputs: TelegramSendMessageInputs
+): DslNode<TelegramSendMessageOutputs, "output"> {
+  return createNode(
+    "messaging.telegram.TelegramSendMessage",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

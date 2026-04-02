@@ -62,7 +62,7 @@ import {
   OscillatorLibNode,
   EnvelopeLibNode,
   // lib-seaborn
-  ChartRendererLibNode,
+  ChartRendererLibNode
 } from "../src/index.js";
 
 // ── Helper: create a minimal WAV audio ref ──────────────────────────
@@ -96,7 +96,11 @@ function makeAudioRef(
   return { uri: "", data: buffer.toString("base64") };
 }
 
-function makeShortSine(sr = 8000, dur = 0.05, freq = 440): { uri: string; data: string } {
+function makeShortSine(
+  sr = 8000,
+  dur = 0.05,
+  freq = 440
+): { uri: string; data: string } {
   const n = Math.floor(sr * dur);
   const samples = new Float32Array(n);
   for (let i = 0; i < n; i++) {
@@ -106,7 +110,11 @@ function makeShortSine(sr = 8000, dur = 0.05, freq = 440): { uri: string; data: 
 }
 
 // Longer sine for spectral analysis (needs enough samples for FFT)
-function makeLongerSine(sr = 8000, dur = 0.5, freq = 440): { uri: string; data: string } {
+function makeLongerSine(
+  sr = 8000,
+  dur = 0.5,
+  freq = 440
+): { uri: string; data: string } {
   const n = Math.floor(sr * dur);
   const samples = new Float32Array(n);
   for (let i = 0; i < n; i++) {
@@ -123,11 +131,13 @@ const arr = (data: number[], shape: number[]) => ({ data, shape });
 
 describe("lib-numpy ConvertToAudio", () => {
   it("converts array to WAV audio ref", async () => {
-    const data = Array.from({ length: 100 }, (_, i) => Math.sin((2 * Math.PI * 440 * i) / 8000));
+    const data = Array.from({ length: 100 }, (_, i) =>
+      Math.sin((2 * Math.PI * 440 * i) / 8000)
+    );
     const __n288 = new NumpyConvertToAudioNode();
     __n288.assign({
       values: { data, shape: [100] },
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const res = await __n288.process();
     const out = res.output as { uri: string; data: string };
@@ -143,7 +153,7 @@ describe("lib-numpy ConvertToImage", () => {
     const data = Array.from({ length: 16 }, (_, i) => i / 15);
     const __n289 = new NumpyConvertToImageNode();
     __n289.assign({
-      values: { data, shape: [4, 4] },
+      values: { data, shape: [4, 4] }
     });
     const res = await __n289.process();
     const out = res.output as { type: string; data: string };
@@ -157,7 +167,7 @@ describe("lib-numpy ConvertToImage", () => {
     const data = Array.from({ length: 2 * 2 * 3 }, () => 0.5);
     const __n290 = new NumpyConvertToImageNode();
     __n290.assign({
-      values: { data, shape: [2, 2, 3] },
+      values: { data, shape: [2, 2, 3] }
     });
     const res = await __n290.process();
     const out = res.output as { type: string; data: string };
@@ -167,31 +177,25 @@ describe("lib-numpy ConvertToImage", () => {
   it("throws for empty array", async () => {
     const __n291 = new NumpyConvertToImageNode();
     __n291.assign({
-        values: { data: [], shape: [0] },
-      });
-    await expect(
-      __n291.process()
-    ).rejects.toThrow("not connected");
+      values: { data: [], shape: [0] }
+    });
+    await expect(__n291.process()).rejects.toThrow("not connected");
   });
 
   it("throws for 1D array", async () => {
     const __n292 = new NumpyConvertToImageNode();
     __n292.assign({
-        values: { data: [1, 2, 3], shape: [3] },
-      });
-    await expect(
-      __n292.process()
-    ).rejects.toThrow("2 or 3 dimensions");
+      values: { data: [1, 2, 3], shape: [3] }
+    });
+    await expect(__n292.process()).rejects.toThrow("2 or 3 dimensions");
   });
 
   it("throws for invalid channel count", async () => {
     const __n293 = new NumpyConvertToImageNode();
     __n293.assign({
-        values: { data: Array.from({ length: 10 }, () => 0.5), shape: [1, 2, 5] },
-      });
-    await expect(
-      __n293.process()
-    ).rejects.toThrow("1, 3, or 4");
+      values: { data: Array.from({ length: 10 }, () => 0.5), shape: [1, 2, 5] }
+    });
+    await expect(__n293.process()).rejects.toThrow("1, 3, or 4");
   });
 });
 
@@ -201,7 +205,7 @@ describe("lib-numpy ConvertToArray (image -> array)", () => {
     const data = Array.from({ length: 4 * 4 }, (_, i) => i / 15);
     const __n294 = new NumpyConvertToImageNode();
     __n294.assign({
-      values: { data, shape: [4, 4] },
+      values: { data, shape: [4, 4] }
     });
     const imgRes = await __n294.process();
     const img = imgRes.output as { data: string };
@@ -217,9 +221,7 @@ describe("lib-numpy ConvertToArray (image -> array)", () => {
   it("throws when no image data", async () => {
     const __n296 = new ConvertToArrayNumpyNode();
     __n296.assign({ image: { uri: "" } });
-    await expect(
-      __n296.process()
-    ).rejects.toThrow("not connected");
+    await expect(__n296.process()).rejects.toThrow("not connected");
   });
 });
 
@@ -228,7 +230,7 @@ describe("lib-numpy SaveArray", () => {
     const __n297 = new SaveArrayNode();
     __n297.assign({
       values: { data: [1, 2, 3], shape: [3] },
-      name: "test.json",
+      name: "test.json"
     });
     const res = await __n297.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -240,7 +242,7 @@ describe("lib-numpy SaveArray", () => {
     const __n298 = new SaveArrayNode();
     __n298.assign({
       values: { data: [1], shape: [1] },
-      name: "%Y-%m-%d.json",
+      name: "%Y-%m-%d.json"
     });
     const res = await __n298.process();
     const out = res.output as { data: number[] };
@@ -251,7 +253,7 @@ describe("lib-numpy SaveArray", () => {
     const __n299 = new SaveArrayNode();
     __n299.assign({
       values: { data: [1], shape: [1] },
-      name: "output.npy",
+      name: "output.npy"
     });
     const res = await __n299.process();
     expect(res.output).toBeTruthy();
@@ -262,7 +264,7 @@ describe("lib-numpy PlotArray", () => {
   it("renders 1D array as line plot", async () => {
     const __n300 = new PlotArrayNode();
     __n300.assign({
-      values: { data: [1, 3, 2, 5, 4], shape: [5] },
+      values: { data: [1, 3, 2, 5, 4], shape: [5] }
     });
     const res = await __n300.process();
     const out = res.output as { type: string; data: string };
@@ -276,7 +278,7 @@ describe("lib-numpy PlotArray", () => {
     const data = Array.from({ length: 4 * 4 }, (_, i) => i);
     const __n301 = new PlotArrayNode();
     __n301.assign({
-      values: { data, shape: [4, 4] },
+      values: { data, shape: [4, 4] }
     });
     const res = await __n301.process();
     const out = res.output as { type: string; data: string };
@@ -286,11 +288,9 @@ describe("lib-numpy PlotArray", () => {
   it("throws for empty array", async () => {
     const __n302 = new PlotArrayNode();
     __n302.assign({
-        values: { data: [], shape: [0] },
-      });
-    await expect(
-      __n302.process()
-    ).rejects.toThrow("Empty array");
+      values: { data: [], shape: [0] }
+    });
+    await expect(__n302.process()).rejects.toThrow("Empty array");
   });
 });
 
@@ -305,7 +305,7 @@ describe("BitcrushNode", () => {
     __n303.assign({
       audio,
       bit_depth: 4,
-      sample_rate_reduction: 2,
+      sample_rate_reduction: 2
     });
     const res = await __n303.process();
     const out = res.output as { data: string };
@@ -329,7 +329,7 @@ describe("CompressNode", () => {
       threshold: -10,
       ratio: 4,
       attack: 5,
-      release: 50,
+      release: 50
     });
     const res = await __n305.process();
     const out = res.output as { data: string };
@@ -350,7 +350,7 @@ describe("DistortionNode", () => {
     const __n307 = new DistortionNode();
     __n307.assign({
       audio,
-      drive_db: 20,
+      drive_db: 20
     });
     const res = await __n307.process();
     const out = res.output as { data: string };
@@ -372,7 +372,7 @@ describe("LimiterNode", () => {
     __n309.assign({
       audio,
       threshold_db: -6,
-      release_ms: 100,
+      release_ms: 100
     });
     const res = await __n309.process();
     const out = res.output as { data: string };
@@ -396,7 +396,7 @@ describe("ReverbNode", () => {
       room_scale: 0.5,
       damping: 0.5,
       wet_level: 0.3,
-      dry_level: 0.7,
+      dry_level: 0.7
     });
     const res = await __n311.process();
     const out = res.output as { data: string };
@@ -417,7 +417,7 @@ describe("PitchShiftNode", () => {
     const __n313 = new PitchShiftNode();
     __n313.assign({
       audio,
-      semitones: 0,
+      semitones: 0
     });
     const res = await __n313.process();
     expect(res.output).toEqual(audio);
@@ -435,7 +435,7 @@ describe("PitchShiftNode", () => {
     const __n315 = new PitchShiftNode();
     __n315.assign({
       audio,
-      semitones: 3,
+      semitones: 3
     });
     const res = await __n315.process();
     const out = res.output as { data: string };
@@ -449,7 +449,7 @@ describe("TimeStretchNode", () => {
     const __n316 = new TimeStretchNode();
     __n316.assign({
       audio,
-      rate: 1.0,
+      rate: 1.0
     });
     const res = await __n316.process();
     expect(res.output).toEqual(audio);
@@ -467,7 +467,7 @@ describe("TimeStretchNode", () => {
     const __n318 = new TimeStretchNode();
     __n318.assign({
       audio,
-      rate: 1.5,
+      rate: 1.5
     });
     const res = await __n318.process();
     const out = res.output as { data: string };
@@ -500,11 +500,13 @@ describe("PhaserNode", () => {
 // =====================================================================
 
 describe("data nodes", () => {
-  const df = { rows: [
-    { name: "Alice", age: 30, score: 90 },
-    { name: "Bob", age: 25, score: 85 },
-    { name: "Charlie", age: 35, score: 95 },
-  ]};
+  const df = {
+    rows: [
+      { name: "Alice", age: 30, score: 90 },
+      { name: "Bob", age: 25, score: 85 },
+      { name: "Charlie", age: 35, score: 95 }
+    ]
+  };
 
   it("SchemaNode returns columns", async () => {
     const res = await new SchemaNode().process();
@@ -515,7 +517,7 @@ describe("data nodes", () => {
     const __n321 = new FilterDataframeNode();
     __n321.assign({
       df,
-      condition: "age > 25",
+      condition: "age > 25"
     });
     const res = await __n321.process();
     const out = res.output as { rows: any[] };
@@ -534,7 +536,7 @@ describe("data nodes", () => {
     const __n323 = new FilterDataframeNode();
     __n323.assign({
       df,
-      condition: "age > 25 and score > 90",
+      condition: "age > 25 and score > 90"
     });
     const res = await __n323.process();
     const out = res.output as { rows: any[] };
@@ -547,7 +549,7 @@ describe("data nodes", () => {
     __n324.assign({
       dataframe: df,
       start_index: 1,
-      end_index: 2,
+      end_index: 2
     });
     const res = await __n324.process();
     const out = res.output as { rows: any[] };
@@ -560,7 +562,7 @@ describe("data nodes", () => {
     __n325.assign({
       dataframe: df,
       start_index: 0,
-      end_index: -1,
+      end_index: -1
     });
     const res = await __n325.process();
     const out = res.output as { rows: any[] };
@@ -570,7 +572,7 @@ describe("data nodes", () => {
   it("ImportCSVNode parses CSV", async () => {
     const __n326 = new ImportCSVNode();
     __n326.assign({
-      csv_data: "name,age\nAlice,30\nBob,25",
+      csv_data: "name,age\nAlice,30\nBob,25"
     });
     const res = await __n326.process();
     const out = res.output as { rows: any[] };
@@ -601,15 +603,16 @@ describe("data nodes", () => {
   it("LoadCSVFileDataNode throws for empty path", async () => {
     const __n329 = new LoadCSVFileDataNode();
     __n329.assign({ file_path: "" });
-    await expect(
-      __n329.process()
-    ).rejects.toThrow("file_path cannot be empty");
+    await expect(__n329.process()).rejects.toThrow("file_path cannot be empty");
   });
 
   it("FromListNode converts list of dicts", async () => {
     const __n330 = new FromListNode();
     __n330.assign({
-      values: [{ a: 1, b: "hello" }, { a: 2, b: "world" }],
+      values: [
+        { a: 1, b: "hello" },
+        { a: 2, b: "world" }
+      ]
     });
     const res = await __n330.process();
     const out = res.output as { rows: any[] };
@@ -620,7 +623,7 @@ describe("data nodes", () => {
   it("FromListNode handles value wrapper objects", async () => {
     const __n331 = new FromListNode();
     __n331.assign({
-      values: [{ a: { value: 42 } }],
+      values: [{ a: { value: 42 } }]
     });
     const res = await __n331.process();
     const out = res.output as { rows: any[] };
@@ -630,15 +633,13 @@ describe("data nodes", () => {
   it("FromListNode throws for non-dict items", async () => {
     const __n332 = new FromListNode();
     __n332.assign({ values: ["not a dict"] });
-    await expect(
-      __n332.process()
-    ).rejects.toThrow("List must contain dicts");
+    await expect(__n332.process()).rejects.toThrow("List must contain dicts");
   });
 
   it("JSONToDataframeNode parses JSON array", async () => {
     const __n333 = new JSONToDataframeNode();
     __n333.assign({
-      text: '[{"x":1},{"x":2}]',
+      text: '[{"x":1},{"x":2}]'
     });
     const res = await __n333.process();
     const out = res.output as { rows: any[] };
@@ -656,7 +657,7 @@ describe("data nodes", () => {
     const __n335 = new SelectColumnNode();
     __n335.assign({
       dataframe: df,
-      columns: "name,age",
+      columns: "name,age"
     });
     const res = await __n335.process();
     const out = res.output as { rows: any[] };
@@ -667,7 +668,7 @@ describe("data nodes", () => {
     const __n336 = new SelectColumnNode();
     __n336.assign({
       dataframe: df,
-      columns: "",
+      columns: ""
     });
     const res = await __n336.process();
     const out = res.output as { rows: any[] };
@@ -678,7 +679,7 @@ describe("data nodes", () => {
     const __n337 = new ExtractColumnNode();
     __n337.assign({
       dataframe: df,
-      column_name: "name",
+      column_name: "name"
     });
     const res = await __n337.process();
     expect(res.output).toEqual(["Alice", "Bob", "Charlie"]);
@@ -689,7 +690,7 @@ describe("data nodes", () => {
     __n338.assign({
       dataframe: df,
       column_name: "grade",
-      values: ["A", "B", "A"],
+      values: ["A", "B", "A"]
     });
     const res = await __n338.process();
     const out = res.output as { rows: any[] };
@@ -702,7 +703,7 @@ describe("data nodes", () => {
     const __n339 = new MergeDataframeNode();
     __n339.assign({
       dataframe_a: a,
-      dataframe_b: b,
+      dataframe_b: b
     });
     const res = await __n339.process();
     const out = res.output as { rows: any[] };
@@ -715,7 +716,7 @@ describe("data nodes", () => {
     const __n340 = new AppendDataframeNode();
     __n340.assign({
       dataframe_a: a,
-      dataframe_b: b,
+      dataframe_b: b
     });
     const res = await __n340.process();
     const out = res.output as { rows: any[] };
@@ -725,19 +726,17 @@ describe("data nodes", () => {
   it("AppendDataframeNode throws for mismatched columns", async () => {
     const __n341 = new AppendDataframeNode();
     __n341.assign({
-        dataframe_a: { rows: [{ x: 1 }] },
-        dataframe_b: { rows: [{ y: 1 }] },
-      });
-    await expect(
-      __n341.process()
-    ).rejects.toThrow("do not match");
+      dataframe_a: { rows: [{ x: 1 }] },
+      dataframe_b: { rows: [{ y: 1 }] }
+    });
+    await expect(__n341.process()).rejects.toThrow("do not match");
   });
 
   it("AppendDataframeNode handles empty first df", async () => {
     const __n342 = new AppendDataframeNode();
     __n342.assign({
       dataframe_a: { rows: [] },
-      dataframe_b: { rows: [{ x: 1 }] },
+      dataframe_b: { rows: [{ x: 1 }] }
     });
     const res = await __n342.process();
     const out = res.output as { rows: any[] };
@@ -748,7 +747,7 @@ describe("data nodes", () => {
     const __n343 = new AppendDataframeNode();
     __n343.assign({
       dataframe_a: { rows: [{ x: 1 }] },
-      dataframe_b: { rows: [] },
+      dataframe_b: { rows: [] }
     });
     const res = await __n343.process();
     const out = res.output as { rows: any[] };
@@ -756,19 +755,23 @@ describe("data nodes", () => {
   });
 
   it("JoinDataframeNode performs inner join", async () => {
-    const a = { rows: [
-      { id: 1, name: "Alice" },
-      { id: 2, name: "Bob" },
-    ]};
-    const b = { rows: [
-      { id: 1, score: 90 },
-      { id: 3, score: 70 },
-    ]};
+    const a = {
+      rows: [
+        { id: 1, name: "Alice" },
+        { id: 2, name: "Bob" }
+      ]
+    };
+    const b = {
+      rows: [
+        { id: 1, score: 90 },
+        { id: 3, score: 70 }
+      ]
+    };
     const __n344 = new JoinDataframeNode();
     __n344.assign({
       dataframe_a: a,
       dataframe_b: b,
-      join_on: "id",
+      join_on: "id"
     });
     const res = await __n344.process();
     const out = res.output as { rows: any[] };
@@ -781,7 +784,7 @@ describe("data nodes", () => {
     const __n345 = new FindRowNode();
     __n345.assign({
       df,
-      condition: "age > 25",
+      condition: "age > 25"
     });
     const res = await __n345.process();
     const out = res.output as { rows: any[] };
@@ -793,7 +796,7 @@ describe("data nodes", () => {
     const __n346 = new SortByColumnNode();
     __n346.assign({
       df,
-      column: "name",
+      column: "name"
     });
     const res = await __n346.process();
     const out = res.output as { rows: any[] };
@@ -803,11 +806,13 @@ describe("data nodes", () => {
   });
 
   it("DropDuplicatesNode removes duplicates", async () => {
-    const dupDf = { rows: [
-      { x: 1, y: 2 },
-      { x: 1, y: 2 },
-      { x: 3, y: 4 },
-    ]};
+    const dupDf = {
+      rows: [
+        { x: 1, y: 2 },
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ]
+    };
     const __n347 = new DropDuplicatesNode();
     __n347.assign({ df: dupDf });
     const res = await __n347.process();
@@ -816,11 +821,13 @@ describe("data nodes", () => {
   });
 
   it("DropNANode removes rows with nulls", async () => {
-    const naDf = { rows: [
-      { x: 1, y: "hello" },
-      { x: null, y: "world" },
-      { x: 3, y: "" },
-    ]};
+    const naDf = {
+      rows: [
+        { x: 1, y: "hello" },
+        { x: null, y: "world" },
+        { x: 3, y: "" }
+      ]
+    };
     const __n348 = new DropNANode();
     __n348.assign({ df: naDf });
     const res = await __n348.process();
@@ -847,7 +854,7 @@ describe("data nodes", () => {
     __n351.assign({
       df: { rows: [{ a: 1, b: 2 }] },
       folder: tmpDir,
-      name: "test.csv",
+      name: "test.csv"
     });
     const res = await __n351.process();
     const out = res.output as { rows: any[] };
@@ -863,7 +870,7 @@ describe("data nodes", () => {
     __n352.assign({
       dataframe: { rows: [{ x: 10 }] },
       folder: tmpDir,
-      filename: "out.csv",
+      filename: "out.csv"
     });
     const res = await __n352.process();
     const out = res.output as { rows: any[] };
@@ -873,41 +880,39 @@ describe("data nodes", () => {
   it("SaveCSVDataframeFileNode throws for empty folder", async () => {
     const __n353 = new SaveCSVDataframeFileNode();
     __n353.assign({
-        dataframe: { rows: [] },
-        folder: "",
-        filename: "out.csv",
-      });
-    await expect(
-      __n353.process()
-    ).rejects.toThrow("folder cannot be empty");
+      dataframe: { rows: [] },
+      folder: "",
+      filename: "out.csv"
+    });
+    await expect(__n353.process()).rejects.toThrow("folder cannot be empty");
   });
 
   it("SaveCSVDataframeFileNode throws for empty filename", async () => {
     const __n354 = new SaveCSVDataframeFileNode();
     __n354.assign({
-        dataframe: { rows: [] },
-        folder: "/tmp",
-        filename: "",
-      });
-    await expect(
-      __n354.process()
-    ).rejects.toThrow("filename cannot be empty");
+      dataframe: { rows: [] },
+      folder: "/tmp",
+      filename: ""
+    });
+    await expect(__n354.process()).rejects.toThrow("filename cannot be empty");
   });
 });
 
 describe("data AggregateNode", () => {
-  const df = { rows: [
-    { category: "A", value: 10 },
-    { category: "A", value: 20 },
-    { category: "B", value: 30 },
-  ]};
+  const df = {
+    rows: [
+      { category: "A", value: 10 },
+      { category: "A", value: 20 },
+      { category: "B", value: 30 }
+    ]
+  };
 
   it("aggregates with sum", async () => {
     const __n355 = new AggregateNode();
     __n355.assign({
       dataframe: df,
       columns: "category",
-      aggregation: "sum",
+      aggregation: "sum"
     });
     const res = await __n355.process();
     const out = res.output as { rows: any[] };
@@ -921,7 +926,7 @@ describe("data AggregateNode", () => {
     __n356.assign({
       dataframe: df,
       columns: "category",
-      aggregation: "mean",
+      aggregation: "mean"
     });
     const res = await __n356.process();
     const out = res.output as { rows: any[] };
@@ -934,7 +939,7 @@ describe("data AggregateNode", () => {
     __n357.assign({
       dataframe: df,
       columns: "category",
-      aggregation: "count",
+      aggregation: "count"
     });
     const res = await __n357.process();
     const out = res.output as { rows: any[] };
@@ -947,7 +952,7 @@ describe("data AggregateNode", () => {
     __n358.assign({
       dataframe: df,
       columns: "category",
-      aggregation: "min",
+      aggregation: "min"
     });
     const res = await __n358.process();
     const out = res.output as { rows: any[] };
@@ -960,7 +965,7 @@ describe("data AggregateNode", () => {
     __n359.assign({
       dataframe: df,
       columns: "category",
-      aggregation: "max",
+      aggregation: "max"
     });
     const res = await __n359.process();
     const out = res.output as { rows: any[] };
@@ -973,7 +978,7 @@ describe("data AggregateNode", () => {
     __n360.assign({
       dataframe: df,
       columns: "category",
-      aggregation: "median",
+      aggregation: "median"
     });
     const res = await __n360.process();
     const out = res.output as { rows: any[] };
@@ -986,7 +991,7 @@ describe("data AggregateNode", () => {
     __n361.assign({
       dataframe: df,
       columns: "category",
-      aggregation: "first",
+      aggregation: "first"
     });
     const res = await __n361.process();
     const out = res.output as { rows: any[] };
@@ -999,7 +1004,7 @@ describe("data AggregateNode", () => {
     __n362.assign({
       dataframe: df,
       columns: "category",
-      aggregation: "last",
+      aggregation: "last"
     });
     const res = await __n362.process();
     const out = res.output as { rows: any[] };
@@ -1010,22 +1015,22 @@ describe("data AggregateNode", () => {
   it("throws for unknown aggregation", async () => {
     const __n363 = new AggregateNode();
     __n363.assign({
-        dataframe: df,
-        columns: "category",
-        aggregation: "bogus",
-      });
-    await expect(
-      __n363.process()
-    ).rejects.toThrow("Unknown aggregation");
+      dataframe: df,
+      columns: "category",
+      aggregation: "bogus"
+    });
+    await expect(__n363.process()).rejects.toThrow("Unknown aggregation");
   });
 });
 
 describe("data PivotNode", () => {
-  const df = { rows: [
-    { region: "East", product: "A", sales: 10 },
-    { region: "East", product: "B", sales: 20 },
-    { region: "West", product: "A", sales: 30 },
-  ]};
+  const df = {
+    rows: [
+      { region: "East", product: "A", sales: 10 },
+      { region: "East", product: "B", sales: 20 },
+      { region: "West", product: "A", sales: 30 }
+    ]
+  };
 
   it("pivots with sum", async () => {
     const __n364 = new PivotNode();
@@ -1034,7 +1039,7 @@ describe("data PivotNode", () => {
       index: "region",
       columns: "product",
       values: "sales",
-      aggfunc: "sum",
+      aggfunc: "sum"
     });
     const res = await __n364.process();
     const out = res.output as { rows: any[] };
@@ -1051,7 +1056,7 @@ describe("data PivotNode", () => {
       index: "region",
       columns: "product",
       values: "sales",
-      aggfunc: "mean",
+      aggfunc: "mean"
     });
     const res = await __n365.process();
     const out = res.output as { rows: any[] };
@@ -1061,15 +1066,13 @@ describe("data PivotNode", () => {
   it("throws for unknown aggfunc", async () => {
     const __n366 = new PivotNode();
     __n366.assign({
-        dataframe: df,
-        index: "region",
-        columns: "product",
-        values: "sales",
-        aggfunc: "bogus",
-      });
-    await expect(
-      __n366.process()
-    ).rejects.toThrow("Unknown aggregation");
+      dataframe: df,
+      index: "region",
+      columns: "product",
+      values: "sales",
+      aggfunc: "bogus"
+    });
+    await expect(__n366.process()).rejects.toThrow("Unknown aggregation");
   });
 });
 
@@ -1078,7 +1081,7 @@ describe("data RenameNode", () => {
     const __n367 = new RenameNode();
     __n367.assign({
       dataframe: { rows: [{ x: 1, y: 2 }] },
-      rename_map: "x:a, y:b",
+      rename_map: "x:a, y:b"
     });
     const res = await __n367.process();
     const out = res.output as { rows: any[] };
@@ -1089,7 +1092,7 @@ describe("data RenameNode", () => {
     const __n368 = new RenameNode();
     __n368.assign({
       dataframe: { rows: [{ x: 1 }] },
-      rename_map: "",
+      rename_map: ""
     });
     const res = await __n368.process();
     const out = res.output as { rows: any[] };
@@ -1098,18 +1101,20 @@ describe("data RenameNode", () => {
 });
 
 describe("data FillNANode", () => {
-  const naDf = { rows: [
-    { x: 1, y: null },
-    { x: null, y: 3 },
-    { x: 5, y: 6 },
-  ]};
+  const naDf = {
+    rows: [
+      { x: 1, y: null },
+      { x: null, y: 3 },
+      { x: 5, y: 6 }
+    ]
+  };
 
   it("fills with value", async () => {
     const __n369 = new FillNANode();
     __n369.assign({
       dataframe: naDf,
       value: 0,
-      method: "value",
+      method: "value"
     });
     const res = await __n369.process();
     const out = res.output as { rows: any[] };
@@ -1121,7 +1126,7 @@ describe("data FillNANode", () => {
     const __n370 = new FillNANode();
     __n370.assign({
       dataframe: naDf,
-      method: "forward",
+      method: "forward"
     });
     const res = await __n370.process();
     const out = res.output as { rows: any[] };
@@ -1132,7 +1137,7 @@ describe("data FillNANode", () => {
     const __n371 = new FillNANode();
     __n371.assign({
       dataframe: naDf,
-      method: "backward",
+      method: "backward"
     });
     const res = await __n371.process();
     const out = res.output as { rows: any[] };
@@ -1143,7 +1148,7 @@ describe("data FillNANode", () => {
     const __n372 = new FillNANode();
     __n372.assign({
       dataframe: naDf,
-      method: "mean",
+      method: "mean"
     });
     const res = await __n372.process();
     const out = res.output as { rows: any[] };
@@ -1154,7 +1159,7 @@ describe("data FillNANode", () => {
     const __n373 = new FillNANode();
     __n373.assign({
       dataframe: naDf,
-      method: "median",
+      method: "median"
     });
     const res = await __n373.process();
     const out = res.output as { rows: any[] };
@@ -1167,7 +1172,7 @@ describe("data FillNANode", () => {
       dataframe: naDf,
       value: 99,
       method: "value",
-      columns: "x",
+      columns: "x"
     });
     const res = await __n374.process();
     const out = res.output as { rows: any[] };
@@ -1178,12 +1183,10 @@ describe("data FillNANode", () => {
   it("throws for unknown method", async () => {
     const __n375 = new FillNANode();
     __n375.assign({
-        dataframe: naDf,
-        method: "bogus",
-      });
-    await expect(
-      __n375.process()
-    ).rejects.toThrow("Unknown fill method");
+      dataframe: naDf,
+      method: "bogus"
+    });
+    await expect(__n375.process()).rejects.toThrow("Unknown fill method");
   });
 });
 
@@ -1192,7 +1195,7 @@ describe("data streaming nodes", () => {
     const node = new RowIteratorNode();
     const rows: any[] = [];
     node.assign({
-      dataframe: { rows: [{ a: 1 }, { a: 2 }] },
+      dataframe: { rows: [{ a: 1 }, { a: 2 }] }
     });
     for await (const item of node.genProcess()) {
       rows.push(item);
@@ -1206,7 +1209,7 @@ describe("data streaming nodes", () => {
     const node = new ForEachRowNode();
     const rows: any[] = [];
     node.assign({
-      dataframe: { rows: [{ x: 10 }, { x: 20 }] },
+      dataframe: { rows: [{ x: 10 }, { x: 20 }] }
     });
     for await (const item of node.genProcess()) {
       rows.push(item);
@@ -1229,7 +1232,7 @@ describe("lib-librosa-spectral nodes", () => {
     __n376.assign({
       audio,
       n_fft: 512,
-      hop_length: 256,
+      hop_length: 256
     });
     const res = await __n376.process();
     const out = res.output as { data: number[][] };
@@ -1253,7 +1256,7 @@ describe("lib-librosa-spectral nodes", () => {
       hop_length: 256,
       n_mels: 32,
       fmin: 0,
-      fmax: 4000,
+      fmax: 4000
     });
     const res = await __n378.process();
     const out = res.output as { data: number[][] };
@@ -1273,7 +1276,7 @@ describe("lib-librosa-spectral nodes", () => {
       audio,
       n_mfcc: 13,
       n_fft: 512,
-      hop_length: 256,
+      hop_length: 256
     });
     const res = await __n380.process();
     const out = res.output as { data: number[][] };
@@ -1292,7 +1295,7 @@ describe("lib-librosa-spectral nodes", () => {
     __n382.assign({
       audio,
       n_fft: 512,
-      hop_length: 256,
+      hop_length: 256
     });
     const res = await __n382.process();
     const out = res.output as { data: number[][] };
@@ -1311,7 +1314,7 @@ describe("lib-librosa-spectral nodes", () => {
     __n384.assign({
       audio,
       n_fft: 512,
-      hop_length: 256,
+      hop_length: 256
     });
     const res = await __n384.process();
     const out = res.output as { data: number[] };
@@ -1334,7 +1337,7 @@ describe("lib-librosa-spectral nodes", () => {
     __n386.assign({
       audio,
       n_fft: 512,
-      hop_length: 256,
+      hop_length: 256
     });
     const res = await __n386.process();
     const out = res.output as { data: number[][] };
@@ -1351,7 +1354,13 @@ describe("lib-librosa-spectral nodes", () => {
   it("GriffinLimNode returns output from magnitude spectrogram", async () => {
     const __n388 = new GriffinLimNode();
     __n388.assign({
-      magnitude_spectrogram: { data: [[1, 2, 1], [0.5, 1, 0.5], [0.2, 0.4, 0.2]] },
+      magnitude_spectrogram: {
+        data: [
+          [1, 2, 1],
+          [0.5, 1, 0.5],
+          [0.2, 0.4, 0.2]
+        ]
+      }
     });
     const res = await __n388.process();
     const out = res.output as { data: number[] };
@@ -1375,7 +1384,7 @@ describe("lib-librosa-spectral nodes", () => {
     const __n389 = new DetectOnsetsNode();
     __n389.assign({
       audio: burstAudio,
-      hop_length: 512,
+      hop_length: 512
     });
     const res = await __n389.process();
     const out = res.output as { data: number[] };
@@ -1394,7 +1403,7 @@ describe("lib-librosa-spectral nodes", () => {
     __n391.assign({
       audio,
       onsets: { data: [0.1, 0.3] },
-      min_segment_length: 0.05,
+      min_segment_length: 0.05
     });
     const res = await __n391.process();
     const out = res.output as any[];
@@ -1415,7 +1424,7 @@ describe("lib-librosa-spectral nodes", () => {
     const __n393 = new SaveAudioSegmentsNode();
     __n393.assign({
       segments: [],
-      output_folder: {},
+      output_folder: {}
     });
     const res = await __n393.process();
     expect(res.output).toEqual({});
@@ -1428,7 +1437,7 @@ describe("lib-librosa-spectral nodes", () => {
     __n394.assign({
       segments: [seg],
       output_folder: { path: tmpDir },
-      name_prefix: "test",
+      name_prefix: "test"
     });
     const res = await __n394.process();
     expect(res.output).toBeTruthy();
@@ -1450,7 +1459,7 @@ describe("OscillatorLibNode pitch envelope", () => {
       sample_rate: 8000,
       pitch_envelope_amount: 12,
       pitch_envelope_time: 0.05,
-      pitch_envelope_curve: "linear",
+      pitch_envelope_curve: "linear"
     });
     const res = await __n395.process();
     const out = res.output as { data: string };
@@ -1467,7 +1476,7 @@ describe("OscillatorLibNode pitch envelope", () => {
       sample_rate: 8000,
       pitch_envelope_amount: -12,
       pitch_envelope_time: 0.05,
-      pitch_envelope_curve: "exponential",
+      pitch_envelope_curve: "exponential"
     });
     const res = await __n396.process();
     const out = res.output as { data: string };
@@ -1480,18 +1489,21 @@ describe("OscillatorLibNode pitch envelope", () => {
 // =====================================================================
 
 let hasCanvas = false;
-try { require("canvas"); hasCanvas = true; } catch { /* not installed */ }
+try {
+  require("canvas");
+  hasCanvas = true;
+} catch {
+  /* not installed */
+}
 
 describe.skipIf(!hasCanvas)("ChartRendererLibNode", () => {
   it("throws when no data rows provided", async () => {
     const __n397 = new ChartRendererLibNode();
     __n397.assign({
-        chart_config: { title: "Test", data: { series: [] } },
-        data: { columns: [], data: [] },
-      });
-    await expect(
-      __n397.process()
-    ).rejects.toThrow("Data is required");
+      chart_config: { title: "Test", data: { series: [] } },
+      data: { columns: [], data: [] }
+    });
+    await expect(__n397.process()).rejects.toThrow("Data is required");
   });
 
   it("renders a bar chart", async () => {
@@ -1502,8 +1514,8 @@ describe.skipIf(!hasCanvas)("ChartRendererLibNode", () => {
         x_label: "Product",
         y_label: "Revenue",
         data: {
-          series: [{ x: "product", y: "revenue", plot_type: "barplot" }],
-        },
+          series: [{ x: "product", y: "revenue", plot_type: "barplot" }]
+        }
       },
       width: 400,
       height: 300,
@@ -1512,9 +1524,9 @@ describe.skipIf(!hasCanvas)("ChartRendererLibNode", () => {
         data: [
           ["A", 100],
           ["B", 200],
-          ["C", 150],
-        ],
-      },
+          ["C", 150]
+        ]
+      }
     });
     const res = await __n398.process();
     const out = res.output as { type: string; data: string };
@@ -1527,13 +1539,17 @@ describe.skipIf(!hasCanvas)("ChartRendererLibNode", () => {
     __n399.assign({
       chart_config: {
         data: {
-          series: [{ x: "x", y: "y", plot_type: "line" }],
-        },
+          series: [{ x: "x", y: "y", plot_type: "line" }]
+        }
       },
       data: {
         columns: [{ name: "x" }, { name: "y" }],
-        data: [[1, 10], [2, 20], [3, 15]],
-      },
+        data: [
+          [1, 10],
+          [2, 20],
+          [3, 15]
+        ]
+      }
     });
     const res = await __n399.process();
     const out = res.output as { type: string; data: string };
@@ -1545,13 +1561,17 @@ describe.skipIf(!hasCanvas)("ChartRendererLibNode", () => {
     __n400.assign({
       chart_config: {
         data: {
-          series: [{ x: "x", y: "y", plot_type: "scatter" }],
-        },
+          series: [{ x: "x", y: "y", plot_type: "scatter" }]
+        }
       },
       data: {
         columns: [{ name: "x" }, { name: "y" }],
-        data: [[1, 5], [2, 8], [3, 3]],
-      },
+        data: [
+          [1, 5],
+          [2, 8],
+          [3, 3]
+        ]
+      }
     });
     const res = await __n400.process();
     const out = res.output as { type: string; data: string };
@@ -1562,12 +1582,15 @@ describe.skipIf(!hasCanvas)("ChartRendererLibNode", () => {
     const __n401 = new ChartRendererLibNode();
     __n401.assign({
       chart_config: {
-        data: { series: [] },
+        data: { series: [] }
       },
       data: {
         columns: [{ name: "x" }, { name: "y" }],
-        data: [[1, 10], [2, 20]],
-      },
+        data: [
+          [1, 10],
+          [2, 20]
+        ]
+      }
     });
     const res = await __n401.process();
     const out = res.output as { type: string; data: string };
@@ -1583,7 +1606,7 @@ describe("data asRows edge cases", () => {
   it("handles data property on input", async () => {
     const __n402 = new ToListNode();
     __n402.assign({
-      dataframe: { data: [{ x: 1 }] },
+      dataframe: { data: [{ x: 1 }] }
     });
     const res = await __n402.process();
     expect(res.output).toEqual([{ x: 1 }]);
@@ -1592,7 +1615,7 @@ describe("data asRows edge cases", () => {
   it("handles plain array input", async () => {
     const __n403 = new ToListNode();
     __n403.assign({
-      dataframe: [{ x: 1 }, { x: 2 }],
+      dataframe: [{ x: 1 }, { x: 2 }]
     });
     const res = await __n403.process();
     expect(res.output).toEqual([{ x: 1 }, { x: 2 }]);

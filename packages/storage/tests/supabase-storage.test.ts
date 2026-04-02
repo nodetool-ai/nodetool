@@ -11,15 +11,15 @@ const mockBucket = {
   upload: mockUpload,
   download: mockDownload,
   remove: mockRemove,
-  getPublicUrl: mockGetPublicUrl,
+  getPublicUrl: mockGetPublicUrl
 };
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn().mockImplementation(() => ({
     storage: {
-      from: vi.fn().mockReturnValue(mockBucket),
-    },
-  })),
+      from: vi.fn().mockReturnValue(mockBucket)
+    }
+  }))
 }));
 
 describe("SupabaseStorage", () => {
@@ -30,7 +30,11 @@ describe("SupabaseStorage", () => {
     mockDownload.mockReset();
     mockRemove.mockReset();
     mockGetPublicUrl.mockReset();
-    storage = new SupabaseStorage("https://project.supabase.co", "service-key", "assets");
+    storage = new SupabaseStorage(
+      "https://project.supabase.co",
+      "service-key",
+      "assets"
+    );
   });
 
   describe("upload", () => {
@@ -38,21 +42,28 @@ describe("SupabaseStorage", () => {
       mockUpload.mockResolvedValue({ data: { path: "file.txt" }, error: null });
       await storage.upload("file.txt", Buffer.from("hello"), "text/plain");
       expect(mockUpload).toHaveBeenCalledWith("file.txt", expect.any(Buffer), {
-        contentType: "text/plain",
+        contentType: "text/plain"
       });
     });
 
     it("uploads without content type", async () => {
       mockUpload.mockResolvedValue({ data: { path: "file.txt" }, error: null });
       await storage.upload("file.txt", Buffer.from("hello"));
-      expect(mockUpload).toHaveBeenCalledWith("file.txt", expect.any(Buffer), {});
+      expect(mockUpload).toHaveBeenCalledWith(
+        "file.txt",
+        expect.any(Buffer),
+        {}
+      );
     });
 
     it("throws on upload error", async () => {
-      mockUpload.mockResolvedValue({ data: null, error: { message: "Bucket full" } });
-      await expect(storage.upload("file.txt", Buffer.from("hello"))).rejects.toThrow(
-        "Supabase upload failed"
-      );
+      mockUpload.mockResolvedValue({
+        data: null,
+        error: { message: "Bucket full" }
+      });
+      await expect(
+        storage.upload("file.txt", Buffer.from("hello"))
+      ).rejects.toThrow("Supabase upload failed");
     });
   });
 
@@ -66,7 +77,10 @@ describe("SupabaseStorage", () => {
     });
 
     it("throws on download error", async () => {
-      mockDownload.mockResolvedValue({ data: null, error: { message: "Not found" } });
+      mockDownload.mockResolvedValue({
+        data: null,
+        error: { message: "Not found" }
+      });
       await expect(storage.download("missing.txt")).rejects.toThrow(
         "Supabase download failed"
       );
@@ -74,7 +88,9 @@ describe("SupabaseStorage", () => {
 
     it("throws when data is null without error", async () => {
       mockDownload.mockResolvedValue({ data: null, error: null });
-      await expect(storage.download("missing.txt")).rejects.toThrow("no data returned");
+      await expect(storage.download("missing.txt")).rejects.toThrow(
+        "no data returned"
+      );
     });
   });
 
@@ -86,8 +102,13 @@ describe("SupabaseStorage", () => {
     });
 
     it("throws on delete error", async () => {
-      mockRemove.mockResolvedValue({ data: null, error: { message: "Permission denied" } });
-      await expect(storage.delete("file.txt")).rejects.toThrow("Supabase delete failed");
+      mockRemove.mockResolvedValue({
+        data: null,
+        error: { message: "Permission denied" }
+      });
+      await expect(storage.delete("file.txt")).rejects.toThrow(
+        "Supabase delete failed"
+      );
     });
   });
 
@@ -98,7 +119,10 @@ describe("SupabaseStorage", () => {
     });
 
     it("returns false when download errors", async () => {
-      mockDownload.mockResolvedValue({ data: null, error: { message: "Not found" } });
+      mockDownload.mockResolvedValue({
+        data: null,
+        error: { message: "Not found" }
+      });
       expect(await storage.exists("missing.txt")).toBe(false);
     });
   });
@@ -110,7 +134,10 @@ describe("SupabaseStorage", () => {
       await storage.exists("init");
 
       mockGetPublicUrl.mockReturnValue({
-        data: { publicUrl: "https://project.supabase.co/storage/v1/object/public/assets/file.txt" },
+        data: {
+          publicUrl:
+            "https://project.supabase.co/storage/v1/object/public/assets/file.txt"
+        }
       });
       const url = storage.getUrl("file.txt");
       expect(url).toBe(
@@ -162,7 +189,7 @@ describe("SupabaseStorage", () => {
       const data = new Uint8Array([1, 2, 3, 4, 5]);
       await storage.upload("file.bin", data, "application/octet-stream");
       expect(mockUpload).toHaveBeenCalledWith("file.bin", data, {
-        contentType: "application/octet-stream",
+        contentType: "application/octet-stream"
       });
     });
   });
@@ -213,7 +240,7 @@ describe("SupabaseStorage", () => {
 
       await storage.upload("rt.txt", content, "text/plain");
       expect(mockUpload).toHaveBeenCalledWith("rt.txt", content, {
-        contentType: "text/plain",
+        contentType: "text/plain"
       });
 
       const blob = new Blob(["round-trip content"]);
@@ -226,21 +253,30 @@ describe("SupabaseStorage", () => {
 
   describe("error propagation includes key name", () => {
     it("upload error includes key", async () => {
-      mockUpload.mockResolvedValue({ data: null, error: { message: "quota exceeded" } });
-      await expect(storage.upload("my/key.txt", Buffer.from("x"))).rejects.toThrow(
-        '"my/key.txt"'
-      );
+      mockUpload.mockResolvedValue({
+        data: null,
+        error: { message: "quota exceeded" }
+      });
+      await expect(
+        storage.upload("my/key.txt", Buffer.from("x"))
+      ).rejects.toThrow('"my/key.txt"');
     });
 
     it("download error includes key", async () => {
-      mockDownload.mockResolvedValue({ data: null, error: { message: "not found" } });
+      mockDownload.mockResolvedValue({
+        data: null,
+        error: { message: "not found" }
+      });
       await expect(storage.download("missing/file.txt")).rejects.toThrow(
         '"missing/file.txt"'
       );
     });
 
     it("delete error includes key", async () => {
-      mockRemove.mockResolvedValue({ data: null, error: { message: "forbidden" } });
+      mockRemove.mockResolvedValue({
+        data: null,
+        error: { message: "forbidden" }
+      });
       await expect(storage.delete("secret/key.txt")).rejects.toThrow(
         '"secret/key.txt"'
       );

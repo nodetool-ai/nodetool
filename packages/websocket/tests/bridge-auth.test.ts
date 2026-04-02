@@ -9,7 +9,7 @@ function makeMockReq(overrides: Partial<FastifyRequest> = {}): FastifyRequest {
     headers: { host: "localhost" },
     body: null,
     userId: null,
-    ...overrides,
+    ...overrides
   } as unknown as FastifyRequest;
 }
 
@@ -17,9 +17,11 @@ function makeMockReply(): FastifyReply {
   const headers: Record<string, string> = {};
   return {
     status: () => ({ send: () => {} }),
-    header: (k: string, v: string) => { headers[k] = v; },
+    header: (k: string, v: string) => {
+      headers[k] = v;
+    },
     send: () => {},
-    _headers: headers,
+    _headers: headers
   } as unknown as FastifyReply;
 }
 
@@ -33,7 +35,7 @@ describe("bridge: userId propagation", () => {
       capturedUserId = request.headers.get("x-user-id");
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json" }
       });
     });
 
@@ -49,7 +51,7 @@ describe("bridge: userId propagation", () => {
       capturedUserId = request.headers.get("x-user-id");
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json" }
       });
     });
 
@@ -59,7 +61,7 @@ describe("bridge: userId propagation", () => {
   it("does not override an existing x-user-id header if userId is null", async () => {
     const req = makeMockReq({
       userId: null,
-      headers: { host: "localhost", "x-user-id": "from-header" },
+      headers: { host: "localhost", "x-user-id": "from-header" }
     });
     const reply = makeMockReply();
     let capturedUserId: string | null = null;

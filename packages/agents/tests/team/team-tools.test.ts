@@ -12,7 +12,7 @@ const alice: AgentIdentity = {
   skills: ["planning", "analysis"],
   provider: "openai",
   model: "gpt-4o",
-  tools: [],
+  tools: []
 };
 
 const bob: AgentIdentity = {
@@ -22,7 +22,7 @@ const bob: AgentIdentity = {
   skills: ["web_search", "analysis"],
   provider: "openai",
   model: "gpt-4o",
-  tools: [],
+  tools: []
 };
 
 const mockContext = {} as ProcessingContext;
@@ -53,7 +53,7 @@ describe("Team Tools", () => {
       const result = await tool.process(mockContext, {
         to: "bob",
         subject: "hello",
-        body: "Hi Bob!",
+        body: "Hi Bob!"
       });
 
       expect((result as Record<string, unknown>).status).toBe("sent");
@@ -65,7 +65,7 @@ describe("Team Tools", () => {
       const result = await tool.process(mockContext, {
         to: "unknown",
         subject: "hello",
-        body: "msg",
+        body: "msg"
       });
 
       expect((result as Record<string, unknown>).error).toBeDefined();
@@ -77,7 +77,7 @@ describe("Team Tools", () => {
       const tool = findTool(aliceTools, "broadcast");
       await tool.process(mockContext, {
         subject: "update",
-        body: "Big news!",
+        body: "Big news!"
       });
 
       expect(bus.receive("bob")).toHaveLength(1);
@@ -92,7 +92,7 @@ describe("Team Tools", () => {
         to: "bob",
         type: "info",
         subject: "test",
-        body: "msg",
+        body: "msg"
       });
 
       const tool = findTool(bobTools, "check_messages");
@@ -119,7 +119,7 @@ describe("Team Tools", () => {
         title: "Research AI",
         description: "Find papers on multi-agent systems",
         required_skills: ["web_search"],
-        priority: 2,
+        priority: 2
       })) as Record<string, unknown>;
 
       expect(result.status).toBe("created");
@@ -133,12 +133,12 @@ describe("Team Tools", () => {
       board.create({
         title: "Task 1",
         description: "d1",
-        createdBy: "alice",
+        createdBy: "alice"
       });
       board.create({
         title: "Task 2",
         description: "d2",
-        createdBy: "alice",
+        createdBy: "alice"
       });
 
       const tool = findTool(bobTools, "list_tasks");
@@ -153,12 +153,12 @@ describe("Team Tools", () => {
       const t1 = board.create({
         title: "Available",
         description: "d1",
-        createdBy: "alice",
+        createdBy: "alice"
       });
       board.create({
         title: "Claimed",
         description: "d2",
-        createdBy: "alice",
+        createdBy: "alice"
       });
       board.claim(
         board.getSnapshot().find((t) => t.title === "Claimed")!.id,
@@ -167,7 +167,7 @@ describe("Team Tools", () => {
 
       const tool = findTool(bobTools, "list_tasks");
       const result = (await tool.process(mockContext, {
-        available_only: true,
+        available_only: true
       })) as Record<string, unknown>;
       expect((result.tasks as unknown[]).length).toBe(1);
     });
@@ -178,12 +178,12 @@ describe("Team Tools", () => {
       const task = board.create({
         title: "Research",
         description: "do research",
-        createdBy: "alice",
+        createdBy: "alice"
       });
 
       const tool = findTool(bobTools, "claim_task");
       const result = (await tool.process(mockContext, {
-        task_id: task.id,
+        task_id: task.id
       })) as Record<string, unknown>;
 
       expect(result.status).toBe("claimed_and_working");
@@ -197,7 +197,7 @@ describe("Team Tools", () => {
       const task = board.create({
         title: "Research",
         description: "do research",
-        createdBy: "alice",
+        createdBy: "alice"
       });
       board.claim(task.id, "bob");
       board.startWork(task.id, "bob");
@@ -205,7 +205,7 @@ describe("Team Tools", () => {
       const tool = findTool(bobTools, "complete_task");
       const result = (await tool.process(mockContext, {
         task_id: task.id,
-        result: { findings: ["multi-agent systems are cool"] },
+        result: { findings: ["multi-agent systems are cool"] }
       })) as Record<string, unknown>;
 
       expect(result.status).toBe("completed");
@@ -218,7 +218,7 @@ describe("Team Tools", () => {
       const task = board.create({
         title: "Fetch",
         description: "fetch data",
-        createdBy: "alice",
+        createdBy: "alice"
       });
       board.claim(task.id, "bob");
       board.startWork(task.id, "bob");
@@ -226,7 +226,7 @@ describe("Team Tools", () => {
       const tool = findTool(bobTools, "fail_task");
       const result = (await tool.process(mockContext, {
         task_id: task.id,
-        reason: "API down",
+        reason: "API down"
       })) as Record<string, unknown>;
 
       expect(result.status).toBe("marked_failed");
@@ -239,7 +239,7 @@ describe("Team Tools", () => {
       const task = board.create({
         title: "Report",
         description: "write full report",
-        createdBy: "alice",
+        createdBy: "alice"
       });
       board.claim(task.id, "bob");
       board.startWork(task.id, "bob");
@@ -249,8 +249,8 @@ describe("Team Tools", () => {
         task_id: task.id,
         subtasks: [
           { title: "Intro", description: "write intro" },
-          { title: "Body", description: "write body" },
-        ],
+          { title: "Body", description: "write body" }
+        ]
       })) as Record<string, unknown>;
 
       expect(result.status).toBe("decomposed");
@@ -271,7 +271,7 @@ describe("Team Tools", () => {
       "decompose_task",
       "fail_task",
       "list_tasks",
-      "send_message",
+      "send_message"
     ]);
   });
 });

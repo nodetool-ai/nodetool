@@ -10,7 +10,7 @@ import {
   textScript,
   toolCallScript,
   autoScript,
-  toolThenFinishScript,
+  toolThenFinishScript
 } from "../../src/providers/scripted-provider.js";
 import type { ProviderTool, Message } from "../../src/providers/types.js";
 
@@ -22,7 +22,7 @@ function makeTool(name: string): ProviderTool {
   return {
     name,
     description: `Mock tool: ${name}`,
-    inputSchema: { type: "object", properties: {} },
+    inputSchema: { type: "object", properties: {} }
   };
 }
 
@@ -30,9 +30,7 @@ function makeMessages(content: string): Message[] {
   return [{ role: "user", content }];
 }
 
-async function collectStream(
-  gen: AsyncGenerator<unknown>,
-): Promise<unknown[]> {
+async function collectStream(gen: AsyncGenerator<unknown>): Promise<unknown[]> {
   const items: unknown[] = [];
   for await (const item of gen) {
     items.push(item);
@@ -54,8 +52,8 @@ describe("ScriptedProvider", () => {
     const items = await collectStream(
       provider.generateMessages({
         messages: makeMessages("test"),
-        model: "fake",
-      }),
+        model: "fake"
+      })
     );
     expect(items).toHaveLength(1);
     expect((items[0] as { type: string }).type).toBe("chunk");
@@ -64,18 +62,18 @@ describe("ScriptedProvider", () => {
 
   it("yields tool calls from toolCallScript", async () => {
     const provider = new ScriptedProvider([
-      toolCallScript("calculator", { expression: "2+2" }),
+      toolCallScript("calculator", { expression: "2+2" })
     ]);
     const items = await collectStream(
       provider.generateMessages({
         messages: makeMessages("test"),
-        model: "fake",
-      }),
+        model: "fake"
+      })
     );
     expect(items).toHaveLength(1);
     expect((items[0] as { name: string }).name).toBe("calculator");
     expect((items[0] as { args: Record<string, unknown> }).args).toEqual({
-      expression: "2+2",
+      expression: "2+2"
     });
     // Should have an auto-generated id
     expect((items[0] as { id: string }).id).toBeTruthy();
@@ -85,50 +83,48 @@ describe("ScriptedProvider", () => {
     const provider = new ScriptedProvider([
       textScript("first"),
       textScript("second"),
-      textScript("third"),
+      textScript("third")
     ]);
 
     const items1 = await collectStream(
       provider.generateMessages({
         messages: makeMessages("a"),
-        model: "fake",
-      }),
+        model: "fake"
+      })
     );
     expect((items1[0] as { content: string }).content).toBe("first");
 
     const items2 = await collectStream(
       provider.generateMessages({
         messages: makeMessages("b"),
-        model: "fake",
-      }),
+        model: "fake"
+      })
     );
     expect((items2[0] as { content: string }).content).toBe("second");
 
     const items3 = await collectStream(
       provider.generateMessages({
         messages: makeMessages("c"),
-        model: "fake",
-      }),
+        model: "fake"
+      })
     );
     expect((items3[0] as { content: string }).content).toBe("third");
   });
 
   it("repeats last script when exhausted", async () => {
-    const provider = new ScriptedProvider([
-      textScript("only"),
-    ]);
+    const provider = new ScriptedProvider([textScript("only")]);
 
     await collectStream(
       provider.generateMessages({
         messages: makeMessages("1"),
-        model: "fake",
-      }),
+        model: "fake"
+      })
     );
     const items = await collectStream(
       provider.generateMessages({
         messages: makeMessages("2"),
-        model: "fake",
-      }),
+        model: "fake"
+      })
     );
     expect((items[0] as { content: string }).content).toBe("only");
   });
@@ -142,8 +138,8 @@ describe("ScriptedProvider", () => {
       provider.generateMessages({
         messages: msgs,
         model: "fake",
-        tools,
-      }),
+        tools
+      })
     );
 
     expect(provider.callLog).toHaveLength(1);
@@ -154,14 +150,14 @@ describe("ScriptedProvider", () => {
   it("resets state correctly", async () => {
     const provider = new ScriptedProvider([
       textScript("first"),
-      textScript("second"),
+      textScript("second")
     ]);
 
     await collectStream(
       provider.generateMessages({
         messages: makeMessages("a"),
-        model: "fake",
-      }),
+        model: "fake"
+      })
     );
     expect(provider.callLog).toHaveLength(1);
 
@@ -171,8 +167,8 @@ describe("ScriptedProvider", () => {
     const items = await collectStream(
       provider.generateMessages({
         messages: makeMessages("b"),
-        model: "fake",
-      }),
+        model: "fake"
+      })
     );
     // After reset, should start from first script again
     expect((items[0] as { content: string }).content).toBe("first");
@@ -182,19 +178,17 @@ describe("ScriptedProvider", () => {
     const provider = new ScriptedProvider([textScript("buffered content")]);
     const msg = await provider.generateMessage({
       messages: makeMessages("test"),
-      model: "fake",
+      model: "fake"
     });
     expect(msg.role).toBe("assistant");
     expect(msg.content).toBe("buffered content");
   });
 
   it("generateMessage returns 'Done.' when no text chunks", async () => {
-    const provider = new ScriptedProvider([
-      toolCallScript("some-tool", {}),
-    ]);
+    const provider = new ScriptedProvider([toolCallScript("some-tool", {})]);
     const msg = await provider.generateMessage({
       messages: makeMessages("test"),
-      model: "fake",
+      model: "fake"
     });
     expect(msg.content).toBe("Done.");
   });
@@ -208,13 +202,15 @@ describe("planScript", () => {
   it("creates a create_task tool call", () => {
     const script = planScript({
       title: "Test Plan",
-      steps: [{ id: "s1", instructions: "Do something" }],
+      steps: [{ id: "s1", instructions: "Do something" }]
     });
     const items = script([], []);
     expect(items).toHaveLength(1);
     expect(items[0].type).toBe("tool_call");
     expect((items[0] as { name: string }).name).toBe("create_task");
-    expect((items[0] as { args: { title: string } }).args.title).toBe("Test Plan");
+    expect((items[0] as { args: { title: string } }).args.title).toBe(
+      "Test Plan"
+    );
   });
 });
 
@@ -225,7 +221,7 @@ describe("stepScript", () => {
     expect(items).toHaveLength(1);
     expect((items[0] as { name: string }).name).toBe("finish_step");
     expect((items[0] as { args: { result: unknown } }).args.result).toEqual({
-      answer: 42,
+      answer: 42
     });
   });
 });
@@ -234,7 +230,7 @@ describe("autoScript", () => {
   it("calls create_task when available and plan provided", () => {
     const script = autoScript({
       plan: { title: "Plan", steps: [] },
-      result: "fallback",
+      result: "fallback"
     });
     const items = script([], [makeTool("create_task")]);
     expect((items[0] as { name: string }).name).toBe("create_task");
@@ -264,7 +260,7 @@ describe("toolThenFinishScript", () => {
   it("returns two scripts: tool calls then finish", () => {
     const scripts = toolThenFinishScript(
       [{ name: "search", args: { query: "test" } }],
-      { summary: "found it" },
+      { summary: "found it" }
     );
     expect(scripts).toHaveLength(2);
 
@@ -276,18 +272,18 @@ describe("toolThenFinishScript", () => {
     // Second script: finish_step
     const items2 = scripts[1]([], []);
     expect((items2[0] as { name: string }).name).toBe("finish_step");
-    expect(
-      (items2[0] as { args: { result: unknown } }).args.result,
-    ).toEqual({ summary: "found it" });
+    expect((items2[0] as { args: { result: unknown } }).args.result).toEqual({
+      summary: "found it"
+    });
   });
 
   it("supports multiple tool calls", () => {
     const scripts = toolThenFinishScript(
       [
         { name: "search", args: { query: "a" } },
-        { name: "read", args: { file: "b.txt" } },
+        { name: "read", args: { file: "b.txt" } }
       ],
-      "done",
+      "done"
     );
 
     const items = scripts[0]([], []);

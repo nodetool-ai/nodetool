@@ -39,7 +39,17 @@ function extractModelId(text: string): string | null {
 
 function inferOutputType(modelId: string, _text: string): string {
   const lower = modelId.toLowerCase();
-  const videoKws = ["video", "storyboard", "avatar", "seedance", "kling", "hailuo", "sora", "wan", "infinitalk"];
+  const videoKws = [
+    "video",
+    "storyboard",
+    "avatar",
+    "seedance",
+    "kling",
+    "hailuo",
+    "sora",
+    "wan",
+    "infinitalk"
+  ];
   if (videoKws.some((kw) => lower.includes(kw))) return "video";
   const audioKws = ["audio", "music", "suno", "speech", "tts"];
   if (audioKws.some((kw) => lower.includes(kw))) return "audio";
@@ -69,7 +79,9 @@ function parseInputParams(text: string): KieParamInfo[] {
     const reqMatch = trimmed.match(/\*\*Required\*\*:\s*(Yes|No)/i);
     const required = reqMatch ? reqMatch[1].toLowerCase() === "yes" : false;
 
-    const descMatch = trimmed.match(/\*\*Description\*\*:\s*(.+?)(?=\n\s*-\s*\*\*|$)/s);
+    const descMatch = trimmed.match(
+      /\*\*Description\*\*:\s*(.+?)(?=\n\s*-\s*\*\*|$)/s
+    );
     const description = descMatch ? descMatch[1].trim() : "";
 
     let defaultVal: unknown = undefined;
@@ -77,7 +89,9 @@ function parseInputParams(text: string): KieParamInfo[] {
     if (defMatch) defaultVal = coerceDefault(defMatch[1], paramType);
 
     let options: string[] | undefined;
-    const optMatch = trimmed.match(/\*\*Options\*\*:\s*\n((?:\s*-\s*`[^`]+`.*\n?)+)/);
+    const optMatch = trimmed.match(
+      /\*\*Options\*\*:\s*\n((?:\s*-\s*`[^`]+`.*\n?)+)/
+    );
     if (optMatch) {
       options = [...optMatch[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
     }
@@ -94,9 +108,14 @@ function parseInputParams(text: string): KieParamInfo[] {
     let isFileUrlArray = false;
     const acceptedFileTypes: string[] = [];
     const ftMatch = trimmed.match(/\*\*Accepted File Types\*\*:\s*(.+)/);
-    if (ftMatch) acceptedFileTypes.push(...ftMatch[1].split(",").map((t) => t.trim()));
+    if (ftMatch)
+      acceptedFileTypes.push(...ftMatch[1].split(",").map((t) => t.trim()));
 
-    if (acceptedFileTypes.length || description.includes("Upload") || description.includes("URL")) {
+    if (
+      acceptedFileTypes.length ||
+      description.includes("Upload") ||
+      description.includes("URL")
+    ) {
       if (paramType === "array") isFileUrlArray = true;
       else isFileUrl = true;
     }
@@ -114,17 +133,28 @@ function parseInputParams(text: string): KieParamInfo[] {
       maxVal,
       isFileUrl,
       isFileUrlArray,
-      acceptedFileTypes,
+      acceptedFileTypes
     });
   }
   return params;
 }
 
 function coerceDefault(raw: string, paramType: string): unknown {
-  if (paramType === "integer") { const n = parseInt(raw, 10); return isNaN(n) ? raw : n; }
-  if (paramType === "number") { const n = parseFloat(raw); return isNaN(n) ? raw : n; }
-  if (paramType === "boolean") return ["true", "1", "yes"].includes(raw.toLowerCase());
-  try { return JSON.parse(raw); } catch { return raw; }
+  if (paramType === "integer") {
+    const n = parseInt(raw, 10);
+    return isNaN(n) ? raw : n;
+  }
+  if (paramType === "number") {
+    const n = parseFloat(raw);
+    return isNaN(n) ? raw : n;
+  }
+  if (paramType === "boolean")
+    return ["true", "1", "yes"].includes(raw.toLowerCase());
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
 }
 
 function parseKieDocs(text: string): KieSchemaBundle {
@@ -133,31 +163,40 @@ function parseKieDocs(text: string): KieSchemaBundle {
   return {
     modelId,
     params: parseInputParams(text),
-    outputType: inferOutputType(modelId, text),
+    outputType: inferOutputType(modelId, text)
   };
 }
 
 export class KieAINode extends BaseNode {
   static readonly nodeType = "kie.dynamic_schema.KieAI";
-            static readonly title = "Kie AI";
-            static readonly description = "Dynamic Kie.ai node for running any kie.ai model.\n    kie, dynamic, schema, api, inference, runtime, model\n\n    Use cases:\n    - Call any kie.ai model without a dedicated Python node\n    - Prototype workflows with new models as they appear\n    - Run models by pasting their API documentation\n    - Access the full kie.ai catalog dynamically";
-          static readonly basicFields = [
-  "model_info"
-];
-          static readonly requiredSettings = [
-  "KIE_API_KEY"
-];
-          static readonly isDynamic = true;
-          static readonly supportsDynamicOutputs = true;
-  
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
+  static readonly title = "Kie AI";
+  static readonly description =
+    "Dynamic Kie.ai node for running any kie.ai model.\n    kie, dynamic, schema, api, inference, runtime, model\n\n    Use cases:\n    - Call any kie.ai model without a dedicated Python node\n    - Prototype workflows with new models as they appear\n    - Run models by pasting their API documentation\n    - Access the full kie.ai catalog dynamically";
+  static readonly basicFields = ["model_info"];
+  static readonly requiredSettings = ["KIE_API_KEY"];
+  static readonly isDynamic = true;
+  static readonly supportsDynamicOutputs = true;
 
-  @prop({ type: "str", default: "", title: "Model Info", description: "Paste the full API documentation from the kie.ai model page." })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Timeout Seconds",
+    description: "Timeout in seconds for API calls (0 = use default)",
+    min: 0,
+    max: 3600
+  })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Model Info",
+    description: "Paste the full API documentation from the kie.ai model page."
+  })
   declare model_info: any;
 
   async process(): Promise<Record<string, unknown>> {
     const modelInfo = String(this.model_info ?? "").trim();
-    if (!modelInfo) throw new Error("model_info is empty. Paste kie.ai API documentation.");
+    if (!modelInfo)
+      throw new Error("model_info is empty. Paste kie.ai API documentation.");
     const apiKey = getApiKey(this._secrets);
     const bundle = parseKieDocs(modelInfo);
 
@@ -177,7 +216,13 @@ export class KieAINode extends BaseNode {
       }
     }
 
-    const result = await kieExecuteTask(apiKey, bundle.modelId, apiInput, 2000, 300);
+    const result = await kieExecuteTask(
+      apiKey,
+      bundle.modelId,
+      apiInput,
+      2000,
+      300
+    );
 
     if (bundle.outputType === "video") return { video: { data: result.data } };
     if (bundle.outputType === "audio") return { audio: { data: result.data } };

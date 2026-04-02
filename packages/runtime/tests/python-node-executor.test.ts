@@ -10,18 +10,20 @@ function createMockBridge(executeResult: ExecuteResult): PythonBridge {
   return {
     execute: vi.fn().mockResolvedValue(executeResult),
     hasNodeType: vi.fn().mockReturnValue(true),
-    getNodeMetadata: vi.fn().mockReturnValue([]),
+    getNodeMetadata: vi.fn().mockReturnValue([])
   } as unknown as PythonBridge;
 }
 
-function createMockContext(retrieveImpl?: (uri: string) => Promise<Uint8Array | null>): ProcessingContext {
+function createMockContext(
+  retrieveImpl?: (uri: string) => Promise<Uint8Array | null>
+): ProcessingContext {
   return {
     getSecret: vi.fn().mockResolvedValue("test-secret"),
     storage: {
       retrieve: vi.fn(retrieveImpl ?? (async () => new Uint8Array([1, 2, 3]))),
       store: vi.fn().mockResolvedValue("file:///tmp/output.png"),
-      exists: vi.fn().mockResolvedValue(false),
-    },
+      exists: vi.fn().mockResolvedValue(false)
+    }
   } as unknown as ProcessingContext;
 }
 
@@ -29,7 +31,7 @@ describe("PythonNodeExecutor", () => {
   it("calls bridge.execute with merged fields", async () => {
     const bridge = createMockBridge({
       outputs: { output: "result" },
-      blobs: {},
+      blobs: {}
     });
 
     const executor = new PythonNodeExecutor(
@@ -37,7 +39,7 @@ describe("PythonNodeExecutor", () => {
       "test.EchoNode",
       { defaultProp: "val" },
       { output: "str" },
-      [],
+      []
     );
 
     const result = await executor.process({ text: "hello" });
@@ -47,7 +49,7 @@ describe("PythonNodeExecutor", () => {
       { text: "hello" },
       {},
       {},
-      undefined,
+      undefined
     );
   });
 
@@ -55,7 +57,7 @@ describe("PythonNodeExecutor", () => {
     const imageBytes = new Uint8Array([137, 80, 78, 71]); // PNG magic
     const bridge = createMockBridge({
       outputs: {},
-      blobs: { output: imageBytes },
+      blobs: { output: imageBytes }
     });
 
     const ctx = createMockContext();
@@ -64,51 +66,56 @@ describe("PythonNodeExecutor", () => {
       "test.ImageNode",
       {},
       { output: "ImageRef" },
-      [],
+      []
     );
 
     const result = await executor.process({}, ctx);
     expect(ctx.storage!.store).toHaveBeenCalled();
-    expect(result.output).toEqual(expect.objectContaining({ uri: expect.any(String) }));
+    expect(result.output).toEqual(
+      expect.objectContaining({ uri: expect.any(String) })
+    );
   });
 
   it("extracts media-ref lists into blob arrays", async () => {
     const bridge = createMockBridge({
       outputs: { output: "ok" },
-      blobs: {},
+      blobs: {}
     });
 
-    const ctx = createMockContext(async (uri: string) =>
-      new Uint8Array(uri.includes("one") ? [1] : [2]),
+    const ctx = createMockContext(
+      async (uri: string) => new Uint8Array(uri.includes("one") ? [1] : [2])
     );
     const executor = new PythonNodeExecutor(
       bridge,
       "test.ImageListNode",
       {},
       { output: "str" },
-      [],
+      []
     );
 
-    await executor.process({
-      images: [
-        { uri: "memory://one", type: "image" },
-        { uri: "memory://two", type: "image" },
-      ],
-    }, ctx);
+    await executor.process(
+      {
+        images: [
+          { uri: "memory://one", type: "image" },
+          { uri: "memory://two", type: "image" }
+        ]
+      },
+      ctx
+    );
 
     expect(bridge.execute).toHaveBeenCalledWith(
       "test.ImageListNode",
       {},
       {},
       { images: [new Uint8Array([1]), new Uint8Array([2])] },
-      undefined,
+      undefined
     );
   });
 
   it("falls back to reading local file paths for media refs", async () => {
     const bridge = createMockBridge({
       outputs: { output: "ok" },
-      blobs: {},
+      blobs: {}
     });
 
     const dir = await mkdtemp(join(tmpdir(), "nodetool-runtime-"));
@@ -121,7 +128,7 @@ describe("PythonNodeExecutor", () => {
       "test.ImageNode",
       {},
       { output: "str" },
-      [],
+      []
     );
 
     await executor.process({ image: { uri: imagePath, type: "image" } }, ctx);
@@ -132,25 +139,25 @@ describe("PythonNodeExecutor", () => {
     expect(call[2]).toEqual({});
     expect(call[4]).toBeUndefined();
     expect(Uint8Array.from(call[3].image as ArrayLike<number>)).toEqual(
-      new Uint8Array([9, 8, 7]),
+      new Uint8Array([9, 8, 7])
     );
   });
 
   it("falls back to asset_id-backed storage URLs when the uri is stale", async () => {
     const bridge = createMockBridge({
       outputs: { output: "ok" },
-      blobs: {},
+      blobs: {}
     });
 
     const ctx = createMockContext(async (uri: string) =>
-      uri === "/api/storage/asset-123.png" ? new Uint8Array([4, 5, 6]) : null,
+      uri === "/api/storage/asset-123.png" ? new Uint8Array([4, 5, 6]) : null
     );
     const executor = new PythonNodeExecutor(
       bridge,
       "test.ImageNode",
       {},
       { output: "str" },
-      [],
+      []
     );
 
     await executor.process(
@@ -158,16 +165,16 @@ describe("PythonNodeExecutor", () => {
         image: {
           uri: "C:\\Users\\rkt\\AppData\\Roaming\\nodetool\\assets\\missing.png",
           asset_id: "asset-123",
-          type: "image",
-        },
+          type: "image"
+        }
       },
-      ctx,
+      ctx
     );
 
     const call = vi.mocked(bridge.execute).mock.calls[0];
     expect(call[1]).toEqual({});
     expect(Uint8Array.from(call[3].image as ArrayLike<number>)).toEqual(
-      new Uint8Array([4, 5, 6]),
+      new Uint8Array([4, 5, 6])
     );
   });
 });

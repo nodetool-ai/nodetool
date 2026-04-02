@@ -9,7 +9,7 @@ function makeFetchResponse(body: unknown, ok = true, status = 200): Response {
     headers: new Headers(),
     json: async () => body,
     text: async () => JSON.stringify(body),
-    body: null,
+    body: null
   } as unknown as Response;
 }
 
@@ -25,14 +25,14 @@ function makeSSEStream(events: unknown[]): Response {
       released = true;
       return { done: false, value: bytes };
     },
-    releaseLock() {},
+    releaseLock() {}
   };
 
   return {
     ok: true,
     status: 200,
     headers: new Headers(),
-    body: { getReader: () => reader },
+    body: { getReader: () => reader }
   } as unknown as Response;
 }
 
@@ -58,7 +58,7 @@ describe("GeminiProvider", () => {
       { role: "system", content: "You are helpful." },
       { role: "user", content: "Hello" },
       { role: "assistant", content: "Hi there" },
-      { role: "user", content: "Thanks" },
+      { role: "user", content: "Thanks" }
     ];
 
     const result = await provider.convertMessages(messages);
@@ -67,15 +67,15 @@ describe("GeminiProvider", () => {
     expect(result.contents).toHaveLength(3);
     expect(result.contents[0]).toEqual({
       role: "user",
-      parts: [{ text: "Hello" }],
+      parts: [{ text: "Hello" }]
     });
     expect(result.contents[1]).toEqual({
       role: "model",
-      parts: [{ text: "Hi there" }],
+      parts: [{ text: "Hi there" }]
     });
     expect(result.contents[2]).toEqual({
       role: "user",
-      parts: [{ text: "Thanks" }],
+      parts: [{ text: "Thanks" }]
     });
   });
 
@@ -86,13 +86,13 @@ describe("GeminiProvider", () => {
       {
         role: "assistant",
         content: null,
-        toolCalls: [{ id: "tc1", name: "search", args: { q: "test" } }],
+        toolCalls: [{ id: "tc1", name: "search", args: { q: "test" } }]
       },
       {
         role: "tool",
         content: "result text",
-        toolCallId: "search",
-      },
+        toolCallId: "search"
+      }
     ];
 
     const result = await provider.convertMessages(messages);
@@ -100,7 +100,7 @@ describe("GeminiProvider", () => {
     expect(result.contents).toHaveLength(2);
     expect(result.contents[0]).toEqual({
       role: "model",
-      parts: [{ functionCall: { name: "search", args: { q: "test" } } }],
+      parts: [{ functionCall: { name: "search", args: { q: "test" } } }]
     });
     expect(result.contents[1]).toEqual({
       role: "user",
@@ -108,10 +108,10 @@ describe("GeminiProvider", () => {
         {
           functionResponse: {
             name: "search",
-            response: { result: "result text" },
-          },
-        },
-      ],
+            response: { result: "result text" }
+          }
+        }
+      ]
     });
   });
 
@@ -119,8 +119,12 @@ describe("GeminiProvider", () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
 
     const { geminiTools, nameMap, reverseMap } = provider.formatTools([
-      { name: "my tool!", description: "A tool", inputSchema: { type: "object", properties: {} } },
-      { name: "valid_name", description: "Another" },
+      {
+        name: "my tool!",
+        description: "A tool",
+        inputSchema: { type: "object", properties: {} }
+      },
+      { name: "valid_name", description: "Another" }
     ]);
 
     expect(geminiTools).toHaveLength(1);
@@ -142,29 +146,34 @@ describe("GeminiProvider", () => {
           {
             name: "models/gemini-2.0-flash",
             displayName: "Gemini 2.0 Flash",
-            supportedGenerationMethods: ["generateContent", "countTokens"],
+            supportedGenerationMethods: ["generateContent", "countTokens"]
           },
           {
             name: "models/text-embedding-004",
             displayName: "Text Embedding",
-            supportedGenerationMethods: ["embedContent"],
-          },
-        ],
+            supportedGenerationMethods: ["embedContent"]
+          }
+        ]
       })
     );
 
-    const provider = new GeminiProvider({ GEMINI_API_KEY: "test-key" }, { fetchFn });
+    const provider = new GeminiProvider(
+      { GEMINI_API_KEY: "test-key" },
+      { fetchFn }
+    );
     const models = await provider.getAvailableLanguageModels();
 
     expect(fetchFn).toHaveBeenCalledTimes(1);
     expect(fetchFn.mock.calls[0][0]).toContain("/models?key=test-key");
     expect(models).toEqual([
-      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "gemini" },
+      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "gemini" }
     ]);
   });
 
   it("returns empty list on model fetch failure", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(makeFetchResponse({}, false, 401));
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(makeFetchResponse({}, false, 401));
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const models = await provider.getAvailableLanguageModels();
@@ -177,10 +186,10 @@ describe("GeminiProvider", () => {
         candidates: [
           {
             content: {
-              parts: [{ text: "Hello world" }],
-            },
-          },
-        ],
+              parts: [{ text: "Hello world" }]
+            }
+          }
+        ]
       })
     );
 
@@ -188,7 +197,7 @@ describe("GeminiProvider", () => {
 
     const result = await provider.generateMessage({
       model: "gemini-2.0-flash",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     });
 
     expect(fetchFn).toHaveBeenCalledTimes(1);
@@ -210,13 +219,13 @@ describe("GeminiProvider", () => {
                 {
                   functionCall: {
                     name: "search",
-                    args: { query: "weather" },
-                  },
-                },
-              ],
-            },
-          },
-        ],
+                    args: { query: "weather" }
+                  }
+                }
+              ]
+            }
+          }
+        ]
       })
     );
 
@@ -225,7 +234,7 @@ describe("GeminiProvider", () => {
     const result = await provider.generateMessage({
       model: "gemini-2.0-flash",
       messages: [{ role: "user", content: "What is the weather?" }],
-      tools: [{ name: "search", description: "Search the web" }],
+      tools: [{ name: "search", description: "Search the web" }]
     });
 
     expect(result.role).toBe("assistant");
@@ -238,7 +247,7 @@ describe("GeminiProvider", () => {
   it("passes system instruction and generation config", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: "ok" }] } }],
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
       })
     );
 
@@ -248,15 +257,17 @@ describe("GeminiProvider", () => {
       model: "gemini-2.0-flash",
       messages: [
         { role: "system", content: "Be concise." },
-        { role: "user", content: "hi" },
+        { role: "user", content: "hi" }
       ],
       temperature: 0.5,
       topP: 0.9,
-      maxTokens: 1024,
+      maxTokens: 1024
     });
 
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
-    expect(body.systemInstruction).toEqual({ parts: [{ text: "Be concise." }] });
+    expect(body.systemInstruction).toEqual({
+      parts: [{ text: "Be concise." }]
+    });
     expect(body.generationConfig.temperature).toBe(0.5);
     expect(body.generationConfig.topP).toBe(0.9);
     expect(body.generationConfig.maxOutputTokens).toBe(1024);
@@ -265,11 +276,11 @@ describe("GeminiProvider", () => {
   it("streams text chunks", async () => {
     const events = [
       {
-        candidates: [{ content: { parts: [{ text: "Hello" }] } }],
+        candidates: [{ content: { parts: [{ text: "Hello" }] } }]
       },
       {
-        candidates: [{ content: { parts: [{ text: " world" }] } }],
-      },
+        candidates: [{ content: { parts: [{ text: " world" }] } }]
+      }
     ];
 
     const fetchFn = vi.fn().mockResolvedValue(makeSSEStream(events));
@@ -279,7 +290,7 @@ describe("GeminiProvider", () => {
     const out: unknown[] = [];
     for await (const item of provider.generateMessages({
       model: "gemini-2.0-flash",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     })) {
       out.push(item);
     }
@@ -287,7 +298,7 @@ describe("GeminiProvider", () => {
     expect(out).toEqual([
       { type: "chunk", content: "Hello", done: false },
       { type: "chunk", content: " world", done: false },
-      { type: "chunk", content: "", done: true },
+      { type: "chunk", content: "", done: true }
     ]);
   });
 
@@ -299,13 +310,13 @@ describe("GeminiProvider", () => {
             content: {
               parts: [
                 {
-                  functionCall: { name: "lookup", args: { q: "test" } },
-                },
-              ],
-            },
-          },
-        ],
-      },
+                  functionCall: { name: "lookup", args: { q: "test" } }
+                }
+              ]
+            }
+          }
+        ]
+      }
     ];
 
     const fetchFn = vi.fn().mockResolvedValue(makeSSEStream(events));
@@ -316,7 +327,7 @@ describe("GeminiProvider", () => {
     for await (const item of provider.generateMessages({
       model: "gemini-2.0-flash",
       messages: [{ role: "user", content: "search" }],
-      tools: [{ name: "lookup", description: "Lookup" }],
+      tools: [{ name: "lookup", description: "Lookup" }]
     })) {
       out.push(item);
     }
@@ -338,7 +349,7 @@ describe("GeminiProvider", () => {
     const out: unknown[] = [];
     for await (const item of provider.generateMessages({
       model: "gemini-2.0-flash",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     })) {
       out.push(item);
     }
@@ -349,16 +360,18 @@ describe("GeminiProvider", () => {
   });
 
   it("throws on API error in non-streaming", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      makeFetchResponse({ error: { message: "bad request" } }, false, 400)
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(
+        makeFetchResponse({ error: { message: "bad request" } }, false, 400)
+      );
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
 
     await expect(
       provider.generateMessage({
         model: "gemini-2.0-flash",
-        messages: [{ role: "user", content: "hi" }],
+        messages: [{ role: "user", content: "hi" }]
       })
     ).rejects.toThrow("Gemini API error 400");
   });

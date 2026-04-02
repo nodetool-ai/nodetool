@@ -24,7 +24,7 @@ import {
   AddTableLibNode,
   AddPageBreakLibNode,
   SetDocumentPropertiesLibNode,
-  SaveDocumentLibNode,
+  SaveDocumentLibNode
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ import {
 // ---------------------------------------------------------------------------
 describe("lib.sqlite", () => {
   let workspaceDir: string;
-  const ctx = () => ({ workspaceDir } as any);
+  const ctx = () => ({ workspaceDir }) as any;
 
   beforeEach(async () => {
     workspaceDir = await mkdtemp(join(tmpdir(), "nt-sqlite-"));
@@ -44,134 +44,197 @@ describe("lib.sqlite", () => {
       columns: [
         { name: "id", data_type: "int" },
         { name: "name", data_type: "string" },
-        { name: "score", data_type: "float" },
-      ],
+        { name: "score", data_type: "float" }
+      ]
     };
 
-    const result = await new CreateTableLibNode({ database_name: "test.db", table_name: "users", columns, add_primary_key: true, if_not_exists: true }).process(ctx());
+    const result = await new CreateTableLibNode({
+      database_name: "test.db",
+      table_name: "users",
+      columns,
+      add_primary_key: true,
+      if_not_exists: true
+    }).process(ctx());
     expect(result.table_name).toBe("users");
     expect(existsSync(join(workspaceDir, "test.db"))).toBe(true);
 
     // Running again should not throw (IF NOT EXISTS)
-    const result2 = await new CreateTableLibNode({ database_name: "test.db", table_name: "users", columns, add_primary_key: true, if_not_exists: true }).process(ctx());
+    const result2 = await new CreateTableLibNode({
+      database_name: "test.db",
+      table_name: "users",
+      columns,
+      add_primary_key: true,
+      if_not_exists: true
+    }).process(ctx());
     expect(result2.table_name).toBe("users");
   });
 
   it("Insert, Query, Update, Delete — full CRUD cycle", async () => {
     // Create table
     await new CreateTableLibNode({
-        database_name: "crud.db",
-        table_name: "items",
-        columns: {
-          type: "record_type",
-          columns: [
-            { name: "id", data_type: "int" },
-            { name: "title", data_type: "string" },
-            { name: "value", data_type: "float" },
-          ],
-        },
-        add_primary_key: true,
-        if_not_exists: true,
-      }).process(ctx());
+      database_name: "crud.db",
+      table_name: "items",
+      columns: {
+        type: "record_type",
+        columns: [
+          { name: "id", data_type: "int" },
+          { name: "title", data_type: "string" },
+          { name: "value", data_type: "float" }
+        ]
+      },
+      add_primary_key: true,
+      if_not_exists: true
+    }).process(ctx());
 
     // Insert two rows
-    const ins1 = await new InsertLibNode({ database_name: "crud.db", table_name: "items", data: { title: "apple", value: 1.5 } }).process(ctx());
+    const ins1 = await new InsertLibNode({
+      database_name: "crud.db",
+      table_name: "items",
+      data: { title: "apple", value: 1.5 }
+    }).process(ctx());
     expect(ins1.row_id).toBe(1);
     expect(ins1.rows_affected).toBe(1);
 
-    const ins2 = await new InsertLibNode({ database_name: "crud.db", table_name: "items", data: { title: "banana", value: 2.0 } }).process(ctx());
+    const ins2 = await new InsertLibNode({
+      database_name: "crud.db",
+      table_name: "items",
+      data: { title: "banana", value: 2.0 }
+    }).process(ctx());
     expect(ins2.row_id).toBe(2);
 
     // Query all
-    const all = await new QueryLibNode({ database_name: "crud.db", table_name: "items" }).process(ctx());
+    const all = await new QueryLibNode({
+      database_name: "crud.db",
+      table_name: "items"
+    }).process(ctx());
     expect((all.output as any[]).length).toBe(2);
 
     // Query with WHERE
-    const filtered = await new QueryLibNode({ database_name: "crud.db", table_name: "items", where: "title = 'apple'" }).process(ctx());
+    const filtered = await new QueryLibNode({
+      database_name: "crud.db",
+      table_name: "items",
+      where: "title = 'apple'"
+    }).process(ctx());
     expect((filtered.output as any[]).length).toBe(1);
     expect((filtered.output as any[])[0].title).toBe("apple");
 
     // Query with LIMIT
-    const limited = await new QueryLibNode({ database_name: "crud.db", table_name: "items", limit: 1 }).process(ctx());
+    const limited = await new QueryLibNode({
+      database_name: "crud.db",
+      table_name: "items",
+      limit: 1
+    }).process(ctx());
     expect((limited.output as any[]).length).toBe(1);
 
     // Update
-    const upd = await new UpdateLibNode({ database_name: "crud.db", table_name: "items", data: { value: 9.9 }, where: "title = 'apple'" }).process(ctx());
+    const upd = await new UpdateLibNode({
+      database_name: "crud.db",
+      table_name: "items",
+      data: { value: 9.9 },
+      where: "title = 'apple'"
+    }).process(ctx());
     expect(upd.rows_affected).toBe(1);
 
     // Verify update
-    const afterUpdate = await new QueryLibNode({ database_name: "crud.db", table_name: "items", where: "title = 'apple'" }).process(ctx());
+    const afterUpdate = await new QueryLibNode({
+      database_name: "crud.db",
+      table_name: "items",
+      where: "title = 'apple'"
+    }).process(ctx());
     expect((afterUpdate.output as any[])[0].value).toBe(9.9);
 
     // Delete
-    const del = await new DeleteLibNode({ database_name: "crud.db", table_name: "items", where: "title = 'banana'" }).process(ctx());
+    const del = await new DeleteLibNode({
+      database_name: "crud.db",
+      table_name: "items",
+      where: "title = 'banana'"
+    }).process(ctx());
     expect(del.rows_affected).toBe(1);
 
     // Verify delete
-    const afterDelete = await new QueryLibNode({ database_name: "crud.db", table_name: "items" }).process(ctx());
+    const afterDelete = await new QueryLibNode({
+      database_name: "crud.db",
+      table_name: "items"
+    }).process(ctx());
     expect((afterDelete.output as any[]).length).toBe(1);
   });
 
   it("Delete throws without WHERE clause", async () => {
     await expect(
-      new DeleteLibNode({ database_name: "x.db", table_name: "t", where: "" }).process(ctx())
+      new DeleteLibNode({
+        database_name: "x.db",
+        table_name: "t",
+        where: ""
+      }).process(ctx())
     ).rejects.toThrow("WHERE clause is required");
   });
 
   it("Query returns empty array for non-existent database", async () => {
-    const result = await new QueryLibNode({ database_name: "nonexistent.db", table_name: "t" }).process(ctx());
+    const result = await new QueryLibNode({
+      database_name: "nonexistent.db",
+      table_name: "t"
+    }).process(ctx());
     expect(result.output).toEqual([]);
   });
 
   it("ExecuteSQL runs SELECT and modifying statements", async () => {
     // Create via ExecuteSQL
     await new ExecuteSQLLibNode({
-        database_name: "exec.db",
-        sql: "CREATE TABLE kv (key TEXT, val TEXT)",
-        parameters: [],
-      }).process(ctx());
+      database_name: "exec.db",
+      sql: "CREATE TABLE kv (key TEXT, val TEXT)",
+      parameters: []
+    }).process(ctx());
 
     // Insert via ExecuteSQL
     const ins = await new ExecuteSQLLibNode({
-        database_name: "exec.db",
-        sql: "INSERT INTO kv (key, val) VALUES (?, ?)",
-        parameters: ["hello", "world"],
-      }).process(ctx());
+      database_name: "exec.db",
+      sql: "INSERT INTO kv (key, val) VALUES (?, ?)",
+      parameters: ["hello", "world"]
+    }).process(ctx());
     expect(ins.rows_affected).toBe(1);
 
     // Select via ExecuteSQL
     const sel = await new ExecuteSQLLibNode({
-        database_name: "exec.db",
-        sql: "SELECT * FROM kv",
-        parameters: [],
-      }).process(ctx());
+      database_name: "exec.db",
+      sql: "SELECT * FROM kv",
+      parameters: []
+    }).process(ctx());
     expect(sel.count).toBe(1);
     expect((sel.rows as any[])[0].key).toBe("hello");
   });
 
   it("GetDatabasePath returns correct path", async () => {
-    const result = await new GetDatabasePathLibNode({ database_name: "my.db" }).process(ctx());
+    const result = await new GetDatabasePathLibNode({
+      database_name: "my.db"
+    }).process(ctx());
     expect(result.output).toBe(join(workspaceDir, "my.db"));
   });
 
   it("Insert serializes object values as JSON", async () => {
     await new CreateTableLibNode({
-        database_name: "json.db",
-        table_name: "data",
-        columns: {
-          type: "record_type",
-          columns: [
-            { name: "id", data_type: "int" },
-            { name: "payload", data_type: "object" },
-          ],
-        },
-        add_primary_key: true,
-        if_not_exists: true,
-      }).process(ctx());
+      database_name: "json.db",
+      table_name: "data",
+      columns: {
+        type: "record_type",
+        columns: [
+          { name: "id", data_type: "int" },
+          { name: "payload", data_type: "object" }
+        ]
+      },
+      add_primary_key: true,
+      if_not_exists: true
+    }).process(ctx());
 
-    await new InsertLibNode({ database_name: "json.db", table_name: "data", data: { payload: { nested: true } } }).process(ctx());
+    await new InsertLibNode({
+      database_name: "json.db",
+      table_name: "data",
+      data: { payload: { nested: true } }
+    }).process(ctx());
 
-    const rows = await new QueryLibNode({ database_name: "json.db", table_name: "data" }).process(ctx());
+    const rows = await new QueryLibNode({
+      database_name: "json.db",
+      table_name: "data"
+    }).process(ctx());
     // JSON values should be parsed back
     expect((rows.output as any[])[0].payload).toEqual({ nested: true });
   });
@@ -188,7 +251,9 @@ describe("lib.excel", () => {
   });
 
   it("CreateWorkbook creates a workbook with a sheet", async () => {
-    const result = await new CreateWorkbookLibNode({ sheet_name: "Data" }).process();
+    const result = await new CreateWorkbookLibNode({
+      sheet_name: "Data"
+    }).process();
     expect(result.output).toBeDefined();
     expect(result.output).toHaveProperty("data");
     const wb = (result.output as any).data;
@@ -198,25 +263,27 @@ describe("lib.excel", () => {
 
   it("DataFrameToExcel + ExcelToDataFrame round-trips data", async () => {
     // Create workbook
-    const { output: wbRef } = await new CreateWorkbookLibNode({ sheet_name: "Sheet1" }).process();
+    const { output: wbRef } = await new CreateWorkbookLibNode({
+      sheet_name: "Sheet1"
+    }).process();
 
     // Write data
     const rows = [
       { name: "Alice", age: 30 },
-      { name: "Bob", age: 25 },
+      { name: "Bob", age: 25 }
     ];
     const { output: wbRef2 } = await new DataFrameToExcelLibNode({
       workbook: wbRef,
       dataframe: { rows },
       sheet_name: "Sheet1",
-      include_header: true,
+      include_header: true
     }).process();
 
     // Read data back
     const result = await new ExcelToDataFrameLibNode({
       workbook: wbRef2,
       sheet_name: "Sheet1",
-      has_header: true,
+      has_header: true
     }).process();
 
     const outputRows = (result.output as any).rows;
@@ -228,14 +295,16 @@ describe("lib.excel", () => {
   });
 
   it("FormatCells applies bold and colors without throwing", async () => {
-    const { output: wbRef } = await new CreateWorkbookLibNode({ sheet_name: "Sheet1" }).process();
+    const { output: wbRef } = await new CreateWorkbookLibNode({
+      sheet_name: "Sheet1"
+    }).process();
 
     // Write some data first
     const { output: wbRef2 } = await new DataFrameToExcelLibNode({
       workbook: wbRef,
       dataframe: { rows: [{ a: 1, b: 2 }] },
       sheet_name: "Sheet1",
-      include_header: true,
+      include_header: true
     }).process();
 
     const result = await new FormatCellsLibNode({
@@ -244,7 +313,7 @@ describe("lib.excel", () => {
       cell_range: "A1:B1",
       bold: true,
       background_color: "FF0000",
-      text_color: "FFFFFF",
+      text_color: "FFFFFF"
     }).process();
 
     expect(result.output).toBeDefined();
@@ -254,17 +323,19 @@ describe("lib.excel", () => {
   });
 
   it("AutoFitColumns adjusts column widths", async () => {
-    const { output: wbRef } = await new CreateWorkbookLibNode({ sheet_name: "Sheet1" }).process();
+    const { output: wbRef } = await new CreateWorkbookLibNode({
+      sheet_name: "Sheet1"
+    }).process();
     const { output: wbRef2 } = await new DataFrameToExcelLibNode({
       workbook: wbRef,
       dataframe: { rows: [{ long_column_name: "short" }] },
       sheet_name: "Sheet1",
-      include_header: true,
+      include_header: true
     }).process();
 
     const result = await new AutoFitColumnsLibNode({
       workbook: wbRef2,
-      sheet_name: "Sheet1",
+      sheet_name: "Sheet1"
     }).process();
     expect(result.output).toBeDefined();
     expect(result.output).toHaveProperty("data");
@@ -273,18 +344,20 @@ describe("lib.excel", () => {
   });
 
   it("SaveWorkbook writes an xlsx file to disk", async () => {
-    const { output: wbRef } = await new CreateWorkbookLibNode({ sheet_name: "Sheet1" }).process();
+    const { output: wbRef } = await new CreateWorkbookLibNode({
+      sheet_name: "Sheet1"
+    }).process();
     const { output: wbRef2 } = await new DataFrameToExcelLibNode({
       workbook: wbRef,
       dataframe: { rows: [{ x: 1 }] },
       sheet_name: "Sheet1",
-      include_header: true,
+      include_header: true
     }).process();
 
     const result = await new SaveWorkbookLibNode({
       workbook: wbRef2,
       folder: { path: tmpDir },
-      filename: "output.xlsx",
+      filename: "output.xlsx"
     }).process();
 
     expect(typeof result.output).toBe("string");
@@ -292,12 +365,14 @@ describe("lib.excel", () => {
   });
 
   it("DataFrameToExcel with empty rows returns workbook unchanged", async () => {
-    const { output: wbRef } = await new CreateWorkbookLibNode({ sheet_name: "Sheet1" }).process();
+    const { output: wbRef } = await new CreateWorkbookLibNode({
+      sheet_name: "Sheet1"
+    }).process();
     const result = await new DataFrameToExcelLibNode({
       workbook: wbRef,
       dataframe: { rows: [] },
       sheet_name: "Sheet1",
-      include_header: true,
+      include_header: true
     }).process();
     expect(result.output).toBeDefined();
   });
@@ -323,11 +398,15 @@ describe("lib.docx", () => {
     const result = await new AddHeadingLibNode({
       document: doc,
       text: "Hello World",
-      level: 1,
+      level: 1
     }).process();
     const state = result.output as any;
     expect(state.elements).toHaveLength(1);
-    expect(state.elements[0]).toEqual({ type: "heading", text: "Hello World", level: 1 });
+    expect(state.elements[0]).toEqual({
+      type: "heading",
+      text: "Hello World",
+      level: 1
+    });
   });
 
   it("AddParagraph appends a paragraph element with formatting", async () => {
@@ -338,7 +417,7 @@ describe("lib.docx", () => {
       alignment: "CENTER",
       bold: true,
       italic: false,
-      font_size: 14,
+      font_size: 14
     }).process();
     const state = result.output as any;
     expect(state.elements).toHaveLength(1);
@@ -352,12 +431,20 @@ describe("lib.docx", () => {
     const { output: doc } = await new CreateDocumentLibNode({}).process();
     const result = await new AddTableLibNode({
       document: doc,
-      data: { rows: [{ a: "1", b: "2" }, { a: "3", b: "4" }] },
+      data: {
+        rows: [
+          { a: "1", b: "2" },
+          { a: "3", b: "4" }
+        ]
+      }
     }).process();
     const state = result.output as any;
     expect(state.elements).toHaveLength(1);
     expect(state.elements[0].type).toBe("table");
-    expect(state.elements[0].data).toEqual([["1", "2"], ["3", "4"]]);
+    expect(state.elements[0].data).toEqual([
+      ["1", "2"],
+      ["3", "4"]
+    ]);
   });
 
   it("AddPageBreak appends a page_break element", async () => {
@@ -375,7 +462,7 @@ describe("lib.docx", () => {
       title: "My Doc",
       author: "Tester",
       subject: "Testing",
-      keywords: "test vitest",
+      keywords: "test vitest"
     }).process();
     const state = result.output as any;
     expect(state.properties.title).toBe("My Doc");
@@ -389,17 +476,19 @@ describe("lib.docx", () => {
     ({ output: doc } = await new AddHeadingLibNode({
       document: doc,
       text: "Title",
-      level: 1,
+      level: 1
     }).process());
     ({ output: doc } = await new AddParagraphLibNode({
       document: doc,
-      text: "Body text",
+      text: "Body text"
     }).process());
-    ({ output: doc } = await new AddPageBreakLibNode({ document: doc }).process());
+    ({ output: doc } = await new AddPageBreakLibNode({
+      document: doc
+    }).process());
     ({ output: doc } = await new AddHeadingLibNode({
       document: doc,
       text: "Section 2",
-      level: 2,
+      level: 2
     }).process());
 
     const state = doc as any;
@@ -415,22 +504,22 @@ describe("lib.docx", () => {
     ({ output: doc } = await new AddHeadingLibNode({
       document: doc,
       text: "Test Document",
-      level: 1,
+      level: 1
     }).process());
     ({ output: doc } = await new AddParagraphLibNode({
       document: doc,
-      text: "This is a test paragraph.",
+      text: "This is a test paragraph."
     }).process());
     ({ output: doc } = await new SetDocumentPropertiesLibNode({
       document: doc,
       title: "Test",
-      author: "Vitest",
+      author: "Vitest"
     }).process());
 
     const result = await new SaveDocumentLibNode({
       document: doc,
       path: { path: tmpDir },
-      filename: "test.docx",
+      filename: "test.docx"
     }).process();
 
     const outPath = result.output as string;
@@ -449,17 +538,17 @@ describe("lib.docx", () => {
     ({ output: doc } = await new AddHeadingLibNode({
       document: doc,
       text: "Test Heading",
-      level: 1,
+      level: 1
     }).process());
     ({ output: doc } = await new AddParagraphLibNode({
       document: doc,
-      text: "Lorem ipsum dolor sit amet.",
+      text: "Lorem ipsum dolor sit amet."
     }).process());
 
     const saveResult = await new SaveDocumentLibNode({
       document: doc,
       path: { path: tmpDir },
-      filename: "load-test.docx",
+      filename: "load-test.docx"
     }).process();
     const savedPath = saveResult.output as string;
 
@@ -475,13 +564,13 @@ describe("lib.docx", () => {
     let { output: doc } = await new CreateDocumentLibNode({}).process();
     ({ output: doc } = await new AddTableLibNode({
       document: doc,
-      data: { rows: [{ col1: "a", col2: "b" }] },
+      data: { rows: [{ col1: "a", col2: "b" }] }
     }).process());
 
     const result = await new SaveDocumentLibNode({
       document: doc,
       path: { path: tmpDir },
-      filename: "table.docx",
+      filename: "table.docx"
     }).process();
     expect(existsSync(result.output as string)).toBe(true);
   });

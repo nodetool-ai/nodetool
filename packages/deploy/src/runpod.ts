@@ -89,17 +89,13 @@ export class RunPodDeployer {
       changes: [],
       willCreate: [],
       willUpdate: [],
-      willDestroy: [],
+      willDestroy: []
     };
 
-    const currentState = await this.stateManager.readState(
-      this.deploymentName
-    );
+    const currentState = await this.stateManager.readState(this.deploymentName);
 
     if (!currentState || !currentState.last_deployed) {
-      plan.changes.push(
-        "Initial deployment - will create all resources"
-      );
+      plan.changes.push("Initial deployment - will create all resources");
       plan.willCreate.push(
         "Docker image",
         "RunPod template",
@@ -127,7 +123,7 @@ export class RunPodDeployer {
       deploymentName: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
     try {
@@ -141,8 +137,7 @@ export class RunPodDeployer {
       const env: Record<string, string> = this.deployment.environment
         ? { ...(this.deployment.environment as Record<string, string>) }
         : {};
-      const templateName =
-        this.deployment.template_name ?? this.deploymentName;
+      const templateName = this.deployment.template_name ?? this.deploymentName;
 
       await deployToRunpod({
         deployment: this.deployment,
@@ -165,14 +160,14 @@ export class RunPodDeployer {
         skipPush: false,
         skipTemplate: false,
         skipEndpoint: false,
-        name: this.deploymentName,
+        name: this.deploymentName
       });
 
       results.steps.push("RunPod deployment completed");
 
       await this.stateManager.writeState(this.deploymentName, {
         status: "active",
-        template_name: templateName,
+        template_name: templateName
       });
     } catch (err) {
       results.status = "error";
@@ -195,16 +190,14 @@ export class RunPodDeployer {
   async status(): Promise<StatusInfo> {
     const statusInfo: StatusInfo = {
       deploymentName: this.deploymentName,
-      type: "runpod",
+      type: "runpod"
     };
 
     const state = await this.stateManager.readState(this.deploymentName);
     if (state) {
       statusInfo.status = (state.status as string) ?? "unknown";
-      statusInfo.lastDeployed =
-        (state.last_deployed as string) ?? "unknown";
-      statusInfo.templateName =
-        (state.template_name as string) ?? "unknown";
+      statusInfo.lastDeployed = (state.last_deployed as string) ?? "unknown";
+      statusInfo.templateName = (state.template_name as string) ?? "unknown";
       statusInfo.podId = (state.pod_id as string) ?? "unknown";
     }
 
@@ -223,7 +216,7 @@ export class RunPodDeployer {
         if (liveEndpoint.id) {
           statusInfo.urls = {
             runsync: `https://api.runpod.ai/v2/${liveEndpoint.id}/runsync`,
-            run: `https://api.runpod.ai/v2/${liveEndpoint.id}/run`,
+            run: `https://api.runpod.ai/v2/${liveEndpoint.id}/run`
           };
         }
       } else {
@@ -242,11 +235,7 @@ export class RunPodDeployer {
    *
    * RunPod serverless endpoints don't provide direct log access.
    */
-  logs(
-    _service?: string,
-    _follow?: boolean,
-    _tail?: number
-  ): never {
+  logs(_service?: string, _follow?: boolean, _tail?: number): never {
     throw new Error(
       "RunPod serverless endpoints don't provide direct log access. " +
         "Check logs via RunPod web console or API."
@@ -261,7 +250,7 @@ export class RunPodDeployer {
       deploymentName: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
     try {

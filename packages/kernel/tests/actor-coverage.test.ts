@@ -39,7 +39,7 @@ function createActor(
       sentOutputs.push({ nodeId, outputs });
     },
     emitMessage: (msg) => messages.push(msg),
-    executionContext,
+    executionContext
   });
 
   return { actor, sentOutputs, messages };
@@ -56,7 +56,7 @@ describe("NodeActor – streaming input mode", () => {
       async process(inputs) {
         calls.push(inputs);
         return { result: "streamed" };
-      },
+      }
     };
 
     const { actor, sentOutputs } = createActor(node, inbox, executor);
@@ -83,7 +83,7 @@ describe("NodeActor – source node (no input handles)", () => {
     const executor: NodeExecutor = {
       async process() {
         return { value: 42 };
-      },
+      }
     };
 
     const { actor, sentOutputs } = createActor(node, inbox, executor);
@@ -105,7 +105,7 @@ describe("NodeActor – source node (no input handles)", () => {
       async *genProcess() {
         yield { chunk: 1 };
         yield { chunk: 2 };
-      },
+      }
     };
 
     const { actor, sentOutputs } = createActor(node, inbox, executor);
@@ -133,7 +133,7 @@ describe("NodeActor – preProcess and finalize", () => {
       },
       async finalize() {
         calls.push("finalize");
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -152,7 +152,7 @@ describe("NodeActor – error handling edge cases", () => {
     const executor: NodeExecutor = {
       async process() {
         throw "string error";
-      },
+      }
     };
 
     const { actor, messages } = createActor(node, inbox, executor);
@@ -179,7 +179,7 @@ describe("NodeActor – node status emission", () => {
     const executor: NodeExecutor = {
       async process() {
         return { out: 1 };
-      },
+      }
     };
 
     const { actor, messages } = createActor(node, inbox, executor);
@@ -199,7 +199,7 @@ describe("NodeActor – node status emission", () => {
     const executor: NodeExecutor = {
       async process() {
         return {};
-      },
+      }
     };
 
     const { actor, messages } = createActor(node, inbox, executor);
@@ -224,7 +224,7 @@ describe("NodeActor – execution context forwarding", () => {
       async process(_inputs, context) {
         receivedContext = context;
         return {};
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor, mockContext);
@@ -248,7 +248,7 @@ describe("NodeActor – zip_all sticky edge cases", () => {
       async process(inputs) {
         calls.push({ ...inputs });
         return { out: "ok" };
-      },
+      }
     };
 
     const { actor, sentOutputs } = createActor(node, inbox, executor);
@@ -283,7 +283,7 @@ describe("NodeActor – zip_all sticky edge cases", () => {
       async process(inputs) {
         calls.push({ ...inputs });
         return {};
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -314,7 +314,7 @@ describe("NodeActor – zip_all: open handle EOS with existing sticky", () => {
       async process(inputs) {
         calls.push({ ...inputs });
         return { out: "ok" };
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -360,7 +360,7 @@ describe("NodeActor – zip_all: inbox closed while waiting (lines 324-326)", ()
           await inbox.closeAll();
         }
         return { out: "ok" };
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -395,7 +395,7 @@ describe("NodeActor – on_any mode via async iteration (lines 274-281)", () => 
       async process(inputs) {
         calls.push({ ...inputs });
         return { out: "ok" };
-      },
+      }
     };
 
     const { actor, sentOutputs } = createActor(node, inbox, executor);
@@ -427,7 +427,7 @@ describe("NodeActor – zip_all closed handle no sticky (lines 340-341)", () => 
       async process(inputs) {
         calls.push({ ...inputs });
         return { out: "ok" };
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -461,7 +461,7 @@ describe("NodeActor – controlled mode edge cases", () => {
       async process(inputs) {
         calls.push({ ...inputs });
         return { out: "ok" };
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -473,13 +473,13 @@ describe("NodeActor – controlled mode edge cases", () => {
     // First run event
     await inbox.put("__control__", {
       event_type: "run" as const,
-      properties: { multiplier: 2 },
+      properties: { multiplier: 2 }
     });
 
     // Second run event reuses cached inputs
     await inbox.put("__control__", {
       event_type: "run" as const,
-      properties: { multiplier: 3 },
+      properties: { multiplier: 3 }
     });
 
     // Stop

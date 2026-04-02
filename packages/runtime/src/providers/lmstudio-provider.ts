@@ -34,9 +34,9 @@ export class LMStudioProvider extends OpenAIProvider {
           ((key) =>
             new OpenAI({
               apiKey: key,
-              baseURL: `${baseURL}/v1`,
+              baseURL: `${baseURL}/v1`
             })),
-        fetchFn,
+        fetchFn
       }
     );
 
@@ -47,7 +47,7 @@ export class LMStudioProvider extends OpenAIProvider {
 
   override getContainerEnv(): Record<string, string> {
     const env: Record<string, string> = {
-      LMSTUDIO_API_URL: this._lmstudioBaseURL,
+      LMSTUDIO_API_URL: this._lmstudioBaseURL
     };
     if (this.apiKey && this.apiKey !== "lm-studio") {
       env.LMSTUDIO_API_KEY = this.apiKey;
@@ -65,8 +65,8 @@ export class LMStudioProvider extends OpenAIProvider {
         `${this._lmstudioBaseURL}/v1/models`,
         {
           headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-          },
+            Authorization: `Bearer ${this.apiKey}`
+          }
         }
       );
 
@@ -86,7 +86,7 @@ export class LMStudioProvider extends OpenAIProvider {
         .map((row) => ({
           id: row.id,
           name: row.id,
-          provider: "lmstudio",
+          provider: "lmstudio"
         }));
     } catch {
       return [];

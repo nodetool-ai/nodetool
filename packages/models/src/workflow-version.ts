@@ -38,26 +38,35 @@ export class WorkflowVersion extends DBModel {
   /** List all versions for a workflow, newest first. */
   static async listForWorkflow(
     workflowId: string,
-    opts: { limit?: number } = {},
+    opts: { limit?: number } = {}
   ): Promise<WorkflowVersion[]> {
     const { limit = 100 } = opts;
     const db = getDb();
-    const rows = db.select().from(workflowVersions)
+    const rows = db
+      .select()
+      .from(workflowVersions)
       .where(eq(workflowVersions.workflow_id, workflowId))
       .orderBy(desc(workflowVersions.version))
       .limit(limit)
       .all();
-    return rows.map(r => new WorkflowVersion(r as Record<string, unknown>));
+    return rows.map((r) => new WorkflowVersion(r as Record<string, unknown>));
   }
 
   /** Get a specific version by workflow_id + version number. */
   static async findByVersion(
     workflowId: string,
-    version: number,
+    version: number
   ): Promise<WorkflowVersion | null> {
     const db = getDb();
-    const row = db.select().from(workflowVersions)
-      .where(and(eq(workflowVersions.workflow_id, workflowId), eq(workflowVersions.version, version)))
+    const row = db
+      .select()
+      .from(workflowVersions)
+      .where(
+        and(
+          eq(workflowVersions.workflow_id, workflowId),
+          eq(workflowVersions.version, version)
+        )
+      )
       .limit(1)
       .get();
     return row ? new WorkflowVersion(row as Record<string, unknown>) : null;
@@ -65,14 +74,21 @@ export class WorkflowVersion extends DBModel {
 
   /** Get the next version number for a workflow (max existing + 1). */
   static async nextVersion(workflowId: string): Promise<number> {
-    const versions = await WorkflowVersion.listForWorkflow(workflowId, { limit: 1 });
+    const versions = await WorkflowVersion.listForWorkflow(workflowId, {
+      limit: 1
+    });
     if (versions.length === 0) return 1;
     return versions[0].version + 1;
   }
 
   /** Delete oldest versions beyond max_versions for a workflow. */
-  static async pruneOldVersions(workflowId: string, maxVersions: number): Promise<void> {
-    const versions = await WorkflowVersion.listForWorkflow(workflowId, { limit: 1000 });
+  static async pruneOldVersions(
+    workflowId: string,
+    maxVersions: number
+  ): Promise<void> {
+    const versions = await WorkflowVersion.listForWorkflow(workflowId, {
+      limit: 1000
+    });
     if (versions.length <= maxVersions) return;
     const toDelete = versions.slice(maxVersions);
     for (const v of toDelete) {

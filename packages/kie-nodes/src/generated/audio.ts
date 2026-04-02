@@ -5,7 +5,7 @@ import {
   kieExecuteTask,
   kieExecuteSunoTask,
   isRefSet,
-  uploadAudioInput,
+  uploadAudioInput
 } from "../kie-base.js";
 
 export class GenerateMusicNode extends BaseNode {
@@ -27,45 +27,109 @@ export class GenerateMusicNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "bool", default: false, title: "Custom Mode", description: "Enable custom mode for detailed control over style and title." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Custom Mode",
+    description: "Enable custom mode for detailed control over style and title."
+  })
   declare custom_mode: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description:
+      "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Style", description: "Music style specification (required in custom mode)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Style",
+    description: "Music style specification (required in custom mode)."
+  })
   declare style: any;
 
-  @prop({ type: "str", default: "", title: "Title", description: "Track title (required in custom mode, max 80 characters)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Title",
+    description: "Track title (required in custom mode, max 80 characters)."
+  })
   declare title: any;
 
-  @prop({ type: "bool", default: false, title: "Instrumental", description: "Generate instrumental-only (no vocals)." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Instrumental",
+    description: "Generate instrumental-only (no vocals)."
+  })
   declare instrumental: any;
 
-  @prop({ type: "enum", default: "V4_5PLUS", values: ["V4","V4_5","V4_5PLUS","V4_5ALL","V5"], title: "Model", description: "Suno model version to use." })
+  @prop({
+    type: "enum",
+    default: "V4_5PLUS",
+    values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"],
+    title: "Model",
+    description: "Suno model version to use."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Negative Tags", description: "Music styles or traits to exclude from the generated audio." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Tags",
+    description: "Music styles or traits to exclude from the generated audio."
+  })
   declare negative_tags: any;
 
-  @prop({ type: "enum", default: "", values: ["","m","f"], title: "Vocal Gender", description: "Vocal gender preference (custom mode only)." })
+  @prop({
+    type: "enum",
+    default: "",
+    values: ["", "m", "f"],
+    title: "Vocal Gender",
+    description: "Vocal gender preference (custom mode only)."
+  })
   declare vocal_gender: any;
 
-  @prop({ type: "float", default: 0, title: "Style Weight", description: "Strength of adherence to style (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Style Weight",
+    description: "Strength of adherence to style (0-1)."
+  })
   declare style_weight: any;
 
-  @prop({ type: "float", default: 0, title: "Weirdness Constraint", description: "Creative deviation control (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Weirdness Constraint",
+    description: "Creative deviation control (0-1)."
+  })
   declare weirdness_constraint: any;
 
-  @prop({ type: "float", default: 0, title: "Audio Weight", description: "Balance weight for audio features (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Audio Weight",
+    description: "Balance weight for audio features (0-1)."
+  })
   declare audio_weight: any;
 
-  @prop({ type: "str", default: "", title: "Persona Id", description: "Persona ID to apply (custom mode only)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Persona Id",
+    description: "Persona ID to apply (custom mode only)."
+  })
   declare persona_id: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.prompt ?? "").trim()) throw new Error("prompt is required");
+    if (!String(this.prompt ?? "").trim())
+      throw new Error("prompt is required");
     const params: Record<string, unknown> = {};
     params["customMode"] = Boolean(this.custom_mode ?? false);
     params["prompt"] = String(this.prompt ?? "");
@@ -73,11 +137,16 @@ export class GenerateMusicNode extends BaseNode {
     params["title"] = String(this.title ?? "");
     params["instrumental"] = Boolean(this.instrumental ?? false);
     params["model"] = String(this.model ?? "V4_5PLUS");
-    if (this.negative_tags) params["negativeTags"] = String(this.negative_tags ?? "");
-    if (this.vocal_gender) params["vocalGender"] = String(this.vocal_gender ?? "");
-    if (this.style_weight) params["styleWeight"] = Number(this.style_weight ?? 0);
-    if (this.weirdness_constraint) params["weirdnessConstraint"] = Number(this.weirdness_constraint ?? 0);
-    if (this.audio_weight) params["audioWeight"] = Number(this.audio_weight ?? 0);
+    if (this.negative_tags)
+      params["negativeTags"] = String(this.negative_tags ?? "");
+    if (this.vocal_gender)
+      params["vocalGender"] = String(this.vocal_gender ?? "");
+    if (this.style_weight)
+      params["styleWeight"] = Number(this.style_weight ?? 0);
+    if (this.weirdness_constraint)
+      params["weirdnessConstraint"] = Number(this.weirdness_constraint ?? 0);
+    if (this.audio_weight)
+      params["audioWeight"] = Number(this.audio_weight ?? 0);
     if (this.persona_id) params["personaId"] = String(this.persona_id ?? "");
 
     const result = await kieExecuteSunoTask(apiKey, params, 4000, 120);
@@ -98,48 +167,119 @@ export class ExtendMusicNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "bool", default: false, title: "Default Param Flag", description: "If true, use custom parameters (prompt/style/title/continue_at). If false, inherit parameters from the source audio." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Default Param Flag",
+    description:
+      "If true, use custom parameters (prompt/style/title/continue_at). If false, inherit parameters from the source audio."
+  })
   declare default_param_flag: any;
 
-  @prop({ type: "str", default: "", title: "Audio Id", description: "Audio ID to extend." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Audio Id",
+    description: "Audio ID to extend."
+  })
   declare audio_id: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Description of the desired extension content." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Description of the desired extension content."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Style", description: "Music style for the extension (required for custom params)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Style",
+    description: "Music style for the extension (required for custom params)."
+  })
   declare style: any;
 
-  @prop({ type: "str", default: "", title: "Title", description: "Title for the extended track (required for custom params)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Title",
+    description: "Title for the extended track (required for custom params)."
+  })
   declare title: any;
 
-  @prop({ type: "float", default: 0, title: "Continue At", description: "Time in seconds to start extending from (required for custom params).", min: 0 })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Continue At",
+    description:
+      "Time in seconds to start extending from (required for custom params).",
+    min: 0
+  })
   declare continue_at: any;
 
-  @prop({ type: "enum", default: "V4_5PLUS", values: ["V4","V4_5","V4_5PLUS","V4_5ALL","V5"], title: "Model", description: "Suno model version to use (must match source audio)." })
+  @prop({
+    type: "enum",
+    default: "V4_5PLUS",
+    values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"],
+    title: "Model",
+    description: "Suno model version to use (must match source audio)."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Negative Tags", description: "Music styles or traits to exclude from the extension." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Tags",
+    description: "Music styles or traits to exclude from the extension."
+  })
   declare negative_tags: any;
 
-  @prop({ type: "enum", default: "", values: ["","m","f"], title: "Vocal Gender", description: "Vocal gender preference." })
+  @prop({
+    type: "enum",
+    default: "",
+    values: ["", "m", "f"],
+    title: "Vocal Gender",
+    description: "Vocal gender preference."
+  })
   declare vocal_gender: any;
 
-  @prop({ type: "float", default: 0, title: "Style Weight", description: "Strength of adherence to style (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Style Weight",
+    description: "Strength of adherence to style (0-1)."
+  })
   declare style_weight: any;
 
-  @prop({ type: "float", default: 0, title: "Weirdness Constraint", description: "Creative deviation control (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Weirdness Constraint",
+    description: "Creative deviation control (0-1)."
+  })
   declare weirdness_constraint: any;
 
-  @prop({ type: "float", default: 0, title: "Audio Weight", description: "Balance weight for audio features (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Audio Weight",
+    description: "Balance weight for audio features (0-1)."
+  })
   declare audio_weight: any;
 
-  @prop({ type: "str", default: "", title: "Persona Id", description: "Persona ID to apply (custom params only)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Persona Id",
+    description: "Persona ID to apply (custom params only)."
+  })
   declare persona_id: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.audio_id ?? "").trim()) throw new Error("audio_id is required");
+    if (!String(this.audio_id ?? "").trim())
+      throw new Error("audio_id is required");
     const params: Record<string, unknown> = {};
     params["default_param_flag"] = Boolean(this.default_param_flag ?? false);
     params["audio_id"] = String(this.audio_id ?? "");
@@ -173,50 +313,125 @@ export class CoverAudioNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "bool", default: false, title: "Custom Mode", description: "Enable custom mode for detailed control over style and title." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Custom Mode",
+    description: "Enable custom mode for detailed control over style and title."
+  })
   declare custom_mode: any;
 
-  @prop({ type: "audio", default: {"type":"audio","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Audio", description: "Source audio to upload for covering." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Source audio to upload for covering."
+  })
   declare audio: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description:
+      "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Style", description: "Music style specification (required in custom mode)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Style",
+    description: "Music style specification (required in custom mode)."
+  })
   declare style: any;
 
-  @prop({ type: "str", default: "", title: "Title", description: "Track title (required in custom mode)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Title",
+    description: "Track title (required in custom mode)."
+  })
   declare title: any;
 
-  @prop({ type: "bool", default: false, title: "Instrumental", description: "Generate instrumental-only (no vocals)." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Instrumental",
+    description: "Generate instrumental-only (no vocals)."
+  })
   declare instrumental: any;
 
-  @prop({ type: "enum", default: "V4_5PLUS", values: ["V4","V4_5","V4_5PLUS","V4_5ALL","V5"], title: "Model", description: "Suno model version to use." })
+  @prop({
+    type: "enum",
+    default: "V4_5PLUS",
+    values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"],
+    title: "Model",
+    description: "Suno model version to use."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Negative Tags", description: "Music styles or traits to exclude from the generated audio." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Tags",
+    description: "Music styles or traits to exclude from the generated audio."
+  })
   declare negative_tags: any;
 
-  @prop({ type: "enum", default: "", values: ["","m","f"], title: "Vocal Gender", description: "Vocal gender preference (custom mode only)." })
+  @prop({
+    type: "enum",
+    default: "",
+    values: ["", "m", "f"],
+    title: "Vocal Gender",
+    description: "Vocal gender preference (custom mode only)."
+  })
   declare vocal_gender: any;
 
-  @prop({ type: "float", default: 0, title: "Style Weight", description: "Strength of adherence to style (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Style Weight",
+    description: "Strength of adherence to style (0-1)."
+  })
   declare style_weight: any;
 
-  @prop({ type: "float", default: 0, title: "Weirdness Constraint", description: "Creative deviation control (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Weirdness Constraint",
+    description: "Creative deviation control (0-1)."
+  })
   declare weirdness_constraint: any;
 
-  @prop({ type: "float", default: 0, title: "Audio Weight", description: "Balance weight for audio features (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Audio Weight",
+    description: "Balance weight for audio features (0-1)."
+  })
   declare audio_weight: any;
 
-  @prop({ type: "str", default: "", title: "Persona Id", description: "Persona ID to apply (custom mode only)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Persona Id",
+    description: "Persona ID to apply (custom mode only)."
+  })
   declare persona_id: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     if (!String(this.audio ?? "").trim()) throw new Error("audio is required");
     let audioUrl = "";
-    if (isRefSet(this.audio)) audioUrl = await uploadAudioInput(apiKey, this.audio);
+    if (isRefSet(this.audio))
+      audioUrl = await uploadAudioInput(apiKey, this.audio);
     const params: Record<string, unknown> = {};
     params["custom_mode"] = Boolean(this.custom_mode ?? false);
     params["prompt"] = String(this.prompt ?? "");
@@ -225,7 +440,8 @@ export class CoverAudioNode extends BaseNode {
     params["instrumental"] = Boolean(this.instrumental ?? false);
     params["model"] = String(this.model ?? "V4_5PLUS");
     params["negative_tags"] = String(this.negative_tags ?? "");
-    if (this.vocal_gender) params["vocalGender"] = String(this.vocal_gender ?? "");
+    if (this.vocal_gender)
+      params["vocalGender"] = String(this.vocal_gender ?? "");
     params["style_weight"] = Number(this.style_weight ?? 0);
     params["weirdness_constraint"] = Number(this.weirdness_constraint ?? 0);
     params["audio_weight"] = Number(this.audio_weight ?? 0);
@@ -249,38 +465,92 @@ export class AddInstrumentalNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "audio", default: {"type":"audio","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Audio", description: "Source audio to upload for instrumental generation." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Source audio to upload for instrumental generation."
+  })
   declare audio: any;
 
-  @prop({ type: "str", default: "", title: "Title", description: "Title of the generated music." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Title",
+    description: "Title of the generated music."
+  })
   declare title: any;
 
-  @prop({ type: "str", default: "", title: "Tags", description: "Music styles or tags to include in the generated music." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Tags",
+    description: "Music styles or tags to include in the generated music."
+  })
   declare tags: any;
 
-  @prop({ type: "str", default: "", title: "Negative Tags", description: "Music styles or characteristics to exclude." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Tags",
+    description: "Music styles or characteristics to exclude."
+  })
   declare negative_tags: any;
 
-  @prop({ type: "enum", default: "V4_5PLUS", values: ["V4_5PLUS","V5"], title: "Model", description: "Suno model version to use." })
+  @prop({
+    type: "enum",
+    default: "V4_5PLUS",
+    values: ["V4_5PLUS", "V5"],
+    title: "Model",
+    description: "Suno model version to use."
+  })
   declare model: any;
 
-  @prop({ type: "enum", default: "", values: ["","m","f"], title: "Vocal Gender", description: "Vocal gender preference." })
+  @prop({
+    type: "enum",
+    default: "",
+    values: ["", "m", "f"],
+    title: "Vocal Gender",
+    description: "Vocal gender preference."
+  })
   declare vocal_gender: any;
 
-  @prop({ type: "float", default: 0, title: "Style Weight", description: "Strength of adherence to style (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Style Weight",
+    description: "Strength of adherence to style (0-1)."
+  })
   declare style_weight: any;
 
-  @prop({ type: "float", default: 0, title: "Weirdness Constraint", description: "Creative deviation control (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Weirdness Constraint",
+    description: "Creative deviation control (0-1)."
+  })
   declare weirdness_constraint: any;
 
-  @prop({ type: "float", default: 0, title: "Audio Weight", description: "Balance weight for audio features (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Audio Weight",
+    description: "Balance weight for audio features (0-1)."
+  })
   declare audio_weight: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     if (!String(this.audio ?? "").trim()) throw new Error("audio is required");
     let audioUrl = "";
-    if (isRefSet(this.audio)) audioUrl = await uploadAudioInput(apiKey, this.audio);
+    if (isRefSet(this.audio))
+      audioUrl = await uploadAudioInput(apiKey, this.audio);
     const params: Record<string, unknown> = {};
     params["style"] = String(this.title ?? "");
     params["prompt"] = String(this.tags ?? "");
@@ -309,44 +579,108 @@ export class AddVocalsNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "audio", default: {"type":"audio","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Audio", description: "Source audio to upload for vocal generation." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Source audio to upload for vocal generation."
+  })
   declare audio: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing lyric content and singing style." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing lyric content and singing style."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Title", description: "Title of the generated music." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Title",
+    description: "Title of the generated music."
+  })
   declare title: any;
 
-  @prop({ type: "str", default: "", title: "Style", description: "Music style for vocal generation." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Style",
+    description: "Music style for vocal generation."
+  })
   declare style: any;
 
-  @prop({ type: "str", default: "", title: "Tags", description: "Optional music tags to include in the generation." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Tags",
+    description: "Optional music tags to include in the generation."
+  })
   declare tags: any;
 
-  @prop({ type: "str", default: "", title: "Negative Tags", description: "Excluded music styles or elements." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Tags",
+    description: "Excluded music styles or elements."
+  })
   declare negative_tags: any;
 
-  @prop({ type: "enum", default: "V4_5PLUS", values: ["V4_5PLUS","V5"], title: "Model", description: "Suno model version to use." })
+  @prop({
+    type: "enum",
+    default: "V4_5PLUS",
+    values: ["V4_5PLUS", "V5"],
+    title: "Model",
+    description: "Suno model version to use."
+  })
   declare model: any;
 
-  @prop({ type: "enum", default: "", values: ["","m","f"], title: "Vocal Gender", description: "Vocal gender preference." })
+  @prop({
+    type: "enum",
+    default: "",
+    values: ["", "m", "f"],
+    title: "Vocal Gender",
+    description: "Vocal gender preference."
+  })
   declare vocal_gender: any;
 
-  @prop({ type: "float", default: 0, title: "Style Weight", description: "Strength of adherence to style (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Style Weight",
+    description: "Strength of adherence to style (0-1)."
+  })
   declare style_weight: any;
 
-  @prop({ type: "float", default: 0, title: "Weirdness Constraint", description: "Creative deviation control (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Weirdness Constraint",
+    description: "Creative deviation control (0-1)."
+  })
   declare weirdness_constraint: any;
 
-  @prop({ type: "float", default: 0, title: "Audio Weight", description: "Balance weight for audio features (0-1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Audio Weight",
+    description: "Balance weight for audio features (0-1)."
+  })
   declare audio_weight: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     if (!String(this.audio ?? "").trim()) throw new Error("audio is required");
     let audioUrl = "";
-    if (isRefSet(this.audio)) audioUrl = await uploadAudioInput(apiKey, this.audio);
+    if (isRefSet(this.audio))
+      audioUrl = await uploadAudioInput(apiKey, this.audio);
     const params: Record<string, unknown> = {};
     params["prompt"] = String(this.prompt ?? "");
     params["title"] = String(this.title ?? "");
@@ -354,7 +688,8 @@ export class AddVocalsNode extends BaseNode {
     params["tags"] = String(this.tags ?? "");
     params["negative_tags"] = String(this.negative_tags ?? "");
     params["model"] = String(this.model ?? "V4_5PLUS");
-    if (this.vocal_gender) params["vocalGender"] = String(this.vocal_gender ?? "");
+    if (this.vocal_gender)
+      params["vocalGender"] = String(this.vocal_gender ?? "");
     params["style_weight"] = Number(this.style_weight ?? 0);
     params["weirdness_constraint"] = Number(this.weirdness_constraint ?? 0);
     params["audio_weight"] = Number(this.audio_weight ?? 0);
@@ -377,37 +712,86 @@ export class ReplaceMusicSectionNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Task Id", description: "Original music task ID." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Task Id",
+    description: "Original music task ID."
+  })
   declare task_id: any;
 
-  @prop({ type: "str", default: "", title: "Audio Id", description: "Audio ID to replace." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Audio Id",
+    description: "Audio ID to replace."
+  })
   declare audio_id: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the replacement segment content." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Prompt describing the replacement segment content."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Tags", description: "Music style tags." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Tags",
+    description: "Music style tags."
+  })
   declare tags: any;
 
-  @prop({ type: "str", default: "", title: "Title", description: "Music title." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Title",
+    description: "Music title."
+  })
   declare title: any;
 
-  @prop({ type: "float", default: 0, title: "Infill Start S", description: "Start time point for replacement (seconds).", min: 0 })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Infill Start S",
+    description: "Start time point for replacement (seconds).",
+    min: 0
+  })
   declare infill_start_s: any;
 
-  @prop({ type: "float", default: 0, title: "Infill End S", description: "End time point for replacement (seconds).", min: 0 })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Infill End S",
+    description: "End time point for replacement (seconds).",
+    min: 0
+  })
   declare infill_end_s: any;
 
-  @prop({ type: "str", default: "", title: "Negative Tags", description: "Excluded music styles for the replacement segment." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Tags",
+    description: "Excluded music styles for the replacement segment."
+  })
   declare negative_tags: any;
 
-  @prop({ type: "str", default: "", title: "Full Lyrics", description: "Full lyrics after modification." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Full Lyrics",
+    description: "Full lyrics after modification."
+  })
   declare full_lyrics: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    if (!String(this.task_id ?? "").trim()) throw new Error("task_id is required");
-    if (!String(this.audio_id ?? "").trim()) throw new Error("audio_id is required");
+    if (!String(this.task_id ?? "").trim())
+      throw new Error("task_id is required");
+    if (!String(this.audio_id ?? "").trim())
+      throw new Error("audio_id is required");
     const params: Record<string, unknown> = {};
     params["task_id"] = String(this.task_id ?? "");
     params["audio_id"] = String(this.audio_id ?? "");
@@ -443,34 +827,88 @@ export class ElevenLabsTextToSpeechNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Text", description: "The text to convert to speech." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Text",
+    description: "The text to convert to speech."
+  })
   declare text: any;
 
-  @prop({ type: "str", default: "Rachel", title: "Voice", description: "The voice ID to use for synthesis. Common voices: Rachel, Adam, Bella, Antoni." })
+  @prop({
+    type: "str",
+    default: "Rachel",
+    title: "Voice",
+    description:
+      "The voice ID to use for synthesis. Common voices: Rachel, Adam, Bella, Antoni."
+  })
   declare voice: any;
 
-  @prop({ type: "float", default: 0.5, title: "Stability", description: "Stability of the voice output. Lower values are more expressive, higher values are more consistent.", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0.5,
+    title: "Stability",
+    description:
+      "Stability of the voice output. Lower values are more expressive, higher values are more consistent.",
+    min: 0,
+    max: 1
+  })
   declare stability: any;
 
-  @prop({ type: "float", default: 0.75, title: "Similarity Boost", description: "How closely to clone the voice characteristics. Higher values match the voice more closely.", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0.75,
+    title: "Similarity Boost",
+    description:
+      "How closely to clone the voice characteristics. Higher values match the voice more closely.",
+    min: 0,
+    max: 1
+  })
   declare similarity_boost: any;
 
-  @prop({ type: "float", default: 0, title: "Style", description: "Style parameter for voice expression. Range 0.0 to 1.0.", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Style",
+    description: "Style parameter for voice expression. Range 0.0 to 1.0.",
+    min: 0,
+    max: 1
+  })
   declare style: any;
 
-  @prop({ type: "float", default: 1, title: "Speed", description: "Speed of the speech. Range 0.5 to 1.5.", min: 0.5, max: 1.5 })
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Speed",
+    description: "Speed of the speech. Range 0.5 to 1.5.",
+    min: 0.5,
+    max: 1.5
+  })
   declare speed: any;
 
-  @prop({ type: "str", default: "", title: "Language Code", description: "Language code for multilingual TTS (e.g., 'en', 'es', 'fr', 'de'). Leave empty for auto-detection." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Language Code",
+    description:
+      "Language code for multilingual TTS (e.g., 'en', 'es', 'fr', 'de'). Leave empty for auto-detection."
+  })
   declare language_code: any;
 
-  @prop({ type: "enum", default: "text-to-speech-turbo-2-5", values: ["text-to-speech-turbo-2-5","text-to-speech-multilingual-v2"], title: "Model", description: "ElevenLabs model version to use." })
+  @prop({
+    type: "enum",
+    default: "text-to-speech-turbo-2-5",
+    values: ["text-to-speech-turbo-2-5", "text-to-speech-multilingual-v2"],
+    title: "Model",
+    description: "ElevenLabs model version to use."
+  })
   declare model: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     if (!String(this.text ?? "").trim()) throw new Error("text is required");
-    if (!String(this.voice ?? "").trim()) throw new Error("voice_id is required");
+    if (!String(this.voice ?? "").trim())
+      throw new Error("voice_id is required");
     const params: Record<string, unknown> = {};
     params["text"] = String(this.text ?? "");
     params["voice_id"] = String(this.voice ?? "Rachel");
@@ -481,7 +919,13 @@ export class ElevenLabsTextToSpeechNode extends BaseNode {
     params["language_code"] = String(this.language_code ?? "");
     params["model_id"] = String(this.model ?? "text-to-speech-turbo-2-5");
 
-    const result = await kieExecuteTask(apiKey, "elevenlabs/text-to-speech", params, 4000, 120);
+    const result = await kieExecuteTask(
+      apiKey,
+      "elevenlabs/text-to-speech",
+      params,
+      4000,
+      120
+    );
     return { output: { type: "audio", data: result.data } };
   }
 }
@@ -505,18 +949,36 @@ export class ElevenLabsAudioIsolationNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "audio", default: {"type":"audio","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Audio", description: "Audio file to process for speech isolation." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Audio file to process for speech isolation."
+  })
   declare audio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     if (!String(this.audio ?? "").trim()) throw new Error("audio is required");
     let audioUrl = "";
-    if (isRefSet(this.audio)) audioUrl = await uploadAudioInput(apiKey, this.audio);
+    if (isRefSet(this.audio))
+      audioUrl = await uploadAudioInput(apiKey, this.audio);
     const params: Record<string, unknown> = {};
     if (audioUrl) params["audio_url"] = audioUrl;
 
-    const result = await kieExecuteTask(apiKey, "elevenlabs/audio-isolation", params, 4000, 120);
+    const result = await kieExecuteTask(
+      apiKey,
+      "elevenlabs/audio-isolation",
+      params,
+      4000,
+      120
+    );
     return { output: { type: "audio", data: result.data } };
   }
 }
@@ -540,13 +1002,32 @@ export class ElevenLabsSoundEffectNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Text", description: "Text description of the sound effect to generate." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Text",
+    description: "Text description of the sound effect to generate."
+  })
   declare text: any;
 
-  @prop({ type: "float", default: 5, title: "Duration Seconds", description: "Duration of the sound effect in seconds (up to 22 seconds).", min: 0.5, max: 22 })
+  @prop({
+    type: "float",
+    default: 5,
+    title: "Duration Seconds",
+    description: "Duration of the sound effect in seconds (up to 22 seconds).",
+    min: 0.5,
+    max: 22
+  })
   declare duration_seconds: any;
 
-  @prop({ type: "float", default: 0.3, title: "Prompt Influence", description: "How strongly the prompt influences generation (0-1).", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0.3,
+    title: "Prompt Influence",
+    description: "How strongly the prompt influences generation (0-1).",
+    min: 0,
+    max: 1
+  })
   declare prompt_influence: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -554,10 +1035,17 @@ export class ElevenLabsSoundEffectNode extends BaseNode {
     if (!String(this.text ?? "").trim()) throw new Error("text is required");
     const params: Record<string, unknown> = {};
     params["text"] = String(this.text ?? "");
-    if (this.duration_seconds) params["duration_seconds"] = Number(this.duration_seconds ?? 5);
+    if (this.duration_seconds)
+      params["duration_seconds"] = Number(this.duration_seconds ?? 5);
     params["prompt_influence"] = Number(this.prompt_influence ?? 0.3);
 
-    const result = await kieExecuteTask(apiKey, "elevenlabs/sound-effect", params, 4000, 120);
+    const result = await kieExecuteTask(
+      apiKey,
+      "elevenlabs/sound-effect",
+      params,
+      4000,
+      120
+    );
     return { output: { type: "audio", data: result.data } };
   }
 }
@@ -581,26 +1069,55 @@ export class ElevenLabsSpeechToTextNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "audio", default: {"type":"audio","uri":"","asset_id":null,"data":null,"metadata":null}, title: "Audio", description: "Audio file to transcribe." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Audio file to transcribe."
+  })
   declare audio: any;
 
-  @prop({ type: "str", default: "", title: "Language Code", description: "Language code (e.g., 'en', 'es', 'fr'). Leave empty for auto-detection." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Language Code",
+    description:
+      "Language code (e.g., 'en', 'es', 'fr'). Leave empty for auto-detection."
+  })
   declare language_code: any;
 
-  @prop({ type: "bool", default: false, title: "Diarization", description: "Enable speaker diarization to identify different speakers." })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Diarization",
+    description: "Enable speaker diarization to identify different speakers."
+  })
   declare diarization: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     if (!String(this.audio ?? "").trim()) throw new Error("audio is required");
     let audioUrl = "";
-    if (isRefSet(this.audio)) audioUrl = await uploadAudioInput(apiKey, this.audio);
+    if (isRefSet(this.audio))
+      audioUrl = await uploadAudioInput(apiKey, this.audio);
     const params: Record<string, unknown> = {};
     params["language_code"] = String(this.language_code ?? "");
     params["diarization"] = Boolean(this.diarization ?? false);
     if (audioUrl) params["audio_url"] = audioUrl;
 
-    const result = await kieExecuteTask(apiKey, "elevenlabs/speech-to-text", params, 4000, 120);
+    const result = await kieExecuteTask(
+      apiKey,
+      "elevenlabs/speech-to-text",
+      params,
+      4000,
+      120
+    );
     return { output: { type: "text", data: result.data } };
   }
 }
@@ -624,25 +1141,70 @@ export class ElevenLabsV3DialogueNode extends BaseNode {
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly exposeAsTool = true;
 
-  @prop({ type: "str", default: "", title: "Text", description: "The dialogue text to convert to speech. Supports audio tags for control." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Text",
+    description:
+      "The dialogue text to convert to speech. Supports audio tags for control."
+  })
   declare text: any;
 
-  @prop({ type: "str", default: "Rachel", title: "Voice", description: "Primary voice ID to use for synthesis." })
+  @prop({
+    type: "str",
+    default: "Rachel",
+    title: "Voice",
+    description: "Primary voice ID to use for synthesis."
+  })
   declare voice: any;
 
-  @prop({ type: "float", default: 0.5, title: "Stability", description: "Stability of the voice output (0-1).", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0.5,
+    title: "Stability",
+    description: "Stability of the voice output (0-1).",
+    min: 0,
+    max: 1
+  })
   declare stability: any;
 
-  @prop({ type: "float", default: 0.75, title: "Similarity Boost", description: "Voice clone similarity (0-1).", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0.75,
+    title: "Similarity Boost",
+    description: "Voice clone similarity (0-1).",
+    min: 0,
+    max: 1
+  })
   declare similarity_boost: any;
 
-  @prop({ type: "float", default: 0, title: "Style", description: "Style expression parameter (0-1).", min: 0, max: 1 })
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Style",
+    description: "Style expression parameter (0-1).",
+    min: 0,
+    max: 1
+  })
   declare style: any;
 
-  @prop({ type: "float", default: 1, title: "Speed", description: "Speech speed (0.5-1.5).", min: 0.5, max: 1.5 })
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Speed",
+    description: "Speech speed (0.5-1.5).",
+    min: 0.5,
+    max: 1.5
+  })
   declare speed: any;
 
-  @prop({ type: "str", default: "", title: "Language Code", description: "Language code for multilingual output. Leave empty for auto-detection." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Language Code",
+    description:
+      "Language code for multilingual output. Leave empty for auto-detection."
+  })
   declare language_code: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -657,7 +1219,13 @@ export class ElevenLabsV3DialogueNode extends BaseNode {
     params["speed"] = Number(this.speed ?? 1);
     params["language_code"] = String(this.language_code ?? "");
 
-    const result = await kieExecuteTask(apiKey, "elevenlabs/v3-dialogue", params, 4000, 120);
+    const result = await kieExecuteTask(
+      apiKey,
+      "elevenlabs/v3-dialogue",
+      params,
+      4000,
+      120
+    );
     return { output: { type: "audio", data: result.data } };
   }
 }
@@ -673,5 +1241,5 @@ export const KIE_AUDIO_NODES: readonly NodeClass[] = [
   ElevenLabsAudioIsolationNode,
   ElevenLabsSoundEffectNode,
   ElevenLabsSpeechToTextNode,
-  ElevenLabsV3DialogueNode,
+  ElevenLabsV3DialogueNode
 ] as const;

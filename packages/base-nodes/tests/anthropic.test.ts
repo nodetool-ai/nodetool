@@ -43,7 +43,9 @@ describe("ClaudeAgentNode", () => {
       prompt: "hello"
     });
     node.setDynamic("_secrets", { ANTHROPIC_API_KEY: "test-key" });
-    await expect(node.process()).rejects.toThrow(/Claude Agent SDK|Cannot find module|Claude Agent error/);
+    await expect(node.process()).rejects.toThrow(
+      /Claude Agent SDK|Cannot find module|Claude Agent error/
+    );
   });
 
   it("uses env var for API key", async () => {
@@ -51,7 +53,9 @@ describe("ClaudeAgentNode", () => {
     const node = new ClaudeAgentNode();
     // Will fail on SDK import, but shouldn't fail on API key check
     node.assign({ prompt: "hello" });
-    await expect(node.process()).rejects.toThrow(/Claude Agent SDK|Cannot find module|Claude Agent error/);
+    await expect(node.process()).rejects.toThrow(
+      /Claude Agent SDK|Cannot find module|Claude Agent error/
+    );
   });
 
   it("accumulates streamed text from Claude Agent SDK", async () => {
@@ -59,7 +63,7 @@ describe("ClaudeAgentNode", () => {
     const messages = [
       { content: [{ text: "Hello" }] },
       { content: [{ text: ", " }, { text: "world" }] },
-      { content: [{ text: "!" }] },
+      { content: [{ text: "!" }] }
     ];
 
     const mockQuery = vi.fn().mockImplementation(() => ({
@@ -67,21 +71,28 @@ describe("ClaudeAgentNode", () => {
         for (const msg of messages) {
           yield msg;
         }
-      },
+      }
     }));
 
     vi.doMock("claude-agent-sdk", () => ({
-      query: mockQuery,
+      query: mockQuery
     }));
 
     const node = new ClaudeAgentNode();
     node.assign({
       prompt: "say hello",
-      model: { type: "language_model", provider: "anthropic", id: "claude-sonnet-4-20250514", name: "Claude Sonnet", path: null, supported_tasks: [] },
+      model: {
+        type: "language_model",
+        provider: "anthropic",
+        id: "claude-sonnet-4-20250514",
+        name: "Claude Sonnet",
+        path: null,
+        supported_tasks: []
+      },
       system_prompt: "Be concise",
       max_turns: 5,
       allowed_tools: ["Read"],
-      permission_mode: "acceptEdits",
+      permission_mode: "acceptEdits"
     });
     node.setDynamic("_secrets", { ANTHROPIC_API_KEY: "test-key" });
 
@@ -97,8 +108,8 @@ describe("ClaudeAgentNode", () => {
         max_turns: 5,
         allowed_tools: ["Read"],
         permission_mode: "acceptEdits",
-        env: { ANTHROPIC_API_KEY: "test-key" },
-      },
+        env: { ANTHROPIC_API_KEY: "test-key" }
+      }
     });
 
     vi.doUnmock("claude-agent-sdk");

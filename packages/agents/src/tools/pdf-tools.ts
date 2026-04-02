@@ -21,25 +21,25 @@ export class ExtractPDFTextTool extends Tool {
     properties: {
       path: {
         type: "string" as const,
-        description: "Path to the PDF file",
+        description: "Path to the PDF file"
       },
       start_page: {
         type: "integer" as const,
         description: "First page to extract (0-based index)",
-        default: 0,
+        default: 0
       },
       end_page: {
         type: "integer" as const,
         description: "Last page to extract (-1 for last page)",
-        default: -1,
-      },
+        default: -1
+      }
     },
-    required: ["path"],
+    required: ["path"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       const pdfParse = (await import("pdf-parse")).default;
@@ -79,35 +79,35 @@ export class ExtractPDFTablesTool extends Tool {
     properties: {
       path: {
         type: "string" as const,
-        description: "Path to the PDF file",
+        description: "Path to the PDF file"
       },
       output_file: {
         type: "string" as const,
-        description: "Path to the output JSON file",
+        description: "Path to the output JSON file"
       },
       start_page: {
         type: "integer" as const,
         description: "First page to extract (0-based index)",
-        default: 0,
+        default: 0
       },
       end_page: {
         type: "integer" as const,
         description: "Last page to extract (-1 for last page)",
-        default: -1,
-      },
+        default: -1
+      }
     },
-    required: ["path", "output_file"],
+    required: ["path", "output_file"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       const pdfParse = (await import("pdf-parse")).default;
       const filePath = context.resolveWorkspacePath(params["path"] as string);
       const outputFile = context.resolveWorkspacePath(
-        params["output_file"] as string,
+        params["output_file"] as string
       );
       const buffer = await readFile(filePath);
       const data = await pdfParse(buffer);
@@ -122,14 +122,22 @@ export class ExtractPDFTablesTool extends Tool {
       // Best-effort table extraction: look for lines with consistent
       // column-like separators (multiple spaces or tabs)
       const allTables: Array<Record<string, unknown>> = [];
-      for (let pageNum = startPage; pageNum <= end && pageNum < pages.length; pageNum++) {
+      for (
+        let pageNum = startPage;
+        pageNum <= end && pageNum < pages.length;
+        pageNum++
+      ) {
         const pageText = pages[pageNum] ?? "";
-        const lines = pageText.split("\n").filter((l: string) => l.trim().length > 0);
+        const lines = pageText
+          .split("\n")
+          .filter((l: string) => l.trim().length > 0);
 
         // Detect tabular rows: lines with 2+ segments separated by 2+ spaces
         const tabularLines: string[][] = [];
         for (const line of lines) {
-          const cells = line.split(/\s{2,}/).filter((c: string) => c.trim().length > 0);
+          const cells = line
+            .split(/\s{2,}/)
+            .filter((c: string) => c.trim().length > 0);
           if (cells.length >= 2) {
             tabularLines.push(cells);
           }
@@ -141,7 +149,7 @@ export class ExtractPDFTablesTool extends Tool {
             page: pageNum,
             rows: tabularLines.length,
             columns: Math.max(...tabularLines.map((r) => r.length)),
-            content: tabularLines,
+            content: tabularLines
           });
         }
       }
@@ -174,37 +182,37 @@ export class ConvertPDFToMarkdownTool extends Tool {
     properties: {
       input_file: {
         type: "string" as const,
-        description: "Path to the input PDF file",
+        description: "Path to the input PDF file"
       },
       output_file: {
         type: "string" as const,
-        description: "Path to the output Markdown file",
+        description: "Path to the output Markdown file"
       },
       start_page: {
         type: "integer" as const,
         description: "First page to extract (0-based index)",
-        default: 0,
+        default: 0
       },
       end_page: {
         type: "integer" as const,
         description: "Last page to extract (-1 for last page)",
-        default: -1,
-      },
+        default: -1
+      }
     },
-    required: ["input_file", "output_file"],
+    required: ["input_file", "output_file"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       const pdfParse = (await import("pdf-parse")).default;
       const inputFile = context.resolveWorkspacePath(
-        params["input_file"] as string,
+        params["input_file"] as string
       );
       const outputFile = context.resolveWorkspacePath(
-        params["output_file"] as string,
+        params["output_file"] as string
       );
 
       const buffer = await readFile(inputFile);
@@ -248,26 +256,26 @@ export class ConvertMarkdownToPDFTool extends Tool {
     properties: {
       input_file: {
         type: "string" as const,
-        description: "Path to the input Markdown file",
+        description: "Path to the input Markdown file"
       },
       output_file: {
         type: "string" as const,
-        description: "Path to the output PDF file",
-      },
+        description: "Path to the output PDF file"
+      }
     },
-    required: ["input_file", "output_file"],
+    required: ["input_file", "output_file"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       const inputFile = context.resolveWorkspacePath(
-        params["input_file"] as string,
+        params["input_file"] as string
       );
       const outputFile = context.resolveWorkspacePath(
-        params["output_file"] as string,
+        params["output_file"] as string
       );
 
       const parentDir = dirname(outputFile);
@@ -280,7 +288,7 @@ export class ConvertMarkdownToPDFTool extends Tool {
         "-t",
         "pdf",
         "-o",
-        outputFile,
+        outputFile
       ]);
 
       return { output_file: outputFile, status: "success" };
@@ -308,42 +316,42 @@ export class ConvertDocumentTool extends Tool {
     properties: {
       input_file: {
         type: "string" as const,
-        description: "Path to the input file",
+        description: "Path to the input file"
       },
       output_file: {
         type: "string" as const,
-        description: "Path to the output file",
+        description: "Path to the output file"
       },
       from_format: {
         type: "string" as const,
         description: "Input format (e.g., markdown, docx, rst)",
-        default: "markdown",
+        default: "markdown"
       },
       to_format: {
         type: "string" as const,
         description: "Output format (e.g., pdf, docx, html)",
-        default: "pdf",
+        default: "pdf"
       },
       extra_args: {
         type: "array" as const,
         description: "Additional Pandoc arguments",
         items: { type: "string" as const },
-        default: [],
-      },
+        default: []
+      }
     },
-    required: ["input_file", "output_file"],
+    required: ["input_file", "output_file"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       const inputFile = context.resolveWorkspacePath(
-        params["input_file"] as string,
+        params["input_file"] as string
       );
       const outputFile = context.resolveWorkspacePath(
-        params["output_file"] as string,
+        params["output_file"] as string
       );
       const fromFormat = (params["from_format"] as string) ?? "markdown";
       const toFormat = (params["to_format"] as string) ?? "pdf";
@@ -363,7 +371,7 @@ export class ConvertDocumentTool extends Tool {
         toFormat,
         "-o",
         outputFile,
-        ...extraArgs,
+        ...extraArgs
       ]);
 
       return { output_file: outputFile, status: "success" };

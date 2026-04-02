@@ -25,8 +25,17 @@ async function resolveProvider(providerId: string, userId: string) {
 
 const isProduction = process.env["NODETOOL_ENV"] === "production";
 
-const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, opts) => {
-  const { registry, pythonBridge, getPythonBridgeReady, ensurePythonBridge, toolClassMap } = opts;
+const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
+  app,
+  opts
+) => {
+  const {
+    registry,
+    pythonBridge,
+    getPythonBridgeReady,
+    ensurePythonBridge,
+    toolClassMap
+  } = opts;
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
 
   async function resolveTools(toolNames: string[]): Promise<Tool[]> {
@@ -47,12 +56,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
       userId: req.userId ?? "1",
       beforeRunJob: async (graph) => {
         if (getPythonBridgeReady()) return;
-        const hasPythonNode = graph.nodes.some(
-          (n) => {
-            const type = typeof n.type === "string" ? n.type : "";
-            return registry.getMetadata(type) && !registry.has(type);
-          },
-        );
+        const hasPythonNode = graph.nodes.some((n) => {
+          const type = typeof n.type === "string" ? n.type : "";
+          return registry.getMetadata(type) && !registry.has(type);
+        });
         if (hasPythonNode) {
           await ensurePythonBridge();
         }
@@ -62,31 +69,41 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
           return registry.resolve(node);
         }
         if (getPythonBridgeReady() && pythonBridge.hasNodeType(node.type)) {
-          const meta = pythonBridge.getNodeMetadata().find((n) => n.node_type === node.type);
+          const meta = pythonBridge
+            .getNodeMetadata()
+            .find((n) => n.node_type === node.type);
           const nodeRec = node as Record<string, unknown>;
-          const props = (nodeRec.properties ?? nodeRec.data ?? {}) as Record<string, unknown>;
+          const props = (nodeRec.properties ?? nodeRec.data ?? {}) as Record<
+            string,
+            unknown
+          >;
           return new PythonNodeExecutor(
             pythonBridge,
             node.type,
             props,
-            Object.fromEntries((meta?.outputs ?? []).map((o) => [o.name, o.type.type])),
-            meta?.required_settings ?? [],
+            Object.fromEntries(
+              (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
+            ),
+            meta?.required_settings ?? []
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
           throw new Error(
-            `Python node "${node.type}" cannot execute: Python worker is not connected.`,
+            `Python node "${node.type}" cannot execute: Python worker is not connected.`
           );
         }
         return registry.resolve(node);
       },
       resolveNodeType: graphNodeTypeResolver,
       resolveProvider,
-      resolveTools,
+      resolveTools
     });
     log.info("WebSocket client connected");
     void runner.run(new WsAdapter(socket)).catch((error) => {
-      log.error("Runner crashed", error instanceof Error ? error : new Error(String(error)));
+      log.error(
+        "Runner crashed",
+        error instanceof Error ? error : new Error(String(error))
+      );
     });
   });
 
@@ -101,7 +118,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
       handleTerminalConnection(socket as any).catch((err) => {
         log.error(
           "Terminal handler failed",
-          err instanceof Error ? err : new Error(String(err)),
+          err instanceof Error ? err : new Error(String(err))
         );
       });
     });
@@ -113,38 +130,58 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
       });
       log.info("Download WebSocket client connected");
 
-      import("@nodetool/huggingface").then(({ getDownloadManager }) => {
-        socket.on("message", async (raw: Buffer | ArrayBuffer | Buffer[]) => {
-          try {
-            const msg = JSON.parse(raw.toString());
-            if (msg.command === "start_download") {
-              const manager = await getDownloadManager();
-              await manager.startDownload(msg.repo_id ?? "", {
-                path: msg.path ?? null,
-                allowPatterns: msg.allow_patterns ?? null,
-                ignorePatterns: msg.ignore_patterns ?? null,
-                cacheDir: msg.cache_dir ?? null,
-                modelType: msg.model_type ?? null,
-                onProgress: (update) => {
-                  try { socket.send(JSON.stringify(update)); } catch { /* gone */ }
-                },
-              });
-            } else if (msg.command === "cancel_download") {
-              const manager = await getDownloadManager();
-              manager.cancelDownload(msg.repo_id ?? msg.id ?? "");
+      import("@nodetool/huggingface")
+        .then(({ getDownloadManager }) => {
+          socket.on("message", async (raw: Buffer | ArrayBuffer | Buffer[]) => {
+            try {
+              const msg = JSON.parse(raw.toString());
+              if (msg.command === "start_download") {
+                const manager = await getDownloadManager();
+                await manager.startDownload(msg.repo_id ?? "", {
+                  path: msg.path ?? null,
+                  allowPatterns: msg.allow_patterns ?? null,
+                  ignorePatterns: msg.ignore_patterns ?? null,
+                  cacheDir: msg.cache_dir ?? null,
+                  modelType: msg.model_type ?? null,
+                  onProgress: (update) => {
+                    try {
+                      socket.send(JSON.stringify(update));
+                    } catch {
+                      /* gone */
+                    }
+                  }
+                });
+              } else if (msg.command === "cancel_download") {
+                const manager = await getDownloadManager();
+                manager.cancelDownload(msg.repo_id ?? msg.id ?? "");
+              }
+            } catch (err) {
+              const error = err instanceof Error ? err.message : String(err);
+              try {
+                socket.send(JSON.stringify({ status: "error", error }));
+              } catch {
+                /* gone */
+              }
             }
-          } catch (err) {
-            const error = err instanceof Error ? err.message : String(err);
-            try { socket.send(JSON.stringify({ status: "error", error })); } catch { /* gone */ }
+          });
+        })
+        .catch((err: unknown) => {
+          log.error(
+            "Failed to load @nodetool/huggingface",
+            err instanceof Error ? err : new Error(String(err))
+          );
+          try {
+            socket.send(
+              JSON.stringify({
+                status: "error",
+                error: "Download module unavailable"
+              })
+            );
+            socket.close();
+          } catch {
+            /* socket already gone */
           }
         });
-      }).catch((err: unknown) => {
-        log.error("Failed to load @nodetool/huggingface", err instanceof Error ? err : new Error(String(err)));
-        try {
-          socket.send(JSON.stringify({ status: "error", error: "Download module unavailable" }));
-          socket.close();
-        } catch { /* socket already gone */ }
-      });
     });
   }
 };

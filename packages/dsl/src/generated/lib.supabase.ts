@@ -18,7 +18,10 @@ export interface SelectOutputs {
 }
 
 export function select(inputs: SelectInputs): DslNode<SelectOutputs, "output"> {
-  return createNode("lib.supabase.Select", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("lib.supabase.Select", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Insert — lib.supabase.Insert
@@ -33,7 +36,10 @@ export interface InsertOutputs {
 }
 
 export function insert(inputs: InsertInputs): DslNode<InsertOutputs, "output"> {
-  return createNode("lib.supabase.Insert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("lib.supabase.Insert", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Update — lib.supabase.Update
@@ -49,7 +55,10 @@ export interface UpdateOutputs {
 }
 
 export function update(inputs: UpdateInputs): DslNode<UpdateOutputs, "output"> {
-  return createNode("lib.supabase.Update", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("lib.supabase.Update", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Delete — lib.supabase.Delete
@@ -62,8 +71,13 @@ export interface DeleteOutputs {
   output: Record<string, unknown>;
 }
 
-export function delete_(inputs: DeleteInputs): DslNode<DeleteOutputs, "output"> {
-  return createNode("lib.supabase.Delete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function delete_(
+  inputs: DeleteInputs
+): DslNode<DeleteOutputs, "output"> {
+  return createNode("lib.supabase.Delete", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Upsert — lib.supabase.Upsert
@@ -78,7 +92,10 @@ export interface UpsertOutputs {
 }
 
 export function upsert(inputs: UpsertInputs): DslNode<UpsertOutputs, "output"> {
-  return createNode("lib.supabase.Upsert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("lib.supabase.Upsert", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // RPC — lib.supabase.RPC
@@ -93,5 +110,8 @@ export interface RPCOutputs {
 }
 
 export function rpc(inputs: RPCInputs): DslNode<RPCOutputs, "output"> {
-  return createNode("lib.supabase.RPC", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("lib.supabase.RPC", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }

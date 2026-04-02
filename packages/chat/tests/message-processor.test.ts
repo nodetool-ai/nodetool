@@ -1,6 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
-import { processChat, runTool, defaultSerializer } from "../src/message-processor.js";
-import type { Message, ToolCall, ProviderStreamItem, ProviderTool } from "@nodetool/runtime";
+import {
+  processChat,
+  runTool,
+  defaultSerializer
+} from "../src/message-processor.js";
+import type {
+  Message,
+  ToolCall,
+  ProviderStreamItem,
+  ProviderTool
+} from "@nodetool/runtime";
 import type { ProcessingContext } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 import { Tool } from "@nodetool/agents";
@@ -14,12 +23,12 @@ class EchoTool extends Tool {
   readonly description = "Echoes back the input";
   readonly inputSchema = {
     type: "object",
-    properties: { text: { type: "string" } },
+    properties: { text: { type: "string" } }
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     return { echoed: params.text };
   }
@@ -30,12 +39,12 @@ class AddTool extends Tool {
   readonly description = "Adds two numbers";
   readonly inputSchema = {
     type: "object",
-    properties: { a: { type: "number" }, b: { type: "number" } },
+    properties: { a: { type: "number" }, b: { type: "number" } }
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     return { sum: (params.a as number) + (params.b as number) };
   }
@@ -45,9 +54,7 @@ class AddTool extends Tool {
 // Mock Provider
 // ---------------------------------------------------------------------------
 
-function createMockProvider(
-  sequences: ProviderStreamItem[][],
-) {
+function createMockProvider(sequences: ProviderStreamItem[][]) {
   let callIndex = 0;
   return {
     provider: "mock",
@@ -63,8 +70,12 @@ function createMockProvider(
         yield item;
       }
     },
-    async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
-    async generateMessageTraced(...args: any[]) { return (this as any).generateMessage(...args); },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
     generateMessage: vi.fn(),
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
     getAvailableImageModels: vi.fn().mockResolvedValue([]),
@@ -80,7 +91,7 @@ function createMockProvider(
     textToVideo: vi.fn(),
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
-    isContextLengthError: () => false,
+    isContextLengthError: () => false
   } as any;
 }
 
@@ -92,7 +103,11 @@ function chunk(content: string): Chunk {
   return { type: "chunk", content, done: false };
 }
 
-function toolCall(id: string, name: string, args: Record<string, unknown>): ToolCall {
+function toolCall(
+  id: string,
+  name: string,
+  args: Record<string, unknown>
+): ToolCall {
   return { id, name, args };
 }
 
@@ -142,7 +157,7 @@ describe("runTool", () => {
     const tc: ToolCall = { id: "tc2", name: "nonexistent", args: {} };
 
     await expect(runTool(ctx, tc, tools)).rejects.toThrow(
-      'Tool "nonexistent" not found',
+      'Tool "nonexistent" not found'
     );
   });
 });
@@ -153,9 +168,7 @@ describe("runTool", () => {
 
 describe("processChat", () => {
   it("returns assembled assistant message for a simple text response", async () => {
-    const provider = createMockProvider([
-      [chunk("Hello "), chunk("world!")],
-    ]);
+    const provider = createMockProvider([[chunk("Hello "), chunk("world!")]]);
 
     const messages: Message[] = [];
     const result = await processChat({
@@ -163,7 +176,7 @@ describe("processChat", () => {
       messages,
       model: "test-model",
       provider,
-      context: createMockContext(),
+      context: createMockContext()
     });
 
     // Should have user message + assistant message
@@ -177,7 +190,7 @@ describe("processChat", () => {
       // First round: tool call
       [toolCall("tc1", "echo", { text: "ping" })],
       // Second round: final text after tool result
-      [chunk("Got it: pong")],
+      [chunk("Got it: pong")]
     ]);
 
     const messages: Message[] = [];
@@ -187,7 +200,7 @@ describe("processChat", () => {
       model: "test-model",
       provider,
       context: createMockContext(),
-      tools: [new EchoTool()],
+      tools: [new EchoTool()]
     });
 
     // user, assistant (tool_calls), tool (result), assistant (final text)
@@ -208,7 +221,7 @@ describe("processChat", () => {
 
     const provider = createMockProvider([
       [chunk("Thinking..."), toolCall("tc1", "echo", { text: "x" })],
-      [chunk("Done")],
+      [chunk("Done")]
     ]);
 
     await processChat({
@@ -218,19 +231,19 @@ describe("processChat", () => {
       provider,
       context: createMockContext(),
       tools: [new EchoTool()],
-      callbacks: { onChunk, onToolCall, onToolResult },
+      callbacks: { onChunk, onToolCall, onToolResult }
     });
 
     expect(onChunk).toHaveBeenCalledWith("Thinking...");
     expect(onChunk).toHaveBeenCalledWith("Done");
     expect(onToolCall).toHaveBeenCalledTimes(1);
     expect(onToolCall).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "tc1", name: "echo" }),
+      expect.objectContaining({ id: "tc1", name: "echo" })
     );
     expect(onToolResult).toHaveBeenCalledTimes(1);
     expect(onToolResult).toHaveBeenCalledWith(
       expect.objectContaining({ id: "tc1" }),
-      { echoed: "x" },
+      { echoed: "x" }
     );
   });
 
@@ -239,10 +252,10 @@ describe("processChat", () => {
       // First round: two tool calls
       [
         toolCall("tc1", "echo", { text: "a" }),
-        toolCall("tc2", "add", { a: 1, b: 2 }),
+        toolCall("tc2", "add", { a: 1, b: 2 })
       ],
       // Second round: final text
-      [chunk("All done")],
+      [chunk("All done")]
     ]);
 
     const messages: Message[] = [];
@@ -252,7 +265,7 @@ describe("processChat", () => {
       model: "test-model",
       provider,
       context: createMockContext(),
-      tools: [new EchoTool(), new AddTool()],
+      tools: [new EchoTool(), new AddTool()]
     });
 
     const toolMsgs = result.filter((m) => m.role === "tool");
@@ -273,8 +286,8 @@ describe("processChat", () => {
     const provider = createMockProvider([
       [
         { type: "chunk", content: undefined, done: false } as unknown as Chunk,
-        chunk("hello"),
-      ],
+        chunk("hello")
+      ]
     ]);
 
     const result = await processChat({
@@ -282,7 +295,7 @@ describe("processChat", () => {
       messages: [],
       model: "test-model",
       provider,
-      context: createMockContext(),
+      context: createMockContext()
     });
 
     expect(result).toHaveLength(2);
@@ -295,8 +308,14 @@ describe("processChat", () => {
     class SlowTool extends Tool {
       readonly name = "slow";
       readonly description = "Sleeps briefly";
-      readonly inputSchema = { type: "object", properties: { id: { type: "string" } } };
-      async process(_ctx: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
+      readonly inputSchema = {
+        type: "object",
+        properties: { id: { type: "string" } }
+      };
+      async process(
+        _ctx: ProcessingContext,
+        params: Record<string, unknown>
+      ): Promise<unknown> {
         executionLog.push(`start_${params.id}`);
         await new Promise((r) => setTimeout(r, 50));
         executionLog.push(`end_${params.id}`);
@@ -306,9 +325,12 @@ describe("processChat", () => {
 
     const provider = createMockProvider([
       // Single round with two tool calls
-      [toolCall("tc1", "slow", { id: "a" }), toolCall("tc2", "slow", { id: "b" })],
+      [
+        toolCall("tc1", "slow", { id: "a" }),
+        toolCall("tc2", "slow", { id: "b" })
+      ],
       // Final text
-      [chunk("Done")],
+      [chunk("Done")]
     ]);
 
     await processChat({
@@ -317,7 +339,7 @@ describe("processChat", () => {
       model: "test-model",
       provider,
       context: createMockContext(),
-      tools: [new SlowTool()],
+      tools: [new SlowTool()]
     });
 
     // If parallel: both start before either finishes
@@ -335,7 +357,7 @@ describe("processChat", () => {
       messages: [],
       model: "test-model",
       provider,
-      context: createMockContext(),
+      context: createMockContext()
     });
 
     expect(result).toHaveLength(2);

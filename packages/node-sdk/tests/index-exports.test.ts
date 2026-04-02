@@ -18,7 +18,7 @@ import {
   SlowNode,
   StreamingCounter,
   IntAccumulator,
-  ALL_TEST_NODES,
+  ALL_TEST_NODES
 } from "../src/index.js";
 
 describe("@nodetool/node-sdk barrel exports", () => {

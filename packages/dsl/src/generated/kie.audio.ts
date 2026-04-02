@@ -23,8 +23,14 @@ export interface GenerateMusicOutputs {
   output: AudioRef;
 }
 
-export function generateMusic(inputs: GenerateMusicInputs): DslNode<GenerateMusicOutputs, "output"> {
-  return createNode("kie.audio.GenerateMusic", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function generateMusic(
+  inputs: GenerateMusicInputs
+): DslNode<GenerateMusicOutputs, "output"> {
+  return createNode(
+    "kie.audio.GenerateMusic",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Extend Music — kie.audio.ExtendMusic
@@ -48,8 +54,14 @@ export interface ExtendMusicOutputs {
   output: AudioRef;
 }
 
-export function extendMusic(inputs: ExtendMusicInputs): DslNode<ExtendMusicOutputs, "output"> {
-  return createNode("kie.audio.ExtendMusic", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function extendMusic(
+  inputs: ExtendMusicInputs
+): DslNode<ExtendMusicOutputs, "output"> {
+  return createNode(
+    "kie.audio.ExtendMusic",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Cover Audio — kie.audio.CoverAudio
@@ -73,8 +85,13 @@ export interface CoverAudioOutputs {
   output: AudioRef;
 }
 
-export function coverAudio(inputs: CoverAudioInputs): DslNode<CoverAudioOutputs, "output"> {
-  return createNode("kie.audio.CoverAudio", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function coverAudio(
+  inputs: CoverAudioInputs
+): DslNode<CoverAudioOutputs, "output"> {
+  return createNode("kie.audio.CoverAudio", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Add Instrumental — kie.audio.AddInstrumental
@@ -94,8 +111,14 @@ export interface AddInstrumentalOutputs {
   output: AudioRef;
 }
 
-export function addInstrumental(inputs: AddInstrumentalInputs): DslNode<AddInstrumentalOutputs, "output"> {
-  return createNode("kie.audio.AddInstrumental", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addInstrumental(
+  inputs: AddInstrumentalInputs
+): DslNode<AddInstrumentalOutputs, "output"> {
+  return createNode(
+    "kie.audio.AddInstrumental",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Add Vocals — kie.audio.AddVocals
@@ -117,8 +140,13 @@ export interface AddVocalsOutputs {
   output: AudioRef;
 }
 
-export function addVocals(inputs: AddVocalsInputs): DslNode<AddVocalsOutputs, "output"> {
-  return createNode("kie.audio.AddVocals", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addVocals(
+  inputs: AddVocalsInputs
+): DslNode<AddVocalsOutputs, "output"> {
+  return createNode("kie.audio.AddVocals", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Replace Music Section — kie.audio.ReplaceMusicSection
@@ -138,8 +166,14 @@ export interface ReplaceMusicSectionOutputs {
   output: AudioRef;
 }
 
-export function replaceMusicSection(inputs: ReplaceMusicSectionInputs): DslNode<ReplaceMusicSectionOutputs, "output"> {
-  return createNode("kie.audio.ReplaceMusicSection", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function replaceMusicSection(
+  inputs: ReplaceMusicSectionInputs
+): DslNode<ReplaceMusicSectionOutputs, "output"> {
+  return createNode(
+    "kie.audio.ReplaceMusicSection",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // ElevenLabs Text To Speech — kie.audio.ElevenLabsTextToSpeech
@@ -158,8 +192,14 @@ export interface ElevenLabsTextToSpeechOutputs {
   output: AudioRef;
 }
 
-export function elevenLabsTextToSpeech(inputs: ElevenLabsTextToSpeechInputs): DslNode<ElevenLabsTextToSpeechOutputs, "output"> {
-  return createNode("kie.audio.ElevenLabsTextToSpeech", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function elevenLabsTextToSpeech(
+  inputs: ElevenLabsTextToSpeechInputs
+): DslNode<ElevenLabsTextToSpeechOutputs, "output"> {
+  return createNode(
+    "kie.audio.ElevenLabsTextToSpeech",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // ElevenLabs Audio Isolation — kie.audio.ElevenLabsAudioIsolation
@@ -171,8 +211,14 @@ export interface ElevenLabsAudioIsolationOutputs {
   output: AudioRef;
 }
 
-export function elevenLabsAudioIsolation(inputs: ElevenLabsAudioIsolationInputs): DslNode<ElevenLabsAudioIsolationOutputs, "output"> {
-  return createNode("kie.audio.ElevenLabsAudioIsolation", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function elevenLabsAudioIsolation(
+  inputs: ElevenLabsAudioIsolationInputs
+): DslNode<ElevenLabsAudioIsolationOutputs, "output"> {
+  return createNode(
+    "kie.audio.ElevenLabsAudioIsolation",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // ElevenLabs Sound Effect — kie.audio.ElevenLabsSoundEffect
@@ -186,8 +232,14 @@ export interface ElevenLabsSoundEffectOutputs {
   output: AudioRef;
 }
 
-export function elevenLabsSoundEffect(inputs: ElevenLabsSoundEffectInputs): DslNode<ElevenLabsSoundEffectOutputs, "output"> {
-  return createNode("kie.audio.ElevenLabsSoundEffect", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function elevenLabsSoundEffect(
+  inputs: ElevenLabsSoundEffectInputs
+): DslNode<ElevenLabsSoundEffectOutputs, "output"> {
+  return createNode(
+    "kie.audio.ElevenLabsSoundEffect",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // ElevenLabs Speech To Text — kie.audio.ElevenLabsSpeechToText
@@ -201,8 +253,14 @@ export interface ElevenLabsSpeechToTextOutputs {
   output: TextRef;
 }
 
-export function elevenLabsSpeechToText(inputs: ElevenLabsSpeechToTextInputs): DslNode<ElevenLabsSpeechToTextOutputs, "output"> {
-  return createNode("kie.audio.ElevenLabsSpeechToText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function elevenLabsSpeechToText(
+  inputs: ElevenLabsSpeechToTextInputs
+): DslNode<ElevenLabsSpeechToTextOutputs, "output"> {
+  return createNode(
+    "kie.audio.ElevenLabsSpeechToText",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // ElevenLabs V3 Dialogue — kie.audio.ElevenLabsV3Dialogue
@@ -220,6 +278,12 @@ export interface ElevenLabsV3DialogueOutputs {
   output: AudioRef;
 }
 
-export function elevenLabsV3Dialogue(inputs: ElevenLabsV3DialogueInputs): DslNode<ElevenLabsV3DialogueOutputs, "output"> {
-  return createNode("kie.audio.ElevenLabsV3Dialogue", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function elevenLabsV3Dialogue(
+  inputs: ElevenLabsV3DialogueInputs
+): DslNode<ElevenLabsV3DialogueOutputs, "output"> {
+  return createNode(
+    "kie.audio.ElevenLabsV3Dialogue",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

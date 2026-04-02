@@ -11,6 +11,12 @@ export interface ConvertToMarkdownOutputs {
   output: unknown;
 }
 
-export function convertToMarkdown(inputs: ConvertToMarkdownInputs): DslNode<ConvertToMarkdownOutputs, "output"> {
-  return createNode("lib.markitdown.ConvertToMarkdown", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function convertToMarkdown(
+  inputs: ConvertToMarkdownInputs
+): DslNode<ConvertToMarkdownOutputs, "output"> {
+  return createNode(
+    "lib.markitdown.ConvertToMarkdown",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

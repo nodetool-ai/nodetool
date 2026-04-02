@@ -19,9 +19,16 @@ interface SupabaseBucket {
     path: string,
     data: Buffer | Uint8Array | Blob | ArrayBuffer,
     options?: { contentType?: string }
-  ): Promise<{ data: { path: string } | null; error: { message: string } | null }>;
-  download(path: string): Promise<{ data: Blob | null; error: { message: string } | null }>;
-  remove(paths: string[]): Promise<{ data: unknown; error: { message: string } | null }>;
+  ): Promise<{
+    data: { path: string } | null;
+    error: { message: string } | null;
+  }>;
+  download(
+    path: string
+  ): Promise<{ data: Blob | null; error: { message: string } | null }>;
+  remove(
+    paths: string[]
+  ): Promise<{ data: unknown; error: { message: string } | null }>;
   getPublicUrl(path: string): { data: { publicUrl: string } };
 }
 
@@ -49,7 +56,9 @@ export class SupabaseStorage implements AbstractStorage {
   private async getClient(): Promise<SupabaseClientLike> {
     if (this.client) return this.client;
     const moduleName = "@supabase/supabase-js";
-    const sdk = (await import(/* webpackIgnore: true */ moduleName)) as SupabaseSdkModule;
+    const sdk = (await import(
+      /* webpackIgnore: true */ moduleName
+    )) as SupabaseSdkModule;
     this.client = sdk.createClient(this.supabaseUrl, this.supabaseKey);
     return this.client;
   }
@@ -59,7 +68,11 @@ export class SupabaseStorage implements AbstractStorage {
     return client.storage.from(this.bucketName);
   }
 
-  async upload(key: string, data: Buffer | Uint8Array, contentType?: string): Promise<void> {
+  async upload(
+    key: string,
+    data: Buffer | Uint8Array,
+    contentType?: string
+  ): Promise<void> {
     const b = await this.bucket();
     const options: { contentType?: string } = {};
     if (contentType) {
@@ -67,7 +80,9 @@ export class SupabaseStorage implements AbstractStorage {
     }
     const { error } = await b.upload(key, data, options);
     if (error) {
-      throw new Error(`Supabase upload failed for key "${key}": ${error.message}`);
+      throw new Error(
+        `Supabase upload failed for key "${key}": ${error.message}`
+      );
     }
   }
 
@@ -88,7 +103,9 @@ export class SupabaseStorage implements AbstractStorage {
     const b = await this.bucket();
     const { error } = await b.remove([key]);
     if (error) {
-      throw new Error(`Supabase delete failed for key "${key}": ${error.message}`);
+      throw new Error(
+        `Supabase delete failed for key "${key}": ${error.message}`
+      );
     }
   }
 
@@ -106,7 +123,8 @@ export class SupabaseStorage implements AbstractStorage {
     // Supabase public URL pattern: {supabaseUrl}/storage/v1/object/public/{bucket}/{key}
     // But we use the SDK pattern when client is available.
     if (this.client) {
-      return this.client.storage.from(this.bucketName).getPublicUrl(key).data.publicUrl;
+      return this.client.storage.from(this.bucketName).getPublicUrl(key).data
+        .publicUrl;
     }
     // Fallback: construct manually
     const base = this.supabaseUrl.replace(/\/+$/, "");

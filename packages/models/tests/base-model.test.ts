@@ -4,7 +4,7 @@ import {
   ModelObserver,
   ModelChangeEvent,
   createTimeOrderedUuid,
-  computeEtag,
+  computeEtag
 } from "../src/base-model.js";
 import { initTestDb } from "../src/db.js";
 import { Job } from "../src/job.js";
@@ -26,7 +26,7 @@ describe("DBModel", () => {
     it("create and retrieve a record", async () => {
       const job = await Job.create<Job>({
         user_id: "u1",
-        workflow_id: "w1",
+        workflow_id: "w1"
       });
       expect(job).toBeInstanceOf(Job);
       expect(job.user_id).toBe("u1");
@@ -44,7 +44,7 @@ describe("DBModel", () => {
     it("update modifies fields and saves", async () => {
       const job = await Job.create<Job>({
         user_id: "u1",
-        workflow_id: "w1",
+        workflow_id: "w1"
       });
       await job.update({ error: "some error" });
       const loaded = await Job.get<Job>(job.id);
@@ -54,7 +54,7 @@ describe("DBModel", () => {
     it("delete removes the record", async () => {
       const job = await Job.create<Job>({
         user_id: "u1",
-        workflow_id: "w1",
+        workflow_id: "w1"
       });
       await job.delete();
       const loaded = await Job.get<Job>(job.id);
@@ -64,7 +64,7 @@ describe("DBModel", () => {
     it("reload refreshes from storage", async () => {
       const job = await Job.create<Job>({
         user_id: "u1",
-        workflow_id: "w1",
+        workflow_id: "w1"
       });
 
       // Create a second instance and modify it directly
@@ -114,11 +114,15 @@ describe("DBModel", () => {
 
       await Job.create<Job>({ user_id: "u1", workflow_id: "w1" });
       // Should not have received the class-specific notification
-      expect(events.filter(e => e === ModelChangeEvent.CREATED)).toHaveLength(0);
+      expect(events.filter((e) => e === ModelChangeEvent.CREATED)).toHaveLength(
+        0
+      );
     });
 
     it("swallows errors from class-specific observers", async () => {
-      const throwingCb = () => { throw new Error("observer error"); };
+      const throwingCb = () => {
+        throw new Error("observer error");
+      };
       ModelObserver.subscribe(throwingCb, "Job");
 
       // Should not throw despite observer error
@@ -127,7 +131,9 @@ describe("DBModel", () => {
     });
 
     it("swallows errors from global observers", async () => {
-      const throwingCb = () => { throw new Error("global observer error"); };
+      const throwingCb = () => {
+        throw new Error("global observer error");
+      };
       ModelObserver.subscribe(throwingCb); // no modelClass = global
 
       // Should not throw despite observer error
@@ -174,7 +180,7 @@ describe("DBModel", () => {
     it("getEtag on instance works", async () => {
       const job = await Job.create<Job>({
         user_id: "u1",
-        workflow_id: "w1",
+        workflow_id: "w1"
       });
       const etag = job.getEtag();
       expect(typeof etag).toBe("string");
@@ -199,7 +205,7 @@ describe("DBModel", () => {
     it("returns the primary key value", async () => {
       const job = await Job.create<Job>({
         user_id: "u1",
-        workflow_id: "w1",
+        workflow_id: "w1"
       });
       expect(job.partitionValue()).toBe(job.id);
     });
@@ -211,11 +217,15 @@ describe("DBModel", () => {
         static override table = {
           id: {},
           name: {},
-          _internal: {},
+          _internal: {}
         } as any;
       }
 
-      const model = new LegacyLikeModel({ id: "row-1", name: "legacy", _internal: "ignore" });
+      const model = new LegacyLikeModel({
+        id: "row-1",
+        name: "legacy",
+        _internal: "ignore"
+      });
       expect(model.toRow()).toEqual({ id: "row-1", name: "legacy" });
     });
   });

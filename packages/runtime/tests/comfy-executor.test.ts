@@ -15,7 +15,7 @@ function jsonResponse(data: unknown, status = 200): Response {
     status,
     json: async () => data,
     text: async () => JSON.stringify(data),
-    arrayBuffer: async () => new ArrayBuffer(0),
+    arrayBuffer: async () => new ArrayBuffer(0)
   } as Response;
 }
 
@@ -23,12 +23,12 @@ function binaryResponse(data: Uint8Array): Response {
   return {
     ok: true,
     status: 200,
-    arrayBuffer: async () => data.buffer,
+    arrayBuffer: async () => data.buffer
   } as Response;
 }
 
 const samplePrompt = {
-  "1": { class_type: "KSampler", inputs: { seed: 42 } },
+  "1": { class_type: "KSampler", inputs: { seed: 42 } }
 };
 
 describe("executeComfy", () => {
@@ -36,9 +36,7 @@ describe("executeComfy", () => {
     mockFetch.mockReset();
 
     // 1. Submit prompt
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ prompt_id: "abc123" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ prompt_id: "abc123" }));
 
     // 2. Poll history — result ready
     mockFetch.mockResolvedValueOnce(
@@ -46,12 +44,10 @@ describe("executeComfy", () => {
         abc123: {
           outputs: {
             "9": {
-              images: [
-                { filename: "out.png", subfolder: "", type: "output" },
-              ],
-            },
-          },
-        },
+              images: [{ filename: "out.png", subfolder: "", type: "output" }]
+            }
+          }
+        }
       })
     );
 
@@ -65,7 +61,9 @@ describe("executeComfy", () => {
     expect(result.images).toHaveLength(1);
     expect(result.images![0].filename).toBe("out.png");
     expect(result.images![0].type).toBe("image");
-    expect(result.images![0].data).toBe(Buffer.from(imgBytes).toString("base64"));
+    expect(result.images![0].data).toBe(
+      Buffer.from(imgBytes).toString("base64")
+    );
   });
 
   it("returns failed on submission error", async () => {
@@ -81,19 +79,18 @@ describe("executeComfy", () => {
   it("works with full URL (e.g. RunPod Pod)", async () => {
     mockFetch.mockReset();
 
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ prompt_id: "p1" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ prompt_id: "p1" }));
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        p1: { outputs: {} },
+        p1: { outputs: {} }
       })
     );
 
     const result = await executeComfy(
       samplePrompt,
       "https://pod123-8188.proxy.runpod.net",
-      1, 0
+      1,
+      0
     );
 
     expect(result.status).toBe("completed");
@@ -106,9 +103,7 @@ describe("executeComfy", () => {
   it("returns failed on timeout", async () => {
     mockFetch.mockReset();
 
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ prompt_id: "p2" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ prompt_id: "p2" }));
     // Poll returns empty
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
 

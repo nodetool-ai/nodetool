@@ -18,7 +18,9 @@ export const optionalWorkflowIdSchema = z
   .string()
   .nullable()
   .optional()
-  .describe("Optional workflow id; when omitted/null, the current workflow is used.");
+  .describe(
+    "Optional workflow id; when omitted/null, the current workflow is used."
+  );
 
 // --- Tool parameter shapes (ZodRawShape for SDK tool()) ---
 
@@ -29,7 +31,7 @@ export const uiSearchNodesParams = {
   strict_match: z.boolean().optional(),
   include_properties: z.boolean().optional(),
   include_outputs: z.boolean().optional(),
-  limit: z.number().min(1).max(100).optional(),
+  limit: z.number().min(1).max(100).optional()
 };
 
 export const uiAddNodeParams = {
@@ -38,7 +40,7 @@ export const uiAddNodeParams = {
   node_type: z.string().optional(),
   position: positionInputSchema.optional(),
   properties: nodePropertySchema.optional(),
-  workflow_id: optionalWorkflowIdSchema,
+  workflow_id: optionalWorkflowIdSchema
 };
 
 export const uiConnectNodesParams = {
@@ -46,64 +48,71 @@ export const uiConnectNodesParams = {
   source_handle: z.string(),
   target_id: z.string(),
   target_handle: z.string(),
-  workflow_id: optionalWorkflowIdSchema,
+  workflow_id: optionalWorkflowIdSchema
 };
 
 export const uiGetGraphParams = {
-  workflow_id: optionalWorkflowIdSchema,
+  workflow_id: optionalWorkflowIdSchema
 };
 
 export const uiUpdateNodeDataParams = {
   node_id: z.string(),
   data: z.record(z.string(), z.any()),
-  workflow_id: optionalWorkflowIdSchema,
+  workflow_id: optionalWorkflowIdSchema
 };
 
 export const uiDeleteNodeParams = {
   node_id: z.string(),
-  workflow_id: optionalWorkflowIdSchema,
+  workflow_id: optionalWorkflowIdSchema
 };
 
 export const uiDeleteEdgeParams = {
   edge_id: z.string(),
-  workflow_id: optionalWorkflowIdSchema,
+  workflow_id: optionalWorkflowIdSchema
 };
 
 export const uiMoveNodeParams = {
   node_id: z.string(),
   position: xyPositionSchema,
-  workflow_id: optionalWorkflowIdSchema,
+  workflow_id: optionalWorkflowIdSchema
 };
 
 export const uiSetNodeTitleParams = {
   node_id: z.string(),
   title: z.string(),
-  workflow_id: optionalWorkflowIdSchema,
+  workflow_id: optionalWorkflowIdSchema
 };
 
 export const uiSetNodeSyncModeParams = {
   node_id: z.string(),
   mode: z.enum(["on_any", "zip_all"]),
-  workflow_id: optionalWorkflowIdSchema,
+  workflow_id: optionalWorkflowIdSchema
 };
 
 export const uiOpenWorkflowParams = {
   workflow_id: z.string().optional().describe("Workflow id to target."),
-  id: z.string().optional().describe("Alias for workflow_id."),
+  id: z.string().optional().describe("Alias for workflow_id.")
 };
 
 export const uiRunWorkflowParams = {
   workflow_id: z.string().optional().describe("Workflow id to target."),
   id: z.string().optional().describe("Alias for workflow_id."),
-  params: z.record(z.string(), z.unknown()).optional().describe("Optional workflow run parameters."),
+  params: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe("Optional workflow run parameters.")
 };
 
 export const uiSwitchTabParams = {
-  tab_index: z.number().int().min(0).describe("Zero-based tab index (0 is the first tab)."),
+  tab_index: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Zero-based tab index (0 is the first tab).")
 };
 
 export const uiCopyParams = {
-  text: z.string().describe("The text to copy to clipboard."),
+  text: z.string().describe("The text to copy to clipboard.")
 };
 
 export const uiPasteParams = {};
@@ -118,63 +127,64 @@ export interface UiToolSchema {
 
 export const uiToolSchemas: Record<string, UiToolSchema> = {
   ui_search_nodes: {
-    description: "Search available node types from metadata store by query/type filters.",
-    parameters: uiSearchNodesParams,
+    description:
+      "Search available node types from metadata store by query/type filters.",
+    parameters: uiSearchNodesParams
   },
   ui_add_node: {
     description: "Add a node to the current workflow graph.",
-    parameters: uiAddNodeParams,
+    parameters: uiAddNodeParams
   },
   ui_connect_nodes: {
     description: "Connect two nodes via their handles.",
-    parameters: uiConnectNodesParams,
+    parameters: uiConnectNodesParams
   },
   ui_get_graph: {
     description: "Get the current workflow graph (nodes and edges).",
-    parameters: uiGetGraphParams,
+    parameters: uiGetGraphParams
   },
   ui_update_node_data: {
     description: "Update an existing node's data/properties.",
-    parameters: uiUpdateNodeDataParams,
+    parameters: uiUpdateNodeDataParams
   },
   ui_delete_node: {
     description: "Delete a node from the workflow graph.",
-    parameters: uiDeleteNodeParams,
+    parameters: uiDeleteNodeParams
   },
   ui_delete_edge: {
     description: "Delete an edge from the workflow graph.",
-    parameters: uiDeleteEdgeParams,
+    parameters: uiDeleteEdgeParams
   },
   ui_move_node: {
     description: "Move a node to a new position.",
-    parameters: uiMoveNodeParams,
+    parameters: uiMoveNodeParams
   },
   ui_set_node_title: {
     description: "Set a node's display title.",
-    parameters: uiSetNodeTitleParams,
+    parameters: uiSetNodeTitleParams
   },
   ui_set_node_sync_mode: {
     description: "Set a node's sync mode (on_any or zip_all).",
-    parameters: uiSetNodeSyncModeParams,
+    parameters: uiSetNodeSyncModeParams
   },
   ui_open_workflow: {
     description: "Open a workflow by ID in a new tab.",
-    parameters: uiOpenWorkflowParams,
+    parameters: uiOpenWorkflowParams
   },
   ui_run_workflow: {
     description: "Run a workflow, optionally passing parameters.",
-    parameters: uiRunWorkflowParams,
+    parameters: uiRunWorkflowParams
   },
   ui_switch_tab: {
     description: "Switch to a workflow tab by index.",
-    parameters: uiSwitchTabParams,
+    parameters: uiSwitchTabParams
   },
   ui_copy: {
     description: "Copy text to the clipboard.",
-    parameters: uiCopyParams,
+    parameters: uiCopyParams
   },
   ui_paste: {
     description: "Paste text from the clipboard.",
-    parameters: uiPasteParams,
-  },
+    parameters: uiPasteParams
+  }
 };

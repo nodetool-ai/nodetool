@@ -12,7 +12,10 @@ import { mkdir, writeFile, rm } from "node:fs/promises";
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = join(tmpdir(), `nodetool-settings-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  tmpDir = join(
+    tmpdir(),
+    `nodetool-settings-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
   await mkdir(tmpDir, { recursive: true });
 });
 
@@ -150,7 +153,8 @@ describe("loadSettings", () => {
 
     // We need to mock the os.homedir to return tmpDir so the settings path changes
     vi.doMock("node:os", () => ({ homedir: () => tmpDir }));
-    const { loadSettings, DEFAULT_SETTINGS } = await import("../src/settings.js");
+    const { loadSettings, DEFAULT_SETTINGS } =
+      await import("../src/settings.js");
 
     const loaded = await loadSettings();
     expect(loaded.provider).toBe(DEFAULT_SETTINGS.provider);
@@ -169,7 +173,11 @@ describe("loadSettings", () => {
     await mkdir(settingsDir, { recursive: true });
     await writeFile(
       join(settingsDir, "chat-settings.json"),
-      JSON.stringify({ provider: "gemini", model: "gemini-pro", agentMode: true }),
+      JSON.stringify({
+        provider: "gemini",
+        model: "gemini-pro",
+        agentMode: true
+      })
     );
 
     vi.doMock("node:os", () => ({ homedir: () => tmpDir }));
@@ -191,10 +199,14 @@ describe("loadSettings", () => {
 
     const settingsDir = join(tmpDir, ".nodetool");
     await mkdir(settingsDir, { recursive: true });
-    await writeFile(join(settingsDir, "chat-settings.json"), "{ not valid json }");
+    await writeFile(
+      join(settingsDir, "chat-settings.json"),
+      "{ not valid json }"
+    );
 
     vi.doMock("node:os", () => ({ homedir: () => tmpDir }));
-    const { loadSettings, DEFAULT_SETTINGS } = await import("../src/settings.js");
+    const { loadSettings, DEFAULT_SETTINGS } =
+      await import("../src/settings.js");
 
     const loaded = await loadSettings();
     expect(loaded.provider).toBe(DEFAULT_SETTINGS.provider);

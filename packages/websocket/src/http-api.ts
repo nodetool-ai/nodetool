@@ -1,4 +1,9 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse
+} from "node:http";
 import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
@@ -12,16 +17,26 @@ import {
   Message,
   Thread,
   Asset,
-  Secret,
+  Secret
 } from "@nodetool/models";
-import { loadPythonPackageMetadata, type NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
+import {
+  loadPythonPackageMetadata,
+  type NodeMetadata,
+  NodeRegistry
+} from "@nodetool/node-sdk";
 import { clearSecretCache } from "@nodetool/security";
 import { clearProviderCache } from "@nodetool/runtime";
 import { handleModelsApiRequest } from "./models-api.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
-import { createStorageHandler, type StorageHandlerOptions } from "./storage-api.js";
-import { getRegisteredSettings, handleSettingsRequest } from "./settings-api.js";
+import {
+  createStorageHandler,
+  type StorageHandlerOptions
+} from "./storage-api.js";
+import {
+  getRegisteredSettings,
+  handleSettingsRequest
+} from "./settings-api.js";
 import { handleWorkspaceRequest } from "./workspace-api.js";
 import { handleFileRequest } from "./file-api.js";
 import { handleCostRequest } from "./cost-api.js";
@@ -34,14 +49,32 @@ const log = createLogger("nodetool.websocket.http");
 
 // ── Content type to file extension mapping ─────────────────────────
 const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
-  "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif",
-  "image/svg+xml": "svg", "image/webp": "webp", "image/tiff": "tiff", "image/bmp": "bmp",
-  "text/plain": "txt", "text/csv": "csv", "text/html": "html",
-  "application/json": "json", "application/pdf": "pdf", "application/zip": "zip",
-  "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav", "audio/ogg": "ogg",
-  "audio/aac": "aac", "audio/x-wav": "wav", "audio/x-flac": "flac", "audio/x-m4a": "m4a",
-  "video/mp4": "mp4", "video/mpeg": "mpeg", "video/quicktime": "mov",
-  "video/x-msvideo": "avi", "video/webm": "webm",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/gif": "gif",
+  "image/svg+xml": "svg",
+  "image/webp": "webp",
+  "image/tiff": "tiff",
+  "image/bmp": "bmp",
+  "text/plain": "txt",
+  "text/csv": "csv",
+  "text/html": "html",
+  "application/json": "json",
+  "application/pdf": "pdf",
+  "application/zip": "zip",
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/wav": "wav",
+  "audio/ogg": "ogg",
+  "audio/aac": "aac",
+  "audio/x-wav": "wav",
+  "audio/x-flac": "flac",
+  "audio/x-m4a": "m4a",
+  "video/mp4": "mp4",
+  "video/mpeg": "mpeg",
+  "video/quicktime": "mov",
+  "video/x-msvideo": "avi",
+  "video/webm": "webm"
 };
 
 function getFileExtension(contentType: string): string {
@@ -73,7 +106,9 @@ export interface HttpApiOptions {
 let _storageHandler: ((request: Request) => Promise<Response>) | null = null;
 let _storageOpts: StorageHandlerOptions | undefined;
 
-function getStorageHandler(opts?: StorageHandlerOptions): (request: Request) => Promise<Response> {
+function getStorageHandler(
+  opts?: StorageHandlerOptions
+): (request: Request) => Promise<Response> {
   if (!_storageHandler || _storageOpts !== opts) {
     _storageHandler = createStorageHandler(opts);
     _storageOpts = opts;
@@ -117,8 +152,8 @@ function jsonResponse(data: unknown, init?: ResponseInit): Response {
     status: init?.status ?? 200,
     headers: {
       "content-type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+      ...(init?.headers ?? {})
+    }
   });
 }
 
@@ -127,7 +162,9 @@ function errorResponse(status: number, detail: string): Response {
 }
 
 export function getUserId(request: Request, headerName: string): string {
-  return request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1";
+  return (
+    request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1"
+  );
 }
 
 async function parseJsonBody<T>(request: Request): Promise<T | null> {
@@ -165,11 +202,14 @@ function toWorkflowResponse(workflow: Workflow): JsonObject {
     required_providers: null,
     required_models: null,
     html_app: workflow.html_app,
-    etag: workflow.getEtag(),
+    etag: workflow.getEtag()
   };
 }
 
-export async function handleNodeMetadata(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleNodeMetadata(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -177,13 +217,15 @@ export async function handleNodeMetadata(request: Request, options: HttpApiOptio
   // If a registry is provided, use unified metadata from TS + Python
   if (options.registry) {
     const nodes = options.registry.listMetadata();
-    return jsonResponse(nodes.sort((a, b) => a.node_type.localeCompare(b.node_type)));
+    return jsonResponse(
+      nodes.sort((a, b) => a.node_type.localeCompare(b.node_type))
+    );
   }
 
   // Fallback: Python-only metadata
   const loaded = loadPythonPackageMetadata({
     roots: options.metadataRoots,
-    maxDepth: options.metadataMaxDepth,
+    maxDepth: options.metadataMaxDepth
   });
   const nodes: NodeMetadata[] = [...loaded.nodesByType.values()].sort((a, b) =>
     a.node_type.localeCompare(b.node_type)
@@ -199,11 +241,18 @@ export function parseLimit(url: URL, defaultLimit = 100): number {
   return Math.min(parsed, 500);
 }
 
-async function createWorkflow(body: WorkflowRequestBody, userId: string): Promise<Workflow> {
+async function createWorkflow(
+  body: WorkflowRequestBody,
+  userId: string
+): Promise<Workflow> {
   if (!body || typeof body.name !== "string") {
     throw new Error("Invalid workflow");
   }
-  if (!body.graph || !Array.isArray(body.graph.nodes) || !Array.isArray(body.graph.edges)) {
+  if (
+    !body.graph ||
+    !Array.isArray(body.graph.nodes) ||
+    !Array.isArray(body.graph.edges)
+  ) {
     throw new Error("graph is required and must have nodes and edges arrays");
   }
   const graph = body.graph;
@@ -223,7 +272,7 @@ async function createWorkflow(body: WorkflowRequestBody, userId: string): Promis
     settings: body.settings ?? null,
     run_mode: body.run_mode ?? "workflow",
     workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null,
+    html_app: body.html_app ?? null
   })) as Workflow;
 }
 
@@ -235,7 +284,11 @@ async function updateWorkflow(
   if (!body || typeof body.name !== "string") {
     throw new Error("Invalid workflow");
   }
-  if (!body.graph || !Array.isArray(body.graph.nodes) || !Array.isArray(body.graph.edges)) {
+  if (
+    !body.graph ||
+    !Array.isArray(body.graph.nodes) ||
+    !Array.isArray(body.graph.edges)
+  ) {
     throw new Error("graph is required and must have nodes and edges arrays");
   }
   const graph = body.graph;
@@ -256,7 +309,8 @@ async function updateWorkflow(
     existing.access = body.access === "public" ? "public" : "private";
     existing.graph = graph;
     existing.settings = body.settings ?? null;
-    if (body.run_mode !== undefined && body.run_mode !== null) existing.run_mode = body.run_mode;
+    if (body.run_mode !== undefined && body.run_mode !== null)
+      existing.run_mode = body.run_mode;
     existing.workspace_id = body.workspace_id ?? null;
     existing.html_app = body.html_app ?? null;
     await existing.save();
@@ -280,7 +334,7 @@ async function updateWorkflow(
     settings: body.settings ?? null,
     run_mode: body.run_mode ?? "workflow",
     workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null,
+    html_app: body.html_app ?? null
   })) as Workflow;
 }
 
@@ -291,7 +345,10 @@ interface AutosaveBody {
   access?: string;
   save_type?: string;
   description?: string;
-  graph?: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
+  graph?: {
+    nodes: Record<string, unknown>[];
+    edges: Record<string, unknown>[];
+  };
   client_id?: string;
   force?: boolean;
   max_versions?: number;
@@ -309,7 +366,8 @@ export async function handleWorkflowAutosave(
 
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+  if (workflow.user_id !== userId)
+    return errorResponse(404, "Workflow not found");
 
   const body = await parseJsonBody<AutosaveBody>(request);
   if (!body || !body.graph) {
@@ -317,20 +375,26 @@ export async function handleWorkflowAutosave(
   }
   const graph = body.graph;
   const force = body?.force === true;
-  const maxVersions = typeof body?.max_versions === "number" ? body.max_versions : 10;
+  const maxVersions =
+    typeof body?.max_versions === "number" ? body.max_versions : 10;
 
   // Rate-limit: skip if last autosave < 30s ago and force is false
   if (!force) {
     const last = lastAutosaveTime.get(workflowId);
     if (last !== undefined && Date.now() - last < AUTOSAVE_RATE_LIMIT_MS) {
-      return jsonResponse({ version: null, message: "Autosave skipped (rate limited)", skipped: true });
+      return jsonResponse({
+        version: null,
+        message: "Autosave skipped (rate limited)",
+        skipped: true
+      });
     }
   }
 
   workflow.graph = graph;
   if (body.name !== undefined) workflow.name = body.name;
   if (body.description !== undefined) workflow.description = body.description;
-  if (body.access === "public" || body.access === "private") workflow.access = body.access;
+  if (body.access === "public" || body.access === "private")
+    workflow.access = body.access;
   await workflow.save();
   lastAutosaveTime.set(workflowId, Date.now());
 
@@ -345,21 +409,34 @@ export async function handleWorkflowAutosave(
       version: nextVer,
       save_type: "autosave",
       name: workflow.name,
-      description: workflow.description,
+      description: workflow.description
     });
     await wv.save();
-    version = { id: wv.id, version: wv.version, workflow_id: wv.workflow_id, save_type: wv.save_type, created_at: wv.created_at } as JsonObject;
+    version = {
+      id: wv.id,
+      version: wv.version,
+      workflow_id: wv.workflow_id,
+      save_type: wv.save_type,
+      created_at: wv.created_at
+    } as JsonObject;
     await WorkflowVersion.pruneOldVersions(workflowId, maxVersions);
   } catch {
     // non-fatal — version table may not exist
   }
 
-  return jsonResponse({ version, message: "Autosaved successfully", skipped: false });
+  return jsonResponse({
+    version,
+    message: "Autosaved successfully",
+    skipped: false
+  });
 }
 
 // ── Workflow tools ─────────────────────────────────────────────────────
 
-export async function handleWorkflowTools(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowTools(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -371,9 +448,9 @@ export async function handleWorkflowTools(request: Request, options: HttpApiOpti
     workflows: workflows.map((w) => ({
       name: w.name,
       tool_name: w.tool_name ?? null,
-      description: w.description ?? null,
+      description: w.description ?? null
     })),
-    next: null,
+    next: null
   });
 }
 
@@ -389,7 +466,7 @@ interface ExampleMetadata {
 function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
   const loaded = loadPythonPackageMetadata({
     roots: options.metadataRoots,
-    maxDepth: options.metadataMaxDepth,
+    maxDepth: options.metadataMaxDepth
   });
   const now = new Date().toISOString();
   const workflows: unknown[] = [];
@@ -419,7 +496,7 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
         required_providers: null,
         required_models: null,
         html_app: null,
-        etag: null,
+        etag: null
       });
     }
   }
@@ -429,11 +506,11 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
 function loadExampleGraph(
   packageName: string,
   exampleName: string,
-  options: HttpApiOptions,
+  options: HttpApiOptions
 ): Record<string, unknown> | null {
   const loaded = loadPythonPackageMetadata({
     roots: options.metadataRoots,
-    maxDepth: options.metadataMaxDepth,
+    maxDepth: options.metadataMaxDepth
   });
   const pkg = loaded.packages.find((p) => p.name === packageName);
   if (!pkg?.sourceFolder) return null;
@@ -442,7 +519,7 @@ function loadExampleGraph(
     "nodetool",
     "examples",
     packageName,
-    `${exampleName}.json`,
+    `${exampleName}.json`
   );
   try {
     const raw = readFileSync(examplePath, "utf8");
@@ -452,7 +529,10 @@ function loadExampleGraph(
   }
 }
 
-export async function handleWorkflowExamples(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowExamples(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -460,7 +540,10 @@ export async function handleWorkflowExamples(request: Request, options: HttpApiO
   return jsonResponse({ workflows, next: null });
 }
 
-export async function handleWorkflowExamplesSearch(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowExamplesSearch(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -473,7 +556,11 @@ export async function handleWorkflowExamplesSearch(request: Request, options: Ht
         const name = String(wf.name ?? "").toLowerCase();
         const desc = String(wf.description ?? "").toLowerCase();
         const tags = (wf.tags as string[] | undefined) ?? [];
-        return name.includes(query) || desc.includes(query) || tags.some((t) => t.toLowerCase().includes(query));
+        return (
+          name.includes(query) ||
+          desc.includes(query) ||
+          tags.some((t) => t.toLowerCase().includes(query))
+        );
       })
     : workflows;
   return jsonResponse({ workflows: filtered, next: null });
@@ -495,7 +582,7 @@ export async function handleWorkflowApp(
 </head><body><div id="app"></div></body></html>`;
   return new Response(html, {
     status: 200,
-    headers: { "content-type": "text/html" },
+    headers: { "content-type": "text/html" }
   });
 }
 
@@ -531,7 +618,9 @@ function deriveWorkflowName(workflow: Workflow): string {
   if (segments.length === 0) {
     return workflow.name || "Untitled Workflow";
   }
-  const label = segments.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" + ");
+  const label = segments
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" + ");
   return `${label} Workflow`;
 }
 
@@ -546,7 +635,8 @@ export async function handleWorkflowGenerateName(
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+  if (workflow.user_id !== userId)
+    return errorResponse(404, "Workflow not found");
   const name = deriveWorkflowName(workflow);
   return jsonResponse({ name });
 }
@@ -577,13 +667,18 @@ export async function handleWorkflowDslExport(
   }
 
   try {
-    const source = workflowToDsl(workflow.graph, { workflowName: workflow.name });
+    const source = workflowToDsl(workflow.graph, {
+      workflowName: workflow.name
+    });
     return new Response(source, {
       status: 200,
-      headers: { "content-type": "text/plain; charset=utf-8" },
+      headers: { "content-type": "text/plain; charset=utf-8" }
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to export workflow as DSL";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to export workflow as DSL";
     return errorResponse(400, message);
   }
 }
@@ -605,7 +700,10 @@ export async function handleWorkflowGradioExport(
     return errorResponse(404, "Workflow not found");
   }
   // Gradio export requires the Python Gradio library; return 501 in standalone TS mode.
-  return errorResponse(501, "Workflow Gradio export is not available in standalone mode");
+  return errorResponse(
+    501,
+    "Workflow Gradio export is not available in standalone mode"
+  );
 }
 
 // ── Workflow versions ──────────────────────────────────────────────────
@@ -621,7 +719,7 @@ function toVersionResponse(v: WorkflowVersion): JsonObject {
     version: v.version,
     save_type: v.save_type ?? "manual",
     autosave_metadata: v.autosave_metadata ?? null,
-    created_at: v.created_at,
+    created_at: v.created_at
   };
 }
 
@@ -640,7 +738,8 @@ export async function handleWorkflowVersions(
   if (request.method === "POST") {
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !== userId)
+      return errorResponse(404, "Workflow not found");
 
     const body = await parseJsonBody<VersionCreateBody>(request);
     const nextVer = await WorkflowVersion.nextVersion(workflowId);
@@ -650,7 +749,7 @@ export async function handleWorkflowVersions(
       name: body?.name ?? null,
       description: body?.description ?? null,
       graph: workflow.graph,
-      version: nextVer,
+      version: nextVer
     })) as WorkflowVersion;
     return jsonResponse(toVersionResponse(version));
   }
@@ -658,7 +757,9 @@ export async function handleWorkflowVersions(
   if (request.method === "GET") {
     const url = new URL(request.url);
     const limit = parseLimit(url, 100);
-    const versions = await WorkflowVersion.listForWorkflow(workflowId, { limit });
+    const versions = await WorkflowVersion.listForWorkflow(workflowId, {
+      limit
+    });
     return jsonResponse({ versions: versions.map(toVersionResponse) });
   }
 
@@ -674,21 +775,29 @@ export async function handleWorkflowVersionByNumber(
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "GET") {
-    const version = await WorkflowVersion.findByVersion(workflowId, versionNumber);
+    const version = await WorkflowVersion.findByVersion(
+      workflowId,
+      versionNumber
+    );
     if (!version) return errorResponse(404, "Version not found");
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !== userId)
+      return errorResponse(404, "Workflow not found");
     return jsonResponse(toVersionResponse(version));
   }
 
   if (request.method === "POST") {
     // restore: copy version graph back to workflow
-    const version = await WorkflowVersion.findByVersion(workflowId, versionNumber);
+    const version = await WorkflowVersion.findByVersion(
+      workflowId,
+      versionNumber
+    );
     if (!version) return errorResponse(404, "Version not found");
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !== userId)
+      return errorResponse(404, "Workflow not found");
     workflow.graph = version.graph;
     await workflow.save();
     return jsonResponse(toWorkflowResponse(workflow));
@@ -707,14 +816,20 @@ export async function handleWorkflowVersionDeleteById(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const version = (await WorkflowVersion.get(versionId)) as WorkflowVersion | null;
+  const version = (await WorkflowVersion.get(
+    versionId
+  )) as WorkflowVersion | null;
   if (!version) return errorResponse(404, "Version not found");
-  if (version.user_id !== userId) return errorResponse(404, "Version not found");
+  if (version.user_id !== userId)
+    return errorResponse(404, "Version not found");
   await version.delete();
   return new Response(null, { status: 204 });
 }
 
-export async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowsRoot(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const url = new URL(request.url);
 
@@ -723,10 +838,13 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
     const runMode = url.searchParams.get("run_mode")?.trim() ?? undefined;
     // cursor and columns params accepted for Python parity (cursor ignored in memory adapter)
     // columns param is Python-specific (column selection) — ignored here
-    const [workflows, cursor] = await Workflow.paginate(userId, { limit, runMode });
+    const [workflows, cursor] = await Workflow.paginate(userId, {
+      limit,
+      runMode
+    });
     return jsonResponse({
       workflows: workflows.map((w) => toWorkflowResponse(w)),
-      next: cursor || null,
+      next: cursor || null
     });
   }
 
@@ -734,9 +852,15 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
     const body = await parseJsonBody<WorkflowRequestBody>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
-      const fromPkg = url.searchParams.get("from_example_package")?.trim() ?? undefined;
-      const fromName = url.searchParams.get("from_example_name")?.trim() ?? undefined;
-      if (fromPkg && fromName && (!body.graph || body.graph.nodes?.length === 0)) {
+      const fromPkg =
+        url.searchParams.get("from_example_package")?.trim() ?? undefined;
+      const fromName =
+        url.searchParams.get("from_example_name")?.trim() ?? undefined;
+      if (
+        fromPkg &&
+        fromName &&
+        (!body.graph || body.graph.nodes?.length === 0)
+      ) {
         const example = loadExampleGraph(fromPkg, fromName, options);
         if (example?.graph) {
           body.graph = example.graph as WorkflowRequestBody["graph"];
@@ -745,7 +869,8 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
       const workflow = await createWorkflow(body, userId);
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Invalid workflow";
+      const message =
+        error instanceof Error ? error.message : "Invalid workflow";
       return errorResponse(400, message);
     }
   }
@@ -753,7 +878,9 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
   return errorResponse(405, "Method not allowed");
 }
 
-export async function handlePublicWorkflows(request: Request): Promise<Response> {
+export async function handlePublicWorkflows(
+  request: Request
+): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -762,11 +889,14 @@ export async function handlePublicWorkflows(request: Request): Promise<Response>
   const [workflows] = await Workflow.paginatePublic({ limit });
   return jsonResponse({
     workflows: workflows.map((w) => toWorkflowResponse(w)),
-    next: null,
+    next: null
   });
 }
 
-export async function handlePublicWorkflowById(request: Request, workflowId: string): Promise<Response> {
+export async function handlePublicWorkflowById(
+  request: Request,
+  workflowId: string
+): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -785,7 +915,7 @@ export async function handleWorkflowById(
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "GET") {
-  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
     if (workflow.access !== "public" && workflow.user_id !== userId) {
       return errorResponse(404, "Workflow not found");
@@ -800,7 +930,8 @@ export async function handleWorkflowById(
       const workflow = await updateWorkflow(workflowId, body, userId);
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Invalid workflow";
+      const message =
+        error instanceof Error ? error.message : "Invalid workflow";
       if (message === "Workflow not found") return errorResponse(404, message);
       return errorResponse(400, message);
     }
@@ -809,7 +940,8 @@ export async function handleWorkflowById(
   if (request.method === "DELETE") {
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !== userId)
+      return errorResponse(404, "Workflow not found");
     await workflow.delete();
     return new Response(null, { status: 204 });
   }
@@ -838,13 +970,17 @@ function toMessageResponse(msg: Message): JsonObject {
     name: msg.name ?? null,
     content: msg.content,
     tool_calls: msg.tool_calls,
-    tool_call_id: (msg as unknown as Record<string, unknown>).tool_call_id ?? null,
+    tool_call_id:
+      (msg as unknown as Record<string, unknown>).tool_call_id ?? null,
     created_at: msg.created_at,
-    updated_at: msg.updated_at,
+    updated_at: msg.updated_at
   };
 }
 
-export async function handleMessagesRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleMessagesRoot(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "POST") {
@@ -856,20 +992,21 @@ export async function handleMessagesRoot(request: Request, options: HttpApiOptio
     if (!threadId) {
       const thread = (await Thread.create({
         user_id: userId,
-        title: "New Thread",
+        title: "New Thread"
       })) as Thread;
       threadId = thread.id;
     }
-    const contentStr = typeof body.content === "string"
-      ? body.content
-      : JSON.stringify(body.content ?? null);
+    const contentStr =
+      typeof body.content === "string"
+        ? body.content
+        : JSON.stringify(body.content ?? null);
     const msg = (await Message.create({
       user_id: userId,
       thread_id: threadId,
       role: body.role,
       name: body.name ?? null,
       content: contentStr,
-      tool_calls: body.tool_calls ?? null,
+      tool_calls: body.tool_calls ?? null
     })) as Message;
     return jsonResponse(toMessageResponse(msg));
   }
@@ -883,8 +1020,17 @@ export async function handleMessagesRoot(request: Request, options: HttpApiOptio
     const limit = parseLimit(url, 100);
     const cursorParam = url.searchParams.get("cursor") ?? undefined;
     const reverseParam = url.searchParams.get("reverse");
-    const reverse = reverseParam === "true" ? true : reverseParam === "false" ? false : undefined;
-    const [messages, cursor] = await Message.paginate(threadId, { limit, startKey: cursorParam, reverse });
+    const reverse =
+      reverseParam === "true"
+        ? true
+        : reverseParam === "false"
+          ? false
+          : undefined;
+    const [messages, cursor] = await Message.paginate(threadId, {
+      limit,
+      startKey: cursorParam,
+      reverse
+    });
     // Verify user ownership
     for (const msg of messages) {
       if (msg.user_id !== userId) {
@@ -893,7 +1039,7 @@ export async function handleMessagesRoot(request: Request, options: HttpApiOptio
     }
     return jsonResponse({
       messages: messages.map((m) => toMessageResponse(m)),
-      next: cursor || null,
+      next: cursor || null
     });
   }
 
@@ -940,11 +1086,14 @@ function toThreadResponse(thread: Thread): JsonObject {
     title: thread.title,
     created_at: thread.created_at,
     updated_at: thread.updated_at,
-    etag: thread.getEtag(),
+    etag: thread.getEtag()
   };
 }
 
-export async function handleThreadsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleThreadsRoot(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "POST") {
@@ -952,7 +1101,7 @@ export async function handleThreadsRoot(request: Request, options: HttpApiOption
     const title = body?.title ?? "New Thread";
     const thread = (await Thread.create({
       user_id: userId,
-      title,
+      title
     })) as Thread;
     return jsonResponse(toThreadResponse(thread));
   }
@@ -962,11 +1111,20 @@ export async function handleThreadsRoot(request: Request, options: HttpApiOption
     const limit = parseLimit(url, 10);
     const cursorParam = url.searchParams.get("cursor") ?? undefined;
     const reverseParam = url.searchParams.get("reverse");
-    const reverse = reverseParam === "true" ? true : reverseParam === "false" ? false : undefined;
-    const [threads, nextCursor] = await Thread.paginate(userId, { limit, startKey: cursorParam, reverse });
+    const reverse =
+      reverseParam === "true"
+        ? true
+        : reverseParam === "false"
+          ? false
+          : undefined;
+    const [threads, nextCursor] = await Thread.paginate(userId, {
+      limit,
+      startKey: cursorParam,
+      reverse
+    });
     return jsonResponse({
       threads: threads.map((t) => toThreadResponse(t)),
-      next: nextCursor || null,
+      next: nextCursor || null
     });
   }
 
@@ -1049,7 +1207,9 @@ async function deriveThreadTitle(threadId: string): Promise<string> {
           "text" in part &&
           typeof (part as Record<string, unknown>).text === "string"
         ) {
-          const text = ((part as Record<string, unknown>).text as string).trim().replace(/\s+/g, " ");
+          const text = ((part as Record<string, unknown>).text as string)
+            .trim()
+            .replace(/\s+/g, " ");
           if (text.length > 0) {
             return text.length > THREAD_TITLE_MAX_LEN
               ? text.slice(0, THREAD_TITLE_TRUNC_LEN) + "..."
@@ -1092,7 +1252,7 @@ function toJobResponse(job: Job): JsonObject {
     started_at: job.started_at ?? null,
     finished_at: job.finished_at ?? null,
     error: job.error ?? null,
-    cost: null,
+    cost: null
   };
 }
 
@@ -1103,11 +1263,17 @@ function toBackgroundJobResponse(job: Job): JsonObject {
     workflow_id: job.workflow_id,
     created_at: job.started_at ?? null,
     is_running: job.status === "running" || job.status === "scheduled",
-    is_completed: job.status === "completed" || job.status === "failed" || job.status === "cancelled",
+    is_completed:
+      job.status === "completed" ||
+      job.status === "failed" ||
+      job.status === "cancelled"
   };
 }
 
-export async function handleJobsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleJobsRoot(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -1118,11 +1284,14 @@ export async function handleJobsRoot(request: Request, options: HttpApiOptions):
   const limit = parseLimit(url, 100);
   const workflowId = url.searchParams.get("workflow_id") ?? undefined;
 
-  const [jobs, nextStartKey] = await Job.paginate(userId, { limit, workflowId });
+  const [jobs, nextStartKey] = await Job.paginate(userId, {
+    limit,
+    workflowId
+  });
 
   return jsonResponse({
     jobs: jobs.map((j) => toJobResponse(j)),
-    next_start_key: nextStartKey || null,
+    next_start_key: nextStartKey || null
   });
 }
 
@@ -1175,7 +1344,9 @@ export async function handleJobCancel(
 
 // ── Trigger job stubs ─────────────────────────────────────────────
 
-export async function handleTriggersRunning(request: Request): Promise<Response> {
+export async function handleTriggersRunning(
+  request: Request
+): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -1189,7 +1360,10 @@ export async function handleTriggerStart(
   if (request.method !== "POST") {
     return errorResponse(405, "Method not allowed");
   }
-  return errorResponse(501, "Trigger workflows not available in standalone mode");
+  return errorResponse(
+    501,
+    "Trigger workflows not available in standalone mode"
+  );
 }
 
 export async function handleTriggerStop(
@@ -1199,7 +1373,10 @@ export async function handleTriggerStop(
   if (request.method !== "POST") {
     return errorResponse(405, "Method not allowed");
   }
-  return errorResponse(501, "Trigger workflows not available in standalone mode");
+  return errorResponse(
+    501,
+    "Trigger workflows not available in standalone mode"
+  );
 }
 
 // ── Nodes dummy ───────────────────────────────────────────────────
@@ -1213,7 +1390,7 @@ export async function handleNodesDummy(request: Request): Promise<Response> {
     uri: "",
     asset_id: null,
     data: null,
-    metadata: null,
+    metadata: null
   });
 }
 
@@ -1235,11 +1412,14 @@ async function toSecretResponse(secret: Secret): Promise<JsonObject> {
   return {
     ...secret.toSafeObject(),
     is_configured: true,
-    is_unreadable: isUnreadable,
+    is_unreadable: isUnreadable
   };
 }
 
-export async function handleSecretsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleSecretsRoot(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -1254,18 +1434,20 @@ export async function handleSecretsRoot(request: Request, options: HttpApiOption
     return { def, configured: configuredMap.get(def.envVar) };
   });
 
-  const normalizedResults = await Promise.all(result.map(async ({ def, configured }) => {
-    if (configured) {
-      return toSecretResponse(configured);
-    }
-    return {
-      key: def.envVar,
-      user_id: userId,
-      description: def.description ?? "",
-      is_configured: false,
-      is_unreadable: false,
-    };
-  }));
+  const normalizedResults = await Promise.all(
+    result.map(async ({ def, configured }) => {
+      if (configured) {
+        return toSecretResponse(configured);
+      }
+      return {
+        key: def.envVar,
+        user_id: userId,
+        description: def.description ?? "",
+        is_configured: false,
+        is_unreadable: false
+      };
+    })
+  );
 
   // Also include any DB secrets not in the registry
   for (const s of configuredSecrets) {
@@ -1276,7 +1458,7 @@ export async function handleSecretsRoot(request: Request, options: HttpApiOption
 
   return jsonResponse({
     secrets: normalizedResults,
-    next_key: null,
+    next_key: null
   });
 }
 
@@ -1291,14 +1473,18 @@ export async function handleSecretByKey(
     const secret = await Secret.find(userId, key);
     if (!secret) return errorResponse(404, "Secret not found");
 
-    const response = await toSecretResponse(secret) as Record<string, unknown>;
+    const response = (await toSecretResponse(secret)) as Record<
+      string,
+      unknown
+    >;
     const url = new URL(request.url);
     if (url.searchParams.get("decrypt") === "true") {
       try {
         response.value = await secret.getDecryptedValue();
         response.is_unreadable = false;
       } catch (err) {
-        const detail = err instanceof Error ? err.message : "Failed to decrypt secret";
+        const detail =
+          err instanceof Error ? err.message : "Failed to decrypt secret";
         return errorResponse(500, detail);
       }
     }
@@ -1315,14 +1501,15 @@ export async function handleSecretByKey(
         userId,
         key,
         value: body.value,
-        description: body.description,
+        description: body.description
       });
       // Invalidate caches so providers pick up the new key
       clearSecretCache(userId, key);
       clearProviderCache();
       return jsonResponse(await toSecretResponse(secret));
     } catch (err) {
-      const detail = err instanceof Error ? err.message : "Failed to update secret";
+      const detail =
+        err instanceof Error ? err.message : "Failed to update secret";
       return errorResponse(500, detail);
     }
   }
@@ -1363,12 +1550,20 @@ interface AssetUpdateBody {
 
 function toAssetResponse(asset: Asset): JsonObject {
   const isFolder = asset.content_type === "folder";
-  const fileName = isFolder ? null : getAssetFileName(asset.id, asset.content_type);
+  const fileName = isFolder
+    ? null
+    : getAssetFileName(asset.id, asset.content_type);
   const getUrl = fileName ? `/api/storage/${fileName}` : null;
 
-  const hasThumbnail = asset.content_type.startsWith("image/") || asset.content_type.startsWith("video/");
-  const updatedTs = asset.updated_at ? Math.floor(new Date(asset.updated_at).getTime() / 1000) : 0;
-  const thumbUrl = hasThumbnail ? `/api/assets/${asset.id}/thumbnail?t=${updatedTs}` : null;
+  const hasThumbnail =
+    asset.content_type.startsWith("image/") ||
+    asset.content_type.startsWith("video/");
+  const updatedTs = asset.updated_at
+    ? Math.floor(new Date(asset.updated_at).getTime() / 1000)
+    : 0;
+  const thumbUrl = hasThumbnail
+    ? `/api/assets/${asset.id}/thumbnail?t=${updatedTs}`
+    : null;
 
   return {
     id: asset.id,
@@ -1384,11 +1579,14 @@ function toAssetResponse(asset: Asset): JsonObject {
     thumb_url: thumbUrl,
     duration: asset.duration ?? null,
     node_id: asset.node_id ?? null,
-    job_id: asset.job_id ?? null,
+    job_id: asset.job_id ?? null
   };
 }
 
-async function deleteFolderRecursive(userId: string, folderId: string): Promise<string[]> {
+async function deleteFolderRecursive(
+  userId: string,
+  folderId: string
+): Promise<string[]> {
   const deletedIds: string[] = [];
   const children = await Asset.getChildren(userId, folderId, 10000);
   for (const child of children) {
@@ -1408,7 +1606,10 @@ async function deleteFolderRecursive(userId: string, folderId: string): Promise<
   return deletedIds;
 }
 
-async function getAllAssetsRecursive(userId: string, folderId: string): Promise<Asset[]> {
+async function getAllAssetsRecursive(
+  userId: string,
+  folderId: string
+): Promise<Asset[]> {
   const collected: Asset[] = [];
   const children = await Asset.getChildren(userId, folderId, 10000);
   for (const child of children) {
@@ -1421,13 +1622,17 @@ async function getAllAssetsRecursive(userId: string, folderId: string): Promise<
   return collected;
 }
 
-export async function handleAssetsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleAssetsRoot(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "GET") {
     const url = new URL(request.url);
     const parentId = url.searchParams.get("parent_id") ?? undefined;
-    const contentType = url.searchParams.get("content_type")?.trim() ?? undefined;
+    const contentType =
+      url.searchParams.get("content_type")?.trim() ?? undefined;
     const workflowId = url.searchParams.get("workflow_id") ?? undefined;
     const nodeId = url.searchParams.get("node_id") ?? undefined;
     const jobId = url.searchParams.get("job_id") ?? undefined;
@@ -1448,12 +1653,12 @@ export async function handleAssetsRoot(request: Request, options: HttpApiOptions
       workflowId,
       nodeId,
       jobId,
-      limit: pageSize,
+      limit: pageSize
     });
 
     return jsonResponse({
       assets: assets.map((a) => toAssetResponse(a)),
-      next: cursor || null,
+      next: cursor || null
     });
   }
 
@@ -1481,11 +1686,12 @@ export async function handleAssetsRoot(request: Request, options: HttpApiOptions
             body = {
               name: file.name,
               content_type: file.type || "application/octet-stream",
-              parent_id: userId,
+              parent_id: userId
             };
           } else {
             body.name = body.name || file.name;
-            body.content_type = body.content_type || file.type || "application/octet-stream";
+            body.content_type =
+              body.content_type || file.type || "application/octet-stream";
             body.parent_id = body.parent_id || userId;
           }
         }
@@ -1502,7 +1708,10 @@ export async function handleAssetsRoot(request: Request, options: HttpApiOptions
       typeof body.content_type !== "string" ||
       typeof body.parent_id !== "string"
     ) {
-      return errorResponse(400, "Invalid JSON body: name, content_type, and parent_id are required");
+      return errorResponse(
+        400,
+        "Invalid JSON body: name, content_type, and parent_id are required"
+      );
     }
 
     const metadata: Record<string, unknown> = body.metadata ?? {};
@@ -1515,8 +1724,9 @@ export async function handleAssetsRoot(request: Request, options: HttpApiOptions
       workflow_id: body.workflow_id ?? null,
       node_id: body.node_id ?? null,
       job_id: body.job_id ?? null,
-      metadata: Object.keys(metadata).length > 0 ? metadata : (body.metadata ?? null),
-      size: fileSize ?? body.size ?? null,
+      metadata:
+        Object.keys(metadata).length > 0 ? metadata : (body.metadata ?? null),
+      size: fileSize ?? body.size ?? null
     })) as Asset;
 
     // Write file to storage directory so it's accessible via /api/storage/
@@ -1558,7 +1768,7 @@ export async function handleAssetById(
         thumb_url: null,
         duration: null,
         node_id: null,
-        job_id: null,
+        job_id: null
       });
     }
 
@@ -1618,7 +1828,10 @@ export async function handleAssetById(
   return errorResponse(405, "Method not allowed");
 }
 
-export async function handleAssetsSearch(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleAssetsSearch(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const url = new URL(request.url);
@@ -1633,22 +1846,26 @@ export async function handleAssetsSearch(request: Request, options: HttpApiOptio
   const cursor = url.searchParams.get("cursor") ?? undefined;
 
   // Search by name using a broad paginate and filter client-side (no FTS in memory adapter)
-  const [allAssets, nextCursor] = await Asset.paginate(userId, { limit: pageSize });
+  const [allAssets, nextCursor] = await Asset.paginate(userId, {
+    limit: pageSize
+  });
   const lowerQuery = query.toLowerCase();
-  const matched = allAssets.filter((a) => a.name.toLowerCase().includes(lowerQuery));
+  const matched = allAssets.filter((a) =>
+    a.name.toLowerCase().includes(lowerQuery)
+  );
   void cursor; // cursor not yet wired into paginate for search
   return jsonResponse({
     assets: matched.map((a) => toAssetResponse(a)),
     next_cursor: nextCursor || null,
     total_count: matched.length,
-    is_global_search: !url.searchParams.has("workflow_id"),
+    is_global_search: !url.searchParams.has("workflow_id")
   });
 }
 
 export async function handleAssetRecursive(
   request: Request,
   folderId: string,
-  options: HttpApiOptions,
+  options: HttpApiOptions
 ): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
@@ -1659,7 +1876,7 @@ export async function handleAssetRecursive(
 export async function handleAssetByFilename(
   request: Request,
   filename: string,
-  options: HttpApiOptions,
+  options: HttpApiOptions
 ): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   if (!filename) return errorResponse(400, "filename is required");
@@ -1673,7 +1890,7 @@ export async function handleAssetByFilename(
 export async function handleAssetThumbnail(
   request: Request,
   assetId: string,
-  options: HttpApiOptions,
+  options: HttpApiOptions
 ): Promise<Response> {
   if (request.method === "POST") {
     return errorResponse(501, "Thumbnail generation not available");
@@ -1685,7 +1902,10 @@ export async function handleAssetThumbnail(
   if (!asset) return errorResponse(404, "Asset not found");
 
   if (!asset.hasThumbnail) {
-    return errorResponse(400, `Asset type '${asset.content_type}' does not support thumbnails`);
+    return errorResponse(
+      400,
+      `Asset type '${asset.content_type}' does not support thumbnails`
+    );
   }
 
   const storagePath = getAssetStoragePath(options.storage);
@@ -1702,8 +1922,8 @@ export async function handleAssetThumbnail(
         "Content-Type": "image/jpeg",
         "Content-Length": String(thumbStat.size),
         "Cache-Control": "no-cache",
-        "Last-Modified": thumbStat.mtime.toUTCString(),
-      },
+        "Last-Modified": thumbStat.mtime.toUTCString()
+      }
     });
   } catch {
     // No pre-generated thumbnail, fall through
@@ -1722,8 +1942,8 @@ export async function handleAssetThumbnail(
           "Content-Type": asset.content_type,
           "Content-Length": String(fileStat.size),
           "Cache-Control": "no-cache",
-          "Last-Modified": fileStat.mtime.toUTCString(),
-        },
+          "Last-Modified": fileStat.mtime.toUTCString()
+        }
       });
     } catch {
       // File not found on disk
@@ -1742,12 +1962,19 @@ export async function handleApiRequest(
 
   if (pathname.startsWith("/v1/")) {
     const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-    const response = await handleOpenAIRequest(request, pathname, userId, options.openai);
+    const response = await handleOpenAIRequest(
+      request,
+      pathname,
+      userId,
+      options.openai
+    );
     if (response) return response;
   }
 
   if (pathname.startsWith("/api/oauth/")) {
-    const response = await handleOAuthRequest(request, pathname, () => getUserId(request, options.userIdHeader ?? "x-user-id"));
+    const response = await handleOAuthRequest(request, pathname, () =>
+      getUserId(request, options.userIdHeader ?? "x-user-id")
+    );
     if (response) return response;
   }
 
@@ -1757,10 +1984,12 @@ export async function handleApiRequest(
   }
 
   if (pathname === "/api/users/validate_username") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     const url = new URL(request.url);
     const username = url.searchParams.get("username")?.trim() ?? null;
-    if (username === null) return errorResponse(400, "username parameter is required");
+    if (username === null)
+      return errorResponse(400, "username parameter is required");
     if (!username) return errorResponse(400, "username cannot be empty");
     const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
     return jsonResponse({ valid, available: true });
@@ -1784,7 +2013,9 @@ export async function handleApiRequest(
   }
 
   if (pathname.startsWith("/api/settings/secrets/")) {
-    const secretKey = decodeURIComponent(pathname.slice("/api/settings/secrets/".length));
+    const secretKey = decodeURIComponent(
+      pathname.slice("/api/settings/secrets/".length)
+    );
     if (!secretKey) return errorResponse(404, "Not found");
     return handleSecretByKey(request, secretKey, options);
   }
@@ -1803,12 +2034,18 @@ export async function handleApiRequest(
   }
 
   if (pathname === "/api/assets/download") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+    if (request.method !== "POST")
+      return errorResponse(405, "Method not allowed");
     return errorResponse(501, "ZIP download not available in standalone mode");
   }
 
-  if (pathname === "/api/assets/by-filename" || pathname.startsWith("/api/assets/by-filename/")) {
-    const filename = decodeURIComponent(pathname.slice("/api/assets/by-filename/".length));
+  if (
+    pathname === "/api/assets/by-filename" ||
+    pathname.startsWith("/api/assets/by-filename/")
+  ) {
+    const filename = decodeURIComponent(
+      pathname.slice("/api/assets/by-filename/".length)
+    );
     return handleAssetByFilename(request, filename, options);
   }
 
@@ -1823,26 +2060,39 @@ export async function handleApiRequest(
       if (!packageName || !assetName) return errorResponse(404, "Not found");
       const loaded = loadPythonPackageMetadata({
         roots: options.metadataRoots,
-        maxDepth: options.metadataMaxDepth,
+        maxDepth: options.metadataMaxDepth
       });
       const pkg = loaded.packages.find((p) => p.name === packageName);
-      if (!pkg || !pkg.sourceFolder) return errorResponse(404, `Package '${packageName}' not found`);
+      if (!pkg || !pkg.sourceFolder)
+        return errorResponse(404, `Package '${packageName}' not found`);
       const { createReadStream, statSync } = await import("node:fs");
       const { extname } = await import("node:path");
       const mimeTypes: Record<string, string> = {
-        ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
-        ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
-        ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".webm": "video/webm",
-        ".json": "application/json", ".txt": "text/plain",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".svg": "image/svg+xml",
+        ".mp3": "audio/mpeg",
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".json": "application/json",
+        ".txt": "text/plain"
       };
       const assetPath = `${pkg.sourceFolder}/nodetool/assets/${packageName}/${assetName}`;
       let stat: { size: number };
       try {
         stat = statSync(assetPath);
       } catch {
-        return errorResponse(404, `Asset '${assetName}' not found in package '${packageName}'`);
+        return errorResponse(
+          404,
+          `Asset '${assetName}' not found in package '${packageName}'`
+        );
       }
-      const contentType = mimeTypes[extname(assetName).toLowerCase()] ?? "application/octet-stream";
+      const contentType =
+        mimeTypes[extname(assetName).toLowerCase()] ??
+        "application/octet-stream";
       const stream = createReadStream(assetPath);
       // Convert Node.js stream to Web ReadableStream
       const webStream = new ReadableStream({
@@ -1851,7 +2101,9 @@ export async function handleApiRequest(
           stream.on("end", () => controller.close());
           stream.on("error", (err) => controller.error(err));
         },
-        cancel() { stream.destroy(); },
+        cancel() {
+          stream.destroy();
+        }
       });
       return new Response(webStream, {
         status: 200,
@@ -1859,35 +2111,51 @@ export async function handleApiRequest(
           "content-type": contentType,
           "content-length": String(stat.size),
           "cache-control": "public, max-age=31536000, immutable",
-          "etag": `"${packageName}-${assetName}"`,
-        },
+          etag: `"${packageName}-${assetName}"`
+        }
       });
     }
     return jsonResponse({ assets: [], next: null });
   }
 
   if (pathname.startsWith("/api/assets/") && pathname.endsWith("/children")) {
-    const inner = pathname.slice("/api/assets/".length, pathname.length - "/children".length);
+    const inner = pathname.slice(
+      "/api/assets/".length,
+      pathname.length - "/children".length
+    );
     if (inner && !inner.includes("/")) {
-      if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+      if (request.method !== "GET")
+        return errorResponse(405, "Method not allowed");
       const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
       const url = new URL(request.url);
       const limit = parseLimit(url, 100);
-      const [assets] = await Asset.paginate(userId, { parentId: decodeURIComponent(inner), limit });
-      return jsonResponse({ assets: assets.map((a) => toAssetResponse(a)), next: null });
+      const [assets] = await Asset.paginate(userId, {
+        parentId: decodeURIComponent(inner),
+        limit
+      });
+      return jsonResponse({
+        assets: assets.map((a) => toAssetResponse(a)),
+        next: null
+      });
     }
   }
 
   if (pathname.startsWith("/api/assets/") && pathname.endsWith("/recursive")) {
     // /api/assets/{id}/recursive
-    const inner = pathname.slice("/api/assets/".length, pathname.length - "/recursive".length);
+    const inner = pathname.slice(
+      "/api/assets/".length,
+      pathname.length - "/recursive".length
+    );
     if (inner && !inner.includes("/")) {
       return handleAssetRecursive(request, decodeURIComponent(inner), options);
     }
   }
 
   if (pathname.startsWith("/api/assets/") && pathname.endsWith("/thumbnail")) {
-    const inner = pathname.slice("/api/assets/".length, pathname.length - "/thumbnail".length);
+    const inner = pathname.slice(
+      "/api/assets/".length,
+      pathname.length - "/thumbnail".length
+    );
     if (inner && !inner.includes("/")) {
       return handleAssetThumbnail(request, decodeURIComponent(inner), options);
     }
@@ -1906,7 +2174,9 @@ export async function handleApiRequest(
   if (pathname === "/api/jobs/running/all") {
     const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
     const [jobs] = await Job.paginate(userId, { limit: 500 });
-    const running = jobs.filter((j) => j.status === "running" || j.status === "scheduled");
+    const running = jobs.filter(
+      (j) => j.status === "running" || j.status === "scheduled"
+    );
     return jsonResponse(running.map((j) => toBackgroundJobResponse(j)));
   }
 
@@ -1916,20 +2186,28 @@ export async function handleApiRequest(
 
   if (pathname.match(/^\/api\/jobs\/triggers\/[^/]+\/start$/)) {
     const workflowId = decodeURIComponent(
-      pathname.slice("/api/jobs/triggers/".length, pathname.length - "/start".length)
+      pathname.slice(
+        "/api/jobs/triggers/".length,
+        pathname.length - "/start".length
+      )
     );
     return handleTriggerStart(request, workflowId);
   }
 
   if (pathname.match(/^\/api\/jobs\/triggers\/[^/]+\/stop$/)) {
     const workflowId = decodeURIComponent(
-      pathname.slice("/api/jobs/triggers/".length, pathname.length - "/stop".length)
+      pathname.slice(
+        "/api/jobs/triggers/".length,
+        pathname.length - "/stop".length
+      )
     );
     return handleTriggerStop(request, workflowId);
   }
 
   if (pathname.match(/^\/api\/jobs\/[^/]+\/cancel$/)) {
-    const jobId = decodeURIComponent(pathname.slice("/api/jobs/".length, pathname.length - "/cancel".length));
+    const jobId = decodeURIComponent(
+      pathname.slice("/api/jobs/".length, pathname.length - "/cancel".length)
+    );
     if (!jobId) return errorResponse(404, "Not found");
     return handleJobCancel(request, jobId, options);
   }
@@ -1945,7 +2223,9 @@ export async function handleApiRequest(
   }
 
   if (pathname.startsWith("/api/messages/")) {
-    const messageId = decodeURIComponent(pathname.slice("/api/messages/".length));
+    const messageId = decodeURIComponent(
+      pathname.slice("/api/messages/".length)
+    );
     if (!messageId) return errorResponse(404, "Not found");
     return handleMessageById(request, messageId, options);
   }
@@ -1956,7 +2236,10 @@ export async function handleApiRequest(
 
   if (pathname.match(/^\/api\/threads\/[^/]+\/summarize$/)) {
     const threadId = decodeURIComponent(
-      pathname.slice("/api/threads/".length, pathname.length - "/summarize".length)
+      pathname.slice(
+        "/api/threads/".length,
+        pathname.length - "/summarize".length
+      )
     );
     return handleThreadSummarize(request, threadId, options);
   }
@@ -1972,7 +2255,8 @@ export async function handleApiRequest(
   }
 
   if (pathname === "/api/workflows/names") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
     const [workflows] = await Workflow.paginate(userId, { limit: 1000 });
     const names: Record<string, string> = {};
@@ -2001,7 +2285,9 @@ export async function handleApiRequest(
   }
 
   if (pathname.startsWith("/api/workflows/public/")) {
-    const workflowId = decodeURIComponent(pathname.slice("/api/workflows/public/".length));
+    const workflowId = decodeURIComponent(
+      pathname.slice("/api/workflows/public/".length)
+    );
     if (!workflowId) return errorResponse(404, "Not found");
     return handlePublicWorkflowById(request, workflowId);
   }
@@ -2015,8 +2301,12 @@ export async function handleApiRequest(
       const subPath = wfSubMatch[2];
 
       if (subPath === "run") {
-        if (request.method !== "POST") return errorResponse(405, "Method not allowed");
-        return errorResponse(501, "Workflow execution not available in standalone mode");
+        if (request.method !== "POST")
+          return errorResponse(405, "Method not allowed");
+        return errorResponse(
+          501,
+          "Workflow execution not available in standalone mode"
+        );
       }
       if (subPath === "autosave") {
         return handleWorkflowAutosave(request, workflowId, options);
@@ -2040,25 +2330,42 @@ export async function handleApiRequest(
       const versionRestoreMatch = subPath.match(/^versions\/(\d+)\/restore$/);
       if (versionRestoreMatch) {
         const versionNum = Number.parseInt(versionRestoreMatch[1], 10);
-        return handleWorkflowVersionByNumber(request, workflowId, versionNum, options);
+        return handleWorkflowVersionByNumber(
+          request,
+          workflowId,
+          versionNum,
+          options
+        );
       }
       // /api/workflows/{id}/versions/{version} (GET by version number)
       const versionNumMatch = subPath.match(/^versions\/(\d+)$/);
       if (versionNumMatch) {
         const versionNum = Number.parseInt(versionNumMatch[1], 10);
-        return handleWorkflowVersionByNumber(request, workflowId, versionNum, options);
+        return handleWorkflowVersionByNumber(
+          request,
+          workflowId,
+          versionNum,
+          options
+        );
       }
       // /api/workflows/{id}/versions/{version_id} (DELETE by id — version_id is not numeric)
       const versionIdMatch = subPath.match(/^versions\/([^/]+)$/);
       if (versionIdMatch) {
         const versionId = decodeURIComponent(versionIdMatch[1]);
-        return handleWorkflowVersionDeleteById(request, workflowId, versionId, options);
+        return handleWorkflowVersionDeleteById(
+          request,
+          workflowId,
+          versionId,
+          options
+        );
       }
     }
   }
 
   if (pathname.startsWith("/api/workflows/")) {
-    const workflowId = decodeURIComponent(pathname.slice("/api/workflows/".length));
+    const workflowId = decodeURIComponent(
+      pathname.slice("/api/workflows/".length)
+    );
     if (!workflowId) return errorResponse(404, "Not found");
     return handleWorkflowById(request, workflowId, options);
   }
@@ -2067,7 +2374,10 @@ export async function handleApiRequest(
     return getStorageHandler(options.storage)(request);
   }
 
-  if (pathname === "/api/workspaces" || pathname.startsWith("/api/workspaces/")) {
+  if (
+    pathname === "/api/workspaces" ||
+    pathname.startsWith("/api/workspaces/")
+  ) {
     const res = await handleWorkspaceRequest(request, options);
     if (res) return res;
   }
@@ -2094,7 +2404,10 @@ export async function handleApiRequest(
     if (res) return res;
   }
 
-  if (pathname === "/api/collections" || pathname.startsWith("/api/collections/")) {
+  if (
+    pathname === "/api/collections" ||
+    pathname.startsWith("/api/collections/")
+  ) {
     const res = await handleCollectionRequest(request, pathname, options);
     if (res) return res;
   }
@@ -2104,14 +2417,20 @@ export async function handleApiRequest(
   }
 
   if (pathname === "/admin/secrets/import") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
-    return errorResponse(501, "Secrets import not available in standalone mode");
+    if (request.method !== "POST")
+      return errorResponse(405, "Method not allowed");
+    return errorResponse(
+      501,
+      "Secrets import not available in standalone mode"
+    );
   }
 
   return errorResponse(404, "Not found");
 }
 
-async function readNodeRequestBody(request: IncomingMessage): Promise<Uint8Array> {
+async function readNodeRequestBody(
+  request: IncomingMessage
+): Promise<Uint8Array> {
   const chunks: Uint8Array[] = [];
   for await (const chunk of request) {
     if (chunk instanceof Uint8Array) {
@@ -2152,9 +2471,8 @@ export async function handleNodeHttpRequest(
   const request = new Request(url.toString(), {
     method,
     headers,
-    body: rawBody && rawBody.byteLength > 0
-      ? new Uint8Array(rawBody)
-      : undefined,
+    body:
+      rawBody && rawBody.byteLength > 0 ? new Uint8Array(rawBody) : undefined
   });
 
   const response = await handleApiRequest(request, options);
@@ -2189,7 +2507,10 @@ export async function handleNodeHttpRequest(
 export function createHttpApiServer(options: HttpApiOptions = {}): Server {
   return createServer((req, res) => {
     void handleNodeHttpRequest(req, res, options).catch((error) => {
-      log.error("Request failed", error instanceof Error ? error : new Error(String(error)));
+      log.error(
+        "Request failed",
+        error instanceof Error ? error : new Error(String(error))
+      );
       res.statusCode = 500;
       res.setHeader("content-type", "application/json");
       const detail = error instanceof Error ? error.message : String(error);

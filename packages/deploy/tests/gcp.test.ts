@@ -8,11 +8,11 @@ const { mockExecAsync } = vi.hoisted(() => {
 // Mock child_process (used by GCPDeployer.logs via execFileAsync)
 vi.mock("node:child_process", () => ({
   exec: vi.fn(),
-  execFile: vi.fn(),
+  execFile: vi.fn()
 }));
 
 vi.mock("node:util", () => ({
-  promisify: () => mockExecAsync,
+  promisify: () => mockExecAsync
 }));
 
 // Mock deploy-to-gcp
@@ -20,12 +20,12 @@ vi.mock("../src/deploy-to-gcp.js", () => ({
   deployToGcp: vi.fn(),
   deleteGcpService: vi.fn(),
   getGcpDefaultEnv: vi.fn(),
-  listGcpServices: vi.fn(),
+  listGcpServices: vi.fn()
 }));
 
 // Mock google-cloud-run-api
 vi.mock("../src/google-cloud-run-api.js", () => ({
-  getCloudRunService: vi.fn(),
+  getCloudRunService: vi.fn()
 }));
 
 // Mock state manager
@@ -45,7 +45,7 @@ import {
   deployToGcp,
   deleteGcpService,
   getGcpDefaultEnv,
-  listGcpServices,
+  listGcpServices
 } from "../src/deploy-to-gcp.js";
 import { getCloudRunService } from "../src/google-cloud-run-api.js";
 
@@ -66,7 +66,7 @@ function makeDeployment(overrides?: Partial<GCPDeployment>): GCPDeployment {
       registry: "us-docker.pkg.dev",
       repository: "my-repo",
       tag: "latest",
-      build: { platform: "linux/amd64" },
+      build: { platform: "linux/amd64" }
     },
     resources: {
       cpu: "4",
@@ -74,19 +74,19 @@ function makeDeployment(overrides?: Partial<GCPDeployment>): GCPDeployment {
       min_instances: 0,
       max_instances: 3,
       concurrency: 80,
-      timeout: 3600,
+      timeout: 3600
     },
     iam: {
-      allow_unauthenticated: true,
+      allow_unauthenticated: true
     },
     workflows: [],
     state: {
       service_url: null,
       last_deployed: null,
       status: "unknown",
-      revision: null,
+      revision: null
     },
-    ...overrides,
+    ...overrides
   } as GCPDeployment;
 }
 
@@ -144,19 +144,27 @@ describe("GCPDeployer.plan", () => {
     const plan = await deployer.plan();
     expect(plan.deployment_name).toBe("test");
     expect(plan.type).toBe("gcp");
-    expect((plan.changes as string[])).toContain("Initial deployment - will create all resources");
-    expect((plan.will_create as string[])).toContain("Docker image (if changed)");
+    expect(plan.changes as string[]).toContain(
+      "Initial deployment - will create all resources"
+    );
+    expect(plan.will_create as string[]).toContain("Docker image (if changed)");
   });
 
   it("returns initial deployment plan when state has no last_deployed", async () => {
     const dep = makeDeployment();
     const deployer = new GCPDeployer("test", dep, stateManager);
 
-    vi.mocked(stateManager.readState).mockResolvedValueOnce({ status: "unknown" });
-    mockGetCloudRunService.mockResolvedValueOnce({ metadata: { name: "my-svc" } });
+    vi.mocked(stateManager.readState).mockResolvedValueOnce({
+      status: "unknown"
+    });
+    mockGetCloudRunService.mockResolvedValueOnce({
+      metadata: { name: "my-svc" }
+    });
 
     const plan = await deployer.plan();
-    expect((plan.changes as string[])).toContain("Initial deployment - will create all resources");
+    expect(plan.changes as string[]).toContain(
+      "Initial deployment - will create all resources"
+    );
   });
 
   it("detects no changes when remote matches config", async () => {
@@ -165,10 +173,12 @@ describe("GCPDeployer.plan", () => {
 
     vi.mocked(stateManager.readState).mockResolvedValueOnce({
       status: "serving",
-      last_deployed: "2024-01-01",
+      last_deployed: "2024-01-01"
     });
 
-    mockGetGcpDefaultEnv.mockReturnValueOnce({ NODETOOL_SERVER_MODE: "private" });
+    mockGetGcpDefaultEnv.mockReturnValueOnce({
+      NODETOOL_SERVER_MODE: "private"
+    });
 
     const remoteService = {
       spec: {
@@ -177,37 +187,48 @@ describe("GCPDeployer.plan", () => {
             annotations: {
               "run.googleapis.com/gpu": "0",
               "autoscaling.knative.dev/minScale": "0",
-              "autoscaling.knative.dev/maxScale": "3",
-            },
+              "autoscaling.knative.dev/maxScale": "3"
+            }
           },
           spec: {
             containers: [
               {
                 resources: { limits: { cpu: "4", memory: "16Gi" } },
-                env: [{ name: "NODETOOL_SERVER_MODE", value: "private" }],
-              },
+                env: [{ name: "NODETOOL_SERVER_MODE", value: "private" }]
+              }
             ],
             containerConcurrency: 80,
-            timeoutSeconds: 3600,
-          },
-        },
-      },
+            timeoutSeconds: 3600
+          }
+        }
+      }
     };
 
     mockGetCloudRunService.mockResolvedValueOnce(remoteService);
 
     const plan = await deployer.plan();
-    expect((plan.changes as string[])).toContain("No configuration changes detected");
+    expect(plan.changes as string[]).toContain(
+      "No configuration changes detected"
+    );
     expect((plan.will_update as string[]).length).toBe(0);
   });
 
   it("detects CPU change", async () => {
-    const dep = makeDeployment({ resources: { cpu: "8", memory: "16Gi", min_instances: 0, max_instances: 3, concurrency: 80, timeout: 3600 } as any });
+    const dep = makeDeployment({
+      resources: {
+        cpu: "8",
+        memory: "16Gi",
+        min_instances: 0,
+        max_instances: 3,
+        concurrency: 80,
+        timeout: 3600
+      } as any
+    });
     const deployer = new GCPDeployer("test", dep, stateManager);
 
     vi.mocked(stateManager.readState).mockResolvedValueOnce({
       status: "serving",
-      last_deployed: "2024-01-01",
+      last_deployed: "2024-01-01"
     });
     mockGetGcpDefaultEnv.mockReturnValueOnce({});
 
@@ -217,11 +238,11 @@ describe("GCPDeployer.plan", () => {
           metadata: { annotations: {} },
           spec: {
             containers: [
-              { resources: { limits: { cpu: "4", memory: "16Gi" } }, env: [] },
-            ],
-          },
-        },
-      },
+              { resources: { limits: { cpu: "4", memory: "16Gi" } }, env: [] }
+            ]
+          }
+        }
+      }
     };
     mockGetCloudRunService.mockResolvedValueOnce(remoteService);
 
@@ -231,12 +252,21 @@ describe("GCPDeployer.plan", () => {
   });
 
   it("detects memory change", async () => {
-    const dep = makeDeployment({ resources: { cpu: "4", memory: "32Gi", min_instances: 0, max_instances: 3, concurrency: 80, timeout: 3600 } as any });
+    const dep = makeDeployment({
+      resources: {
+        cpu: "4",
+        memory: "32Gi",
+        min_instances: 0,
+        max_instances: 3,
+        concurrency: 80,
+        timeout: 3600
+      } as any
+    });
     const deployer = new GCPDeployer("test", dep, stateManager);
 
     vi.mocked(stateManager.readState).mockResolvedValueOnce({
       status: "serving",
-      last_deployed: "2024-01-01",
+      last_deployed: "2024-01-01"
     });
     mockGetGcpDefaultEnv.mockReturnValueOnce({});
 
@@ -246,11 +276,11 @@ describe("GCPDeployer.plan", () => {
           metadata: { annotations: {} },
           spec: {
             containers: [
-              { resources: { limits: { cpu: "4", memory: "16Gi" } }, env: [] },
-            ],
-          },
-        },
-      },
+              { resources: { limits: { cpu: "4", memory: "16Gi" } }, env: [] }
+            ]
+          }
+        }
+      }
     };
     mockGetCloudRunService.mockResolvedValueOnce(remoteService);
 
@@ -260,12 +290,21 @@ describe("GCPDeployer.plan", () => {
   });
 
   it("normalizes remote CPU from millicores", async () => {
-    const dep = makeDeployment({ resources: { cpu: "4", memory: "16Gi", min_instances: 0, max_instances: 3, concurrency: 80, timeout: 3600 } as any });
+    const dep = makeDeployment({
+      resources: {
+        cpu: "4",
+        memory: "16Gi",
+        min_instances: 0,
+        max_instances: 3,
+        concurrency: 80,
+        timeout: 3600
+      } as any
+    });
     const deployer = new GCPDeployer("test", dep, stateManager);
 
     vi.mocked(stateManager.readState).mockResolvedValueOnce({
       status: "serving",
-      last_deployed: "2024-01-01",
+      last_deployed: "2024-01-01"
     });
     mockGetGcpDefaultEnv.mockReturnValueOnce({});
 
@@ -275,11 +314,14 @@ describe("GCPDeployer.plan", () => {
           metadata: { annotations: {} },
           spec: {
             containers: [
-              { resources: { limits: { cpu: "4000m", memory: "16Gi" } }, env: [] },
-            ],
-          },
-        },
-      },
+              {
+                resources: { limits: { cpu: "4000m", memory: "16Gi" } },
+                env: []
+              }
+            ]
+          }
+        }
+      }
     };
     mockGetCloudRunService.mockResolvedValueOnce(remoteService);
 
@@ -295,24 +337,29 @@ describe("GCPDeployer.plan", () => {
 
     vi.mocked(stateManager.readState).mockResolvedValueOnce({
       status: "serving",
-      last_deployed: "2024-01-01",
+      last_deployed: "2024-01-01"
     });
     mockGetGcpDefaultEnv.mockReturnValueOnce({ FOO: "bar", NEW_VAR: "val" });
 
     const remoteService = {
       spec: {
         template: {
-          metadata: { annotations: { "autoscaling.knative.dev/minScale": "0", "autoscaling.knative.dev/maxScale": "3" } },
+          metadata: {
+            annotations: {
+              "autoscaling.knative.dev/minScale": "0",
+              "autoscaling.knative.dev/maxScale": "3"
+            }
+          },
           spec: {
             containers: [
               {
                 resources: { limits: { cpu: "4", memory: "16Gi" } },
-                env: [{ name: "FOO", value: "old" }],
-              },
-            ],
-          },
-        },
-      },
+                env: [{ name: "FOO", value: "old" }]
+              }
+            ]
+          }
+        }
+      }
     };
     mockGetCloudRunService.mockResolvedValueOnce(remoteService);
 
@@ -329,7 +376,9 @@ describe("GCPDeployer.plan", () => {
     mockGetCloudRunService.mockRejectedValueOnce(new Error("network error"));
 
     const plan = await deployer.plan();
-    expect((plan.changes as string[])).toContain("Initial deployment - will create all resources");
+    expect(plan.changes as string[]).toContain(
+      "Initial deployment - will create all resources"
+    );
   });
 });
 
@@ -362,7 +411,9 @@ describe("GCPDeployer.apply", () => {
 
     const result = await deployer.apply();
     expect(result.status).toBe("success");
-    expect((result.steps as string[])).toContain("Google Cloud Run deployment completed");
+    expect(result.steps as string[]).toContain(
+      "Google Cloud Run deployment completed"
+    );
     expect(mockDeployToGcp).toHaveBeenCalledOnce();
   });
 
@@ -440,7 +491,7 @@ describe("GCPDeployer.status", () => {
 
     vi.mocked(stateManager.readState).mockResolvedValueOnce({
       status: "serving",
-      last_deployed: "2024-01-01T00:00:00Z",
+      last_deployed: "2024-01-01T00:00:00Z"
     });
     mockListGcpServices.mockResolvedValueOnce([]);
 
@@ -457,8 +508,8 @@ describe("GCPDeployer.status", () => {
     mockListGcpServices.mockResolvedValueOnce([
       {
         metadata: { name: "my-svc" },
-        status: { url: "https://my-svc.run.app" },
-      },
+        status: { url: "https://my-svc.run.app" }
+      }
     ]);
 
     const status = await deployer.status();
@@ -472,7 +523,10 @@ describe("GCPDeployer.status", () => {
 
     vi.mocked(stateManager.readState).mockResolvedValueOnce(null);
     mockListGcpServices.mockResolvedValueOnce([
-      { metadata: { name: "other-svc" }, status: { url: "https://other.run.app" } },
+      {
+        metadata: { name: "other-svc" },
+        status: { url: "https://other.run.app" }
+      }
     ]);
 
     const status = await deployer.status();
@@ -500,7 +554,10 @@ describe("GCPDeployer.logs", () => {
     const dep = makeDeployment();
     const deployer = new GCPDeployer("test", dep, stateManager);
 
-    mockExecAsync.mockResolvedValueOnce({ stdout: "2024-01-01 hello world\n", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "2024-01-01 hello world\n",
+      stderr: ""
+    });
 
     const logs = await deployer.logs();
     expect(logs).toBe("2024-01-01 hello world\n");
@@ -556,7 +613,7 @@ describe("GCPDeployer.destroy", () => {
 
     const result = await deployer.destroy();
     expect(result.status).toBe("success");
-    expect((result.steps as string[])).toContain("Service deleted successfully");
+    expect(result.steps as string[]).toContain("Service deleted successfully");
     expect(vi.mocked(stateManager.updateDeploymentStatus)).toHaveBeenCalledWith(
       "test",
       DeploymentStatus.DESTROYED
@@ -572,7 +629,7 @@ describe("GCPDeployer.destroy", () => {
 
     const result = await deployer.destroy();
     expect(result.status).toBe("error");
-    expect((result.errors as string[])).toContain("Failed to delete service");
+    expect(result.errors as string[]).toContain("Failed to delete service");
   });
 
   it("re-throws on unexpected error", async () => {

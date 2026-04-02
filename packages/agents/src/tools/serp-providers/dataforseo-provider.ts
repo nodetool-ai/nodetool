@@ -37,7 +37,7 @@ interface DataForSEOResponse {
 async function dataForSEORequest(
   endpoint: string,
   payload: Record<string, unknown>[],
-  auth: string,
+  auth: string
 ): Promise<DataForSEOResponse | { error: string; details?: unknown }> {
   const url = `${API_BASE}${endpoint}`;
   try {
@@ -45,9 +45,9 @@ async function dataForSEORequest(
       method: "POST",
       headers: {
         Authorization: auth,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       let details: unknown;
@@ -58,7 +58,7 @@ async function dataForSEORequest(
       }
       return {
         error: `HTTP error occurred: ${res.status} - ${res.statusText}`,
-        details,
+        details
       };
     }
     return (await res.json()) as DataForSEOResponse;
@@ -68,14 +68,14 @@ async function dataForSEORequest(
 }
 
 function extractItems(
-  result: DataForSEOResponse | { error: string },
+  result: DataForSEOResponse | { error: string }
 ): Array<Record<string, unknown>> | { error: string; details?: unknown } {
   if ("error" in result) return result as { error: string; details?: unknown };
 
   if (result.status_code !== 20000 || result.status_message !== "Ok.") {
     return {
       error: `DataForSEO API Error: ${result.status_code} - ${result.status_message}`,
-      details: result,
+      details: result
     };
   }
 
@@ -97,7 +97,10 @@ export class DataForSeoProvider implements SerpProvider {
     this.auth = makeAuthHeader(login, password);
   }
 
-  async search(query: string, options?: SearchOptions): Promise<SearchResult[]> {
+  async search(
+    query: string,
+    options?: SearchOptions
+  ): Promise<SearchResult[]> {
     const numResults = options?.numResults ?? 10;
 
     const payload = [
@@ -107,14 +110,14 @@ export class DataForSeoProvider implements SerpProvider {
         language_code: options?.language ?? DEFAULT_LANGUAGE_CODE,
         device: "desktop",
         os: "windows",
-        depth: numResults,
-      },
+        depth: numResults
+      }
     ];
 
     const result = await dataForSEORequest(
       "/v3/serp/google/organic/live/advanced",
       payload,
-      this.auth,
+      this.auth
     );
     const items = extractItems(result);
     if (!Array.isArray(items)) {
@@ -127,7 +130,7 @@ export class DataForSeoProvider implements SerpProvider {
         title: String(item.title ?? ""),
         url: String(item.url ?? ""),
         snippet: String(item.description ?? ""),
-        position: (item.rank_absolute as number) ?? i + 1,
+        position: (item.rank_absolute as number) ?? i + 1
       }));
   }
 
@@ -141,14 +144,14 @@ export class DataForSeoProvider implements SerpProvider {
         language_code: options?.language ?? DEFAULT_LANGUAGE_CODE,
         device: "desktop",
         os: "windows",
-        depth: numResults,
-      },
+        depth: numResults
+      }
     ];
 
     return dataForSEORequest(
       "/v3/serp/google/organic/live/advanced",
       payload,
-      this.auth,
+      this.auth
     );
   }
 }

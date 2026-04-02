@@ -21,7 +21,7 @@ import {
   StopEventController,
   ThresholdProcessor,
   ErrorNode,
-  Passthrough,
+  Passthrough
 } from "./helpers.js";
 
 // ---------------------------------------------------------------------------
@@ -34,8 +34,16 @@ describe("CTRL-001: SimpleController triggers ThresholdProcessor once", () => {
     const runner = makeRunner(registry);
 
     const nodes: NodeDescriptor[] = [
-      nd("ctrl", SimpleController.nodeType, { is_streaming_output: true }, { threshold: 0.8, mode: "normal" }),
-      nd("proc", ThresholdProcessor.nodeType, { is_controlled: true, name: "proc" }),
+      nd(
+        "ctrl",
+        SimpleController.nodeType,
+        { is_streaming_output: true },
+        { threshold: 0.8, mode: "normal" }
+      ),
+      nd("proc", ThresholdProcessor.nodeType, {
+        is_controlled: true,
+        name: "proc"
+      })
     ];
     const edges: Edge[] = [ce("ctrl", "proc")];
 
@@ -59,8 +67,18 @@ describe("CTRL-002: RunEvent properties override controlled node behaviour", () 
     const runner = makeRunner(registry);
 
     const nodes: NodeDescriptor[] = [
-      nd("ctrl", SimpleController.nodeType, { is_streaming_output: true }, { threshold: 0.5, mode: "strict" }),
-      nd("proc", ThresholdProcessor.nodeType, { is_controlled: true, name: "proc" }, { value: 0.5 }),
+      nd(
+        "ctrl",
+        SimpleController.nodeType,
+        { is_streaming_output: true },
+        { threshold: 0.5, mode: "strict" }
+      ),
+      nd(
+        "proc",
+        ThresholdProcessor.nodeType,
+        { is_controlled: true, name: "proc" },
+        { value: 0.5 }
+      )
     ];
     const edges: Edge[] = [ce("ctrl", "proc")];
 
@@ -83,8 +101,18 @@ describe("CTRL-003: Value exceeds threshold in RunEvent", () => {
     const runner = makeRunner(registry);
 
     const nodes: NodeDescriptor[] = [
-      nd("ctrl", SimpleController.nodeType, { is_streaming_output: true }, { threshold: 0.3, mode: "normal" }),
-      nd("proc", ThresholdProcessor.nodeType, { is_controlled: true, name: "proc" }, { value: 0.5 }),
+      nd(
+        "ctrl",
+        SimpleController.nodeType,
+        { is_streaming_output: true },
+        { threshold: 0.3, mode: "normal" }
+      ),
+      nd(
+        "proc",
+        ThresholdProcessor.nodeType,
+        { is_controlled: true, name: "proc" },
+        { value: 0.5 }
+      )
     ];
     const edges: Edge[] = [ce("ctrl", "proc")];
 
@@ -105,8 +133,18 @@ describe("CTRL-004: Value does not exceed threshold in RunEvent", () => {
     const runner = makeRunner(registry);
 
     const nodes: NodeDescriptor[] = [
-      nd("ctrl", SimpleController.nodeType, { is_streaming_output: true }, { threshold: 0.9, mode: "normal" }),
-      nd("proc", ThresholdProcessor.nodeType, { is_controlled: true, name: "proc" }, { value: 0.5 }),
+      nd(
+        "ctrl",
+        SimpleController.nodeType,
+        { is_streaming_output: true },
+        { threshold: 0.9, mode: "normal" }
+      ),
+      nd(
+        "proc",
+        ThresholdProcessor.nodeType,
+        { is_controlled: true, name: "proc" },
+        { value: 0.5 }
+      )
     ];
     const edges: Edge[] = [ce("ctrl", "proc")];
 
@@ -128,13 +166,23 @@ describe("CTRL-005: MultiTriggerController triggers ThresholdProcessor N times",
 
     // Controller → ThresholdProcessor → Passthrough (sink to count outputs)
     const nodes: NodeDescriptor[] = [
-      nd("ctrl", MultiTriggerController.nodeType, { is_streaming_output: true }, { count: 3, threshold: 0.5 }),
-      nd("proc", ThresholdProcessor.nodeType, { is_controlled: true }, { value: 0.7 }),
-      nd("sink", Passthrough.nodeType, { name: "sink" }),
+      nd(
+        "ctrl",
+        MultiTriggerController.nodeType,
+        { is_streaming_output: true },
+        { count: 3, threshold: 0.5 }
+      ),
+      nd(
+        "proc",
+        ThresholdProcessor.nodeType,
+        { is_controlled: true },
+        { value: 0.7 }
+      ),
+      nd("sink", Passthrough.nodeType, { name: "sink" })
     ];
     const edges: Edge[] = [
       ce("ctrl", "proc"),
-      de("proc", "result", "sink", "value", "e-proc-sink"),
+      de("proc", "result", "sink", "value", "e-proc-sink")
     ];
 
     const result = await runner.run({ job_id: "ctrl-005" }, { nodes, edges });
@@ -142,7 +190,9 @@ describe("CTRL-005: MultiTriggerController triggers ThresholdProcessor N times",
     expect(result.status).toBe("completed");
     // Edge from proc to sink should have counter=3
     const edgeUpdates = result.messages.filter(
-      (m) => m.type === "edge_update" && (m as { edge_id: string }).edge_id === "e-proc-sink"
+      (m) =>
+        m.type === "edge_update" &&
+        (m as { edge_id: string }).edge_id === "e-proc-sink"
     );
     const maxCounter = Math.max(
       0,
@@ -162,14 +212,26 @@ describe("CTRL-006: Controller fan-out to two controlled nodes", () => {
     const runner = makeRunner(registry);
 
     const nodes: NodeDescriptor[] = [
-      nd("ctrl", SimpleController.nodeType, { is_streaming_output: true }, { threshold: 0.6 }),
-      nd("p1", ThresholdProcessor.nodeType, { is_controlled: true, name: "p1" }, { value: 0.7 }),
-      nd("p2", ThresholdProcessor.nodeType, { is_controlled: true, name: "p2" }, { value: 0.3 }),
+      nd(
+        "ctrl",
+        SimpleController.nodeType,
+        { is_streaming_output: true },
+        { threshold: 0.6 }
+      ),
+      nd(
+        "p1",
+        ThresholdProcessor.nodeType,
+        { is_controlled: true, name: "p1" },
+        { value: 0.7 }
+      ),
+      nd(
+        "p2",
+        ThresholdProcessor.nodeType,
+        { is_controlled: true, name: "p2" },
+        { value: 0.3 }
+      )
     ];
-    const edges: Edge[] = [
-      ce("ctrl", "p1"),
-      ce("ctrl", "p2"),
-    ];
+    const edges: Edge[] = [ce("ctrl", "p1"), ce("ctrl", "p2")];
 
     const result = await runner.run({ job_id: "ctrl-006" }, { nodes, edges });
 
@@ -191,8 +253,18 @@ describe("CTRL-017: Error in controlled node propagates via node_update", () => 
     const runner = makeRunner(registry);
 
     const nodes: NodeDescriptor[] = [
-      nd("ctrl", SimpleController.nodeType, { is_streaming_output: true }, { threshold: 0.5 }),
-      nd("err", ErrorNode.nodeType, { is_controlled: true }, { message: "controlled error" }),
+      nd(
+        "ctrl",
+        SimpleController.nodeType,
+        { is_streaming_output: true },
+        { threshold: 0.5 }
+      ),
+      nd(
+        "err",
+        ErrorNode.nodeType,
+        { is_controlled: true },
+        { message: "controlled error" }
+      )
     ];
     const edges: Edge[] = [ce("ctrl", "err")];
 
@@ -220,19 +292,23 @@ describe("CTRL-018: Error in controller node", () => {
     const nodes: NodeDescriptor[] = [
       inp("in", "val"),
       nd("ctrl", ErrorNode.nodeType, {}, { message: "controller error" }),
-      nd("proc", ThresholdProcessor.nodeType, { is_controlled: true }),
+      nd("proc", ThresholdProcessor.nodeType, { is_controlled: true })
     ];
     const edges: Edge[] = [
-      de("in", "value", "ctrl", "value"),
+      de("in", "value", "ctrl", "value")
       // No control edge since ErrorNode is not a real controller;
       // this just tests that error in a "before-controlled" node works
     ];
 
     const runner = makeRunner(makeRegistry());
-    const result = await runner.run({ job_id: "ctrl-018", params: { val: 1 } }, { nodes, edges });
+    const result = await runner.run(
+      { job_id: "ctrl-018", params: { val: 1 } },
+      { nodes, edges }
+    );
 
     const hasError = result.messages.some(
-      (m) => m.type === "node_update" && (m as { status: string }).status === "error"
+      (m) =>
+        m.type === "node_update" && (m as { status: string }).status === "error"
     );
     expect(hasError).toBe(true);
   });
@@ -244,16 +320,15 @@ describe("CTRL-018: Error in controller node", () => {
 
 describe("CTRL-026: Control cycle in graph is rejected", () => {
   it("Graph.validate() throws GraphValidationError for control cycle", () => {
-    const nodes: NodeDescriptor[] = [
-      nd("a", "test.A"),
-      nd("b", "test.B"),
-    ];
+    const nodes: NodeDescriptor[] = [nd("a", "test.A"), nd("b", "test.B")];
     const edges: Edge[] = [
       ce("a", "b"),
-      ce("b", "a"), // creates a cycle in control edges
+      ce("b", "a") // creates a cycle in control edges
     ];
 
-    expect(() => new Graph({ nodes, edges }).validate()).toThrow(GraphValidationError);
+    expect(() => new Graph({ nodes, edges }).validate()).toThrow(
+      GraphValidationError
+    );
     expect(() => new Graph({ nodes, edges }).validate()).toThrow(/cycle/);
   });
 });
@@ -267,7 +342,9 @@ describe("CTRL-027: Self-loop control edge is rejected", () => {
     const nodes: NodeDescriptor[] = [nd("a", "test.A")];
     const edges: Edge[] = [ce("a", "a")]; // self-loop
 
-    expect(() => new Graph({ nodes, edges }).validate()).toThrow(GraphValidationError);
+    expect(() => new Graph({ nodes, edges }).validate()).toThrow(
+      GraphValidationError
+    );
   });
 });
 
@@ -282,7 +359,10 @@ describe("CTRL-028: StopEvent causes controlled node to stop without processing"
 
     const nodes: NodeDescriptor[] = [
       nd("ctrl", StopEventController.nodeType, { is_streaming_output: true }),
-      nd("proc", ThresholdProcessor.nodeType, { is_controlled: true, name: "proc" }),
+      nd("proc", ThresholdProcessor.nodeType, {
+        is_controlled: true,
+        name: "proc"
+      })
     ];
     const edges: Edge[] = [ce("ctrl", "proc")];
 
@@ -304,15 +384,30 @@ describe("CTRL-029: Multiple controllers → one controlled node", () => {
     const runner = makeRunner(registry);
 
     const nodes: NodeDescriptor[] = [
-      nd("ctrl1", SimpleController.nodeType, { is_streaming_output: true }, { threshold: 0.3 }),
-      nd("ctrl2", SimpleController.nodeType, { is_streaming_output: true }, { threshold: 0.7 }),
-      nd("proc", ThresholdProcessor.nodeType, { is_controlled: true }, { value: 0.5 }),
-      nd("sink", Passthrough.nodeType, { name: "sink" }),
+      nd(
+        "ctrl1",
+        SimpleController.nodeType,
+        { is_streaming_output: true },
+        { threshold: 0.3 }
+      ),
+      nd(
+        "ctrl2",
+        SimpleController.nodeType,
+        { is_streaming_output: true },
+        { threshold: 0.7 }
+      ),
+      nd(
+        "proc",
+        ThresholdProcessor.nodeType,
+        { is_controlled: true },
+        { value: 0.5 }
+      ),
+      nd("sink", Passthrough.nodeType, { name: "sink" })
     ];
     const edges: Edge[] = [
       ce("ctrl1", "proc"),
       ce("ctrl2", "proc"),
-      de("proc", "result", "sink", "value", "e1"),
+      de("proc", "result", "sink", "value", "e1")
     ];
 
     const result = await runner.run({ job_id: "ctrl-029" }, { nodes, edges });
@@ -320,7 +415,8 @@ describe("CTRL-029: Multiple controllers → one controlled node", () => {
     expect(result.status).toBe("completed");
     // 2 controllers each emit 1 RunEvent → proc executes 2 times → 2 messages on edge
     const edgeUpdates = result.messages.filter(
-      (m) => m.type === "edge_update" && (m as { edge_id: string }).edge_id === "e1"
+      (m) =>
+        m.type === "edge_update" && (m as { edge_id: string }).edge_id === "e1"
     );
     const maxCounter = Math.max(
       0,
@@ -340,7 +436,7 @@ describe("CTRL-030: __control_output__ is routed to controlled nodes as RunEvent
 
     const nodes: NodeDescriptor[] = [
       { id: "agent", type: "test.Controller" },
-      { id: "proc", type: "test.Processor", is_controlled: true, name: "proc" },
+      { id: "proc", type: "test.Processor", is_controlled: true, name: "proc" }
     ];
     const edges: Edge[] = [ce("agent", "proc")];
 
@@ -352,7 +448,7 @@ describe("CTRL-030: __control_output__ is routed to controlled nodes as RunEvent
             async process() {
               // Controller outputs __control_output__ with raw properties
               return { __control_output__: { brightness: 0.8, contrast: 1.2 } };
-            },
+            }
           };
         }
         // Controlled processor records what it receives
@@ -360,9 +456,9 @@ describe("CTRL-030: __control_output__ is routed to controlled nodes as RunEvent
           async process(inputs) {
             calls.push({ ...inputs });
             return { result: "ok" };
-          },
+          }
         };
-      },
+      }
     });
 
     const result = await runner.run({ job_id: "ctrl-030" }, { nodes, edges });

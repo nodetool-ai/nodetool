@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { makeExecuteBashTool, makeSetOutputTool } from "../src/nodes/tool-agents.js";
+import {
+  makeExecuteBashTool,
+  makeSetOutputTool
+} from "../src/nodes/tool-agents.js";
 import { mkdtemp, writeFile, rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -24,7 +27,7 @@ import {
   SpreadsheetAgentNode,
   VectorStoreAgentNode,
   YtDlpDownloaderAgentNode,
-  TOOL_AGENT_NODES,
+  TOOL_AGENT_NODES
 } from "../src/nodes/tool-agents.js";
 
 describe("Tool agent node registration", () => {
@@ -34,25 +37,97 @@ describe("Tool agent node registration", () => {
 });
 
 const skillClasses = [
-  { cls: ShellAgentNode, type: "nodetool.agents.ShellAgent", title: "Shell Agent" },
-  { cls: BrowserAgentNode, type: "nodetool.agents.BrowserAgent", title: "Browser Agent" },
-  { cls: SQLiteAgentNode, type: "nodetool.agents.SQLiteAgent", title: "SQLite Agent" },
-  { cls: SupabaseAgentNode, type: "nodetool.agents.SupabaseAgent", title: "Supabase Agent" },
-  { cls: DocumentAgentNode, type: "nodetool.agents.DocumentAgent", title: "Document Agent" },
-  { cls: DocxAgentNode, type: "nodetool.agents.DocxAgent", title: "DOCX Agent" },
-  { cls: EmailAgentNode, type: "nodetool.agents.EmailAgent", title: "Email Agent" },
-  { cls: FfmpegAgentNode, type: "nodetool.agents.FfmpegAgent", title: "FFmpeg Agent" },
-  { cls: FilesystemAgentNode, type: "nodetool.agents.FilesystemAgent", title: "Filesystem Agent" },
+  {
+    cls: ShellAgentNode,
+    type: "nodetool.agents.ShellAgent",
+    title: "Shell Agent"
+  },
+  {
+    cls: BrowserAgentNode,
+    type: "nodetool.agents.BrowserAgent",
+    title: "Browser Agent"
+  },
+  {
+    cls: SQLiteAgentNode,
+    type: "nodetool.agents.SQLiteAgent",
+    title: "SQLite Agent"
+  },
+  {
+    cls: SupabaseAgentNode,
+    type: "nodetool.agents.SupabaseAgent",
+    title: "Supabase Agent"
+  },
+  {
+    cls: DocumentAgentNode,
+    type: "nodetool.agents.DocumentAgent",
+    title: "Document Agent"
+  },
+  {
+    cls: DocxAgentNode,
+    type: "nodetool.agents.DocxAgent",
+    title: "DOCX Agent"
+  },
+  {
+    cls: EmailAgentNode,
+    type: "nodetool.agents.EmailAgent",
+    title: "Email Agent"
+  },
+  {
+    cls: FfmpegAgentNode,
+    type: "nodetool.agents.FfmpegAgent",
+    title: "FFmpeg Agent"
+  },
+  {
+    cls: FilesystemAgentNode,
+    type: "nodetool.agents.FilesystemAgent",
+    title: "Filesystem Agent"
+  },
   { cls: GitAgentNode, type: "nodetool.agents.GitAgent", title: "Git Agent" },
-  { cls: HtmlAgentNode, type: "nodetool.agents.HtmlAgent", title: "HTML Agent" },
-  { cls: HttpApiAgentNode, type: "nodetool.agents.HttpApiAgent", title: "HTTP API Agent" },
-  { cls: ImageAgentNode, type: "nodetool.agents.ImageAgent", title: "Image Agent" },
-  { cls: MediaAgentNode, type: "nodetool.agents.MediaAgent", title: "Media Agent" },
-  { cls: PdfLibAgentNode, type: "nodetool.agents.PdfLibAgent", title: "PDF-lib Agent" },
-  { cls: PptxAgentNode, type: "nodetool.agents.PptxAgent", title: "PPTX Agent" },
-  { cls: SpreadsheetAgentNode, type: "nodetool.agents.SpreadsheetAgent", title: "Spreadsheet Agent" },
-  { cls: VectorStoreAgentNode, type: "nodetool.agents.VectorStoreAgent", title: "Vector Store Agent" },
-  { cls: YtDlpDownloaderAgentNode, type: "nodetool.agents.YtDlpDownloaderAgent", title: "yt-dlp Downloader Agent" },
+  {
+    cls: HtmlAgentNode,
+    type: "nodetool.agents.HtmlAgent",
+    title: "HTML Agent"
+  },
+  {
+    cls: HttpApiAgentNode,
+    type: "nodetool.agents.HttpApiAgent",
+    title: "HTTP API Agent"
+  },
+  {
+    cls: ImageAgentNode,
+    type: "nodetool.agents.ImageAgent",
+    title: "Image Agent"
+  },
+  {
+    cls: MediaAgentNode,
+    type: "nodetool.agents.MediaAgent",
+    title: "Media Agent"
+  },
+  {
+    cls: PdfLibAgentNode,
+    type: "nodetool.agents.PdfLibAgent",
+    title: "PDF-lib Agent"
+  },
+  {
+    cls: PptxAgentNode,
+    type: "nodetool.agents.PptxAgent",
+    title: "PPTX Agent"
+  },
+  {
+    cls: SpreadsheetAgentNode,
+    type: "nodetool.agents.SpreadsheetAgent",
+    title: "Spreadsheet Agent"
+  },
+  {
+    cls: VectorStoreAgentNode,
+    type: "nodetool.agents.VectorStoreAgent",
+    title: "Vector Store Agent"
+  },
+  {
+    cls: YtDlpDownloaderAgentNode,
+    type: "nodetool.agents.YtDlpDownloaderAgent",
+    title: "yt-dlp Downloader Agent"
+  }
 ];
 
 describe.each(skillClasses)("$title", ({ cls, type, title }) => {
@@ -135,7 +210,9 @@ describe("makeExecuteBashTool", () => {
   let workspaceDir: string;
 
   beforeEach(async () => {
-    workspaceDir = await realpath(await mkdtemp(path.join(tmpdir(), "skill-test-")));
+    workspaceDir = await realpath(
+      await mkdtemp(path.join(tmpdir(), "skill-test-"))
+    );
   });
 
   afterEach(async () => {
@@ -172,7 +249,9 @@ describe("makeSetOutputTool", () => {
   let workspaceDir: string;
 
   beforeEach(async () => {
-    workspaceDir = await realpath(await mkdtemp(path.join(tmpdir(), "skill-test-")));
+    workspaceDir = await realpath(
+      await mkdtemp(path.join(tmpdir(), "skill-test-"))
+    );
   });
 
   afterEach(async () => {
@@ -181,8 +260,16 @@ describe("makeSetOutputTool", () => {
 
   it("records path in output sink", async () => {
     const sink: string[] = [];
-    const tool = makeSetOutputTool("set_output_image", "Set output image", sink, workspaceDir);
-    await writeFile(path.join(workspaceDir, "out.png"), Buffer.from("fake-png"));
+    const tool = makeSetOutputTool(
+      "set_output_image",
+      "Set output image",
+      sink,
+      workspaceDir
+    );
+    await writeFile(
+      path.join(workspaceDir, "out.png"),
+      Buffer.from("fake-png")
+    );
     const result = await tool.process!({} as any, { path: "out.png" });
     expect(result).toMatchObject({ success: true });
     expect(sink).toEqual(["out.png"]);
@@ -190,7 +277,12 @@ describe("makeSetOutputTool", () => {
 
   it("rejects path outside workspace", async () => {
     const sink: string[] = [];
-    const tool = makeSetOutputTool("set_output_image", "Set output image", sink, workspaceDir);
+    const tool = makeSetOutputTool(
+      "set_output_image",
+      "Set output image",
+      sink,
+      workspaceDir
+    );
     const result = await tool.process!({} as any, { path: "../../etc/passwd" });
     expect(result).toMatchObject({ success: false });
     expect(sink).toHaveLength(0);
@@ -198,7 +290,12 @@ describe("makeSetOutputTool", () => {
 
   it("rejects non-existent file", async () => {
     const sink: string[] = [];
-    const tool = makeSetOutputTool("set_output_image", "Set output image", sink, workspaceDir);
+    const tool = makeSetOutputTool(
+      "set_output_image",
+      "Set output image",
+      sink,
+      workspaceDir
+    );
     const result = await tool.process!({} as any, { path: "nonexistent.png" });
     expect(result).toMatchObject({ success: false });
     expect(sink).toHaveLength(0);
@@ -206,7 +303,12 @@ describe("makeSetOutputTool", () => {
 
   it("has correct tool metadata", () => {
     const sink: string[] = [];
-    const tool = makeSetOutputTool("set_output_image", "Set output image", sink, workspaceDir);
+    const tool = makeSetOutputTool(
+      "set_output_image",
+      "Set output image",
+      sink,
+      workspaceDir
+    );
     expect(tool.name).toBe("set_output_image");
     expect(tool.inputSchema).toBeDefined();
     expect(tool.inputSchema!.required).toContain("path");
@@ -226,12 +328,15 @@ describe("ToolAgentNode agent loop integration", () => {
         },
         async *generateMessagesTraced(...args: any[]) {
           yield* (this as any).generateMessages(...args);
-        },
+        }
       }),
-      workspaceDir,
+      workspaceDir
     } as any;
 
-    node.assign({ prompt: "Say hello", model: { provider: "mock", id: "test-model" } });
+    node.assign({
+      prompt: "Say hello",
+      model: { provider: "mock", id: "test-model" }
+    });
     const result = await node.process(context);
 
     expect(result.text).toBe("Done.");
@@ -248,22 +353,39 @@ describe("ToolAgentNode agent loop integration", () => {
         generateMessages: async function* () {
           callIndex++;
           if (callIndex === 1) {
-            yield { id: "tc_1", name: "execute_bash", args: { command: `printf "fake-png" > "${workspaceDir}/output.png"` } };
+            yield {
+              id: "tc_1",
+              name: "execute_bash",
+              args: {
+                command: `printf "fake-png" > "${workspaceDir}/output.png"`
+              }
+            };
           } else if (callIndex === 2) {
-            yield { id: "tc_2", name: "set_output_image", args: { path: "output.png" } };
+            yield {
+              id: "tc_2",
+              name: "set_output_image",
+              args: { path: "output.png" }
+            };
           } else {
-            yield { type: "chunk" as const, content: "Created image.", done: true };
+            yield {
+              type: "chunk" as const,
+              content: "Created image.",
+              done: true
+            };
           }
         },
         async *generateMessagesTraced(...args: any[]) {
           yield* (this as any).generateMessages(...args);
-        },
+        }
       }),
-      workspaceDir,
+      workspaceDir
     } as any;
 
     const node = new ImageAgentNode();
-    node.assign({ prompt: "Create an image", model: { provider: "mock", id: "test-model" } });
+    node.assign({
+      prompt: "Create an image",
+      model: { provider: "mock", id: "test-model" }
+    });
     const result = await node.process(context);
 
     expect(result.text).toBe("Created image.");

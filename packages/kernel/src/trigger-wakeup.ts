@@ -8,7 +8,11 @@
  */
 
 import { createLogger } from "@nodetool/config";
-import { DurableInbox, type DurableInboxStore, MemoryDurableInboxStore } from "./durable-inbox.js";
+import {
+  DurableInbox,
+  type DurableInboxStore,
+  MemoryDurableInboxStore
+} from "./durable-inbox.js";
 
 const log = createLogger("nodetool.kernel.trigger-wakeup");
 
@@ -51,7 +55,9 @@ export class TriggerWakeupService {
     // Idempotency check
     const existing = this._inputs.find((i) => i.inputId === opts.inputId);
     if (existing) {
-      log.debug("Trigger input already exists (idempotent)", { inputId: opts.inputId });
+      log.debug("Trigger input already exists (idempotent)", {
+        inputId: opts.inputId
+      });
       return false;
     }
 
@@ -62,7 +68,7 @@ export class TriggerWakeupService {
       payload: opts.payload,
       cursor: opts.cursor,
       processed: false,
-      createdAt: new Date(),
+      createdAt: new Date()
     };
     this._inputs.push(input);
 
@@ -70,7 +76,7 @@ export class TriggerWakeupService {
       inputId: opts.inputId,
       runId: opts.runId,
       nodeId: opts.nodeId,
-      ...(opts.cursor ? { cursor: opts.cursor } : {}),
+      ...(opts.cursor ? { cursor: opts.cursor } : {})
     });
 
     // Also append as inbox message
@@ -115,11 +121,15 @@ export class TriggerWakeupService {
           i.processed &&
           i.processedAt &&
           i.processedAt.getTime() < cutoff
-        ),
+        )
     );
     const removed = before - this._inputs.length;
     if (removed > 0) {
-      log.info("Cleaned up processed trigger inputs", { count: removed, runId, nodeId });
+      log.info("Cleaned up processed trigger inputs", {
+        count: removed,
+        runId,
+        nodeId
+      });
     }
     return removed;
   }

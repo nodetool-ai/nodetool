@@ -37,7 +37,7 @@ import {
   AccessedTimeLibNode,
   CreateDirectoryLibNode,
   FilterFileNamesLibNode,
-  WorkspaceDirectoryLibNode,
+  WorkspaceDirectoryLibNode
 } from "../src/index.js";
 import type { ProcessingContext } from "@nodetool/runtime";
 
@@ -49,24 +49,42 @@ describe("native lib.os", () => {
     const moved = join(dir, "moved.txt");
     await writeFile(src, "hello", "utf-8");
 
-    await expect(Object.assign(new FileExistsLibNode(), { path: src }).process()).resolves.toEqual({ output: true });
+    await expect(
+      Object.assign(new FileExistsLibNode(), { path: src }).process()
+    ).resolves.toEqual({ output: true });
 
     const list = new ListFilesLibNode();
-    Object.assign(list, { folder: dir, pattern: "*.txt", include_subdirectories: true });
+    Object.assign(list, {
+      folder: dir,
+      pattern: "*.txt",
+      include_subdirectories: true
+    });
     const seen: string[] = [];
     for await (const item of list.genProcess()) {
       seen.push(String(item.file));
     }
     expect(seen.some((p) => p.endsWith("a.txt"))).toBe(true);
 
-    await expect(Object.assign(new CopyFileLibNode(), { source_path: src, destination_path: dst }).process()).resolves.toEqual({
-      output: dst,
+    await expect(
+      Object.assign(new CopyFileLibNode(), {
+        source_path: src,
+        destination_path: dst
+      }).process()
+    ).resolves.toEqual({
+      output: dst
     });
     expect(await readFile(dst, "utf-8")).toBe("hello");
 
-    await expect(Object.assign(new MoveFileLibNode(), { source_path: dst, destination_path: moved }).process()).resolves.toEqual({});
-    await expect(Object.assign(new GetPathInfoLibNode(), { path: moved }).process()).resolves.toMatchObject({
-      output: { exists: true, is_file: true },
+    await expect(
+      Object.assign(new MoveFileLibNode(), {
+        source_path: dst,
+        destination_path: moved
+      }).process()
+    ).resolves.toEqual({});
+    await expect(
+      Object.assign(new GetPathInfoLibNode(), { path: moved }).process()
+    ).resolves.toMatchObject({
+      output: { exists: true, is_file: true }
     });
   });
 });
@@ -74,19 +92,26 @@ describe("native lib.os", () => {
 describe("lib.os path manipulation nodes", () => {
   it("BasenameLibNode returns basename of path", async () => {
     await expect(
-      Object.assign(new BasenameLibNode(), { path: "/foo/bar/file.txt" }).process()
+      Object.assign(new BasenameLibNode(), {
+        path: "/foo/bar/file.txt"
+      }).process()
     ).resolves.toEqual({ output: "file.txt" });
   });
 
   it("BasenameLibNode with remove_extension strips extension", async () => {
     await expect(
-      Object.assign(new BasenameLibNode(), { path: "/foo/bar/file.txt", remove_extension: true }).process()
+      Object.assign(new BasenameLibNode(), {
+        path: "/foo/bar/file.txt",
+        remove_extension: true
+      }).process()
     ).resolves.toEqual({ output: "file" });
   });
 
   it("DirnameLibNode returns directory of path", async () => {
     await expect(
-      Object.assign(new DirnameLibNode(), { path: "/foo/bar/file.txt" }).process()
+      Object.assign(new DirnameLibNode(), {
+        path: "/foo/bar/file.txt"
+      }).process()
     ).resolves.toEqual({ output: "/foo/bar" });
   });
 
@@ -104,63 +129,92 @@ describe("lib.os path manipulation nodes", () => {
 
   it("JoinPathsLibNode joins path components", async () => {
     await expect(
-      Object.assign(new JoinPathsLibNode(), { paths: ["/foo", "bar", "baz.txt"] }).process()
+      Object.assign(new JoinPathsLibNode(), {
+        paths: ["/foo", "bar", "baz.txt"]
+      }).process()
     ).resolves.toEqual({ output: join("/foo", "bar", "baz.txt") });
   });
 
   it("NormalizePathLibNode normalizes path with ..", async () => {
     await expect(
-      Object.assign(new NormalizePathLibNode(), { path: "/foo/bar/../baz" }).process()
+      Object.assign(new NormalizePathLibNode(), {
+        path: "/foo/bar/../baz"
+      }).process()
     ).resolves.toEqual({ output: normalize("/foo/bar/../baz") });
   });
 
   it("AbsolutePathLibNode converts relative to absolute", async () => {
     await expect(
-      Object.assign(new AbsolutePathLibNode(), { path: "relative/dir" }).process()
+      Object.assign(new AbsolutePathLibNode(), {
+        path: "relative/dir"
+      }).process()
     ).resolves.toEqual({ output: resolve("relative/dir") });
   });
 
   it("SplitPathLibNode returns dirname and basename", async () => {
-    const result = await Object.assign(new SplitPathLibNode(), { path: "/foo/bar/file.txt" }).process();
+    const result = await Object.assign(new SplitPathLibNode(), {
+      path: "/foo/bar/file.txt"
+    }).process();
     expect(result).toEqual({ dirname: "/foo/bar", basename: "file.txt" });
   });
 
   it("SplitExtensionLibNode returns root and extension", async () => {
-    const result = await Object.assign(new SplitExtensionLibNode(), { path: "/foo/bar/file.txt" }).process();
+    const result = await Object.assign(new SplitExtensionLibNode(), {
+      path: "/foo/bar/file.txt"
+    }).process();
     expect(result).toEqual({ root: "/foo/bar/file", extension: ".txt" });
   });
 
   it("RelativePathLibNode computes relative path", async () => {
     await expect(
-      Object.assign(new RelativePathLibNode(), { target_path: "/foo/bar/baz", start_path: "/foo" }).process()
+      Object.assign(new RelativePathLibNode(), {
+        target_path: "/foo/bar/baz",
+        start_path: "/foo"
+      }).process()
     ).resolves.toEqual({ output: relative("/foo", "/foo/bar/baz") });
   });
 
   it("PathToStringLibNode returns string output", async () => {
     await expect(
-      Object.assign(new PathToStringLibNode(), { file_path: "/some/path.txt" }).process()
+      Object.assign(new PathToStringLibNode(), {
+        file_path: "/some/path.txt"
+      }).process()
     ).resolves.toEqual({ output: "/some/path.txt" });
   });
 
   it("GetDirectoryLibNode returns directory", async () => {
     await expect(
-      Object.assign(new GetDirectoryLibNode(), { path: "/foo/bar/file.txt" }).process()
+      Object.assign(new GetDirectoryLibNode(), {
+        path: "/foo/bar/file.txt"
+      }).process()
     ).resolves.toEqual({ output: "/foo/bar" });
   });
 
   it("FileNameMatchLibNode matches pattern", async () => {
     await expect(
-      Object.assign(new FileNameMatchLibNode(), { filename: "data.csv", pattern: "*.csv", case_sensitive: true }).process()
+      Object.assign(new FileNameMatchLibNode(), {
+        filename: "data.csv",
+        pattern: "*.csv",
+        case_sensitive: true
+      }).process()
     ).resolves.toEqual({ output: true });
 
     await expect(
-      Object.assign(new FileNameMatchLibNode(), { filename: "data.csv", pattern: "*.txt", case_sensitive: true }).process()
+      Object.assign(new FileNameMatchLibNode(), {
+        filename: "data.csv",
+        pattern: "*.txt",
+        case_sensitive: true
+      }).process()
     ).resolves.toEqual({ output: false });
   });
 
   it("FileNameMatchLibNode case insensitive matching", async () => {
     await expect(
-      Object.assign(new FileNameMatchLibNode(), { filename: "Data.CSV", pattern: "*.csv", case_sensitive: false }).process()
+      Object.assign(new FileNameMatchLibNode(), {
+        filename: "Data.CSV",
+        pattern: "*.csv",
+        case_sensitive: false
+      }).process()
     ).resolves.toEqual({ output: true });
   });
 
@@ -169,7 +223,7 @@ describe("lib.os path manipulation nodes", () => {
       Object.assign(new FilterFileNamesLibNode(), {
         filenames: ["a.txt", "b.csv", "c.txt", "d.json"],
         pattern: "*.txt",
-        case_sensitive: true,
+        case_sensitive: true
       }).process()
     ).resolves.toEqual({ output: ["a.txt", "c.txt"] });
   });
@@ -198,7 +252,9 @@ describe("lib.os filesystem nodes", () => {
     ).resolves.toEqual({ output: true });
 
     await expect(
-      Object.assign(new IsDirectoryLibNode(), { path: join(dir, "nonexistent") }).process()
+      Object.assign(new IsDirectoryLibNode(), {
+        path: join(dir, "nonexistent")
+      }).process()
     ).resolves.toEqual({ output: false });
   });
 
@@ -208,7 +264,9 @@ describe("lib.os filesystem nodes", () => {
     const content = "twelve chars";
     await writeFile(file, content, "utf-8");
 
-    const result = await Object.assign(new GetFileSizeLibNode(), { path: file }).process();
+    const result = await Object.assign(new GetFileSizeLibNode(), {
+      path: file
+    }).process();
     expect(result.output).toBe(Buffer.byteLength(content, "utf-8"));
   });
 
@@ -217,7 +275,9 @@ describe("lib.os filesystem nodes", () => {
     const file = join(dir, "ts.txt");
     await writeFile(file, "x", "utf-8");
 
-    const result = await Object.assign(new CreatedTimeLibNode(), { path: file }).process();
+    const result = await Object.assign(new CreatedTimeLibNode(), {
+      path: file
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("year");
     expect(output).toHaveProperty("month");
@@ -234,7 +294,9 @@ describe("lib.os filesystem nodes", () => {
     const file = join(dir, "ts.txt");
     await writeFile(file, "x", "utf-8");
 
-    const result = await Object.assign(new ModifiedTimeLibNode(), { path: file }).process();
+    const result = await Object.assign(new ModifiedTimeLibNode(), {
+      path: file
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("year");
     expect(output).toHaveProperty("month");
@@ -246,7 +308,9 @@ describe("lib.os filesystem nodes", () => {
     const file = join(dir, "ts.txt");
     await writeFile(file, "x", "utf-8");
 
-    const result = await Object.assign(new AccessedTimeLibNode(), { path: file }).process();
+    const result = await Object.assign(new AccessedTimeLibNode(), {
+      path: file
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("year");
     expect(output).toHaveProperty("second");
@@ -258,7 +322,10 @@ describe("lib.os filesystem nodes", () => {
     const newDir = join(dir, "sub", "nested");
 
     await expect(
-      Object.assign(new CreateDirectoryLibNode(), { path: newDir, exist_ok: true }).process()
+      Object.assign(new CreateDirectoryLibNode(), {
+        path: newDir,
+        exist_ok: true
+      }).process()
     ).resolves.toEqual({});
 
     expect(existsSync(newDir)).toBe(true);
@@ -267,7 +334,9 @@ describe("lib.os filesystem nodes", () => {
   });
 
   it("WorkspaceDirectoryLibNode returns workspace dir from context", async () => {
-    const context = { workspaceDir: "/tmp/test-workspace" } as unknown as ProcessingContext;
+    const context = {
+      workspaceDir: "/tmp/test-workspace"
+    } as unknown as ProcessingContext;
     const result = await new WorkspaceDirectoryLibNode().process(context);
     expect(result).toEqual({ output: "/tmp/test-workspace" });
   });
@@ -282,34 +351,51 @@ describe("native lib.markdown", () => {
   it("extracts links, headers, code blocks and tables", async () => {
     const markdown = `# Title\n\nSee [Doc](https://example.com) and <https://foo.bar>.\n\n## Code\n\n\`\`\`ts\nconst x = 1;\n\`\`\`\n\n| a | b |\n|---|---|\n| 1 | 2 |`;
 
-    await expect(Object.assign(new ExtractLinksMarkdownLibNode(), { markdown }).process()).resolves.toEqual({
+    await expect(
+      Object.assign(new ExtractLinksMarkdownLibNode(), { markdown }).process()
+    ).resolves.toEqual({
       output: [
         { url: "https://example.com", title: "Doc" },
-        { url: "https://foo.bar", title: "" },
-      ],
+        { url: "https://foo.bar", title: "" }
+      ]
     });
 
-    await expect(Object.assign(new ExtractHeadersMarkdownLibNode(), { markdown, max_level: 2 }).process()).resolves.toEqual({
+    await expect(
+      Object.assign(new ExtractHeadersMarkdownLibNode(), {
+        markdown,
+        max_level: 2
+      }).process()
+    ).resolves.toEqual({
       output: [
         { level: 1, text: "Title", index: 0 },
-        { level: 2, text: "Code", index: 1 },
-      ],
+        { level: 2, text: "Code", index: 1 }
+      ]
     });
 
-    await expect(Object.assign(new ExtractCodeBlocksMarkdownLibNode(), { markdown }).process()).resolves.toEqual({
-      output: [{ language: "ts", code: "const x = 1;" }],
+    await expect(
+      Object.assign(new ExtractCodeBlocksMarkdownLibNode(), {
+        markdown
+      }).process()
+    ).resolves.toEqual({
+      output: [{ language: "ts", code: "const x = 1;" }]
     });
 
-    await expect(Object.assign(new ExtractTablesMarkdownLibNode(), { markdown }).process()).resolves.toEqual({
-      output: { rows: [{ a: "1", b: "2" }] },
+    await expect(
+      Object.assign(new ExtractTablesMarkdownLibNode(), { markdown }).process()
+    ).resolves.toEqual({
+      output: { rows: [{ a: "1", b: "2" }] }
     });
   });
 });
 
 describe("native lib.markdown bullet and numbered lists", () => {
   it("ExtractBulletListsMarkdownLibNode extracts bullet list items", async () => {
-    const markdown = "Some intro text\n- item1\n- item2\n- item3\n\nEnd of list";
-    const result = await Object.assign(new ExtractBulletListsMarkdownLibNode(), { markdown }).process();
+    const markdown =
+      "Some intro text\n- item1\n- item2\n- item3\n\nEnd of list";
+    const result = await Object.assign(
+      new ExtractBulletListsMarkdownLibNode(),
+      { markdown }
+    ).process();
     const lists = result.output as Array<Array<Record<string, string>>>;
     expect(lists).toHaveLength(1);
     expect(lists[0]).toHaveLength(3);
@@ -320,7 +406,10 @@ describe("native lib.markdown bullet and numbered lists", () => {
 
   it("ExtractBulletListsMarkdownLibNode handles multiple separate lists", async () => {
     const markdown = "- a\n- b\n\nParagraph\n\n* c\n* d";
-    const result = await Object.assign(new ExtractBulletListsMarkdownLibNode(), { markdown }).process();
+    const result = await Object.assign(
+      new ExtractBulletListsMarkdownLibNode(),
+      { markdown }
+    ).process();
     const lists = result.output as Array<Array<Record<string, string>>>;
     expect(lists).toHaveLength(2);
     expect(lists[0]).toEqual([{ text: "a" }, { text: "b" }]);
@@ -329,7 +418,10 @@ describe("native lib.markdown bullet and numbered lists", () => {
 
   it("ExtractNumberedListsMarkdownLibNode extracts numbered list items", async () => {
     const markdown = "Some intro\n1. first\n2. second\n3. third\n\nDone";
-    const result = await Object.assign(new ExtractNumberedListsMarkdownLibNode(), { markdown }).process();
+    const result = await Object.assign(
+      new ExtractNumberedListsMarkdownLibNode(),
+      { markdown }
+    ).process();
     const lists = result.output as string[][];
     expect(lists).toHaveLength(1);
     expect(lists[0]).toEqual(["first", "second", "third"]);
@@ -337,7 +429,10 @@ describe("native lib.markdown bullet and numbered lists", () => {
 
   it("ExtractNumberedListsMarkdownLibNode handles multiple separate lists", async () => {
     const markdown = "1. alpha\n2. beta\n\nBreak\n\n1. gamma\n2. delta";
-    const result = await Object.assign(new ExtractNumberedListsMarkdownLibNode(), { markdown }).process();
+    const result = await Object.assign(
+      new ExtractNumberedListsMarkdownLibNode(),
+      { markdown }
+    ).process();
     const lists = result.output as string[][];
     expect(lists).toHaveLength(2);
     expect(lists[0]).toEqual(["alpha", "beta"]);
@@ -348,15 +443,20 @@ describe("native lib.markdown bullet and numbered lists", () => {
 describe("native lib.secret", () => {
   it("reads secret from context with default fallback", async () => {
     const context = {
-      getSecret: async (key: string) => (key === "API_KEY" ? "secret-123" : null),
+      getSecret: async (key: string) =>
+        key === "API_KEY" ? "secret-123" : null
     } as unknown as ProcessingContext;
 
     const node1 = new GetSecretLibNode();
     Object.assign(node1, { name: "API_KEY", default: "x" });
-    await expect(node1.process(context)).resolves.toEqual({ output: "secret-123" });
+    await expect(node1.process(context)).resolves.toEqual({
+      output: "secret-123"
+    });
 
     const node2 = new GetSecretLibNode();
     Object.assign(node2, { name: "MISSING", default: "fallback" });
-    await expect(node2.process(context)).resolves.toEqual({ output: "fallback" });
+    await expect(node2.process(context)).resolves.toEqual({
+      output: "fallback"
+    });
   });
 });

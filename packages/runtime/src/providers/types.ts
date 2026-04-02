@@ -1,6 +1,11 @@
 import type { Chunk } from "@nodetool/protocol";
 
-export type ProviderId = "openai" | "anthropic" | "ollama" | "llama_cpp" | string;
+export type ProviderId =
+  | "openai"
+  | "anthropic"
+  | "ollama"
+  | "llama_cpp"
+  | string;
 
 export interface LanguageModel {
   id: string;

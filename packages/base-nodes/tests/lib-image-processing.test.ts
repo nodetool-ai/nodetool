@@ -9,7 +9,7 @@ import {
   LIB_IMAGE_COLOR_GRADING_NODES,
   LIB_IMAGE_DRAW_NODES,
   LIB_IMAGE_ENHANCE_NODES,
-  LIB_IMAGE_FILTER_NODES,
+  LIB_IMAGE_FILTER_NODES
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -25,26 +25,29 @@ async function makeTestImage(
   b = 32
 ): Promise<Record<string, unknown>> {
   const buf = await sharp({
-    create: { width: w, height: h, channels: 3, background: { r, g, b } },
+    create: { width: w, height: h, channels: 3, background: { r, g, b } }
   })
     .png()
     .toBuffer();
   return {
     type: "image",
     data: buf.toString("base64"),
-    uri: "",
+    uri: ""
   };
 }
 
 /** Create a gradient test image with varied pixel values (needed for normalize-based ops). */
-async function makeGradientImage(w = 8, h = 8): Promise<Record<string, unknown>> {
+async function makeGradientImage(
+  w = 8,
+  h = 8
+): Promise<Record<string, unknown>> {
   const pixels = Buffer.alloc(w * h * 3);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = (y * w + x) * 3;
-      pixels[i] = Math.floor((x / w) * 200) + 20;     // R: 20..220
-      pixels[i + 1] = Math.floor((y / h) * 200) + 20;  // G: 20..220
-      pixels[i + 2] = 128;                              // B: constant
+      pixels[i] = Math.floor((x / w) * 200) + 20; // R: 20..220
+      pixels[i + 1] = Math.floor((y / h) * 200) + 20; // G: 20..220
+      pixels[i + 2] = 128; // B: constant
     }
   }
   const buf = await sharp(pixels, { raw: { width: w, height: h, channels: 3 } })
@@ -65,11 +68,17 @@ async function decodeOutput(output: Record<string, unknown>) {
 
 /** Find a node class by its static nodeType. */
 function findNode(
-  nodes: readonly { nodeType?: string; new (): { assign(p: Record<string, unknown>): void; process(ctx?: unknown): Promise<Record<string, unknown>> } }[],
+  nodes: readonly {
+    nodeType?: string;
+    new (): {
+      assign(p: Record<string, unknown>): void;
+      process(ctx?: unknown): Promise<Record<string, unknown>>;
+    };
+  }[],
   suffix: string
 ) {
-  const cls = nodes.find(
-    (n) => (n as unknown as { nodeType: string }).nodeType?.endsWith(suffix)
+  const cls = nodes.find((n) =>
+    (n as unknown as { nodeType: string }).nodeType?.endsWith(suffix)
   );
   if (!cls) throw new Error(`Node ending with "${suffix}" not found`);
   return cls;
@@ -103,8 +112,12 @@ async function assertPixelsChanged(
 ) {
   const inBuf = Buffer.from(inputRef.data as string, "base64");
   const outBuf = Buffer.from(outputRef.data as string, "base64");
-  const { data: inRaw } = await sharp(inBuf).raw().toBuffer({ resolveWithObject: true });
-  const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+  const { data: inRaw } = await sharp(inBuf)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { data: outRaw } = await sharp(outBuf)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   // At least one pixel should differ
   let differs = false;
   const len = Math.min(inRaw.length, outRaw.length);
@@ -135,7 +148,7 @@ describe("lib-image-color-grading nodes", () => {
       power_r: 1,
       power_g: 1,
       power_b: 1,
-      saturation: 1,
+      saturation: 1
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -143,11 +156,15 @@ describe("lib-image-color-grading nodes", () => {
 
   it("ColorBalance — temperature shift changes pixels", async () => {
     const img = await makeTestImage();
-    const output = await runNode(LIB_IMAGE_COLOR_GRADING_NODES, ".ColorBalance", {
-      image: img,
-      temperature: 0.5,
-      tint: 0.3,
-    });
+    const output = await runNode(
+      LIB_IMAGE_COLOR_GRADING_NODES,
+      ".ColorBalance",
+      {
+        image: img,
+        temperature: 0.5,
+        tint: 0.3
+      }
+    );
     assertValidImage(output);
     await assertPixelsChanged(img, output);
   });
@@ -163,7 +180,7 @@ describe("lib-image-color-grading nodes", () => {
       highlights: -0.1,
       red_midtones: 0,
       green_midtones: 0,
-      blue_midtones: 0,
+      blue_midtones: 0
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -178,7 +195,7 @@ describe("lib-image-color-grading nodes", () => {
       highlights: 0,
       shadows: 0,
       whites: 0,
-      blacks: 0,
+      blacks: 0
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -189,7 +206,7 @@ describe("lib-image-color-grading nodes", () => {
     const output = await runNode(LIB_IMAGE_COLOR_GRADING_NODES, ".FilmLook", {
       image: img,
       preset: "teal_orange",
-      intensity: 1,
+      intensity: 1
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -202,7 +219,7 @@ describe("lib-image-color-grading nodes", () => {
       color_range: "all",
       hue_shift: 0.5,
       saturation: 0.3,
-      luminance: 0,
+      luminance: 0
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -210,46 +227,58 @@ describe("lib-image-color-grading nodes", () => {
 
   it("LiftGammaGain — lift changes shadow colors", async () => {
     const img = await makeTestImage();
-    const output = await runNode(LIB_IMAGE_COLOR_GRADING_NODES, ".LiftGammaGain", {
-      image: img,
-      lift_r: 0.3,
-      lift_g: 0,
-      lift_b: 0,
-      lift_master: 0,
-      gamma_r: 1,
-      gamma_g: 1,
-      gamma_b: 1,
-      gamma_master: 1,
-      gain_r: 1,
-      gain_g: 1,
-      gain_b: 1,
-      gain_master: 1,
-    });
+    const output = await runNode(
+      LIB_IMAGE_COLOR_GRADING_NODES,
+      ".LiftGammaGain",
+      {
+        image: img,
+        lift_r: 0.3,
+        lift_g: 0,
+        lift_b: 0,
+        lift_master: 0,
+        gamma_r: 1,
+        gamma_g: 1,
+        gamma_b: 1,
+        gamma_master: 1,
+        gain_r: 1,
+        gain_g: 1,
+        gain_b: 1,
+        gain_master: 1
+      }
+    );
     assertValidImage(output);
     await assertPixelsChanged(img, output);
   });
 
   it("SaturationVibrance — boosted saturation changes pixels", async () => {
     const img = await makeTestImage();
-    const output = await runNode(LIB_IMAGE_COLOR_GRADING_NODES, ".SaturationVibrance", {
-      image: img,
-      saturation: 0.8,
-      vibrance: 0.5,
-    });
+    const output = await runNode(
+      LIB_IMAGE_COLOR_GRADING_NODES,
+      ".SaturationVibrance",
+      {
+        image: img,
+        saturation: 0.8,
+        vibrance: 0.5
+      }
+    );
     assertValidImage(output);
     await assertPixelsChanged(img, output);
   });
 
   it("SplitToning — shadow/highlight tinting changes pixels", async () => {
     const img = await makeTestImage();
-    const output = await runNode(LIB_IMAGE_COLOR_GRADING_NODES, ".SplitToning", {
-      image: img,
-      shadow_hue: 200,
-      shadow_saturation: 0.5,
-      highlight_hue: 40,
-      highlight_saturation: 0.5,
-      balance: 0,
-    });
+    const output = await runNode(
+      LIB_IMAGE_COLOR_GRADING_NODES,
+      ".SplitToning",
+      {
+        image: img,
+        shadow_hue: 200,
+        shadow_saturation: 0.5,
+        highlight_hue: 40,
+        highlight_saturation: 0.5,
+        balance: 0
+      }
+    );
     assertValidImage(output);
     await assertPixelsChanged(img, output);
   });
@@ -262,7 +291,7 @@ describe("lib-image-color-grading nodes", () => {
       amount: 0.8,
       midpoint: 0.3,
       roundness: 0,
-      feather: 0.5,
+      feather: 0.5
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -277,7 +306,11 @@ describe("lib-image-draw nodes", () => {
   it("Background — creates solid color image of specified dimensions", async () => {
     const Cls = findNode(LIB_IMAGE_DRAW_NODES as never, ".Background");
     const node = new Cls();
-    node.assign({ width: 8, height: 6, color: { type: "color", value: "#FF0000" } });
+    node.assign({
+      width: 8,
+      height: 6,
+      color: { type: "color", value: "#FF0000" }
+    });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
     assertValidImage(output);
@@ -305,8 +338,10 @@ describe("lib-image-draw nodes", () => {
     expect((Cls as unknown as { nodeType: string }).nodeType).toBe(
       "lib.pillow.draw.GaussianNoise"
     );
-    expect((Cls as unknown as { metadataOutputTypes: Record<string, string> }).metadataOutputTypes)
-      .toEqual({ output: "image" });
+    expect(
+      (Cls as unknown as { metadataOutputTypes: Record<string, string> })
+        .metadataOutputTypes
+    ).toEqual({ output: "image" });
   });
 
   it("RenderText — overlays text, pixels differ from input", async () => {
@@ -318,7 +353,7 @@ describe("lib-image-draw nodes", () => {
       y: 10,
       size: 12,
       color: { type: "color", value: "#FFFFFF" },
-      align: "left",
+      align: "left"
     });
     assertValidImage(output);
   });
@@ -329,7 +364,7 @@ describe("lib-image-draw nodes", () => {
     const output = await runNode(LIB_IMAGE_DRAW_NODES, ".Blend", {
       image1: img1,
       image2: img2,
-      alpha: 0.5,
+      alpha: 0.5
     });
     assertValidImage(output);
     // Blending red+blue should differ from pure red
@@ -342,7 +377,7 @@ describe("lib-image-draw nodes", () => {
     const output = await runNode(LIB_IMAGE_DRAW_NODES, ".Composite", {
       image1: bg,
       image2: fg,
-      mask: bg,
+      mask: bg
     });
     assertValidImage(output);
   });
@@ -358,7 +393,7 @@ describe("lib-image-enhance nodes", () => {
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".AdaptiveContrast", {
       image: img,
       clip_limit: 2,
-      grid_size: 8,
+      grid_size: 8
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -368,7 +403,7 @@ describe("lib-image-enhance nodes", () => {
     const img = await makeGradientImage();
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".AutoContrast", {
       image: img,
-      cutoff: 0,
+      cutoff: 0
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -378,7 +413,7 @@ describe("lib-image-enhance nodes", () => {
     const img = await makeTestImage();
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Brightness", {
       image: img,
-      factor: 2.0,
+      factor: 2.0
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -393,7 +428,7 @@ describe("lib-image-enhance nodes", () => {
     const img = await makeTestImage();
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Color", {
       image: img,
-      factor: 2.0,
+      factor: 2.0
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -403,7 +438,7 @@ describe("lib-image-enhance nodes", () => {
     const img = await makeTestImage();
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Contrast", {
       image: img,
-      factor: 2.0,
+      factor: 2.0
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -413,7 +448,7 @@ describe("lib-image-enhance nodes", () => {
     // Need at least 3x3 for convolution
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Detail", {
-      image: img,
+      image: img
     });
     assertValidImage(output);
   });
@@ -421,7 +456,7 @@ describe("lib-image-enhance nodes", () => {
   it("EdgeEnhance — enhances edges", async () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".EdgeEnhance", {
-      image: img,
+      image: img
     });
     assertValidImage(output);
   });
@@ -429,7 +464,7 @@ describe("lib-image-enhance nodes", () => {
   it("Equalize — normalizes histogram", async () => {
     const img = await makeGradientImage();
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Equalize", {
-      image: img,
+      image: img
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -440,7 +475,7 @@ describe("lib-image-enhance nodes", () => {
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".RankFilter", {
       image: img,
       size: 3,
-      rank: 3,
+      rank: 3
     });
     assertValidImage(output);
   });
@@ -448,7 +483,7 @@ describe("lib-image-enhance nodes", () => {
   it("Sharpen — sharpens image via convolution", async () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Sharpen", {
-      image: img,
+      image: img
     });
     assertValidImage(output);
   });
@@ -457,7 +492,7 @@ describe("lib-image-enhance nodes", () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Sharpness", {
       image: img,
-      factor: 2.0,
+      factor: 2.0
     });
     assertValidImage(output);
   });
@@ -468,7 +503,7 @@ describe("lib-image-enhance nodes", () => {
       image: img,
       radius: 2,
       percent: 150,
-      threshold: 3,
+      threshold: 3
     });
     assertValidImage(output);
   });
@@ -483,7 +518,7 @@ describe("lib-image-filter nodes", () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Blur", {
       image: img,
-      radius: 2,
+      radius: 2
     });
     assertValidImage(output);
   });
@@ -493,7 +528,7 @@ describe("lib-image-filter nodes", () => {
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Canny", {
       image: img,
       low_threshold: 100,
-      high_threshold: 200,
+      high_threshold: 200
     });
     assertValidImage(output);
   });
@@ -501,16 +536,20 @@ describe("lib-image-filter nodes", () => {
   it("Contour — applies contour filter", async () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Contour", {
-      image: img,
+      image: img
     });
     assertValidImage(output);
   });
 
   it("ConvertToGrayscale — removes color information", async () => {
     const img = await makeTestImage(4, 4, 200, 100, 50);
-    const output = await runNode(LIB_IMAGE_FILTER_NODES, ".ConvertToGrayscale", {
-      image: img,
-    });
+    const output = await runNode(
+      LIB_IMAGE_FILTER_NODES,
+      ".ConvertToGrayscale",
+      {
+        image: img
+      }
+    );
     assertValidImage(output);
     await assertPixelsChanged(img, output);
   });
@@ -518,7 +557,7 @@ describe("lib-image-filter nodes", () => {
   it("Emboss — applies emboss convolution", async () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Emboss", {
-      image: img,
+      image: img
     });
     assertValidImage(output);
   });
@@ -528,7 +567,7 @@ describe("lib-image-filter nodes", () => {
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Expand", {
       image: img,
       border: 2,
-      fill: 0,
+      fill: 0
     });
     assertValidImage(output);
     // Verify dimensions increased by 2*border on each side
@@ -541,7 +580,7 @@ describe("lib-image-filter nodes", () => {
   it("FindEdges — detects edges via convolution", async () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".FindEdges", {
-      image: img,
+      image: img
     });
     assertValidImage(output);
   });
@@ -550,7 +589,7 @@ describe("lib-image-filter nodes", () => {
     const img = await makeTestImage(4, 4, 200, 100, 50);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".GetChannel", {
       image: img,
-      channel: "R",
+      channel: "R"
     });
     assertValidImage(output);
   });
@@ -558,7 +597,7 @@ describe("lib-image-filter nodes", () => {
   it("Invert — inverts colors, pixels differ", async () => {
     const img = await makeTestImage(4, 4, 128, 64, 32);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Invert", {
-      image: img,
+      image: img
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -573,7 +612,7 @@ describe("lib-image-filter nodes", () => {
     const img = await makeTestImage(4, 4, 128, 64, 32);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Posterize", {
       image: img,
-      bits: 2,
+      bits: 2
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);
@@ -582,7 +621,7 @@ describe("lib-image-filter nodes", () => {
   it("Smooth — smooths image via median filter", async () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Smooth", {
-      image: img,
+      image: img
     });
     assertValidImage(output);
   });
@@ -592,7 +631,7 @@ describe("lib-image-filter nodes", () => {
     const img = await makeTestImage(4, 4, 200, 180, 160);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Solarize", {
       image: img,
-      threshold: 128,
+      threshold: 128
     });
     assertValidImage(output);
     await assertPixelsChanged(img, output);

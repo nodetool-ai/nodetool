@@ -34,7 +34,7 @@ export function splitDocument(
   sourceId: string,
   chunkSize = 2000,
   chunkOverlap = 1000,
-  separators: string[] = DEFAULT_SEPARATORS,
+  separators: string[] = DEFAULT_SEPARATORS
 ): TextChunk[] {
   if (!text || !text.trim()) return [];
 
@@ -43,7 +43,7 @@ export function splitDocument(
   return chunks.map((chunk) => ({
     text: chunk.text,
     source_id: sourceId,
-    start_index: chunk.start,
+    start_index: chunk.start
   }));
 }
 
@@ -60,7 +60,7 @@ function recursiveSplit(
   text: string,
   separators: string[],
   chunkSize: number,
-  chunkOverlap: number,
+  chunkOverlap: number
 ): RawChunk[] {
   if (text.length <= chunkSize) {
     return [{ text, start: 0 }];
@@ -85,7 +85,12 @@ function recursiveSplit(
       if (chunk.text.length <= chunkSize) {
         result.push(chunk);
       } else {
-        const subChunks = recursiveSplit(chunk.text, remainingSeparators, chunkSize, chunkOverlap);
+        const subChunks = recursiveSplit(
+          chunk.text,
+          remainingSeparators,
+          chunkSize,
+          chunkOverlap
+        );
         for (const sub of subChunks) {
           result.push({ text: sub.text, start: chunk.start + sub.start });
         }
@@ -131,7 +136,7 @@ function mergeSplits(
   parts: SplitPart[],
   _sep: string,
   chunkSize: number,
-  chunkOverlap: number,
+  chunkOverlap: number
 ): RawChunk[] {
   const chunks: RawChunk[] = [];
   let current = "";
@@ -169,7 +174,7 @@ function mergeSplits(
 function splitByCharacters(
   text: string,
   chunkSize: number,
-  chunkOverlap: number,
+  chunkOverlap: number
 ): RawChunk[] {
   const chunks: RawChunk[] = [];
   const step = Math.max(1, chunkSize - chunkOverlap);

@@ -20,8 +20,8 @@ const TABLE_COLUMNS = {
   columns: [
     { name: "id", data_type: "int" },
     { name: "name", data_type: "string" },
-    { name: "age", data_type: "int" },
-  ],
+    { name: "age", data_type: "int" }
+  ]
 };
 
 describe("sqlite e2e", () => {
@@ -38,11 +38,11 @@ describe("sqlite e2e", () => {
               table_name: "items",
               columns: TABLE_COLUMNS,
               add_primary_key: true,
-              if_not_exists: true,
-            },
-          }),
+              if_not_exists: true
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(result.status).toBe("completed");
@@ -63,11 +63,11 @@ describe("sqlite e2e", () => {
               table_name: "people",
               columns: TABLE_COLUMNS,
               add_primary_key: true,
-              if_not_exists: true,
-            },
-          }),
+              if_not_exists: true
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
 
@@ -82,11 +82,11 @@ describe("sqlite e2e", () => {
             properties: {
               database_name: "test.db",
               table_name: "people",
-              data: { name: "Alice", age: 30 },
-            },
-          }),
+              data: { name: "Alice", age: 30 }
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(insertResult.status).toBe("completed");
@@ -103,11 +103,11 @@ describe("sqlite e2e", () => {
             properties: {
               database_name: "test.db",
               table_name: "people",
-              data: { name: "Bob", age: 25 },
-            },
-          }),
+              data: { name: "Bob", age: 25 }
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
 
@@ -121,11 +121,11 @@ describe("sqlite e2e", () => {
             name: "out",
             properties: {
               database_name: "test.db",
-              table_name: "people",
-            },
-          }),
+              table_name: "people"
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(queryResult.status).toBe("completed");
@@ -134,7 +134,7 @@ describe("sqlite e2e", () => {
     expect(rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "Alice", age: 30 }),
-        expect.objectContaining({ name: "Bob", age: 25 }),
+        expect.objectContaining({ name: "Bob", age: 25 })
       ])
     );
   });
@@ -150,11 +150,11 @@ describe("sqlite e2e", () => {
             name: "out",
             properties: {
               database_name: "exec.db",
-              sql: "CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, body TEXT)",
-            },
-          }),
+              sql: "CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, body TEXT)"
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(createResult.status).toBe("completed");
@@ -170,11 +170,11 @@ describe("sqlite e2e", () => {
             properties: {
               database_name: "exec.db",
               sql: "INSERT INTO notes (title, body) VALUES (?, ?)",
-              parameters: ["My Note", "Hello world"],
-            },
-          }),
+              parameters: ["My Note", "Hello world"]
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(insertResult.status).toBe("completed");
@@ -191,11 +191,11 @@ describe("sqlite e2e", () => {
             name: "out",
             properties: {
               database_name: "exec.db",
-              sql: "SELECT * FROM notes",
-            },
-          }),
+              sql: "SELECT * FROM notes"
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(selectResult.status).toBe("completed");
@@ -222,15 +222,15 @@ describe("sqlite e2e", () => {
               columns: {
                 columns: [
                   { name: "id", data_type: "int" },
-                  { name: "val", data_type: "string" },
-                ],
+                  { name: "val", data_type: "string" }
+                ]
               },
               add_primary_key: true,
-              if_not_exists: true,
-            },
-          }),
+              if_not_exists: true
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
 
@@ -243,11 +243,11 @@ describe("sqlite e2e", () => {
             properties: {
               database_name: "del.db",
               table_name: "items",
-              data: { val: "to-delete" },
-            },
-          }),
+              data: { val: "to-delete" }
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
 
@@ -262,11 +262,11 @@ describe("sqlite e2e", () => {
             properties: {
               database_name: "del.db",
               table_name: "items",
-              where: "val = 'to-delete'",
-            },
-          }),
+              where: "val = 'to-delete'"
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(delResult.status).toBe("completed");
@@ -283,11 +283,11 @@ describe("sqlite e2e", () => {
             name: "out",
             properties: {
               database_name: "del.db",
-              table_name: "items",
-            },
-          }),
+              table_name: "items"
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(queryResult.status).toBe("completed");
@@ -308,11 +308,11 @@ describe("sqlite e2e", () => {
               table_name: "users",
               columns: TABLE_COLUMNS,
               add_primary_key: true,
-              if_not_exists: true,
-            },
-          }),
+              if_not_exists: true
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
 
@@ -325,11 +325,11 @@ describe("sqlite e2e", () => {
             properties: {
               database_name: "upd.db",
               table_name: "users",
-              data: { name: "Alice", age: 30 },
-            },
-          }),
+              data: { name: "Alice", age: 30 }
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
 
@@ -345,11 +345,11 @@ describe("sqlite e2e", () => {
               database_name: "upd.db",
               table_name: "users",
               data: { age: 31 },
-              where: "name = 'Alice'",
-            },
-          }),
+              where: "name = 'Alice'"
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(updResult.status).toBe("completed");
@@ -366,17 +366,19 @@ describe("sqlite e2e", () => {
             name: "out",
             properties: {
               database_name: "upd.db",
-              table_name: "users",
-            },
-          }),
+              table_name: "users"
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(queryResult.status).toBe("completed");
     const rows = queryResult.outputs.out[0] as Record<string, unknown>[];
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toEqual(expect.objectContaining({ name: "Alice", age: 31 }));
+    expect(rows[0]).toEqual(
+      expect.objectContaining({ name: "Alice", age: 31 })
+    );
   });
 
   it("Query with where and limit", async () => {
@@ -394,15 +396,15 @@ describe("sqlite e2e", () => {
                 columns: [
                   { name: "id", data_type: "int" },
                   { name: "player", data_type: "string" },
-                  { name: "score", data_type: "int" },
-                ],
+                  { name: "score", data_type: "int" }
+                ]
               },
               add_primary_key: true,
-              if_not_exists: true,
-            },
-          }),
+              if_not_exists: true
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
 
@@ -410,7 +412,7 @@ describe("sqlite e2e", () => {
     for (const [i, [player, score]] of [
       ["Alice", 100],
       ["Bob", 200],
-      ["Carol", 150],
+      ["Carol", 150]
     ].entries()) {
       const r = makeRunnerWithContext(registry, tmpDir);
       await r.run(
@@ -421,11 +423,11 @@ describe("sqlite e2e", () => {
               properties: {
                 database_name: "ql.db",
                 table_name: "scores",
-                data: { player, score },
-              },
-            }),
+                data: { player, score }
+              }
+            })
           ],
-          edges: [],
+          edges: []
         }
       );
     }
@@ -442,18 +444,22 @@ describe("sqlite e2e", () => {
               database_name: "ql.db",
               table_name: "scores",
               where: "score >= 150",
-              order_by: "score DESC",
-            },
-          }),
+              order_by: "score DESC"
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(filtered.status).toBe("completed");
     const rows = filtered.outputs.out[0] as Record<string, unknown>[];
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toEqual(expect.objectContaining({ player: "Bob", score: 200 }));
-    expect(rows[1]).toEqual(expect.objectContaining({ player: "Carol", score: 150 }));
+    expect(rows[0]).toEqual(
+      expect.objectContaining({ player: "Bob", score: 200 })
+    );
+    expect(rows[1]).toEqual(
+      expect.objectContaining({ player: "Carol", score: 150 })
+    );
 
     // Query with limit
     const r3 = makeRunnerWithContext(registry, tmpDir);
@@ -467,11 +473,11 @@ describe("sqlite e2e", () => {
               database_name: "ql.db",
               table_name: "scores",
               order_by: "score DESC",
-              limit: 1,
-            },
-          }),
+              limit: 1
+            }
+          })
         ],
-        edges: [],
+        edges: []
       }
     );
     expect(limited.status).toBe("completed");

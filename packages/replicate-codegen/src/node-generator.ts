@@ -5,12 +5,7 @@
  * Each generated class extends ReplicateNode (alias for BaseNode) and uses @prop() decorators.
  */
 
-import type {
-  NodeSpec,
-  NodeConfig,
-  ModuleConfig,
-  FieldDef,
-} from "./types.js";
+import type { NodeSpec, NodeConfig, ModuleConfig, FieldDef } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -32,7 +27,7 @@ const RESERVED_VAR_NAMES = new Set([
   "args",
   "res",
   "apiKey",
-  "output",
+  "output"
 ]);
 
 /** Convert a snake_case field name to lowerCamelCase variable name */
@@ -126,7 +121,7 @@ export class NodeGenerator {
   generateModule(
     moduleName: string,
     specs: NodeSpec[],
-    moduleConfig?: ModuleConfig,
+    moduleConfig?: ModuleConfig
   ): string {
     const lines: string[] = [];
 
@@ -147,7 +142,7 @@ export class NodeGenerator {
       `} from "../replicate-base.js";`,
       ``,
       `const ReplicateNode = BaseNode;`,
-      ``,
+      ``
     );
 
     // Apply configs and render classes
@@ -167,7 +162,7 @@ export class NodeGenerator {
     lines.push(
       `export const REPLICATE_${moduleUpper}_NODES: readonly NodeClass[] = [`,
       ...classNames.map((n) => `  ${n},`),
-      `] as const;`,
+      `] as const;`
     );
 
     return lines.join("\n");
@@ -180,7 +175,7 @@ export class NodeGenerator {
     spec = {
       ...spec,
       inputFields: [...spec.inputFields],
-      enums: [...spec.enums],
+      enums: [...spec.enums]
     };
 
     if (config.className !== undefined) spec.className = config.className;
@@ -206,7 +201,7 @@ export class NodeGenerator {
       for (const enumDef of spec.enums) {
         const origName =
           Object.entries(enumRenameMap).find(
-            ([, v]) => v === enumDef.name,
+            ([, v]) => v === enumDef.name
           )?.[0] ?? enumDef.name;
         const valueMap =
           config.enumValueOverrides[enumDef.name] ??
@@ -214,7 +209,7 @@ export class NodeGenerator {
         if (valueMap) {
           enumDef.values = enumDef.values.map(([key, val]) => [
             valueMap[key] ?? key,
-            val,
+            val
           ]);
         }
       }
@@ -256,7 +251,7 @@ export class NodeGenerator {
   private _renderClass(
     spec: NodeSpec,
     moduleName: string,
-    config?: NodeConfig,
+    config?: NodeConfig
   ): string {
     const moduleId = moduleNameToId(moduleName);
     const nodeType = `replicate.${moduleId}.${spec.className}`;
@@ -273,19 +268,22 @@ export class NodeGenerator {
     lines.push(`  static readonly nodeType = ${JSON.stringify(nodeType)};`);
     lines.push(`  static readonly title = ${JSON.stringify(title)};`);
     lines.push(
-      `  static readonly description = \`${description.replace(/`/g, "'")}\`;`,
+      `  static readonly description = \`${description.replace(/`/g, "'")}\`;`
     );
-    lines.push(
-      `  static readonly requiredSettings = ["REPLICATE_API_TOKEN"];`,
-    );
+    lines.push(`  static readonly requiredSettings = ["REPLICATE_API_TOKEN"];`);
 
     // Output type declaration based on returnType
     const returnType = config?.returnType ?? spec.outputType;
-    const outputTypeStr = returnType === "image" ? "image"
-      : returnType === "video" ? "video"
-      : returnType === "audio" ? "audio"
-      : returnType === "str" ? "str"
-      : "any";
+    const outputTypeStr =
+      returnType === "image"
+        ? "image"
+        : returnType === "video"
+          ? "video"
+          : returnType === "audio"
+            ? "audio"
+            : returnType === "str"
+              ? "str"
+              : "any";
     lines.push(`  static readonly metadataOutputTypes = {`);
     lines.push(`    output: ${JSON.stringify(outputTypeStr)}`);
     lines.push(`  };`);
@@ -300,33 +298,29 @@ export class NodeGenerator {
     }
 
     // process() method
-    lines.push(
-      ...this._renderProcessMethod(spec, config),
-    );
+    lines.push(...this._renderProcessMethod(spec, config));
 
     lines.push(`}`);
 
     return lines.join("\n");
   }
 
-  private _renderProcessMethod(
-    spec: NodeSpec,
-    config?: NodeConfig,
-  ): string[] {
+  private _renderProcessMethod(spec: NodeSpec, config?: NodeConfig): string[] {
     const lines: string[] = [];
-    lines.push(
-      `  async process(): Promise<Record<string, unknown>> {`,
-    );
+    lines.push(`  async process(): Promise<Record<string, unknown>> {`);
     lines.push(`    const apiKey = getReplicateApiKey(this._secrets);`);
 
     // Separate fields by kind
     const assetFields = spec.inputFields.filter(
-      (f) => !f.parentField && assetKind(f) !== "none",
+      (f) => !f.parentField && assetKind(f) !== "none"
     );
     // Exclude internal template fields that break model behavior when sent with defaults
     const EXCLUDED_FIELDS = new Set(["prompt_template"]);
     const scalarFields = spec.inputFields.filter(
-      (f) => !f.parentField && assetKind(f) === "none" && !EXCLUDED_FIELDS.has(f.name),
+      (f) =>
+        !f.parentField &&
+        assetKind(f) === "none" &&
+        !EXCLUDED_FIELDS.has(f.name)
     );
 
     // 1. Extract scalar fields from instance properties
@@ -335,7 +329,7 @@ export class NodeGenerator {
       const defLit = defaultLiteral(field.default, field.propType);
       const cast = castFn(field.propType);
       lines.push(
-        `    const ${varName} = ${cast}(this.${field.name} ?? ${defLit});`,
+        `    const ${varName} = ${cast}(this.${field.name} ?? ${defLit});`
       );
     }
 
@@ -357,14 +351,14 @@ export class NodeGenerator {
 
       lines.push(``);
       lines.push(
-        `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`,
+        `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`
       );
       lines.push(`    if (isRefSet(${varName}Ref)) {`);
       lines.push(
-        `      const ${varName}Url = await assetToUrl(${varName}Ref!, apiKey);`,
+        `      const ${varName}Url = await assetToUrl(${varName}Ref!, apiKey);`
       );
       lines.push(
-        `      if (${varName}Url) args[${JSON.stringify(apiName)}] = ${varName}Url;`,
+        `      if (${varName}Url) args[${JSON.stringify(apiName)}] = ${varName}Url;`
       );
       lines.push(`    }`);
     }
@@ -374,31 +368,23 @@ export class NodeGenerator {
 
     // Submit to Replicate
     lines.push(
-      `    const res = await replicateSubmit(apiKey, ${JSON.stringify(spec.endpointId)}, args);`,
+      `    const res = await replicateSubmit(apiKey, ${JSON.stringify(spec.endpointId)}, args);`
     );
 
     // Output handling based on returnType / outputType
     const returnType = config?.returnType ?? spec.outputType;
     switch (returnType) {
       case "image":
-        lines.push(
-          `    return { output: outputToImageRef(res.output) };`,
-        );
+        lines.push(`    return { output: outputToImageRef(res.output) };`);
         break;
       case "video":
-        lines.push(
-          `    return { output: outputToVideoRef(res.output) };`,
-        );
+        lines.push(`    return { output: outputToVideoRef(res.output) };`);
         break;
       case "audio":
-        lines.push(
-          `    return { output: outputToAudioRef(res.output) };`,
-        );
+        lines.push(`    return { output: outputToAudioRef(res.output) };`);
         break;
       case "str":
-        lines.push(
-          `    return { output: outputToString(res.output) };`,
-        );
+        lines.push(`    return { output: outputToString(res.output) };`);
         break;
       default:
         lines.push(`    return { output: res.output };`);

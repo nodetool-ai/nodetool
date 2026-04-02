@@ -21,8 +21,14 @@ export interface TextToVideoOutputs {
   output: VideoRef;
 }
 
-export function textToVideo(inputs: TextToVideoInputs): DslNode<TextToVideoOutputs, "output"> {
-  return createNode("nodetool.video.TextToVideo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function textToVideo(
+  inputs: TextToVideoInputs
+): DslNode<TextToVideoOutputs, "output"> {
+  return createNode(
+    "nodetool.video.TextToVideo",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Image To Video — nodetool.video.ImageToVideo
@@ -44,8 +50,14 @@ export interface ImageToVideoOutputs {
   output: VideoRef;
 }
 
-export function imageToVideo(inputs: ImageToVideoInputs): DslNode<ImageToVideoOutputs, "output"> {
-  return createNode("nodetool.video.ImageToVideo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function imageToVideo(
+  inputs: ImageToVideoInputs
+): DslNode<ImageToVideoOutputs, "output"> {
+  return createNode(
+    "nodetool.video.ImageToVideo",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Load Video File — nodetool.video.LoadVideoFile
@@ -57,8 +69,14 @@ export interface LoadVideoFileOutputs {
   output: VideoRef;
 }
 
-export function loadVideoFile(inputs: LoadVideoFileInputs): DslNode<LoadVideoFileOutputs, "output"> {
-  return createNode("nodetool.video.LoadVideoFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function loadVideoFile(
+  inputs: LoadVideoFileInputs
+): DslNode<LoadVideoFileOutputs, "output"> {
+  return createNode(
+    "nodetool.video.LoadVideoFile",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Save Video File — nodetool.video.SaveVideoFile
@@ -72,8 +90,14 @@ export interface SaveVideoFileOutputs {
   output: VideoRef;
 }
 
-export function saveVideoFile(inputs: SaveVideoFileInputs): DslNode<SaveVideoFileOutputs, "output"> {
-  return createNode("nodetool.video.SaveVideoFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saveVideoFile(
+  inputs: SaveVideoFileInputs
+): DslNode<SaveVideoFileOutputs, "output"> {
+  return createNode(
+    "nodetool.video.SaveVideoFile",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Load Video Folder — nodetool.video.LoadVideoAssets
@@ -86,8 +110,14 @@ export interface LoadVideoAssetsOutputs {
   name: string;
 }
 
-export function loadVideoAssets(inputs: LoadVideoAssetsInputs): DslNode<LoadVideoAssetsOutputs> {
-  return createNode("nodetool.video.LoadVideoAssets", inputs as Record<string, unknown>, { outputNames: ["video", "name"], streaming: true });
+export function loadVideoAssets(
+  inputs: LoadVideoAssetsInputs
+): DslNode<LoadVideoAssetsOutputs> {
+  return createNode(
+    "nodetool.video.LoadVideoAssets",
+    inputs as Record<string, unknown>,
+    { outputNames: ["video", "name"], streaming: true }
+  );
 }
 
 // Save Video Asset — nodetool.video.SaveVideo
@@ -101,8 +131,14 @@ export interface SaveVideoOutputs {
   output: VideoRef;
 }
 
-export function saveVideo(inputs: SaveVideoInputs): DslNode<SaveVideoOutputs, "output"> {
-  return createNode("nodetool.video.SaveVideo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saveVideo(
+  inputs: SaveVideoInputs
+): DslNode<SaveVideoOutputs, "output"> {
+  return createNode(
+    "nodetool.video.SaveVideo",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Frame Iterator — nodetool.video.FrameIterator
@@ -118,8 +154,14 @@ export interface FrameIteratorOutputs {
   fps: number;
 }
 
-export function frameIterator(inputs: FrameIteratorInputs): DslNode<FrameIteratorOutputs> {
-  return createNode("nodetool.video.FrameIterator", inputs as Record<string, unknown>, { outputNames: ["frame", "index", "fps"], streaming: true });
+export function frameIterator(
+  inputs: FrameIteratorInputs
+): DslNode<FrameIteratorOutputs> {
+  return createNode(
+    "nodetool.video.FrameIterator",
+    inputs as Record<string, unknown>,
+    { outputNames: ["frame", "index", "fps"], streaming: true }
+  );
 }
 
 // Fps — nodetool.video.Fps
@@ -132,7 +174,10 @@ export interface FpsOutputs {
 }
 
 export function fps(inputs: FpsInputs): DslNode<FpsOutputs, "output"> {
-  return createNode("nodetool.video.Fps", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("nodetool.video.Fps", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Frame To Video — nodetool.video.FrameToVideo
@@ -145,8 +190,14 @@ export interface FrameToVideoOutputs {
   output: VideoRef;
 }
 
-export function frameToVideo(inputs: FrameToVideoInputs): DslNode<FrameToVideoOutputs, "output"> {
-  return createNode("nodetool.video.FrameToVideo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function frameToVideo(
+  inputs: FrameToVideoInputs
+): DslNode<FrameToVideoOutputs, "output"> {
+  return createNode(
+    "nodetool.video.FrameToVideo",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Concat — nodetool.video.Concat
@@ -160,7 +211,11 @@ export interface ConcatOutputs {
 }
 
 export function concat(inputs: ConcatInputs): DslNode<ConcatOutputs, "output"> {
-  return createNode("nodetool.video.Concat", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.video.Concat",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Trim — nodetool.video.Trim
@@ -175,7 +230,10 @@ export interface TrimOutputs {
 }
 
 export function trim(inputs: TrimInputs): DslNode<TrimOutputs, "output"> {
-  return createNode("nodetool.video.Trim", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("nodetool.video.Trim", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Resize — nodetool.video.Resize
@@ -190,7 +248,11 @@ export interface ResizeOutputs {
 }
 
 export function resize(inputs: ResizeInputs): DslNode<ResizeOutputs, "output"> {
-  return createNode("nodetool.video.Resize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.video.Resize",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Rotate — nodetool.video.Rotate
@@ -204,7 +266,11 @@ export interface RotateOutputs {
 }
 
 export function rotate(inputs: RotateInputs): DslNode<RotateOutputs, "output"> {
-  return createNode("nodetool.video.Rotate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "nodetool.video.Rotate",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Set Speed — nodetool.video.SetSpeed
@@ -217,8 +283,14 @@ export interface SetSpeedOutputs {
   output: VideoRef;
 }
 
-export function setSpeed(inputs: SetSpeedInputs): DslNode<SetSpeedOutputs, "output"> {
-  return createNode("nodetool.video.SetSpeed", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function setSpeed(
+  inputs: SetSpeedInputs
+): DslNode<SetSpeedOutputs, "output"> {
+  return createNode(
+    "nodetool.video.SetSpeed",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Overlay — nodetool.video.Overlay
@@ -235,8 +307,14 @@ export interface OverlayOutputs {
   output: VideoRef;
 }
 
-export function overlay(inputs: OverlayInputs): DslNode<OverlayOutputs, "output"> {
-  return createNode("nodetool.video.Overlay", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function overlay(
+  inputs: OverlayInputs
+): DslNode<OverlayOutputs, "output"> {
+  return createNode(
+    "nodetool.video.Overlay",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Color Balance — nodetool.video.ColorBalance
@@ -251,8 +329,14 @@ export interface ColorBalanceOutputs {
   output: VideoRef;
 }
 
-export function colorBalance(inputs: ColorBalanceInputs): DslNode<ColorBalanceOutputs, "output"> {
-  return createNode("nodetool.video.ColorBalance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function colorBalance(
+  inputs: ColorBalanceInputs
+): DslNode<ColorBalanceOutputs, "output"> {
+  return createNode(
+    "nodetool.video.ColorBalance",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Denoise — nodetool.video.Denoise
@@ -265,8 +349,14 @@ export interface DenoiseOutputs {
   output: VideoRef;
 }
 
-export function denoise(inputs: DenoiseInputs): DslNode<DenoiseOutputs, "output"> {
-  return createNode("nodetool.video.Denoise", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function denoise(
+  inputs: DenoiseInputs
+): DslNode<DenoiseOutputs, "output"> {
+  return createNode(
+    "nodetool.video.Denoise",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Stabilize — nodetool.video.Stabilize
@@ -280,8 +370,14 @@ export interface StabilizeOutputs {
   output: VideoRef;
 }
 
-export function stabilize(inputs: StabilizeInputs): DslNode<StabilizeOutputs, "output"> {
-  return createNode("nodetool.video.Stabilize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function stabilize(
+  inputs: StabilizeInputs
+): DslNode<StabilizeOutputs, "output"> {
+  return createNode(
+    "nodetool.video.Stabilize",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Sharpness — nodetool.video.Sharpness
@@ -295,8 +391,14 @@ export interface SharpnessOutputs {
   output: VideoRef;
 }
 
-export function sharpness(inputs: SharpnessInputs): DslNode<SharpnessOutputs, "output"> {
-  return createNode("nodetool.video.Sharpness", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function sharpness(
+  inputs: SharpnessInputs
+): DslNode<SharpnessOutputs, "output"> {
+  return createNode(
+    "nodetool.video.Sharpness",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Blur — nodetool.video.Blur
@@ -310,7 +412,10 @@ export interface BlurOutputs {
 }
 
 export function blur(inputs: BlurInputs): DslNode<BlurOutputs, "output"> {
-  return createNode("nodetool.video.Blur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("nodetool.video.Blur", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Saturation — nodetool.video.Saturation
@@ -323,8 +428,14 @@ export interface SaturationOutputs {
   output: VideoRef;
 }
 
-export function saturation(inputs: SaturationInputs): DslNode<SaturationOutputs, "output"> {
-  return createNode("nodetool.video.Saturation", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saturation(
+  inputs: SaturationInputs
+): DslNode<SaturationOutputs, "output"> {
+  return createNode(
+    "nodetool.video.Saturation",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Add Subtitles — nodetool.video.AddSubtitles
@@ -341,8 +452,14 @@ export interface AddSubtitlesOutputs {
   output: VideoRef;
 }
 
-export function addSubtitles(inputs: AddSubtitlesInputs): DslNode<AddSubtitlesOutputs, "output"> {
-  return createNode("nodetool.video.AddSubtitles", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addSubtitles(
+  inputs: AddSubtitlesInputs
+): DslNode<AddSubtitlesOutputs, "output"> {
+  return createNode(
+    "nodetool.video.AddSubtitles",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Reverse — nodetool.video.Reverse
@@ -354,8 +471,14 @@ export interface ReverseOutputs {
   output: VideoRef;
 }
 
-export function reverse(inputs: ReverseInputs): DslNode<ReverseOutputs, "output"> {
-  return createNode("nodetool.video.Reverse", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function reverse(
+  inputs: ReverseInputs
+): DslNode<ReverseOutputs, "output"> {
+  return createNode(
+    "nodetool.video.Reverse",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Transition — nodetool.video.Transition
@@ -370,8 +493,14 @@ export interface TransitionOutputs {
   output: VideoRef;
 }
 
-export function transition(inputs: TransitionInputs): DslNode<TransitionOutputs, "output"> {
-  return createNode("nodetool.video.Transition", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function transition(
+  inputs: TransitionInputs
+): DslNode<TransitionOutputs, "output"> {
+  return createNode(
+    "nodetool.video.Transition",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Add Audio — nodetool.video.AddAudio
@@ -386,8 +515,14 @@ export interface AddAudioOutputs {
   output: VideoRef;
 }
 
-export function addAudio(inputs: AddAudioInputs): DslNode<AddAudioOutputs, "output"> {
-  return createNode("nodetool.video.AddAudio", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addAudio(
+  inputs: AddAudioInputs
+): DslNode<AddAudioOutputs, "output"> {
+  return createNode(
+    "nodetool.video.AddAudio",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Chroma Key — nodetool.video.ChromaKey
@@ -402,8 +537,14 @@ export interface ChromaKeyOutputs {
   output: VideoRef;
 }
 
-export function chromaKey(inputs: ChromaKeyInputs): DslNode<ChromaKeyOutputs, "output"> {
-  return createNode("nodetool.video.ChromaKey", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function chromaKey(
+  inputs: ChromaKeyInputs
+): DslNode<ChromaKeyOutputs, "output"> {
+  return createNode(
+    "nodetool.video.ChromaKey",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Extract Audio — nodetool.video.ExtractAudio
@@ -415,8 +556,14 @@ export interface ExtractAudioOutputs {
   output: AudioRef;
 }
 
-export function extractAudio(inputs: ExtractAudioInputs): DslNode<ExtractAudioOutputs, "output"> {
-  return createNode("nodetool.video.ExtractAudio", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function extractAudio(
+  inputs: ExtractAudioInputs
+): DslNode<ExtractAudioOutputs, "output"> {
+  return createNode(
+    "nodetool.video.ExtractAudio",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Extract Frame — nodetool.video.ExtractFrame
@@ -429,8 +576,14 @@ export interface ExtractFrameOutputs {
   output: ImageRef;
 }
 
-export function extractFrame(inputs: ExtractFrameInputs): DslNode<ExtractFrameOutputs, "output"> {
-  return createNode("nodetool.video.ExtractFrame", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function extractFrame(
+  inputs: ExtractFrameInputs
+): DslNode<ExtractFrameOutputs, "output"> {
+  return createNode(
+    "nodetool.video.ExtractFrame",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Get Video Info — nodetool.video.GetVideoInfo
@@ -448,6 +601,22 @@ export interface GetVideoInfoOutputs {
   has_audio: boolean;
 }
 
-export function getVideoInfo(inputs: GetVideoInfoInputs): DslNode<GetVideoInfoOutputs> {
-  return createNode("nodetool.video.GetVideoInfo", inputs as Record<string, unknown>, { outputNames: ["duration", "width", "height", "fps", "frame_count", "codec", "has_audio"] });
+export function getVideoInfo(
+  inputs: GetVideoInfoInputs
+): DslNode<GetVideoInfoOutputs> {
+  return createNode(
+    "nodetool.video.GetVideoInfo",
+    inputs as Record<string, unknown>,
+    {
+      outputNames: [
+        "duration",
+        "width",
+        "height",
+        "fps",
+        "frame_count",
+        "codec",
+        "has_audio"
+      ]
+    }
+  );
 }

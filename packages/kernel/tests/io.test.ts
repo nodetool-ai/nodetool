@@ -130,7 +130,7 @@ describe("NodeInputs – any", () => {
     expect(items).toEqual([
       ["a", "a1"],
       ["b", "b1"],
-      ["a", "a2"],
+      ["a", "a2"]
     ]);
   });
 });
@@ -209,11 +209,16 @@ describe("NodeOutputs – sendFn callback", () => {
   it("calls sendFn with slot and value", async () => {
     const calls: Array<[string, unknown]> = [];
     const outputs = new NodeOutputs({
-      sendFn: async (slot, value) => { calls.push([slot, value]); },
+      sendFn: async (slot, value) => {
+        calls.push([slot, value]);
+      }
     });
     await outputs.emit("out", 99);
     await outputs.emit("other", "x");
-    expect(calls).toEqual([["out", 99], ["other", "x"]]);
+    expect(calls).toEqual([
+      ["out", 99],
+      ["other", "x"]
+    ]);
   });
 
   it("does not call sendFn when not provided", async () => {

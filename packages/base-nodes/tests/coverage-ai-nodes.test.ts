@@ -16,7 +16,7 @@ import {
   GENERATOR_NODES,
   TeamAgentNode,
   TeamLeadNode,
-  TEAM_NODES,
+  TEAM_NODES
 } from "../src/index.js";
 
 function metadataDefaults(NodeCls: any) {
@@ -31,7 +31,6 @@ function metadataDefaults(NodeCls: any) {
 function expectMetadataDefaults(NodeCls: any) {
   expect(new NodeCls().serialize()).toEqual(metadataDefaults(NodeCls));
 }
-
 
 // ---------------------------------------------------------------------------
 // agents.ts
@@ -63,7 +62,7 @@ describe("SummarizerNode", () => {
   it("summarizes text to max_sentences", async () => {
     const n = new (SummarizerNode as any)();
     n.assign({
-      text: "First sentence. Second sentence. Third sentence. Fourth sentence.",
+      text: "First sentence. Second sentence. Third sentence. Fourth sentence."
     });
     // max_sentences is not a declared prop, so set it directly on the instance
     n.max_sentences = 2;
@@ -76,16 +75,18 @@ describe("SummarizerNode", () => {
     const n = new (SummarizerNode as any)();
     const mockProvider = {
       generateMessage: async ({ messages }: any) => ({
-        content: `summary:${messages[1].content}`,
+        content: `summary:${messages[1].content}`
       }),
-      async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
+      async generateMessageTraced(...a: any[]) {
+        return (this as any).generateMessage(...a);
+      }
     };
     const mockContext = {
-      getProvider: async () => mockProvider,
+      getProvider: async () => mockProvider
     };
     n.assign({
       text: "Long text",
-      model: { provider: "test", id: "m1" },
+      model: { provider: "test", id: "m1" }
     });
     n.max_sentences = 2;
     const result = await n.process(mockContext as any);
@@ -139,7 +140,7 @@ describe("SummarizerNode", () => {
     const n = new (SummarizerNode as any)();
     n.assign({
       text: { content: "Message content here." },
-      max_sentences: 1,
+      max_sentences: 1
     });
     const result = await n.process();
     expect(result.text).toBe("Message content here.");
@@ -152,10 +153,10 @@ describe("SummarizerNode", () => {
         content: [
           { type: "text", text: "Part one." },
           { type: "image" }, // non-text part
-          { type: "text", text: "Part two." },
-        ],
+          { type: "text", text: "Part two." }
+        ]
       },
-      max_sentences: 2,
+      max_sentences: 2
     });
     const result = await n.process();
     expect(result.text).toContain("Part one.");
@@ -166,7 +167,7 @@ describe("SummarizerNode", () => {
     const n = new (SummarizerNode as any)();
     n.assign({
       text: { foo: "bar" },
-      max_sentences: 1,
+      max_sentences: 1
     });
     const result = await n.process();
     expect(result.text).toContain("foo");
@@ -184,7 +185,7 @@ describe("SummarizerNode", () => {
     const n = new (SummarizerNode as any)();
     n.assign({
       text: "A. B. C. D. E.",
-      max_sentences: NaN,
+      max_sentences: NaN
     });
     const result = await n.process();
     // NaN is not finite, so defaults to 3
@@ -257,7 +258,7 @@ describe("ExtractorNode", () => {
   it("extracts JSON embedded in surrounding text", async () => {
     const n = new (ExtractorNode as any)();
     n.assign({
-      text: 'Here is the data: {"key": "value"} end.',
+      text: 'Here is the data: {"key": "value"} end.'
     });
     const result = await n.process();
     expect(result.key).toBe("value");
@@ -339,7 +340,7 @@ describe("ClassifierNode", () => {
     const n = new (ClassifierNode as any)();
     n.assign({
       text: "I love programming in python",
-      categories: ["sports", "programming", "cooking"],
+      categories: ["sports", "programming", "cooking"]
     });
     const result = await n.process();
     expect(result.output).toBe("programming");
@@ -350,7 +351,7 @@ describe("ClassifierNode", () => {
     const n = new (ClassifierNode as any)();
     n.assign({
       text: "xyzzy",
-      categories: ["alpha", "beta", "gamma"],
+      categories: ["alpha", "beta", "gamma"]
     });
     const result = await n.process();
     expect(result.output).toBe("alpha");
@@ -359,30 +360,30 @@ describe("ClassifierNode", () => {
   it("handles non-array categories via getCategories", async () => {
     const n = new (ClassifierNode as any)();
     n.assign({
-        text: "test",
-        categories: "not-an-array",
-      });
-    await expect(
-      n.process()
-    ).rejects.toThrow("At least 2 categories are required");
+      text: "test",
+      categories: "not-an-array"
+    });
+    await expect(n.process()).rejects.toThrow(
+      "At least 2 categories are required"
+    );
   });
 
   it("filters empty strings from categories", async () => {
     const n = new (ClassifierNode as any)();
     n.assign({
-        text: "hello world",
-        categories: ["", "  ", "hello"],
-      });
-    await expect(
-      n.process()
-    ).rejects.toThrow("At least 2 categories are required");
+      text: "hello world",
+      categories: ["", "  ", "hello"]
+    });
+    await expect(n.process()).rejects.toThrow(
+      "At least 2 categories are required"
+    );
   });
 
   it("handles multi-word categories", async () => {
     const n = new (ClassifierNode as any)();
     n.assign({
       text: "machine learning is great",
-      categories: ["web development", "machine learning", "data science"],
+      categories: ["web development", "machine learning", "data science"]
     });
     const result = await n.process();
     expect(result.output).toBe("machine learning");
@@ -392,15 +393,17 @@ describe("ClassifierNode", () => {
     const n = new (ClassifierNode as any)();
     const mockProvider = {
       generateMessage: async () => ({ content: '{"category":"support"}' }),
-      async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
+      async generateMessageTraced(...a: any[]) {
+        return (this as any).generateMessage(...a);
+      }
     };
     const mockContext = {
-      getProvider: async () => mockProvider,
+      getProvider: async () => mockProvider
     };
     n.assign({
       text: "help me",
       categories: ["billing", "support"],
-      model: { provider: "test", id: "m1" },
+      model: { provider: "test", id: "m1" }
     });
     const result = await n.process(mockContext as any);
     expect(result.category).toBe("support");
@@ -428,19 +431,29 @@ describe("AgentNode", () => {
     const n = new (AgentNode as any)();
     const mockProvider = {
       async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
-        yield { type: "chunk", content: "Hello ", content_type: "text", done: false };
-        yield { type: "chunk", content: "world", content_type: "text", done: true };
-      },
+        yield {
+          type: "chunk",
+          content: "Hello ",
+          content_type: "text",
+          done: false
+        };
+        yield {
+          type: "chunk",
+          content: "world",
+          content_type: "text",
+          done: true
+        };
+      }
     };
     n.assign({
       prompt: "Test prompt",
       model: { provider: "openai", id: "gpt-4", name: "GPT-4" },
-      max_tokens: 512,
+      max_tokens: 512
     });
     const streamed: any[] = [];
-    for await (const item of n.genProcess(
-      { getProvider: async () => mockProvider } as any
-    )) {
+    for await (const item of n.genProcess({
+      getProvider: async () => mockProvider
+    } as any)) {
       streamed.push(item);
     }
     expect(streamed[0].chunk.content).toBe("Hello ");
@@ -449,11 +462,11 @@ describe("AgentNode", () => {
       chunk: null,
       thinking: null,
       text: "Hello world",
-      audio: null,
+      audio: null
     });
-    const result = await n.process(
-      { getProvider: async () => mockProvider } as any
-    );
+    const result = await n.process({
+      getProvider: async () => mockProvider
+    } as any);
     expect(result.text).toBe("Hello world");
     expect(result.output).toBe("Hello world");
     expect(result.chunk).toBeNull();
@@ -465,20 +478,30 @@ describe("AgentNode", () => {
     const n = new (AgentNode as any)();
     let capturedMessages: any[] = [];
     const mockProvider = {
-      async *generateMessages({ messages }: any): AsyncGenerator<Record<string, unknown>> {
+      async *generateMessages({
+        messages
+      }: any): AsyncGenerator<Record<string, unknown>> {
         capturedMessages = messages;
-        yield { type: "chunk", content: "ok", content_type: "text", done: true };
-      },
+        yield {
+          type: "chunk",
+          content: "ok",
+          content_type: "text",
+          done: true
+        };
+      }
     };
     const mockContext = {
       getProvider: async () => mockProvider,
       getThreadMessages: async () => ({
         messages: [
           { role: "user", content: "persisted-user" },
-          { role: "assistant", content: [{ type: "text", text: "persisted-assistant" }] },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "persisted-assistant" }]
+          }
         ],
-        next: null,
-      }),
+        next: null
+      })
     };
     n.assign({
       system: "Be concise.",
@@ -488,21 +511,48 @@ describe("AgentNode", () => {
       history: [
         { role: "user", content: "history-user" },
         { role: "assistant", content: "history-assistant" },
-        { role: "invalid_role", content: "skip-me" },
+        { role: "invalid_role", content: "skip-me" }
       ],
       thread_id: "thread-1",
-      model: { provider: "test", id: "m1" },
+      model: { provider: "test", id: "m1" }
     });
     await n.process(mockContext as any);
-    expect(capturedMessages[0]).toEqual({ role: "system", content: "Be concise." });
-    expect(capturedMessages[1]).toEqual({ role: "user", content: "persisted-user", toolCalls: null, toolCallId: null, threadId: null });
+    expect(capturedMessages[0]).toEqual({
+      role: "system",
+      content: "Be concise."
+    });
+    expect(capturedMessages[1]).toEqual({
+      role: "user",
+      content: "persisted-user",
+      toolCalls: null,
+      toolCallId: null,
+      threadId: null
+    });
     expect(capturedMessages[2].content[0].text).toBe("persisted-assistant");
-    expect(capturedMessages[3]).toEqual({ role: "user", content: "history-user", toolCalls: null, toolCallId: null, threadId: null });
-    expect(capturedMessages[4]).toEqual({ role: "assistant", content: "history-assistant", toolCalls: null, toolCallId: null, threadId: null });
+    expect(capturedMessages[3]).toEqual({
+      role: "user",
+      content: "history-user",
+      toolCalls: null,
+      toolCallId: null,
+      threadId: null
+    });
+    expect(capturedMessages[4]).toEqual({
+      role: "assistant",
+      content: "history-assistant",
+      toolCalls: null,
+      toolCallId: null,
+      threadId: null
+    });
     expect(capturedMessages[capturedMessages.length - 1].role).toBe("user");
-    expect(capturedMessages[capturedMessages.length - 1].content[0].text).toBe("Hi");
-    expect(capturedMessages[capturedMessages.length - 1].content[1].type).toBe("image");
-    expect(capturedMessages[capturedMessages.length - 1].content[2].type).toBe("audio");
+    expect(capturedMessages[capturedMessages.length - 1].content[0].text).toBe(
+      "Hi"
+    );
+    expect(capturedMessages[capturedMessages.length - 1].content[1].type).toBe(
+      "image"
+    );
+    expect(capturedMessages[capturedMessages.length - 1].content[2].type).toBe(
+      "audio"
+    );
   });
 
   it("persists the user and assistant messages through context thread APIs", async () => {
@@ -510,19 +560,24 @@ describe("AgentNode", () => {
     const created: any[] = [];
     const mockProvider = {
       async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
-        yield { type: "chunk", content: "saved", content_type: "text", done: true };
-      },
+        yield {
+          type: "chunk",
+          content: "saved",
+          content_type: "text",
+          done: true
+        };
+      }
     };
     const mockContext = {
       getProvider: async () => mockProvider,
       createMessage: async (req: any) => {
         created.push(req);
-      },
+      }
     };
     n.assign({
       prompt: "persist me",
       thread_id: "thread-2",
-      model: { provider: "test", id: "m1" },
+      model: { provider: "test", id: "m1" }
     });
     await n.process(mockContext as any);
     expect(created).toHaveLength(2);
@@ -531,7 +586,7 @@ describe("AgentNode", () => {
     expect(created[0].content[0].text).toBe("persist me");
     expect(created[1]).toMatchObject({
       thread_id: "thread-2",
-      role: "assistant",
+      role: "assistant"
     });
   });
 
@@ -544,29 +599,31 @@ describe("AgentNode", () => {
           content: "reasoning",
           content_type: "text",
           thinking: true,
-          done: false,
+          done: false
         };
         yield {
           type: "chunk",
           content: Buffer.from("audio-bytes").toString("base64"),
           content_type: "audio",
-          done: true,
+          done: true
         };
-      },
+      }
     };
     n.assign({
       model: { provider: "test", id: "m1" },
-      prompt: "Listen",
+      prompt: "Listen"
     });
     const streamed: any[] = [];
-    for await (const item of n.genProcess(
-      { getProvider: async () => mockProvider } as any
-    )) {
+    for await (const item of n.genProcess({
+      getProvider: async () => mockProvider
+    } as any)) {
       streamed.push(item);
     }
     expect(streamed[0].thinking.content).toBe("reasoning");
     expect(streamed[1].chunk.content_type).toBe("audio");
-    expect(Buffer.from(streamed[2].audio.data).toString("utf8")).toBe("audio-bytes");
+    expect(Buffer.from(streamed[2].audio.data).toString("utf8")).toBe(
+      "audio-bytes"
+    );
   });
 
   it("normalizes provider text chunks to include content_type", async () => {
@@ -576,35 +633,35 @@ describe("AgentNode", () => {
         yield {
           type: "chunk",
           content: "Hello",
-          done: false,
+          done: false
         };
         yield {
           type: "chunk",
           content: " world",
-          done: true,
+          done: true
         };
-      },
+      }
     };
     n.assign({
       model: { provider: "test", id: "m1" },
-      prompt: "Hi",
+      prompt: "Hi"
     });
     const streamed: any[] = [];
-    for await (const item of n.genProcess(
-      { getProvider: async () => mockProvider } as any
-    )) {
+    for await (const item of n.genProcess({
+      getProvider: async () => mockProvider
+    } as any)) {
       streamed.push(item);
     }
 
     expect(streamed[0].chunk).toMatchObject({
       type: "chunk",
       content: "Hello",
-      content_type: "text",
+      content_type: "text"
     });
     expect(streamed[1].chunk).toMatchObject({
       type: "chunk",
       content: " world",
-      content_type: "text",
+      content_type: "text"
     });
   });
 
@@ -612,33 +669,38 @@ describe("AgentNode", () => {
     const n = new (AgentNode as any)();
     n._dynamic_outputs = {
       answer: { type: "str" },
-      score: { type: "int" },
+      score: { type: "int" }
     };
     const mockProvider = {
-      async *generateMessages({ responseFormat }: any): AsyncGenerator<Record<string, unknown>> {
+      async *generateMessages({
+        responseFormat
+      }: any): AsyncGenerator<Record<string, unknown>> {
         expect(responseFormat.type).toBe("json_schema");
         yield {
           type: "chunk",
           content: '{"answer":"ready","score":7}',
           content_type: "text",
-          done: true,
+          done: true
         };
-      },
+      }
     };
     n.assign({
       model: { provider: "test", id: "m1" },
-      prompt: "Return JSON",
+      prompt: "Return JSON"
     });
     const streamed: any[] = [];
-    for await (const item of n.genProcess(
-      { getProvider: async () => mockProvider } as any
-    )) {
+    for await (const item of n.genProcess({
+      getProvider: async () => mockProvider
+    } as any)) {
       streamed.push(item);
     }
-    expect(streamed[streamed.length - 1]).toEqual({ answer: "ready", score: 7 });
-    const result = await n.process(
-      { getProvider: async () => mockProvider } as any
-    );
+    expect(streamed[streamed.length - 1]).toEqual({
+      answer: "ready",
+      score: 7
+    });
+    const result = await n.process({
+      getProvider: async () => mockProvider
+    } as any);
     expect(result).toEqual({ answer: "ready", score: 7 });
   });
 
@@ -650,33 +712,56 @@ describe("AgentNode", () => {
     n.assign({
       prompt: "first",
       thread_id,
-      model: { provider: "test", id: "m1" },
+      model: { provider: "test", id: "m1" }
     });
     await n.process({
       getProvider: async () => ({
         async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
-          yield { type: "chunk", content: "first-reply", content_type: "text", done: true };
-        },
-      }),
+          yield {
+            type: "chunk",
+            content: "first-reply",
+            content_type: "text",
+            done: true
+          };
+        }
+      })
     } as any);
 
     const secondCalls: any[] = [];
     n.assign({
       prompt: "second",
       thread_id,
-      model: { provider: "test", id: "m1" },
+      model: { provider: "test", id: "m1" }
     });
     await n.process({
       getProvider: async () => ({
-        async *generateMessages({ messages }: any): AsyncGenerator<Record<string, unknown>> {
+        async *generateMessages({
+          messages
+        }: any): AsyncGenerator<Record<string, unknown>> {
           secondCalls.push(messages);
-          yield { type: "chunk", content: "second-reply", content_type: "text", done: true };
-        },
-      }),
+          yield {
+            type: "chunk",
+            content: "second-reply",
+            content_type: "text",
+            done: true
+          };
+        }
+      })
     } as any);
     const replayed = secondCalls[0];
-    expect(replayed.some((message: any) => Array.isArray(message.content) && message.content[0].text === "first")).toBe(true);
-    expect(replayed.some((message: any) => Array.isArray(message.content) && message.content[0].text === "first-reply")).toBe(true);
+    expect(
+      replayed.some(
+        (message: any) =>
+          Array.isArray(message.content) && message.content[0].text === "first"
+      )
+    ).toBe(true);
+    expect(
+      replayed.some(
+        (message: any) =>
+          Array.isArray(message.content) &&
+          message.content[0].text === "first-reply"
+      )
+    ).toBe(true);
   });
 
   it("returns empty text when the provider returns no text content", async () => {
@@ -684,15 +769,15 @@ describe("AgentNode", () => {
     const mockProvider = {
       async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
         yield { type: "chunk", content: "", content_type: "text", done: true };
-      },
+      }
     };
     n.assign({
       prompt: "Hi",
-      model: { provider: "test", id: "m1" },
+      model: { provider: "test", id: "m1" }
     });
-    const result = await n.process(
-      { getProvider: async () => mockProvider } as any
-    );
+    const result = await n.process({
+      getProvider: async () => mockProvider
+    } as any);
     expect(result.text).toBe("");
     expect(result.output).toBe("");
     expect(result.chunk).toBeNull();
@@ -700,7 +785,6 @@ describe("AgentNode", () => {
     expect(result.audio).toBeNull();
   });
 });
-
 
 // ---- ResearchAgentNode ----
 describe("ResearchAgentNode", () => {
@@ -725,7 +809,7 @@ describe("ResearchAgentNode", () => {
     expect(result.findings[0]).toEqual(
       expect.objectContaining({
         title: "What is TypeScript?",
-        summary: expect.any(String),
+        summary: expect.any(String)
       })
     );
     expect(result.findings[0].summary.length).toBeGreaterThan(0);
@@ -749,17 +833,19 @@ describe("ResearchAgentNode", () => {
     const mockProvider = {
       generateMessage: async () => ({
         content:
-          '{"summary":"TypeScript is a typed superset of JavaScript.","findings":[{"title":"Overview","summary":"Adds static typing.","source":"https://example.com"}]}',
+          '{"summary":"TypeScript is a typed superset of JavaScript.","findings":[{"title":"Overview","summary":"Adds static typing.","source":"https://example.com"}]}'
       }),
-      async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
+      async generateMessageTraced(...a: any[]) {
+        return (this as any).generateMessage(...a);
+      }
     };
     n.assign({
       objective: "What is TypeScript?",
-      model: { provider: "test", id: "m1" },
+      model: { provider: "test", id: "m1" }
     });
-    const result = await n.process(
-      { getProvider: async () => mockProvider } as any
-    );
+    const result = await n.process({
+      getProvider: async () => mockProvider
+    } as any);
     expect(result.text).toContain("typed superset");
     expect(Array.isArray(result.findings)).toBe(true);
     expect(result.findings).toHaveLength(1);
@@ -767,7 +853,7 @@ describe("ResearchAgentNode", () => {
       expect.objectContaining({
         title: "Overview",
         summary: "Adds static typing.",
-        source: "https://example.com",
+        source: "https://example.com"
       })
     );
   });
@@ -810,7 +896,7 @@ describe("StructuredOutputGeneratorNode", () => {
       active: { type: "boolean" },
       tags: { type: "array" },
       meta: { type: "object" },
-      other: {}, // no type specified, defaults to "str" -> "string"
+      other: {} // no type specified, defaults to "str" -> "string"
     };
     const result = await n.process();
     expect(result.name).toBe("");
@@ -836,12 +922,12 @@ describe("StructuredOutputGeneratorNode", () => {
     const n = new (StructuredOutputGeneratorNode as any)();
     n.assign({
       instructions: "Generate a list",
-      context: "user context",
+      context: "user context"
     });
     const result = await n.process();
     expect(result.output).toEqual({
       instructions: "Generate a list",
-      context: "user context",
+      context: "user context"
     });
   });
 
@@ -849,7 +935,7 @@ describe("StructuredOutputGeneratorNode", () => {
     const n = new (StructuredOutputGeneratorNode as any)();
     n.assign({
       schema: null,
-      instructions: "test",
+      instructions: "test"
     });
     const result = await n.process();
     expect(result.output).toEqual({ instructions: "test", context: "" });
@@ -859,7 +945,7 @@ describe("StructuredOutputGeneratorNode", () => {
     const n = new (StructuredOutputGeneratorNode as any)();
     n.assign({
       schema: [1, 2, 3],
-      instructions: "test",
+      instructions: "test"
     });
     const result = await n.process();
     expect(result.output).toEqual({ instructions: "test", context: "" });
@@ -869,12 +955,12 @@ describe("StructuredOutputGeneratorNode", () => {
     const n = new (StructuredOutputGeneratorNode as any)();
     n.assign({
       instructions: 42,
-      context: true,
+      context: true
     });
     const result = await n.process();
     expect(result.output).toEqual({
       instructions: "42",
-      context: "true",
+      context: "true"
     });
   });
 
@@ -933,7 +1019,7 @@ describe("StructuredOutputGeneratorNode", () => {
     const result = await n.process();
     expect(result.output).toEqual({
       instructions: "do stuff",
-      context: "some context",
+      context: "some context"
     });
   });
 
@@ -951,14 +1037,14 @@ describe("StructuredOutputGeneratorNode", () => {
       first_name: { type: "str" },
       last_name: { type: "str" },
       age: { type: "integer" },
-      weight: { type: "number" },
+      weight: { type: "number" }
     };
     const result = await n.process();
     expect(result).toEqual({
       first_name: "",
       last_name: "",
       age: 0,
-      weight: 0,
+      weight: 0
     });
   });
 });
@@ -966,7 +1052,9 @@ describe("StructuredOutputGeneratorNode", () => {
 // ---- DataGeneratorNode ----
 describe("DataGeneratorNode", () => {
   it("has correct static metadata", () => {
-    expect(DataGeneratorNode.nodeType).toBe("nodetool.generators.DataGenerator");
+    expect(DataGeneratorNode.nodeType).toBe(
+      "nodetool.generators.DataGenerator"
+    );
     expect(DataGeneratorNode.isStreamingOutput).toBe(true);
   });
 
@@ -995,7 +1083,7 @@ describe("DataGeneratorNode", () => {
     const n = new (DataGeneratorNode as any)();
     n.assign({
       prompt: "2 records",
-      columns: [{ name: "id" }, { name: "name" }, { name: "score" }],
+      columns: [{ name: "id" }, { name: "name" }, { name: "score" }]
     });
     const result = await n.process();
     const rows = (result.output as any).rows;
@@ -1009,7 +1097,7 @@ describe("DataGeneratorNode", () => {
     const n = new (DataGeneratorNode as any)();
     n.assign({
       prompt: "2 records",
-      columns: { columns: ["id", "date", "active"] },
+      columns: { columns: ["id", "date", "active"] }
     });
     const result = await n.process();
     const rows = (result.output as any).rows;
@@ -1023,7 +1111,7 @@ describe("DataGeneratorNode", () => {
     const n = new (DataGeneratorNode as any)();
     n.assign({
       prompt: "2 items",
-      columns: ["price", "amount"],
+      columns: ["price", "amount"]
     });
     const result = await n.process();
     const rows = (result.output as any).rows;
@@ -1035,7 +1123,7 @@ describe("DataGeneratorNode", () => {
     const n = new (DataGeneratorNode as any)();
     n.assign({
       prompt: "3 items",
-      columns: ["is_on"],
+      columns: ["is_on"]
     });
     const result = await n.process();
     const rows = (result.output as any).rows;
@@ -1084,7 +1172,7 @@ describe("DataGeneratorNode", () => {
     const n = new (DataGeneratorNode as any)();
     n.assign({
       prompt: "2 items",
-      columns: [{ name: "" }, ""],
+      columns: [{ name: "" }, ""]
     });
     const result = await n.process();
     const rows = (result.output as any).rows;
@@ -1113,28 +1201,28 @@ describe("DataGeneratorNode", () => {
     const n = new (DataGeneratorNode as any)();
     const mockContext = {
       runProviderPrediction: async () => ({
-        content: `name,age\nAlice,30\nBob,25`,
+        content: `name,age\nAlice,30\nBob,25`
       }),
-      streamProviderPrediction: async function* () {},
+      streamProviderPrediction: async function* () {}
     };
 
     n.assign({
       prompt: "Generate people",
       columns: [
         { name: "name", data_type: "string" },
-        { name: "age", data_type: "int" },
+        { name: "age", data_type: "int" }
       ],
-      model: { provider: "mock", id: "gpt-4" },
+      model: { provider: "mock", id: "gpt-4" }
     });
     const result = await n.process(mockContext as any);
 
     expect((result.output as any).rows).toEqual([
       { name: "Alice", age: 30 },
-      { name: "Bob", age: 25 },
+      { name: "Bob", age: 25 }
     ]);
     expect((result.output as any).data).toEqual([
       ["Alice", 30],
-      ["Bob", 25],
+      ["Bob", 25]
     ]);
   });
 
@@ -1142,18 +1230,18 @@ describe("DataGeneratorNode", () => {
     const n = new (DataGeneratorNode as any)();
     const mockContext = {
       runProviderPrediction: async () => ({
-        content: `name,age\nAlice,30\nBob,25`,
+        content: `name,age\nAlice,30\nBob,25`
       }),
-      streamProviderPrediction: async function* () {},
+      streamProviderPrediction: async function* () {}
     };
 
     n.assign({
       prompt: "Generate people",
       columns: [
         { name: "name", data_type: "string" },
-        { name: "age", data_type: "int" },
+        { name: "age", data_type: "int" }
       ],
-      model: { provider: "mock", id: "gpt-4" },
+      model: { provider: "mock", id: "gpt-4" }
     });
     const results: any[] = [];
     for await (const chunk of n.genProcess(mockContext as any)) {
@@ -1162,11 +1250,11 @@ describe("DataGeneratorNode", () => {
 
     expect(results.slice(0, 2)).toEqual([
       { record: { name: "Alice", age: 30 }, index: 0, dataframe: null },
-      { record: { name: "Bob", age: 25 }, index: 1, dataframe: null },
+      { record: { name: "Bob", age: 25 }, index: 1, dataframe: null }
     ]);
     expect(results[2].dataframe.data).toEqual([
       ["Alice", 30],
-      ["Bob", 25],
+      ["Bob", 25]
     ]);
   });
 });
@@ -1174,7 +1262,9 @@ describe("DataGeneratorNode", () => {
 // ---- ListGeneratorNode ----
 describe("ListGeneratorNode", () => {
   it("has correct static metadata", () => {
-    expect(ListGeneratorNode.nodeType).toBe("nodetool.generators.ListGenerator");
+    expect(ListGeneratorNode.nodeType).toBe(
+      "nodetool.generators.ListGenerator"
+    );
     expect(ListGeneratorNode.isStreamingOutput).toBe(true);
   });
 
@@ -1233,14 +1323,14 @@ describe("ListGeneratorNode", () => {
       runProviderPrediction: async () => ({
         content: `<LIST_ITEM>First item</LIST_ITEM>
 <LIST_ITEM>Second item</LIST_ITEM>
-<LIST_ITEM>Third item</LIST_ITEM>`,
+<LIST_ITEM>Third item</LIST_ITEM>`
       }),
-      streamProviderPrediction: async function* () {},
+      streamProviderPrediction: async function* () {}
     };
 
     n.assign({
       prompt: "Generate items",
-      model: { provider: "mock", id: "gpt-4" },
+      model: { provider: "mock", id: "gpt-4" }
     });
     const result = await n.process(mockContext as any);
 
@@ -1252,18 +1342,21 @@ describe("ListGeneratorNode", () => {
     const mockContext = {
       runProviderPrediction: async () => ({ content: "" }),
       streamProviderPrediction: async function* () {
-        yield { type: "chunk", content: "<LIST_ITEM>First item\nwith continuation</LIST_ITEM>\n" };
+        yield {
+          type: "chunk",
+          content: "<LIST_ITEM>First item\nwith continuation</LIST_ITEM>\n"
+        };
         yield {
           type: "chunk",
           content:
-            "<LIST_ITEM>Second item</LIST_ITEM>\n<LIST_ITEM>Third item on\nmultiple lines\nhere</LIST_ITEM>",
+            "<LIST_ITEM>Second item</LIST_ITEM>\n<LIST_ITEM>Third item on\nmultiple lines\nhere</LIST_ITEM>"
         };
-      },
+      }
     };
 
     n.assign({
       prompt: "Generate items",
-      model: { provider: "mock", id: "gpt-4" },
+      model: { provider: "mock", id: "gpt-4" }
     });
     const results: any[] = [];
     for await (const chunk of n.genProcess(mockContext as any)) {
@@ -1273,7 +1366,7 @@ describe("ListGeneratorNode", () => {
     expect(results).toEqual([
       { item: "First item with continuation", index: 0 },
       { item: "Second item", index: 1 },
-      { item: "Third item on multiple lines here", index: 2 },
+      { item: "Third item on multiple lines here", index: 2 }
     ]);
   });
 
@@ -1283,17 +1376,17 @@ describe("ListGeneratorNode", () => {
       runProviderPrediction: async () => ({ content: "plain text only" }),
       streamProviderPrediction: async function* () {
         yield { type: "chunk", content: "plain text only" };
-      },
+      }
     };
 
     n.assign({
       prompt: "Generate items",
-      model: { provider: "mock", id: "gpt-4" },
+      model: { provider: "mock", id: "gpt-4" }
     });
 
-    await expect(
-      n.process(mockContext as any)
-    ).rejects.toThrow("<LIST_ITEM> tags");
+    await expect(n.process(mockContext as any)).rejects.toThrow(
+      "<LIST_ITEM> tags"
+    );
 
     await expect(
       (async () => {
@@ -1310,7 +1403,9 @@ describe("ListGeneratorNode", () => {
 // ---- ChartGeneratorNode ----
 describe("ChartGeneratorNode", () => {
   it("has correct static metadata", () => {
-    expect(ChartGeneratorNode.nodeType).toBe("nodetool.generators.ChartGenerator");
+    expect(ChartGeneratorNode.nodeType).toBe(
+      "nodetool.generators.ChartGenerator"
+    );
   });
 
   it("defaults", () => {
@@ -1324,9 +1419,9 @@ describe("ChartGeneratorNode", () => {
       data: {
         rows: [
           { month: "Jan", revenue: 100 },
-          { month: "Feb", revenue: 200 },
-        ],
-      },
+          { month: "Feb", revenue: 200 }
+        ]
+      }
     });
     const result = await n.process();
     const output = result.output as any;
@@ -1341,7 +1436,7 @@ describe("ChartGeneratorNode", () => {
   it("uses default series name when no prompt", async () => {
     const n = new (ChartGeneratorNode as any)();
     n.assign({
-      data: { rows: [{ a: 1 }] },
+      data: { rows: [{ a: 1 }] }
     });
     const result = await n.process();
     const output = result.output as any;
@@ -1370,7 +1465,7 @@ describe("ChartGeneratorNode", () => {
     const n = new (ChartGeneratorNode as any)();
     // Only one key so xKey and yKey are the same
     n.assign({
-      data: { rows: [{ only: 10 }, { only: 20 }] },
+      data: { rows: [{ only: 10 }, { only: 20 }] }
     });
     const result = await n.process();
     const output = result.output as any;
@@ -1385,9 +1480,9 @@ describe("ChartGeneratorNode", () => {
       data: {
         rows: [
           { category: "A", value: 10 },
-          { category: "B", value: 20 },
-        ],
-      },
+          { category: "B", value: 20 }
+        ]
+      }
     });
     const result = await n.process();
     const output = result.output as any;
@@ -1409,7 +1504,7 @@ describe("ChartGeneratorNode", () => {
       type: "bar",
       x_column: "category",
       y_column: "value",
-      label: "bar chart",
+      label: "bar chart"
     });
     expect(output.data.row).toBeNull();
     expect(output.data.col).toBeNull();
@@ -1547,7 +1642,9 @@ describe("TeamAgentNode", () => {
     const n = new (TeamAgentNode as any)();
     (n as any).__agent_response__ = "Agent completed the task successfully.";
     const result = await n.process();
-    expect(result).toEqual({ result: "Agent completed the task successfully." });
+    expect(result).toEqual({
+      result: "Agent completed the task successfully."
+    });
   });
 
   it("process() returns response property when __agent_response__ is not set", async () => {
@@ -1580,7 +1677,7 @@ describe("TeamAgentNode", () => {
       skills: ["web_search", "analysis"],
       provider: "openai",
       model: "gpt-4",
-      tools: ["search_tool"],
+      tools: ["search_tool"]
     });
     n.__node_id = "node-123";
     const identity = n.toIdentity();
@@ -1591,7 +1688,7 @@ describe("TeamAgentNode", () => {
       skills: ["web_search", "analysis"],
       provider: "openai",
       model: "gpt-4",
-      tools: ["search_tool"],
+      tools: ["search_tool"]
     });
   });
 
@@ -1635,7 +1732,7 @@ describe("TeamLeadNode", () => {
       result: "json",
       board: "json",
       messages: "list",
-      events: "list",
+      events: "list"
     });
   });
 
@@ -1694,17 +1791,15 @@ describe("TeamLeadNode", () => {
           skills: { value: ["web_search"] },
           provider: { value: "anthropic" },
           model: { value: "claude-sonnet-4-20250514" },
-          tools: { value: [] },
-        },
-      },
+          tools: { value: [] }
+        }
+      }
     });
 
     // This will fail at TeamExecutor creation (needs DB), but we can verify
     // it gets past the "No agents found" check
     const mockContext = {} as any;
-    await expect(n.process(mockContext)).rejects.not.toThrow(
-      "No agents found"
-    );
+    await expect(n.process(mockContext)).rejects.not.toThrow("No agents found");
   });
 
   it("ignores non-Agent node types in _control_context", async () => {
@@ -1716,14 +1811,12 @@ describe("TeamLeadNode", () => {
       "node-1": {
         node_type: "nodetool.some.OtherNode",
         node_title: "Other",
-        properties: {},
-      },
+        properties: {}
+      }
     });
 
     const mockContext = {} as any;
-    await expect(n.process(mockContext)).rejects.toThrow(
-      "No agents found"
-    );
+    await expect(n.process(mockContext)).rejects.toThrow("No agents found");
   });
 
   it("falls back to inline agents when _control_context has no Agent nodes", async () => {
@@ -1739,15 +1832,13 @@ describe("TeamLeadNode", () => {
         skills: ["writing"],
         provider: "openai",
         model: "gpt-4",
-        tools: [],
-      },
+        tools: []
+      }
     ]);
 
     // This will fail at TeamExecutor (needs DB), but should get past "No agents found"
     const mockContext = {} as any;
-    await expect(n.process(mockContext)).rejects.not.toThrow(
-      "No agents found"
-    );
+    await expect(n.process(mockContext)).rejects.not.toThrow("No agents found");
   });
 
   it("uses default strategy and iteration values", () => {

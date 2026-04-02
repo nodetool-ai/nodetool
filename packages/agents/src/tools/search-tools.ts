@@ -25,7 +25,7 @@ async function getSerpApiKey(context: ProcessingContext): Promise<string> {
   if (fromEnv) return fromEnv;
 
   throw new Error(
-    "SERPAPI_API_KEY is not configured. Set it as an environment variable or via the secret resolver.",
+    "SERPAPI_API_KEY is not configured. Set it as an environment variable or via the secret resolver."
   );
 }
 
@@ -56,7 +56,7 @@ async function serpApiFetch(params: SerpApiParams): Promise<unknown> {
  */
 async function resolveProvider(
   context: ProcessingContext,
-  provider?: SerpProvider,
+  provider?: SerpProvider
 ): Promise<SerpProvider> {
   if (provider) return provider;
   const apiKey = await getSerpApiKey(context);
@@ -76,15 +76,15 @@ export class GoogleSearchTool extends Tool {
     properties: {
       keyword: {
         type: "string",
-        description: "The keyword to search for.",
+        description: "The keyword to search for."
       },
       num_results: {
         type: "integer",
         description: "Number of results to retrieve.",
-        default: 10,
-      },
+        default: 10
+      }
     },
-    required: ["keyword"],
+    required: ["keyword"]
   };
 
   private _provider?: SerpProvider;
@@ -96,7 +96,7 @@ export class GoogleSearchTool extends Tool {
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const keyword = params.keyword as string | undefined;
     if (!keyword) return { error: "keyword is required" };
@@ -110,8 +110,8 @@ export class GoogleSearchTool extends Tool {
         results: results.map((r) => ({
           title: r.title ?? null,
           link: r.url ?? null,
-          snippet: r.snippet ?? null,
-        })),
+          snippet: r.snippet ?? null
+        }))
       };
     }
 
@@ -122,7 +122,7 @@ export class GoogleSearchTool extends Tool {
       engine: "google",
       q: keyword,
       api_key: apiKey,
-      num: numResults,
+      num: numResults
     })) as Record<string, unknown>;
 
     const organicResults = (data.organic_results ?? []) as Array<
@@ -132,7 +132,7 @@ export class GoogleSearchTool extends Tool {
     const results = organicResults.map((r) => ({
       title: r.title ?? null,
       link: r.link ?? null,
-      snippet: r.snippet ?? null,
+      snippet: r.snippet ?? null
     }));
 
     return { success: true, results };
@@ -158,15 +158,15 @@ export class GoogleNewsTool extends Tool {
     properties: {
       keyword: {
         type: "string",
-        description: "The keyword to search for in Google News.",
+        description: "The keyword to search for in Google News."
       },
       num_results: {
         type: "integer",
         description: "Number of news results to retrieve.",
-        default: 10,
-      },
+        default: 10
+      }
     },
-    required: ["keyword"],
+    required: ["keyword"]
   };
 
   private _provider?: SerpProvider;
@@ -178,7 +178,7 @@ export class GoogleNewsTool extends Tool {
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const keyword = params.keyword as string | undefined;
     if (!keyword) return { error: "keyword is required" };
@@ -190,7 +190,7 @@ export class GoogleNewsTool extends Tool {
       engine: "google_news",
       q: keyword,
       api_key: apiKey,
-      num: numResults,
+      num: numResults
     })) as Record<string, unknown>;
 
     const newsResults = (data.news_results ?? []) as Array<
@@ -202,7 +202,7 @@ export class GoogleNewsTool extends Tool {
       link: r.link ?? null,
       snippet: r.snippet ?? null,
       date: r.date ?? null,
-      source: (r.source as Record<string, unknown>)?.name ?? null,
+      source: (r.source as Record<string, unknown>)?.name ?? null
     }));
 
     return { success: true, results };
@@ -228,15 +228,15 @@ export class GoogleImagesTool extends Tool {
     properties: {
       keyword: {
         type: "string",
-        description: "Keyword for image search.",
+        description: "Keyword for image search."
       },
       num_results: {
         type: "integer",
         description: "Number of image results to retrieve.",
-        default: 20,
-      },
+        default: 20
+      }
     },
-    required: ["keyword"],
+    required: ["keyword"]
   };
 
   private _provider?: SerpProvider;
@@ -248,7 +248,7 @@ export class GoogleImagesTool extends Tool {
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const keyword = params.keyword as string | undefined;
     if (!keyword) return { error: "keyword is required" };
@@ -260,7 +260,7 @@ export class GoogleImagesTool extends Tool {
       engine: "google_images",
       q: keyword,
       api_key: apiKey,
-      num: numResults,
+      num: numResults
     })) as Record<string, unknown>;
 
     const imagesResults = (data.images_results ?? []) as Array<
@@ -271,7 +271,7 @@ export class GoogleImagesTool extends Tool {
       title: r.title ?? null,
       link: r.link ?? null,
       original: r.original ?? null,
-      thumbnail: r.thumbnail ?? null,
+      thumbnail: r.thumbnail ?? null
     }));
 
     return { success: true, results };

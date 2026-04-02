@@ -5,7 +5,7 @@ export {
   decrypt,
   decryptFernet,
   encryptFernet,
-  isValidMasterKey,
+  isValidMasterKey
 } from "./crypto.js";
 
 export {
@@ -18,7 +18,7 @@ export {
   isUsingEnvKey,
   isUsingAwsKey,
   setKeytarLoader,
-  resetKeytarLoader,
+  resetKeytarLoader
 } from "./master-key.js";
 
 export {
@@ -29,10 +29,7 @@ export {
   clearSecretCache,
   clearAllSecretCache,
   resetSecretModelLoader,
-  setSecretModelLoader,
+  setSecretModelLoader
 } from "./secret-helper.js";
 
-export {
-  runStartupChecks,
-  type StartupCheckResult,
-} from "./startup-checks.js";
+export { runStartupChecks, type StartupCheckResult } from "./startup-checks.js";

@@ -13,7 +13,7 @@ import { Thread } from "../src/thread.js";
 
 async function createThread(
   userId: string,
-  title = "Test Thread",
+  title = "Test Thread"
 ): Promise<Thread> {
   return Thread.create<Thread>({ user_id: userId, title });
 }

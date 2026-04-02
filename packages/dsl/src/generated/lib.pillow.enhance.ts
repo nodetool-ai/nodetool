@@ -14,8 +14,14 @@ export interface AdaptiveContrastOutputs {
   output: ImageRef;
 }
 
-export function adaptiveContrast(inputs: AdaptiveContrastInputs): DslNode<AdaptiveContrastOutputs, "output"> {
-  return createNode("lib.pillow.enhance.AdaptiveContrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function adaptiveContrast(
+  inputs: AdaptiveContrastInputs
+): DslNode<AdaptiveContrastOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.AdaptiveContrast",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Auto Contrast — lib.pillow.enhance.AutoContrast
@@ -28,8 +34,14 @@ export interface AutoContrastOutputs {
   output: ImageRef;
 }
 
-export function autoContrast(inputs: AutoContrastInputs): DslNode<AutoContrastOutputs, "output"> {
-  return createNode("lib.pillow.enhance.AutoContrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function autoContrast(
+  inputs: AutoContrastInputs
+): DslNode<AutoContrastOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.AutoContrast",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Brightness — lib.pillow.enhance.Brightness
@@ -42,8 +54,14 @@ export interface BrightnessOutputs {
   output: ImageRef;
 }
 
-export function brightness(inputs: BrightnessInputs): DslNode<BrightnessOutputs, "output"> {
-  return createNode("lib.pillow.enhance.Brightness", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function brightness(
+  inputs: BrightnessInputs
+): DslNode<BrightnessOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.Brightness",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Color — lib.pillow.enhance.Color
@@ -57,7 +75,11 @@ export interface ColorOutputs {
 }
 
 export function color(inputs: ColorInputs): DslNode<ColorOutputs, "output"> {
-  return createNode("lib.pillow.enhance.Color", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "lib.pillow.enhance.Color",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Contrast — lib.pillow.enhance.Contrast
@@ -70,8 +92,14 @@ export interface ContrastOutputs {
   output: ImageRef;
 }
 
-export function contrast(inputs: ContrastInputs): DslNode<ContrastOutputs, "output"> {
-  return createNode("lib.pillow.enhance.Contrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function contrast(
+  inputs: ContrastInputs
+): DslNode<ContrastOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.Contrast",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Detail — lib.pillow.enhance.Detail
@@ -84,7 +112,11 @@ export interface DetailOutputs {
 }
 
 export function detail(inputs: DetailInputs): DslNode<DetailOutputs, "output"> {
-  return createNode("lib.pillow.enhance.Detail", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "lib.pillow.enhance.Detail",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Edge Enhance — lib.pillow.enhance.EdgeEnhance
@@ -96,8 +128,14 @@ export interface EdgeEnhanceOutputs {
   output: ImageRef;
 }
 
-export function edgeEnhance(inputs: EdgeEnhanceInputs): DslNode<EdgeEnhanceOutputs, "output"> {
-  return createNode("lib.pillow.enhance.EdgeEnhance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function edgeEnhance(
+  inputs: EdgeEnhanceInputs
+): DslNode<EdgeEnhanceOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.EdgeEnhance",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Equalize — lib.pillow.enhance.Equalize
@@ -109,8 +147,14 @@ export interface EqualizeOutputs {
   output: ImageRef;
 }
 
-export function equalize(inputs: EqualizeInputs): DslNode<EqualizeOutputs, "output"> {
-  return createNode("lib.pillow.enhance.Equalize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function equalize(
+  inputs: EqualizeInputs
+): DslNode<EqualizeOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.Equalize",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Rank Filter — lib.pillow.enhance.RankFilter
@@ -124,8 +168,14 @@ export interface RankFilterOutputs {
   output: ImageRef;
 }
 
-export function rankFilter(inputs: RankFilterInputs): DslNode<RankFilterOutputs, "output"> {
-  return createNode("lib.pillow.enhance.RankFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function rankFilter(
+  inputs: RankFilterInputs
+): DslNode<RankFilterOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.RankFilter",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Sharpen — lib.pillow.enhance.Sharpen
@@ -137,8 +187,14 @@ export interface SharpenOutputs {
   output: ImageRef;
 }
 
-export function sharpen(inputs: SharpenInputs): DslNode<SharpenOutputs, "output"> {
-  return createNode("lib.pillow.enhance.Sharpen", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function sharpen(
+  inputs: SharpenInputs
+): DslNode<SharpenOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.Sharpen",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Sharpness — lib.pillow.enhance.Sharpness
@@ -151,8 +207,14 @@ export interface SharpnessOutputs {
   output: ImageRef;
 }
 
-export function sharpness(inputs: SharpnessInputs): DslNode<SharpnessOutputs, "output"> {
-  return createNode("lib.pillow.enhance.Sharpness", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function sharpness(
+  inputs: SharpnessInputs
+): DslNode<SharpnessOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.Sharpness",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Unsharp Mask — lib.pillow.enhance.UnsharpMask
@@ -167,6 +229,12 @@ export interface UnsharpMaskOutputs {
   output: ImageRef;
 }
 
-export function unsharpMask(inputs: UnsharpMaskInputs): DslNode<UnsharpMaskOutputs, "output"> {
-  return createNode("lib.pillow.enhance.UnsharpMask", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function unsharpMask(
+  inputs: UnsharpMaskInputs
+): DslNode<UnsharpMaskOutputs, "output"> {
+  return createNode(
+    "lib.pillow.enhance.UnsharpMask",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import http from "node:http";
-import { FetchRSSFeedLibNode, ExtractFeedMetadataLibNode } from "../src/index.js";
+import {
+  FetchRSSFeedLibNode,
+  ExtractFeedMetadataLibNode
+} from "../src/index.js";
 
 const RSS_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -40,7 +43,9 @@ async function withServer(run: (url: string) => Promise<void>): Promise<void> {
   try {
     await run(url);
   } finally {
-    await new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+    await new Promise<void>((resolve, reject) =>
+      server.close((err) => (err ? reject(err) : resolve()))
+    );
   }
 }
 
@@ -54,7 +59,7 @@ describe("native lib.rss", () => {
         link: "https://example.com",
         language: "en-us",
         generator: "testgen",
-        entry_count: 2,
+        entry_count: 2
       });
     });
   });
@@ -72,9 +77,11 @@ describe("native lib.rss", () => {
         title: "Item One",
         link: "https://example.com/1",
         summary: "Summary One",
-        author: "alice",
+        author: "alice"
       });
-      expect(typeof (rows[0].published as Record<string, unknown>).year).toBe("number");
+      expect(typeof (rows[0].published as Record<string, unknown>).year).toBe(
+        "number"
+      );
     });
   });
 });

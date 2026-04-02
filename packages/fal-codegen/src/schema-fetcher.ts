@@ -40,7 +40,7 @@ export class SchemaFetcher {
    */
   async fetchSchema(
     endpointId: string,
-    useCache: boolean = true,
+    useCache: boolean = true
   ): Promise<Record<string, unknown>> {
     const path = this.cachePath(endpointId);
 
@@ -64,7 +64,7 @@ export class SchemaFetcher {
     }
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch schema for ${endpointId}: ${response.status} ${response.statusText}`,
+        `Failed to fetch schema for ${endpointId}: ${response.status} ${response.statusText}`
       );
     }
 
@@ -81,7 +81,7 @@ export class SchemaFetcher {
    * Return the cached schema for an endpoint, or `null` if not cached.
    */
   async getCachedSchema(
-    endpointId: string,
+    endpointId: string
   ): Promise<Record<string, unknown> | null> {
     try {
       const raw = await readFile(this.cachePath(endpointId), "utf-8");

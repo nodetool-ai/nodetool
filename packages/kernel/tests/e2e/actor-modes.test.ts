@@ -24,7 +24,7 @@ import {
   IntAccumulator,
   StreamingInputProcessor,
   FullStreamingNode,
-  SilentNode,
+  SilentNode
 } from "./helpers.js";
 
 // ---------------------------------------------------------------------------
@@ -39,11 +39,11 @@ describe("ACTOR-001: Standard buffered process() node", () => {
     const nodes: NodeDescriptor[] = [
       inp("a", "a"),
       inp("b", "b"),
-      nd("add", Add.nodeType, { name: "add" }),
+      nd("add", Add.nodeType, { name: "add" })
     ];
     const edges: Edge[] = [
       de("a", "value", "add", "a"),
-      de("b", "value", "add", "b"),
+      de("b", "value", "add", "b")
     ];
 
     const result = await runner.run(
@@ -69,12 +69,10 @@ describe("ACTOR-002: Streaming input mode – process() called once with {}", ()
       inp("trigger", "trigger"),
       nd("proc", StreamingInputProcessor.nodeType, {
         is_streaming_input: true,
-        name: "proc",
-      }),
+        name: "proc"
+      })
     ];
-    const edges: Edge[] = [
-      de("trigger", "value", "proc", "data"),
-    ];
+    const edges: Edge[] = [de("trigger", "value", "proc", "data")];
 
     const result = await runner.run(
       { job_id: "actor-002", params: { trigger: 42 } },
@@ -98,12 +96,17 @@ describe("ACTOR-003: Streaming output node yields multiple values", () => {
 
     const nodes: NodeDescriptor[] = [
       inp("trig", "trig"),
-      nd("counter", StreamingCounter.nodeType, { is_streaming_output: true }, { count: 3, start: 0 }),
-      nd("sink", Passthrough.nodeType, { name: "sink" }),
+      nd(
+        "counter",
+        StreamingCounter.nodeType,
+        { is_streaming_output: true },
+        { count: 3, start: 0 }
+      ),
+      nd("sink", Passthrough.nodeType, { name: "sink" })
     ];
     const edges: Edge[] = [
       de("trig", "value", "counter", "start"),
-      de("counter", "value", "sink", "value", "e-counter-sink"),
+      de("counter", "value", "sink", "value", "e-counter-sink")
     ];
 
     const result = await runner.run(
@@ -114,7 +117,8 @@ describe("ACTOR-003: Streaming output node yields multiple values", () => {
     expect(result.status).toBe("completed");
     // 3 values emitted from counter → 3 edge_update active messages
     const edgeUpdates = result.messages.filter(
-      (m) => m.type === "edge_update" &&
+      (m) =>
+        m.type === "edge_update" &&
         (m as { edge_id: string }).edge_id === "e-counter-sink" &&
         (m as { status: string }).status === "active"
     );
@@ -133,15 +137,18 @@ describe("ACTOR-004: FullStreamingNode has both streaming flags", () => {
 
     const nodes: NodeDescriptor[] = [
       inp("trig", "trig"),
-      nd("full", FullStreamingNode.nodeType, {
-        is_streaming_input: true,
-        is_streaming_output: true,
-        name: "full",
-      }, { count: 2 }),
+      nd(
+        "full",
+        FullStreamingNode.nodeType,
+        {
+          is_streaming_input: true,
+          is_streaming_output: true,
+          name: "full"
+        },
+        { count: 2 }
+      )
     ];
-    const edges: Edge[] = [
-      de("trig", "value", "full", "input"),
-    ];
+    const edges: Edge[] = [de("trig", "value", "full", "input")];
 
     const result = await runner.run(
       { job_id: "actor-004", params: { trig: 1 } },
@@ -166,11 +173,11 @@ describe("ACTOR-005: on_any sync mode fires on each individual input", () => {
     const nodes: NodeDescriptor[] = [
       inp("a", "a"),
       inp("b", "b"),
-      nd("acc", IntAccumulator.nodeType, { sync_mode: "on_any", name: "acc" }),
+      nd("acc", IntAccumulator.nodeType, { sync_mode: "on_any", name: "acc" })
     ];
     const edges: Edge[] = [
       de("a", "value", "acc", "value"),
-      de("b", "value", "acc", "value"),
+      de("b", "value", "acc", "value")
     ];
 
     const result = await runner.run(
@@ -197,11 +204,11 @@ describe("ACTOR-006: zip_all sync mode waits until all handles have data", () =>
     const nodes: NodeDescriptor[] = [
       inp("a", "a"),
       inp("b", "b"),
-      nd("add", Add.nodeType, { sync_mode: "zip_all", name: "add" }),
+      nd("add", Add.nodeType, { sync_mode: "zip_all", name: "add" })
     ];
     const edges: Edge[] = [
       de("a", "value", "add", "a"),
-      de("b", "value", "add", "b"),
+      de("b", "value", "add", "b")
     ];
 
     const result = await runner.run(
@@ -227,12 +234,17 @@ describe("ACTOR-007: Sticky input semantics with streaming upstream", () => {
     // Add should fire 3 times using sticky b=10
     const nodes: NodeDescriptor[] = [
       inp("static_b", "b"),
-      nd("counter", StreamingCounter.nodeType, { is_streaming_output: true }, { count: 3, start: 1 }),
-      nd("add", Add.nodeType, { name: "add" }),
+      nd(
+        "counter",
+        StreamingCounter.nodeType,
+        { is_streaming_output: true },
+        { count: 3, start: 1 }
+      ),
+      nd("add", Add.nodeType, { name: "add" })
     ];
     const edges: Edge[] = [
       de("static_b", "value", "add", "b"),
-      de("counter", "value", "add", "a", "e-add"),
+      de("counter", "value", "add", "a", "e-add")
     ];
 
     const result = await runner.run(
@@ -262,7 +274,7 @@ describe("ACTOR-013: Source node with no incoming edges executes once", () => {
     const runner = makeRunner(registry);
 
     const nodes: NodeDescriptor[] = [
-      nd("silent", SilentNode.nodeType, { name: "silent" }),
+      nd("silent", SilentNode.nodeType, { name: "silent" })
     ];
     const edges: Edge[] = [];
 
@@ -273,9 +285,15 @@ describe("ACTOR-013: Source node with no incoming edges executes once", () => {
     expect(result.outputs["silent"]?.length ?? 0).toBe(0);
     // But it should have emitted running + completed node_update
     const nodeUpdates = result.messages.filter(
-      (m) => m.type === "node_update" && (m as { node_id: string }).node_id === "silent"
+      (m) =>
+        m.type === "node_update" &&
+        (m as { node_id: string }).node_id === "silent"
     );
-    expect(nodeUpdates.some((m) => (m as { status: string }).status === "running")).toBe(true);
-    expect(nodeUpdates.some((m) => (m as { status: string }).status === "completed")).toBe(true);
+    expect(
+      nodeUpdates.some((m) => (m as { status: string }).status === "running")
+    ).toBe(true);
+    expect(
+      nodeUpdates.some((m) => (m as { status: string }).status === "completed")
+    ).toBe(true);
   });
 });

@@ -5,7 +5,13 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { GeminiProvider } from "../../src/providers/gemini-provider.js";
-import type { Message, TextToImageParams, ImageToImageParams, TextToVideoParams, ImageToVideoParams } from "../../src/providers/types.js";
+import type {
+  Message,
+  TextToImageParams,
+  ImageToImageParams,
+  TextToVideoParams,
+  ImageToVideoParams
+} from "../../src/providers/types.js";
 
 function makeFetchResponse(body: unknown, ok = true, status = 200): Response {
   return {
@@ -14,7 +20,7 @@ function makeFetchResponse(body: unknown, ok = true, status = 200): Response {
     headers: new Headers(),
     json: async () => body,
     text: async () => JSON.stringify(body),
-    body: null,
+    body: null
   } as unknown as Response;
 }
 
@@ -30,14 +36,14 @@ function makeSSEStream(events: unknown[]): Response {
       released = true;
       return { done: false, value: bytes };
     },
-    releaseLock() {},
+    releaseLock() {}
   };
 
   return {
     ok: true,
     status: 200,
     headers: new Headers(),
-    body: { getReader: () => reader },
+    body: { getReader: () => reader }
   } as unknown as Response;
 }
 
@@ -50,9 +56,9 @@ describe("GeminiProvider – convertMessages with images", () => {
         role: "user",
         content: [
           { type: "text", text: "describe" },
-          { type: "image", image: { data: new Uint8Array([1, 2, 3]) } },
-        ],
-      },
+          { type: "image", image: { data: new Uint8Array([1, 2, 3]) } }
+        ]
+      }
     ]);
 
     expect(result.contents).toHaveLength(1);
@@ -69,10 +75,8 @@ describe("GeminiProvider – convertMessages with images", () => {
     const result = await provider.convertMessages([
       {
         role: "user",
-        content: [
-          { type: "image", image: { data: "base64string" } },
-        ],
-      },
+        content: [{ type: "image", image: { data: "base64string" } }]
+      }
     ]);
 
     expect(result.contents[0].parts[0].inlineData!.data).toBe("base64string");
@@ -88,10 +92,10 @@ describe("GeminiProvider – convertMessages with images", () => {
         content: [
           {
             type: "image",
-            image: { uri: `data:image/png;base64,${base64}` },
-          },
-        ],
-      },
+            image: { uri: `data:image/png;base64,${base64}` }
+          }
+        ]
+      }
     ]);
 
     expect(result.contents[0].parts[0].inlineData!.mimeType).toBe("image/png");
@@ -104,7 +108,7 @@ describe("GeminiProvider – convertMessages with images", () => {
         return {
           ok: true,
           headers: new Headers({ "content-type": "image/jpeg" }),
-          arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer,
+          arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
         };
       }
       return makeFetchResponse({});
@@ -116,14 +120,12 @@ describe("GeminiProvider – convertMessages with images", () => {
       {
         role: "user",
         content: [
-          { type: "image", image: { uri: "https://example.com/img.jpg" } },
-        ],
-      },
+          { type: "image", image: { uri: "https://example.com/img.jpg" } }
+        ]
+      }
     ]);
 
-    expect(result.contents[0].parts[0].inlineData!.mimeType).toBe(
-      "image/jpeg"
-    );
+    expect(result.contents[0].parts[0].inlineData!.mimeType).toBe("image/jpeg");
   });
 
   it("handles image with no data and no URI", async () => {
@@ -132,8 +134,8 @@ describe("GeminiProvider – convertMessages with images", () => {
     const result = await provider.convertMessages([
       {
         role: "user",
-        content: [{ type: "image", image: {} }],
-      },
+        content: [{ type: "image", image: {} }]
+      }
     ]);
 
     expect(result.contents[0].parts[0].inlineData!.data).toBe("");
@@ -146,9 +148,12 @@ describe("GeminiProvider – convertMessages with images", () => {
       {
         role: "user",
         content: [
-          { type: "audio", audio: { data: new Uint8Array([1, 2, 3]), mimeType: "audio/mp3" } },
-        ],
-      },
+          {
+            type: "audio",
+            audio: { data: new Uint8Array([1, 2, 3]), mimeType: "audio/mp3" }
+          }
+        ]
+      }
     ]);
 
     expect(result.contents[0].parts[0].inlineData).toBeDefined();
@@ -162,14 +167,14 @@ describe("GeminiProvider – convertMessages with images", () => {
     const result = await provider.convertMessages([
       {
         role: "user",
-        content: [
-          { type: "audio", audio: { data: "base64audiodata" } },
-        ],
-      },
+        content: [{ type: "audio", audio: { data: "base64audiodata" } }]
+      }
     ]);
 
     expect(result.contents[0].parts[0].inlineData).toBeDefined();
-    expect(result.contents[0].parts[0].inlineData!.data).toBe("base64audiodata");
+    expect(result.contents[0].parts[0].inlineData!.data).toBe(
+      "base64audiodata"
+    );
     expect(result.contents[0].parts[0].inlineData!.mimeType).toBe("audio/mp3");
   });
 
@@ -181,9 +186,9 @@ describe("GeminiProvider – convertMessages with images", () => {
       {
         role: "user",
         content: [
-          { type: "audio", audio: { uri: `data:audio/wav;base64,${base64}` } },
-        ],
-      },
+          { type: "audio", audio: { uri: `data:audio/wav;base64,${base64}` } }
+        ]
+      }
     ]);
 
     expect(result.contents[0].parts[0].inlineData).toBeDefined();
@@ -197,7 +202,7 @@ describe("GeminiProvider – convertMessages with images", () => {
         return {
           ok: true,
           headers: new Headers({ "content-type": "audio/mpeg" }),
-          arrayBuffer: async () => Uint8Array.from([4, 5, 6]).buffer,
+          arrayBuffer: async () => Uint8Array.from([4, 5, 6]).buffer
         };
       }
       return makeFetchResponse({});
@@ -209,9 +214,9 @@ describe("GeminiProvider – convertMessages with images", () => {
       {
         role: "user",
         content: [
-          { type: "audio", audio: { uri: "https://example.com/audio.mp3" } },
-        ],
-      },
+          { type: "audio", audio: { uri: "https://example.com/audio.mp3" } }
+        ]
+      }
     ]);
 
     expect(result.contents[0].parts[0].inlineData).toBeDefined();
@@ -225,10 +230,8 @@ describe("GeminiProvider – convertMessages with images", () => {
     const result = await provider.convertMessages([
       {
         role: "user",
-        content: [
-          { type: "audio", audio: {} },
-        ],
-      },
+        content: [{ type: "audio", audio: {} }]
+      }
     ]);
 
     expect(result.contents[0].parts[0].inlineData).toBeDefined();
@@ -246,10 +249,10 @@ describe("GeminiProvider – convertMessages system with array content", () => {
         role: "system",
         content: [
           { type: "text", text: "part1" },
-          { type: "text", text: "part2" },
-        ],
+          { type: "text", text: "part2" }
+        ]
       },
-      { role: "user", content: "hello" },
+      { role: "user", content: "hello" }
     ]);
 
     expect(result.systemInstruction).toBe("part1 part2");
@@ -263,8 +266,8 @@ describe("GeminiProvider – convertMessages assistant with content array", () =
     const result = await provider.convertMessages([
       {
         role: "assistant",
-        content: [{ type: "text", text: "thinking..." }],
-      },
+        content: [{ type: "text", text: "thinking..." }]
+      }
     ]);
 
     expect(result.contents[0].role).toBe("model");
@@ -275,7 +278,7 @@ describe("GeminiProvider – convertMessages assistant with content array", () =
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
 
     const result = await provider.convertMessages([
-      { role: "assistant", content: null },
+      { role: "assistant", content: null }
     ]);
 
     expect(result.contents).toHaveLength(0);
@@ -288,13 +291,11 @@ describe("GeminiProvider – formatTools deduplication", () => {
 
     const { geminiTools, nameMap } = provider.formatTools([
       { name: "search", description: "First" },
-      { name: "search", description: "Second" },
+      { name: "search", description: "Second" }
     ]);
 
     expect(geminiTools[0].functionDeclarations).toHaveLength(2);
-    const names = geminiTools[0].functionDeclarations.map(
-      (d: any) => d.name
-    );
+    const names = geminiTools[0].functionDeclarations.map((d: any) => d.name);
     expect(new Set(names).size).toBe(2); // unique names
   });
 
@@ -309,7 +310,7 @@ describe("GeminiProvider – generateMessage with responseFormat", () => {
   it("sets responseMimeType for responseFormat", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }],
+        candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }]
       })
     );
 
@@ -318,7 +319,7 @@ describe("GeminiProvider – generateMessage with responseFormat", () => {
     await provider.generateMessage({
       model: "gemini-2.0-flash",
       messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" },
+      responseFormat: { type: "json_object" }
     });
 
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
@@ -328,7 +329,7 @@ describe("GeminiProvider – generateMessage with responseFormat", () => {
   it("sets responseSchema for jsonSchema", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }],
+        candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }]
       })
     );
 
@@ -337,7 +338,7 @@ describe("GeminiProvider – generateMessage with responseFormat", () => {
     await provider.generateMessage({
       model: "gemini-2.0-flash",
       messages: [{ role: "user", content: "json" }],
-      jsonSchema: { type: "object", properties: { ok: { type: "boolean" } } },
+      jsonSchema: { type: "object", properties: { ok: { type: "boolean" } } }
     });
 
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
@@ -351,7 +352,7 @@ describe("GeminiProvider – generateMessage error handling", () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
         error: { message: "quota exceeded" },
-        candidates: [{ content: { parts: [{ text: "ok" }] } }],
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
       })
     );
 
@@ -360,22 +361,22 @@ describe("GeminiProvider – generateMessage error handling", () => {
     await expect(
       provider.generateMessage({
         model: "gemini-2.0-flash",
-        messages: [{ role: "user", content: "hi" }],
+        messages: [{ role: "user", content: "hi" }]
       })
     ).rejects.toThrow("quota exceeded");
   });
 
   it("throws when no candidates returned", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      makeFetchResponse({ candidates: [] })
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(makeFetchResponse({ candidates: [] }));
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
 
     await expect(
       provider.generateMessage({
         model: "gemini-2.0-flash",
-        messages: [{ role: "user", content: "hi" }],
+        messages: [{ role: "user", content: "hi" }]
       })
     ).rejects.toThrow("no candidates");
   });
@@ -388,14 +389,14 @@ describe("GeminiProvider – streaming error handling", () => {
       status: 500,
       headers: new Headers(),
       text: async () => "Internal Server Error",
-      body: null,
+      body: null
     });
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
 
     const gen = provider.generateMessages({
       model: "gemini-2.0-flash",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     });
 
     await expect(gen.next()).rejects.toThrow("Gemini API error 500");
@@ -406,14 +407,14 @@ describe("GeminiProvider – streaming error handling", () => {
       ok: true,
       status: 200,
       headers: new Headers(),
-      body: null,
+      body: null
     });
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
 
     const gen = provider.generateMessages({
       model: "gemini-2.0-flash",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     });
 
     await expect(gen.next()).rejects.toThrow("no body");
@@ -422,7 +423,9 @@ describe("GeminiProvider – streaming error handling", () => {
   it("handles malformed JSON in SSE stream gracefully", async () => {
     // Create a stream with invalid JSON
     const encoder = new TextEncoder();
-    const bytes = encoder.encode("data: {invalid json}\n\ndata: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"ok\"}]}}]}\n\n");
+    const bytes = encoder.encode(
+      'data: {invalid json}\n\ndata: {"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}\n\n'
+    );
 
     let released = false;
     const reader = {
@@ -431,14 +434,14 @@ describe("GeminiProvider – streaming error handling", () => {
         released = true;
         return { done: false, value: bytes };
       },
-      releaseLock() {},
+      releaseLock() {}
     };
 
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: new Headers(),
-      body: { getReader: () => reader },
+      body: { getReader: () => reader }
     });
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
@@ -446,7 +449,7 @@ describe("GeminiProvider – streaming error handling", () => {
     const out: unknown[] = [];
     for await (const item of provider.generateMessages({
       model: "gemini-2.0-flash",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     })) {
       out.push(item);
     }
@@ -467,14 +470,14 @@ describe("GeminiProvider – streaming error handling", () => {
         released = true;
         return { done: false, value: bytes };
       },
-      releaseLock() {},
+      releaseLock() {}
     };
 
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: new Headers(),
-      body: { getReader: () => reader },
+      body: { getReader: () => reader }
     });
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
@@ -482,7 +485,7 @@ describe("GeminiProvider – streaming error handling", () => {
     const out: unknown[] = [];
     for await (const item of provider.generateMessages({
       model: "gemini-2.0-flash",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     })) {
       out.push(item);
     }
@@ -505,8 +508,8 @@ describe("GeminiProvider – streaming with systemInstruction", () => {
   it("includes systemInstruction in streaming request body", async () => {
     const events = [
       {
-        candidates: [{ content: { parts: [{ text: "ok" }] } }],
-      },
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      }
     ];
 
     const fetchFn = vi.fn().mockResolvedValue(makeSSEStream(events));
@@ -518,14 +521,16 @@ describe("GeminiProvider – streaming with systemInstruction", () => {
       model: "gemini-2.0-flash",
       messages: [
         { role: "system", content: "You are helpful" },
-        { role: "user", content: "hi" },
-      ],
+        { role: "user", content: "hi" }
+      ]
     })) {
       out.push(item);
     }
 
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
-    expect(body.systemInstruction).toEqual({ parts: [{ text: "You are helpful" }] });
+    expect(body.systemInstruction).toEqual({
+      parts: [{ text: "You are helpful" }]
+    });
   });
 });
 
@@ -533,8 +538,8 @@ describe("GeminiProvider – streaming with tools", () => {
   it("includes tools in streaming request body", async () => {
     const events = [
       {
-        candidates: [{ content: { parts: [{ text: "ok" }] } }],
-      },
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      }
     ];
 
     const fetchFn = vi.fn().mockResolvedValue(makeSSEStream(events));
@@ -545,7 +550,7 @@ describe("GeminiProvider – streaming with tools", () => {
     for await (const item of provider.generateMessages({
       model: "gemini-2.0-flash",
       messages: [{ role: "user", content: "hi" }],
-      tools: [{ name: "search", description: "Search" }],
+      tools: [{ name: "search", description: "Search" }]
     })) {
       out.push(item);
     }
@@ -564,13 +569,13 @@ describe("GeminiProvider – streaming with tool name reverse mapping", () => {
             content: {
               parts: [
                 {
-                  functionCall: { name: "my_tool_", args: { x: 1 } },
-                },
-              ],
-            },
-          },
-        ],
-      },
+                  functionCall: { name: "my_tool_", args: { x: 1 } }
+                }
+              ]
+            }
+          }
+        ]
+      }
     ];
 
     const fetchFn = vi.fn().mockResolvedValue(makeSSEStream(events));
@@ -581,7 +586,7 @@ describe("GeminiProvider – streaming with tool name reverse mapping", () => {
     for await (const item of provider.generateMessages({
       model: "gemini-2.0-flash",
       messages: [{ role: "user", content: "use tool" }],
-      tools: [{ name: "my tool!", description: "test" }],
+      tools: [{ name: "my tool!", description: "test" }]
     })) {
       out.push(item);
     }
@@ -639,14 +644,14 @@ describe("GeminiProvider – generateEmbedding", () => {
   it("generates embedding for a single text", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        embedding: { values: [0.1, 0.2, 0.3] },
+        embedding: { values: [0.1, 0.2, 0.3] }
       })
     );
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.generateEmbedding({
       text: "hello world",
-      model: "text-embedding-004",
+      model: "text-embedding-004"
     });
 
     expect(result).toEqual([[0.1, 0.2, 0.3]]);
@@ -656,14 +661,19 @@ describe("GeminiProvider – generateEmbedding", () => {
   });
 
   it("generates embeddings for multiple texts", async () => {
-    const fetchFn = vi.fn()
-      .mockResolvedValueOnce(makeFetchResponse({ embedding: { values: [0.1] } }))
-      .mockResolvedValueOnce(makeFetchResponse({ embedding: { values: [0.2] } }));
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeFetchResponse({ embedding: { values: [0.1] } })
+      )
+      .mockResolvedValueOnce(
+        makeFetchResponse({ embedding: { values: [0.2] } })
+      );
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.generateEmbedding({
       text: ["a", "b"],
-      model: "text-embedding-004",
+      model: "text-embedding-004"
     });
 
     expect(result).toEqual([[0.1], [0.2]]);
@@ -671,15 +681,15 @@ describe("GeminiProvider – generateEmbedding", () => {
   });
 
   it("passes dimensions in request body", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      makeFetchResponse({ embedding: { values: [0.1] } })
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(makeFetchResponse({ embedding: { values: [0.1] } }));
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     await provider.generateEmbedding({
       text: "hello",
       model: "text-embedding-004",
-      dimensions: 256,
+      dimensions: 256
     });
 
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
@@ -694,9 +704,9 @@ describe("GeminiProvider – generateEmbedding", () => {
   });
 
   it("throws on API error", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      makeFetchResponse("error", false, 400)
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(makeFetchResponse("error", false, 400));
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     await expect(
       provider.generateEmbedding({ text: "hi", model: "m" })
@@ -721,18 +731,24 @@ describe("GeminiProvider – textToImage", () => {
     const imageB64 = Buffer.from("fake-png-data").toString("base64");
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{
-          content: {
-            parts: [{ inlineData: { mimeType: "image/png", data: imageB64 } }],
-          },
-        }],
+        candidates: [
+          {
+            content: {
+              parts: [{ inlineData: { mimeType: "image/png", data: imageB64 } }]
+            }
+          }
+        ]
       })
     );
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.textToImage({
-      model: { id: "gemini-2.0-flash-preview-image-generation", name: "test", provider: "gemini" },
-      prompt: "a cat",
+      model: {
+        id: "gemini-2.0-flash-preview-image-generation",
+        name: "test",
+        provider: "gemini"
+      },
+      prompt: "a cat"
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
@@ -745,14 +761,18 @@ describe("GeminiProvider – textToImage", () => {
     const imageB64 = Buffer.from("fake-png").toString("base64");
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        predictions: [{ bytesBase64Encoded: imageB64 }],
+        predictions: [{ bytesBase64Encoded: imageB64 }]
       })
     );
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.textToImage({
-      model: { id: "imagen-3.0-generate-002", name: "test", provider: "gemini" },
-      prompt: "a dog",
+      model: {
+        id: "imagen-3.0-generate-002",
+        name: "test",
+        provider: "gemini"
+      },
+      prompt: "a dog"
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
@@ -765,7 +785,7 @@ describe("GeminiProvider – textToImage", () => {
     await expect(
       provider.textToImage({
         model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" },
-        prompt: "",
+        prompt: ""
       })
     ).rejects.toThrow("empty");
   });
@@ -773,14 +793,14 @@ describe("GeminiProvider – textToImage", () => {
   it("throws when no image in gemini response", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: "no image" }] } }],
+        candidates: [{ content: { parts: [{ text: "no image" }] } }]
       })
     );
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     await expect(
       provider.textToImage({
         model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" },
-        prompt: "cat",
+        prompt: "cat"
       })
     ).rejects.toThrow("No image");
   });
@@ -791,7 +811,7 @@ describe("GeminiProvider – textToImage", () => {
     await expect(
       provider.textToImage({
         model: { id: "imagen-3.0", name: "test", provider: "gemini" },
-        prompt: "cat",
+        prompt: "cat"
       })
     ).rejects.toThrow("No image");
   });
@@ -806,19 +826,25 @@ describe("GeminiProvider – imageToImage", () => {
     const imageB64 = Buffer.from("result-png").toString("base64");
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{
-          content: {
-            parts: [{ inlineData: { mimeType: "image/png", data: imageB64 } }],
-          },
-        }],
+        candidates: [
+          {
+            content: {
+              parts: [{ inlineData: { mimeType: "image/png", data: imageB64 } }]
+            }
+          }
+        ]
       })
     );
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const input = new Uint8Array([1, 2, 3]);
     const result = await provider.imageToImage(input, {
-      model: { id: "gemini-2.0-flash-preview-image-generation", name: "test", provider: "gemini" },
-      prompt: "make it blue",
+      model: {
+        id: "gemini-2.0-flash-preview-image-generation",
+        name: "test",
+        provider: "gemini"
+      },
+      prompt: "make it blue"
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
@@ -831,7 +857,7 @@ describe("GeminiProvider – imageToImage", () => {
     await expect(
       provider.imageToImage(new Uint8Array([1]), {
         model: { id: "imagen-3.0", name: "test", provider: "gemini" },
-        prompt: "edit",
+        prompt: "edit"
       })
     ).rejects.toThrow("does not support");
   });
@@ -841,7 +867,7 @@ describe("GeminiProvider – imageToImage", () => {
     await expect(
       provider.imageToImage(new Uint8Array([1]), {
         model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" },
-        prompt: "",
+        prompt: ""
       })
     ).rejects.toThrow("empty");
   });
@@ -863,11 +889,13 @@ describe("GeminiProvider – textToSpeech", () => {
 
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{
-          content: {
-            parts: [{ inlineData: { mimeType: "audio/pcm", data: audioB64 } }],
-          },
-        }],
+        candidates: [
+          {
+            content: {
+              parts: [{ inlineData: { mimeType: "audio/pcm", data: audioB64 } }]
+            }
+          }
+        ]
       })
     );
 
@@ -876,7 +904,7 @@ describe("GeminiProvider – textToSpeech", () => {
     for await (const chunk of provider.textToSpeech({
       text: "Hello",
       model: "gemini-2.5-pro-preview-tts",
-      voice: "Puck",
+      voice: "Puck"
     })) {
       chunks.push(chunk);
     }
@@ -887,13 +915,16 @@ describe("GeminiProvider – textToSpeech", () => {
 
     // Verify voice config in request
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
-    expect(body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe("Puck");
+    expect(
+      body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig
+        .voiceName
+    ).toBe("Puck");
   });
 
   it("uses default voice when none specified", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{ content: { parts: [] } }],
+        candidates: [{ content: { parts: [] } }]
       })
     );
 
@@ -901,19 +932,22 @@ describe("GeminiProvider – textToSpeech", () => {
     const chunks: any[] = [];
     for await (const chunk of provider.textToSpeech({
       text: "Hello",
-      model: "gemini-2.5-pro-preview-tts",
+      model: "gemini-2.5-pro-preview-tts"
     })) {
       chunks.push(chunk);
     }
 
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
-    expect(body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe("Puck");
+    expect(
+      body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig
+        .voiceName
+    ).toBe("Puck");
   });
 
   it("throws on API error", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      makeFetchResponse("error", false, 500)
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(makeFetchResponse("error", false, 500));
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const gen = provider.textToSpeech({ text: "hi", model: "m" });
     await expect(gen.next()).rejects.toThrow("500");
@@ -928,11 +962,13 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
   it("transcribes audio with default prompt", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{
-          content: {
-            parts: [{ text: "Hello world" }],
-          },
-        }],
+        candidates: [
+          {
+            content: {
+              parts: [{ text: "Hello world" }]
+            }
+          }
+        ]
       })
     );
 
@@ -941,7 +977,7 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.automaticSpeechRecognition({
       audio: wavAudio,
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash"
     });
 
     expect(result).toBe("Hello world");
@@ -954,7 +990,7 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
   it("detects MP3 format from header", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: "transcribed" }] } }],
+        candidates: [{ content: { parts: [{ text: "transcribed" }] } }]
       })
     );
 
@@ -970,7 +1006,7 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
   it("detects FLAC format from header", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: "ok" }] } }],
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
       })
     );
 
@@ -986,7 +1022,7 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
   it("detects OGG format from header", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: "ok" }] } }],
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
       })
     );
 
@@ -1002,7 +1038,7 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
   it("adds language hint to prompt", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: "Bonjour" }] } }],
+        candidates: [{ content: { parts: [{ text: "Bonjour" }] } }]
       })
     );
 
@@ -1011,7 +1047,7 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
     await provider.automaticSpeechRecognition({
       audio,
       model: "gemini-2.0-flash",
-      language: "French",
+      language: "French"
     });
 
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
@@ -1024,19 +1060,21 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
     await expect(
       provider.automaticSpeechRecognition({
         audio: new Uint8Array(0),
-        model: "m",
+        model: "m"
       })
     ).rejects.toThrow("empty");
   });
 
   it("returns empty string when no text in response", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      makeFetchResponse({ candidates: [{ content: { parts: [] } }] })
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(
+        makeFetchResponse({ candidates: [{ content: { parts: [] } }] })
+      );
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.automaticSpeechRecognition({
       audio: new Uint8Array([0x52, 0x49, 0x46, 0x46]),
-      model: "m",
+      model: "m"
     });
     expect(result).toBe("");
   });
@@ -1052,7 +1090,7 @@ describe("GeminiProvider – textToVideo", () => {
     await expect(
       provider.textToVideo({
         model: { id: "veo-2.0-generate-001", name: "test", provider: "gemini" },
-        prompt: "",
+        prompt: ""
       })
     ).rejects.toThrow("empty");
   });
@@ -1062,22 +1100,25 @@ describe("GeminiProvider – textToVideo", () => {
     await expect(
       provider.textToVideo({
         model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" },
-        prompt: "a cat",
+        prompt: "a cat"
       })
     ).rejects.toThrow("not a Veo model");
   });
 
   it("handles immediate completion", async () => {
     const videoBytes = Buffer.from("fake-mp4-data");
-    const fetchFn = vi.fn()
+    const fetchFn = vi
+      .fn()
       // First call: initiate generation (already done)
       .mockResolvedValueOnce(
         makeFetchResponse({
           name: "operations/123",
           done: true,
           response: {
-            generatedVideos: [{ video: { uri: "https://example.com/video.mp4" } }],
-          },
+            generatedVideos: [
+              { video: { uri: "https://example.com/video.mp4" } }
+            ]
+          }
         })
       )
       // Second call: download video
@@ -1085,13 +1126,17 @@ describe("GeminiProvider – textToVideo", () => {
         ok: true,
         status: 200,
         headers: new Headers(),
-        arrayBuffer: async () => videoBytes.buffer.slice(videoBytes.byteOffset, videoBytes.byteOffset + videoBytes.byteLength),
+        arrayBuffer: async () =>
+          videoBytes.buffer.slice(
+            videoBytes.byteOffset,
+            videoBytes.byteOffset + videoBytes.byteLength
+          )
       } as unknown as Response);
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.textToVideo({
       model: { id: "veo-2.0-generate-001", name: "test", provider: "gemini" },
-      prompt: "a cat walking",
+      prompt: "a cat walking"
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
@@ -1102,7 +1147,7 @@ describe("GeminiProvider – textToVideo", () => {
       makeFetchResponse({
         name: "operations/123",
         done: true,
-        response: { generatedVideos: [] },
+        response: { generatedVideos: [] }
       })
     );
 
@@ -1110,7 +1155,7 @@ describe("GeminiProvider – textToVideo", () => {
     await expect(
       provider.textToVideo({
         model: { id: "veo-2.0-generate-001", name: "test", provider: "gemini" },
-        prompt: "a cat",
+        prompt: "a cat"
       })
     ).rejects.toThrow("No video");
   });
@@ -1125,7 +1170,7 @@ describe("GeminiProvider – imageToVideo", () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
     await expect(
       provider.imageToVideo(new Uint8Array(0), {
-        model: { id: "veo-2.0-generate-001", name: "test", provider: "gemini" },
+        model: { id: "veo-2.0-generate-001", name: "test", provider: "gemini" }
       })
     ).rejects.toThrow("empty");
   });
@@ -1134,34 +1179,41 @@ describe("GeminiProvider – imageToVideo", () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
     await expect(
       provider.imageToVideo(new Uint8Array([1, 2, 3]), {
-        model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" },
+        model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" }
       })
     ).rejects.toThrow("not a Veo model");
   });
 
   it("handles immediate completion with image", async () => {
     const videoBytes = Buffer.from("fake-mp4");
-    const fetchFn = vi.fn()
+    const fetchFn = vi
+      .fn()
       .mockResolvedValueOnce(
         makeFetchResponse({
           name: "operations/456",
           done: true,
           response: {
-            generatedVideos: [{ video: { uri: "https://example.com/video.mp4" } }],
-          },
+            generatedVideos: [
+              { video: { uri: "https://example.com/video.mp4" } }
+            ]
+          }
         })
       )
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         headers: new Headers(),
-        arrayBuffer: async () => videoBytes.buffer.slice(videoBytes.byteOffset, videoBytes.byteOffset + videoBytes.byteLength),
+        arrayBuffer: async () =>
+          videoBytes.buffer.slice(
+            videoBytes.byteOffset,
+            videoBytes.byteOffset + videoBytes.byteLength
+          )
       } as unknown as Response);
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.imageToVideo(new Uint8Array([1, 2, 3]), {
       model: { id: "veo-2.0-generate-001", name: "test", provider: "gemini" },
-      prompt: "animate this",
+      prompt: "animate this"
     });
 
     expect(result).toBeInstanceOf(Uint8Array);

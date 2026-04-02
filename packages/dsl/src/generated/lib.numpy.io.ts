@@ -14,6 +14,12 @@ export interface SaveArrayOutputs {
   output: unknown;
 }
 
-export function saveArray(inputs: SaveArrayInputs): DslNode<SaveArrayOutputs, "output"> {
-  return createNode("lib.numpy.io.SaveArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saveArray(
+  inputs: SaveArrayInputs
+): DslNode<SaveArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.io.SaveArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

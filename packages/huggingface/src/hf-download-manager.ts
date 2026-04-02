@@ -107,7 +107,7 @@ function globToRegex(pattern: string): RegExp {
 
 function matchesAnyPattern(
   filepath: string,
-  patterns: string[] | null | undefined,
+  patterns: string[] | null | undefined
 ): boolean {
   if (!patterns || patterns.length === 0) return false;
   return patterns.some((p) => globToRegex(p).test(filepath));
@@ -116,7 +116,7 @@ function matchesAnyPattern(
 function filterFiles(
   files: HfTreeEntry[],
   allowPatterns?: string[] | null,
-  ignorePatterns?: string[] | null,
+  ignorePatterns?: string[] | null
 ): HfTreeEntry[] {
   let result = files.filter((f) => f.type === "file");
 
@@ -140,7 +140,7 @@ function filterFiles(
 async function isFileCached(
   repoId: string,
   filePath: string,
-  cacheDir?: string | null,
+  cacheDir?: string | null
 ): Promise<boolean> {
   const repoCache = hfRepoCacheDir(repoId, "model", cacheDir);
   const snapshotsDir = path.join(repoCache, "snapshots");
@@ -183,7 +183,7 @@ export class DownloadManager {
    */
   async startDownload(
     repoId: string,
-    opts: StartDownloadOptions = {},
+    opts: StartDownloadOptions = {}
   ): Promise<void> {
     const {
       path: filePath = null,
@@ -191,7 +191,7 @@ export class DownloadManager {
       ignorePatterns = null,
       cacheDir = null,
       modelType = null,
-      onProgress,
+      onProgress
     } = opts;
 
     const id = filePath ? `${repoId}/${filePath}` : repoId;
@@ -221,7 +221,7 @@ export class DownloadManager {
       totalFiles: 0,
       errorMessage: null,
       abortController,
-      onProgress,
+      onProgress
     };
     this.downloads.set(id, state);
 
@@ -236,7 +236,7 @@ export class DownloadManager {
         downloaded_files: state.downloadedFiles.length,
         current_files: [...state.currentFiles],
         total_files: state.totalFiles,
-        ...(state.errorMessage ? { error: state.errorMessage } : {}),
+        ...(state.errorMessage ? { error: state.errorMessage } : {})
       });
     };
 
@@ -254,10 +254,11 @@ export class DownloadManager {
       const listResp = await fetch(apiUrl, { headers: listHeaders });
       if (!listResp.ok) {
         throw new Error(
-          `Failed to list files for ${repoId}: ${listResp.status} ${listResp.statusText}`,
+          `Failed to list files for ${repoId}: ${listResp.status} ${listResp.statusText}`
         );
       }
-      const treeEntries: HfTreeEntry[] = await listResp.json() as HfTreeEntry[];
+      const treeEntries: HfTreeEntry[] =
+        (await listResp.json()) as HfTreeEntry[];
 
       // Filter
       let files = filterFiles(treeEntries, allowPatterns, ignorePatterns);
@@ -281,7 +282,7 @@ export class DownloadManager {
       state.totalFiles = filesToDownload.length;
       state.totalBytes = filesToDownload.reduce(
         (acc, f) => acc + (f.size ?? 0),
-        0,
+        0
       );
       state.status = "progress";
       emitProgress();
@@ -304,20 +305,18 @@ export class DownloadManager {
           await downloadLlamaCppModel(repoId, file.path, {
             token,
             progressCallback: onChunk,
-            cancelSignal: abortController.signal,
+            cancelSignal: abortController.signal
           });
         } else {
           await asyncHfDownload(repoId, file.path, {
             token,
             progressCallback: onChunk,
-            cancelSignal: abortController.signal,
+            cancelSignal: abortController.signal
           });
         }
 
         state.downloadedFiles.push(file.path);
-        state.currentFiles = state.currentFiles.filter(
-          (f) => f !== file.path,
-        );
+        state.currentFiles = state.currentFiles.filter((f) => f !== file.path);
       });
 
       const results = await Promise.allSettled(downloadPromises);
@@ -331,7 +330,7 @@ export class DownloadManager {
 
       // Check for errors
       const errors = results.filter(
-        (r): r is PromiseRejectedResult => r.status === "rejected",
+        (r): r is PromiseRejectedResult => r.status === "rejected"
       );
       if (errors.length > 0) {
         const firstErr = errors[0].reason;
@@ -349,8 +348,7 @@ export class DownloadManager {
         state.status = "cancelled";
       } else {
         state.status = "error";
-        state.errorMessage =
-          err instanceof Error ? err.message : String(err);
+        state.errorMessage = err instanceof Error ? err.message : String(err);
       }
       emitProgress();
     }
@@ -373,7 +371,7 @@ export class DownloadManager {
       total_bytes: state.totalBytes,
       downloaded_files: state.downloadedFiles.length,
       current_files: [...state.currentFiles],
-      total_files: state.totalFiles,
+      total_files: state.totalFiles
     });
   }
 }

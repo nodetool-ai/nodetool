@@ -14,7 +14,7 @@ import {
   DocumentLibNode,
   GradientLibNode,
   TransformLibNode,
-  ClipPathLibNode,
+  ClipPathLibNode
 } from "../src/nodes/lib-svg.js";
 
 describe("SVGToImageLibNode", () => {
@@ -25,7 +25,7 @@ describe("SVGToImageLibNode", () => {
       width: 100,
       height: 50,
       viewBox: "0 0 100 50",
-      scale: 2,
+      scale: 2
     });
 
     const result = await node.process();
@@ -35,7 +35,9 @@ describe("SVGToImageLibNode", () => {
     expect(result.output.height).toBe(50);
     expect(result.output.data).toBeDefined();
 
-    const xml = Buffer.from(result.output.data as string, "base64").toString("utf-8");
+    const xml = Buffer.from(result.output.data as string, "base64").toString(
+      "utf-8"
+    );
     expect(xml).toContain("<svg");
     expect(xml).toContain("<rect");
   });
@@ -51,7 +53,7 @@ describe("RectLibNode", () => {
       height: 150,
       fill: "#ff0000",
       stroke: "#00ff00",
-      stroke_width: 3,
+      stroke_width: 3
     });
 
     const result = await node.process();
@@ -63,7 +65,7 @@ describe("RectLibNode", () => {
       height: "150",
       fill: "#ff0000",
       stroke: "#00ff00",
-      "stroke-width": "3",
+      "stroke-width": "3"
     });
   });
 
@@ -85,7 +87,7 @@ describe("CircleLibNode", () => {
       radius: 30,
       fill: "#0000ff",
       stroke: "none",
-      stroke_width: 2,
+      stroke_width: 2
     });
 
     const result = await node.process();
@@ -96,7 +98,7 @@ describe("CircleLibNode", () => {
       r: "30",
       fill: "#0000ff",
       stroke: "none",
-      "stroke-width": "2",
+      "stroke-width": "2"
     });
   });
 });
@@ -111,7 +113,7 @@ describe("EllipseLibNode", () => {
       ry: 40,
       fill: "#123456",
       stroke: "#abcdef",
-      stroke_width: 2,
+      stroke_width: 2
     });
 
     const result = await node.process();
@@ -123,7 +125,7 @@ describe("EllipseLibNode", () => {
       ry: "40",
       fill: "#123456",
       stroke: "#abcdef",
-      "stroke-width": "2",
+      "stroke-width": "2"
     });
   });
 });
@@ -137,7 +139,7 @@ describe("LineLibNode", () => {
       x2: 200,
       y2: 150,
       stroke: "#ff0000",
-      stroke_width: 5,
+      stroke_width: 5
     });
 
     const result = await node.process();
@@ -148,7 +150,7 @@ describe("LineLibNode", () => {
       x2: "200",
       y2: "150",
       stroke: "#ff0000",
-      "stroke-width": "5",
+      "stroke-width": "5"
     });
   });
 });
@@ -160,7 +162,7 @@ describe("PolygonLibNode", () => {
       points: "100,10 40,198 190,78 10,78 160,198",
       fill: "#ff0000",
       stroke: "#000000",
-      stroke_width: 2,
+      stroke_width: 2
     });
 
     const result = await node.process();
@@ -180,7 +182,7 @@ describe("PathLibNode", () => {
       path_data: "M10 10 H 90 V 90 H 10 Z",
       fill: "none",
       stroke: "#000000",
-      stroke_width: 2,
+      stroke_width: 2
     });
 
     const result = await node.process();
@@ -201,7 +203,7 @@ describe("TextLibNode", () => {
       font_family: "Helvetica",
       font_size: 24,
       fill: "#333333",
-      text_anchor: "middle",
+      text_anchor: "middle"
     });
 
     const result = await node.process();
@@ -213,7 +215,7 @@ describe("TextLibNode", () => {
       "font-family": "Helvetica",
       "font-size": "24",
       fill: "#333333",
-      "text-anchor": "middle",
+      "text-anchor": "middle"
     });
   });
 });
@@ -239,7 +241,7 @@ describe("DropShadowLibNode", () => {
       std_deviation: 4,
       dx: 3,
       dy: 3,
-      color: "#888888",
+      color: "#888888"
     });
 
     const result = await node.process();
@@ -275,7 +277,7 @@ describe("DocumentLibNode", () => {
       content: '<rect width="100" height="50" fill="red" />',
       width: 400,
       height: 300,
-      viewBox: "0 0 400 300",
+      viewBox: "0 0 400 300"
     });
 
     const result = await node.process();
@@ -297,7 +299,7 @@ describe("DocumentLibNode", () => {
       content: { name: "circle", attributes: { cx: "50", cy: "50", r: "25" } },
       width: 100,
       height: 100,
-      viewBox: "0 0 100 100",
+      viewBox: "0 0 100 100"
     });
 
     const result = await node.process();
@@ -318,7 +320,7 @@ describe("GradientLibNode", () => {
       x2: 100,
       y2: 0,
       color1: "#ff0000",
-      color2: "#0000ff",
+      color2: "#0000ff"
     });
 
     const result = await node.process();
@@ -346,7 +348,7 @@ describe("GradientLibNode", () => {
       x2: 80,
       y2: 0,
       color1: "#ffffff",
-      color2: "#000000",
+      color2: "#000000"
     });
 
     const result = await node.process();
@@ -368,7 +370,7 @@ describe("TransformLibNode", () => {
       translate_y: 20,
       rotate: 45,
       scale_x: 2,
-      scale_y: 1.5,
+      scale_y: 1.5
     });
 
     const result = await node.process();
@@ -384,7 +386,7 @@ describe("TransformLibNode", () => {
     const node = new TransformLibNode();
     node.assign({
       content: { name: "", attributes: {} },
-      translate_x: 10,
+      translate_x: 10
     });
 
     const result = await node.process();
@@ -402,7 +404,7 @@ describe("TransformLibNode", () => {
       translate_y: 0,
       rotate: 0,
       scale_x: 1,
-      scale_y: 1,
+      scale_y: 1
     });
 
     const result = await node.process();
@@ -417,12 +419,12 @@ describe("ClipPathLibNode", () => {
     node.assign({
       clip_content: {
         name: "circle",
-        attributes: { cx: "50", cy: "50", r: "40" },
+        attributes: { cx: "50", cy: "50", r: "40" }
       },
       content: {
         name: "rect",
-        attributes: { width: "100", height: "100", fill: "red" },
-      },
+        attributes: { width: "100", height: "100", fill: "red" }
+      }
     });
 
     const result = await node.process();
@@ -446,7 +448,7 @@ describe("ClipPathLibNode", () => {
     const node = new ClipPathLibNode();
     node.assign({
       clip_content: { name: "", attributes: {} },
-      content: { name: "rect", attributes: { width: "50" } },
+      content: { name: "rect", attributes: { width: "50" } }
     });
 
     const result = await node.process();

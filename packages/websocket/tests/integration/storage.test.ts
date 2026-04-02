@@ -14,12 +14,12 @@ describe("Storage API", () => {
     const putRes = await fetch(`${getBaseUrl()}/api/storage/test-file.txt`, {
       method: "PUT",
       headers: { ...headers, "content-type": "text/plain" },
-      body: content,
+      body: content
     });
     expect([200, 201, 204]).toContain(putRes.status);
 
     const getRes = await fetch(`${getBaseUrl()}/api/storage/test-file.txt`, {
-      headers,
+      headers
     });
     expect(getRes.status).toBe(200);
     const body = await getRes.text();
@@ -39,12 +39,12 @@ describe("Storage API", () => {
     await fetch(`${getBaseUrl()}/api/storage/meta-test.txt`, {
       method: "PUT",
       headers: { ...headers, "content-type": "text/plain" },
-      body: "metadata check",
+      body: "metadata check"
     });
 
     const headRes = await fetch(`${getBaseUrl()}/api/storage/meta-test.txt`, {
       method: "HEAD",
-      headers,
+      headers
     });
     expect(headRes.status).toBe(200);
     expect(headRes.headers.get("content-length")).toBeTruthy();
@@ -54,17 +54,17 @@ describe("Storage API", () => {
     await fetch(`${getBaseUrl()}/api/storage/delete-me.txt`, {
       method: "PUT",
       headers: { ...headers, "content-type": "text/plain" },
-      body: "bye",
+      body: "bye"
     });
 
     const delRes = await fetch(`${getBaseUrl()}/api/storage/delete-me.txt`, {
       method: "DELETE",
-      headers,
+      headers
     });
     expect([200, 204]).toContain(delRes.status);
 
     const getRes = await fetch(`${getBaseUrl()}/api/storage/delete-me.txt`, {
-      headers,
+      headers
     });
     expect(getRes.status).toBe(404);
   });

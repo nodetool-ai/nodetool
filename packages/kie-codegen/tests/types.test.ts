@@ -8,7 +8,15 @@ import type { FieldDef, NodeConfig, ModuleConfig } from "../src/types.js";
 describe("FieldDef type", () => {
   it("accepts all valid field types", () => {
     const types: FieldDef["type"][] = [
-      "str", "int", "float", "bool", "enum", "image", "audio", "video", "list[image]",
+      "str",
+      "int",
+      "float",
+      "bool",
+      "enum",
+      "image",
+      "audio",
+      "video",
+      "list[image]"
     ];
     for (const type of types) {
       const field: FieldDef = { name: "test", type };
@@ -25,7 +33,7 @@ describe("FieldDef type", () => {
       description: "Number of steps",
       min: 1,
       max: 100,
-      required: true,
+      required: true
     };
     expect(field.min).toBe(1);
     expect(field.max).toBe(100);
@@ -35,7 +43,7 @@ describe("FieldDef type", () => {
     const field: FieldDef = {
       name: "mode",
       type: "enum",
-      values: ["fast", "quality", "balanced"],
+      values: ["fast", "quality", "balanced"]
     };
     expect(field.values).toHaveLength(3);
   });
@@ -43,7 +51,12 @@ describe("FieldDef type", () => {
 
 describe("NodeConfig type", () => {
   it("accepts all output types", () => {
-    const types: NodeConfig["outputType"][] = ["image", "audio", "video", "text"];
+    const types: NodeConfig["outputType"][] = [
+      "image",
+      "audio",
+      "video",
+      "text"
+    ];
     for (const t of types) {
       const node: NodeConfig = {
         className: "Test",
@@ -51,7 +64,7 @@ describe("NodeConfig type", () => {
         title: "T",
         description: "D",
         outputType: t,
-        fields: [],
+        fields: []
       };
       expect(node.outputType).toBe(t);
     }
@@ -68,8 +81,8 @@ describe("NodeConfig type", () => {
       uploads: [
         { field: "img", kind: "image" },
         { field: "imgs", kind: "image", isList: true, paramName: "image_urls" },
-        { field: "a", kind: "audio", groupKey: "g1", paramName: "audios" },
-      ],
+        { field: "a", kind: "audio", groupKey: "g1", paramName: "audios" }
+      ]
     };
     expect(node.uploads).toHaveLength(3);
   });
@@ -82,9 +95,7 @@ describe("NodeConfig type", () => {
       description: "D",
       outputType: "image",
       fields: [],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Required" },
-      ],
+      validation: [{ field: "prompt", rule: "not_empty", message: "Required" }]
     };
     expect(node.validation![0].rule).toBe("not_empty");
   });
@@ -100,8 +111,8 @@ describe("NodeConfig type", () => {
       conditionalFields: [
         { field: "seed", condition: "gte_zero" },
         { field: "style", condition: "truthy" },
-        { field: "ratio", condition: "not_default", defaultValue: "1:1" },
-      ],
+        { field: "ratio", condition: "not_default", defaultValue: "1:1" }
+      ]
     };
     expect(node.conditionalFields).toHaveLength(3);
   });
@@ -113,7 +124,7 @@ describe("ModuleConfig type", () => {
       moduleName: "video",
       defaultPollInterval: 8000,
       defaultMaxAttempts: 450,
-      nodes: [],
+      nodes: []
     };
     expect(config.defaultPollInterval).toBe(8000);
   });

@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { BrowserTool, ScreenshotTool, htmlToText } from "../src/tools/browser-tools.js";
+import {
+  BrowserTool,
+  ScreenshotTool,
+  htmlToText
+} from "../src/tools/browser-tools.js";
 
 const mockContext = {} as any;
 
@@ -24,7 +28,7 @@ describe("htmlToText", () => {
   });
 
   it("decodes named HTML entities", () => {
-    expect(htmlToText("&amp; &lt; &gt; &quot; &#39;")).toBe('& < > " \'');
+    expect(htmlToText("&amp; &lt; &gt; &quot; &#39;")).toBe("& < > \" '");
   });
 
   it("decodes numeric entities", () => {
@@ -93,14 +97,14 @@ describe("BrowserTool", () => {
 
   it("returns error for invalid URL", async () => {
     const result = (await tool.process(mockContext, {
-      url: "not-a-url",
+      url: "not-a-url"
     })) as any;
     expect(result.error).toMatch(/Invalid URL/);
   });
 
   it("blocks search engine URLs", async () => {
     const result = (await tool.process(mockContext, {
-      url: "https://www.google.com/search?q=test",
+      url: "https://www.google.com/search?q=test"
     })) as any;
     expect(result.error).toMatch(/search engine/i);
   });
@@ -110,11 +114,11 @@ describe("BrowserTool", () => {
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
       status: 200,
-      text: async () => html,
+      text: async () => html
     });
 
     const result = (await tool.process(mockContext, {
-      url: "https://example.com",
+      url: "https://example.com"
     })) as any;
 
     expect(result.success).toBe(true);
@@ -128,11 +132,11 @@ describe("BrowserTool", () => {
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: false,
       status: 404,
-      statusText: "Not Found",
+      statusText: "Not Found"
     });
 
     const result = (await tool.process(mockContext, {
-      url: "https://example.com/missing",
+      url: "https://example.com/missing"
     })) as any;
 
     expect(result.error).toMatch(/404/);
@@ -142,7 +146,7 @@ describe("BrowserTool", () => {
     (globalThis.fetch as any).mockRejectedValueOnce(new Error("Network error"));
 
     const result = (await tool.process(mockContext, {
-      url: "https://example.com",
+      url: "https://example.com"
     })) as any;
 
     expect(result.error).toMatch(/Network error/);
@@ -152,7 +156,7 @@ describe("BrowserTool", () => {
     (globalThis.fetch as any).mockRejectedValueOnce("string error");
 
     const result = (await tool.process(mockContext, {
-      url: "https://example.com",
+      url: "https://example.com"
     })) as any;
 
     expect(result.error).toMatch(/Error fetching page/);
@@ -214,7 +218,7 @@ describe("ScreenshotTool", () => {
   it("returns error when BROWSER_URL is not set", async () => {
     const result = (await tool.process(mockContext, {
       url: "https://example.com",
-      output_file: "shot.png",
+      output_file: "shot.png"
     })) as any;
     expect(result.error).toMatch(/BROWSER_URL/);
   });
@@ -223,12 +227,12 @@ describe("ScreenshotTool", () => {
     process.env.BROWSER_URL = "http://localhost:9222/screenshot";
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ output_file: "/workspace/shot.png" }),
+      json: async () => ({ output_file: "/workspace/shot.png" })
     });
 
     const result = (await tool.process(mockContext, {
       url: "https://example.com",
-      output_file: "shot.png",
+      output_file: "shot.png"
     })) as any;
 
     expect(result.success).toBe(true);
@@ -240,11 +244,13 @@ describe("ScreenshotTool", () => {
 
   it("returns error when browser service fails", async () => {
     process.env.BROWSER_URL = "http://localhost:9222/screenshot";
-    (globalThis.fetch as any).mockRejectedValueOnce(new Error("Connection refused"));
+    (globalThis.fetch as any).mockRejectedValueOnce(
+      new Error("Connection refused")
+    );
 
     const result = (await tool.process(mockContext, {
       url: "https://example.com",
-      output_file: "shot.png",
+      output_file: "shot.png"
     })) as any;
 
     expect(result.error).toMatch(/Connection refused/);
@@ -255,12 +261,12 @@ describe("ScreenshotTool", () => {
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: false,
       status: 500,
-      statusText: "Internal Server Error",
+      statusText: "Internal Server Error"
     });
 
     const result = (await tool.process(mockContext, {
       url: "https://example.com",
-      output_file: "shot.png",
+      output_file: "shot.png"
     })) as any;
 
     expect(result.error).toMatch(/Browser service returned HTTP 500/);
@@ -272,7 +278,7 @@ describe("ScreenshotTool", () => {
 
     const result = (await tool.process(mockContext, {
       url: "https://example.com",
-      output_file: "shot.png",
+      output_file: "shot.png"
     })) as any;
 
     expect(result.error).toMatch(/Error taking screenshot/);

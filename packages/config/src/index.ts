@@ -2,7 +2,7 @@ export {
   loadEnvironment,
   getEnv,
   requireEnv,
-  resetEnvironment,
+  resetEnvironment
 } from "./environment.js";
 
 export {
@@ -10,7 +10,7 @@ export {
   getSettings,
   clearSettings,
   type SettingDefinition,
-  type SettingStatus,
+  type SettingStatus
 } from "./settings.js";
 
 export {
@@ -19,18 +19,18 @@ export {
   createLogger,
   type LogLevel,
   type LoggingOptions,
-  type Logger,
+  type Logger
 } from "./logging.js";
 
 export {
   diagnoseEnvironment,
   maskSecret,
-  type DiagnosticResult,
+  type DiagnosticResult
 } from "./diagnostics.js";
 
 export {
   getNodetoolDataDir,
   getDefaultDbPath,
   getDefaultVectorstoreDbPath,
-  getDefaultAssetsPath,
+  getDefaultAssetsPath
 } from "./paths.js";

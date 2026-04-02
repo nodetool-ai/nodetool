@@ -66,13 +66,16 @@ export class KieNodeGenerator {
       ...(config.nodes.some((n) => n.useSuno) ? [`  kieExecuteSunoTask,`] : []),
       `  isRefSet,`,
       ...(config.nodes.some((n) => n.uploads?.some((u) => u.kind === "image"))
-        ? [`  uploadImageInput,`] : []),
+        ? [`  uploadImageInput,`]
+        : []),
       ...(config.nodes.some((n) => n.uploads?.some((u) => u.kind === "audio"))
-        ? [`  uploadAudioInput,`] : []),
+        ? [`  uploadAudioInput,`]
+        : []),
       ...(config.nodes.some((n) => n.uploads?.some((u) => u.kind === "video"))
-        ? [`  uploadVideoInput,`] : []),
+        ? [`  uploadVideoInput,`]
+        : []),
       `} from "../kie-base.js";`,
-      ``,
+      ``
     );
 
     // Node classes
@@ -88,7 +91,7 @@ export class KieNodeGenerator {
     lines.push(
       `export const KIE_${moduleUpper}_NODES: readonly NodeClass[] = [`,
       ...classNames.map((n) => `  ${n},`),
-      `] as const;`,
+      `] as const;`
     );
 
     return lines.join("\n");
@@ -97,21 +100,25 @@ export class KieNodeGenerator {
   private _renderClass(
     node: NodeConfig,
     moduleName: string,
-    moduleConfig: ModuleConfig,
+    moduleConfig: ModuleConfig
   ): string {
     const fullClassName = `${node.className}Node`;
     const nodeType = `kie.${moduleName}.${node.className}`;
     const title = node.title || toTitle(node.className);
     const description = node.description.replace(/`/g, "'");
-    const pollInterval = node.pollInterval ?? moduleConfig.defaultPollInterval ?? 2000;
-    const maxAttempts = node.maxAttempts ?? moduleConfig.defaultMaxAttempts ?? 300;
+    const pollInterval =
+      node.pollInterval ?? moduleConfig.defaultPollInterval ?? 2000;
+    const maxAttempts =
+      node.maxAttempts ?? moduleConfig.defaultMaxAttempts ?? 300;
 
     const lines: string[] = [];
     lines.push(`export class ${fullClassName} extends BaseNode {`);
     lines.push(`  static readonly nodeType = ${JSON.stringify(nodeType)};`);
     lines.push(`  static readonly title = ${JSON.stringify(title)};`);
     lines.push(`  static readonly description = \`${description}\`;`);
-    lines.push(`  static readonly metadataOutputTypes = { output: ${JSON.stringify(node.outputType)} };`);
+    lines.push(
+      `  static readonly metadataOutputTypes = { output: ${JSON.stringify(node.outputType)} };`
+    );
     lines.push(`  static readonly requiredSettings = ["KIE_API_KEY"];`);
     lines.push(`  static readonly exposeAsTool = true;`);
     lines.push(``);
@@ -132,7 +139,9 @@ export class KieNodeGenerator {
 
   private _renderProp(field: FieldDef): string {
     const parts: string[] = [];
-    parts.push(`type: ${JSON.stringify(field.type === "list[image]" ? "list[image]" : field.type)}`);
+    parts.push(
+      `type: ${JSON.stringify(field.type === "list[image]" ? "list[image]" : field.type)}`
+    );
     if (field.default !== undefined) {
       if (isAssetType(field.type) && typeof field.default === "object") {
         parts.push(`default: ${JSON.stringify(field.default)}`);
@@ -146,7 +155,10 @@ export class KieNodeGenerator {
       parts.push(`values: ${JSON.stringify(field.values)}`);
     }
     if (field.title) parts.push(`title: ${JSON.stringify(field.title)}`);
-    if (field.description) parts.push(`description: ${JSON.stringify(field.description.replace(/`/g, "'"))}`);
+    if (field.description)
+      parts.push(
+        `description: ${JSON.stringify(field.description.replace(/`/g, "'"))}`
+      );
     if (field.min !== undefined) parts.push(`min: ${field.min}`);
     if (field.max !== undefined) parts.push(`max: ${field.max}`);
     return `  @prop({ ${parts.join(", ")} })`;
@@ -155,7 +167,7 @@ export class KieNodeGenerator {
   private _renderProcess(
     node: NodeConfig,
     pollInterval: number,
-    maxAttempts: number,
+    maxAttempts: number
   ): string[] {
     const lines: string[] = [];
     lines.push(`  async process(): Promise<Record<string, unknown>> {`);
@@ -166,7 +178,9 @@ export class KieNodeGenerator {
       for (const v of node.validation) {
         if (v.rule === "not_empty") {
           const msg = v.message ?? `${v.field} cannot be empty`;
-          lines.push(`    if (!String(this.${v.field} ?? "").trim()) throw new Error(${JSON.stringify(msg)});`);
+          lines.push(
+            `    if (!String(this.${v.field} ?? "").trim()) throw new Error(${JSON.stringify(msg)});`
+          );
         }
       }
     }
@@ -190,34 +204,52 @@ export class KieNodeGenerator {
       for (const [, groupUploads] of groups) {
         const paramName = groupUploads[0].paramName ?? "image_urls";
         const arrayVar = fieldToVarName(paramName);
-        const uploadFn = groupUploads[0].kind === "image" ? "uploadImageInput"
-          : groupUploads[0].kind === "audio" ? "uploadAudioInput"
-          : "uploadVideoInput";
+        const uploadFn =
+          groupUploads[0].kind === "image"
+            ? "uploadImageInput"
+            : groupUploads[0].kind === "audio"
+              ? "uploadAudioInput"
+              : "uploadVideoInput";
         lines.push(`    const ${arrayVar}: string[] = [];`);
-        lines.push(`    for (const img of [${groupUploads.map((u) => `this.${u.field}`).join(", ")}]) {`);
-        lines.push(`      if (isRefSet(img)) ${arrayVar}.push(await ${uploadFn}(apiKey, img));`);
+        lines.push(
+          `    for (const img of [${groupUploads.map((u) => `this.${u.field}`).join(", ")}]) {`
+        );
+        lines.push(
+          `      if (isRefSet(img)) ${arrayVar}.push(await ${uploadFn}(apiKey, img));`
+        );
         lines.push(`    }`);
         uploadVars[paramName] = arrayVar;
       }
 
       // Emit ungrouped uploads (single field → single param)
       for (const upload of ungrouped) {
-        const uploadFn = upload.kind === "image" ? "uploadImageInput"
-          : upload.kind === "audio" ? "uploadAudioInput"
-          : "uploadVideoInput";
+        const uploadFn =
+          upload.kind === "image"
+            ? "uploadImageInput"
+            : upload.kind === "audio"
+              ? "uploadAudioInput"
+              : "uploadVideoInput";
 
         if (upload.isList) {
           const listVar = `${fieldToVarName(upload.field)}Urls`;
           lines.push(`    const ${listVar}: string[] = [];`);
-          lines.push(`    const ${fieldToVarName(upload.field)}List = Array.isArray(this.${upload.field}) ? this.${upload.field} : [];`);
-          lines.push(`    for (const item of ${fieldToVarName(upload.field)}List) {`);
-          lines.push(`      if (isRefSet(item)) ${listVar}.push(await ${uploadFn}(apiKey, item));`);
+          lines.push(
+            `    const ${fieldToVarName(upload.field)}List = Array.isArray(this.${upload.field}) ? this.${upload.field} : [];`
+          );
+          lines.push(
+            `    for (const item of ${fieldToVarName(upload.field)}List) {`
+          );
+          lines.push(
+            `      if (isRefSet(item)) ${listVar}.push(await ${uploadFn}(apiKey, item));`
+          );
           lines.push(`    }`);
           uploadVars[upload.paramName ?? `${upload.field}_urls`] = listVar;
         } else {
           const varName = `${fieldToVarName(upload.field)}Url`;
           lines.push(`    let ${varName} = "";`);
-          lines.push(`    if (isRefSet(this.${upload.field})) ${varName} = await ${uploadFn}(apiKey, this.${upload.field});`);
+          lines.push(
+            `    if (isRefSet(this.${upload.field})) ${varName} = await ${uploadFn}(apiKey, this.${upload.field});`
+          );
           uploadVars[upload.paramName ?? `${upload.field}_url`] = varName;
         }
       }
@@ -234,35 +266,51 @@ export class KieNodeGenerator {
       const defLit = defaultLiteral(field.default, field.type);
 
       // Check if conditional
-      const conditional = node.conditionalFields?.find((c) => c.field === field.name);
+      const conditional = node.conditionalFields?.find(
+        (c) => c.field === field.name
+      );
       if (conditional) {
         const val = `${cast}(this.${field.name} ?? ${defLit})`;
         if (conditional.condition === "gte_zero") {
-          lines.push(`    if (${val} >= 0) params[${JSON.stringify(paramName)}] = ${val};`);
+          lines.push(
+            `    if (${val} >= 0) params[${JSON.stringify(paramName)}] = ${val};`
+          );
         } else if (conditional.condition === "truthy") {
-          lines.push(`    if (this.${field.name}) params[${JSON.stringify(paramName)}] = ${val};`);
+          lines.push(
+            `    if (this.${field.name}) params[${JSON.stringify(paramName)}] = ${val};`
+          );
         } else {
           lines.push(`    params[${JSON.stringify(paramName)}] = ${val};`);
         }
       } else {
-        lines.push(`    params[${JSON.stringify(paramName)}] = ${cast}(this.${field.name} ?? ${defLit});`);
+        lines.push(
+          `    params[${JSON.stringify(paramName)}] = ${cast}(this.${field.name} ?? ${defLit});`
+        );
       }
     }
 
     // Add upload vars to params
     for (const [paramName, varName] of Object.entries(uploadVars)) {
-      lines.push(`    if (${varName}${varName.endsWith("Urls") ? ".length" : ""}) params[${JSON.stringify(paramName)}] = ${varName};`);
+      lines.push(
+        `    if (${varName}${varName.endsWith("Urls") ? ".length" : ""}) params[${JSON.stringify(paramName)}] = ${varName};`
+      );
     }
 
     lines.push(``);
 
     // Execute
     if (node.useSuno) {
-      lines.push(`    const result = await kieExecuteSunoTask(apiKey, params, ${pollInterval}, ${maxAttempts});`);
+      lines.push(
+        `    const result = await kieExecuteSunoTask(apiKey, params, ${pollInterval}, ${maxAttempts});`
+      );
     } else {
-      lines.push(`    const result = await kieExecuteTask(apiKey, ${JSON.stringify(node.modelId)}, params, ${pollInterval}, ${maxAttempts});`);
+      lines.push(
+        `    const result = await kieExecuteTask(apiKey, ${JSON.stringify(node.modelId)}, params, ${pollInterval}, ${maxAttempts});`
+      );
     }
-    lines.push(`    return { output: { type: ${JSON.stringify(node.outputType)}, data: result.data } };`);
+    lines.push(
+      `    return { output: { type: ${JSON.stringify(node.outputType)}, data: result.data } };`
+    );
     lines.push(`  }`);
     return lines;
   }

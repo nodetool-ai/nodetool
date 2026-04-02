@@ -11,22 +11,26 @@ describe("executor resolver with PythonBridge", () => {
         {
           node_type: "huggingface.TextToImage",
           outputs: [{ name: "output", type: { type: "ImageRef" } }],
-          required_settings: ["HF_TOKEN"],
-        },
-      ]),
+          required_settings: ["HF_TOKEN"]
+        }
+      ])
     } as unknown as PythonBridge;
 
     const tsResolve = vi.fn();
 
     const resolve = (node: NodeDescriptor) => {
       if (bridge.hasNodeType(node.type)) {
-        const meta = bridge.getNodeMetadata().find((n) => n.node_type === node.type);
+        const meta = bridge
+          .getNodeMetadata()
+          .find((n) => n.node_type === node.type);
         return new PythonNodeExecutor(
           bridge,
           node.type,
           (node.properties as Record<string, unknown>) ?? {},
-          Object.fromEntries((meta?.outputs ?? []).map((o) => [o.name, o.type.type])),
-          meta?.required_settings ?? [],
+          Object.fromEntries(
+            (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
+          ),
+          meta?.required_settings ?? []
         );
       }
       return tsResolve(node);
@@ -35,7 +39,7 @@ describe("executor resolver with PythonBridge", () => {
     const descriptor: NodeDescriptor = {
       id: "n1",
       type: "huggingface.TextToImage",
-      name: "TextToImage",
+      name: "TextToImage"
     };
 
     const executor = resolve(descriptor);
@@ -45,7 +49,7 @@ describe("executor resolver with PythonBridge", () => {
 
   it("falls through to TS resolve for non-Python nodes", () => {
     const bridge = {
-      hasNodeType: vi.fn().mockReturnValue(false),
+      hasNodeType: vi.fn().mockReturnValue(false)
     } as unknown as PythonBridge;
 
     const mockExecutor = { process: vi.fn() };
@@ -61,7 +65,7 @@ describe("executor resolver with PythonBridge", () => {
     const descriptor: NodeDescriptor = {
       id: "n2",
       type: "nodetool.text.Concat",
-      name: "Concat",
+      name: "Concat"
     };
 
     const executor = resolve(descriptor);

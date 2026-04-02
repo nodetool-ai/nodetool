@@ -6,45 +6,45 @@ export const audioGenerateConfig: ModuleConfig = {
       className: "RealisticVoiceCloning",
       returnType: "audio",
       fieldOverrides: {
-        song_input: { propType: "audio" },
-      },
+        song_input: { propType: "audio" }
+      }
     },
     "afiaka87/tortoise-tts": {
       className: "TortoiseTTS",
       returnType: "audio",
       fieldOverrides: {
-        custom_voice: { propType: "audio" },
-      },
+        custom_voice: { propType: "audio" }
+      }
     },
     "adirik/styletts2": {
       className: "StyleTTS2",
       returnType: "audio",
       fieldOverrides: {
-        reference: { propType: "audio" },
-      },
+        reference: { propType: "audio" }
+      }
     },
     "riffusion/riffusion": {
       className: "Riffusion",
       returnType: "audio",
       fieldOverrides: {
-        song_input: { propType: "audio" },
-      },
+        song_input: { propType: "audio" }
+      }
     },
     "meta/musicgen": {
       className: "MusicGen",
-      returnType: "audio",
+      returnType: "audio"
     },
     "zsxkib/mmaudio": {
       className: "MMAudio",
-      returnType: "audio",
+      returnType: "audio"
     },
     "google/lyria-2": {
       className: "Lyria_2",
-      returnType: "audio",
+      returnType: "audio"
     },
     "minimax/speech-2.8-hd": {
       className: "Speech_2_8_HD",
-      returnType: "audio",
-    },
-  },
+      returnType: "audio"
+    }
+  }
 };

@@ -23,7 +23,7 @@ import {
   handleDeleteAsset,
   type AdminDeps,
   type CollectionHandle,
-  type AssetRecord,
+  type AssetRecord
 } from "../src/admin-routes.js";
 import type { HFHubAdapter, CacheInfo } from "../src/admin-operations.js";
 
@@ -47,7 +47,7 @@ function mockCollection(
     metadata,
     count: vi.fn().mockResolvedValue(countVal),
     modify: vi.fn().mockResolvedValue(undefined),
-    add: vi.fn().mockResolvedValue(undefined),
+    add: vi.fn().mockResolvedValue(undefined)
   };
 }
 
@@ -67,7 +67,7 @@ function mockAssetRecord(overrides?: Partial<AssetRecord>): AssetRecord {
     has_thumbnail: false,
     duration: null,
     delete: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -80,44 +80,40 @@ function createMockDeps(overrides?: Partial<AdminDeps>): AdminDeps {
       scanCache: vi.fn().mockReturnValue({
         size_on_disk: 0,
         repos: [],
-        warnings: [],
+        warnings: []
       } satisfies CacheInfo),
-      deleteCachedModel: vi.fn().mockResolvedValue(undefined),
+      deleteCachedModel: vi.fn().mockResolvedValue(undefined)
     } satisfies HFHubAdapter,
     ollama: {
       async *pull(_modelName: string) {
         yield { status: "done" };
-      },
+      }
     },
     getDbAdapter: vi.fn().mockResolvedValue({
       get: vi.fn().mockResolvedValue({ id: "k1", data: "val" }),
       save: vi.fn().mockResolvedValue(undefined),
-      delete: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined)
     }),
     vecStore: {
-      createCollection: vi
-        .fn()
-        .mockResolvedValue(mockCollection("new-col")),
+      createCollection: vi.fn().mockResolvedValue(mockCollection("new-col")),
       listCollections: vi.fn().mockResolvedValue([]),
-      getCollection: vi
-        .fn()
-        .mockResolvedValue(mockCollection("test-col")),
-      deleteCollection: vi.fn().mockResolvedValue(undefined),
+      getCollection: vi.fn().mockResolvedValue(mockCollection("test-col")),
+      deleteCollection: vi.fn().mockResolvedValue(undefined)
     },
     assetModel: {
       get: vi.fn().mockResolvedValue(mockAssetRecord()),
       find: vi.fn().mockResolvedValue(mockAssetRecord()),
       create: vi.fn().mockResolvedValue(mockAssetRecord()),
-      paginate: vi.fn().mockResolvedValue([[], null]),
+      paginate: vi.fn().mockResolvedValue([[], null])
     },
     assetStorage: {
       getUrl: vi.fn().mockResolvedValue("https://storage.example.com/file"),
-      delete: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined)
     },
     workflowModel: {
-      get: vi.fn().mockResolvedValue({ name: "My Workflow" }),
+      get: vi.fn().mockResolvedValue({ name: "My Workflow" })
     },
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -206,14 +202,16 @@ describe("handleDownloadHuggingfaceModel", () => {
   it("yields SSE lines for valid download", async () => {
     const deps = createMockDeps({
       hub: {
-        listRepoFiles: vi.fn().mockResolvedValue([
-          { path: "m.bin", size: 100 },
-        ]),
+        listRepoFiles: vi
+          .fn()
+          .mockResolvedValue([{ path: "m.bin", size: 100 }]),
         tryLoadFromCache: vi.fn().mockReturnValue(null),
         downloadFile: vi.fn().mockResolvedValue("/p"),
-        scanCache: vi.fn().mockReturnValue({ size_on_disk: 0, repos: [], warnings: [] }),
-        deleteCachedModel: vi.fn(),
-      },
+        scanCache: vi
+          .fn()
+          .mockReturnValue({ size_on_disk: 0, repos: [], warnings: [] }),
+        deleteCachedModel: vi.fn()
+      }
     });
     const lines = await collect(
       handleDownloadHuggingfaceModel(deps, { repo_id: "org/model" })
@@ -265,9 +263,11 @@ describe("handleScanCache", () => {
         listRepoFiles: vi.fn(),
         tryLoadFromCache: vi.fn(),
         downloadFile: vi.fn(),
-        scanCache: () => { throw new Error("scan fail"); },
-        deleteCachedModel: vi.fn(),
-      },
+        scanCache: () => {
+          throw new Error("scan fail");
+        },
+        deleteCachedModel: vi.fn()
+      }
     });
     const result = await handleScanCache(deps);
     expect(result.status).toBe("error");
@@ -300,8 +300,8 @@ describe("handleDeleteHuggingfaceModel", () => {
         tryLoadFromCache: vi.fn(),
         downloadFile: vi.fn(),
         scanCache: vi.fn(),
-        deleteCachedModel: vi.fn().mockRejectedValue(new Error("fail")),
-      },
+        deleteCachedModel: vi.fn().mockRejectedValue(new Error("fail"))
+      }
     });
     const result = await handleDeleteHuggingfaceModel(deps, "org/model");
     expect(result.status).toBe("error");
@@ -331,8 +331,8 @@ describe("handleDbGet", () => {
       getDbAdapter: vi.fn().mockResolvedValue({
         get: vi.fn().mockResolvedValue(null),
         save: vi.fn(),
-        delete: vi.fn(),
-      }),
+        delete: vi.fn()
+      })
     });
     await expect(handleDbGet(deps, "users", "missing")).rejects.toThrow(
       HttpError
@@ -355,13 +355,13 @@ describe("handleCreateCollection", () => {
     const deps = createMockDeps();
     const result = await handleCreateCollection(deps, {
       name: "my-col",
-      embedding_model: "all-MiniLM-L6-v2",
+      embedding_model: "all-MiniLM-L6-v2"
     });
     expect(result.name).toBe("new-col");
     expect(result.count).toBe(0);
     expect(deps.vecStore.createCollection).toHaveBeenCalledWith({
       name: "my-col",
-      metadata: { embedding_model: "all-MiniLM-L6-v2" },
+      metadata: { embedding_model: "all-MiniLM-L6-v2" }
     });
   });
 });
@@ -379,8 +379,8 @@ describe("handleListCollections", () => {
     const deps = createMockDeps({
       vecStore: {
         ...createMockDeps().vecStore,
-        listCollections: vi.fn().mockResolvedValue([col]),
-      },
+        listCollections: vi.fn().mockResolvedValue([col])
+      }
     });
     const result = await handleListCollections(deps);
     expect(result.collections).toHaveLength(1);
@@ -393,8 +393,8 @@ describe("handleListCollections", () => {
     const deps = createMockDeps({
       vecStore: {
         ...createMockDeps().vecStore,
-        listCollections: vi.fn().mockResolvedValue([col]),
-      },
+        listCollections: vi.fn().mockResolvedValue([col])
+      }
     });
     const result = await handleListCollections(deps);
     expect(result.collections[0].workflow_name).toBeNull();
@@ -407,8 +407,8 @@ describe("handleGetCollection", () => {
     const deps = createMockDeps({
       vecStore: {
         ...createMockDeps().vecStore,
-        getCollection: vi.fn().mockResolvedValue(col),
-      },
+        getCollection: vi.fn().mockResolvedValue(col)
+      }
     });
     const result = await handleGetCollection(deps, "test-col");
     expect(result.name).toBe("test-col");
@@ -423,16 +423,16 @@ describe("handleUpdateCollection", () => {
     const deps = createMockDeps({
       vecStore: {
         ...createMockDeps().vecStore,
-        getCollection: vi.fn().mockResolvedValue(col),
-      },
+        getCollection: vi.fn().mockResolvedValue(col)
+      }
     });
     const result = await handleUpdateCollection(deps, "old-name", {
       name: "new-name",
-      metadata: { added: "data" },
+      metadata: { added: "data" }
     });
     expect(col.modify).toHaveBeenCalledWith({
       name: "new-name",
-      metadata: { existing: "meta", added: "data" },
+      metadata: { existing: "meta", added: "data" }
     });
     expect(result.name).toBe("old-name"); // returns current name from handle
   });
@@ -442,13 +442,13 @@ describe("handleUpdateCollection", () => {
     const deps = createMockDeps({
       vecStore: {
         ...createMockDeps().vecStore,
-        getCollection: vi.fn().mockResolvedValue(col),
-      },
+        getCollection: vi.fn().mockResolvedValue(col)
+      }
     });
     await handleUpdateCollection(deps, "keep-name", {});
     expect(col.modify).toHaveBeenCalledWith({
       name: "keep-name",
-      metadata: {},
+      metadata: {}
     });
   });
 });
@@ -468,20 +468,20 @@ describe("handleAddToCollection", () => {
     const deps = createMockDeps({
       vecStore: {
         ...createMockDeps().vecStore,
-        getCollection: vi.fn().mockResolvedValue(col),
-      },
+        getCollection: vi.fn().mockResolvedValue(col)
+      }
     });
     const result = await handleAddToCollection(deps, "col1", {
       documents: ["doc1"],
       ids: ["id1"],
       metadatas: [{ source: "test" }],
-      embeddings: [[0.1, 0.2]],
+      embeddings: [[0.1, 0.2]]
     });
     expect(col.add).toHaveBeenCalledWith({
       documents: ["doc1"],
       ids: ["id1"],
       metadatas: [{ source: "test" }],
-      embeddings: [[0.1, 0.2]],
+      embeddings: [[0.1, 0.2]]
     });
     expect(result.message).toContain("col1");
   });
@@ -504,7 +504,7 @@ describe("handleListAssets", () => {
       expect.objectContaining({
         user_id: "1",
         parent_id: "1", // defaults to userId when no contentType/parentId
-        limit: 100,
+        limit: 100
       })
     );
   });
@@ -530,17 +530,13 @@ describe("handleListAssets", () => {
     const deps = createMockDeps({
       assetModel: {
         ...createMockDeps().assetModel,
-        paginate: vi.fn().mockResolvedValue([[asset], "next-cursor"]),
-      },
+        paginate: vi.fn().mockResolvedValue([[asset], "next-cursor"])
+      }
     });
     const result = await handleListAssets(deps, {});
     expect(result.assets).toHaveLength(1);
-    expect(result.assets[0].get_url).toBe(
-      "https://storage.example.com/file"
-    );
-    expect(result.assets[0].thumb_url).toBe(
-      "https://storage.example.com/file"
-    );
+    expect(result.assets[0].get_url).toBe("https://storage.example.com/file");
+    expect(result.assets[0].thumb_url).toBe("https://storage.example.com/file");
     expect(result.next).toBe("next-cursor");
   });
 });
@@ -554,7 +550,7 @@ describe("handleCreateAsset", () => {
       expect.objectContaining({
         user_id: "1",
         name: "",
-        content_type: "",
+        content_type: ""
       })
     );
   });
@@ -570,7 +566,7 @@ describe("handleCreateAsset", () => {
       expect.objectContaining({
         user_id: "42",
         name: "file.txt",
-        content_type: "text/plain",
+        content_type: "text/plain"
       })
     );
   });
@@ -596,8 +592,8 @@ describe("handleGetAsset", () => {
     const deps = createMockDeps({
       assetModel: {
         ...createMockDeps().assetModel,
-        get: vi.fn().mockResolvedValue(null),
-      },
+        get: vi.fn().mockResolvedValue(null)
+      }
     });
     await expect(handleGetAsset(deps, "missing", "1")).rejects.toThrow(
       HttpError
@@ -609,8 +605,8 @@ describe("handleGetAsset", () => {
     const deps = createMockDeps({
       assetModel: {
         ...createMockDeps().assetModel,
-        get: vi.fn().mockResolvedValue(folderAsset),
-      },
+        get: vi.fn().mockResolvedValue(folderAsset)
+      }
     });
     const result = await handleGetAsset(deps, "a1", "different-user");
     expect(result.get_url).toBeNull();
@@ -623,8 +619,8 @@ describe("handleDeleteAsset", () => {
     const deps = createMockDeps({
       assetModel: {
         ...createMockDeps().assetModel,
-        get: vi.fn().mockResolvedValue(asset),
-      },
+        get: vi.fn().mockResolvedValue(asset)
+      }
     });
     const result = await handleDeleteAsset(deps, "a1", "1");
     expect(result.deleted_asset_ids).toEqual(["a1"]);
@@ -635,8 +631,8 @@ describe("handleDeleteAsset", () => {
     const deps = createMockDeps({
       assetModel: {
         ...createMockDeps().assetModel,
-        get: vi.fn().mockResolvedValue(null),
-      },
+        get: vi.fn().mockResolvedValue(null)
+      }
     });
     await expect(handleDeleteAsset(deps, "missing", "1")).rejects.toThrow(
       HttpError
@@ -648,19 +644,17 @@ describe("handleDeleteAsset", () => {
     const deps = createMockDeps({
       assetModel: {
         ...createMockDeps().assetModel,
-        get: vi.fn().mockResolvedValue(asset),
-      },
+        get: vi.fn().mockResolvedValue(asset)
+      }
     });
-    await expect(handleDeleteAsset(deps, "a1", "1")).rejects.toThrow(
-      HttpError
-    );
+    await expect(handleDeleteAsset(deps, "a1", "1")).rejects.toThrow(HttpError);
   });
 
   it("recursively deletes folder contents", async () => {
     const folder = mockAssetRecord({
       id: "f1",
       content_type: "folder",
-      user_id: "1",
+      user_id: "1"
     });
     const child1 = mockAssetRecord({ id: "c1", user_id: "1" });
     const child2 = mockAssetRecord({ id: "c2", user_id: "1" });
@@ -678,12 +672,12 @@ describe("handleDeleteAsset", () => {
             return Promise.resolve([[child1, child2], null]);
           }
           return Promise.resolve([[], null]);
-        }),
+        })
       },
       assetStorage: {
         getUrl: vi.fn().mockResolvedValue("url"),
-        delete: vi.fn().mockResolvedValue(undefined),
-      },
+        delete: vi.fn().mockResolvedValue(undefined)
+      }
     });
 
     const result = await handleDeleteAsset(deps, "f1", "1");
@@ -700,12 +694,12 @@ describe("handleDeleteAsset", () => {
     const deps = createMockDeps({
       assetModel: {
         ...createMockDeps().assetModel,
-        get: vi.fn().mockResolvedValue(asset),
+        get: vi.fn().mockResolvedValue(asset)
       },
       assetStorage: {
         getUrl: vi.fn().mockResolvedValue("url"),
-        delete: vi.fn().mockRejectedValue(new Error("storage error")),
-      },
+        delete: vi.fn().mockRejectedValue(new Error("storage error"))
+      }
     });
     // Should not throw despite storage errors
     const result = await handleDeleteAsset(deps, "a1", "1");

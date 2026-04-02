@@ -20,42 +20,57 @@ function toBytes(image: ImageLike | undefined): Uint8Array {
 
 export class CompareImagesNode extends BaseNode {
   static readonly nodeType = "nodetool.compare.CompareImages";
-            static readonly title = "Compare Images";
-            static readonly description = "Compare two images side-by-side with an interactive slider.\n    image, compare, comparison, diff, before, after, slider\n\n    Use this node to visually compare:\n    - Before/after processing results\n    - Different model outputs\n    - Original vs edited images\n    - A/B testing of image variations";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Compare Images";
+  static readonly description =
+    "Compare two images side-by-side with an interactive slider.\n    image, compare, comparison, diff, before, after, slider\n\n    Use this node to visually compare:\n    - Before/after processing results\n    - Different model outputs\n    - Original vs edited images\n    - A/B testing of image variations";
+  static readonly metadataOutputTypes = {
     output: "none"
   };
-          static readonly basicFields = [
-  "image_a",
-  "image_b"
-];
-  
-  @prop({ type: "image", default: {
-  "type": "image",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Image A", description: "First image (displayed on left/top)" })
+  static readonly basicFields = ["image_a", "image_b"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image A",
+    description: "First image (displayed on left/top)"
+  })
   declare image_a: any;
 
-  @prop({ type: "image", default: {
-  "type": "image",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Image B", description: "Second image (displayed on right/bottom)" })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image B",
+    description: "Second image (displayed on right/bottom)"
+  })
   declare image_b: any;
 
-  @prop({ type: "str", default: "A", title: "Label A", description: "Label for the first image" })
+  @prop({
+    type: "str",
+    default: "A",
+    title: "Label A",
+    description: "Label for the first image"
+  })
   declare label_a: any;
 
-  @prop({ type: "str", default: "B", title: "Label B", description: "Label for the second image" })
+  @prop({
+    type: "str",
+    default: "B",
+    title: "Label B",
+    description: "Label for the second image"
+  })
   declare label_b: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const a = toBytes((this.image_a ?? this.image_a ?? {}) as ImageLike);
@@ -78,7 +93,7 @@ export class CompareImagesNode extends BaseNode {
     const score = (same / len) * lengthPenalty;
     return {
       score,
-      equal: score === 1,
+      equal: score === 1
     };
   }
 }

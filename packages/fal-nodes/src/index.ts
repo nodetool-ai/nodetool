@@ -52,10 +52,12 @@ export const FAL_NODES: readonly NodeClass[] = [
   ...FAL_VIDEO_TO_AUDIO_NODES,
   ...FAL_VIDEO_TO_TEXT_NODES,
   ...FAL_VIDEO_TO_VIDEO_NODES,
-  ...FAL_VISION_NODES,
+  ...FAL_VISION_NODES
 ];
 
-export function registerFalNodes(registry: { register: (nodeClass: NodeClass) => void }): void {
+export function registerFalNodes(registry: {
+  register: (nodeClass: NodeClass) => void;
+}): void {
   for (const nodeClass of FAL_NODES) {
     registry.register(nodeClass);
   }

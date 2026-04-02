@@ -33,7 +33,7 @@ export interface ChatCallbacks {
 export async function runTool(
   context: ProcessingContext,
   toolCall: ToolCall,
-  tools: Tool[],
+  tools: Tool[]
 ): Promise<ToolCall> {
   const tool = tools.find((t) => t.name === toolCall.name);
   if (!tool) {
@@ -46,7 +46,7 @@ export async function runTool(
     id: toolCall.id,
     name: toolCall.name,
     args: toolCall.args,
-    result,
+    result
   } as ToolCall & { result: unknown };
 }
 
@@ -93,7 +93,16 @@ export async function processChat(opts: {
   callbacks?: ChatCallbacks;
   threadId?: string;
 }): Promise<Message[]> {
-  const { userInput, messages, model, provider, context, tools = [], callbacks, threadId } = opts;
+  const {
+    userInput,
+    messages,
+    model,
+    provider,
+    context,
+    tools = [],
+    callbacks,
+    threadId
+  } = opts;
 
   // 1. Add user message
   messages.push({ role: "user", content: userInput });
@@ -111,7 +120,7 @@ export async function processChat(opts: {
       messages: messagesToSend,
       model,
       tools: providerTools,
-      threadId,
+      threadId
     });
 
     // Phase 1: Stream chunks and collect tool calls
@@ -125,9 +134,18 @@ export async function processChat(opts: {
         assistantText += text;
 
         const last = messages[messages.length - 1];
-        if (last && last.role === "assistant" && typeof last.content === "string" && !last.toolCalls?.length) {
+        if (
+          last &&
+          last.role === "assistant" &&
+          typeof last.content === "string" &&
+          !last.toolCalls?.length
+        ) {
           last.content += text;
-        } else if (!last || last.role !== "assistant" || last.toolCalls?.length) {
+        } else if (
+          !last ||
+          last.role !== "assistant" ||
+          last.toolCalls?.length
+        ) {
           messages.push({ role: "assistant", content: text });
         }
       }
@@ -144,9 +162,12 @@ export async function processChat(opts: {
       const results = await Promise.all(
         pendingToolCalls.map(async (tc) => {
           const toolResult = await runTool(context, tc, tools);
-          callbacks?.onToolResult?.(tc, (toolResult as ToolCall & { result: unknown }).result);
+          callbacks?.onToolResult?.(
+            tc,
+            (toolResult as ToolCall & { result: unknown }).result
+          );
           return toolResult as ToolCall & { result: unknown };
-        }),
+        })
       );
       toolCallResults.push(...results);
     }
@@ -164,7 +185,7 @@ export async function processChat(opts: {
       messages.push({
         role: "assistant",
         content: assistantText || undefined,
-        toolCalls: toolCallResults,
+        toolCalls: toolCallResults
       });
 
       // One tool-result message per tool call
@@ -172,7 +193,7 @@ export async function processChat(opts: {
         messages.push({
           role: "tool",
           toolCallId: tc.id,
-          content: JSON.stringify(tc.result, defaultSerializer),
+          content: JSON.stringify(tc.result, defaultSerializer)
         });
       }
 

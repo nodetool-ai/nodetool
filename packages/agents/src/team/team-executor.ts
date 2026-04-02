@@ -9,7 +9,12 @@
  */
 
 import { createLogger } from "@nodetool/config";
-import type { BaseProvider, ProcessingContext, Message, ProviderTool } from "@nodetool/runtime";
+import type {
+  BaseProvider,
+  ProcessingContext,
+  Message,
+  ProviderTool
+} from "@nodetool/runtime";
 import { getProvider } from "@nodetool/runtime";
 import { Tool } from "../tools/base-tool.js";
 import { MessageBus } from "./message-bus.js";
@@ -21,7 +26,7 @@ import type {
   ITaskBoard,
   TeamConfig,
   TeamEvent,
-  TeamStrategy,
+  TeamStrategy
 } from "./types.js";
 
 const log = createLogger("nodetool.agents.team-executor");
@@ -105,13 +110,13 @@ export class TeamExecutor {
         history: [],
         iterations: 0,
         idle: false,
-        finished: false,
+        finished: false
       };
 
       // Build system prompt with team context
       state.history.push({
         role: "system",
-        content: this.buildSystemPrompt(identity),
+        content: this.buildSystemPrompt(identity)
       });
 
       this.agents.set(identity.id, state);
@@ -119,14 +124,17 @@ export class TeamExecutor {
       const event: TeamEvent = {
         type: "agent_started",
         agentId: identity.id,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       };
       this.events.push(event);
       yield event;
     }
 
     // Strategy-specific initialization
-    if (this.config.strategy === "coordinator" || this.config.strategy === "hybrid") {
+    if (
+      this.config.strategy === "coordinator" ||
+      this.config.strategy === "hybrid"
+    ) {
       yield* this.runCoordinatorPhase();
     } else {
       // Autonomous: create a single root task for the objective
@@ -134,12 +142,12 @@ export class TeamExecutor {
         title: "Complete objective",
         description: this.config.objective,
         createdBy: "system",
-        priority: 0,
+        priority: 0
       });
       const event: TeamEvent = {
         type: "task_created",
         task: rootTask,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       };
       this.events.push(event);
       yield event;
@@ -157,14 +165,14 @@ export class TeamExecutor {
     } else {
       this._result = completedTasks.map((t) => ({
         title: t.title,
-        result: t.result,
+        result: t.result
       }));
     }
 
     const completeEvent: TeamEvent = {
       type: "team_complete",
       result: this._result,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     };
     this.events.push(completeEvent);
     yield completeEvent;
@@ -185,7 +193,7 @@ export class TeamExecutor {
       "You are the coordinator. Break this objective into concrete tasks for the team.",
       "Use `create_task` for each task. Set `required_skills` to match team members' abilities.",
       "Set priorities (0=highest) and dependencies between tasks where needed.",
-      "After creating all tasks, send a brief plan summary via `broadcast`.",
+      "After creating all tasks, send a brief plan summary via `broadcast`."
     ].join("\n");
 
     coordinator.history.push({ role: "user", content: decompositionPrompt });
@@ -211,7 +219,7 @@ export class TeamExecutor {
         const event: TeamEvent = {
           type: "deadlock_detected",
           blockingTasks: deadlock,
-          timestamp: Date.now(),
+          timestamp: Date.now()
         };
         this.events.push(event);
         yield event;
@@ -266,7 +274,9 @@ export class TeamExecutor {
     const available = this.board.getAvailable(agent.identity);
     const boardSnapshot = this.board.getSnapshot();
     const myTasks = boardSnapshot.filter(
-      (t) => t.claimedBy === agent.identity.id && (t.status === "claimed" || t.status === "working")
+      (t) =>
+        t.claimedBy === agent.identity.id &&
+        (t.status === "claimed" || t.status === "working")
     );
 
     if (myTasks.length > 0) {
@@ -295,7 +305,7 @@ export class TeamExecutor {
       const event: TeamEvent = {
         type: "agent_idle",
         agentId: agent.identity.id,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       };
       this.events.push(event);
       yield event;
@@ -324,11 +334,14 @@ export class TeamExecutor {
       this.board
     );
     const allTools: Tool[] = [...teamTools, ...this.sharedTools];
-    const providerTools: ProviderTool[] = allTools.map((t) => t.toProviderTool());
+    const providerTools: ProviderTool[] = allTools.map((t) =>
+      t.toProviderTool()
+    );
 
     // Check if agentic provider (handles tool loop internally)
     const isAgentic =
-      (agent.provider as unknown as Record<string, unknown>).provider === "claude_agent";
+      (agent.provider as unknown as Record<string, unknown>).provider ===
+      "claude_agent";
 
     if (isAgentic) {
       yield* this.runAgenticIteration(agent, allTools, providerTools);
@@ -365,7 +378,7 @@ export class TeamExecutor {
       messages: agent.history,
       model: agent.identity.model,
       tools: providerTools,
-      onToolCall,
+      onToolCall
     });
 
     if (response.content) {
@@ -373,7 +386,7 @@ export class TeamExecutor {
         type: "chunk",
         agentId: agent.identity.id,
         content: String(response.content),
-        timestamp: Date.now(),
+        timestamp: Date.now()
       };
       this.events.push(event);
       yield event;
@@ -382,7 +395,7 @@ export class TeamExecutor {
     agent.history.push({
       role: "assistant",
       content: response.content,
-      toolCalls: response.toolCalls ?? undefined,
+      toolCalls: response.toolCalls ?? undefined
     });
   }
 
@@ -400,7 +413,7 @@ export class TeamExecutor {
       const response = await agent.provider.generateMessageTraced({
         messages: agent.history,
         model: agent.identity.model,
-        tools: providerTools,
+        tools: providerTools
       });
 
       if (response.content) {
@@ -408,7 +421,7 @@ export class TeamExecutor {
           type: "chunk",
           agentId: agent.identity.id,
           content: String(response.content),
-          timestamp: Date.now(),
+          timestamp: Date.now()
         };
         this.events.push(event);
         yield event;
@@ -417,7 +430,7 @@ export class TeamExecutor {
       agent.history.push({
         role: "assistant",
         content: response.content,
-        toolCalls: response.toolCalls ?? undefined,
+        toolCalls: response.toolCalls ?? undefined
       });
 
       if (!response.toolCalls || response.toolCalls.length === 0) break;
@@ -444,7 +457,7 @@ export class TeamExecutor {
         agent.history.push({
           role: "tool",
           content: serialized,
-          toolCallId: toolCall.id,
+          toolCallId: toolCall.id
         });
       }
     }
@@ -523,7 +536,7 @@ export class TeamExecutor {
       "- Only work on tasks you've claimed.",
       "- Complete tasks promptly and mark them done.",
       "- Communicate blockers early — send a message or fail the task.",
-      "- Be concise in messages. Focus on actionable information.",
+      "- Be concise in messages. Focus on actionable information."
     ].join("\n");
   }
 
@@ -542,13 +555,13 @@ export class TeamExecutor {
               "1. Decompose the objective into concrete tasks on the board.",
               "2. Set priorities and dependencies appropriately.",
               "3. Monitor progress and create follow-up tasks as needed.",
-              "4. Do NOT do implementation work yourself — delegate to specialists.",
+              "4. Do NOT do implementation work yourself — delegate to specialists."
             ].join("\n")
           : [
               "## Your Role: Specialist",
               "The coordinator will create tasks on the board.",
               "Claim tasks matching your skills and complete them.",
-              "Message the coordinator if you're blocked or need clarification.",
+              "Message the coordinator if you're blocked or need clarification."
             ].join("\n");
 
       case "autonomous":
@@ -556,7 +569,7 @@ export class TeamExecutor {
           "## Strategy: Autonomous",
           "There is no assigned coordinator. Self-organize with your teammates.",
           "Check the board for work, create tasks as needed, and communicate via messages.",
-          "Claim tasks that match your skills. If the board is empty, create tasks to advance the objective.",
+          "Claim tasks that match your skills. If the board is empty, create tasks to advance the objective."
         ].join("\n");
 
       case "hybrid":
@@ -564,12 +577,12 @@ export class TeamExecutor {
           ? [
               "## Your Role: Lead (Hybrid)",
               "Create the initial task plan, but team members can also create subtasks.",
-              "Focus on high-level coordination. Review completed work.",
+              "Focus on high-level coordination. Review completed work."
             ].join("\n")
           : [
               "## Your Role: Team Member (Hybrid)",
               "The lead creates the initial plan, but you can create subtasks too.",
-              "Claim tasks, complete them, and create follow-up tasks as needed.",
+              "Claim tasks, complete them, and create follow-up tasks as needed."
             ].join("\n");
     }
   }

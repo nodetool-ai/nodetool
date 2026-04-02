@@ -9,11 +9,16 @@ describe("T-K-14: Graph.fromDict", () => {
     const graph = Graph.fromDict({
       nodes: [
         { id: "n1", type: "test.Add" },
-        { id: "n2", type: "test.Mul" },
+        { id: "n2", type: "test.Mul" }
       ],
       edges: [
-        { source: "n1", sourceHandle: "output", target: "n2", targetHandle: "a" },
-      ],
+        {
+          source: "n1",
+          sourceHandle: "output",
+          target: "n2",
+          targetHandle: "a"
+        }
+      ]
     });
     expect(graph.nodes).toHaveLength(2);
     expect(graph.edges).toHaveLength(1);
@@ -32,15 +37,21 @@ describe("T-K-14: Graph.fromDict", () => {
   });
 
   it("throws on missing edges field", () => {
-    expect(() => Graph.fromDict({ nodes: [] } as any)).toThrow(GraphValidationError);
+    expect(() => Graph.fromDict({ nodes: [] } as any)).toThrow(
+      GraphValidationError
+    );
   });
 
   it("throws when nodes is not an array", () => {
-    expect(() => Graph.fromDict({ nodes: "bad", edges: [] } as any)).toThrow(GraphValidationError);
+    expect(() => Graph.fromDict({ nodes: "bad", edges: [] } as any)).toThrow(
+      GraphValidationError
+    );
   });
 
   it("throws when edges is not an array", () => {
-    expect(() => Graph.fromDict({ nodes: [], edges: "bad" } as any)).toThrow(GraphValidationError);
+    expect(() => Graph.fromDict({ nodes: [], edges: "bad" } as any)).toThrow(
+      GraphValidationError
+    );
   });
 
   it("preserves node properties", () => {
@@ -51,10 +62,10 @@ describe("T-K-14: Graph.fromDict", () => {
           type: "test.Node",
           name: "my_node",
           is_streaming_output: true,
-          outputs: { result: "int" },
-        },
+          outputs: { result: "int" }
+        }
       ],
-      edges: [],
+      edges: []
     });
     const node = graph.findNode("n1");
     expect(node?.name).toBe("my_node");
@@ -68,10 +79,10 @@ describe("T-K-14: Graph.fromDict", () => {
         {
           id: "n1",
           type: "test.Node",
-          data: { value: 42, label: "x" },
-        },
+          data: { value: 42, label: "x" }
+        }
       ],
-      edges: [],
+      edges: []
     });
     expect(graph.findNode("n1")?.properties).toEqual({ value: 42, label: "x" });
   });
@@ -80,11 +91,16 @@ describe("T-K-14: Graph.fromDict", () => {
     const graph = Graph.fromDict({
       nodes: [
         { id: "src", type: "test.Source", data: { out: 1 } },
-        { id: "dst", type: "test.Target", data: { value: 42, keep: true } },
+        { id: "dst", type: "test.Target", data: { value: 42, keep: true } }
       ],
       edges: [
-        { source: "src", sourceHandle: "out", target: "dst", targetHandle: "value" },
-      ],
+        {
+          source: "src",
+          sourceHandle: "out",
+          target: "dst",
+          targetHandle: "value"
+        }
+      ]
     });
     expect(graph.findNode("dst")?.properties).toEqual({ keep: true });
   });
@@ -93,12 +109,12 @@ describe("T-K-14: Graph.fromDict", () => {
     const graph = Graph.fromDict({
       nodes: [
         { id: "n1", type: "test.A" },
-        { id: "n2", type: "test.B" },
+        { id: "n2", type: "test.B" }
       ],
       edges: [
         { source: "n1", sourceHandle: "out", target: "n2", targetHandle: "in" },
-        { source: "n1", target: "n2" },
-      ],
+        { source: "n1", target: "n2" }
+      ]
     });
     expect(graph.edges).toHaveLength(1);
   });
@@ -107,8 +123,13 @@ describe("T-K-14: Graph.fromDict", () => {
     const graph = Graph.fromDict({
       nodes: [{ id: "n1", type: "test.A" }],
       edges: [
-        { source: "n1", sourceHandle: "out", target: "ghost", targetHandle: "in" },
-      ],
+        {
+          source: "n1",
+          sourceHandle: "out",
+          target: "ghost",
+          targetHandle: "in"
+        }
+      ]
     });
     expect(graph.edges).toHaveLength(0);
   });
@@ -119,12 +140,12 @@ describe("T-K-14: Graph.fromDict", () => {
         {
           nodes: [
             { id: "n1", type: "test.A" },
-            { id: "n2", type: "test.B" },
+            { id: "n2", type: "test.B" }
           ],
-          edges: [{ source: "n1", target: "n2" }],
+          edges: [{ source: "n1", target: "n2" }]
         },
-        { skipErrors: false },
-      ),
+        { skipErrors: false }
+      )
     ).toThrow(GraphValidationError);
   });
 
@@ -133,17 +154,27 @@ describe("T-K-14: Graph.fromDict", () => {
       {
         nodes: [
           { id: "ok", type: "test.Allowed" },
-          { id: "bad", type: "test.Unknown" },
+          { id: "bad", type: "test.Unknown" }
         ],
         edges: [
-          { source: "ok", sourceHandle: "out", target: "bad", targetHandle: "in" },
-          { source: "bad", sourceHandle: "out", target: "ok", targetHandle: "in" },
-        ],
+          {
+            source: "ok",
+            sourceHandle: "out",
+            target: "bad",
+            targetHandle: "in"
+          },
+          {
+            source: "bad",
+            sourceHandle: "out",
+            target: "ok",
+            targetHandle: "in"
+          }
+        ]
       },
       {
         validateNodeType: (nodeType) => nodeType === "test.Allowed",
-        skipErrors: true,
-      },
+        skipErrors: true
+      }
     );
     expect(graph.nodes.map((node) => node.id)).toEqual(["ok"]);
     expect(graph.edges).toEqual([]);
@@ -154,13 +185,13 @@ describe("T-K-14: Graph.fromDict", () => {
       Graph.fromDict(
         {
           nodes: [{ id: "bad", type: "test.Unknown" }],
-          edges: [],
+          edges: []
         },
         {
           validateNodeType: (nodeType) => nodeType !== "test.Unknown",
-          skipErrors: false,
-        },
-      ),
+          skipErrors: false
+        }
+      )
     ).toThrow("Invalid node type");
   });
 
@@ -172,12 +203,12 @@ describe("T-K-14: Graph.fromDict", () => {
             id: "n1",
             type: "test.Node",
             propertyTypes: { allowed: "string" },
-            data: { allowed: "ok", deprecated: "remove-me" },
-          },
+            data: { allowed: "ok", deprecated: "remove-me" }
+          }
         ],
-        edges: [],
+        edges: []
       },
-      { allowUndefinedProperties: false, skipErrors: true },
+      { allowUndefinedProperties: false, skipErrors: true }
     );
     expect(graph.findNode("n1")?.properties).toEqual({ allowed: "ok" });
   });
@@ -191,13 +222,13 @@ describe("T-K-14: Graph.fromDict", () => {
               id: "n1",
               type: "test.Node",
               propertyTypes: { allowed: "string" },
-              data: { allowed: "ok", deprecated: "boom" },
-            },
+              data: { allowed: "ok", deprecated: "boom" }
+            }
           ],
-          edges: [],
+          edges: []
         },
-        { allowUndefinedProperties: false, skipErrors: false },
-      ),
+        { allowUndefinedProperties: false, skipErrors: false }
+      )
     ).toThrow("Property deprecated does not exist");
   });
 
@@ -205,7 +236,7 @@ describe("T-K-14: Graph.fromDict", () => {
     const graph = Graph.fromDict({
       nodes: [
         { id: "n1", type: "test.A" },
-        { id: "n2", type: "test.B" },
+        { id: "n2", type: "test.B" }
       ],
       edges: [
         {
@@ -214,9 +245,9 @@ describe("T-K-14: Graph.fromDict", () => {
           sourceHandle: "out",
           target: "n2",
           targetHandle: "in",
-          edge_type: "control",
-        },
-      ],
+          edge_type: "control"
+        }
+      ]
     });
     expect(graph.edges[0].id).toBe("e1");
     expect(graph.edges[0].edge_type).toBe("control");
@@ -229,15 +260,15 @@ describe("T-K-14: Graph.fromDict", () => {
           id: "n1",
           type: "test.Dynamic",
           data: { workflow_id: "wf-1" },
-          dynamic_properties: { prompt: "hello world" },
-        },
+          dynamic_properties: { prompt: "hello world" }
+        }
       ],
-      edges: [],
+      edges: []
     });
     const node = graph.findNode("n1");
     expect(node?.properties).toEqual({
       workflow_id: "wf-1",
-      prompt: "hello world",
+      prompt: "hello world"
     });
   });
 });

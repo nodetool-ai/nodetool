@@ -17,6 +17,12 @@ export interface ClaudeAgentOutputs {
   chunk: unknown;
 }
 
-export function claudeAgent(inputs: ClaudeAgentInputs): DslNode<ClaudeAgentOutputs> {
-  return createNode("anthropic.agents.ClaudeAgent", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true });
+export function claudeAgent(
+  inputs: ClaudeAgentInputs
+): DslNode<ClaudeAgentOutputs> {
+  return createNode(
+    "anthropic.agents.ClaudeAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text", "chunk"], streaming: true }
+  );
 }

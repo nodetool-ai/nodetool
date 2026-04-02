@@ -35,9 +35,9 @@ function trackingExecutor(
       async process(inputs) {
         calls.push(inputs);
         return processFn(inputs);
-      },
+      }
     },
-    calls,
+    calls
   };
 }
 
@@ -61,7 +61,7 @@ function createActor(
     sendOutputs: async (nodeId, outputs) => {
       sentOutputs.push({ nodeId, outputs });
     },
-    emitMessage: (msg) => messages.push(msg),
+    emitMessage: (msg) => messages.push(msg)
   });
 
   return { actor, sentOutputs, messages };
@@ -100,7 +100,7 @@ describe("NodeActor – buffered mode", () => {
       .mockImplementation(() => true);
 
     const { executor } = trackingExecutor((inputs) => ({
-      result: inputs,
+      result: inputs
     }));
 
     const { actor } = createActor(node, inbox, executor);
@@ -115,8 +115,8 @@ describe("NodeActor – buffered mode", () => {
       .find((line) => line.includes("Executing node"));
 
     expect(logged).toContain("Executing node");
-    expect(logged).toContain("\"nodeId\":\"test_node\"");
-    expect(logged).toContain("\"type\":\"test.Node\"");
+    expect(logged).toContain('"nodeId":"test_node"');
+    expect(logged).toContain('"type":"test.Node"');
   });
 
   it("defaults to on_any when sync_mode is omitted", async () => {
@@ -126,7 +126,7 @@ describe("NodeActor – buffered mode", () => {
     inbox.addUpstream("b", 1);
 
     const { executor, calls } = trackingExecutor((inputs) => ({
-      result: inputs,
+      result: inputs
     }));
 
     const { actor } = createActor(node, inbox, executor);
@@ -139,16 +139,22 @@ describe("NodeActor – buffered mode", () => {
 
     await actor.run();
 
-    expect(calls).toEqual([{ a: 1, b: 2 }, { a: 3, b: 2 }]);
+    expect(calls).toEqual([
+      { a: 1, b: 2 },
+      { a: 3, b: 2 }
+    ]);
   });
 
   it("calls process once and sends outputs", async () => {
-    const node = makeNode({ sync_mode: "zip_all", properties: { label: "demo" } });
+    const node = makeNode({
+      sync_mode: "zip_all",
+      properties: { label: "demo" }
+    });
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
 
     const { executor, calls } = trackingExecutor((inputs) => ({
-      result: (inputs.a as number) * 2,
+      result: (inputs.a as number) * 2
     }));
 
     const { actor, sentOutputs, messages } = createActor(node, inbox, executor);
@@ -190,7 +196,7 @@ describe("NodeActor – streaming output", () => {
         yield { chunk: val * 1 };
         yield { chunk: val * 2 };
         yield { chunk: val * 3 };
-      },
+      }
     };
 
     const { actor, sentOutputs } = createActor(node, inbox, executor);
@@ -204,7 +210,7 @@ describe("NodeActor – streaming output", () => {
     expect(sentOutputs.map((s) => s.outputs)).toEqual([
       { chunk: 10 },
       { chunk: 20 },
-      { chunk: 30 },
+      { chunk: 30 }
     ]);
   });
 
@@ -221,7 +227,7 @@ describe("NodeActor – streaming output", () => {
         const val = inputs.a as string;
         yield { chunk: { type: "chunk", content: val } };
         yield { chunk: null, text: `${val}!` };
-      },
+      }
     };
 
     const { actor, sentOutputs, messages } = createActor(node, inbox, executor);
@@ -233,19 +239,21 @@ describe("NodeActor – streaming output", () => {
 
     expect(sentOutputs.map((s) => s.outputs)).toEqual([
       { chunk: { type: "chunk", content: "hi" } },
-      { text: "hi!" },
+      { text: "hi!" }
     ]);
     expect(result.outputs).toEqual({
       chunk: { type: "chunk", content: "hi" },
-      text: "hi!",
+      text: "hi!"
     });
 
     const completed = messages.find(
-      (m) => (m as NodeUpdate).type === "node_update" && (m as NodeUpdate).status === "completed"
+      (m) =>
+        (m as NodeUpdate).type === "node_update" &&
+        (m as NodeUpdate).status === "completed"
     ) as NodeUpdate | undefined;
     expect(completed?.result).toEqual({
       chunk: { type: "chunk", content: "hi" },
-      text: "hi!",
+      text: "hi!"
     });
   });
 });
@@ -258,7 +266,7 @@ describe("NodeActor – on_any sync mode", () => {
     inbox.addUpstream("b", 1);
 
     const { executor, calls } = trackingExecutor((inputs) => ({
-      result: inputs,
+      result: inputs
     }));
     const { actor, sentOutputs } = createActor(node, inbox, executor);
 
@@ -286,7 +294,7 @@ describe("NodeActor – on_any sync mode", () => {
     inbox.addUpstream("b", 1);
 
     const { executor, calls } = trackingExecutor((inputs) => ({
-      result: inputs,
+      result: inputs
     }));
     const { actor } = createActor(node, inbox, executor);
 
@@ -311,7 +319,7 @@ describe("NodeActor – zip_all sync mode", () => {
     inbox.addUpstream("b", 1);
 
     const { executor, calls } = trackingExecutor((inputs) => ({
-      sum: (inputs.a as number) + (inputs.b as number),
+      sum: (inputs.a as number) + (inputs.b as number)
     }));
     const { actor, sentOutputs } = createActor(node, inbox, executor);
 
@@ -336,7 +344,7 @@ describe("NodeActor – controlled mode", () => {
     inbox.addUpstream("x", 1);
 
     const { executor, calls } = trackingExecutor((inputs) => ({
-      out: inputs.threshold,
+      out: inputs.threshold
     }));
     const { actor, sentOutputs } = createActor(node, inbox, executor);
 
@@ -346,10 +354,10 @@ describe("NodeActor – controlled mode", () => {
     // Send control events
     await inbox.put("__control__", {
       event_type: "run" as const,
-      properties: { threshold: 0.5 },
+      properties: { threshold: 0.5 }
     });
     await inbox.put("__control__", {
-      event_type: "stop" as const,
+      event_type: "stop" as const
     });
 
     inbox.markSourceDone("__control__");
@@ -373,7 +381,7 @@ describe("NodeActor – error handling", () => {
     const executor: NodeExecutor = {
       async process() {
         throw new Error("test failure");
-      },
+      }
     };
 
     const { actor, messages } = createActor(node, inbox, executor);

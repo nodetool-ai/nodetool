@@ -11,14 +11,14 @@ import type { BaseProvider } from "@nodetool/runtime";
 import {
   OllamaProvider,
   OpenAIProvider,
-  AnthropicProvider,
+  AnthropicProvider
 } from "@nodetool/runtime";
 import { getSecret } from "@nodetool/security";
 import type {
   Message,
   ProviderTool,
   ProviderStreamItem,
-  ToolCall,
+  ToolCall
 } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 
@@ -79,29 +79,35 @@ function jsonResponse(data: unknown, init?: ResponseInit): Response {
     status: init?.status ?? 200,
     headers: {
       "content-type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+      ...(init?.headers ?? {})
+    }
   });
 }
 
-function errorResponse(status: number, message: string, type = "invalid_request_error"): Response {
+function errorResponse(
+  status: number,
+  message: string,
+  type = "invalid_request_error"
+): Response {
   return jsonResponse(
     {
       error: {
         message,
         type,
         param: null,
-        code: null,
-      },
+        code: null
+      }
     },
-    { status },
+    { status }
   );
 }
 
 /**
  * Convert OpenAI-format messages to internal Message format.
  */
-export function convertMessages(openaiMessages: OpenAIChatMessage[]): Message[] {
+export function convertMessages(
+  openaiMessages: OpenAIChatMessage[]
+): Message[] {
   return openaiMessages.map((m) => {
     const msg: Message = { role: m.role };
 
@@ -113,7 +119,7 @@ export function convertMessages(openaiMessages: OpenAIChatMessage[]): Message[] 
       msg.toolCalls = m.tool_calls.map((tc) => ({
         id: tc.id,
         name: tc.function.name,
-        args: safeParseJson(tc.function.arguments),
+        args: safeParseJson(tc.function.arguments)
       }));
     }
 
@@ -140,12 +146,14 @@ function safeParseJson(s: string): Record<string, unknown> {
 /**
  * Convert OpenAI tool definitions to internal ProviderTool format.
  */
-export function convertTools(openaiTools?: OpenAIToolDef[]): ProviderTool[] | undefined {
+export function convertTools(
+  openaiTools?: OpenAIToolDef[]
+): ProviderTool[] | undefined {
   if (!openaiTools || openaiTools.length === 0) return undefined;
   return openaiTools.map((t) => ({
     name: t.function.name,
     description: t.function.description,
-    inputSchema: t.function.parameters,
+    inputSchema: t.function.parameters
   }));
 }
 
@@ -158,7 +166,10 @@ function isToolCall(item: ProviderStreamItem): item is ToolCall {
 }
 
 /** Resolve a secret for the authenticated user, then fall back to env vars. */
-async function resolveKey(key: string, userId: string): Promise<string | undefined> {
+async function resolveKey(
+  key: string,
+  userId: string
+): Promise<string | undefined> {
   return (await getSecret(key, userId)) ?? undefined;
 }
 
@@ -175,17 +186,25 @@ export async function resolveProvider(
     return options.provider;
   }
 
-  if (model.startsWith("gpt-") || model.startsWith("o1") || model.startsWith("o3")) {
-    return new OpenAIProvider({ OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY", userId) });
+  if (
+    model.startsWith("gpt-") ||
+    model.startsWith("o1") ||
+    model.startsWith("o3")
+  ) {
+    return new OpenAIProvider({
+      OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY", userId)
+    });
   }
 
   if (model.startsWith("claude-")) {
-    return new AnthropicProvider({ ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY", userId) });
+    return new AnthropicProvider({
+      ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY", userId)
+    });
   }
 
   // Default to Ollama
   return new OllamaProvider({
-    OLLAMA_API_URL: process.env.OLLAMA_API_URL ?? "http://127.0.0.1:11434",
+    OLLAMA_API_URL: process.env.OLLAMA_API_URL ?? "http://127.0.0.1:11434"
   });
 }
 
@@ -207,7 +226,7 @@ export function createSSEStream(
     maxTokens?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
-  },
+  }
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   const id = `chatcmpl-${randomUUID()}`;
@@ -224,7 +243,7 @@ export function createSSEStream(
           topP: genOptions?.topP,
           maxTokens: genOptions?.maxTokens,
           presencePenalty: genOptions?.presencePenalty,
-          frequencyPenalty: genOptions?.frequencyPenalty,
+          frequencyPenalty: genOptions?.frequencyPenalty
         });
 
         // Track tool call indices for proper OpenAI format
@@ -241,11 +260,13 @@ export function createSSEStream(
                 {
                   index: 0,
                   delta: { content: item.content ?? "" },
-                  finish_reason: null,
-                },
-              ],
+                  finish_reason: null
+                }
+              ]
             };
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`)
+            );
           }
 
           if (isToolCall(item)) {
@@ -265,16 +286,18 @@ export function createSSEStream(
                         type: "function" as const,
                         function: {
                           name: item.name,
-                          arguments: JSON.stringify(item.args),
-                        },
-                      },
-                    ],
+                          arguments: JSON.stringify(item.args)
+                        }
+                      }
+                    ]
                   },
-                  finish_reason: null,
-                },
-              ],
+                  finish_reason: null
+                }
+              ]
             };
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`)
+            );
             toolCallIndex++;
           }
         }
@@ -292,11 +315,13 @@ export function createSSEStream(
             {
               index: 0,
               delta: {},
-              finish_reason: finishReason,
-            },
-          ],
+              finish_reason: finishReason
+            }
+          ]
         };
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`));
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`)
+        );
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       } catch (err) {
@@ -306,14 +331,16 @@ export function createSSEStream(
             message,
             type: "server_error",
             param: null,
-            code: null,
-          },
+            code: null
+          }
         };
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorChunk)}\n\n`));
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify(errorChunk)}\n\n`)
+        );
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       }
-    },
+    }
   });
 }
 
@@ -324,7 +351,7 @@ export function createSSEStream(
 async function handleChatCompletions(
   request: Request,
   userId: string,
-  options?: OpenAIApiOptions,
+  options?: OpenAIApiOptions
 ): Promise<Response> {
   let body: ChatCompletionRequest;
   try {
@@ -344,7 +371,11 @@ async function handleChatCompletions(
     provider = await resolveProvider(model, options, userId);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return errorResponse(500, `Failed to initialize provider: ${msg}`, "server_error");
+    return errorResponse(
+      500,
+      `Failed to initialize provider: ${msg}`,
+      "server_error"
+    );
   }
 
   const genOptions = {
@@ -352,17 +383,20 @@ async function handleChatCompletions(
     topP: body.top_p,
     maxTokens: body.max_tokens,
     presencePenalty: body.presence_penalty,
-    frequencyPenalty: body.frequency_penalty,
+    frequencyPenalty: body.frequency_penalty
   };
 
   if (stream) {
-    return new Response(createSSEStream(provider, messages, model, tools, genOptions), {
-      headers: {
-        "content-type": "text/event-stream",
-        "cache-control": "no-cache",
-        connection: "keep-alive",
-      },
-    });
+    return new Response(
+      createSSEStream(provider, messages, model, tools, genOptions),
+      {
+        headers: {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          connection: "keep-alive"
+        }
+      }
+    );
   }
 
   // Non-streaming: collect all chunks
@@ -375,7 +409,7 @@ async function handleChatCompletions(
       topP: genOptions.topP,
       maxTokens: genOptions.maxTokens,
       presencePenalty: genOptions.presencePenalty,
-      frequencyPenalty: genOptions.frequencyPenalty,
+      frequencyPenalty: genOptions.frequencyPenalty
     });
 
     let fullContent = "";
@@ -392,8 +426,8 @@ async function handleChatCompletions(
           type: "function",
           function: {
             name: item.name,
-            arguments: JSON.stringify(item.args),
-          },
+            arguments: JSON.stringify(item.args)
+          }
         });
         toolCallIndex++;
       }
@@ -402,7 +436,7 @@ async function handleChatCompletions(
     const finishReason = toolCalls.length > 0 ? "tool_calls" : "stop";
     const responseMessage: Record<string, unknown> = {
       role: "assistant",
-      content: fullContent || null,
+      content: fullContent || null
     };
     if (toolCalls.length > 0) {
       responseMessage.tool_calls = toolCalls;
@@ -417,14 +451,14 @@ async function handleChatCompletions(
         {
           index: 0,
           message: responseMessage,
-          finish_reason: finishReason,
-        },
+          finish_reason: finishReason
+        }
       ],
       usage: {
         prompt_tokens: 0,
         completion_tokens: 0,
-        total_tokens: 0,
-      },
+        total_tokens: 0
+      }
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -438,8 +472,18 @@ async function handleListModels(_userId: string): Promise<Response> {
     { id: "gpt-4", object: "model", created: 0, owned_by: "openai" },
     { id: "gpt-4o", object: "model", created: 0, owned_by: "openai" },
     { id: "gpt-4o-mini", object: "model", created: 0, owned_by: "openai" },
-    { id: "claude-sonnet-4-20250514", object: "model", created: 0, owned_by: "anthropic" },
-    { id: "claude-opus-4-20250514", object: "model", created: 0, owned_by: "anthropic" },
+    {
+      id: "claude-sonnet-4-20250514",
+      object: "model",
+      created: 0,
+      owned_by: "anthropic"
+    },
+    {
+      id: "claude-opus-4-20250514",
+      object: "model",
+      created: 0,
+      owned_by: "anthropic"
+    }
   ];
   return jsonResponse({ object: "list", data: models });
 }
@@ -452,7 +496,7 @@ export async function handleOpenAIRequest(
   request: Request,
   pathname: string,
   userId: string,
-  options?: OpenAIApiOptions,
+  options?: OpenAIApiOptions
 ): Promise<Response | null> {
   if (pathname === "/v1/chat/completions" && request.method === "POST") {
     return handleChatCompletions(request, userId, options);

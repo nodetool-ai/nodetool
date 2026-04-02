@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  initTestDb,
-  Job,
-} from "@nodetool/models";
+import { initTestDb, Job } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
 
 async function jsonBody(response: Response): Promise<unknown> {
@@ -17,7 +14,7 @@ describe("HTTP API: jobs", () => {
 
   it("GET /api/jobs returns empty list when no jobs exist", async () => {
     const request = new Request("http://localhost/api/jobs", {
-      headers: { "x-user-id": "user-1" },
+      headers: { "x-user-id": "user-1" }
     });
     const response = await handleApiRequest(request);
     expect(response.status).toBe(200);
@@ -35,24 +32,24 @@ describe("HTTP API: jobs", () => {
       user_id: "user-1",
       workflow_id: "wf-1",
       status: "running",
-      name: "Job 1",
+      name: "Job 1"
     });
     await Job.create({
       user_id: "user-1",
       workflow_id: "wf-2",
       status: "completed",
-      name: "Job 2",
+      name: "Job 2"
     });
     // Job for a different user - should not appear
     await Job.create({
       user_id: "user-2",
       workflow_id: "wf-3",
       status: "running",
-      name: "Job 3",
+      name: "Job 3"
     });
 
     const request = new Request("http://localhost/api/jobs", {
-      headers: { "x-user-id": "user-1" },
+      headers: { "x-user-id": "user-1" }
     });
     const response = await handleApiRequest(request);
     expect(response.status).toBe(200);
@@ -73,17 +70,17 @@ describe("HTTP API: jobs", () => {
       user_id: "user-1",
       workflow_id: "wf-1",
       status: "running",
-      name: "Job A",
+      name: "Job A"
     });
     await Job.create({
       user_id: "user-1",
       workflow_id: "wf-2",
       status: "completed",
-      name: "Job B",
+      name: "Job B"
     });
 
     const request = new Request("http://localhost/api/jobs?workflow_id=wf-1", {
-      headers: { "x-user-id": "user-1" },
+      headers: { "x-user-id": "user-1" }
     });
     const response = await handleApiRequest(request);
     expect(response.status).toBe(200);
@@ -101,11 +98,11 @@ describe("HTTP API: jobs", () => {
       user_id: "user-1",
       workflow_id: "wf-1",
       status: "running",
-      name: "My Job",
+      name: "My Job"
     })) as Job;
 
     const request = new Request(`http://localhost/api/jobs/${created.id}`, {
-      headers: { "x-user-id": "user-1" },
+      headers: { "x-user-id": "user-1" }
     });
     const response = await handleApiRequest(request);
     expect(response.status).toBe(200);
@@ -121,7 +118,7 @@ describe("HTTP API: jobs", () => {
 
   it("GET /api/jobs/:id returns 404 for nonexistent job", async () => {
     const request = new Request("http://localhost/api/jobs/nonexistent-id", {
-      headers: { "x-user-id": "user-1" },
+      headers: { "x-user-id": "user-1" }
     });
     const response = await handleApiRequest(request);
     expect(response.status).toBe(404);
@@ -135,11 +132,11 @@ describe("HTTP API: jobs", () => {
       user_id: "user-2",
       workflow_id: "wf-1",
       status: "running",
-      name: "Other user job",
+      name: "Other user job"
     })) as Job;
 
     const request = new Request(`http://localhost/api/jobs/${created.id}`, {
-      headers: { "x-user-id": "user-1" },
+      headers: { "x-user-id": "user-1" }
     });
     const response = await handleApiRequest(request);
     expect(response.status).toBe(404);
@@ -150,13 +147,16 @@ describe("HTTP API: jobs", () => {
       user_id: "user-1",
       workflow_id: "wf-1",
       status: "running",
-      name: "Running Job",
+      name: "Running Job"
     })) as Job;
 
-    const request = new Request(`http://localhost/api/jobs/${created.id}/cancel`, {
-      method: "POST",
-      headers: { "x-user-id": "user-1" },
-    });
+    const request = new Request(
+      `http://localhost/api/jobs/${created.id}/cancel`,
+      {
+        method: "POST",
+        headers: { "x-user-id": "user-1" }
+      }
+    );
     const response = await handleApiRequest(request);
     expect(response.status).toBe(200);
 
@@ -171,10 +171,13 @@ describe("HTTP API: jobs", () => {
   });
 
   it("POST /api/jobs/:id/cancel returns 404 for nonexistent job", async () => {
-    const request = new Request("http://localhost/api/jobs/nonexistent-id/cancel", {
-      method: "POST",
-      headers: { "x-user-id": "user-1" },
-    });
+    const request = new Request(
+      "http://localhost/api/jobs/nonexistent-id/cancel",
+      {
+        method: "POST",
+        headers: { "x-user-id": "user-1" }
+      }
+    );
     const response = await handleApiRequest(request);
     expect(response.status).toBe(404);
 
@@ -188,12 +191,12 @@ describe("HTTP API: jobs", () => {
         user_id: "user-1",
         workflow_id: `wf-${i}`,
         status: "completed",
-        name: `Job ${i}`,
+        name: `Job ${i}`
       });
     }
 
     const request = new Request("http://localhost/api/jobs?limit=2", {
-      headers: { "x-user-id": "user-1" },
+      headers: { "x-user-id": "user-1" }
     });
     const response = await handleApiRequest(request);
     expect(response.status).toBe(200);

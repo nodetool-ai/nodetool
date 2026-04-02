@@ -21,7 +21,7 @@ import {
   type TeamConfig,
   type TeamEvent,
   type TeamStrategy,
-  type ITaskBoard,
+  type ITaskBoard
 } from "@nodetool/agents";
 
 // ─── AgentNode ───
@@ -40,7 +40,7 @@ export class TeamAgentNode extends BaseNode {
     "An individual AI agent that receives work from a TeamLead via control edges.\n    agent, team, controlled, worker";
   static readonly isControlled = true;
   static readonly metadataOutputTypes = {
-    result: "str",
+    result: "str"
   };
   static readonly basicFields = ["name", "role", "provider", "model"];
 
@@ -48,7 +48,7 @@ export class TeamAgentNode extends BaseNode {
     type: "str",
     default: "",
     title: "Name",
-    description: "Agent name, e.g. 'researcher', 'writer'",
+    description: "Agent name, e.g. 'researcher', 'writer'"
   })
   declare name: any;
 
@@ -56,7 +56,8 @@ export class TeamAgentNode extends BaseNode {
     type: "str",
     default: "General purpose assistant",
     title: "Role",
-    description: "Freeform role description injected into the agent's system prompt",
+    description:
+      "Freeform role description injected into the agent's system prompt"
   })
   declare role: any;
 
@@ -64,7 +65,8 @@ export class TeamAgentNode extends BaseNode {
     type: "list",
     default: [],
     title: "Skills",
-    description: "Skill tags for task matching, e.g. ['web_search', 'code_generation']",
+    description:
+      "Skill tags for task matching, e.g. ['web_search', 'code_generation']"
   })
   declare skills: any;
 
@@ -72,7 +74,7 @@ export class TeamAgentNode extends BaseNode {
     type: "str",
     default: "anthropic",
     title: "Provider",
-    description: "LLM provider key",
+    description: "LLM provider key"
   })
   declare provider: any;
 
@@ -80,7 +82,7 @@ export class TeamAgentNode extends BaseNode {
     type: "str",
     default: "claude-sonnet-4-20250514",
     title: "Model",
-    description: "Model identifier",
+    description: "Model identifier"
   })
   declare model: any;
 
@@ -88,7 +90,7 @@ export class TeamAgentNode extends BaseNode {
     type: "list",
     default: [],
     title: "Tools",
-    description: "Additional tool names this agent can use (beyond team tools)",
+    description: "Additional tool names this agent can use (beyond team tools)"
   })
   declare tools: any;
 
@@ -113,7 +115,8 @@ export class TeamAgentNode extends BaseNode {
     //   __agent_message__: true — inter-agent message
     //   message: AgentMessage
 
-    const result = (this as any).__agent_response__ ?? (this as any).response ?? "";
+    const result =
+      (this as any).__agent_response__ ?? (this as any).response ?? "";
     return { result: String(result) };
   }
 
@@ -128,7 +131,7 @@ export class TeamAgentNode extends BaseNode {
       skills: Array.isArray(this.skills) ? this.skills.map(String) : [],
       provider: String(this.provider || "anthropic"),
       model: String(this.model || "claude-sonnet-4-20250514"),
-      tools: Array.isArray(this.tools) ? this.tools.map(String) : [],
+      tools: Array.isArray(this.tools) ? this.tools.map(String) : []
     };
   }
 }
@@ -151,7 +154,7 @@ export class TeamLeadNode extends BaseNode {
     result: "json",
     board: "json",
     messages: "list",
-    events: "list",
+    events: "list"
   };
   static readonly basicFields = ["objective", "strategy"];
 
@@ -159,7 +162,7 @@ export class TeamLeadNode extends BaseNode {
     type: "str",
     default: "",
     title: "Objective",
-    description: "The team's objective — what they should accomplish together",
+    description: "The team's objective — what they should accomplish together"
   })
   declare objective: any;
 
@@ -168,7 +171,7 @@ export class TeamLeadNode extends BaseNode {
     default: "coordinator",
     title: "Strategy",
     description:
-      "Team strategy: coordinator (lead decomposes work), autonomous (self-organizing), hybrid (lead + autonomous subtasks)",
+      "Team strategy: coordinator (lead decomposes work), autonomous (self-organizing), hybrid (lead + autonomous subtasks)"
   })
   declare strategy: any;
 
@@ -178,7 +181,7 @@ export class TeamLeadNode extends BaseNode {
     title: "Max Iterations",
     description: "Maximum total LLM calls across all agents",
     min: 1,
-    max: 200,
+    max: 200
   })
   declare max_iterations: any;
 
@@ -188,7 +191,7 @@ export class TeamLeadNode extends BaseNode {
     title: "Max Concurrency",
     description: "Maximum number of agents running simultaneously",
     min: 1,
-    max: 10,
+    max: 10
   })
   declare max_concurrency: any;
 
@@ -204,7 +207,10 @@ export class TeamLeadNode extends BaseNode {
     // about each controlled node — including their properties.
     // Fallback: agents can be provided directly for programmatic use.
     const agents: AgentIdentity[] = [];
-    const controlContext = this.getDynamic<Record<string, Record<string, unknown>>>("_control_context");
+    const controlContext =
+      this.getDynamic<Record<string, Record<string, unknown>>>(
+        "_control_context"
+      );
 
     if (controlContext) {
       // Extract agent identities from controlled Agent nodes
@@ -213,23 +219,30 @@ export class TeamLeadNode extends BaseNode {
         const nodeType = String(meta.node_type ?? "");
         // Only pick up Agent nodes (not arbitrary controlled nodes)
         if (nodeType !== "nodetool.team.Agent") continue;
-        const props = meta.properties as Record<string, { value?: unknown }> | undefined;
+        const props = meta.properties as
+          | Record<string, { value?: unknown }>
+          | undefined;
         const getProp = (name: string) => props?.[name]?.value;
         agents.push({
           id: nodeId,
           name: String(getProp("name") ?? meta.node_title ?? nodeId),
           role: String(getProp("role") ?? "General purpose assistant"),
-          skills: Array.isArray(getProp("skills")) ? (getProp("skills") as unknown[]).map(String) : [],
+          skills: Array.isArray(getProp("skills"))
+            ? (getProp("skills") as unknown[]).map(String)
+            : [],
           provider: String(getProp("provider") ?? "anthropic"),
           model: String(getProp("model") ?? "claude-sonnet-4-20250514"),
-          tools: Array.isArray(getProp("tools")) ? (getProp("tools") as unknown[]).map(String) : [],
+          tools: Array.isArray(getProp("tools"))
+            ? (getProp("tools") as unknown[]).map(String)
+            : []
         });
       }
     }
 
     // Fallback: agents provided inline (programmatic use without kernel)
     if (agents.length === 0) {
-      const rawAgents = (this.getDynamic<Array<Record<string, unknown>>>("agents") ?? []);
+      const rawAgents =
+        this.getDynamic<Array<Record<string, unknown>>>("agents") ?? [];
       for (const a of rawAgents) {
         agents.push({
           id: String(a.id ?? a.name ?? `agent_${agents.length}`),
@@ -238,7 +251,7 @@ export class TeamLeadNode extends BaseNode {
           skills: Array.isArray(a.skills) ? a.skills.map(String) : [],
           provider: String(a.provider ?? "anthropic"),
           model: String(a.model ?? "claude-sonnet-4-20250514"),
-          tools: Array.isArray(a.tools) ? a.tools.map(String) : [],
+          tools: Array.isArray(a.tools) ? a.tools.map(String) : []
         });
       }
     }
@@ -249,15 +262,9 @@ export class TeamLeadNode extends BaseNode {
       );
     }
 
-    const strategy = String(
-      this.strategy ?? "coordinator"
-    ) as TeamStrategy;
-    const maxIterations = Number(
-      this.max_iterations ?? 50
-    );
-    const maxConcurrency = Number(
-      this.max_concurrency ?? 3
-    );
+    const strategy = String(this.strategy ?? "coordinator") as TeamStrategy;
+    const maxIterations = Number(this.max_iterations ?? 50);
+    const maxConcurrency = Number(this.max_concurrency ?? 3);
 
     // Task board: always DB-backed, keyed by this node's ID as team_id.
     const teamId = this.__node_id || "default_team";
@@ -273,14 +280,14 @@ export class TeamLeadNode extends BaseNode {
       agents,
       strategy,
       maxIterations,
-      maxConcurrency,
+      maxConcurrency
     };
 
     const executor = new TeamExecutor({
       config,
       context,
       taskBoard,
-      messageBus,
+      messageBus
     });
 
     const allEvents: TeamEvent[] = [];
@@ -292,7 +299,7 @@ export class TeamLeadNode extends BaseNode {
       if (event.type === "chunk") {
         yield {
           text: event.content,
-          chunk: { type: "chunk", content: event.content, done: false },
+          chunk: { type: "chunk", content: event.content, done: false }
         };
       } else if (event.type === "task_completed") {
         yield {
@@ -300,8 +307,8 @@ export class TeamLeadNode extends BaseNode {
           chunk: {
             type: "chunk",
             content: `\n[Task ${event.taskId} completed]\n`,
-            done: false,
-          },
+            done: false
+          }
         };
       } else if (event.type === "message_sent") {
         yield {
@@ -309,8 +316,8 @@ export class TeamLeadNode extends BaseNode {
           chunk: {
             type: "chunk",
             content: `\n[${event.message.from} → ${event.message.to}: ${event.message.subject}]\n`,
-            done: false,
-          },
+            done: false
+          }
         };
       }
     }
@@ -320,13 +327,11 @@ export class TeamLeadNode extends BaseNode {
       result: executor.getResult(),
       board: executor.taskBoard.getSnapshot(),
       messages: executor.messageBus.getHistory(),
-      events: allEvents,
+      events: allEvents
     };
   }
 
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     let lastOutput: Record<string, unknown> = {};
     for await (const item of this.genProcess(context)) {
       lastOutput = item;
@@ -335,7 +340,4 @@ export class TeamLeadNode extends BaseNode {
   }
 }
 
-export const TEAM_NODES = [
-  TeamAgentNode,
-  TeamLeadNode,
-] as const;
+export const TEAM_NODES = [TeamAgentNode, TeamLeadNode] as const;

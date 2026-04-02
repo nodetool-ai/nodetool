@@ -48,7 +48,10 @@ describe("T-SEC-3: MultiUserAuthProvider", () => {
 
   it("returns error for JWT signed with wrong secret", async () => {
     const provider = new MultiUserAuthProvider({ secret: TEST_SECRET });
-    const token = await createTestJwt({ sub: "user-42" }, "wrong-secret-key-that-is-also-long-enough");
+    const token = await createTestJwt(
+      { sub: "user-42" },
+      "wrong-secret-key-that-is-also-long-enough"
+    );
     const result = await provider.verifyToken(token);
     expect(result.ok).toBe(false);
     expect(result.error).toBeTruthy();
@@ -64,7 +67,7 @@ describe("T-SEC-3: MultiUserAuthProvider", () => {
   it("extracts user_id from custom claim", async () => {
     const provider = new MultiUserAuthProvider({
       secret: TEST_SECRET,
-      userIdClaim: "user_id",
+      userIdClaim: "user_id"
     });
     const token = await createTestJwt({ user_id: "custom-user" });
     const result = await provider.verifyToken(token);

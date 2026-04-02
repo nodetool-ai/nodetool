@@ -1,4 +1,7 @@
-import { StreamRunnerBase, type StreamRunnerOptions } from "./stream-runner-base.js";
+import {
+  StreamRunnerBase,
+  type StreamRunnerOptions
+} from "./stream-runner-base.js";
 
 /**
  * Docker-backed JavaScript code runner.
@@ -13,7 +16,7 @@ export class JavaScriptDockerRunner extends StreamRunnerBase {
 
   override buildContainerCommand(
     userCode: string,
-    envLocals: Record<string, unknown>,
+    envLocals: Record<string, unknown>
   ): string[] {
     let code = "";
     for (const [key, value] of Object.entries(envLocals)) {

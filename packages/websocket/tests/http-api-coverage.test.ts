@@ -4,7 +4,11 @@
  *         createHttpApiServer, workflow access control, method validation, etc.
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse
+} from "node:http";
 import { Readable } from "node:stream";
 import {
   initTestDb,
@@ -13,12 +17,12 @@ import {
   Thread,
   Job,
   Asset,
-  Secret,
+  Secret
 } from "@nodetool/models";
 import {
   handleApiRequest,
   handleNodeHttpRequest,
-  createHttpApiServer,
+  createHttpApiServer
 } from "../src/http-api.js";
 
 async function jsonBody(response: Response): Promise<unknown> {
@@ -28,10 +32,23 @@ async function jsonBody(response: Response): Promise<unknown> {
 
 function makeRequest(
   url: string,
-  opts: { method?: string; userId?: string; body?: unknown; headers?: Record<string, string> } = {}
+  opts: {
+    method?: string;
+    userId?: string;
+    body?: unknown;
+    headers?: Record<string, string>;
+  } = {}
 ): Request {
-  const { method = "GET", userId = "user-1", body, headers: extraHeaders } = opts;
-  const headers: Record<string, string> = { "x-user-id": userId, ...extraHeaders };
+  const {
+    method = "GET",
+    userId = "user-1",
+    body,
+    headers: extraHeaders
+  } = opts;
+  const headers: Record<string, string> = {
+    "x-user-id": userId,
+    ...extraHeaders
+  };
   let requestBody: string | undefined;
   if (body !== undefined) {
     headers["content-type"] = "application/json";
@@ -40,7 +57,7 @@ function makeRequest(
   return new Request(`http://localhost${url}`, {
     method,
     headers,
-    body: requestBody,
+    body: requestBody
   });
 }
 
@@ -57,8 +74,8 @@ describe("HTTP API: public workflows", () => {
         body: {
           name: "Public WF",
           access: "public",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
 
@@ -69,8 +86,8 @@ describe("HTTP API: public workflows", () => {
         body: {
           name: "Private WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
 
@@ -102,8 +119,8 @@ describe("HTTP API: public workflows", () => {
           body: {
             name: `WF ${i}`,
             access: "public",
-            graph: { nodes: [], edges: [] },
-          },
+            graph: { nodes: [], edges: [] }
+          }
         })
       );
     }
@@ -132,8 +149,8 @@ describe("HTTP API: workflow access control", () => {
         body: {
           name: "Public WF",
           access: "public",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -152,14 +169,16 @@ describe("HTTP API: workflow access control", () => {
         body: {
           name: "Private WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
 
     const getRes = await handleApiRequest(
-      makeRequest(`/api/workflows/${String(created.id)}`, { userId: "attacker" })
+      makeRequest(`/api/workflows/${String(created.id)}`, {
+        userId: "attacker"
+      })
     );
     expect(getRes.status).toBe(404);
   });
@@ -172,8 +191,8 @@ describe("HTTP API: workflow access control", () => {
         body: {
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -185,8 +204,8 @@ describe("HTTP API: workflow access control", () => {
         body: {
           name: "Hacked",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
     expect(updateRes.status).toBe(404);
@@ -200,8 +219,8 @@ describe("HTTP API: workflow access control", () => {
         body: {
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -209,7 +228,7 @@ describe("HTTP API: workflow access control", () => {
     const deleteRes = await handleApiRequest(
       makeRequest(`/api/workflows/${String(created.id)}`, {
         method: "DELETE",
-        userId: "attacker",
+        userId: "attacker"
       })
     );
     expect(deleteRes.status).toBe(404);
@@ -232,24 +251,28 @@ describe("HTTP API: workflow validation", () => {
     const res = await handleApiRequest(
       makeRequest("/api/workflows", {
         method: "POST",
-        body: { name: "test" },
+        body: { name: "test" }
       })
     );
     expect(res.status).toBe(400);
     const data = (await jsonBody(res)) as Record<string, unknown>;
-    expect(data.detail).toBe("graph is required and must have nodes and edges arrays");
+    expect(data.detail).toBe(
+      "graph is required and must have nodes and edges arrays"
+    );
   });
 
   it("POST /api/workflows without graph but with access returns 400", async () => {
     const res = await handleApiRequest(
       makeRequest("/api/workflows", {
         method: "POST",
-        body: { name: "test", access: "private" },
+        body: { name: "test", access: "private" }
       })
     );
     expect(res.status).toBe(400);
     const data = (await jsonBody(res)) as Record<string, unknown>;
-    expect(data.detail).toBe("graph is required and must have nodes and edges arrays");
+    expect(data.detail).toBe(
+      "graph is required and must have nodes and edges arrays"
+    );
   });
 
   it("PUT /api/workflows/:id without graph returns 400", async () => {
@@ -259,8 +282,8 @@ describe("HTTP API: workflow validation", () => {
         body: {
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -268,12 +291,14 @@ describe("HTTP API: workflow validation", () => {
     const updateRes = await handleApiRequest(
       makeRequest(`/api/workflows/${String(created.id)}`, {
         method: "PUT",
-        body: { name: "Updated", access: "private" },
+        body: { name: "Updated", access: "private" }
       })
     );
     expect(updateRes.status).toBe(400);
     const updated = (await jsonBody(updateRes)) as Record<string, unknown>;
-    expect(updated.detail).toBe("graph is required and must have nodes and edges arrays");
+    expect(updated.detail).toBe(
+      "graph is required and must have nodes and edges arrays"
+    );
   });
 
   it("PUT /api/workflows/:id without json body returns 400", async () => {
@@ -283,8 +308,8 @@ describe("HTTP API: workflow validation", () => {
         body: {
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -293,7 +318,7 @@ describe("HTTP API: workflow validation", () => {
       new Request(`http://localhost/api/workflows/${String(created.id)}`, {
         method: "PUT",
         headers: { "x-user-id": "user-1", "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(updateRes.status).toBe(400);
@@ -306,8 +331,8 @@ describe("HTTP API: workflow validation", () => {
         body: {
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -315,7 +340,7 @@ describe("HTTP API: workflow validation", () => {
     const res = await handleApiRequest(
       new Request(`http://localhost/api/workflows/${String(created.id)}`, {
         method: "PATCH",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -325,7 +350,7 @@ describe("HTTP API: workflow validation", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows", {
         method: "PATCH",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -350,7 +375,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/messages", {
         method: "DELETE",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -360,7 +385,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/messages/some-id", {
         method: "DELETE",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(404);
@@ -370,7 +395,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/threads", {
         method: "PATCH",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -380,7 +405,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/threads/some-id", {
         method: "PATCH",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -390,7 +415,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const createRes = await handleApiRequest(
       makeRequest("/api/threads", {
         method: "POST",
-        body: { title: "Test" },
+        body: { title: "Test" }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -399,7 +424,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
       new Request(`http://localhost/api/threads/${String(created.id)}`, {
         method: "PUT",
         headers: { "x-user-id": "user-1", "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(res.status).toBe(400);
@@ -409,7 +434,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/jobs", {
         method: "POST",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -418,7 +443,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
   it("GET /api/jobs/:id/cancel returns 405", async () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/jobs/some-id/cancel", {
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -428,7 +453,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/jobs/some-id", {
         method: "POST",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -438,7 +463,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/settings/secrets", {
         method: "POST",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -448,7 +473,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/settings/secrets/KEY", {
         method: "PATCH",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -458,7 +483,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/assets", {
         method: "PATCH",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -468,7 +493,7 @@ describe("HTTP API: method not allowed for various endpoints", () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/assets/some-id", {
         method: "PATCH",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(405);
@@ -508,8 +533,8 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       url,
       headers: {
         "x-user-id": "user-1",
-        ...headers,
-      },
+        ...headers
+      }
     }) as unknown as IncomingMessage;
     return req;
   }
@@ -533,7 +558,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
         } else if (typeof data === "string") {
           result._body = Buffer.from(data);
         }
-      },
+      }
     };
     Object.defineProperty(result, "statusCode", {
       get() {
@@ -541,7 +566,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       },
       set(value: number) {
         result._statusCode = value;
-      },
+      }
     });
     return result as unknown as ServerResponse & {
       _statusCode: number;
@@ -558,8 +583,8 @@ describe("HTTP API: handleNodeHttpRequest", () => {
         body: {
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
 
@@ -577,10 +602,10 @@ describe("HTTP API: handleNodeHttpRequest", () => {
     const body = JSON.stringify({
       name: "Node WF",
       access: "private",
-      graph: { nodes: [], edges: [] },
+      graph: { nodes: [], edges: [] }
     });
     const req = createMockNodeReq("POST", "/api/workflows", body, {
-      "content-type": "application/json",
+      "content-type": "application/json"
     });
     const res = createMockNodeRes();
 
@@ -592,7 +617,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
 
   it("handles request with array header values", async () => {
     const req = createMockNodeReq("GET", "/api/workflows", undefined, {
-      "accept": ["application/json", "text/plain"],
+      accept: ["application/json", "text/plain"]
     } as unknown as Record<string, string>);
     const res = createMockNodeRes();
 
@@ -617,13 +642,16 @@ describe("HTTP API: handleNodeHttpRequest", () => {
         body: {
           name: "WF",
           access: "private",
-          graph: { nodes: [], edges: [] },
-        },
+          graph: { nodes: [], edges: [] }
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
 
-    const req = createMockNodeReq("DELETE", `/api/workflows/${String(created.id)}`);
+    const req = createMockNodeReq(
+      "DELETE",
+      `/api/workflows/${String(created.id)}`
+    );
     const res = createMockNodeRes();
 
     await handleNodeHttpRequest(req, res as unknown as ServerResponse);
@@ -635,7 +663,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
     const res = createMockNodeRes();
 
     await handleNodeHttpRequest(req, res as unknown as ServerResponse, {
-      baseUrl: "http://custom:8080",
+      baseUrl: "http://custom:8080"
     });
     expect(res._statusCode).toBe(200);
   });
@@ -646,15 +674,15 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       read() {
         this.push("test body");
         this.push(null);
-      },
+      }
     });
     const req = Object.assign(stream, {
       method: "POST",
       url: "/api/workflows",
       headers: {
         "x-user-id": "user-1",
-        "content-type": "application/json",
-      },
+        "content-type": "application/json"
+      }
     }) as unknown as IncomingMessage;
     const res = createMockNodeRes();
 
@@ -688,7 +716,7 @@ describe("HTTP API: POST /api/messages with invalid body returns 400", () => {
     const res = await handleApiRequest(
       makeRequest("/api/messages", {
         method: "POST",
-        body: { content: "hello" },
+        body: { content: "hello" }
       })
     );
     expect(res.status).toBe(400);
@@ -699,7 +727,7 @@ describe("HTTP API: POST /api/messages with invalid body returns 400", () => {
       new Request("http://localhost/api/messages", {
         method: "POST",
         headers: { "x-user-id": "user-1", "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(res.status).toBe(400);
@@ -716,7 +744,7 @@ describe("HTTP API: POST /api/assets with invalid body returns 400", () => {
       new Request("http://localhost/api/assets", {
         method: "POST",
         headers: { "x-user-id": "user-1", "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(res.status).toBe(400);
@@ -735,8 +763,8 @@ describe("HTTP API: PUT /api/assets/:id with invalid body", () => {
         body: {
           name: "test.txt",
           content_type: "text/plain",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -745,7 +773,7 @@ describe("HTTP API: PUT /api/assets/:id with invalid body", () => {
       new Request(`http://localhost/api/assets/${String(created.id)}`, {
         method: "PUT",
         headers: { "x-user-id": "user-1", "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(res.status).toBe(400);
@@ -765,8 +793,8 @@ describe("HTTP API: workflow run_mode filter", () => {
           name: "Tool WF",
           access: "private",
           graph: { nodes: [], edges: [] },
-          run_mode: "tool",
-        },
+          run_mode: "tool"
+        }
       })
     );
     await handleApiRequest(
@@ -776,8 +804,8 @@ describe("HTTP API: workflow run_mode filter", () => {
           name: "Workflow WF",
           access: "private",
           graph: { nodes: [], edges: [] },
-          run_mode: "workflow",
-        },
+          run_mode: "workflow"
+        }
       })
     );
 
@@ -803,7 +831,7 @@ describe("HTTP API: POST /api/workflows with non-json content type", () => {
       new Request("http://localhost/api/workflows", {
         method: "POST",
         headers: { "x-user-id": "user-1", "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(res.status).toBe(400);
@@ -819,13 +847,13 @@ describe("HTTP API: job cancel returns 404 for wrong user", () => {
     const job = (await Job.create({
       user_id: "user-2",
       workflow_id: "wf-1",
-      status: "running",
+      status: "running"
     })) as Job;
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/jobs/${job.id}/cancel`, {
         method: "POST",
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(404);
@@ -836,9 +864,7 @@ describe("HTTP API: trailing slash normalization", () => {
   it("normalizes trailing slash on paths", async () => {
     initTestDb();
 
-    const res = await handleApiRequest(
-      makeRequest("/api/workflows/")
-    );
+    const res = await handleApiRequest(makeRequest("/api/workflows/"));
     expect(res.status).toBe(200);
   });
 });
@@ -858,7 +884,7 @@ describe("HTTP API: getUserId fallback", () => {
   it("uses custom userIdHeader", async () => {
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows", {
-        headers: { "x-custom-user": "custom-user" },
+        headers: { "x-custom-user": "custom-user" }
       }),
       { userIdHeader: "x-custom-user" }
     );

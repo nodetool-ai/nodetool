@@ -15,8 +15,14 @@ export interface SliceArrayOutputs {
   output: unknown;
 }
 
-export function sliceArray(inputs: SliceArrayInputs): DslNode<SliceArrayOutputs, "output"> {
-  return createNode("lib.numpy.manipulation.SliceArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function sliceArray(
+  inputs: SliceArrayInputs
+): DslNode<SliceArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.manipulation.SliceArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Index Array — lib.numpy.manipulation.IndexArray
@@ -30,8 +36,14 @@ export interface IndexArrayOutputs {
   output: unknown;
 }
 
-export function indexArray(inputs: IndexArrayInputs): DslNode<IndexArrayOutputs, "output"> {
-  return createNode("lib.numpy.manipulation.IndexArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function indexArray(
+  inputs: IndexArrayInputs
+): DslNode<IndexArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.manipulation.IndexArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Transpose Array — lib.numpy.manipulation.TransposeArray
@@ -43,8 +55,14 @@ export interface TransposeArrayOutputs {
   output: unknown;
 }
 
-export function transposeArray(inputs: TransposeArrayInputs): DslNode<TransposeArrayOutputs, "output"> {
-  return createNode("lib.numpy.manipulation.TransposeArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function transposeArray(
+  inputs: TransposeArrayInputs
+): DslNode<TransposeArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.manipulation.TransposeArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Mat Mul — lib.numpy.manipulation.MatMul
@@ -58,7 +76,11 @@ export interface MatMulOutputs {
 }
 
 export function matMul(inputs: MatMulInputs): DslNode<MatMulOutputs, "output"> {
-  return createNode("lib.numpy.manipulation.MatMul", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "lib.numpy.manipulation.MatMul",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Stack — lib.numpy.manipulation.Stack
@@ -72,7 +94,11 @@ export interface StackOutputs {
 }
 
 export function stack(inputs: StackInputs): DslNode<StackOutputs, "output"> {
-  return createNode("lib.numpy.manipulation.Stack", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode(
+    "lib.numpy.manipulation.Stack",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Split Array — lib.numpy.manipulation.SplitArray
@@ -86,6 +112,12 @@ export interface SplitArrayOutputs {
   output: unknown[];
 }
 
-export function splitArray(inputs: SplitArrayInputs): DslNode<SplitArrayOutputs, "output"> {
-  return createNode("lib.numpy.manipulation.SplitArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function splitArray(
+  inputs: SplitArrayInputs
+): DslNode<SplitArrayOutputs, "output"> {
+  return createNode(
+    "lib.numpy.manipulation.SplitArray",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

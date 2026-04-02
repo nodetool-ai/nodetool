@@ -13,7 +13,7 @@ import {
   type LanguageModel,
   type ProviderId,
   type TTSModel,
-  type VideoModel,
+  type VideoModel
 } from "@nodetool/runtime";
 import type { PythonStdioBridge } from "@nodetool/runtime";
 import {
@@ -22,7 +22,7 @@ import {
   getModelsByHfType,
   deleteCachedHfModel,
   getHuggingfaceFileInfos,
-  type HFFileRequest,
+  type HFFileRequest
 } from "@nodetool/huggingface";
 import type { UnifiedModel } from "@nodetool/protocol";
 
@@ -30,7 +30,13 @@ export type { UnifiedModel };
 
 interface RecommendedUnifiedModel extends UnifiedModel {
   modality: "language" | "image" | "tts" | "asr" | "video";
-  task?: "text_generation" | "embedding" | "text_to_image" | "image_to_image" | "text_to_video" | "image_to_video";
+  task?:
+    | "text_generation"
+    | "embedding"
+    | "text_to_image"
+    | "image_to_image"
+    | "text_to_video"
+    | "image_to_video";
   provider?: ProviderId;
 }
 
@@ -77,7 +83,11 @@ interface HFFastCacheStatusResponse {
   downloaded: boolean;
 }
 
-const LLAMA_CPP_MODEL_TYPES = new Set(["llama_cpp_model", "llama_cpp", "hf.gguf"]);
+const LLAMA_CPP_MODEL_TYPES = new Set([
+  "llama_cpp_model",
+  "llama_cpp",
+  "hf.gguf"
+]);
 
 const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
   {
@@ -89,7 +99,7 @@ const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     downloaded: false,
     modality: "language",
     task: "text_generation",
-    provider: "openai",
+    provider: "openai"
   },
   {
     id: "claude-3-5-sonnet-latest",
@@ -100,7 +110,7 @@ const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     downloaded: false,
     modality: "language",
     task: "text_generation",
-    provider: "anthropic",
+    provider: "anthropic"
   },
   {
     id: "text-embedding-3-small",
@@ -111,7 +121,7 @@ const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     downloaded: false,
     modality: "language",
     task: "embedding",
-    provider: "openai",
+    provider: "openai"
   },
   {
     id: "gpt-image-1",
@@ -122,7 +132,7 @@ const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     downloaded: false,
     modality: "image",
     task: "text_to_image",
-    provider: "openai",
+    provider: "openai"
   },
   {
     id: "gpt-image-1",
@@ -133,7 +143,7 @@ const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     downloaded: false,
     modality: "image",
     task: "image_to_image",
-    provider: "openai",
+    provider: "openai"
   },
   {
     id: "whisper-1",
@@ -143,7 +153,7 @@ const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     path: null,
     downloaded: false,
     modality: "asr",
-    provider: "openai",
+    provider: "openai"
   },
   {
     id: "tts-1",
@@ -153,7 +163,7 @@ const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     path: null,
     downloaded: false,
     modality: "tts",
-    provider: "openai",
+    provider: "openai"
   },
   {
     id: "sora-2",
@@ -164,7 +174,7 @@ const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     downloaded: false,
     modality: "video",
     task: "text_to_video",
-    provider: "openai",
+    provider: "openai"
   },
   {
     id: "sora-2",
@@ -175,8 +185,8 @@ const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     downloaded: false,
     modality: "video",
     task: "image_to_video",
-    provider: "openai",
-  },
+    provider: "openai"
+  }
 ];
 
 function jsonResponse(data: unknown, init?: ResponseInit): Response {
@@ -184,17 +194,24 @@ function jsonResponse(data: unknown, init?: ResponseInit): Response {
     status: init?.status ?? 200,
     headers: {
       "content-type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+      ...(init?.headers ?? {})
+    }
   });
 }
 
-function errorResponse(status: number, detail: string | Record<string, unknown>): Response {
+function errorResponse(
+  status: number,
+  detail: string | Record<string, unknown>
+): Response {
   return jsonResponse({ detail }, { status });
 }
 
 function isProduction(): boolean {
-  const value = (process.env.NODETOOL_ENV ?? process.env.NODE_ENV ?? "").toLowerCase();
+  const value = (
+    process.env.NODETOOL_ENV ??
+    process.env.NODE_ENV ??
+    ""
+  ).toLowerCase();
   return value === "production";
 }
 
@@ -211,7 +228,9 @@ function dedupeModels(models: UnifiedModel[]): UnifiedModel[] {
   return deduped;
 }
 
-function normalizePatterns(patterns: string | string[] | null | undefined): string[] | null {
+function normalizePatterns(
+  patterns: string | string[] | null | undefined
+): string[] | null {
   if (patterns == null) return null;
   if (typeof patterns === "string") return patterns ? [patterns] : null;
   const cleaned = patterns.filter((p) => Boolean(p));
@@ -242,7 +261,10 @@ function isDownloadedFromFiles(
 
   if (allowPatterns && allowPatterns.length > 0) {
     return allowPatterns.every((pattern) =>
-      files.some((path) => matchesPattern(path, pattern) && !isIgnored(path, ignorePatterns))
+      files.some(
+        (path) =>
+          matchesPattern(path, pattern) && !isIgnored(path, ignorePatterns)
+      )
     );
   }
 
@@ -270,13 +292,22 @@ async function pathExists(path: string): Promise<boolean> {
 }
 
 async function listSnapshotDirs(repoId: string): Promise<string[]> {
-  const snapshotsRoot = join(getHfCacheRoot(), repoToCacheDir(repoId), "snapshots");
+  const snapshotsRoot = join(
+    getHfCacheRoot(),
+    repoToCacheDir(repoId),
+    "snapshots"
+  );
   if (!(await pathExists(snapshotsRoot))) return [];
   const entries = await readdir(snapshotsRoot, { withFileTypes: true });
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => join(snapshotsRoot, entry.name));
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(snapshotsRoot, entry.name));
 }
 
-async function repoFileInCache(repoId: string, relativePath: string): Promise<boolean> {
+async function repoFileInCache(
+  repoId: string,
+  relativePath: string
+): Promise<boolean> {
   const snapshotDirs = await listSnapshotDirs(repoId);
   for (const snapshotDir of snapshotDirs) {
     if (await pathExists(join(snapshotDir, relativePath))) {
@@ -324,12 +355,18 @@ function toUnifiedLanguageModel(model: LanguageModel): UnifiedModel {
     repo_id: null,
     path: model.id,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
-    tags: [model.provider],
+    tags: [model.provider]
   };
 }
 
 function toUnifiedModel(
-  model: LanguageModel | ImageModel | VideoModel | TTSModel | ASRModel | EmbeddingModel,
+  model:
+    | LanguageModel
+    | ImageModel
+    | VideoModel
+    | TTSModel
+    | ASRModel
+    | EmbeddingModel,
   type: string
 ): UnifiedModel {
   return {
@@ -339,7 +376,7 @@ function toUnifiedModel(
     repo_id: null,
     path: model.id,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
-    tags: [model.provider],
+    tags: [model.provider]
   };
 }
 
@@ -351,7 +388,7 @@ function toOllamaModel(model: LanguageModel): Record<string, unknown> {
     modified_at: "",
     size: 0,
     digest: "",
-    details: {},
+    details: {}
   };
 }
 
@@ -367,13 +404,19 @@ import { PythonProvider, registerProvider } from "@nodetool/runtime";
  * Register Python-only providers (HuggingFace Local, MLX) discovered
  * via the PythonBridge. Call after the bridge has connected.
  */
-export async function registerPythonProviders(bridge: PythonStdioBridge): Promise<string[]> {
+export async function registerPythonProviders(
+  bridge: PythonStdioBridge
+): Promise<string[]> {
   const providers = await bridge.listProviders();
   const registered: string[] = [];
   for (const info of providers) {
     if (listRegisteredProviderIds().includes(info.id)) continue;
     const secrets: Record<string, string> = {};
-    registerProvider(info.id, PythonProvider as any, { _bridge: bridge, _id: info.id, ...secrets });
+    registerProvider(info.id, PythonProvider as any, {
+      _bridge: bridge,
+      _id: info.id,
+      ...secrets
+    });
     registered.push(info.id);
   }
   return registered;
@@ -385,13 +428,16 @@ async function getAvailableProviderIds(userId = "1"): Promise<ProviderId[]> {
   const checks = await Promise.all(
     ids.map(async (id) => ({
       id,
-      available: await isProviderConfigured(id, userId),
-    })),
+      available: await isProviderConfigured(id, userId)
+    }))
   );
   return checks.filter((c) => c.available).map((c) => c.id);
 }
 
-async function instantiateProvider(provider: ProviderId, userId = "1"): Promise<BaseProvider | null> {
+async function instantiateProvider(
+  provider: ProviderId,
+  userId = "1"
+): Promise<BaseProvider | null> {
   if (!(await isProviderConfigured(provider, userId))) return null;
   try {
     return await getProvider(provider, userId);
@@ -402,19 +448,34 @@ async function instantiateProvider(provider: ProviderId, userId = "1"): Promise<
 
 function providerCapabilities(provider: BaseProvider): string[] {
   const capabilities = ["generate_message", "generate_messages"];
-  if (provider.getAvailableImageModels !== BaseProvider.prototype.getAvailableImageModels) {
+  if (
+    provider.getAvailableImageModels !==
+    BaseProvider.prototype.getAvailableImageModels
+  ) {
     capabilities.push("text_to_image", "image_to_image");
   }
-  if (provider.getAvailableVideoModels !== BaseProvider.prototype.getAvailableVideoModels) {
+  if (
+    provider.getAvailableVideoModels !==
+    BaseProvider.prototype.getAvailableVideoModels
+  ) {
     capabilities.push("text_to_video", "image_to_video");
   }
-  if (provider.getAvailableTTSModels !== BaseProvider.prototype.getAvailableTTSModels) {
+  if (
+    provider.getAvailableTTSModels !==
+    BaseProvider.prototype.getAvailableTTSModels
+  ) {
     capabilities.push("text_to_speech");
   }
-  if (provider.getAvailableASRModels !== BaseProvider.prototype.getAvailableASRModels) {
+  if (
+    provider.getAvailableASRModels !==
+    BaseProvider.prototype.getAvailableASRModels
+  ) {
     capabilities.push("automatic_speech_recognition");
   }
-  if (provider.getAvailableEmbeddingModels !== BaseProvider.prototype.getAvailableEmbeddingModels) {
+  if (
+    provider.getAvailableEmbeddingModels !==
+    BaseProvider.prototype.getAvailableEmbeddingModels
+  ) {
     capabilities.push("generate_embedding");
   }
   return capabilities;
@@ -430,7 +491,11 @@ async function getProvidersInfo(userId = "1"): Promise<ProviderInfo[]> {
   return infos;
 }
 
-async function withProvider<T>(provider: ProviderId, run: (instance: BaseProvider) => Promise<T>, userId = "1"): Promise<T> {
+async function withProvider<T>(
+  provider: ProviderId,
+  run: (instance: BaseProvider) => Promise<T>,
+  userId = "1"
+): Promise<T> {
   const instance = await instantiateProvider(provider, userId);
   if (!instance) {
     throw new Error(`Provider ${provider} not available`);
@@ -438,49 +503,91 @@ async function withProvider<T>(provider: ProviderId, run: (instance: BaseProvide
   return run(instance);
 }
 
-async function getLanguageModelsByProvider(provider: ProviderId, userId = "1"): Promise<LanguageModel[]> {
+async function getLanguageModelsByProvider(
+  provider: ProviderId,
+  userId = "1"
+): Promise<LanguageModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableLanguageModels(), userId);
+    return await withProvider(
+      provider,
+      (instance) => instance.getAvailableLanguageModels(),
+      userId
+    );
   } catch {
     return [];
   }
 }
 
-async function getImageModelsByProvider(provider: ProviderId, userId = "1"): Promise<ImageModel[]> {
+async function getImageModelsByProvider(
+  provider: ProviderId,
+  userId = "1"
+): Promise<ImageModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableImageModels(), userId);
+    return await withProvider(
+      provider,
+      (instance) => instance.getAvailableImageModels(),
+      userId
+    );
   } catch {
     return [];
   }
 }
 
-async function getTtsModelsByProvider(provider: ProviderId, userId = "1"): Promise<TTSModel[]> {
+async function getTtsModelsByProvider(
+  provider: ProviderId,
+  userId = "1"
+): Promise<TTSModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableTTSModels(), userId);
+    return await withProvider(
+      provider,
+      (instance) => instance.getAvailableTTSModels(),
+      userId
+    );
   } catch {
     return [];
   }
 }
 
-async function getAsrModelsByProvider(provider: ProviderId, userId = "1"): Promise<ASRModel[]> {
+async function getAsrModelsByProvider(
+  provider: ProviderId,
+  userId = "1"
+): Promise<ASRModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableASRModels(), userId);
+    return await withProvider(
+      provider,
+      (instance) => instance.getAvailableASRModels(),
+      userId
+    );
   } catch {
     return [];
   }
 }
 
-async function getVideoModelsByProvider(provider: ProviderId, userId = "1"): Promise<VideoModel[]> {
+async function getVideoModelsByProvider(
+  provider: ProviderId,
+  userId = "1"
+): Promise<VideoModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableVideoModels(), userId);
+    return await withProvider(
+      provider,
+      (instance) => instance.getAvailableVideoModels(),
+      userId
+    );
   } catch {
     return [];
   }
 }
 
-async function getEmbeddingModelsByProvider(provider: ProviderId, userId = "1"): Promise<EmbeddingModel[]> {
+async function getEmbeddingModelsByProvider(
+  provider: ProviderId,
+  userId = "1"
+): Promise<EmbeddingModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableEmbeddingModels(), userId);
+    return await withProvider(
+      provider,
+      (instance) => instance.getAvailableEmbeddingModels(),
+      userId
+    );
   } catch {
     return [];
   }
@@ -499,7 +606,10 @@ async function isServerReachable(url: string): Promise<boolean> {
   }
 }
 
-async function serverAllowsModel(model: RecommendedUnifiedModel, servers: Record<string, boolean>): Promise<boolean> {
+async function serverAllowsModel(
+  model: RecommendedUnifiedModel,
+  servers: Record<string, boolean>
+): Promise<boolean> {
   // Local server providers need reachability check
   if (model.provider === "ollama") return servers.ollama ?? false;
   if (model.provider === "llama_cpp") return servers.llama_cpp ?? false;
@@ -514,18 +624,24 @@ async function getServerAvailability(): Promise<Record<string, boolean>> {
   // Skip localhost probes in production — local servers won't be available
   if (isProduction()) return { ollama: false, llama_cpp: false };
 
-  const ollamaUrl = (process.env.OLLAMA_API_URL ?? "http://127.0.0.1:11434").replace(/\/+$/, "");
+  const ollamaUrl = (
+    process.env.OLLAMA_API_URL ?? "http://127.0.0.1:11434"
+  ).replace(/\/+$/, "");
   const llamaUrl = process.env.LLAMA_CPP_URL?.replace(/\/+$/, "") ?? "";
 
   const [ollama, llama] = await Promise.all([
     isServerReachable(`${ollamaUrl}/api/tags`),
-    llamaUrl ? isServerReachable(`${llamaUrl}/v1/models`) : Promise.resolve(false),
+    llamaUrl
+      ? isServerReachable(`${llamaUrl}/v1/models`)
+      : Promise.resolve(false)
   ]);
 
   return { ollama, llama_cpp: llama };
 }
 
-async function recommendedModels(checkServers: boolean): Promise<UnifiedModel[]> {
+async function recommendedModels(
+  checkServers: boolean
+): Promise<UnifiedModel[]> {
   const models = [...RECOMMENDED_MODELS];
   if (!checkServers) return models;
   const servers = await getServerAvailability();
@@ -538,8 +654,13 @@ async function recommendedModels(checkServers: boolean): Promise<UnifiedModel[]>
   return filtered;
 }
 
-function selectRecommended(modality: RecommendedUnifiedModel["modality"], task?: RecommendedUnifiedModel["task"]): UnifiedModel[] {
-  return RECOMMENDED_MODELS.filter((model) => model.modality === modality && (!task || model.task === task));
+function selectRecommended(
+  modality: RecommendedUnifiedModel["modality"],
+  task?: RecommendedUnifiedModel["task"]
+): UnifiedModel[] {
+  return RECOMMENDED_MODELS.filter(
+    (model) => model.modality === modality && (!task || model.task === task)
+  );
 }
 
 async function getAllModels(userId = "1"): Promise<UnifiedModel[]> {
@@ -598,7 +719,9 @@ function parseProvider(path: string, prefix: string): ProviderId | null {
   return value;
 }
 
-async function checkHfCache(body: HFCacheCheckRequest): Promise<HFCacheCheckResponse> {
+async function checkHfCache(
+  body: HFCacheCheckRequest
+): Promise<HFCacheCheckResponse> {
   const allowPatterns = normalizePatterns(body.allow_pattern);
   const ignorePatterns = normalizePatterns(body.ignore_pattern);
   const files = await listRepoCachedFiles(body.repo_id);
@@ -606,7 +729,10 @@ async function checkHfCache(body: HFCacheCheckRequest): Promise<HFCacheCheckResp
   const missing: string[] = [];
   if (allowPatterns) {
     for (const pattern of allowPatterns) {
-      const matched = files.some((path) => matchesPattern(path, pattern) && !isIgnored(path, ignorePatterns));
+      const matched = files.some(
+        (path) =>
+          matchesPattern(path, pattern) && !isIgnored(path, ignorePatterns)
+      );
       if (!matched) {
         missing.push(pattern);
       }
@@ -617,16 +743,21 @@ async function checkHfCache(body: HFCacheCheckRequest): Promise<HFCacheCheckResp
     repo_id: body.repo_id,
     all_present: missing.length === 0,
     total_files: files.length,
-    missing,
+    missing
   };
 }
 
-async function isLlamaCppModelCached(repoId: string, filePath: string): Promise<boolean> {
+async function isLlamaCppModelCached(
+  repoId: string,
+  filePath: string
+): Promise<boolean> {
   if (await repoFileInCache(repoId, filePath)) {
     return true;
   }
 
-  const cacheRoot = process.env.LLAMA_CPP_CACHE_DIR ?? join(homedir(), "Library", "Caches", "llama.cpp", "hf");
+  const cacheRoot =
+    process.env.LLAMA_CPP_CACHE_DIR ??
+    join(homedir(), "Library", "Caches", "llama.cpp", "hf");
   const repoDir = join(cacheRoot, repoToCacheDir(repoId), "snapshots");
   if (!(await pathExists(repoDir))) return false;
 
@@ -644,7 +775,9 @@ async function isLlamaCppModelCached(repoId: string, filePath: string): Promise<
   return false;
 }
 
-async function fastCacheStatus(items: HFFastCacheStatusRequest[]): Promise<HFFastCacheStatusResponse[]> {
+async function fastCacheStatus(
+  items: HFFastCacheStatusRequest[]
+): Promise<HFFastCacheStatusResponse[]> {
   return Promise.all(
     items.map(async (item) => {
       const allowPatterns = normalizePatterns(item.allow_patterns);
@@ -654,94 +787,109 @@ async function fastCacheStatus(items: HFFastCacheStatusRequest[]): Promise<HFFas
         if (!item.path) return { key: item.key, downloaded: false };
         return {
           key: item.key,
-          downloaded: await isLlamaCppModelCached(item.repo_id, item.path),
+          downloaded: await isLlamaCppModelCached(item.repo_id, item.path)
         };
       }
 
       if (item.path) {
         return {
           key: item.key,
-          downloaded: await repoFileInCache(item.repo_id, item.path),
+          downloaded: await repoFileInCache(item.repo_id, item.path)
         };
       }
 
       const files = await listRepoCachedFiles(item.repo_id);
       return {
         key: item.key,
-        downloaded: isDownloadedFromFiles(files, allowPatterns, ignorePatterns),
+        downloaded: isDownloadedFromFiles(files, allowPatterns, ignorePatterns)
       };
     })
   );
 }
 
-export async function handleModelsApiRequest(request: Request): Promise<Response | null> {
+export async function handleModelsApiRequest(
+  request: Request
+): Promise<Response | null> {
   const url = new URL(request.url);
   const path = pathFromModelsPrefix(url.pathname);
   const userId = request.headers.get("x-user-id") ?? "1";
 
   if (path === "/providers") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(await getProvidersInfo(userId));
   }
 
   if (path === "/recommended") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     const checkServers = url.searchParams.get("check_servers") === "true";
     return jsonResponse(await recommendedModels(checkServers));
   }
 
   if (path === "/recommended/image") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("image"));
   }
 
   if (path === "/recommended/image/text-to-image") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("image", "text_to_image"));
   }
 
   if (path === "/recommended/image/image-to-image") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("image", "image_to_image"));
   }
 
   if (path === "/recommended/language") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("language"));
   }
 
   if (path === "/recommended/language/text-generation") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("language", "text_generation"));
   }
 
   if (path === "/recommended/language/embedding") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("language", "embedding"));
   }
 
   if (path === "/recommended/asr") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("asr"));
   }
 
   if (path === "/recommended/tts") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("tts"));
   }
 
   if (path === "/recommended/video/text-to-video") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("video", "text_to_video"));
   }
 
   if (path === "/recommended/video/image-to-video") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("video", "image_to_video"));
   }
 
   if (path === "/all") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(await getAllModels(userId));
   }
 
@@ -770,16 +918,18 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   }
 
   if (path === "/huggingface/search") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     if (isProduction()) return jsonResponse([]);
     const rawQuery = url.searchParams.get("query") ?? undefined;
     const type = url.searchParams.get("type") ?? undefined;
     // Wrap bare queries with wildcards so "whisper" matches "openai/whisper-small"
-    const query = rawQuery && !rawQuery.includes("*") ? `*${rawQuery}*` : rawQuery;
+    const query =
+      rawQuery && !rawQuery.includes("*") ? `*${rawQuery}*` : rawQuery;
     try {
       const models = await searchCachedHfModels(
         query ? [query] : undefined,
-        type ? [type] : undefined,
+        type ? [type] : undefined
       );
       return jsonResponse(models);
     } catch {
@@ -788,8 +938,11 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   }
 
   if (path.startsWith("/huggingface/type/")) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    const modelType = decodeURIComponent(path.slice("/huggingface/type/".length));
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
+    const modelType = decodeURIComponent(
+      path.slice("/huggingface/type/".length)
+    );
     if (!modelType) return jsonResponse([]);
     try {
       const models = await getModelsByHfType(modelType);
@@ -804,7 +957,8 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
       if (isProduction()) return jsonResponse(false);
       return jsonResponse(false);
     }
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
 
     const models = await getLanguageModelsByProvider("ollama", userId);
     return jsonResponse(models.map((model) => toOllamaModel(model)));
@@ -812,55 +966,69 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
 
   const llmProvider = parseProvider(path, "/llm/");
   if (llmProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(await getLanguageModelsByProvider(llmProvider, userId));
   }
 
   const imageProvider = parseProvider(path, "/image/");
   if (imageProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(await getImageModelsByProvider(imageProvider, userId));
   }
 
   if (path === "/tts") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     const availableIds = await getAvailableProviderIds(userId);
-    const providers = await Promise.all(availableIds.map((provider) => getTtsModelsByProvider(provider, userId)));
+    const providers = await Promise.all(
+      availableIds.map((provider) => getTtsModelsByProvider(provider, userId))
+    );
     return jsonResponse(providers.flat());
   }
 
   const ttsProvider = parseProvider(path, "/tts/");
   if (ttsProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(await getTtsModelsByProvider(ttsProvider, userId));
   }
 
   const asrProvider = parseProvider(path, "/asr/");
   if (asrProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(await getAsrModelsByProvider(asrProvider, userId));
   }
 
   const videoProvider = parseProvider(path, "/video/");
   if (videoProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(await getVideoModelsByProvider(videoProvider, userId));
   }
 
   const embeddingProvider = parseProvider(path, "/embedding/");
   if (embeddingProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse(await getEmbeddingModelsByProvider(embeddingProvider, userId));
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
+    return jsonResponse(
+      await getEmbeddingModelsByProvider(embeddingProvider, userId)
+    );
   }
 
   if (path === "/ollama_model_info") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     return jsonResponse(null);
   }
 
   if (path === "/huggingface/try_cache_files") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
-    const body = await parseJsonBody<Array<{ repo_id?: string; path?: string }>>(request);
+    if (request.method !== "POST")
+      return errorResponse(405, "Method not allowed");
+    const body =
+      await parseJsonBody<Array<{ repo_id?: string; path?: string }>>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
 
     const checked: RepoPath[] = await Promise.all(
@@ -870,7 +1038,10 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
         return {
           repo_id: repoId,
           path: repoPath,
-          downloaded: repoId.length > 0 && repoPath.length > 0 ? await repoFileInCache(repoId, repoPath) : false,
+          downloaded:
+            repoId.length > 0 && repoPath.length > 0
+              ? await repoFileInCache(repoId, repoPath)
+              : false
         };
       })
     );
@@ -879,21 +1050,30 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   }
 
   if (path === "/huggingface/try_cache_repos") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+    if (request.method !== "POST")
+      return errorResponse(405, "Method not allowed");
     const body = await parseJsonBody<string[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
 
     const checked: CachedRepo[] = await Promise.all(
-      body.map(async (repoId) => ({ repo_id: repoId, downloaded: await hasCachedFiles(repoId) }))
+      body.map(async (repoId) => ({
+        repo_id: repoId,
+        downloaded: await hasCachedFiles(repoId)
+      }))
     );
 
     return jsonResponse(checked);
   }
 
   if (path === "/huggingface/check_cache") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+    if (request.method !== "POST")
+      return errorResponse(405, "Method not allowed");
     const body = await parseJsonBody<HFCacheCheckRequest>(request);
-    if (!body || typeof body.repo_id !== "string" || body.repo_id.length === 0) {
+    if (
+      !body ||
+      typeof body.repo_id !== "string" ||
+      body.repo_id.length === 0
+    ) {
       return errorResponse(400, "Invalid JSON body");
     }
 
@@ -901,23 +1081,33 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   }
 
   if (path === "/huggingface/cache_status") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+    if (request.method !== "POST")
+      return errorResponse(405, "Method not allowed");
     const body = await parseJsonBody<HFFastCacheStatusRequest[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     return jsonResponse(await fastCacheStatus(body));
   }
 
   if (path === "/pull_ollama_model") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
-    if (isProduction()) return errorResponse(503, { status: "unavailable", message: "Not available in production" });
+    if (request.method !== "POST")
+      return errorResponse(405, "Method not allowed");
+    if (isProduction())
+      return errorResponse(503, {
+        status: "unavailable",
+        message: "Not available in production"
+      });
     // Streaming Ollama model pulls require Server-Sent Events with progress deltas.
     // The TS standalone server does not implement this streaming protocol yet.
     // Clients should use the Python backend or manage Ollama pulls directly via the Ollama HTTP API.
-    return errorResponse(501, "Streaming Ollama model pulls are not available in the TS standalone server. Use the Ollama API directly or the Python backend.");
+    return errorResponse(
+      501,
+      "Streaming Ollama model pulls are not available in the TS standalone server. Use the Ollama API directly or the Python backend."
+    );
   }
 
   if (path === "/huggingface/file_info") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+    if (request.method !== "POST")
+      return errorResponse(405, "Method not allowed");
     if (isProduction()) return jsonResponse([]);
     const body = await parseJsonBody<HFFileRequest[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
@@ -934,6 +1124,8 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   return null;
 }
 
-export function toUnifiedModelsFromLanguage(models: LanguageModel[]): UnifiedModel[] {
+export function toUnifiedModelsFromLanguage(
+  models: LanguageModel[]
+): UnifiedModel[] {
   return models.map((model) => toUnifiedModel(model, "language_model"));
 }

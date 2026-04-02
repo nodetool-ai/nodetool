@@ -5,22 +5,16 @@ vi.mock("../src/nodes/kie-base.js", () => ({
   getApiKey: vi.fn(() => "test-api-key"),
   kieExecuteTask: vi.fn(async () => ({
     data: "dmlkZW9kYXRh",
-    taskId: "task_456",
+    taskId: "task_456"
   })),
-  uploadImageInput: vi.fn(
-    async () => "https://uploaded.example.com/image.png"
-  ),
-  uploadAudioInput: vi.fn(
-    async () => "https://uploaded.example.com/audio.mp3"
-  ),
-  uploadVideoInput: vi.fn(
-    async () => "https://uploaded.example.com/video.mp4"
-  ),
+  uploadImageInput: vi.fn(async () => "https://uploaded.example.com/image.png"),
+  uploadAudioInput: vi.fn(async () => "https://uploaded.example.com/audio.mp3"),
+  uploadVideoInput: vi.fn(async () => "https://uploaded.example.com/video.mp4"),
   isRefSet: vi.fn((ref: unknown) => {
     if (!ref || typeof ref !== "object") return false;
     const r = ref as Record<string, unknown>;
     return !!(r.data || r.uri);
-  }),
+  })
 }));
 
 import {
@@ -70,14 +64,14 @@ import {
   Wan22ImageToVideoNode,
   Hailuo02TextToVideoNode,
   Hailuo02ImageToVideoNode,
-  Sora2WatermarkRemoverNode,
+  Sora2WatermarkRemoverNode
 } from "../src/nodes/kie-video.js";
 
 import {
   kieExecuteTask,
   uploadImageInput,
   uploadAudioInput,
-  uploadVideoInput,
+  uploadVideoInput
 } from "../src/nodes/kie-base.js";
 
 // ---------------------------------------------------------------------------
@@ -101,7 +95,6 @@ function metadataDefaults(NodeCls: any) {
 function expectMetadataDefaults(NodeCls: any) {
   expect(new NodeCls().serialize()).toEqual(metadataDefaults(NodeCls));
 }
-
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -131,9 +124,7 @@ describe("KlingTextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (KlingTextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -161,9 +152,7 @@ describe("KlingImageToVideoNode", () => {
   it("throws when no images provided", async () => {
     const n = new (KlingImageToVideoNode as any)();
     n.assign({ prompt: "Animate" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("At least one image is required");
+    await expect(n.process()).rejects.toThrow("At least one image is required");
   });
 });
 
@@ -240,9 +229,7 @@ describe("GrokImagineTextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (GrokImagineTextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -295,9 +282,7 @@ describe("SeedanceV1LiteTextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (SeedanceV1LiteTextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -326,9 +311,7 @@ describe("SeedanceV1ProTextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (SeedanceV1ProTextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -357,9 +340,7 @@ describe("SeedanceV1LiteImageToVideoNode", () => {
 
   it("throws when no images provided", async () => {
     const n = new (SeedanceV1LiteImageToVideoNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("At least one image is required");
+    await expect(n.process()).rejects.toThrow("At least one image is required");
   });
 });
 
@@ -388,9 +369,7 @@ describe("SeedanceV1ProImageToVideoNode", () => {
 
   it("throws when no images provided", async () => {
     const n = new (SeedanceV1ProImageToVideoNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("At least one image is required");
+    await expect(n.process()).rejects.toThrow("At least one image is required");
   });
 });
 
@@ -419,9 +398,7 @@ describe("SeedanceV1ProFastImageToVideoNode", () => {
 
   it("throws when no images provided", async () => {
     const n = new (SeedanceV1ProFastImageToVideoNode as any)();
-    await expect(
-      n.process()
-    ).rejects.toThrow("At least one image is required");
+    await expect(n.process()).rejects.toThrow("At least one image is required");
   });
 });
 
@@ -450,17 +427,15 @@ describe("HailuoTextToVideoProNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (HailuoTextToVideoProNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 
   it("throws on 1080P with duration 10", async () => {
     const n = new (HailuoTextToVideoProNode as any)();
     n.assign({ prompt: "Test", resolution: "1080P", duration: "10" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("1080P resolution with 10s duration is not supported");
+    await expect(n.process()).rejects.toThrow(
+      "1080P resolution with 10s duration is not supported"
+    );
   });
 });
 
@@ -489,17 +464,15 @@ describe("HailuoTextToVideoStandardNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (HailuoTextToVideoStandardNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 
   it("throws on 1080P with duration 10", async () => {
     const n = new (HailuoTextToVideoStandardNode as any)();
     n.assign({ prompt: "Test", resolution: "1080P", duration: "10" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("1080P resolution with 10s duration is not supported");
+    await expect(n.process()).rejects.toThrow(
+      "1080P resolution with 10s duration is not supported"
+    );
   });
 });
 
@@ -529,9 +502,9 @@ describe("HailuoImageToVideoProNode", () => {
   it("throws on 1080P with duration 10", async () => {
     const n = new (HailuoImageToVideoProNode as any)();
     n.assign({ image: IMG_REF, resolution: "1080P", duration: "10" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("1080P resolution with 10s duration is not supported");
+    await expect(n.process()).rejects.toThrow(
+      "1080P resolution with 10s duration is not supported"
+    );
   });
 });
 
@@ -561,9 +534,9 @@ describe("HailuoImageToVideoStandardNode", () => {
   it("throws on 1080P with duration 10", async () => {
     const n = new (HailuoImageToVideoStandardNode as any)();
     n.assign({ image: IMG_REF, resolution: "1080P", duration: "10" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("1080P resolution with 10s duration is not supported");
+    await expect(n.process()).rejects.toThrow(
+      "1080P resolution with 10s duration is not supported"
+    );
   });
 });
 
@@ -592,9 +565,7 @@ describe("Kling25TurboTextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Kling25TurboTextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -647,9 +618,7 @@ describe("Sora2ProTextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Sora2ProTextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -704,9 +673,7 @@ describe("Sora2ProStoryboardNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Sora2ProStoryboardNode as any)();
     n.prompt = "";
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -733,9 +700,7 @@ describe("Sora2TextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Sora2TextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -764,9 +729,7 @@ describe("WanMultiShotTextToVideoProNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (WanMultiShotTextToVideoProNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -793,9 +756,7 @@ describe("Wan26TextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Wan26TextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -911,9 +872,7 @@ describe("Veo31TextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Veo31TextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -942,9 +901,7 @@ describe("RunwayGen3AlphaTextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (RunwayGen3AlphaTextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -1147,9 +1104,7 @@ describe("Kling21TextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Kling21TextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -1200,9 +1155,7 @@ describe("Wan25TextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Wan25TextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -1296,9 +1249,7 @@ describe("Wan22TextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Wan22TextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -1349,9 +1300,7 @@ describe("Hailuo02TextToVideoNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Hailuo02TextToVideoNode as any)();
     n.assign({ prompt: "" });
-    await expect(
-      n.process()
-    ).rejects.toThrow("Prompt is required");
+    await expect(n.process()).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -1454,7 +1403,7 @@ describe("All KIE video nodes", () => {
     Wan22ImageToVideoNode,
     Hailuo02TextToVideoNode,
     Hailuo02ImageToVideoNode,
-    Sora2WatermarkRemoverNode,
+    Sora2WatermarkRemoverNode
   ] as any[];
 
   it("has exactly 47 node classes", () => {

@@ -69,7 +69,7 @@ export class EdgeMessageBus implements IMessageBus {
       body: opts.body,
       replyTo: opts.replyTo,
       taskId: opts.taskId,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     };
 
     this.log.push(msg);
@@ -161,11 +161,14 @@ export class EdgeMessageBus implements IMessageBus {
       this.context
         .sendControlEvent(nodeId, {
           __agent_message__: true,
-          message: msg,
+          message: msg
         })
         .catch((err) => {
           // Intentional: if edge delivery fails, fall back to in-memory buffering
-          log.warn("Edge message delivery failed, falling back to in-memory buffer", { agentId, error: String(err) });
+          log.warn(
+            "Edge message delivery failed, falling back to in-memory buffer",
+            { agentId, error: String(err) }
+          );
           this.bufferMessage(agentId, msg);
         });
     } else {

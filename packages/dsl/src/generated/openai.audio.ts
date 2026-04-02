@@ -15,8 +15,14 @@ export interface TextToSpeechOutputs {
   output: AudioRef;
 }
 
-export function textToSpeech(inputs: TextToSpeechInputs): DslNode<TextToSpeechOutputs, "output"> {
-  return createNode("openai.audio.TextToSpeech", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function textToSpeech(
+  inputs: TextToSpeechInputs
+): DslNode<TextToSpeechOutputs, "output"> {
+  return createNode(
+    "openai.audio.TextToSpeech",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Translate — openai.audio.Translate
@@ -29,8 +35,14 @@ export interface TranslateOutputs {
   output: string;
 }
 
-export function translate(inputs: TranslateInputs): DslNode<TranslateOutputs, "output"> {
-  return createNode("openai.audio.Translate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function translate(
+  inputs: TranslateInputs
+): DslNode<TranslateOutputs, "output"> {
+  return createNode(
+    "openai.audio.Translate",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Transcribe — openai.audio.Transcribe
@@ -49,6 +61,12 @@ export interface TranscribeOutputs {
   segments: unknown[];
 }
 
-export function transcribe(inputs: TranscribeInputs): DslNode<TranscribeOutputs> {
-  return createNode("openai.audio.Transcribe", inputs as Record<string, unknown>, { outputNames: ["text", "words", "segments"] });
+export function transcribe(
+  inputs: TranscribeInputs
+): DslNode<TranscribeOutputs> {
+  return createNode(
+    "openai.audio.Transcribe",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text", "words", "segments"] }
+  );
 }

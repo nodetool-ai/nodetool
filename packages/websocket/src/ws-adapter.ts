@@ -1,7 +1,11 @@
 import type { WebSocket } from "@fastify/websocket";
 import type { WebSocketConnection } from "./unified-websocket-runner.js";
 
-type WsFrame = { type: string; bytes?: Uint8Array | null; text?: string | null };
+type WsFrame = {
+  type: string;
+  bytes?: Uint8Array | null;
+  text?: string | null;
+};
 
 /**
  * Adapts a ws WebSocket to the WebSocketConnection interface used by UnifiedWebSocketRunner.
@@ -14,15 +18,19 @@ export class WsAdapter implements WebSocketConnection {
   private waiters: Array<(frame: WsFrame) => void> = [];
 
   constructor(private socket: WebSocket) {
-    socket.on("message", (raw: Buffer | ArrayBuffer | Buffer[], isBinary: boolean) => {
-      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw as ArrayBuffer);
-      const frame: WsFrame = isBinary
-        ? { type: "websocket.message", bytes }
-        : { type: "websocket.message", text: bytes.toString() };
-      const waiter = this.waiters.shift();
-      if (waiter) waiter(frame);
-      else this.queue.push(frame);
-    });
+    socket.on(
+      "message",
+      (raw: Buffer | ArrayBuffer | Buffer[], isBinary: boolean) => {
+        const bytes =
+          raw instanceof Uint8Array ? raw : new Uint8Array(raw as ArrayBuffer);
+        const frame: WsFrame = isBinary
+          ? { type: "websocket.message", bytes }
+          : { type: "websocket.message", text: bytes.toString() };
+        const waiter = this.waiters.shift();
+        if (waiter) waiter(frame);
+        else this.queue.push(frame);
+      }
+    );
 
     socket.on("error", () => {
       this.clientState = "disconnected";

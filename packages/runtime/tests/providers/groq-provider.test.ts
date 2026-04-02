@@ -11,7 +11,7 @@ function makeAsyncIterable(items: unknown[]) {
     },
     async close() {
       return;
-    },
+    }
   };
 }
 
@@ -55,9 +55,9 @@ describe("GroqProvider", () => {
       json: async () => ({
         data: [
           { id: "llama-3.1-70b", name: "Llama 3.1 70B" },
-          { id: "mixtral-8x7b" },
-        ],
-      }),
+          { id: "mixtral-8x7b" }
+        ]
+      })
     });
 
     const provider = new GroqProvider(
@@ -68,13 +68,13 @@ describe("GroqProvider", () => {
     const models = await provider.getAvailableLanguageModels();
     expect(models).toEqual([
       { id: "llama-3.1-70b", name: "Llama 3.1 70B", provider: "groq" },
-      { id: "mixtral-8x7b", name: "mixtral-8x7b", provider: "groq" },
+      { id: "mixtral-8x7b", name: "mixtral-8x7b", provider: "groq" }
     ]);
 
     expect(mockFetch).toHaveBeenCalledWith(
       "https://api.groq.com/openai/v1/models",
       expect.objectContaining({
-        headers: { Authorization: "Bearer k" },
+        headers: { Authorization: "Bearer k" }
       })
     );
   });
@@ -96,25 +96,25 @@ describe("GroqProvider", () => {
         {
           message: {
             content: "fast response",
-            tool_calls: null,
-          },
-        },
-      ],
+            tool_calls: null
+          }
+        }
+      ]
     });
 
     const provider = new GroqProvider(
       { GROQ_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
     const result = await provider.generateMessage({
       messages,
-      model: "llama-3.1-70b",
+      model: "llama-3.1-70b"
     });
 
     expect(result.role).toBe("assistant");
@@ -128,18 +128,18 @@ describe("GroqProvider", () => {
         choices: [
           {
             delta: { content: "hello" },
-            finish_reason: null,
-          },
-        ],
+            finish_reason: null
+          }
+        ]
       },
       {
         choices: [
           {
             delta: { content: "" },
-            finish_reason: "stop",
-          },
-        ],
-      },
+            finish_reason: "stop"
+          }
+        ]
+      }
     ];
 
     const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
@@ -148,8 +148,8 @@ describe("GroqProvider", () => {
       { GROQ_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
@@ -157,7 +157,7 @@ describe("GroqProvider", () => {
     const items: unknown[] = [];
     for await (const item of provider.generateMessages({
       messages,
-      model: "llama-3.1-70b",
+      model: "llama-3.1-70b"
     })) {
       items.push(item);
     }

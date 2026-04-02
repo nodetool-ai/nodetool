@@ -9,7 +9,7 @@ import {
   configureGCP,
   type DockerConfigParams,
   type RunPodConfigParams,
-  type GCPConfigParams,
+  type GCPConfigParams
 } from "../src/configure.js";
 
 describe("configure", () => {
@@ -59,12 +59,18 @@ describe("configure", () => {
 
   describe("configureDocker", () => {
     it("should return a docker deployment with correct type", () => {
-      const result = configureDocker("test", { host: "192.168.1.1", sshUser: "root" });
+      const result = configureDocker("test", {
+        host: "192.168.1.1",
+        sshUser: "root"
+      });
       expect(result.type).toBe("docker");
     });
 
     it("should set host from params", () => {
-      const result = configureDocker("test", { host: "10.0.0.1", sshUser: "root" });
+      const result = configureDocker("test", {
+        host: "10.0.0.1",
+        sshUser: "root"
+      });
       expect(result.host).toBe("10.0.0.1");
     });
 
@@ -72,7 +78,7 @@ describe("configure", () => {
       const result = configureDocker("test", {
         host: "remote.host",
         sshUser: "deploy",
-        sshKeyPath: "~/.ssh/deploy_key",
+        sshKeyPath: "~/.ssh/deploy_key"
       });
       expect(result.ssh).toBeDefined();
       expect(result.ssh!.user).toBe("deploy");
@@ -106,7 +112,7 @@ describe("configure", () => {
     it("should use custom image name", () => {
       const result = configureDocker("test", {
         host: "localhost",
-        imageName: "my-image",
+        imageName: "my-image"
       });
       expect(result.image.name).toBe("my-image");
     });
@@ -119,7 +125,7 @@ describe("configure", () => {
     it("should use custom image tag", () => {
       const result = configureDocker("test", {
         host: "localhost",
-        imageTag: "v2.0",
+        imageTag: "v2.0"
       });
       expect(result.image.tag).toBe("v2.0");
     });
@@ -132,7 +138,7 @@ describe("configure", () => {
     it("should use custom container name", () => {
       const result = configureDocker("test", {
         host: "localhost",
-        containerName: "custom-container",
+        containerName: "custom-container"
       });
       expect(result.container.name).toBe("custom-container");
     });
@@ -145,7 +151,7 @@ describe("configure", () => {
     it("should use custom container port", () => {
       const result = configureDocker("test", {
         host: "localhost",
-        containerPort: 9000,
+        containerPort: 9000
       });
       expect(result.container.port).toBe(9000);
     });
@@ -153,7 +159,7 @@ describe("configure", () => {
     it("should pass GPU setting", () => {
       const result = configureDocker("test", {
         host: "localhost",
-        gpu: "0,1",
+        gpu: "0,1"
       });
       expect(result.container.gpu).toBe("0,1");
     });
@@ -161,7 +167,7 @@ describe("configure", () => {
     it("should pass workflows", () => {
       const result = configureDocker("test", {
         host: "localhost",
-        workflows: ["wf1", "wf2"],
+        workflows: ["wf1", "wf2"]
       });
       expect(result.container.workflows).toEqual(["wf1", "wf2"]);
     });
@@ -176,7 +182,7 @@ describe("configure", () => {
     it("should use custom workspace path", () => {
       const result = configureDocker("test", {
         host: "localhost",
-        workspacePath: "/data/workspace",
+        workspacePath: "/data/workspace"
       });
       expect(result.paths.workspace).toBe("/data/workspace");
     });
@@ -184,7 +190,7 @@ describe("configure", () => {
     it("should default SSH key path to ~/.ssh/id_rsa", () => {
       const result = configureDocker("test", {
         host: "remote.com",
-        sshUser: "user",
+        sshUser: "user"
       });
       expect(result.ssh!.key_path).toContain("id_rsa");
     });
@@ -213,7 +219,7 @@ describe("configure", () => {
     it("should use custom image tag", () => {
       const result = configureRunPod("test", {
         imageName: "my-img",
-        imageTag: "v1.0",
+        imageTag: "v1.0"
       });
       expect(result.image.tag).toBe("v1.0");
     });
@@ -226,7 +232,7 @@ describe("configure", () => {
     it("should use custom registry", () => {
       const result = configureRunPod("test", {
         imageName: "my-img",
-        registry: "ghcr.io",
+        registry: "ghcr.io"
       });
       expect(result.image.registry).toBe("ghcr.io");
     });
@@ -244,7 +250,7 @@ describe("configure", () => {
   describe("configureGCP", () => {
     const baseParams: GCPConfigParams = {
       projectId: "my-project",
-      imageRepository: "us-docker.pkg.dev/proj/repo/img",
+      imageRepository: "us-docker.pkg.dev/proj/repo/img"
     };
 
     it("should return a gcp deployment with correct type", () => {
@@ -265,7 +271,7 @@ describe("configure", () => {
     it("should use custom region", () => {
       const result = configureGCP("test", {
         ...baseParams,
-        region: "europe-west1",
+        region: "europe-west1"
       });
       expect(result.region).toBe("europe-west1");
     });
@@ -278,16 +284,14 @@ describe("configure", () => {
     it("should use custom service name", () => {
       const result = configureGCP("test", {
         ...baseParams,
-        serviceName: "custom-svc",
+        serviceName: "custom-svc"
       });
       expect(result.service_name).toBe("custom-svc");
     });
 
     it("should set image repository", () => {
       const result = configureGCP("test", baseParams);
-      expect(result.image.repository).toBe(
-        "us-docker.pkg.dev/proj/repo/img"
-      );
+      expect(result.image.repository).toBe("us-docker.pkg.dev/proj/repo/img");
     });
 
     it("should default image tag to latest", () => {
@@ -298,7 +302,7 @@ describe("configure", () => {
     it("should use custom image tag", () => {
       const result = configureGCP("test", {
         ...baseParams,
-        imageTag: "v3.0",
+        imageTag: "v3.0"
       });
       expect(result.image.tag).toBe("v3.0");
     });

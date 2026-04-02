@@ -6,7 +6,7 @@ import {
   PdfExtractTablesNode,
   PdfExtractMarkdownNode,
   PdfExtractTextBlocksNode,
-  PdfExtractStyledTextNode,
+  PdfExtractStyledTextNode
 } from "../../src/index.js";
 
 // Minimal valid PDF with text content (single page, "Hello World" text)
@@ -31,7 +31,7 @@ function makeTestPdf(): string {
     "trailer<</Size 6/Root 1 0 R>>",
     "startxref",
     "430",
-    "%%EOF",
+    "%%EOF"
   ].join("\n");
   return Buffer.from(pdf).toString("base64");
 }
@@ -64,7 +64,7 @@ function makeTwoPagePdf(): string {
     "trailer<</Size 8/Root 1 0 R>>",
     "startxref",
     "673",
-    "%%EOF",
+    "%%EOF"
   ].join("\n");
   return Buffer.from(pdf).toString("base64");
 }
@@ -84,7 +84,7 @@ function makeTablePdf(): { data: string } {
     "50 660 Td (Bob) Tj",
     "200 660 Td (25) Tj",
     "350 660 Td (LA) Tj",
-    "ET",
+    "ET"
   ].join("\n");
   const streamLength = stream.length;
   const pdf = [
@@ -107,7 +107,7 @@ function makeTablePdf(): { data: string } {
     "trailer<</Size 6/Root 1 0 R>>",
     "startxref",
     "430",
-    "%%EOF",
+    "%%EOF"
   ].join("\n");
   return { data: Buffer.from(pdf).toString("base64") };
 }
@@ -133,7 +133,7 @@ describe("lib.pdf nodes", () => {
     node.assign({
       pdf: singlePagePdf,
       start_page: 0,
-      end_page: 0,
+      end_page: 0
     });
     const result = await node.process();
     expect(result.output).toContain("Hello World");
@@ -144,7 +144,7 @@ describe("lib.pdf nodes", () => {
     node.assign({
       pdf: twoPagePdf,
       start_page: 0,
-      end_page: 1,
+      end_page: 1
     });
     const result = await node.process();
     const text = String(result.output);
@@ -157,7 +157,7 @@ describe("lib.pdf nodes", () => {
     node.assign({
       pdf: singlePagePdf,
       start_page: 0,
-      end_page: 0,
+      end_page: 0
     });
     const result = await node.process();
     const pages = result.output as Array<Record<string, unknown>>;
@@ -172,7 +172,7 @@ describe("lib.pdf nodes", () => {
     node.assign({
       pdf: singlePagePdf,
       start_page: 0,
-      end_page: 0,
+      end_page: 0
     });
     const result = await node.process();
     expect(Array.isArray(result.output)).toBe(true);
@@ -183,9 +183,7 @@ describe("lib.pdf nodes", () => {
   it("throws on missing PDF data", async () => {
     const node = new PdfPageCountNode();
     node.assign({ pdf: {} });
-    await expect(
-      node.process()
-    ).rejects.toThrow("No PDF data or URI provided");
+    await expect(node.process()).rejects.toThrow("No PDF data or URI provided");
   });
 
   it("ExtractMarkdown produces markdown containing the PDF text", async () => {
@@ -193,7 +191,7 @@ describe("lib.pdf nodes", () => {
     node.assign({
       pdf: singlePagePdf,
       start_page: 0,
-      end_page: -1,
+      end_page: -1
     });
     const result = await node.process();
     expect(typeof result.output).toBe("string");
@@ -205,7 +203,7 @@ describe("lib.pdf nodes", () => {
     node.assign({
       pdf: singlePagePdf,
       start_page: 0,
-      end_page: -1,
+      end_page: -1
     });
     const result = await node.process();
     const blocks = result.output as Array<Record<string, unknown>>;
@@ -224,13 +222,15 @@ describe("lib.pdf nodes", () => {
     node.assign({
       pdf: singlePagePdf,
       start_page: 0,
-      end_page: -1,
+      end_page: -1
     });
     const result = await node.process();
     const items = result.output as Array<Record<string, unknown>>;
     expect(items.length).toBeGreaterThan(0);
     // Find the item containing "Hello World"
-    const helloItem = items.find((it) => String(it.text).includes("Hello World"));
+    const helloItem = items.find((it) =>
+      String(it.text).includes("Hello World")
+    );
     expect(helloItem).toBeDefined();
     expect(helloItem!.page).toBe(0);
     expect(typeof helloItem!.font).toBe("string");
@@ -245,7 +245,7 @@ describe("lib.pdf nodes", () => {
     node.assign({
       pdf: makeTablePdf(),
       start_page: 0,
-      end_page: -1,
+      end_page: -1
     });
     const result = await node.process();
     expect(Array.isArray(result.output)).toBe(true);
@@ -258,7 +258,7 @@ describe("lib.pdf nodes", () => {
       expect(Array.isArray(table.header)).toBe(true);
       expect(Array.isArray(table.rows)).toBe(true);
       expect(typeof table.columns).toBe("number");
-      expect((table.columns as number)).toBeGreaterThanOrEqual(2);
+      expect(table.columns as number).toBeGreaterThanOrEqual(2);
     }
   });
 
@@ -267,7 +267,7 @@ describe("lib.pdf nodes", () => {
     node1.assign({
       pdf: twoPagePdf,
       start_page: 0,
-      end_page: 0,
+      end_page: 0
     });
     const page1 = await node1.process();
     expect(String(page1.output)).toContain("Page One");
@@ -277,7 +277,7 @@ describe("lib.pdf nodes", () => {
     node2.assign({
       pdf: twoPagePdf,
       start_page: 1,
-      end_page: 1,
+      end_page: 1
     });
     const page2 = await node2.process();
     expect(String(page2.output)).toContain("Page Two");

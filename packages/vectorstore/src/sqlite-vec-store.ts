@@ -73,7 +73,7 @@ export class VecCollection {
     metadata: CollectionMetadata,
     store: SqliteVecStore,
     collectionId: number,
-    embeddingFunction: EmbeddingFunction | null = null,
+    embeddingFunction: EmbeddingFunction | null = null
   ) {
     this.name = name;
     this.metadata = metadata;
@@ -97,7 +97,9 @@ export class VecCollection {
   /** Get the vector dimension for this collection (from first stored doc or 0). */
   private getDimension(): number {
     const row = this.db
-      .prepare(`SELECT embedding FROM "${this.docsTable}" WHERE embedding IS NOT NULL LIMIT 1`)
+      .prepare(
+        `SELECT embedding FROM "${this.docsTable}" WHERE embedding IS NOT NULL LIMIT 1`
+      )
       .get() as { embedding: Buffer } | undefined;
     if (!row) return 0;
     // Each float32 = 4 bytes
@@ -115,20 +117,22 @@ export class VecCollection {
 
     if (!exists) {
       this.db.exec(
-        `CREATE VIRTUAL TABLE IF NOT EXISTS "${this.idxTable}" USING vec0(embedding float[${dimension}])`,
+        `CREATE VIRTUAL TABLE IF NOT EXISTS "${this.idxTable}" USING vec0(embedding float[${dimension}])`
       );
 
       // Backfill any existing docs that have embeddings but no vec_rowid
       const docs = this.db
-        .prepare(`SELECT rowid, embedding FROM "${this.docsTable}" WHERE embedding IS NOT NULL AND vec_rowid IS NULL`)
+        .prepare(
+          `SELECT rowid, embedding FROM "${this.docsTable}" WHERE embedding IS NOT NULL AND vec_rowid IS NULL`
+        )
         .all() as Array<{ rowid: number; embedding: Buffer }>;
 
       if (docs.length > 0) {
         const idxInsert = this.db.prepare(
-          `INSERT INTO "${this.idxTable}"(embedding) VALUES (?)`,
+          `INSERT INTO "${this.idxTable}"(embedding) VALUES (?)`
         );
         const updateVecRowid = this.db.prepare(
-          `UPDATE "${this.docsTable}" SET vec_rowid = ? WHERE rowid = ?`,
+          `UPDATE "${this.docsTable}" SET vec_rowid = ? WHERE rowid = ?`
         );
         const tx = this.db.transaction(() => {
           for (const doc of docs) {
@@ -189,14 +193,20 @@ export class VecCollection {
     }
 
     const insert = this.db.prepare(
-      `INSERT INTO "${this.docsTable}" (doc_id, document, embedding, uri, metadata) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO "${this.docsTable}" (doc_id, document, embedding, uri, metadata) VALUES (?, ?, ?, ?, ?)`
     );
-    const idxInsert = dimension > 0
-      ? this.db.prepare(`INSERT INTO "${this.idxTable}"(embedding) VALUES (?)`)
-      : null;
-    const updateVecRowid = dimension > 0
-      ? this.db.prepare(`UPDATE "${this.docsTable}" SET vec_rowid = ? WHERE rowid = ?`)
-      : null;
+    const idxInsert =
+      dimension > 0
+        ? this.db.prepare(
+            `INSERT INTO "${this.idxTable}"(embedding) VALUES (?)`
+          )
+        : null;
+    const updateVecRowid =
+      dimension > 0
+        ? this.db.prepare(
+            `UPDATE "${this.docsTable}" SET vec_rowid = ? WHERE rowid = ?`
+          )
+        : null;
 
     const tx = this.db.transaction(() => {
       for (let i = 0; i < opts.ids.length; i++) {
@@ -209,7 +219,7 @@ export class VecCollection {
           opts.documents?.[i] ?? null,
           embBuf,
           opts.uris?.[i] ?? null,
-          JSON.stringify(opts.metadatas?.[i] ?? {}),
+          JSON.stringify(opts.metadatas?.[i] ?? {})
         );
 
         // Insert into vec0 index and record the mapping
@@ -273,7 +283,7 @@ export class VecCollection {
         } catch {
           return {};
         }
-      }),
+      })
     };
   }
 
@@ -287,7 +297,9 @@ export class VecCollection {
     // Get vec_rowids first for index cleanup
     const placeholders = opts.ids.map(() => "?").join(",");
     const rows = this.db
-      .prepare(`SELECT vec_rowid FROM "${this.docsTable}" WHERE doc_id IN (${placeholders}) AND vec_rowid IS NOT NULL`)
+      .prepare(
+        `SELECT vec_rowid FROM "${this.docsTable}" WHERE doc_id IN (${placeholders}) AND vec_rowid IS NOT NULL`
+      )
       .all(...opts.ids) as Array<{ vec_rowid: number }>;
 
     // Delete from vec0 index if it exists
@@ -298,13 +310,17 @@ export class VecCollection {
       const vecRowids = rows.map((r) => r.vec_rowid);
       const idxPlaceholders = vecRowids.map(() => "?").join(",");
       this.db
-        .prepare(`DELETE FROM "${this.idxTable}" WHERE rowid IN (${idxPlaceholders})`)
+        .prepare(
+          `DELETE FROM "${this.idxTable}" WHERE rowid IN (${idxPlaceholders})`
+        )
         .run(...vecRowids);
     }
 
     // Delete from docs table
     this.db
-      .prepare(`DELETE FROM "${this.docsTable}" WHERE doc_id IN (${placeholders})`)
+      .prepare(
+        `DELETE FROM "${this.docsTable}" WHERE doc_id IN (${placeholders})`
+      )
       .run(...opts.ids);
   }
 
@@ -358,7 +374,9 @@ export class VecCollection {
       let docFilter = "";
       const filterParams: unknown[] = [];
       if (opts.whereDocument) {
-        const conditions = this.buildWhereDocumentConditions(opts.whereDocument);
+        const conditions = this.buildWhereDocumentConditions(
+          opts.whereDocument
+        );
         if (conditions.sql) {
           docFilter = conditions.sql;
           filterParams.push(...conditions.params);
@@ -408,7 +426,7 @@ export class VecCollection {
           } catch {
             return {};
           }
-        }),
+        })
       );
       allDistances.push(limited.map((r) => r.distance));
     }
@@ -417,7 +435,7 @@ export class VecCollection {
       ids: allIds,
       documents: allDocs,
       metadatas: allMetas,
-      distances: allDistances,
+      distances: allDistances
     };
   }
 
@@ -425,7 +443,7 @@ export class VecCollection {
   private keywordSearch(
     queryTexts: string[],
     nResults: number,
-    whereDocument?: Record<string, unknown>,
+    whereDocument?: Record<string, unknown>
   ): QueryResult {
     const allIds: string[][] = [];
     const allDocs: (string | null)[][] = [];
@@ -463,12 +481,17 @@ export class VecCollection {
           } catch {
             return {};
           }
-        }),
+        })
       );
       allDistances.push(rows.map(() => 0)); // no distance for keyword search
     }
 
-    return { ids: allIds, documents: allDocs, metadatas: allMetas, distances: allDistances };
+    return {
+      ids: allIds,
+      documents: allDocs,
+      metadatas: allMetas,
+      distances: allDistances
+    };
   }
 
   /** URI-based search. */
@@ -482,7 +505,7 @@ export class VecCollection {
       const escapedUri = uri.replace(/[%_\\]/g, "\\$&");
       const rows = this.db
         .prepare(
-          `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE uri LIKE ? ESCAPE '\\' LIMIT ?`,
+          `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE uri LIKE ? ESCAPE '\\' LIMIT ?`
         )
         .all(`%${escapedUri}%`, nResults) as Array<{
         doc_id: string;
@@ -499,12 +522,17 @@ export class VecCollection {
           } catch {
             return {};
           }
-        }),
+        })
       );
       allDistances.push(rows.map(() => 0));
     }
 
-    return { ids: allIds, documents: allDocs, metadatas: allMetas, distances: allDistances };
+    return {
+      ids: allIds,
+      documents: allDocs,
+      metadatas: allMetas,
+      distances: allDistances
+    };
   }
 
   /** Build SQL conditions from ChromaDB-style whereDocument filter. */
@@ -523,7 +551,11 @@ export class VecCollection {
     if ("$or" in where && Array.isArray(where.$or)) {
       const orParts: string[] = [];
       for (const condition of where.$or) {
-        if (condition && typeof condition === "object" && "$contains" in condition) {
+        if (
+          condition &&
+          typeof condition === "object" &&
+          "$contains" in condition
+        ) {
           orParts.push(`document LIKE ?`);
           params.push(`%${(condition as Record<string, unknown>).$contains}%`);
         }
@@ -536,7 +568,10 @@ export class VecCollection {
     return { sql: parts.join(" AND "), params };
   }
 
-  async modify(opts: { name?: string; metadata?: CollectionMetadata }): Promise<void> {
+  async modify(opts: {
+    name?: string;
+    metadata?: CollectionMetadata;
+  }): Promise<void> {
     if (opts.name !== undefined) {
       this.db
         .prepare(`UPDATE vec_collections SET name = ? WHERE id = ?`)
@@ -619,7 +654,7 @@ export class SqliteVecStore {
       JSON.parse(row.metadata),
       this,
       row.id,
-      opts.embeddingFunction ?? null,
+      opts.embeddingFunction ?? null
     );
   }
 
@@ -642,7 +677,7 @@ export class SqliteVecStore {
       JSON.parse(row.metadata),
       this,
       row.id,
-      opts.embeddingFunction ?? null,
+      opts.embeddingFunction ?? null
     );
   }
 
@@ -654,7 +689,7 @@ export class SqliteVecStore {
     try {
       return await this.getCollection({
         name: opts.name,
-        embeddingFunction: opts.embeddingFunction,
+        embeddingFunction: opts.embeddingFunction
       });
     } catch (e) {
       if (e instanceof VecNotFoundError) {
@@ -670,8 +705,7 @@ export class SqliteVecStore {
       .all() as Array<{ id: number; name: string; metadata: string }>;
 
     return rows.map(
-      (r) =>
-        new VecCollection(r.name, JSON.parse(r.metadata), this, r.id),
+      (r) => new VecCollection(r.name, JSON.parse(r.metadata), this, r.id)
     );
   }
 

@@ -6,7 +6,9 @@ type Row = Record<string, unknown>;
 function asRows(value: unknown): Row[] {
   if (Array.isArray(value)) {
     return value
-      .filter((x): x is Row => !!x && typeof x === "object" && !Array.isArray(x))
+      .filter(
+        (x): x is Row => !!x && typeof x === "object" && !Array.isArray(x)
+      )
       .map((x) => ({ ...x }));
   }
   if (value && typeof value === "object") {
@@ -68,7 +70,6 @@ function applyFilter(rows: Row[], condition: string): Row[] {
   const expr = parseConditionExpr(trimmed);
   return rows.filter((row) => {
     try {
-       
       const fn = new Function("row", `with (row) { return Boolean(${expr}); }`);
       return Boolean(fn(row));
     } catch {
@@ -126,20 +127,23 @@ function dateName(name: string): string {
 
 export class SchemaNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Schema";
-            static readonly title = "Schema";
-            static readonly description = "Define a schema for a dataframe.\n    schema, dataframe, create";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Schema";
+  static readonly description =
+    "Define a schema for a dataframe.\n    schema, dataframe, create";
+  static readonly metadataOutputTypes = {
     output: "record_type"
   };
-  
-  @prop({ type: "record_type", default: {
-  "type": "record_type",
-  "columns": []
-}, title: "Columns", description: "The columns to use in the dataframe." })
+
+  @prop({
+    type: "record_type",
+    default: {
+      type: "record_type",
+      columns: []
+    },
+    title: "Columns",
+    description: "The columns to use in the dataframe."
+  })
   declare columns: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.columns ?? {} };
@@ -148,28 +152,37 @@ export class SchemaNode extends BaseNode {
 
 export class FilterDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Filter";
-            static readonly title = "Filter";
-            static readonly description = "Filter dataframe based on condition.\n    filter, query, condition\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Extract subset of data meeting specific criteria\n    - Remove outliers or invalid data points\n    - Focus analysis on relevant data segments";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Filter";
+  static readonly description =
+    "Filter dataframe based on condition.\n    filter, query, condition\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Extract subset of data meeting specific criteria\n    - Remove outliers or invalid data points\n    - Focus analysis on relevant data segments";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Df", description: "The DataFrame to filter." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Df",
+    description: "The DataFrame to filter."
+  })
   declare df: any;
 
-  @prop({ type: "str", default: "", title: "Condition", description: "The filtering condition to be applied to the DataFrame, e.g. column_name > 5." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Condition",
+    description:
+      "The filtering condition to be applied to the DataFrame, e.g. column_name > 5."
+  })
   declare condition: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.df ?? this.df);
@@ -180,31 +193,45 @@ export class FilterDataframeNode extends BaseNode {
 
 export class SliceDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Slice";
-            static readonly title = "Slice";
-            static readonly description = "Slice a dataframe by rows using start and end indices.\n    slice, subset, rows\n\n    Use cases:\n    - Extract a specific range of rows from a large dataset\n    - Create training and testing subsets for machine learning\n    - Analyze data in smaller chunks";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Slice";
+  static readonly description =
+    "Slice a dataframe by rows using start and end indices.\n    slice, subset, rows\n\n    Use cases:\n    - Extract a specific range of rows from a large dataset\n    - Create training and testing subsets for machine learning\n    - Analyze data in smaller chunks";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "The input dataframe to be sliced." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "The input dataframe to be sliced."
+  })
   declare dataframe: any;
 
-  @prop({ type: "int", default: 0, title: "Start Index", description: "The starting index of the slice (inclusive)." })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Index",
+    description: "The starting index of the slice (inclusive)."
+  })
   declare start_index: any;
 
-  @prop({ type: "int", default: -1, title: "End Index", description: "The ending index of the slice (exclusive). Use -1 for the last row." })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Index",
+    description:
+      "The ending index of the slice (exclusive). Use -1 for the last row."
+  })
   declare end_index: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.dataframe ?? this.dataframe);
@@ -217,37 +244,50 @@ export class SliceDataframeNode extends BaseNode {
 
 export class SaveDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.SaveDataframe";
-            static readonly title = "Save Dataframe";
-            static readonly description = "Save dataframe in specified folder.\n    csv, folder, save\n\n    Use cases:\n    - Export processed data for external use\n    - Create backups of dataframes";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Save Dataframe";
+  static readonly description =
+    "Save dataframe in specified folder.\n    csv, folder, save\n\n    Use cases:\n    - Export processed data for external use\n    - Create backups of dataframes";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Df" })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Df"
+  })
   declare df: any;
 
-  @prop({ type: "folder", default: {
-  "type": "folder",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Folder", description: "Name of the output folder." })
+  @prop({
+    type: "folder",
+    default: {
+      type: "folder",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Folder",
+    description: "Name of the output folder."
+  })
   declare folder: any;
 
-  @prop({ type: "str", default: "output.csv", title: "Name", description: "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        " })
+  @prop({
+    type: "str",
+    default: "output.csv",
+    title: "Name",
+    description:
+      "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
+  })
   declare name: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.df ?? this.df);
@@ -262,18 +302,21 @@ export class SaveDataframeNode extends BaseNode {
 
 export class ImportCSVNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ImportCSV";
-            static readonly title = "Import CSV";
-            static readonly description = "Convert CSV string to dataframe.\n    csv, dataframe, import\n\n    Use cases:\n    - Import CSV data from string input\n    - Convert CSV responses from APIs to dataframe";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Import CSV";
+  static readonly description =
+    "Convert CSV string to dataframe.\n    csv, dataframe, import\n\n    Use cases:\n    - Import CSV data from string input\n    - Convert CSV responses from APIs to dataframe";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "str", default: "", title: "CSV Data", description: "String input of CSV formatted text." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "CSV Data",
+    description: "String input of CSV formatted text."
+  })
   declare csv_data: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const csv = String(this.csv_data ?? this.csv_data ?? "");
@@ -283,18 +326,21 @@ export class ImportCSVNode extends BaseNode {
 
 export class LoadCSVURLNode extends BaseNode {
   static readonly nodeType = "nodetool.data.LoadCSVURL";
-            static readonly title = "Load CSVURL";
-            static readonly description = "Load CSV file from URL.\n    csv, dataframe, import";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Load CSVURL";
+  static readonly description =
+    "Load CSV file from URL.\n    csv, dataframe, import";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "str", default: "", title: "Url", description: "The URL of the CSV file to load." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "The URL of the CSV file to load."
+  })
   declare url: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? this.url ?? "");
@@ -309,18 +355,21 @@ export class LoadCSVURLNode extends BaseNode {
 
 export class LoadCSVFileDataNode extends BaseNode {
   static readonly nodeType = "nodetool.data.LoadCSVFile";
-            static readonly title = "Load CSVFile";
-            static readonly description = "Load CSV file from file path.\n    csv, dataframe, import";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Load CSVFile";
+  static readonly description =
+    "Load CSV file from file path.\n    csv, dataframe, import";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "str", default: "", title: "File Path", description: "The path to the CSV file to load." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "File Path",
+    description: "The path to the CSV file to load."
+  })
   declare file_path: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const file = String(this.file_path ?? this.file_path ?? "");
@@ -332,22 +381,25 @@ export class LoadCSVFileDataNode extends BaseNode {
 
 export class FromListNode extends BaseNode {
   static readonly nodeType = "nodetool.data.FromList";
-            static readonly title = "From List";
-            static readonly description = "Convert list of dicts to dataframe.\n    list, dataframe, convert\n\n    Use cases:\n    - Transform list data into structured dataframe\n    - Prepare list data for analysis or visualization\n    - Convert API responses to dataframe format";
-        static readonly metadataOutputTypes = {
+  static readonly title = "From List";
+  static readonly description =
+    "Convert list of dicts to dataframe.\n    list, dataframe, convert\n\n    Use cases:\n    - Transform list data into structured dataframe\n    - Prepare list data for analysis or visualization\n    - Convert API responses to dataframe format";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "list[any]", default: [], title: "Values", description: "List of values to be converted, each value will be a row." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "list[any]",
+    default: [],
+    title: "Values",
+    description: "List of values to be converted, each value will be a row."
+  })
   declare values: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const values = Array.isArray(this.values ?? this.values)
-      ? (this.values ?? this.values) as unknown[]
+      ? ((this.values ?? this.values) as unknown[])
       : [];
     const rows: Row[] = [];
     for (const item of values) {
@@ -356,7 +408,12 @@ export class FromListNode extends BaseNode {
       }
       const row: Row = {};
       for (const [k, v] of Object.entries(item as Row)) {
-        if (v && typeof v === "object" && !Array.isArray(v) && "value" in (v as Row)) {
+        if (
+          v &&
+          typeof v === "object" &&
+          !Array.isArray(v) &&
+          "value" in (v as Row)
+        ) {
           row[k] = (v as Row).value;
         } else if (
           typeof v === "number" ||
@@ -377,18 +434,16 @@ export class FromListNode extends BaseNode {
 
 export class JSONToDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.JSONToDataframe";
-            static readonly title = "Convert JSON to DataFrame";
-            static readonly description = "Transforms a JSON string into a pandas DataFrame.\n    json, dataframe, conversion\n\n    Use cases:\n    - Converting API responses to tabular format\n    - Preparing JSON data for analysis or visualization\n    - Structuring unstructured JSON data for further processing";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Convert JSON to DataFrame";
+  static readonly description =
+    "Transforms a JSON string into a pandas DataFrame.\n    json, dataframe, conversion\n\n    Use cases:\n    - Converting API responses to tabular format\n    - Preparing JSON data for analysis or visualization\n    - Structuring unstructured JSON data for further processing";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
+  static readonly exposeAsTool = true;
+
   @prop({ type: "str", default: "", title: "JSON" })
   declare text: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const text = String(this.text ?? this.text ?? "[]");
@@ -399,25 +454,28 @@ export class JSONToDataframeNode extends BaseNode {
 
 export class ToListNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ToList";
-            static readonly title = "To List";
-            static readonly description = "Convert dataframe to list of dictionaries.\n    dataframe, list, convert\n\n    Use cases:\n    - Convert dataframe data for API consumption\n    - Transform data for JSON serialization\n    - Prepare data for document-based storage";
-        static readonly metadataOutputTypes = {
+  static readonly title = "To List";
+  static readonly description =
+    "Convert dataframe to list of dictionaries.\n    dataframe, list, convert\n\n    Use cases:\n    - Convert dataframe data for API consumption\n    - Transform data for JSON serialization\n    - Prepare data for document-based storage";
+  static readonly metadataOutputTypes = {
     output: "list[dict]"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "The input dataframe to convert." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "The input dataframe to convert."
+  })
   declare dataframe: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return { output: asRows(this.dataframe ?? this.dataframe) };
@@ -426,28 +484,36 @@ export class ToListNode extends BaseNode {
 
 export class SelectColumnNode extends BaseNode {
   static readonly nodeType = "nodetool.data.SelectColumn";
-            static readonly title = "Select Column";
-            static readonly description = "Select specific columns from dataframe.\n    dataframe, columns, filter\n\n    Use cases:\n    - Extract relevant features for analysis\n    - Reduce dataframe size by removing unnecessary columns\n    - Prepare data for specific visualizations or models";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Select Column";
+  static readonly description =
+    "Select specific columns from dataframe.\n    dataframe, columns, filter\n\n    Use cases:\n    - Extract relevant features for analysis\n    - Reduce dataframe size by removing unnecessary columns\n    - Prepare data for specific visualizations or models";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "a dataframe from which columns are to be selected" })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "a dataframe from which columns are to be selected"
+  })
   declare dataframe: any;
 
-  @prop({ type: "str", default: "", title: "Columns", description: "comma separated list of column names" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Columns",
+    description: "comma separated list of column names"
+  })
   declare columns: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.dataframe ?? this.dataframe);
@@ -459,35 +525,43 @@ export class SelectColumnNode extends BaseNode {
     return {
       output: toDataframe(
         rows.map((row) => Object.fromEntries(cols.map((c) => [c, row[c]])))
-      ),
+      )
     };
   }
 }
 
 export class ExtractColumnNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ExtractColumn";
-            static readonly title = "Extract Column";
-            static readonly description = "Convert dataframe column to list.\n    dataframe, column, list\n\n    Use cases:\n    - Extract data for use in other processing steps\n    - Prepare column data for plotting or analysis\n    - Convert categorical data to list for encoding";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Extract Column";
+  static readonly description =
+    "Convert dataframe column to list.\n    dataframe, column, list\n\n    Use cases:\n    - Extract data for use in other processing steps\n    - Prepare column data for plotting or analysis\n    - Convert categorical data to list for encoding";
+  static readonly metadataOutputTypes = {
     output: "list[any]"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "The input dataframe." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "The input dataframe."
+  })
   declare dataframe: any;
 
-  @prop({ type: "str", default: "", title: "Column Name", description: "The name of the column to be converted to a list." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Column Name",
+    description: "The name of the column to be converted to a list."
+  })
   declare column_name: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.dataframe ?? this.dataframe);
@@ -498,80 +572,102 @@ export class ExtractColumnNode extends BaseNode {
 
 export class AddColumnNode extends BaseNode {
   static readonly nodeType = "nodetool.data.AddColumn";
-            static readonly title = "Add Column";
-            static readonly description = "Add list of values as new column to dataframe.\n    dataframe, column, list\n\n    Use cases:\n    - Incorporate external data into existing dataframe\n    - Add calculated results as new column\n    - Augment dataframe with additional features";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Add Column";
+  static readonly description =
+    "Add list of values as new column to dataframe.\n    dataframe, column, list\n\n    Use cases:\n    - Incorporate external data into existing dataframe\n    - Add calculated results as new column\n    - Augment dataframe with additional features";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "Dataframe object to add a new column to." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "Dataframe object to add a new column to."
+  })
   declare dataframe: any;
 
-  @prop({ type: "str", default: "", title: "Column Name", description: "The name of the new column to be added to the dataframe." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Column Name",
+    description: "The name of the new column to be added to the dataframe."
+  })
   declare column_name: any;
 
-  @prop({ type: "list[any]", default: [], title: "Values", description: "A list of any type of elements which will be the new column's values." })
+  @prop({
+    type: "list[any]",
+    default: [],
+    title: "Values",
+    description:
+      "A list of any type of elements which will be the new column's values."
+  })
   declare values: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.dataframe ?? this.dataframe);
     const column = String(this.column_name ?? this.column_name ?? "");
     const values = Array.isArray(this.values ?? this.values)
-      ? (this.values ?? this.values) as unknown[]
+      ? ((this.values ?? this.values) as unknown[])
       : [];
     return {
       output: toDataframe(
         rows.map((row, i) => ({
           ...row,
-          [column]: values[i],
+          [column]: values[i]
         }))
-      ),
+      )
     };
   }
 }
 
 export class MergeDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Merge";
-            static readonly title = "Merge";
-            static readonly description = "Merge two dataframes along columns.\n    merge, concat, columns\n\n    Use cases:\n    - Combine data from multiple sources\n    - Add new features to existing dataframe\n    - Merge time series data from different periods";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Merge";
+  static readonly description =
+    "Merge two dataframes along columns.\n    merge, concat, columns\n\n    Use cases:\n    - Combine data from multiple sources\n    - Add new features to existing dataframe\n    - Merge time series data from different periods";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe A", description: "First DataFrame to be merged." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe A",
+    description: "First DataFrame to be merged."
+  })
   declare dataframe_a: any;
 
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe B", description: "Second DataFrame to be merged." })
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe B",
+    description: "Second DataFrame to be merged."
+  })
   declare dataframe_b: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const a = asRows(this.dataframe_a ?? this.dataframe_a);
@@ -587,35 +683,43 @@ export class MergeDataframeNode extends BaseNode {
 
 export class AppendDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Append";
-            static readonly title = "Append";
-            static readonly description = "Append two dataframes along rows.\n    append, concat, rows\n\n    Use cases:\n    - Combine data from multiple time periods\n    - Merge datasets with same structure\n    - Aggregate data from different sources";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Append";
+  static readonly description =
+    "Append two dataframes along rows.\n    append, concat, rows\n\n    Use cases:\n    - Combine data from multiple time periods\n    - Merge datasets with same structure\n    - Aggregate data from different sources";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe A", description: "First DataFrame to be appended." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe A",
+    description: "First DataFrame to be appended."
+  })
   declare dataframe_a: any;
 
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe B", description: "Second DataFrame to be appended." })
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe B",
+    description: "Second DataFrame to be appended."
+  })
   declare dataframe_b: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const a = asRows(this.dataframe_a ?? this.dataframe_a);
@@ -625,7 +729,9 @@ export class AppendDataframeNode extends BaseNode {
     const aCols = Object.keys(a[0]).sort().join(",");
     const bCols = Object.keys(b[0]).sort().join(",");
     if (aCols !== bCols) {
-      throw new Error("Columns in dataframe A do not match columns in dataframe B");
+      throw new Error(
+        "Columns in dataframe A do not match columns in dataframe B"
+      );
     }
     return { output: toDataframe([...a, ...b]) };
   }
@@ -633,38 +739,51 @@ export class AppendDataframeNode extends BaseNode {
 
 export class JoinDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Join";
-            static readonly title = "Join";
-            static readonly description = "Join two dataframes on specified column.\n    join, merge, column\n\n    Use cases:\n    - Combine data from related tables\n    - Enrich dataset with additional information\n    - Link data based on common identifiers";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Join";
+  static readonly description =
+    "Join two dataframes on specified column.\n    join, merge, column\n\n    Use cases:\n    - Combine data from related tables\n    - Enrich dataset with additional information\n    - Link data based on common identifiers";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe A", description: "First DataFrame to be merged." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe A",
+    description: "First DataFrame to be merged."
+  })
   declare dataframe_a: any;
 
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe B", description: "Second DataFrame to be merged." })
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe B",
+    description: "Second DataFrame to be merged."
+  })
   declare dataframe_b: any;
 
-  @prop({ type: "str", default: "", title: "Join On", description: "The column name on which to join the two dataframes." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Join On",
+    description: "The column name on which to join the two dataframes."
+  })
   declare join_on: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const a = asRows(this.dataframe_a ?? this.dataframe_a);
@@ -689,26 +808,28 @@ export class JoinDataframeNode extends BaseNode {
 
 export class RowIteratorNode extends BaseNode {
   static readonly nodeType = "nodetool.data.RowIterator";
-            static readonly title = "Row Iterator";
-            static readonly description = "Iterate over rows of a dataframe.";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Row Iterator";
+  static readonly description = "Iterate over rows of a dataframe.";
+  static readonly metadataOutputTypes = {
     dict: "dict",
     index: "any"
   };
-  
-            static readonly isStreamingOutput = true;
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "The input dataframe." })
+
+  static readonly isStreamingOutput = true;
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "The input dataframe."
+  })
   declare dataframe: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -724,28 +845,37 @@ export class RowIteratorNode extends BaseNode {
 
 export class FindRowNode extends BaseNode {
   static readonly nodeType = "nodetool.data.FindRow";
-            static readonly title = "Find Row";
-            static readonly description = "Find the first row in a dataframe that matches a given condition.\n    filter, query, condition, single row\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Retrieve specific record based on criteria\n    - Find first occurrence of a particular condition\n    - Extract single data point for further analysis";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Find Row";
+  static readonly description =
+    "Find the first row in a dataframe that matches a given condition.\n    filter, query, condition, single row\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Retrieve specific record based on criteria\n    - Find first occurrence of a particular condition\n    - Extract single data point for further analysis";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Df", description: "The DataFrame to search." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Df",
+    description: "The DataFrame to search."
+  })
   declare df: any;
 
-  @prop({ type: "str", default: "", title: "Condition", description: "The condition to filter the DataFrame, e.g. 'column_name == value'." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Condition",
+    description:
+      "The condition to filter the DataFrame, e.g. 'column_name == value'."
+  })
   declare condition: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.df ?? this.df);
@@ -757,27 +887,34 @@ export class FindRowNode extends BaseNode {
 
 export class SortByColumnNode extends BaseNode {
   static readonly nodeType = "nodetool.data.SortByColumn";
-            static readonly title = "Sort By Column";
-            static readonly description = "Sort dataframe by specified column.\n    sort, order, column\n\n    Use cases:\n    - Arrange data in ascending or descending order\n    - Identify top or bottom values in dataset\n    - Prepare data for rank-based analysis";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Sort By Column";
+  static readonly description =
+    "Sort dataframe by specified column.\n    sort, order, column\n\n    Use cases:\n    - Arrange data in ascending or descending order\n    - Identify top or bottom values in dataset\n    - Prepare data for rank-based analysis";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Df" })
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Df"
+  })
   declare df: any;
 
-  @prop({ type: "str", default: "", title: "Column", description: "The column to sort the DataFrame by." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Column",
+    description: "The column to sort the DataFrame by."
+  })
   declare column: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.df ?? this.df);
@@ -798,25 +935,28 @@ export class SortByColumnNode extends BaseNode {
 
 export class DropDuplicatesNode extends BaseNode {
   static readonly nodeType = "nodetool.data.DropDuplicates";
-            static readonly title = "Drop Duplicates";
-            static readonly description = "Remove duplicate rows from dataframe.\n    duplicates, unique, clean\n\n    Use cases:\n    - Clean dataset by removing redundant entries\n    - Ensure data integrity in analysis\n    - Prepare data for unique value operations";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Drop Duplicates";
+  static readonly description =
+    "Remove duplicate rows from dataframe.\n    duplicates, unique, clean\n\n    Use cases:\n    - Clean dataset by removing redundant entries\n    - Ensure data integrity in analysis\n    - Prepare data for unique value operations";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Df", description: "The input DataFrame." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Df",
+    description: "The input DataFrame."
+  })
   declare df: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.df ?? this.df);
@@ -826,25 +966,28 @@ export class DropDuplicatesNode extends BaseNode {
 
 export class DropNANode extends BaseNode {
   static readonly nodeType = "nodetool.data.DropNA";
-            static readonly title = "Drop NA";
-            static readonly description = "Remove rows with NA values from dataframe.\n    na, missing, clean\n\n    Use cases:\n    - Clean dataset by removing incomplete entries\n    - Prepare data for analysis requiring complete cases\n    - Improve data quality for modeling";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Drop NA";
+  static readonly description =
+    "Remove rows with NA values from dataframe.\n    na, missing, clean\n\n    Use cases:\n    - Clean dataset by removing incomplete entries\n    - Prepare data for analysis requiring complete cases\n    - Improve data quality for modeling";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Df", description: "The input DataFrame." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Df",
+    description: "The input DataFrame."
+  })
   declare df: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.df ?? this.df);
@@ -857,27 +1000,30 @@ export class DropNANode extends BaseNode {
 
 export class ForEachRowNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ForEachRow";
-            static readonly title = "For Each Row";
-            static readonly description = "Iterate over rows of a dataframe.\n    iterator, loop, dataframe, sequence, rows\n\n    Use cases:\n    - Process each row of a dataframe individually\n    - Trigger actions for every record in a dataset";
-        static readonly metadataOutputTypes = {
+  static readonly title = "For Each Row";
+  static readonly description =
+    "Iterate over rows of a dataframe.\n    iterator, loop, dataframe, sequence, rows\n\n    Use cases:\n    - Process each row of a dataframe individually\n    - Trigger actions for every record in a dataset";
+  static readonly metadataOutputTypes = {
     row: "dict",
     index: "any"
   };
-          static readonly exposeAsTool = true;
-  
-            static readonly isStreamingOutput = true;
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "The input dataframe." })
+  static readonly exposeAsTool = true;
+
+  static readonly isStreamingOutput = true;
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "The input dataframe."
+  })
   declare dataframe: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -893,26 +1039,29 @@ export class ForEachRowNode extends BaseNode {
 
 export class LoadCSVAssetsNode extends BaseNode {
   static readonly nodeType = "nodetool.data.LoadCSVAssets";
-            static readonly title = "Load CSV Assets";
-            static readonly description = "Load dataframes from an asset folder.\n    load, dataframe, file, import\n\n    Use cases:\n    - Load multiple dataframes from a folder\n    - Process multiple datasets in sequence\n    - Batch import of data files";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Load CSV Assets";
+  static readonly description =
+    "Load dataframes from an asset folder.\n    load, dataframe, file, import\n\n    Use cases:\n    - Load multiple dataframes from a folder\n    - Process multiple datasets in sequence\n    - Batch import of data files";
+  static readonly metadataOutputTypes = {
     dataframe: "dataframe",
     name: "str"
   };
-          static readonly exposeAsTool = true;
-  
-            static readonly isStreamingOutput = true;
-  @prop({ type: "folder", default: {
-  "type": "folder",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Folder", description: "The asset folder to load the dataframes from." })
+  static readonly exposeAsTool = true;
+
+  static readonly isStreamingOutput = true;
+  @prop({
+    type: "folder",
+    default: {
+      type: "folder",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Folder",
+    description: "The asset folder to load the dataframes from."
+  })
   declare folder: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -922,7 +1071,8 @@ export class LoadCSVAssetsNode extends BaseNode {
     const folder = String(this.folder ?? this.folder ?? ".");
     const entries = await fs.readdir(folder, { withFileTypes: true });
     for (const entry of entries) {
-      if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".csv")) continue;
+      if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".csv"))
+        continue;
       const full = path.join(folder, entry.name);
       const csv = await fs.readFile(full, "utf8");
       yield { name: entry.name, dataframe: toDataframe(parseCsv(csv)) };
@@ -932,31 +1082,45 @@ export class LoadCSVAssetsNode extends BaseNode {
 
 export class AggregateNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Aggregate";
-            static readonly title = "Aggregate";
-            static readonly description = "Aggregate dataframe by one or more columns.\n    aggregate, groupby, group, sum, mean, count, min, max, std, var, median, first, last\n\n    Use cases:\n    - Prepare data for aggregation operations\n    - Analyze data by categories\n    - Create summary statistics by groups";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Aggregate";
+  static readonly description =
+    "Aggregate dataframe by one or more columns.\n    aggregate, groupby, group, sum, mean, count, min, max, std, var, median, first, last\n\n    Use cases:\n    - Prepare data for aggregation operations\n    - Analyze data by categories\n    - Create summary statistics by groups";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "The DataFrame to group." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "The DataFrame to group."
+  })
   declare dataframe: any;
 
-  @prop({ type: "str", default: "", title: "Columns", description: "Comma-separated column names to group by." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Columns",
+    description: "Comma-separated column names to group by."
+  })
   declare columns: any;
 
-  @prop({ type: "str", default: "sum", title: "Aggregation", description: "Aggregation function: sum, mean, count, min, max, std, var, median, first, last" })
+  @prop({
+    type: "str",
+    default: "sum",
+    title: "Aggregation",
+    description:
+      "Aggregation function: sum, mean, count, min, max, std, var, median, first, last"
+  })
   declare aggregation: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.dataframe ?? this.dataframe);
@@ -1003,37 +1167,60 @@ export class AggregateNode extends BaseNode {
 
 export class PivotNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Pivot";
-            static readonly title = "Pivot";
-            static readonly description = "Pivot dataframe to reshape data.\n    pivot, reshape, transform\n\n    Use cases:\n    - Transform long data to wide format\n    - Create cross-tabulation tables\n    - Reorganize data for visualization";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Pivot";
+  static readonly description =
+    "Pivot dataframe to reshape data.\n    pivot, reshape, transform\n\n    Use cases:\n    - Transform long data to wide format\n    - Create cross-tabulation tables\n    - Reorganize data for visualization";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "The DataFrame to pivot." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "The DataFrame to pivot."
+  })
   declare dataframe: any;
 
-  @prop({ type: "str", default: "", title: "Index", description: "Column name to use as index (rows)." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Index",
+    description: "Column name to use as index (rows)."
+  })
   declare index: any;
 
-  @prop({ type: "str", default: "", title: "Columns", description: "Column name to use as columns." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Columns",
+    description: "Column name to use as columns."
+  })
   declare columns: any;
 
-  @prop({ type: "str", default: "", title: "Values", description: "Column name to use as values." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Values",
+    description: "Column name to use as values."
+  })
   declare values: any;
 
-  @prop({ type: "str", default: "sum", title: "Aggfunc", description: "Aggregation function: sum, mean, count, min, max, first, last" })
+  @prop({
+    type: "str",
+    default: "sum",
+    title: "Aggfunc",
+    description: "Aggregation function: sum, mean, count, min, max, first, last"
+  })
   declare aggfunc: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.dataframe ?? this.dataframe);
@@ -1075,28 +1262,36 @@ export class PivotNode extends BaseNode {
 
 export class RenameNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Rename";
-            static readonly title = "Rename";
-            static readonly description = "Rename columns in dataframe.\n    rename, columns, names\n\n    Use cases:\n    - Standardize column names\n    - Make column names more descriptive\n    - Prepare data for specific requirements";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Rename";
+  static readonly description =
+    "Rename columns in dataframe.\n    rename, columns, names\n\n    Use cases:\n    - Standardize column names\n    - Make column names more descriptive\n    - Prepare data for specific requirements";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "The DataFrame to rename columns." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "The DataFrame to rename columns."
+  })
   declare dataframe: any;
 
-  @prop({ type: "str", default: "", title: "Rename Map", description: "Column rename mapping in format: old1:new1,old2:new2" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Rename Map",
+    description: "Column rename mapping in format: old1:new1,old2:new2"
+  })
   declare rename_map: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.dataframe ?? this.dataframe);
@@ -1118,34 +1313,53 @@ export class RenameNode extends BaseNode {
 
 export class FillNANode extends BaseNode {
   static readonly nodeType = "nodetool.data.FillNA";
-            static readonly title = "Fill NA";
-            static readonly description = "Fill missing values in dataframe.\n    fillna, missing, impute\n\n    Use cases:\n    - Handle missing data\n    - Prepare data for analysis\n    - Improve data quality";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Fill NA";
+  static readonly description =
+    "Fill missing values in dataframe.\n    fillna, missing, impute\n\n    Use cases:\n    - Handle missing data\n    - Prepare data for analysis\n    - Improve data quality";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "The DataFrame with missing values." })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "The DataFrame with missing values."
+  })
   declare dataframe: any;
 
-  @prop({ type: "any", default: 0, title: "Value", description: "Value to use for filling missing values." })
+  @prop({
+    type: "any",
+    default: 0,
+    title: "Value",
+    description: "Value to use for filling missing values."
+  })
   declare value: any;
 
-  @prop({ type: "str", default: "value", title: "Method", description: "Method for filling: value, forward, backward, mean, median" })
+  @prop({
+    type: "str",
+    default: "value",
+    title: "Method",
+    description: "Method for filling: value, forward, backward, mean, median"
+  })
   declare method: any;
 
-  @prop({ type: "str", default: "", title: "Columns", description: "Comma-separated column names to fill. Leave empty for all columns." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Columns",
+    description:
+      "Comma-separated column names to fill. Leave empty for all columns."
+  })
   declare columns: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.dataframe ?? this.dataframe);
@@ -1154,7 +1368,10 @@ export class FillNANode extends BaseNode {
     const colsRaw = String(this.columns ?? this.columns ?? "");
     const allCols = [...new Set(rows.flatMap((r) => Object.keys(r)))];
     const cols = colsRaw
-      ? colsRaw.split(",").map((c) => c.trim()).filter(Boolean)
+      ? colsRaw
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
       : allCols;
 
     const out = rows.map((r) => ({ ...r }));
@@ -1190,7 +1407,9 @@ export class FillNANode extends BaseNode {
 
     if (method === "mean" || method === "median") {
       for (const col of cols) {
-        const nums = out.map((r) => toNumber(r[col])).filter((n) => Number.isFinite(n));
+        const nums = out
+          .map((r) => toNumber(r[col]))
+          .filter((n) => Number.isFinite(n));
         const fill = method === "mean" ? mean(nums) : median(nums);
         if (!Number.isFinite(fill)) continue;
         for (const row of out) {
@@ -1206,30 +1425,43 @@ export class FillNANode extends BaseNode {
 
 export class SaveCSVDataframeFileNode extends BaseNode {
   static readonly nodeType = "nodetool.data.SaveCSVDataframeFile";
-            static readonly title = "Save CSVDataframe File";
-            static readonly description = "Write a pandas DataFrame to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Save CSVDataframe File";
+  static readonly description =
+    "Write a pandas DataFrame to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "DataFrame to write to CSV" })
+
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "DataFrame to write to CSV"
+  })
   declare dataframe: any;
 
-  @prop({ type: "str", default: "", title: "Folder", description: "Folder where the file will be saved" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Folder",
+    description: "Folder where the file will be saved"
+  })
   declare folder: any;
 
-  @prop({ type: "str", default: "", title: "Filename", description: "Name of the CSV file to save. Supports strftime format codes." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Filename",
+    description: "Name of the CSV file to save. Supports strftime format codes."
+  })
   declare filename: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.dataframe ?? this.dataframe);
@@ -1247,19 +1479,22 @@ export class SaveCSVDataframeFileNode extends BaseNode {
 
 export class FilterNoneNode extends BaseNode {
   static readonly nodeType = "nodetool.data.FilterNone";
-            static readonly title = "Filter None";
-            static readonly description = "Filters out None values from a stream.\n    filter, none, null, stream\n\n    Use cases:\n    - Clean data by removing null values\n    - Get only valid entries\n    - Remove placeholder values";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Filter None";
+  static readonly description =
+    "Filters out None values from a stream.\n    filter, none, null, stream\n\n    Use cases:\n    - Clean data by removing null values\n    - Get only valid entries\n    - Remove placeholder values";
+  static readonly metadataOutputTypes = {
     output: "any"
   };
-  
+
   static readonly isStreamingInput = true;
-            static readonly isStreamingOutput = true;
-  @prop({ type: "any", default: [], title: "Value", description: "Input stream" })
+  static readonly isStreamingOutput = true;
+  @prop({
+    type: "any",
+    default: [],
+    title: "Value",
+    description: "Input stream"
+  })
   declare value: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const value = this.value ?? this.value ?? null;
@@ -1299,5 +1534,5 @@ export const DATA_NODES = [
   RenameNode,
   FillNANode,
   SaveCSVDataframeFileNode,
-  FilterNoneNode,
+  FilterNoneNode
 ] as const;

@@ -7,24 +7,18 @@ import { Graph } from "../src/graph.js";
 import {
   findNodeOrThrow,
   getNodeInputTypes,
-  getDownstreamSubgraph,
+  getDownstreamSubgraph
 } from "../src/graph-utils.js";
 import type { NodeDescriptor, Edge } from "@nodetool/protocol";
 
 // Helper to build a simple graph
-function makeGraph(
-  nodes: NodeDescriptor[],
-  edges: Edge[]
-): Graph {
+function makeGraph(nodes: NodeDescriptor[], edges: Edge[]): Graph {
   return new Graph({ nodes, edges });
 }
 
 describe("findNodeOrThrow", () => {
   it("returns the node when it exists", () => {
-    const graph = makeGraph(
-      [{ id: "n1", type: "test" }],
-      []
-    );
+    const graph = makeGraph([{ id: "n1", type: "test" }], []);
     const node = findNodeOrThrow(graph, "n1");
     expect(node.id).toBe("n1");
   });
@@ -41,42 +35,42 @@ describe("getNodeInputTypes", () => {
   it("returns correct handle -> type mapping", () => {
     const nodes: NodeDescriptor[] = [
       { id: "src", type: "source", outputs: { out: "string", num: "int" } },
-      { id: "dst", type: "dest" },
+      { id: "dst", type: "dest" }
     ];
     const edges: Edge[] = [
       {
         source: "src",
         sourceHandle: "out",
         target: "dst",
-        targetHandle: "text_in",
+        targetHandle: "text_in"
       },
       {
         source: "src",
         sourceHandle: "num",
         target: "dst",
-        targetHandle: "number_in",
-      },
+        targetHandle: "number_in"
+      }
     ];
     const graph = makeGraph(nodes, edges);
     const types = getNodeInputTypes(graph, "dst");
     expect(types).toEqual({
       text_in: "string",
-      number_in: "int",
+      number_in: "int"
     });
   });
 
   it("returns undefined for missing source outputs", () => {
     const nodes: NodeDescriptor[] = [
       { id: "src", type: "source" }, // no outputs declared
-      { id: "dst", type: "dest" },
+      { id: "dst", type: "dest" }
     ];
     const edges: Edge[] = [
       {
         source: "src",
         sourceHandle: "out",
         target: "dst",
-        targetHandle: "in",
-      },
+        targetHandle: "in"
+      }
     ];
     const graph = makeGraph(nodes, edges);
     const types = getNodeInputTypes(graph, "dst");
@@ -84,10 +78,7 @@ describe("getNodeInputTypes", () => {
   });
 
   it("returns empty object when node has no incoming edges", () => {
-    const graph = makeGraph(
-      [{ id: "n1", type: "test" }],
-      []
-    );
+    const graph = makeGraph([{ id: "n1", type: "test" }], []);
     const types = getNodeInputTypes(graph, "n1");
     expect(types).toEqual({});
   });
@@ -101,12 +92,12 @@ describe("getDownstreamSubgraph", () => {
       { id: "A", type: "t" },
       { id: "B", type: "t" },
       { id: "C", type: "t" },
-      { id: "D", type: "t" },
+      { id: "D", type: "t" }
     ];
     const edges: Edge[] = [
       { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
       { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" },
-      { source: "B", sourceHandle: "alt", target: "D", targetHandle: "in" },
+      { source: "B", sourceHandle: "alt", target: "D", targetHandle: "in" }
     ];
     const graph = makeGraph(nodes, edges);
 
@@ -127,10 +118,10 @@ describe("getDownstreamSubgraph", () => {
   it("returns empty when no matching source handle", () => {
     const nodes: NodeDescriptor[] = [
       { id: "A", type: "t" },
-      { id: "B", type: "t" },
+      { id: "B", type: "t" }
     ];
     const edges: Edge[] = [
-      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" }
     ];
     const graph = makeGraph(nodes, edges);
 
@@ -147,13 +138,13 @@ describe("getDownstreamSubgraph", () => {
       { id: "A", type: "t" },
       { id: "B", type: "t" },
       { id: "C", type: "t" },
-      { id: "D", type: "t" },
+      { id: "D", type: "t" }
     ];
     const edges: Edge[] = [
       { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
       { source: "A", sourceHandle: "out", target: "C", targetHandle: "in" },
       { source: "B", sourceHandle: "out", target: "D", targetHandle: "in" },
-      { source: "C", sourceHandle: "out", target: "D", targetHandle: "in" },
+      { source: "C", sourceHandle: "out", target: "D", targetHandle: "in" }
     ];
     const graph = makeGraph(nodes, edges);
 
@@ -176,11 +167,11 @@ describe("getDownstreamSubgraph", () => {
     const nodes: NodeDescriptor[] = [
       { id: "A", type: "t" },
       { id: "B", type: "t" },
-      { id: "C", type: "t" },
+      { id: "C", type: "t" }
     ];
     const edges: Edge[] = [
       { source: "A", sourceHandle: "out1", target: "B", targetHandle: "in" },
-      { source: "A", sourceHandle: "out2", target: "C", targetHandle: "in" },
+      { source: "A", sourceHandle: "out2", target: "C", targetHandle: "in" }
     ];
     const graph = makeGraph(nodes, edges);
 

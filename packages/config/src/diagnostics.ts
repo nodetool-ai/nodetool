@@ -32,7 +32,9 @@ export function maskSecret(value: string): string {
  *
  * @param settings Optional override — defaults to `getSettings()`.
  */
-export function diagnoseEnvironment(settings?: SettingStatus[]): DiagnosticResult[] {
+export function diagnoseEnvironment(
+  settings?: SettingStatus[]
+): DiagnosticResult[] {
   const resolved = settings ?? getSettings();
 
   return resolved.map((setting) => {
@@ -50,7 +52,7 @@ export function diagnoseEnvironment(settings?: SettingStatus[]): DiagnosticResul
       isSet,
       isSecret: setting.isSecret,
       maskedValue,
-      description: setting.description,
+      description: setting.description
     };
   });
 }

@@ -41,7 +41,7 @@ export {
   audioTranscribeConfig,
   audioSpeechConfig,
   textGenerateConfig,
-  embeddingConfig,
+  embeddingConfig
 };
 
 export const allConfigs: Record<string, ModuleConfig> = {
@@ -64,5 +64,5 @@ export const allConfigs: Record<string, ModuleConfig> = {
   "audio.transcribe": audioTranscribeConfig,
   "audio.speech": audioSpeechConfig,
   "text.generate": textGenerateConfig,
-  "embedding": embeddingConfig,
+  embedding: embeddingConfig
 };

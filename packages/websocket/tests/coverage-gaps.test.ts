@@ -11,13 +11,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { pack, unpack } from "msgpackr";
 import { Readable } from "node:stream";
-import {
-  initTestDb,
-  Thread,
-  Message,
-  Workflow,
-  Job,
-} from "@nodetool/models";
+import { initTestDb, Thread, Message, Workflow, Job } from "@nodetool/models";
 
 // ── index.ts barrel exports ──────────────────────────────────────────
 
@@ -78,7 +72,7 @@ describe("index.ts barrel exports", () => {
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
-  type WebSocketReceiveFrame,
+  type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
 
 class MockWebSocket implements WebSocketConnection {
@@ -117,7 +111,7 @@ class MockWebSocket implements WebSocketConnection {
 const resolveExecutor = () => ({
   async process() {
     return {};
-  },
+  }
 });
 
 function setupModels() {
@@ -138,23 +132,28 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
   it("chat_message command starts processing with valid thread_id", async () => {
     runner = new UnifiedWebSocketRunner({
       resolveExecutor,
-      resolveProvider: async () => ({
-        provider: "mock",
-        generateMessages: async function* () {
-          yield { type: "chunk" as const, content: "Hello!" };
-        },
-        async *generateMessagesTraced(...a: any[]) { yield* (this as any).generateMessages(...a); },
-        async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
-        generateMessage: vi.fn(),
-        hasToolSupport: async () => false,
-        getAvailableLanguageModels: async () => [],
-        getAvailableImageModels: async () => [],
-        getAvailableVideoModels: async () => [],
-        getAvailableTTSModels: async () => [],
-        getAvailableASRModels: async () => [],
-        getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({}),
-      } as any),
+      resolveProvider: async () =>
+        ({
+          provider: "mock",
+          generateMessages: async function* () {
+            yield { type: "chunk" as const, content: "Hello!" };
+          },
+          async *generateMessagesTraced(...a: any[]) {
+            yield* (this as any).generateMessages(...a);
+          },
+          async generateMessageTraced(...a: any[]) {
+            return (this as any).generateMessage(...a);
+          },
+          generateMessage: vi.fn(),
+          hasToolSupport: async () => false,
+          getAvailableLanguageModels: async () => [],
+          getAvailableImageModels: async () => [],
+          getAvailableVideoModels: async () => [],
+          getAvailableTTSModels: async () => [],
+          getAvailableASRModels: async () => [],
+          getAvailableEmbeddingModels: async () => [],
+          getContainerEnv: () => ({})
+        }) as any
     });
     await runner.connect(ws);
 
@@ -164,8 +163,8 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
         thread_id: "test-thread-1",
         content: "Hello there",
         provider: "mock",
-        model: "test-model",
-      },
+        model: "test-model"
+      }
     });
     expect(result.message).toContain("Chat message processing started");
     expect(result.thread_id).toBe("test-thread-1");
@@ -183,8 +182,8 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
       command: "chat_message",
       data: {
         thread_id: "test-thread-2",
-        content: "Hello",
-      },
+        content: "Hello"
+      }
     });
     expect(result.message).toContain("Chat message processing started");
 
@@ -193,7 +192,14 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
 
     // Should have sent an error message about no provider resolver
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    expect(sent.some((m) => m.type === "error" && typeof m.message === "string" && (m.message as string).includes("No provider resolver"))).toBe(true);
+    expect(
+      sent.some(
+        (m) =>
+          m.type === "error" &&
+          typeof m.message === "string" &&
+          (m.message as string).includes("No provider resolver")
+      )
+    ).toBe(true);
 
     await runner.disconnect();
   });
@@ -201,24 +207,29 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
   it("chat_message processes tool calls from provider", async () => {
     runner = new UnifiedWebSocketRunner({
       resolveExecutor,
-      resolveProvider: async () => ({
-        provider: "mock",
-        generateMessages: async function* () {
-          yield { id: "tc-1", name: "search", args: { query: "test" } };
-          yield { type: "chunk" as const, content: "Result" };
-        },
-        async *generateMessagesTraced(...a: any[]) { yield* (this as any).generateMessages(...a); },
-        async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
-        generateMessage: vi.fn(),
-        hasToolSupport: async () => true,
-        getAvailableLanguageModels: async () => [],
-        getAvailableImageModels: async () => [],
-        getAvailableVideoModels: async () => [],
-        getAvailableTTSModels: async () => [],
-        getAvailableASRModels: async () => [],
-        getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({}),
-      } as any),
+      resolveProvider: async () =>
+        ({
+          provider: "mock",
+          generateMessages: async function* () {
+            yield { id: "tc-1", name: "search", args: { query: "test" } };
+            yield { type: "chunk" as const, content: "Result" };
+          },
+          async *generateMessagesTraced(...a: any[]) {
+            yield* (this as any).generateMessages(...a);
+          },
+          async generateMessageTraced(...a: any[]) {
+            return (this as any).generateMessage(...a);
+          },
+          generateMessage: vi.fn(),
+          hasToolSupport: async () => true,
+          getAvailableLanguageModels: async () => [],
+          getAvailableImageModels: async () => [],
+          getAvailableVideoModels: async () => [],
+          getAvailableTTSModels: async () => [],
+          getAvailableASRModels: async () => [],
+          getAvailableEmbeddingModels: async () => [],
+          getContainerEnv: () => ({})
+        }) as any
     });
     await runner.connect(ws);
 
@@ -226,8 +237,8 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
       command: "chat_message",
       data: {
         thread_id: "test-thread-3",
-        content: "Search for something",
-      },
+        content: "Search for something"
+      }
     });
 
     await new Promise((r) => setTimeout(r, 100));
@@ -239,8 +250,8 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
           m.type === "message" &&
           m.role === "assistant" &&
           Array.isArray(m.tool_calls) &&
-          (m.tool_calls as Array<unknown>).length > 0,
-      ),
+          (m.tool_calls as Array<unknown>).length > 0
+      )
     ).toBe(true);
     expect(sent.some((m) => m.type === "chunk")).toBe(true);
 
@@ -250,23 +261,28 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
   it("chat_message handles error from provider gracefully", async () => {
     runner = new UnifiedWebSocketRunner({
       resolveExecutor,
-      resolveProvider: async () => ({
-        provider: "mock",
-        generateMessages: async function* () {
-          throw new Error("Provider exploded");
-        },
-        async *generateMessagesTraced(...a: any[]) { yield* (this as any).generateMessages(...a); },
-        async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
-        generateMessage: vi.fn(),
-        hasToolSupport: async () => false,
-        getAvailableLanguageModels: async () => [],
-        getAvailableImageModels: async () => [],
-        getAvailableVideoModels: async () => [],
-        getAvailableTTSModels: async () => [],
-        getAvailableASRModels: async () => [],
-        getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({}),
-      } as any),
+      resolveProvider: async () =>
+        ({
+          provider: "mock",
+          generateMessages: async function* () {
+            throw new Error("Provider exploded");
+          },
+          async *generateMessagesTraced(...a: any[]) {
+            yield* (this as any).generateMessages(...a);
+          },
+          async generateMessageTraced(...a: any[]) {
+            return (this as any).generateMessage(...a);
+          },
+          generateMessage: vi.fn(),
+          hasToolSupport: async () => false,
+          getAvailableLanguageModels: async () => [],
+          getAvailableImageModels: async () => [],
+          getAvailableVideoModels: async () => [],
+          getAvailableTTSModels: async () => [],
+          getAvailableASRModels: async () => [],
+          getAvailableEmbeddingModels: async () => [],
+          getContainerEnv: () => ({})
+        }) as any
     });
     await runner.connect(ws);
 
@@ -274,8 +290,8 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
       command: "chat_message",
       data: {
         thread_id: "test-thread-err",
-        content: "blow up",
-      },
+        content: "blow up"
+      }
     });
 
     await new Promise((r) => setTimeout(r, 100));
@@ -291,23 +307,28 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
     const thread = await Thread.create({ user_id: "1", title: "Existing" });
     runner = new UnifiedWebSocketRunner({
       resolveExecutor,
-      resolveProvider: async () => ({
-        provider: "mock",
-        generateMessages: async function* () {
-          yield { type: "chunk" as const, content: "ok" };
-        },
-        async *generateMessagesTraced(...a: any[]) { yield* (this as any).generateMessages(...a); },
-        async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
-        generateMessage: vi.fn(),
-        hasToolSupport: async () => false,
-        getAvailableLanguageModels: async () => [],
-        getAvailableImageModels: async () => [],
-        getAvailableVideoModels: async () => [],
-        getAvailableTTSModels: async () => [],
-        getAvailableASRModels: async () => [],
-        getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({}),
-      } as any),
+      resolveProvider: async () =>
+        ({
+          provider: "mock",
+          generateMessages: async function* () {
+            yield { type: "chunk" as const, content: "ok" };
+          },
+          async *generateMessagesTraced(...a: any[]) {
+            yield* (this as any).generateMessages(...a);
+          },
+          async generateMessageTraced(...a: any[]) {
+            return (this as any).generateMessage(...a);
+          },
+          generateMessage: vi.fn(),
+          hasToolSupport: async () => false,
+          getAvailableLanguageModels: async () => [],
+          getAvailableImageModels: async () => [],
+          getAvailableVideoModels: async () => [],
+          getAvailableTTSModels: async () => [],
+          getAvailableASRModels: async () => [],
+          getAvailableEmbeddingModels: async () => [],
+          getContainerEnv: () => ({})
+        }) as any
     });
     await runner.connect(ws);
 
@@ -315,8 +336,8 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
       command: "chat_message",
       data: {
         thread_id: thread.id,
-        content: "Hello again",
-      },
+        content: "Hello again"
+      }
     });
     expect(result.thread_id).toBe(thread.id);
 
@@ -341,8 +362,8 @@ describe("UnifiedWebSocketRunner: getWorkflowGraph with workflow_id", () => {
       access: "private",
       graph: {
         nodes: [{ id: "n1", type: "test.Node", name: "n1" }],
-        edges: [],
-      },
+        edges: []
+      }
     });
 
     const runner = new UnifiedWebSocketRunner({ resolveExecutor });
@@ -350,7 +371,7 @@ describe("UnifiedWebSocketRunner: getWorkflowGraph with workflow_id", () => {
 
     const result = await runner.handleCommand({
       command: "run_job",
-      data: { workflow_id: workflow.id, params: {} },
+      data: { workflow_id: workflow.id, params: {} }
     });
     expect(result.message).toContain("Job started");
 
@@ -369,14 +390,16 @@ describe("UnifiedWebSocketRunner: getWorkflowGraph with workflow_id", () => {
       type: "websocket.message",
       text: JSON.stringify({
         command: "run_job",
-        data: { workflow_id: "nonexistent-id", params: {} },
-      }),
+        data: { workflow_id: "nonexistent-id", params: {} }
+      })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 
     await runner.receiveMessages();
 
-    const sent = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
+    const sent = ws.sentText.map(
+      (t) => JSON.parse(t) as Record<string, unknown>
+    );
     expect(sent.some((m) => m.error === "invalid_command")).toBe(true);
 
     await runner.disconnect();
@@ -392,14 +415,16 @@ describe("UnifiedWebSocketRunner: getWorkflowGraph with workflow_id", () => {
       type: "websocket.message",
       text: JSON.stringify({
         command: "run_job",
-        data: { params: {} },
-      }),
+        data: { params: {} }
+      })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 
     await runner.receiveMessages();
 
-    const sent = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
+    const sent = ws.sentText.map(
+      (t) => JSON.parse(t) as Record<string, unknown>
+    );
     expect(sent.some((m) => m.error === "invalid_command")).toBe(true);
 
     await runner.disconnect();
@@ -416,7 +441,7 @@ describe("UnifiedWebSocketRunner: ping in binary mode", () => {
 
     ws.queue.push({
       type: "websocket.message",
-      bytes: pack({ type: "ping" }),
+      bytes: pack({ type: "ping" })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 
@@ -440,8 +465,8 @@ describe("UnifiedWebSocketRunner: client_tools_manifest edge cases", () => {
       type: "websocket.message",
       text: JSON.stringify({
         type: "client_tools_manifest",
-        tools: ["not-an-object", null, { name: "valid_tool", schema: {} }],
-      }),
+        tools: ["not-an-object", null, { name: "valid_tool", schema: {} }]
+      })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 
@@ -458,8 +483,8 @@ describe("UnifiedWebSocketRunner: client_tools_manifest edge cases", () => {
     ws.queue.push({
       type: "websocket.message",
       text: JSON.stringify({
-        type: "client_tools_manifest",
-      }),
+        type: "client_tools_manifest"
+      })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 
@@ -475,12 +500,12 @@ describe("UnifiedWebSocketRunner: stop command without job_id or thread_id", () 
     const runner = new UnifiedWebSocketRunner({ resolveExecutor });
     const result = await runner.handleCommand({
       command: "stop",
-      data: {},
+      data: {}
     });
     expect(result).toEqual({
       message: "Stop command processed",
       job_id: null,
-      thread_id: null,
+      thread_id: null
     });
   });
 });
@@ -489,10 +514,11 @@ describe("UnifiedWebSocketRunner: stop command without job_id or thread_id", () 
 
 describe("Models API: toUnifiedModelsFromLanguage", () => {
   it("converts language models to unified models", async () => {
-    const { toUnifiedModelsFromLanguage } = await import("../src/models-api.js");
+    const { toUnifiedModelsFromLanguage } =
+      await import("../src/models-api.js");
     const models = toUnifiedModelsFromLanguage([
       { id: "m1", name: "Model 1", provider: "openai" } as any,
-      { id: "m2", name: "Model 2", provider: "ollama" } as any,
+      { id: "m2", name: "Model 2", provider: "ollama" } as any
     ]);
     expect(models).toHaveLength(2);
     expect(models[0].type).toBe("language_model");
@@ -593,7 +619,9 @@ describe("OpenAI API: non-streaming chat completions error", () => {
       generateMessages: async function* () {
         throw new Error("Provider failure");
       },
-      async *generateMessagesTraced(...a: any[]) { yield* (this as any).generateMessages(...a); },
+      async *generateMessagesTraced(...a: any[]) {
+        yield* (this as any).generateMessages(...a);
+      }
     } as any;
 
     const request = new Request("http://localhost/v1/chat/completions", {
@@ -602,13 +630,18 @@ describe("OpenAI API: non-streaming chat completions error", () => {
       body: JSON.stringify({
         model: "test",
         messages: [{ role: "user", content: "hi" }],
-        stream: false,
-      }),
+        stream: false
+      })
     });
 
-    const res = await handleOpenAIRequest(request, "/v1/chat/completions", "user1", {
-      provider: errorProvider,
-    });
+    const res = await handleOpenAIRequest(
+      request,
+      "/v1/chat/completions",
+      "user1",
+      {
+        provider: errorProvider
+      }
+    );
     expect(res).not.toBeNull();
     expect(res!.status).toBe(500);
     const body = (await res!.json()) as Record<string, unknown>;
@@ -626,7 +659,9 @@ describe("OpenAI API: SSE stream error", () => {
       generateMessages: async function* () {
         throw new Error("Stream failure");
       },
-      async *generateMessagesTraced(...a: any[]) { yield* (this as any).generateMessages(...a); },
+      async *generateMessagesTraced(...a: any[]) {
+        yield* (this as any).generateMessages(...a);
+      }
     } as any;
 
     const stream = createSSEStream(
@@ -664,7 +699,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       method: "GET",
       url: "/api/workflows",
       headers: { "x-user-id": "user-1" },
-      [Symbol.asyncIterator]: async function* () {},
+      [Symbol.asyncIterator]: async function* () {}
     }) as any;
 
     // Create a mock ServerResponse
@@ -683,7 +718,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
             chunks.push(data as Buffer);
           }
         }
-      },
+      }
     } as any;
 
     await handleNodeHttpRequest(req, res);
@@ -699,7 +734,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
     const bodyContent = JSON.stringify({
       name: "Test Workflow",
       access: "private",
-      graph: { nodes: [], edges: [] },
+      graph: { nodes: [], edges: [] }
     });
 
     // IncomingMessage that yields body chunks
@@ -710,11 +745,11 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       headers: {
         "x-user-id": "user-1",
         "content-type": "application/json",
-        "content-length": String(bodyBuffer.length),
+        "content-length": String(bodyBuffer.length)
       },
       [Symbol.asyncIterator]: async function* () {
         yield bodyBuffer;
-      },
+      }
     } as any;
 
     const chunks: Buffer[] = [];
@@ -726,9 +761,11 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       },
       end(data?: Buffer | string) {
         if (data) {
-          chunks.push(typeof data === "string" ? Buffer.from(data) : (data as Buffer));
+          chunks.push(
+            typeof data === "string" ? Buffer.from(data) : (data as Buffer)
+          );
         }
-      },
+      }
     } as any;
 
     await handleNodeHttpRequest(req, res);
@@ -743,9 +780,9 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       url: "/api/workflows",
       headers: {
         "x-user-id": "user-1",
-        "accept": ["application/json", "text/plain"],
+        accept: ["application/json", "text/plain"]
       },
-      [Symbol.asyncIterator]: async function* () {},
+      [Symbol.asyncIterator]: async function* () {}
     } as any;
 
     const res = {
@@ -754,7 +791,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       setHeader(key: string, value: string) {
         this._headers[key] = value;
       },
-      end(data?: Buffer | string) {},
+      end(data?: Buffer | string) {}
     } as any;
 
     await handleNodeHttpRequest(req, res);
@@ -784,13 +821,16 @@ describe("HTTP API: handleNodeHttpRequest with 204 response", () => {
     const { handleNodeHttpRequest } = await import("../src/http-api.js");
 
     // Create a thread first
-    const thread = await Thread.create({ user_id: "user-1", title: "To Delete" });
+    const thread = await Thread.create({
+      user_id: "user-1",
+      title: "To Delete"
+    });
 
     const req = {
       method: "DELETE",
       url: `/api/threads/${thread.id}`,
       headers: { "x-user-id": "user-1" },
-      [Symbol.asyncIterator]: async function* () {},
+      [Symbol.asyncIterator]: async function* () {}
     } as any;
 
     let endCalled = false;
@@ -802,7 +842,7 @@ describe("HTTP API: handleNodeHttpRequest with 204 response", () => {
       },
       end(data?: Buffer | string) {
         endCalled = true;
-      },
+      }
     } as any;
 
     await handleNodeHttpRequest(req, res);
@@ -842,7 +882,7 @@ describe("HTTP API: trailing slash normalization", () => {
     const { handleApiRequest } = await import("../src/http-api.js");
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/", {
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(200);
@@ -874,7 +914,7 @@ describe("HTTP API: handleNodeHttpRequest with string chunks", () => {
     const bodyContent = JSON.stringify({
       name: "String Chunk WF",
       access: "private",
-      graph: { nodes: [], edges: [] },
+      graph: { nodes: [], edges: [] }
     });
 
     // Yield string chunks instead of Uint8Array
@@ -883,11 +923,11 @@ describe("HTTP API: handleNodeHttpRequest with string chunks", () => {
       url: "/api/workflows",
       headers: {
         "x-user-id": "user-1",
-        "content-type": "application/json",
+        "content-type": "application/json"
       },
       [Symbol.asyncIterator]: async function* () {
         yield bodyContent; // String, not Uint8Array
-      },
+      }
     } as any;
 
     const chunks: Buffer[] = [];
@@ -899,9 +939,11 @@ describe("HTTP API: handleNodeHttpRequest with string chunks", () => {
       },
       end(data?: Buffer | string) {
         if (data) {
-          chunks.push(typeof data === "string" ? Buffer.from(data) : (data as Buffer));
+          chunks.push(
+            typeof data === "string" ? Buffer.from(data) : (data as Buffer)
+          );
         }
-      },
+      }
     } as any;
 
     await handleNodeHttpRequest(req, res);
@@ -924,11 +966,11 @@ describe("OpenAI API: convertMessages with tool_calls containing invalid JSON", 
             type: "function" as const,
             function: {
               name: "test",
-              arguments: '"just a string"', // Valid JSON but not an object
-            },
-          },
-        ],
-      },
+              arguments: '"just a string"' // Valid JSON but not an object
+            }
+          }
+        ]
+      }
     ]);
     expect(msgs[0].toolCalls![0].args).toEqual({});
   });
@@ -945,11 +987,11 @@ describe("OpenAI API: convertMessages with tool_calls containing invalid JSON", 
             type: "function" as const,
             function: {
               name: "test",
-              arguments: "not-valid-json{",
-            },
-          },
-        ],
-      },
+              arguments: "not-valid-json{"
+            }
+          }
+        ]
+      }
     ]);
     expect(msgs[0].toolCalls![0].args).toEqual({});
   });
@@ -966,11 +1008,11 @@ describe("OpenAI API: convertMessages with tool_calls containing invalid JSON", 
             type: "function" as const,
             function: {
               name: "test",
-              arguments: "[1, 2, 3]", // Array, not object
-            },
-          },
-        ],
-      },
+              arguments: "[1, 2, 3]" // Array, not object
+            }
+          }
+        ]
+      }
     ]);
     expect(msgs[0].toolCalls![0].args).toEqual({});
   });
@@ -987,12 +1029,16 @@ describe("OpenAI API: provider initialization failure", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         model: "claude-nonexistent",
-        messages: [{ role: "user", content: "hi" }],
-      }),
+        messages: [{ role: "user", content: "hi" }]
+      })
     });
 
     // No explicit provider - resolveProvider will try AnthropicProvider which throws without API key
-    const res = await handleOpenAIRequest(request, "/v1/chat/completions", "user1");
+    const res = await handleOpenAIRequest(
+      request,
+      "/v1/chat/completions",
+      "user1"
+    );
     // Either 200 (streaming) if provider resolves, or 500 if it throws during init
     // Since no ANTHROPIC_API_KEY, AnthropicProvider constructor throws
     if (res && res.status !== 200) {
@@ -1054,24 +1100,29 @@ describe("UnifiedWebSocketRunner: end_input_stream error path", () => {
           // Slow node to keep job alive
           await new Promise((r) => setTimeout(r, 5000));
           return {};
-        },
-      }),
+        }
+      })
     });
     await runner.connect(ws);
 
     const graph = {
       nodes: [{ id: "n1", type: "test.SlowNode", name: "n1" }],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = status.active_jobs[0]?.job_id;
 
     if (jobId) {
       // Try to end a non-existent input stream - should trigger error catch
       const result = await runner.handleCommand({
         command: "end_input_stream",
-        data: { job_id: jobId, input: "nonexistent_input" },
+        data: { job_id: jobId, input: "nonexistent_input" }
       });
       // May succeed or error depending on runner implementation
       expect(result.message || result.error).toBeDefined();

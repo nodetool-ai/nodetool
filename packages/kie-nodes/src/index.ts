@@ -11,7 +11,7 @@ export function registerKieNodes(registry: NodeRegistry): void {
   const modules = [
     import("./generated/image.js"),
     import("./generated/audio.js"),
-    import("./generated/video.js"),
+    import("./generated/video.js")
   ];
   for (const mod of modules) {
     void mod.then((m) => {

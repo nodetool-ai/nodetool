@@ -13,7 +13,7 @@ function makeAsyncIterable(items: unknown[]) {
       for (const item of items) {
         yield item;
       }
-    },
+    }
   };
 }
 
@@ -50,7 +50,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
   it("converts system message to assistant role", async () => {
     const result = await provider.convertMessage({
       role: "system",
-      content: "You are helpful",
+      content: "You are helpful"
     });
     expect(result).toEqual({ role: "assistant", content: "You are helpful" });
   });
@@ -58,7 +58,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
   it("handles system message with non-string content", async () => {
     const result = await provider.convertMessage({
       role: "system",
-      content: null,
+      content: null
     });
     expect(result).toEqual({ role: "assistant", content: "" });
   });
@@ -66,7 +66,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
   it("converts user text message", async () => {
     const result = await provider.convertMessage({
       role: "user",
-      content: "hello",
+      content: "hello"
     });
     expect(result).toEqual({ role: "user", content: "hello" });
   });
@@ -76,15 +76,15 @@ describe("AnthropicProvider – convertMessage branches", () => {
       role: "user",
       content: [
         { type: "text", text: "first" },
-        { type: "text", text: "second" },
-      ],
+        { type: "text", text: "second" }
+      ]
     });
     expect(result).toEqual({
       role: "user",
       content: [
         { type: "text", text: "first" },
-        { type: "text", text: "second" },
-      ],
+        { type: "text", text: "second" }
+      ]
     });
   });
 
@@ -95,9 +95,9 @@ describe("AnthropicProvider – convertMessage branches", () => {
       content: [
         {
           type: "image",
-          image: { uri: `data:image/png;base64,${base64}` },
-        },
-      ],
+          image: { uri: `data:image/png;base64,${base64}` }
+        }
+      ]
     });
     expect((result as any).content[0].type).toBe("image");
     expect((result as any).content[0].source.type).toBe("base64");
@@ -109,8 +109,8 @@ describe("AnthropicProvider – convertMessage branches", () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
-        { type: "image", image: { data: "AQID" } }, // base64 raw string
-      ],
+        { type: "image", image: { data: "AQID" } } // base64 raw string
+      ]
     });
     expect((result as any).content[0].source.data).toBe("AQID");
   });
@@ -120,8 +120,8 @@ describe("AnthropicProvider – convertMessage branches", () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
-        { type: "image", image: { data: `data:image/jpeg;base64,${base64}` } },
-      ],
+        { type: "image", image: { data: `data:image/jpeg;base64,${base64}` } }
+      ]
     });
     expect((result as any).content[0].source.data).toBe(base64);
     expect((result as any).content[0].source.media_type).toBe("image/jpeg");
@@ -131,7 +131,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
     await expect(
       provider.convertMessage({
         role: "user",
-        content: [{ type: "image", image: {} }],
+        content: [{ type: "image", image: {} }]
       })
     ).rejects.toThrow("Invalid image reference");
   });
@@ -139,7 +139,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
   it("returns null for assistant with no content and no tool calls", async () => {
     const result = await provider.convertMessage({
       role: "assistant",
-      content: null,
+      content: null
     });
     expect(result).toBeNull();
   });
@@ -147,7 +147,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
   it("handles assistant with string content only", async () => {
     const result = await provider.convertMessage({
       role: "assistant",
-      content: "just text",
+      content: "just text"
     });
     expect(result).toEqual({ role: "assistant", content: "just text" });
   });
@@ -155,11 +155,11 @@ describe("AnthropicProvider – convertMessage branches", () => {
   it("handles assistant with array content (text parts)", async () => {
     const result = await provider.convertMessage({
       role: "assistant",
-      content: [{ type: "text", text: "part1" }],
+      content: [{ type: "text", text: "part1" }]
     });
     expect(result).toEqual({
       role: "assistant",
-      content: [{ type: "text", text: "part1" }],
+      content: [{ type: "text", text: "part1" }]
     });
   });
 
@@ -167,14 +167,14 @@ describe("AnthropicProvider – convertMessage branches", () => {
     const result = await provider.convertMessage({
       role: "assistant",
       content: [{ type: "text", text: "thinking..." }],
-      toolCalls: [{ id: "tc1", name: "search", args: { q: "x" } }],
+      toolCalls: [{ id: "tc1", name: "search", args: { q: "x" } }]
     });
     expect(result).toEqual({
       role: "assistant",
       content: [
         { type: "text", text: "thinking..." },
-        { type: "tool_use", id: "tc1", name: "search", input: { q: "x" } },
-      ],
+        { type: "tool_use", id: "tc1", name: "search", input: { q: "x" } }
+      ]
     });
   });
 
@@ -194,7 +194,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
     const result = await provider.convertMessage({
       role: "tool",
       content: "result text",
-      toolCallId: "tc1",
+      toolCallId: "tc1"
     });
     expect((result as any).content[0].content).toBe("result text");
   });
@@ -218,23 +218,23 @@ describe("AnthropicProvider – prepareJsonSchema via formatTools", () => {
               items: { type: "string", default: "x", minLength: 1 },
               minItems: 1,
               maxItems: 10,
-              uniqueItems: true,
-            },
+              uniqueItems: true
+            }
           },
           definitions: {
             Foo: {
               type: "object",
-              properties: { n: { type: "number", minimum: 0, maximum: 100 } },
-            },
+              properties: { n: { type: "number", minimum: 0, maximum: 100 } }
+            }
           },
           $defs: {
             Bar: {
               type: "object",
-              properties: { s: { type: "string", maxLength: 50 } },
-            },
-          },
-        },
-      },
+              properties: { s: { type: "string", maxLength: 50 } }
+            }
+          }
+        }
+      }
     ];
 
     const formatted = provider.formatTools(tools);
@@ -255,15 +255,13 @@ describe("AnthropicProvider – prepareJsonSchema via formatTools", () => {
   });
 
   it("handles missing inputSchema with default", () => {
-    const tools: ProviderTool[] = [
-      { name: "tool" },
-    ];
+    const tools: ProviderTool[] = [{ name: "tool" }];
     const formatted = provider.formatTools(tools);
     // should use default schema
     expect(formatted[0].input_schema).toEqual({
       type: "object",
       additionalProperties: false,
-      properties: {},
+      properties: {}
     });
   });
 });
@@ -276,9 +274,9 @@ describe("AnthropicProvider – setupStructuredOutput", () => {
           type: "tool_use",
           name: "my_output",
           id: "tc1",
-          input: { result: 42 },
-        },
-      ],
+          input: { result: 42 }
+        }
+      ]
     });
 
     const provider = new AnthropicProvider(
@@ -294,9 +292,9 @@ describe("AnthropicProvider – setupStructuredOutput", () => {
         json_schema: {
           name: "my_output",
           description: "Custom output",
-          schema: { type: "object", properties: { result: { type: "number" } } },
-        },
-      },
+          schema: { type: "object", properties: { result: { type: "number" } } }
+        }
+      }
     });
 
     expect(result.content).toBe('{"result":42}');
@@ -314,8 +312,8 @@ describe("AnthropicProvider – setupStructuredOutput", () => {
         messages: [{ role: "user", content: "json" }],
         responseFormat: {
           type: "json_schema",
-          json_schema: { name: "test" },
-        },
+          json_schema: { name: "test" }
+        }
       })
     ).rejects.toThrow("must contain a schema");
   });
@@ -330,7 +328,7 @@ describe("AnthropicProvider – setupStructuredOutput", () => {
       provider.generateMessage({
         model: "claude-sonnet",
         messages: [{ role: "user", content: "json" }],
-        responseFormat: { type: "unsupported" as any },
+        responseFormat: { type: "unsupported" as any }
       })
     ).rejects.toThrow("Unsupported response_format type");
   });
@@ -345,7 +343,7 @@ describe("AnthropicProvider – setupStructuredOutput", () => {
       provider.generateMessage({
         model: "claude-sonnet",
         messages: [{ role: "user", content: "hi" }],
-        jsonSchema: { type: "object" },
+        jsonSchema: { type: "object" }
       })
     ).rejects.toThrow("jsonSchema is not supported directly");
   });
@@ -354,7 +352,7 @@ describe("AnthropicProvider – setupStructuredOutput", () => {
 describe("AnthropicProvider – extractSystemMessage", () => {
   it("uses default when no system message", async () => {
     const create = vi.fn().mockResolvedValue({
-      content: [{ type: "text", text: "ok" }],
+      content: [{ type: "text", text: "ok" }]
     });
 
     const provider = new AnthropicProvider(
@@ -364,7 +362,7 @@ describe("AnthropicProvider – extractSystemMessage", () => {
 
     await provider.generateMessage({
       model: "claude-sonnet",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     });
 
     expect(create.mock.calls[0][0].system).toBe("You are a helpful assistant.");
@@ -372,7 +370,7 @@ describe("AnthropicProvider – extractSystemMessage", () => {
 
   it("extracts system from array content", async () => {
     const create = vi.fn().mockResolvedValue({
-      content: [{ type: "text", text: "ok" }],
+      content: [{ type: "text", text: "ok" }]
     });
 
     const provider = new AnthropicProvider(
@@ -387,11 +385,11 @@ describe("AnthropicProvider – extractSystemMessage", () => {
           role: "system",
           content: [
             { type: "text", text: "part1" },
-            { type: "text", text: "part2" },
-          ],
+            { type: "text", text: "part2" }
+          ]
         },
-        { role: "user", content: "hi" },
-      ],
+        { role: "user", content: "hi" }
+      ]
     });
 
     expect(create.mock.calls[0][0].system).toBe("part1 part2");
@@ -400,13 +398,15 @@ describe("AnthropicProvider – extractSystemMessage", () => {
 
 describe("AnthropicProvider – streaming thinking chunks", () => {
   it("emits thinking chunks", async () => {
-    const stream = vi.fn().mockReturnValue(
-      makeAsyncIterable([
-        { type: "content_block_delta", delta: { thinking: "hmm..." } },
-        { type: "content_block_delta", delta: { text: "answer" } },
-        { type: "message_stop" },
-      ])
-    );
+    const stream = vi
+      .fn()
+      .mockReturnValue(
+        makeAsyncIterable([
+          { type: "content_block_delta", delta: { thinking: "hmm..." } },
+          { type: "content_block_delta", delta: { text: "answer" } },
+          { type: "message_stop" }
+        ])
+      );
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
@@ -416,7 +416,7 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
     const out: unknown[] = [];
     for await (const item of provider.generateMessages({
       model: "claude-sonnet",
-      messages: [{ role: "user", content: "think about this" }],
+      messages: [{ role: "user", content: "think about this" }]
     })) {
       out.push(item);
     }
@@ -425,12 +425,12 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
       type: "chunk",
       content: "hmm...",
       done: false,
-      thinking: true,
+      thinking: true
     });
     expect(out[1]).toEqual({
       type: "chunk",
       content: "answer",
-      done: false,
+      done: false
     });
   });
 
@@ -443,7 +443,7 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
     const gen = provider.generateMessages({
       model: "claude-sonnet",
       messages: [{ role: "user", content: "hi" }],
-      jsonSchema: { type: "object" },
+      jsonSchema: { type: "object" }
     });
 
     await expect(gen.next()).rejects.toThrow("jsonSchema is not supported");
@@ -453,9 +453,7 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
 describe("AnthropicProvider – generateMessage structured fallback", () => {
   it("falls back to text when structured tool not found", async () => {
     const create = vi.fn().mockResolvedValue({
-      content: [
-        { type: "text", text: "fallback text" },
-      ],
+      content: [{ type: "text", text: "fallback text" }]
     });
 
     const provider = new AnthropicProvider(
@@ -466,7 +464,7 @@ describe("AnthropicProvider – generateMessage structured fallback", () => {
     const result = await provider.generateMessage({
       model: "claude-sonnet",
       messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" },
+      responseFormat: { type: "json_object" }
     });
 
     expect(result.content).toBe("fallback text");
@@ -510,9 +508,9 @@ describe("AnthropicProvider – parseDataUri non-base64 path", () => {
       content: [
         {
           type: "image",
-          image: { uri: "data:image/png,hello%20world" },
-        },
-      ],
+          image: { uri: "data:image/png,hello%20world" }
+        }
+      ]
     });
     expect((result as any).content[0].type).toBe("image");
     expect((result as any).content[0].source.type).toBe("base64");
@@ -528,9 +526,7 @@ describe("AnthropicProvider – bytesToBase64 with Uint8Array", () => {
 
     const result = await provider.convertMessage({
       role: "user",
-      content: [
-        { type: "image", image: { data: new Uint8Array([1, 2, 3]) } },
-      ],
+      content: [{ type: "image", image: { data: new Uint8Array([1, 2, 3]) } }]
     });
     expect((result as any).content[0].source.data).toBeTruthy();
   });
@@ -541,7 +537,7 @@ describe("AnthropicProvider – image fetch from remote URI", () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       headers: { get: () => "image/jpeg" },
-      arrayBuffer: async () => Uint8Array.from([1, 2]).buffer,
+      arrayBuffer: async () => Uint8Array.from([1, 2]).buffer
     });
 
     const provider = new AnthropicProvider(
@@ -552,8 +548,8 @@ describe("AnthropicProvider – image fetch from remote URI", () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
-        { type: "image", image: { uri: "https://example.com/img.jpg" } },
-      ],
+        { type: "image", image: { uri: "https://example.com/img.jpg" } }
+      ]
     });
     expect((result as any).content[0].source.media_type).toBe("image/jpeg");
     expect(fetchFn).toHaveBeenCalledWith("https://example.com/img.jpg");
@@ -571,8 +567,8 @@ describe("AnthropicProvider – image fetch from remote URI", () => {
       provider.convertMessage({
         role: "user",
         content: [
-          { type: "image", image: { uri: "https://example.com/missing.jpg" } },
-        ],
+          { type: "image", image: { uri: "https://example.com/missing.jpg" } }
+        ]
       })
     ).rejects.toThrow("Failed to fetch URI");
   });
@@ -581,7 +577,7 @@ describe("AnthropicProvider – image fetch from remote URI", () => {
 describe("AnthropicProvider – extractSystemMessage non-string non-array content", () => {
   it("falls back to String() for non-string non-array system content", async () => {
     const create = vi.fn().mockResolvedValue({
-      content: [{ type: "text", text: "ok" }],
+      content: [{ type: "text", text: "ok" }]
     });
 
     const provider = new AnthropicProvider(
@@ -593,8 +589,8 @@ describe("AnthropicProvider – extractSystemMessage non-string non-array conten
       model: "claude-sonnet",
       messages: [
         { role: "system", content: 42 as any },
-        { role: "user", content: "hi" },
-      ],
+        { role: "user", content: "hi" }
+      ]
     });
 
     expect(create.mock.calls[0][0].system).toBe("42");
@@ -602,7 +598,7 @@ describe("AnthropicProvider – extractSystemMessage non-string non-array conten
 
   it("uses default for system with null content", async () => {
     const create = vi.fn().mockResolvedValue({
-      content: [{ type: "text", text: "ok" }],
+      content: [{ type: "text", text: "ok" }]
     });
 
     const provider = new AnthropicProvider(
@@ -614,8 +610,8 @@ describe("AnthropicProvider – extractSystemMessage non-string non-array conten
       model: "claude-sonnet",
       messages: [
         { role: "system", content: null },
-        { role: "user", content: "hi" },
-      ],
+        { role: "user", content: "hi" }
+      ]
     });
 
     expect(create.mock.calls[0][0].system).toBe("You are a helpful assistant.");
@@ -626,9 +622,12 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
   it("includes thinking config in streaming request when thinkingBudget is set", async () => {
     const stream = vi.fn().mockReturnValue(
       makeAsyncIterable([
-        { type: "content_block_delta", delta: { thinking: "let me think..." } },
+        {
+          type: "content_block_delta",
+          delta: { thinking: "let me think..." }
+        },
         { type: "content_block_delta", delta: { text: "answer" } },
-        { type: "message_stop" },
+        { type: "message_stop" }
       ])
     );
 
@@ -641,7 +640,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
     for await (const item of provider.generateMessages({
       model: "claude-sonnet-4-20250514",
       messages: [{ role: "user", content: "think hard" }],
-      thinkingBudget: 5000,
+      thinkingBudget: 5000
     })) {
       out.push(item);
     }
@@ -650,7 +649,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
     const requestBody = stream.mock.calls[0][0];
     expect(requestBody.thinking).toEqual({
       type: "enabled",
-      budget_tokens: 5000,
+      budget_tokens: 5000
     });
 
     // Verify thinking chunks are emitted
@@ -658,17 +657,19 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
       type: "chunk",
       content: "let me think...",
       done: false,
-      thinking: true,
+      thinking: true
     });
   });
 
   it("does not include thinking config when thinkingBudget is not set", async () => {
-    const stream = vi.fn().mockReturnValue(
-      makeAsyncIterable([
-        { type: "content_block_delta", delta: { text: "answer" } },
-        { type: "message_stop" },
-      ])
-    );
+    const stream = vi
+      .fn()
+      .mockReturnValue(
+        makeAsyncIterable([
+          { type: "content_block_delta", delta: { text: "answer" } },
+          { type: "message_stop" }
+        ])
+      );
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
@@ -677,7 +678,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
 
     for await (const _item of provider.generateMessages({
       model: "claude-sonnet",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     })) {
       // drain
     }
@@ -688,7 +689,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
 
   it("includes thinking config in non-streaming request when thinkingBudget is set", async () => {
     const create = vi.fn().mockResolvedValue({
-      content: [{ type: "text", text: "thought about it" }],
+      content: [{ type: "text", text: "thought about it" }]
     });
 
     const provider = new AnthropicProvider(
@@ -699,19 +700,19 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
     await provider.generateMessage({
       model: "claude-sonnet-4-20250514",
       messages: [{ role: "user", content: "think" }],
-      thinkingBudget: 10000,
+      thinkingBudget: 10000
     });
 
     const requestBody = create.mock.calls[0][0];
     expect(requestBody.thinking).toEqual({
       type: "enabled",
-      budget_tokens: 10000,
+      budget_tokens: 10000
     });
   });
 
   it("does not include thinking config in non-streaming when not set", async () => {
     const create = vi.fn().mockResolvedValue({
-      content: [{ type: "text", text: "ok" }],
+      content: [{ type: "text", text: "ok" }]
     });
 
     const provider = new AnthropicProvider(
@@ -721,7 +722,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
 
     await provider.generateMessage({
       model: "claude-sonnet",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     });
 
     const requestBody = create.mock.calls[0][0];
@@ -733,17 +734,17 @@ describe("AnthropicProvider – streaming content_block_stop suppresses structur
   it("does not emit structured tool call in stream", async () => {
     const stream = vi.fn().mockReturnValue(
       makeAsyncIterable([
-        { type: "content_block_delta", delta: { partial_json: "{\"a\":1}" } },
+        { type: "content_block_delta", delta: { partial_json: '{"a":1}' } },
         {
           type: "content_block_stop",
           content_block: {
             type: "tool_use",
             id: "tc1",
             name: "json_output",
-            input: { a: 1 },
-          },
+            input: { a: 1 }
+          }
         },
-        { type: "message_stop" },
+        { type: "message_stop" }
       ])
     );
 
@@ -756,7 +757,7 @@ describe("AnthropicProvider – streaming content_block_stop suppresses structur
     for await (const item of provider.generateMessages({
       model: "claude-sonnet",
       messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" },
+      responseFormat: { type: "json_object" }
     })) {
       out.push(item);
     }

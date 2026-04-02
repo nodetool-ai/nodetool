@@ -51,7 +51,7 @@ export class MessageBus implements IMessageBus {
       body: opts.body,
       replyTo: opts.replyTo,
       taskId: opts.taskId,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     };
 
     this.log.push(msg);

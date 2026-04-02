@@ -13,7 +13,7 @@ import {
   UpdateLibNode as SupabaseUpdateLibNode,
   DeleteLibNode as SupabaseDeleteLibNode,
   UpsertLibNode as SupabaseUpsertLibNode,
-  RPCLibNode as SupabaseRPCLibNode,
+  RPCLibNode as SupabaseRPCLibNode
 } from "../src/nodes/lib-supabase.js";
 
 import {
@@ -48,7 +48,7 @@ import {
   // lib-mail
   SendEmailLibNode,
   // lib-markitdown
-  ConvertToMarkdownLibNode,
+  ConvertToMarkdownLibNode
 } from "../src/index.js";
 
 // ── WAV helper: create WAV with configurable bits/channels ──────
@@ -129,7 +129,7 @@ function buildMinimalPdf(
     // obj 4: content stream
     `4 0 obj\n<< /Length ${streamLen} >>\nstream\n${stream}endstream\nendobj`,
     // obj 5: font
-    `5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj`,
+    `5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj`
   ];
 
   let body = "%PDF-1.4\n";
@@ -175,12 +175,15 @@ const mockFromChain: Record<string, any> = {};
 const mockRpc = vi.fn();
 const mockCreateClient = vi.fn().mockReturnValue({
   from: vi.fn().mockReturnValue(mockFromChain),
-  rpc: mockRpc,
+  rpc: mockRpc
 });
 
 vi.mock("@supabase/supabase-js", async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>;
-  return { ...actual, createClient: (...args: any[]) => mockCreateClient(...args) };
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    createClient: (...args: any[]) => mockCreateClient(...args)
+  };
 });
 
 describe("lib-supabase success paths (mocked)", () => {
@@ -188,8 +191,22 @@ describe("lib-supabase success paths (mocked)", () => {
   function chainable(resolvedValue: { data: unknown; error: unknown }) {
     const q: Record<string, unknown> = {};
     const methods = [
-      "select", "eq", "neq", "gt", "gte", "lt", "lte", "in", "like",
-      "contains", "order", "limit", "insert", "update", "upsert", "delete",
+      "select",
+      "eq",
+      "neq",
+      "gt",
+      "gte",
+      "lt",
+      "lte",
+      "in",
+      "like",
+      "contains",
+      "order",
+      "limit",
+      "insert",
+      "update",
+      "upsert",
+      "delete"
     ];
     for (const m of methods) {
       q[m] = vi.fn().mockReturnValue(q);
@@ -208,7 +225,7 @@ describe("lib-supabase success paths (mocked)", () => {
     Object.assign(mockFromChain, q);
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(mockFromChain),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
   });
 
@@ -220,7 +237,7 @@ describe("lib-supabase success paths (mocked)", () => {
     const mockQ = chainable({ data: [{ id: 1 }], error: null });
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     const result = await makeNode(SelectLibNode, {
@@ -237,11 +254,11 @@ describe("lib-supabase success paths (mocked)", () => {
         ["age", "lte", 100],
         ["status", "in", ["a", "b"]],
         ["email", "like", "%@test%"],
-        ["meta", "contains", { k: "v" }],
+        ["meta", "contains", { k: "v" }]
       ],
       order_by: "id",
       descending: true,
-      limit: 10,
+      limit: 10
     }).process();
     expect(result.output).toEqual([{ id: 1 }]);
   });
@@ -249,7 +266,7 @@ describe("lib-supabase success paths (mocked)", () => {
   it("Select with unsupported filter throws", async () => {
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(chainable({ data: [], error: null })),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     await expect(
@@ -257,7 +274,7 @@ describe("lib-supabase success paths (mocked)", () => {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
-        filters: [["id", "invalid_op" as any, 1]],
+        filters: [["id", "invalid_op" as any, 1]]
       }).process()
     ).rejects.toThrow("Unsupported filter operator");
   });
@@ -274,14 +291,14 @@ describe("lib-supabase success paths (mocked)", () => {
     };
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     await expect(
       makeNode(SelectLibNode, {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
-        table_name: "test_table",
+        table_name: "test_table"
       }).process()
     ).rejects.toThrow("Supabase select error");
   });
@@ -290,7 +307,7 @@ describe("lib-supabase success paths (mocked)", () => {
     const mockQ = chainable({ data: [{ id: 1, a: 1 }], error: null });
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     const result = await makeNode(SupabaseInsertLibNode, {
@@ -298,7 +315,7 @@ describe("lib-supabase success paths (mocked)", () => {
       supabase_key: "key123",
       table_name: "test_table",
       records: [{ a: 1 }],
-      return_rows: true,
+      return_rows: true
     }).process();
     expect(result.output).toEqual([{ id: 1, a: 1 }]);
   });
@@ -307,7 +324,7 @@ describe("lib-supabase success paths (mocked)", () => {
     const mockQ = chainable({ data: null, error: null });
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     const result = await makeNode(SupabaseInsertLibNode, {
@@ -315,7 +332,7 @@ describe("lib-supabase success paths (mocked)", () => {
       supabase_key: "key123",
       table_name: "test_table",
       records: [{ a: 1 }],
-      return_rows: false,
+      return_rows: false
     }).process();
     expect((result.output as any).inserted).toBe(1);
   });
@@ -330,7 +347,7 @@ describe("lib-supabase success paths (mocked)", () => {
     };
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     await expect(
@@ -338,7 +355,7 @@ describe("lib-supabase success paths (mocked)", () => {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
-        records: [{ a: 1 }],
+        records: [{ a: 1 }]
       }).process()
     ).rejects.toThrow("Supabase insert error");
   });
@@ -347,7 +364,7 @@ describe("lib-supabase success paths (mocked)", () => {
     const mockQ = chainable({ data: [{ id: 1, x: 2 }], error: null });
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     const result = await makeNode(SupabaseUpdateLibNode, {
@@ -356,7 +373,7 @@ describe("lib-supabase success paths (mocked)", () => {
       table_name: "test_table",
       values: { x: 2 },
       filters: [["id", "eq", 1]],
-      return_rows: true,
+      return_rows: true
     }).process();
     expect(result.output).toEqual([{ id: 1, x: 2 }]);
   });
@@ -365,7 +382,7 @@ describe("lib-supabase success paths (mocked)", () => {
     const mockQ = chainable({ data: null, error: null });
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     const result = await makeNode(SupabaseUpdateLibNode, {
@@ -374,7 +391,7 @@ describe("lib-supabase success paths (mocked)", () => {
       table_name: "test_table",
       values: { x: 2 },
       filters: [],
-      return_rows: false,
+      return_rows: false
     }).process();
     expect((result.output as any).updated).toBe(true);
   });
@@ -389,7 +406,7 @@ describe("lib-supabase success paths (mocked)", () => {
     };
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     await expect(
@@ -397,7 +414,7 @@ describe("lib-supabase success paths (mocked)", () => {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
-        values: { x: 1 },
+        values: { x: 1 }
       }).process()
     ).rejects.toThrow("Supabase update error");
   });
@@ -406,14 +423,14 @@ describe("lib-supabase success paths (mocked)", () => {
     const mockQ = chainable({ data: null, error: null });
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     const result = await makeNode(SupabaseDeleteLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       table_name: "test_table",
-      filters: [["id", "eq", 1]],
+      filters: [["id", "eq", 1]]
     }).process();
     expect((result.output as any).deleted).toBe(true);
   });
@@ -428,7 +445,7 @@ describe("lib-supabase success paths (mocked)", () => {
     };
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     await expect(
@@ -436,7 +453,7 @@ describe("lib-supabase success paths (mocked)", () => {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
-        filters: [["id", "eq", 1]],
+        filters: [["id", "eq", 1]]
       }).process()
     ).rejects.toThrow("Supabase delete error");
   });
@@ -445,7 +462,7 @@ describe("lib-supabase success paths (mocked)", () => {
     const mockQ = chainable({ data: [{ id: 1 }], error: null });
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     const result = await makeNode(SupabaseUpsertLibNode, {
@@ -453,7 +470,7 @@ describe("lib-supabase success paths (mocked)", () => {
       supabase_key: "key123",
       table_name: "test_table",
       records: [{ id: 1 }],
-      return_rows: true,
+      return_rows: true
     }).process();
     expect(result.output).toEqual([{ id: 1 }]);
   });
@@ -462,7 +479,7 @@ describe("lib-supabase success paths (mocked)", () => {
     const mockQ = chainable({ data: null, error: null });
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     const result = await makeNode(SupabaseUpsertLibNode, {
@@ -470,7 +487,7 @@ describe("lib-supabase success paths (mocked)", () => {
       supabase_key: "key123",
       table_name: "test_table",
       records: [{ id: 1 }],
-      return_rows: false,
+      return_rows: false
     }).process();
     expect((result.output as any).upserted).toBe(1);
   });
@@ -485,7 +502,7 @@ describe("lib-supabase success paths (mocked)", () => {
     };
     mockCreateClient.mockReturnValue({
       from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc,
+      rpc: mockRpc
     });
 
     await expect(
@@ -493,7 +510,7 @@ describe("lib-supabase success paths (mocked)", () => {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
-        records: [{ id: 1 }],
+        records: [{ id: 1 }]
       }).process()
     ).rejects.toThrow("Supabase upsert error");
   });
@@ -501,14 +518,14 @@ describe("lib-supabase success paths (mocked)", () => {
   it("RPC succeeds", async () => {
     mockCreateClient.mockReturnValue({
       from: vi.fn(),
-      rpc: vi.fn().mockResolvedValue({ data: { result: 42 }, error: null }),
+      rpc: vi.fn().mockResolvedValue({ data: { result: 42 }, error: null })
     });
 
     const result = await makeNode(SupabaseRPCLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       function: "my_func",
-      params: { x: 1 },
+      params: { x: 1 }
     }).process();
     expect(result.output).toEqual({ result: 42 });
   });
@@ -516,14 +533,16 @@ describe("lib-supabase success paths (mocked)", () => {
   it("RPC with error response throws", async () => {
     mockCreateClient.mockReturnValue({
       from: vi.fn(),
-      rpc: vi.fn().mockResolvedValue({ data: null, error: { message: "rpc failed" } }),
+      rpc: vi
+        .fn()
+        .mockResolvedValue({ data: null, error: { message: "rpc failed" } })
     });
 
     await expect(
       makeNode(SupabaseRPCLibNode, {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
-        function: "my_func",
+        function: "my_func"
       }).process()
     ).rejects.toThrow("Supabase RPC error");
   });
@@ -536,7 +555,7 @@ describe("lib-pedalboard-extra coverage", () => {
     const wav = makeWav({ bitsPerSample: 8, durationSec: 0.2, numChannels: 1 });
     const result = await new PitchShiftNode({
       audio: audioRef(wav),
-      semitones: 2,
+      semitones: 2
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
@@ -546,7 +565,7 @@ describe("lib-pedalboard-extra coverage", () => {
     const wav = makeWav({ numChannels: 3, durationSec: 0.2 });
     const result = await new PitchShiftNode({
       audio: audioRef(wav),
-      semitones: 3,
+      semitones: 3
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
@@ -556,7 +575,7 @@ describe("lib-pedalboard-extra coverage", () => {
     const wav = makeWav({ numChannels: 2, durationSec: 0.2 });
     const result = await new PitchShiftNode({
       audio: audioRef(wav),
-      semitones: -2,
+      semitones: -2
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
@@ -566,7 +585,7 @@ describe("lib-pedalboard-extra coverage", () => {
     const wav = makeWav({ numChannels: 3, durationSec: 0.2 });
     const result = await new TimeStretchNode({
       audio: audioRef(wav),
-      rate: 1.5,
+      rate: 1.5
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
@@ -576,7 +595,7 @@ describe("lib-pedalboard-extra coverage", () => {
     const wav = makeWav({ numChannels: 2, durationSec: 0.2 });
     const result = await new TimeStretchNode({
       audio: audioRef(wav),
-      rate: 0.8,
+      rate: 0.8
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
@@ -586,7 +605,7 @@ describe("lib-pedalboard-extra coverage", () => {
     const wav = makeWav({ numChannels: 1, durationSec: 0.2 });
     const result = await new TimeStretchNode({
       audio: audioRef(wav),
-      rate: 1.5,
+      rate: 1.5
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
@@ -616,7 +635,9 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
   });
 
   it("OpenWorkspaceDirectory returns empty when no workspaceDir", async () => {
-    const result = await new OpenWorkspaceDirectoryLibNode({}).process({} as any);
+    const result = await new OpenWorkspaceDirectoryLibNode({}).process(
+      {} as any
+    );
     expect(result).toEqual({});
   });
 
@@ -624,7 +645,9 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
     // Use a temp dir that exists, but the open command will fail (or succeed on macOS)
     const tmpDir = mkdtempSync(join(tmpdir(), "os-test-"));
     try {
-      const result = await new OpenWorkspaceDirectoryLibNode({}).process({ workspaceDir: tmpDir } as any);
+      const result = await new OpenWorkspaceDirectoryLibNode({}).process({
+        workspaceDir: tmpDir
+      } as any);
       expect(result).toEqual({});
     } catch {
       // On CI or non-macOS, the "open" command may fail - that's ok, we covered the code path
@@ -636,11 +659,15 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
 
 describe("lib-librosa-spectral coverage", () => {
   it("STFT with 8-bit WAV input", async () => {
-    const wav = makeWav({ bitsPerSample: 8, durationSec: 0.5, sampleRate: 22050 });
+    const wav = makeWav({
+      bitsPerSample: 8,
+      durationSec: 0.5,
+      sampleRate: 22050
+    });
     const result = await new STFTNode({
       audio: audioRef(wav),
       n_fft: 2048,
-      hop_length: 512,
+      hop_length: 512
     }).process();
     const output = result.output as { data: unknown[] };
     expect(Array.isArray(output.data)).toBe(true);
@@ -651,7 +678,7 @@ describe("lib-librosa-spectral coverage", () => {
     const result = await new STFTNode({
       audio: { type: "audio", uri: "", data: new Uint8Array(wav) },
       n_fft: 2048,
-      hop_length: 512,
+      hop_length: 512
     }).process();
     const output = result.output as { data: unknown[] };
     expect(Array.isArray(output.data)).toBe(true);
@@ -662,7 +689,7 @@ describe("lib-librosa-spectral coverage", () => {
       new STFTNode({
         audio: { type: "audio", uri: "", data: 12345 },
         n_fft: 2048,
-        hop_length: 512,
+        hop_length: 512
       }).process()
     ).rejects.toThrow("Invalid audio data");
   });
@@ -670,9 +697,15 @@ describe("lib-librosa-spectral coverage", () => {
   it("STFT with non-RIFF data throws", async () => {
     await expect(
       new STFTNode({
-        audio: { type: "audio", uri: "", data: Buffer.from("NOT_A_WAV_FILE_HEADER_ENOUGH_BYTES______________").toString("base64") },
+        audio: {
+          type: "audio",
+          uri: "",
+          data: Buffer.from(
+            "NOT_A_WAV_FILE_HEADER_ENOUGH_BYTES______________"
+          ).toString("base64")
+        },
         n_fft: 2048,
-        hop_length: 512,
+        hop_length: 512
       }).process()
     ).rejects.toThrow("Invalid WAV file");
   });
@@ -682,7 +715,7 @@ describe("lib-librosa-spectral coverage", () => {
     const result = await new SegmentAudioByOnsetsNode({
       audio: audioRef(wav),
       onsets: { data: [0.0, 0.2] },
-      min_segment_length: 0.05,
+      min_segment_length: 0.05
     }).process();
     const output = result.output as unknown[];
     expect(Array.isArray(output)).toBe(true);
@@ -698,7 +731,7 @@ describe("lib-librosa-spectral coverage", () => {
       onsets: { data: [0.0, 0.2] },
       min_segment_length: 0.05,
       folder: { path: tmpDir },
-      prefix: "seg",
+      prefix: "seg"
     }).process();
     const output = result.output;
     // When folder is set, output should be the folder ref
@@ -735,13 +768,16 @@ describe("lib-librosa-spectral coverage", () => {
     // Write some samples
     for (let i = 0; i < numSamples; i++) {
       const sample = Math.sin((2 * Math.PI * 440 * i) / sampleRate);
-      buf.writeInt16LE(Math.round(sample * 0x7fff * 0.5), dataChunkOffset + 8 + i * 2);
+      buf.writeInt16LE(
+        Math.round(sample * 0x7fff * 0.5),
+        dataChunkOffset + 8 + i * 2
+      );
     }
 
     const result = await new STFTNode({
       audio: audioRef(buf),
       n_fft: 512,
-      hop_length: 256,
+      hop_length: 256
     }).process();
     const output = result.output as { data: unknown[] };
     expect(Array.isArray(output.data)).toBe(true);
@@ -754,7 +790,7 @@ describe("lib-numpy coverage", () => {
   it("SaveArray without storage context", async () => {
     const result = await new SaveArrayNode({
       values: { data: [1, 2, 3], shape: [3] },
-      name: "test.json",
+      name: "test.json"
     }).process();
     const output = result.output as { data: number[]; shape: number[] };
     expect(output.data).toEqual([1, 2, 3]);
@@ -764,10 +800,14 @@ describe("lib-numpy coverage", () => {
   it("SaveArray with storage context", async () => {
     const storeFn = vi.fn().mockResolvedValue("file:///test.json");
     const result = await new SaveArrayNode({
-        values: { data: [1, 2, 3], shape: [3] },
-        name: "test.json",
-      }).process({ storage: { store: storeFn } } as any);
-    const output = result.output as { data: number[]; shape: number[]; uri: string };
+      values: { data: [1, 2, 3], shape: [3] },
+      name: "test.json"
+    }).process({ storage: { store: storeFn } } as any);
+    const output = result.output as {
+      data: number[];
+      shape: number[];
+      uri: string;
+    };
     expect(output.uri).toBe("file:///test.json");
     expect(storeFn).toHaveBeenCalled();
   });
@@ -775,7 +815,7 @@ describe("lib-numpy coverage", () => {
   it("SaveArray with date template name", async () => {
     const result = await new SaveArrayNode({
       values: { data: [1], shape: [1] },
-      name: "%Y-%m-%d_%H-%M-%S.npy",
+      name: "%Y-%m-%d_%H-%M-%S.npy"
     }).process();
     const output = result.output as { data: number[]; shape: number[] };
     expect(output.data).toEqual([1]);
@@ -785,12 +825,14 @@ describe("lib-numpy coverage", () => {
     // Create a grayscale PNG using sharp from raw single-channel data
     const sharp = (await import("sharp")).default;
     const rawGray = Buffer.alloc(4, 128); // 2x2 gray pixels
-    const pngBuf = await sharp(rawGray, { raw: { width: 2, height: 2, channels: 1 } })
+    const pngBuf = await sharp(rawGray, {
+      raw: { width: 2, height: 2, channels: 1 }
+    })
       .png()
       .toBuffer();
 
     const result = await new ConvertToArrayNumpyNode({
-      image: { type: "image", data: pngBuf.toString("base64") },
+      image: { type: "image", data: pngBuf.toString("base64") }
     }).process();
     const output = result.output as { data: number[]; shape: number[] };
     // sharp may expand to 3 or 4 channels, but the code path for shape assignment is hit
@@ -808,7 +850,12 @@ describe("lib-docx AddImage coverage", () => {
     // Create a minimal PNG (1x1 pixel)
     const sharp = (await import("sharp")).default;
     const pngBuf = await sharp({
-      create: { width: 1, height: 1, channels: 3, background: { r: 255, g: 0, b: 0 } },
+      create: {
+        width: 1,
+        height: 1,
+        channels: 3,
+        background: { r: 255, g: 0, b: 0 }
+      }
     })
       .png()
       .toBuffer();
@@ -818,7 +865,7 @@ describe("lib-docx AddImage coverage", () => {
       document: { elements: [] },
       image: imgPath,
       width: 100,
-      height: 100,
+      height: 100
     }).process();
     expect((result.output as any).elements.length).toBe(1);
   });
@@ -828,7 +875,12 @@ describe("lib-docx AddImage coverage", () => {
     const imgPath = join(tmpDir, "test.png");
     const sharp = (await import("sharp")).default;
     const pngBuf = await sharp({
-      create: { width: 1, height: 1, channels: 3, background: { r: 0, g: 255, b: 0 } },
+      create: {
+        width: 1,
+        height: 1,
+        channels: 3,
+        background: { r: 0, g: 255, b: 0 }
+      }
     })
       .png()
       .toBuffer();
@@ -838,7 +890,7 @@ describe("lib-docx AddImage coverage", () => {
       document: { elements: [] },
       image: { uri: `file://${imgPath}` },
       width: 50,
-      height: 50,
+      height: 50
     }).process();
     expect((result.output as any).elements.length).toBe(1);
   });
@@ -847,7 +899,7 @@ describe("lib-docx AddImage coverage", () => {
     await expect(
       new AddImageLibNode({
         document: { elements: [] },
-        image: { uri: "" },
+        image: { uri: "" }
       }).process()
     ).rejects.toThrow("Image path is not set");
   });
@@ -856,7 +908,7 @@ describe("lib-docx AddImage coverage", () => {
     await expect(
       new AddImageLibNode({
         document: { elements: [] },
-        image: 12345,
+        image: 12345
       }).process()
     ).rejects.toThrow("Invalid image input");
   });
@@ -865,7 +917,7 @@ describe("lib-docx AddImage coverage", () => {
     await expect(
       new AddImageLibNode({
         document: "not_a_doc",
-        image: 12345,
+        image: 12345
       }).process()
     ).rejects.toThrow("Invalid image input");
   });
@@ -878,12 +930,14 @@ describe("lib-excel coverage", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "excel-test-"));
 
     // Create a workbook first
-    const wb = await new CreateWorkbookLibNode({ sheet_name: "Test" }).process();
+    const wb = await new CreateWorkbookLibNode({
+      sheet_name: "Test"
+    }).process();
 
     const result = await new SaveWorkbookLibNode({
       workbook: wb.output,
       folder: tmpDir,
-      filename: "test_%Y.xlsx",
+      filename: "test_%Y.xlsx"
     }).process();
     // output is the full file path string
     expect(typeof result.output).toBe("string");
@@ -898,7 +952,7 @@ describe("lib-excel coverage", () => {
     const result = await new SaveWorkbookLibNode({
       workbook: rawWb,
       folder: mkdtempSync(join(tmpdir(), "excel-test-")),
-      filename: "raw.xlsx",
+      filename: "raw.xlsx"
     }).process();
     expect(typeof result.output).toBe("string");
   });
@@ -908,7 +962,7 @@ describe("lib-excel coverage", () => {
       new SaveWorkbookLibNode({
         workbook: "not-a-workbook",
         folder: "/tmp",
-        filename: "test.xlsx",
+        filename: "test.xlsx"
       }).process()
     ).rejects.toThrow("Workbook is not connected");
   });
@@ -923,7 +977,7 @@ describe("lib-ytdlp runCommand coverage", () => {
     try {
       await expect(
         new YtDlpDownloadLibNode({
-          url: "https://example.com/video",
+          url: "https://example.com/video"
         }).process()
       ).rejects.toThrow();
     } finally {
@@ -943,7 +997,7 @@ describe("lib-audio-dsp 8-bit WAV coverage", () => {
     const wav = makeWav({ bitsPerSample: 8, durationSec: 0.1 });
     const result = await new GainNode_({
       audio: audioRef(wav),
-      gain_db: 6.0,
+      gain_db: 6.0
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
@@ -982,7 +1036,7 @@ describe("lib-audio-dsp 8-bit WAV coverage", () => {
 
     const result = await new GainNode_({
       audio: audioRef(buf),
-      gain_db: 3.0,
+      gain_db: 3.0
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
@@ -999,7 +1053,7 @@ describe("lib-synthesis Envelope coverage", () => {
       attack: 0.02,
       decay: 0.05,
       release: 0.1,
-      peak_amplitude: 0.8,
+      peak_amplitude: 0.8
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toBeDefined();
@@ -1038,7 +1092,7 @@ describe("lib-synthesis Envelope coverage", () => {
       audio: audioRef(buf),
       attack: 0.01,
       decay: 0.02,
-      release: 0.05,
+      release: 0.05
     }).process();
     expect(result.output).toBeDefined();
   });
@@ -1056,7 +1110,12 @@ describe("lib-grid coverage", () => {
   it("SliceImageGrid with Uint8Array data", async () => {
     const sharp = (await import("sharp")).default;
     const pngBuf = await sharp({
-      create: { width: 6, height: 6, channels: 3, background: { r: 128, g: 128, b: 128 } },
+      create: {
+        width: 6,
+        height: 6,
+        channels: 3,
+        background: { r: 128, g: 128, b: 128 }
+      }
     })
       .png()
       .toBuffer();
@@ -1064,7 +1123,7 @@ describe("lib-grid coverage", () => {
     const result = await new SliceImageGridLibNode({
       image: { data: new Uint8Array(pngBuf) },
       columns: 2,
-      rows: 2,
+      rows: 2
     }).process();
     const output = result.output as unknown[];
     expect(Array.isArray(output)).toBe(true);
@@ -1078,12 +1137,12 @@ describe("lib-grid coverage", () => {
       { r: 255, g: 0, b: 0 },
       { r: 0, g: 255, b: 0 },
       { r: 0, g: 0, b: 255 },
-      { r: 255, g: 255, b: 0 },
+      { r: 255, g: 255, b: 0 }
     ];
     const tiles = await Promise.all(
       colors.map(async (bg) => {
         const buf = await sharp({
-          create: { width: 4, height: 4, channels: 3, background: bg },
+          create: { width: 4, height: 4, channels: 3, background: bg }
         })
           .png()
           .toBuffer();
@@ -1093,7 +1152,7 @@ describe("lib-grid coverage", () => {
 
     const result = await new CombineImageGridLibNode({
       tiles,
-      columns: 2,
+      columns: 2
     }).process();
     const output = result.output as { type: string; data: string };
     expect(output.type).toBe("image");
@@ -1110,7 +1169,12 @@ describe("lib-grid coverage", () => {
   it("CombineImageGrid defaults columns from sqrt when 0", async () => {
     const sharp = (await import("sharp")).default;
     const buf = await sharp({
-      create: { width: 4, height: 4, channels: 3, background: { r: 128, g: 128, b: 128 } },
+      create: {
+        width: 4,
+        height: 4,
+        channels: 3,
+        background: { r: 128, g: 128, b: 128 }
+      }
     })
       .png()
       .toBuffer();
@@ -1118,7 +1182,7 @@ describe("lib-grid coverage", () => {
 
     const result = await new CombineImageGridLibNode({
       tiles: [tile, tile, tile, tile],
-      columns: 0,
+      columns: 0
     }).process();
     const output = result.output as { type: string; data: string };
     expect(output.type).toBe("image");
@@ -1134,9 +1198,9 @@ vi.mock("nodemailer", () => {
   return {
     default: {
       createTransport: () => ({
-        sendMail: (...args: any[]) => mockSendMail(...args),
-      }),
-    },
+        sendMail: (...args: any[]) => mockSendMail(...args)
+      })
+    }
   };
 });
 
@@ -1150,7 +1214,7 @@ describe("lib-mail SendEmail success (mocked)", () => {
       from_address: "from@test.com",
       to_address: "to@test.com",
       subject: "Test",
-      body: "Hello",
+      body: "Hello"
     }).process();
     expect(result.output).toBe(true);
     expect(mockSendMail).toHaveBeenCalled();
@@ -1166,7 +1230,7 @@ describe("lib-markitdown coverage", () => {
     writeFileSync(htmlPath, "<h1>Hello</h1><p>World</p>");
 
     const result = await new ConvertToMarkdownLibNode({
-      document: { uri: htmlPath, data: "" },
+      document: { uri: htmlPath, data: "" }
     }).process();
     const output = result.output as { data: string };
     expect(typeof output.data).toBe("string");
@@ -1180,7 +1244,7 @@ describe("lib-markitdown coverage", () => {
     writeFileSync(txtPath, "Just plain text without any HTML");
 
     const result = await new ConvertToMarkdownLibNode({
-      document: { uri: txtPath, data: "" },
+      document: { uri: txtPath, data: "" }
     }).process();
     const output = result.output as { data: string };
     expect(output.data).toContain("Just plain text");

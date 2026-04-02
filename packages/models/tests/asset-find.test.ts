@@ -15,7 +15,7 @@ describe("Asset.find", () => {
     const asset = await Asset.create<Asset>({
       user_id: "u1",
       name: "test.jpg",
-      content_type: "image/jpeg",
+      content_type: "image/jpeg"
     });
 
     const found = await Asset.find("u1", asset.id);
@@ -28,7 +28,7 @@ describe("Asset.find", () => {
     const asset = await Asset.create<Asset>({
       user_id: "u1",
       name: "test.jpg",
-      content_type: "image/jpeg",
+      content_type: "image/jpeg"
     });
 
     const found = await Asset.find("u2", asset.id);
@@ -50,13 +50,13 @@ describe("Asset.paginate – additional filters", () => {
       user_id: "u1",
       name: "a.txt",
       content_type: "text/plain",
-      workflow_id: "wf1",
+      workflow_id: "wf1"
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "b.txt",
       content_type: "text/plain",
-      workflow_id: "wf2",
+      workflow_id: "wf2"
     });
 
     const [results] = await Asset.paginate("u1", { workflowId: "wf1" });
@@ -69,13 +69,13 @@ describe("Asset.paginate – additional filters", () => {
       user_id: "u1",
       name: "a.txt",
       content_type: "text/plain",
-      node_id: "n1",
+      node_id: "n1"
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "b.txt",
       content_type: "text/plain",
-      node_id: "n2",
+      node_id: "n2"
     });
 
     const [results] = await Asset.paginate("u1", { nodeId: "n1" });
@@ -88,13 +88,13 @@ describe("Asset.paginate – additional filters", () => {
       user_id: "u1",
       name: "a.txt",
       content_type: "text/plain",
-      job_id: "j1",
+      job_id: "j1"
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "b.txt",
       content_type: "text/plain",
-      job_id: "j2",
+      job_id: "j2"
     });
 
     const [results] = await Asset.paginate("u1", { jobId: "j1" });
@@ -107,19 +107,19 @@ describe("Asset.paginate – additional filters", () => {
       user_id: "u1",
       name: "root.txt",
       content_type: "text/plain",
-      parent_id: null,
+      parent_id: null
     });
     const folder = await Asset.create<Asset>({
       user_id: "u1",
       name: "Folder",
       content_type: "folder",
-      parent_id: "u1",
+      parent_id: "u1"
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "nested.txt",
       content_type: "text/plain",
-      parent_id: folder.id,
+      parent_id: folder.id
     });
 
     const [results] = await Asset.paginate("u1", { parentId: null });
@@ -128,9 +128,21 @@ describe("Asset.paginate – additional filters", () => {
   });
 
   it("returns a cursor when paginated results exceed the limit", async () => {
-    await Asset.create<Asset>({ user_id: "u1", name: "a.txt", content_type: "text/plain" });
-    await Asset.create<Asset>({ user_id: "u1", name: "b.txt", content_type: "text/plain" });
-    await Asset.create<Asset>({ user_id: "u1", name: "c.txt", content_type: "text/plain" });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "a.txt",
+      content_type: "text/plain"
+    });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "b.txt",
+      content_type: "text/plain"
+    });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "c.txt",
+      content_type: "text/plain"
+    });
 
     const [results, cursor] = await Asset.paginate("u1", { limit: 2 });
     expect(results).toHaveLength(2);
@@ -138,7 +150,11 @@ describe("Asset.paginate – additional filters", () => {
   });
 
   it("returns an empty page and empty cursor when limit is zero", async () => {
-    await Asset.create<Asset>({ user_id: "u1", name: "a.txt", content_type: "text/plain" });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "a.txt",
+      content_type: "text/plain"
+    });
 
     const [results, cursor] = await Asset.paginate("u1", { limit: 0 });
     expect(results).toEqual([]);
@@ -154,17 +170,17 @@ describe("Asset.searchAssetsGlobal", () => {
     await Asset.create<Asset>({
       user_id: "u1",
       name: "vacation-photo.jpg",
-      content_type: "image/jpeg",
+      content_type: "image/jpeg"
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "work-doc.pdf",
-      content_type: "application/pdf",
+      content_type: "application/pdf"
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "photo-album.zip",
-      content_type: "application/zip",
+      content_type: "application/zip"
     });
 
     const [results, , paths] = await Asset.searchAssetsGlobal("u1", "photo");
@@ -178,21 +194,21 @@ describe("Asset.searchAssetsGlobal", () => {
     await Asset.create<Asset>({
       user_id: "u1",
       name: "photo.jpg",
-      content_type: "image/jpeg",
+      content_type: "image/jpeg"
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "photo.png",
-      content_type: "image/png",
+      content_type: "image/png"
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "photo-notes.txt",
-      content_type: "text/plain",
+      content_type: "text/plain"
     });
 
     const [results] = await Asset.searchAssetsGlobal("u1", "photo", {
-      contentType: "image",
+      contentType: "image"
     });
     expect(results).toHaveLength(2);
   });
@@ -201,7 +217,7 @@ describe("Asset.searchAssetsGlobal", () => {
     await Asset.create<Asset>({
       user_id: "u1",
       name: "doc.txt",
-      content_type: "text/plain",
+      content_type: "text/plain"
     });
 
     const [results] = await Asset.searchAssetsGlobal("u1", "nonexistent");
@@ -212,12 +228,12 @@ describe("Asset.searchAssetsGlobal", () => {
     await Asset.create<Asset>({
       user_id: "u1",
       name: "shared-file.txt",
-      content_type: "text/plain",
+      content_type: "text/plain"
     });
     await Asset.create<Asset>({
       user_id: "u2",
       name: "shared-file.txt",
-      content_type: "text/plain",
+      content_type: "text/plain"
     });
 
     const [results] = await Asset.searchAssetsGlobal("u1", "shared");
@@ -230,17 +246,19 @@ describe("Asset.searchAssetsGlobal", () => {
       user_id: "u1",
       name: "orphaned.txt",
       content_type: "text/plain",
-      parent_id: "missing-folder",
+      parent_id: "missing-folder"
     });
 
-    const pathInfoSpy = vi.spyOn(Asset, "getAssetPathInfo").mockResolvedValue({});
+    const pathInfoSpy = vi
+      .spyOn(Asset, "getAssetPathInfo")
+      .mockResolvedValue({});
     const [, , paths] = await Asset.searchAssetsGlobal("u1", "orphaned");
     expect(paths).toEqual([
       {
         folder_name: "Unknown",
         folder_path: "Unknown",
-        folder_id: "missing-folder",
-      },
+        folder_id: "missing-folder"
+      }
     ]);
     pathInfoSpy.mockRestore();
   });
@@ -250,17 +268,19 @@ describe("Asset.searchAssetsGlobal", () => {
       user_id: "u1",
       name: "root-level.txt",
       content_type: "text/plain",
-      parent_id: null,
+      parent_id: null
     });
 
-    const pathInfoSpy = vi.spyOn(Asset, "getAssetPathInfo").mockResolvedValue({});
+    const pathInfoSpy = vi
+      .spyOn(Asset, "getAssetPathInfo")
+      .mockResolvedValue({});
     const [, , paths] = await Asset.searchAssetsGlobal("u1", "root-level");
     expect(paths).toEqual([
       {
         folder_name: "Unknown",
         folder_path: "Unknown",
-        folder_id: "",
-      },
+        folder_id: ""
+      }
     ]);
     pathInfoSpy.mockRestore();
   });
@@ -275,14 +295,14 @@ describe("Asset.getAssetPathInfo", () => {
       user_id: "u1",
       name: "root-file.txt",
       content_type: "text/plain",
-      parent_id: "u1",
+      parent_id: "u1"
     });
 
     const info = await Asset.getAssetPathInfo("u1", [asset.id]);
     expect(info[asset.id]).toEqual({
       folder_name: "Home",
       folder_path: "Home",
-      folder_id: "u1",
+      folder_id: "u1"
     });
   });
 
@@ -291,13 +311,13 @@ describe("Asset.getAssetPathInfo", () => {
       user_id: "u1",
       name: "Photos",
       content_type: "folder",
-      parent_id: "u1",
+      parent_id: "u1"
     });
     const file = await Asset.create<Asset>({
       user_id: "u1",
       name: "sunset.jpg",
       content_type: "image/jpeg",
-      parent_id: folder.id,
+      parent_id: folder.id
     });
 
     const info = await Asset.getAssetPathInfo("u1", [file.id]);
@@ -316,19 +336,19 @@ describe("Asset.getAssetPathInfo", () => {
       user_id: "u1",
       name: "Level1",
       content_type: "folder",
-      parent_id: "u1",
+      parent_id: "u1"
     });
     const f2 = await Asset.create<Asset>({
       user_id: "u1",
       name: "Level2",
       content_type: "folder",
-      parent_id: f1.id,
+      parent_id: f1.id
     });
     const file = await Asset.create<Asset>({
       user_id: "u1",
       name: "deep.txt",
       content_type: "text/plain",
-      parent_id: f2.id,
+      parent_id: f2.id
     });
 
     const info = await Asset.getAssetPathInfo("u1", [file.id]);
@@ -341,15 +361,18 @@ describe("Asset.getAssetPathInfo", () => {
       user_id: "u1",
       name: "orphaned.txt",
       content_type: "text/plain",
-      parent_id: "missing-folder",
+      parent_id: "missing-folder"
     });
 
-    const info = await Asset.getAssetPathInfo("u1", [orphaned.id, "nonexistent-id"]);
+    const info = await Asset.getAssetPathInfo("u1", [
+      orphaned.id,
+      "nonexistent-id"
+    ]);
     expect(info).not.toHaveProperty("nonexistent-id");
     expect(info[orphaned.id]).toEqual({
       folder_name: "Home",
       folder_path: "Home",
-      folder_id: "u1",
+      folder_id: "u1"
     });
   });
 });
@@ -367,25 +390,25 @@ describe("Asset.getAssetsRecursive", () => {
     const folder = await Asset.create<Asset>({
       user_id: "u1",
       name: "Root Folder",
-      content_type: "folder",
+      content_type: "folder"
     });
     const subfolder = await Asset.create<Asset>({
       user_id: "u1",
       name: "Sub Folder",
       content_type: "folder",
-      parent_id: folder.id,
+      parent_id: folder.id
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "file1.txt",
       content_type: "text/plain",
-      parent_id: folder.id,
+      parent_id: folder.id
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "file2.txt",
       content_type: "text/plain",
-      parent_id: subfolder.id,
+      parent_id: subfolder.id
     });
 
     const result = await Asset.getAssetsRecursive("u1", folder.id);

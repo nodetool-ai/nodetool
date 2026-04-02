@@ -59,7 +59,7 @@ export interface Logger {
 
 const defaultLogger: Logger = {
   log: (msg) => console.log(msg),
-  error: (msg) => console.error(msg),
+  error: (msg) => console.error(msg)
 };
 
 // ============================================================================
@@ -120,7 +120,7 @@ export class ProgressManager {
       this.tasks.set(operationId, {
         description,
         total,
-        completed: 0,
+        completed: 0
       });
     }
     return this.tasks.size - 1;
@@ -247,10 +247,7 @@ export class ProgressManager {
   // Private helpers
   // --------------------------------------------------------------------------
 
-  private handleProgressStatus(
-    update: ProgressUpdate,
-    message: string
-  ): void {
+  private handleProgressStatus(update: ProgressUpdate, message: string): void {
     if (update.current_file !== undefined) {
       const currentFile = update.current_file;
 
@@ -306,10 +303,7 @@ export class ProgressManager {
     }
   }
 
-  private handlePullingStatus(
-    update: ProgressUpdate,
-    status: string
-  ): void {
+  private handlePullingStatus(update: ProgressUpdate, status: string): void {
     const digest = update.digest ?? "";
     const total = update.total;
     const completed = update.completed;
@@ -345,15 +339,9 @@ export class ProgressManager {
 
   private handleHealthyStatus(update: ProgressUpdate): void {
     this.logger.log("[healthy] System is healthy");
-    this.logger.log(
-      `  Platform: ${update.platform ?? "Unknown"}`
-    );
-    this.logger.log(
-      `  Python: ${update.python_version ?? "Unknown"}`
-    );
-    this.logger.log(
-      `  Hostname: ${update.hostname ?? "Unknown"}`
-    );
+    this.logger.log(`  Platform: ${update.platform ?? "Unknown"}`);
+    this.logger.log(`  Python: ${update.python_version ?? "Unknown"}`);
+    this.logger.log(`  Hostname: ${update.hostname ?? "Unknown"}`);
 
     const memory = update.memory;
     if (memory && typeof memory === "object") {

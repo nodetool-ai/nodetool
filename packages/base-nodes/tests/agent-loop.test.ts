@@ -4,7 +4,7 @@ import type { ProcessingContext } from "@nodetool/runtime";
 
 function createMockContext(providerFactory: () => any): ProcessingContext {
   return {
-    getProvider: vi.fn().mockImplementation(async () => providerFactory()),
+    getProvider: vi.fn().mockImplementation(async () => providerFactory())
   } as unknown as ProcessingContext;
 }
 
@@ -18,7 +18,7 @@ function makeMockProvider(callSequences: Array<Array<any>>) {
     },
     async *generateMessagesTraced(...args: any[]) {
       yield* (this as any).generateMessages(...args);
-    },
+    }
   });
 }
 
@@ -27,8 +27,8 @@ describe("runAgentLoop", () => {
     const provider = makeMockProvider([
       [
         { type: "chunk", content: "Hello ", done: false },
-        { type: "chunk", content: "world", done: true },
-      ],
+        { type: "chunk", content: "world", done: true }
+      ]
     ]);
     const context = createMockContext(provider);
     const result = await runAgentLoop({
@@ -37,29 +37,35 @@ describe("runAgentLoop", () => {
       modelId: "test-model",
       systemPrompt: "You are helpful.",
       prompt: "Say hello",
-      tools: [],
+      tools: []
     });
     expect(result.text).toBe("Hello world");
     expect(result.messages.length).toBeGreaterThanOrEqual(2);
   });
 
   it("executes tool and loops for second LLM call", async () => {
-    const toolProcessFn = vi.fn().mockResolvedValue({ success: true, stdout: "42\n" });
-    const tools: any[] = [{
-      name: "execute_bash",
-      description: "Run a bash command",
-      inputSchema: { type: "object", properties: { command: { type: "string" } }, required: ["command"] },
-      process: toolProcessFn,
-    }];
+    const toolProcessFn = vi
+      .fn()
+      .mockResolvedValue({ success: true, stdout: "42\n" });
+    const tools: any[] = [
+      {
+        name: "execute_bash",
+        description: "Run a bash command",
+        inputSchema: {
+          type: "object",
+          properties: { command: { type: "string" } },
+          required: ["command"]
+        },
+        process: toolProcessFn
+      }
+    ];
 
     const provider = makeMockProvider([
       [
         { type: "chunk", content: "Let me check", done: false },
-        { id: "tc_1", name: "execute_bash", args: { command: "echo 42" } },
+        { id: "tc_1", name: "execute_bash", args: { command: "echo 42" } }
       ],
-      [
-        { type: "chunk", content: "The answer is 42", done: true },
-      ],
+      [{ type: "chunk", content: "The answer is 42", done: true }]
     ]);
 
     const context = createMockContext(provider);
@@ -69,11 +75,13 @@ describe("runAgentLoop", () => {
       modelId: "test-model",
       systemPrompt: "You are helpful.",
       prompt: "What is the answer?",
-      tools,
+      tools
     });
 
     expect(toolProcessFn).toHaveBeenCalledOnce();
-    expect(toolProcessFn).toHaveBeenCalledWith(expect.anything(), { command: "echo 42" });
+    expect(toolProcessFn).toHaveBeenCalledWith(expect.anything(), {
+      command: "echo 42"
+    });
     expect(result.text).toBe("The answer is 42");
   });
 
@@ -82,17 +90,15 @@ describe("runAgentLoop", () => {
     const toolB = vi.fn().mockResolvedValue({ result: "b" });
     const tools: any[] = [
       { name: "tool_a", process: toolA, inputSchema: {} },
-      { name: "tool_b", process: toolB, inputSchema: {} },
+      { name: "tool_b", process: toolB, inputSchema: {} }
     ];
 
     const provider = makeMockProvider([
       [
         { id: "tc_a", name: "tool_a", args: { x: 1 } },
-        { id: "tc_b", name: "tool_b", args: { y: 2 } },
+        { id: "tc_b", name: "tool_b", args: { y: 2 } }
       ],
-      [
-        { type: "chunk", content: "Both done", done: true },
-      ],
+      [{ type: "chunk", content: "Both done", done: true }]
     ]);
 
     const context = createMockContext(provider);
@@ -102,7 +108,7 @@ describe("runAgentLoop", () => {
       modelId: "test-model",
       systemPrompt: "sys",
       prompt: "do both",
-      tools,
+      tools
     });
 
     expect(toolA).toHaveBeenCalledOnce();
@@ -114,15 +120,17 @@ describe("runAgentLoop", () => {
     const provider = makeMockProvider(
       Array.from({ length: 5 }, () => [
         { type: "chunk", content: "thinking...", done: false },
-        { id: "tc_loop", name: "execute_bash", args: { command: "echo loop" } },
+        { id: "tc_loop", name: "execute_bash", args: { command: "echo loop" } }
       ])
     );
 
-    const tools: any[] = [{
-      name: "execute_bash",
-      process: vi.fn().mockResolvedValue({ success: true, stdout: "loop\n" }),
-      inputSchema: {},
-    }];
+    const tools: any[] = [
+      {
+        name: "execute_bash",
+        process: vi.fn().mockResolvedValue({ success: true, stdout: "loop\n" }),
+        inputSchema: {}
+      }
+    ];
 
     const context = createMockContext(provider);
     const result = await runAgentLoop({
@@ -132,7 +140,7 @@ describe("runAgentLoop", () => {
       systemPrompt: "sys",
       prompt: "go",
       tools,
-      maxIterations: 3,
+      maxIterations: 3
     });
 
     expect(tools[0].process).toHaveBeenCalledTimes(3);
@@ -141,7 +149,7 @@ describe("runAgentLoop", () => {
 
   it("throws when provider resolution fails", async () => {
     const context = {
-      getProvider: vi.fn().mockRejectedValue(new Error("No such provider")),
+      getProvider: vi.fn().mockRejectedValue(new Error("No such provider"))
     } as unknown as ProcessingContext;
 
     await expect(
@@ -151,7 +159,7 @@ describe("runAgentLoop", () => {
         modelId: "test-model",
         systemPrompt: "sys",
         prompt: "go",
-        tools: [],
+        tools: []
       })
     ).rejects.toThrow("No such provider");
   });
@@ -162,13 +170,22 @@ describe("runAgentLoop", () => {
       provider: "mock",
       generateMessages: async function* (args: any) {
         capturedMessages = args.messages;
-        yield { type: "chunk" as const, content: "I see the image", done: true };
+        yield {
+          type: "chunk" as const,
+          content: "I see the image",
+          done: true
+        };
       },
-      async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
+      async *generateMessagesTraced(...args: any[]) {
+        yield* (this as any).generateMessages(...args);
+      }
     });
 
     const context = createMockContext(provider);
-    const imagePart = { type: "image" as const, image: { data: "abc123", mimeType: "image/png" } };
+    const imagePart = {
+      type: "image" as const,
+      image: { data: "abc123", mimeType: "image/png" }
+    };
 
     const result = await runAgentLoop({
       context,
@@ -177,7 +194,7 @@ describe("runAgentLoop", () => {
       systemPrompt: "sys",
       prompt: "describe this",
       tools: [],
-      contentParts: [imagePart],
+      contentParts: [imagePart]
     });
 
     expect(result.text).toBe("I see the image");

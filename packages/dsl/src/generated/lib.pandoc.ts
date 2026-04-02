@@ -14,8 +14,14 @@ export interface ConvertFileOutputs {
   output: string;
 }
 
-export function convertFile(inputs: ConvertFileInputs): DslNode<ConvertFileOutputs, "output"> {
-  return createNode("lib.pandoc.ConvertFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function convertFile(
+  inputs: ConvertFileInputs
+): DslNode<ConvertFileOutputs, "output"> {
+  return createNode(
+    "lib.pandoc.ConvertFile",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Convert Text — lib.pandoc.ConvertText
@@ -30,6 +36,12 @@ export interface ConvertTextOutputs {
   output: string;
 }
 
-export function convertText(inputs: ConvertTextInputs): DslNode<ConvertTextOutputs, "output"> {
-  return createNode("lib.pandoc.ConvertText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function convertText(
+  inputs: ConvertTextInputs
+): DslNode<ConvertTextOutputs, "output"> {
+  return createNode(
+    "lib.pandoc.ConvertText",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

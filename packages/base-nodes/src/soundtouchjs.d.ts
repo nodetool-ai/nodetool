@@ -5,7 +5,11 @@ declare module "soundtouchjs" {
     pitch: number;
     pitchSemitones: number;
     inputBuffer: {
-      putSamples(samples: Float32Array, offset: number, numFrames: number): void;
+      putSamples(
+        samples: Float32Array,
+        offset: number,
+        numFrames: number
+      ): void;
     };
     outputBuffer: {
       frameCount: number;

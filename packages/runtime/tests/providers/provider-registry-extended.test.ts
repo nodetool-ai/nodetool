@@ -5,7 +5,7 @@ import {
   clearProviderCache,
   setSecretResolver,
   isProviderConfigured,
-  getProviderSecretKey,
+  getProviderSecretKey
 } from "../../src/providers/provider-registry.js";
 import { FakeProvider } from "../../src/providers/fake-provider.js";
 
@@ -17,7 +17,8 @@ class SecretAwareFakeProvider extends FakeProvider {
   }
 }
 
-const uniqueId = () => `test-ext-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const uniqueId = () =>
+  `test-ext-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 describe("provider-registry — extended coverage", () => {
   beforeEach(() => {
@@ -98,8 +99,12 @@ describe("provider-registry — extended coverage", () => {
 
   it("isProviderConfigured checks per-user secret", async () => {
     const id = uniqueId();
-    registerProvider(id, SecretAwareFakeProvider as any, { API_KEY: undefined });
-    setSecretResolver((key, userId) => (userId === "has-key" ? "resolved" : undefined));
+    registerProvider(id, SecretAwareFakeProvider as any, {
+      API_KEY: undefined
+    });
+    setSecretResolver((key, userId) =>
+      userId === "has-key" ? "resolved" : undefined
+    );
     expect(await isProviderConfigured(id, "has-key")).toBe(true);
     expect(await isProviderConfigured(id, "no-key")).toBe(false);
   });
@@ -126,9 +131,14 @@ describe("provider-registry — extended coverage", () => {
 
   it("getProvider defaults userId to '1'", async () => {
     const id = uniqueId();
-    registerProvider(id, SecretAwareFakeProvider as any, { THE_KEY: undefined });
+    registerProvider(id, SecretAwareFakeProvider as any, {
+      THE_KEY: undefined
+    });
     const calls: string[] = [];
-    setSecretResolver((_key, userId) => { calls.push(userId); return "val"; });
+    setSecretResolver((_key, userId) => {
+      calls.push(userId);
+      return "val";
+    });
     await getProvider(id);
     expect(calls).toContain("1");
   });
@@ -138,7 +148,9 @@ describe("provider-registry — extended coverage", () => {
   it("falls back to process.env when resolver returns nothing", async () => {
     const id = uniqueId();
     const envKey = `TEST_FALLBACK_KEY_${Date.now()}`;
-    registerProvider(id, SecretAwareFakeProvider as any, { [envKey]: undefined });
+    registerProvider(id, SecretAwareFakeProvider as any, {
+      [envKey]: undefined
+    });
     setSecretResolver(() => undefined);
     process.env[envKey] = "from-env";
     try {

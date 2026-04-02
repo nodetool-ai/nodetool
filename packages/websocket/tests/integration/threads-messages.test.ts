@@ -33,7 +33,9 @@ describe("Thread CRUD", () => {
   });
 
   it("gets a thread by ID", async () => {
-    const created = await (await post("/threads", { title: "Fetch me" })).json();
+    const created = await (
+      await post("/threads", { title: "Fetch me" })
+    ).json();
     const res = await get(`/threads/${created.id}`);
     expect(res.status).toBe(200);
     expect((await res.json()).title).toBe("Fetch me");
@@ -74,14 +76,12 @@ describe("Message CRUD", () => {
   });
 
   it("creates a message in an existing thread", async () => {
-    const thread = await (
-      await post("/threads", { title: "Chat" })
-    ).json();
+    const thread = await (await post("/threads", { title: "Chat" })).json();
 
     const res = await post("/messages", {
       thread_id: thread.id,
       role: "assistant",
-      content: "Hi there",
+      content: "Hi there"
     });
     expect(res.status).toBe(200);
     const msg = await res.json();
@@ -94,12 +94,12 @@ describe("Message CRUD", () => {
     await post("/messages", {
       thread_id: thread.id,
       role: "user",
-      content: "First",
+      content: "First"
     });
     await post("/messages", {
       thread_id: thread.id,
       role: "assistant",
-      content: "Second",
+      content: "Second"
     });
 
     const res = await get(`/messages?thread_id=${thread.id}`);
@@ -140,7 +140,7 @@ describe("Thread deletion cascades to messages", () => {
       await post("/messages", {
         thread_id: thread.id,
         role: "user",
-        content: "gone soon",
+        content: "gone soon"
       })
     ).json();
 

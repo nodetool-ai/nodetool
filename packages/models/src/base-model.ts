@@ -21,24 +21,18 @@ const log = createLogger("nodetool.models");
 export enum ModelChangeEvent {
   CREATED = "created",
   UPDATED = "updated",
-  DELETED = "deleted",
+  DELETED = "deleted"
 }
 
 export type ModelObserverCallback = (
   instance: DBModel,
-  event: ModelChangeEvent,
+  event: ModelChangeEvent
 ) => void;
 
 export class ModelObserver {
-  private static observers = new Map<
-    string | null,
-    ModelObserverCallback[]
-  >();
+  private static observers = new Map<string | null, ModelObserverCallback[]>();
 
-  static subscribe(
-    callback: ModelObserverCallback,
-    modelClass?: string,
-  ): void {
+  static subscribe(callback: ModelObserverCallback, modelClass?: string): void {
     const key = modelClass ?? null;
     const list = ModelObserver.observers.get(key) ?? [];
     list.push(callback);
@@ -47,7 +41,7 @@ export class ModelObserver {
 
   static unsubscribe(
     callback: ModelObserverCallback,
-    modelClass?: string,
+    modelClass?: string
   ): void {
     const key = modelClass ?? null;
     const list = ModelObserver.observers.get(key);
@@ -67,7 +61,9 @@ export class ModelObserver {
       try {
         cb(instance, event);
       } catch (err) {
-        log.error(`Observer notification failed for ${className}`, { error: String(err) });
+        log.error(`Observer notification failed for ${className}`, {
+          error: String(err)
+        });
       }
     }
 
@@ -76,7 +72,9 @@ export class ModelObserver {
       try {
         cb(instance, event);
       } catch (err) {
-        log.error("Global observer notification failed", { error: String(err) });
+        log.error("Global observer notification failed", {
+          error: String(err)
+        });
       }
     }
   }
@@ -119,10 +117,12 @@ function getTableColumn(table: DrizzleTable, colName: string): any {
  */
 function getColumnNames(table: DrizzleTable): string[] {
   // Drizzle stores column config under Symbol.for("drizzle:Columns")
-  const cols = (table as unknown as Record<symbol, Record<string, unknown>>)[Symbol.for("drizzle:Columns")];
+  const cols = (table as unknown as Record<symbol, Record<string, unknown>>)[
+    Symbol.for("drizzle:Columns")
+  ];
   if (cols) return Object.keys(cols);
   // Fallback: iterate own enumerable string keys that look like columns
-  return Object.keys(table).filter(k => !k.startsWith("_"));
+  return Object.keys(table).filter((k) => !k.startsWith("_"));
 }
 
 export abstract class DBModel {
@@ -143,7 +143,10 @@ export abstract class DBModel {
   // ── CRUD ─────────────────────────────────────────────────────────
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `this: any` enables static polymorphism across subclasses.
-  static async create<T extends DBModel>(this: any, data: Record<string, unknown>): Promise<T> {
+  static async create<T extends DBModel>(
+    this: any,
+    data: Record<string, unknown>
+  ): Promise<T> {
     const instance = new this(data) as T;
     await instance.save();
     ModelObserver.notify(instance, ModelChangeEvent.CREATED);
@@ -151,7 +154,10 @@ export abstract class DBModel {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `this: any` enables static polymorphism across subclasses.
-  static async get<T extends DBModel>(this: any, key: string | number): Promise<T | null> {
+  static async get<T extends DBModel>(
+    this: any,
+    key: string | number
+  ): Promise<T | null> {
     const db = getDb();
     const table = this.table as DrizzleTable;
     const pkCol = getTableColumn(table, this.primaryKey);
@@ -171,10 +177,13 @@ export abstract class DBModel {
     const row = this.toRow();
     const pkCol = getTableColumn(table, ctor.primaryKey);
 
-    db.insert(table).values(row).onConflictDoUpdate({
-      target: pkCol,
-      set: row,
-    }).run();
+    db.insert(table)
+      .values(row)
+      .onConflictDoUpdate({
+        target: pkCol,
+        set: row
+      })
+      .run();
 
     ModelObserver.notify(this, ModelChangeEvent.UPDATED);
     return this;
@@ -201,7 +210,11 @@ export abstract class DBModel {
     const db = getDb();
     const table = (ctor as typeof DBModel).table;
     const pkCol = getTableColumn(table, (ctor as typeof DBModel).primaryKey);
-    const row = db.select().from(table).where(eq(pkCol, this.partitionValue())).get();
+    const row = db
+      .select()
+      .from(table)
+      .where(eq(pkCol, this.partitionValue()))
+      .get();
     if (!row) throw new Error(`Item not found: ${this.partitionValue()}`);
     const fresh = new ctor(row as Record<string, unknown>);
     Object.assign(this, fresh);

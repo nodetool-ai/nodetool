@@ -8,8 +8,8 @@ function createMockProvider(taskData?: Record<string, unknown>) {
     title: "Test Task",
     steps: [
       { id: "s1", instructions: "Do first thing", depends_on: [] },
-      { id: "s2", instructions: "Do second thing", depends_on: ["s1"] },
-    ],
+      { id: "s2", instructions: "Do second thing", depends_on: ["s1"] }
+    ]
   };
   return {
     provider: "mock",
@@ -19,11 +19,15 @@ function createMockProvider(taskData?: Record<string, unknown>) {
       yield {
         id: "tc_1",
         name: "create_task",
-        args: data,
+        args: data
       };
     },
-    async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
-    async generateMessageTraced(...args: any[]) { return (this as any).generateMessage(...args); },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
     generateMessage: vi.fn(),
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
     getAvailableImageModels: vi.fn().mockResolvedValue([]),
@@ -39,14 +43,14 @@ function createMockProvider(taskData?: Record<string, unknown>) {
     textToVideo: vi.fn(),
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
-    isContextLengthError: () => false,
+    isContextLengthError: () => false
   } as any;
 }
 
 function createMockContext() {
   return {
     set: vi.fn(),
-    get: vi.fn(),
+    get: vi.fn()
   } as any;
 }
 
@@ -54,7 +58,7 @@ describe("TaskPlanner", () => {
   it("generates a valid task plan", async () => {
     const planner = new TaskPlanner({
       provider: createMockProvider(),
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -85,14 +89,18 @@ describe("TaskPlanner", () => {
     const provider = {
       ...createMockProvider(),
       generateMessages: async function* () {
-        yield { type: "chunk" as const, content: "I don't know how to make a plan", done: false };
-      },
+        yield {
+          type: "chunk" as const,
+          content: "I don't know how to make a plan",
+          done: false
+        };
+      }
     } as any;
 
     const planner = new TaskPlanner({
       provider,
       model: "test-model",
-      maxRetries: 1,
+      maxRetries: 1
     });
 
     const gen = planner.plan("Do something", createMockContext());
@@ -112,11 +120,17 @@ describe("TaskPlanner", () => {
     it("rejects steps with missing dependency IDs", () => {
       const planner = new TaskPlanner({
         provider: createMockProvider(),
-        model: "test-model",
+        model: "test-model"
       });
 
       const steps: Step[] = [
-        { id: "s1", instructions: "Do A", completed: false, dependsOn: ["nonexistent"], logs: [] },
+        {
+          id: "s1",
+          instructions: "Do A",
+          completed: false,
+          dependsOn: ["nonexistent"],
+          logs: []
+        }
       ];
 
       const errors = planner.validateDependencies(steps);
@@ -128,11 +142,17 @@ describe("TaskPlanner", () => {
       const planner = new TaskPlanner({
         provider: createMockProvider(),
         model: "test-model",
-        inputs: { myInput: "value" },
+        inputs: { myInput: "value" }
       });
 
       const steps: Step[] = [
-        { id: "s1", instructions: "Do A", completed: false, dependsOn: ["myInput"], logs: [] },
+        {
+          id: "s1",
+          instructions: "Do A",
+          completed: false,
+          dependsOn: ["myInput"],
+          logs: []
+        }
       ];
 
       const errors = planner.validateDependencies(steps);
@@ -142,12 +162,24 @@ describe("TaskPlanner", () => {
     it("rejects duplicate step IDs", () => {
       const planner = new TaskPlanner({
         provider: createMockProvider(),
-        model: "test-model",
+        model: "test-model"
       });
 
       const steps: Step[] = [
-        { id: "s1", instructions: "Do A", completed: false, dependsOn: [], logs: [] },
-        { id: "s1", instructions: "Do B", completed: false, dependsOn: [], logs: [] },
+        {
+          id: "s1",
+          instructions: "Do A",
+          completed: false,
+          dependsOn: [],
+          logs: []
+        },
+        {
+          id: "s1",
+          instructions: "Do B",
+          completed: false,
+          dependsOn: [],
+          logs: []
+        }
       ];
 
       const errors = planner.validateDependencies(steps);
@@ -159,11 +191,17 @@ describe("TaskPlanner", () => {
     it("rejects steps with looping phrases", () => {
       const planner = new TaskPlanner({
         provider: createMockProvider(),
-        model: "test-model",
+        model: "test-model"
       });
 
       const steps: Step[] = [
-        { id: "process_items", instructions: "For each URL, fetch the content", completed: false, dependsOn: [], logs: [] },
+        {
+          id: "process_items",
+          instructions: "For each URL, fetch the content",
+          completed: false,
+          dependsOn: [],
+          logs: []
+        }
       ];
 
       const errors = planner.validatePlanSemantics(steps);
@@ -174,11 +212,17 @@ describe("TaskPlanner", () => {
     it("allows aggregator steps to have looping language", () => {
       const planner = new TaskPlanner({
         provider: createMockProvider(),
-        model: "test-model",
+        model: "test-model"
       });
 
       const steps: Step[] = [
-        { id: "aggregate_results", instructions: "For each result, combine into final report", completed: false, dependsOn: [], logs: [] },
+        {
+          id: "aggregate_results",
+          instructions: "For each result, combine into final report",
+          completed: false,
+          dependsOn: [],
+          logs: []
+        }
       ];
 
       const errors = planner.validatePlanSemantics(steps);
@@ -188,13 +232,31 @@ describe("TaskPlanner", () => {
     it("detects missing aggregator dependencies on extractor steps", () => {
       const planner = new TaskPlanner({
         provider: createMockProvider(),
-        model: "test-model",
+        model: "test-model"
       });
 
       const steps: Step[] = [
-        { id: "extract_data_1", instructions: "Get data from source 1", completed: false, dependsOn: [], logs: [] },
-        { id: "extract_data_2", instructions: "Get data from source 2", completed: false, dependsOn: [], logs: [] },
-        { id: "aggregate_results", instructions: "Combine all data", completed: false, dependsOn: ["extract_data_1"], logs: [] },
+        {
+          id: "extract_data_1",
+          instructions: "Get data from source 1",
+          completed: false,
+          dependsOn: [],
+          logs: []
+        },
+        {
+          id: "extract_data_2",
+          instructions: "Get data from source 2",
+          completed: false,
+          dependsOn: [],
+          logs: []
+        },
+        {
+          id: "aggregate_results",
+          instructions: "Combine all data",
+          completed: false,
+          dependsOn: ["extract_data_1"],
+          logs: []
+        }
       ];
 
       const errors = planner.validatePlanSemantics(steps);
@@ -207,16 +269,28 @@ describe("TaskPlanner", () => {
     it("detects circular dependencies", () => {
       const planner = new TaskPlanner({
         provider: createMockProvider(),
-        model: "test-model",
+        model: "test-model"
       });
 
       const task: Task = {
         id: "t1",
         title: "Test",
         steps: [
-          { id: "s1", instructions: "A", completed: false, dependsOn: ["s2"], logs: [] },
-          { id: "s2", instructions: "B", completed: false, dependsOn: ["s1"], logs: [] },
-        ],
+          {
+            id: "s1",
+            instructions: "A",
+            completed: false,
+            dependsOn: ["s2"],
+            logs: []
+          },
+          {
+            id: "s2",
+            instructions: "B",
+            completed: false,
+            dependsOn: ["s1"],
+            logs: []
+          }
+        ]
       };
 
       expect(planner.checkForCycles(task)).toBe(false);
@@ -225,17 +299,35 @@ describe("TaskPlanner", () => {
     it("accepts valid DAGs", () => {
       const planner = new TaskPlanner({
         provider: createMockProvider(),
-        model: "test-model",
+        model: "test-model"
       });
 
       const task: Task = {
         id: "t1",
         title: "Test",
         steps: [
-          { id: "s1", instructions: "A", completed: false, dependsOn: [], logs: [] },
-          { id: "s2", instructions: "B", completed: false, dependsOn: ["s1"], logs: [] },
-          { id: "s3", instructions: "C", completed: false, dependsOn: ["s1", "s2"], logs: [] },
-        ],
+          {
+            id: "s1",
+            instructions: "A",
+            completed: false,
+            dependsOn: [],
+            logs: []
+          },
+          {
+            id: "s2",
+            instructions: "B",
+            completed: false,
+            dependsOn: ["s1"],
+            logs: []
+          },
+          {
+            id: "s3",
+            instructions: "C",
+            completed: false,
+            dependsOn: ["s1", "s2"],
+            logs: []
+          }
+        ]
       };
 
       expect(planner.checkForCycles(task)).toBe(true);
@@ -258,13 +350,17 @@ describe("TaskPlanner", () => {
               title: "Bad Plan",
               steps: [
                 { id: "s1", instructions: "A", depends_on: ["s2"] },
-                { id: "s2", instructions: "B", depends_on: ["s1"] },
-              ],
-            },
+                { id: "s2", instructions: "B", depends_on: ["s1"] }
+              ]
+            }
           };
         } else {
           // Second attempt: valid plan
-          yield { type: "chunk" as const, content: "Replanning...", done: false };
+          yield {
+            type: "chunk" as const,
+            content: "Replanning...",
+            done: false
+          };
           yield {
             id: "tc_2",
             name: "create_task",
@@ -272,18 +368,18 @@ describe("TaskPlanner", () => {
               title: "Good Plan",
               steps: [
                 { id: "s1", instructions: "A", depends_on: [] },
-                { id: "s2", instructions: "B", depends_on: ["s1"] },
-              ],
-            },
+                { id: "s2", instructions: "B", depends_on: ["s1"] }
+              ]
+            }
           };
         }
-      },
+      }
     } as any;
 
     const planner = new TaskPlanner({
       provider,
       model: "test-model",
-      maxRetries: 3,
+      maxRetries: 3
     });
 
     const gen = planner.plan("Do something", createMockContext());
@@ -304,7 +400,7 @@ describe("TaskPlanner", () => {
 
     // Should have validation failure update
     const failedUpdates = messages.filter(
-      (m) => m.type === "planning_update" && (m as any).status === "failed",
+      (m) => m.type === "planning_update" && (m as any).status === "failed"
     );
     expect(failedUpdates.length).toBeGreaterThanOrEqual(1);
   });
@@ -322,17 +418,17 @@ describe("TaskPlanner", () => {
             title: "Bad Plan",
             steps: [
               { id: "s1", instructions: "A", depends_on: ["s2"] },
-              { id: "s2", instructions: "B", depends_on: ["s1"] },
-            ],
-          },
+              { id: "s2", instructions: "B", depends_on: ["s1"] }
+            ]
+          }
         };
-      },
+      }
     } as any;
 
     const planner = new TaskPlanner({
       provider,
       model: "test-model",
-      maxRetries: 2,
+      maxRetries: 2
     });
 
     const gen = planner.plan("Do something", createMockContext());
@@ -356,19 +452,19 @@ describe("TaskPlanner", () => {
         type: "object" as const,
         properties: {
           query: { type: "string" },
-          limit: { type: "number" },
+          limit: { type: "number" }
         },
-        required: ["query"],
+        required: ["query"]
       },
       process: vi.fn(),
       userMessage: () => "Using tool",
-      toProviderTool: vi.fn(),
+      toProviderTool: vi.fn()
     } as any;
 
     const planner = new TaskPlanner({
       provider: createMockProvider(),
       model: "test-model",
-      tools: [mockTool],
+      tools: [mockTool]
     });
 
     // Access formatToolsInfo indirectly via plan prompt generation
@@ -377,7 +473,15 @@ describe("TaskPlanner", () => {
     const task: Task = {
       id: "t1",
       title: "Test",
-      steps: [{ id: "s1", instructions: "Do it", completed: false, dependsOn: [], logs: [] }],
+      steps: [
+        {
+          id: "s1",
+          instructions: "Do it",
+          completed: false,
+          dependsOn: [],
+          logs: []
+        }
+      ]
     };
     expect(planner.validatePlan(task)).toHaveLength(0);
   });

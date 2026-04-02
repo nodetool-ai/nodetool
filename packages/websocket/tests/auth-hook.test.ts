@@ -10,7 +10,9 @@ import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool/auth";
 // Helper: build a minimal Fastify app with the auth hook and a protected route
 async function buildApp(opts: {
   supabaseMode: boolean;
-  mockVerify?: (token: string) => Promise<{ ok: boolean; userId?: string; error?: string }>;
+  mockVerify?: (
+    token: string
+  ) => Promise<{ ok: boolean; userId?: string; error?: string }>;
 }): Promise<FastifyInstance> {
   const app = Fastify({ trustProxy: true, logger: false });
 
@@ -18,11 +20,16 @@ async function buildApp(opts: {
   app.decorateRequest("userId", null);
 
   const provider = opts.supabaseMode
-    ? new SupabaseAuthProvider({ supabaseUrl: "http://fake", supabaseKey: "fake" })
+    ? new SupabaseAuthProvider({
+        supabaseUrl: "http://fake",
+        supabaseKey: "fake"
+      })
     : new LocalAuthProvider();
 
   if (opts.mockVerify && opts.supabaseMode) {
-    vi.spyOn(provider, "verifyToken").mockImplementation(opts.mockVerify as any);
+    vi.spyOn(provider, "verifyToken").mockImplementation(
+      opts.mockVerify as any
+    );
   }
 
   app.addHook("onRequest", async (req, reply) => {
@@ -32,13 +39,22 @@ async function buildApp(opts: {
     const isWs = req.headers["upgrade"]?.toLowerCase() === "websocket";
     const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
     const token = isWs
-      ? provider.extractTokenFromWs(req.headers as Record<string, string>, searchParams)
+      ? provider.extractTokenFromWs(
+          req.headers as Record<string, string>,
+          searchParams
+        )
       : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
 
     if (opts.supabaseMode) {
-      if (!token) { reply.status(401).send({ error: "Unauthorized" }); return; }
+      if (!token) {
+        reply.status(401).send({ error: "Unauthorized" });
+        return;
+      }
       const result = await provider.verifyToken(token);
-      if (!result.ok) { reply.status(401).send({ error: result.error ?? "Unauthorized" }); return; }
+      if (!result.ok) {
+        reply.status(401).send({ error: result.error ?? "Unauthorized" });
+        return;
+      }
       req.userId = result.userId ?? null;
       return;
     }
@@ -46,7 +62,12 @@ async function buildApp(opts: {
     // Dev mode
     const remoteAddr = req.socket?.remoteAddress ?? "127.0.0.1";
     const isLocalhost = remoteAddr === "127.0.0.1" || remoteAddr === "::1";
-    if (!isLocalhost) { reply.status(401).send({ error: "Remote access requires authentication" }); return; }
+    if (!isLocalhost) {
+      reply
+        .status(401)
+        .send({ error: "Remote access requires authentication" });
+      return;
+    }
     req.userId = "1";
   });
 
@@ -96,7 +117,7 @@ describe("auth hook — Supabase mode", () => {
       mockVerify: async (token: string) => {
         if (token === "valid-token") return { ok: true, userId: "user-42" };
         return { ok: false, error: "Invalid token" };
-      },
+      }
     });
   });
 
@@ -119,7 +140,7 @@ describe("auth hook — Supabase mode", () => {
     const res = await app.inject({
       method: "GET",
       url: "/api/protected",
-      headers: { authorization: "Bearer bad-token" },
+      headers: { authorization: "Bearer bad-token" }
     });
     expect(res.statusCode).toBe(401);
     expect(JSON.parse(res.body)).toEqual({ error: "Invalid token" });
@@ -129,7 +150,7 @@ describe("auth hook — Supabase mode", () => {
     const res = await app.inject({
       method: "GET",
       url: "/api/protected",
-      headers: { authorization: "Bearer valid-token" },
+      headers: { authorization: "Bearer valid-token" }
     });
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({ userId: "user-42" });
@@ -139,7 +160,7 @@ describe("auth hook — Supabase mode", () => {
     const res = await app.inject({
       method: "GET",
       url: "/ws",
-      headers: { upgrade: "websocket", connection: "upgrade" },
+      headers: { upgrade: "websocket", connection: "upgrade" }
     });
     expect(res.statusCode).toBe(401);
   });
@@ -148,7 +169,7 @@ describe("auth hook — Supabase mode", () => {
     const res = await app.inject({
       method: "GET",
       url: "/ws?api_key=bad-token",
-      headers: { upgrade: "websocket", connection: "upgrade" },
+      headers: { upgrade: "websocket", connection: "upgrade" }
     });
     expect(res.statusCode).toBe(401);
   });

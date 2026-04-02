@@ -8,7 +8,6 @@
 import type { ReplicateSchema } from "./schema-fetcher.js";
 import type { EnumDef, FieldDef, NodeSpec } from "./types.js";
 
- 
 type AnyRecord = Record<string, any>;
 
 export class SchemaParser {
@@ -34,7 +33,7 @@ export class SchemaParser {
       inputFields,
       outputType: "str", // Default; overridden by config.returnType
       outputFields: [],
-      enums,
+      enums
     };
   }
 
@@ -44,7 +43,7 @@ export class SchemaParser {
   private _parseProperties(
     properties: AnyRecord,
     required: string[],
-    enums: EnumDef[],
+    enums: EnumDef[]
   ): FieldDef[] {
     const fields: FieldDef[] = [];
 
@@ -58,12 +57,8 @@ export class SchemaParser {
         const rawValues = propObj.enum as unknown[];
         const enumDef: EnumDef = {
           name: enumName,
-          values: rawValues.map((v) => [
-            this.toEnumKey(String(v)),
-            String(v),
-          ]),
-          description:
-            (propObj.description as string | undefined) ?? "",
+          values: rawValues.map((v) => [this.toEnumKey(String(v)), String(v)]),
+          description: (propObj.description as string | undefined) ?? ""
         };
         enums.push(enumDef);
         enumRef = enumName;
@@ -73,21 +68,24 @@ export class SchemaParser {
       const { tsType, propType } = this._jsonTypeToTs(propObj, enumRef, name);
 
       // Determine default
-      const defaultVal = this._getDefaultValue(propObj, propType, required.includes(name));
+      const defaultVal = this._getDefaultValue(
+        propObj,
+        propType,
+        required.includes(name)
+      );
 
       fields.push({
         name,
         tsType,
         propType,
         default: defaultVal,
-        description:
-          (propObj.description as string | undefined) ?? "",
+        description: (propObj.description as string | undefined) ?? "",
         fieldType: "input",
         required: required.includes(name),
         enumRef,
         enumValues: enumRef
           ? (propObj.enum as unknown[] | undefined)?.map(String)
-          : undefined,
+          : undefined
       });
     }
 
@@ -100,7 +98,7 @@ export class SchemaParser {
   private _jsonTypeToTs(
     prop: AnyRecord,
     enumRef: string | undefined,
-    propName: string,
+    propName: string
   ): { tsType: string; propType: string } {
     if (enumRef) {
       return { tsType: "enum", propType: "enum" };
@@ -117,7 +115,11 @@ export class SchemaParser {
         if (lower.includes("video")) {
           return { tsType: "video", propType: "video" };
         }
-        if (lower.includes("audio") || lower.includes("sound") || lower.includes("music")) {
+        if (
+          lower.includes("audio") ||
+          lower.includes("sound") ||
+          lower.includes("music")
+        ) {
           return { tsType: "audio", propType: "audio" };
         }
         // Default URI fields to image (most common in Replicate)
@@ -143,7 +145,7 @@ export class SchemaParser {
       const inner = this._jsonTypeToTs(items, undefined, propName);
       return {
         tsType: `${inner.tsType}[]`,
-        propType: `list[${inner.propType}]`,
+        propType: `list[${inner.propType}]`
       };
     }
 
@@ -160,7 +162,7 @@ export class SchemaParser {
   private _getDefaultValue(
     prop: AnyRecord,
     propType: string,
-    required: boolean,
+    required: boolean
   ): unknown {
     // Asset refs default to null
     if (propType === "image" || propType === "video" || propType === "audio") {
@@ -182,7 +184,9 @@ export class SchemaParser {
     // Sensible defaults based on type
     if (propType === "str") return "";
     if (propType === "int") {
-      const desc = ((prop.description as string | undefined) ?? "").toLowerCase();
+      const desc = (
+        (prop.description as string | undefined) ?? ""
+      ).toLowerCase();
       return desc.includes("seed") ? -1 : 0;
     }
     if (propType === "float") return 0.0;
@@ -207,7 +211,7 @@ export class SchemaParser {
       const cleaned = part.replace(/\./g, "");
       const words = cleaned.split("-");
       nameParts.push(
-        ...words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)),
+        ...words.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       );
     }
 
@@ -219,9 +223,7 @@ export class SchemaParser {
    */
   private _generateEnumName(fieldName: string): string {
     const words = fieldName.replace(/-/g, "_").split("_");
-    return words
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join("");
+    return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("");
   }
 
   /**
@@ -258,9 +260,7 @@ export class SchemaParser {
       .replace(/,/g, "_");
 
     // Replace separators with underscores
-    v = v
-      .replace(/\//g, "__")
-      .replace(/[ \-.]/g, "_");
+    v = v.replace(/\//g, "__").replace(/[ \-.]/g, "_");
 
     // Convert to uppercase
     let result = v.toUpperCase();

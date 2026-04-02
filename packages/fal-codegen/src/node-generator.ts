@@ -10,7 +10,7 @@ import type {
   NodeConfig,
   ModuleConfig,
   FieldDef,
-  EnumDef,
+  EnumDef
 } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,13 @@ function moduleNameToId(moduleName: string): string {
 }
 
 /** Reserved names that collide with process() parameters or JS keywords */
-const RESERVED_VAR_NAMES = new Set(["inputs", "args", "res", "apiKey", "output"]);
+const RESERVED_VAR_NAMES = new Set([
+  "inputs",
+  "args",
+  "res",
+  "apiKey",
+  "output"
+]);
 
 /** Convert a camelCase/PascalCase fieldName to lowerCamelCase variable name */
 function fieldToVarName(name: string): string {
@@ -138,7 +144,7 @@ export class NodeGenerator {
   generateModule(
     moduleName: string,
     specs: NodeSpec[],
-    moduleConfig?: ModuleConfig,
+    moduleConfig?: ModuleConfig
   ): string {
     const lines: string[] = [];
 
@@ -157,7 +163,7 @@ export class NodeGenerator {
       ``,
       `// Re-export alias`,
       `const FalNode = BaseNode;`,
-      ``,
+      ``
     );
 
     // Apply configs and render classes
@@ -177,7 +183,7 @@ export class NodeGenerator {
     lines.push(
       `export const FAL_${moduleUpper}_NODES: readonly NodeClass[] = [`,
       ...classNames.map((n) => `  ${n},`),
-      `] as const;`,
+      `] as const;`
     );
 
     return lines.join("\n");
@@ -188,7 +194,11 @@ export class NodeGenerator {
    */
   applyConfig(spec: NodeSpec, config: NodeConfig): NodeSpec {
     // Shallow clone to avoid mutating caller's spec
-    spec = { ...spec, inputFields: [...spec.inputFields], enums: [...spec.enums] };
+    spec = {
+      ...spec,
+      inputFields: [...spec.inputFields],
+      enums: [...spec.enums]
+    };
 
     if (config.className !== undefined) spec.className = config.className;
     if (config.docstring !== undefined) spec.docstring = config.docstring;
@@ -213,7 +223,7 @@ export class NodeGenerator {
         // Check both original and renamed names
         const origName =
           Object.entries(enumRenameMap).find(
-            ([, v]) => v === enumDef.name,
+            ([, v]) => v === enumDef.name
           )?.[0] ?? enumDef.name;
         const valueMap =
           config.enumValueOverrides[enumDef.name] ??
@@ -221,7 +231,7 @@ export class NodeGenerator {
         if (valueMap) {
           enumDef.values = enumDef.values.map(([key, val]) => [
             valueMap[key] ?? key,
-            val,
+            val
           ]);
         }
       }
@@ -277,7 +287,7 @@ export class NodeGenerator {
     lines.push(`  static readonly nodeType = ${JSON.stringify(nodeType)};`);
     lines.push(`  static readonly title = ${JSON.stringify(title)};`);
     lines.push(
-      `  static readonly description = \`${description.replace(/`/g, "'")}\`;`,
+      `  static readonly description = \`${description.replace(/`/g, "'")}\`;`
     );
     lines.push(`  static readonly requiredSettings = ["FAL_API_KEY"];`);
 
@@ -317,17 +327,15 @@ export class NodeGenerator {
 
   private _renderProcessMethod(spec: NodeSpec): string[] {
     const lines: string[] = [];
-    lines.push(
-      `  async process(): Promise<Record<string, unknown>> {`,
-    );
+    lines.push(`  async process(): Promise<Record<string, unknown>> {`);
     lines.push(`    const apiKey = getFalApiKey(this._secrets);`);
 
     // Separate fields by kind
     const assetFields = spec.inputFields.filter(
-      (f) => !f.parentField && assetKind(f) !== "none",
+      (f) => !f.parentField && assetKind(f) !== "none"
     );
     const scalarFields = spec.inputFields.filter(
-      (f) => !f.parentField && assetKind(f) === "none",
+      (f) => !f.parentField && assetKind(f) === "none"
     );
 
     // 1. Extract scalar fields
@@ -336,7 +344,7 @@ export class NodeGenerator {
       const defLit = defaultLiteral(field.default, field.propType);
       const cast = castFn(field.propType);
       lines.push(
-        `    const ${varName} = ${cast}(this.${field.name} ?? ${defLit});`,
+        `    const ${varName} = ${cast}(this.${field.name} ?? ${defLit});`
       );
     }
 
@@ -347,9 +355,7 @@ export class NodeGenerator {
     for (const field of scalarFields) {
       const varName = fieldToVarName(field.name);
       const apiName = field.apiParamName ?? field.name;
-      lines.push(
-        `      ${JSON.stringify(apiName)}: ${varName},`,
-      );
+      lines.push(`      ${JSON.stringify(apiName)}: ${varName},`);
     }
     lines.push(`    };`);
 
@@ -363,43 +369,41 @@ export class NodeGenerator {
         // List of assets
         lines.push(``);
         lines.push(
-          `    const ${varName}List = this.${field.name} as Record<string, unknown>[] | undefined;`,
+          `    const ${varName}List = this.${field.name} as Record<string, unknown>[] | undefined;`
         );
         lines.push(`    if (${varName}List?.length) {`);
+        lines.push(`      const ${varName}Urls: string[] = [];`);
+        lines.push(`      for (const ref of ${varName}List) {`);
         lines.push(
-            `      const ${varName}Urls: string[] = [];`,
-          );
-          lines.push(`      for (const ref of ${varName}List) {`);
-          lines.push(
-            `        if (isRefSet(ref)) { const u = await assetToFalUrl(apiKey, ref); if (u) ${varName}Urls.push(u); }`,
-          );
-          lines.push(`      }`);
-          lines.push(
-            `      if (${varName}Urls.length) args[${JSON.stringify(apiName)}] = ${varName}Urls;`,
-          );
+          `        if (isRefSet(ref)) { const u = await assetToFalUrl(apiKey, ref); if (u) ${varName}Urls.push(u); }`
+        );
+        lines.push(`      }`);
+        lines.push(
+          `      if (${varName}Urls.length) args[${JSON.stringify(apiName)}] = ${varName}Urls;`
+        );
         lines.push(`    }`);
       } else if (field.nestedAssetKey) {
         // Nested asset with extra sub-fields
         const subFields = spec.inputFields.filter(
-          (f) => f.parentField === field.name,
+          (f) => f.parentField === field.name
         );
         lines.push(``);
         lines.push(
-          `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`,
+          `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
         lines.push(
-            `      const ${varName}Url = await assetToFalUrl(apiKey, ${varName}Ref!);`,
-          );
+          `      const ${varName}Url = await assetToFalUrl(apiKey, ${varName}Ref!);`
+        );
         lines.push(`      if (${varName}Url) {`);
         const nestedObj: string[] = [
-          `          ${JSON.stringify(field.nestedAssetKey)}: ${varName}Url,`,
+          `          ${JSON.stringify(field.nestedAssetKey)}: ${varName}Url,`
         ];
         for (const sub of subFields) {
           const subVar = fieldToVarName(sub.name);
           const subDefLit = defaultLiteral(sub.default, sub.propType);
           nestedObj.push(
-            `          ${JSON.stringify(sub.name)}: ${castFn(sub.propType)}((this as any).${sub.name} ?? ${subDefLit}),`,
+            `          ${JSON.stringify(sub.name)}: ${castFn(sub.propType)}((this as any).${sub.name} ?? ${subDefLit}),`
           );
         }
         lines.push(`        args[${JSON.stringify(apiName)}] = {`);
@@ -411,20 +415,20 @@ export class NodeGenerator {
         // Plain asset
         lines.push(``);
         lines.push(
-          `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`,
+          `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
         if (kind === "image") {
           lines.push(
-            `      const ${varName}Url = await imageToDataUrl(${varName}Ref!) ?? await assetToFalUrl(apiKey, ${varName}Ref!);`,
+            `      const ${varName}Url = await imageToDataUrl(${varName}Ref!) ?? await assetToFalUrl(apiKey, ${varName}Ref!);`
           );
         } else {
           lines.push(
-            `      const ${varName}Url = await assetToFalUrl(apiKey, ${varName}Ref!);`,
+            `      const ${varName}Url = await assetToFalUrl(apiKey, ${varName}Ref!);`
           );
         }
         lines.push(
-          `      if (${varName}Url) args[${JSON.stringify(apiName)}] = ${varName}Url;`,
+          `      if (${varName}Url) args[${JSON.stringify(apiName)}] = ${varName}Url;`
         );
         lines.push(`    }`);
       }
@@ -433,7 +437,7 @@ export class NodeGenerator {
     lines.push(`    removeNulls(args);`);
     lines.push(``);
     lines.push(
-      `    const res = await falSubmit(apiKey, ${JSON.stringify(spec.endpointId)}, args);`,
+      `    const res = await falSubmit(apiKey, ${JSON.stringify(spec.endpointId)}, args);`
     );
 
     // Output handling
@@ -441,24 +445,24 @@ export class NodeGenerator {
       case "image":
         lines.push(
           `    const images = res.images as { url: string }[];`,
-          `    return { output: { type: "image", uri: images[0].url } };`,
+          `    return { output: { type: "image", uri: images[0].url } };`
         );
         break;
       case "video":
         lines.push(
-          `    return { output: { type: "video", uri: (res.video as any).url } };`,
+          `    return { output: { type: "video", uri: (res.video as any).url } };`
         );
         break;
       case "audio":
         lines.push(
-          `    return { output: { type: "audio", uri: (res.audio as any).url } };`,
+          `    return { output: { type: "audio", uri: (res.audio as any).url } };`
         );
         break;
       case "model_3d": {
         // model_glb takes priority over model_mesh; extract the URL from the File ref
         lines.push(
           `    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;`,
-          `    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };`,
+          `    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };`
         );
         break;
       }
@@ -530,7 +534,7 @@ export class NodeGenerator {
     }
 
     candidates.sort((a, b) =>
-      a.priority !== b.priority ? a.priority - b.priority : a.index - b.index,
+      a.priority !== b.priority ? a.priority - b.priority : a.index - b.index
     );
 
     return candidates.slice(0, 5).map((c) => c.name);

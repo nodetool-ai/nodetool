@@ -10,14 +10,18 @@ import { TokenType } from "../src/auth-provider.js";
 // ---------------------------------------------------------------------------
 
 function createMockClient(
-  getUser: (jwt?: string) => Promise<{ data: { user: { id: string } | null }; error: unknown }>
+  getUser: (
+    jwt?: string
+  ) => Promise<{ data: { user: { id: string } | null }; error: unknown }>
 ) {
   return { auth: { getUser } };
 }
 
 function makeProvider(
   overrides: {
-    getUser?: (jwt?: string) => Promise<{ data: { user: { id: string } | null }; error: unknown }>;
+    getUser?: (
+      jwt?: string
+    ) => Promise<{ data: { user: { id: string } | null }; error: unknown }>;
     cacheTtl?: number;
     cacheMax?: number;
   } = {}
@@ -30,7 +34,7 @@ function makeProvider(
     supabaseUrl: "https://test.supabase.co",
     supabaseKey: "test-key",
     cacheTtl: overrides.cacheTtl,
-    cacheMax: overrides.cacheMax,
+    cacheMax: overrides.cacheMax
   });
 
   // Inject the mock client directly to avoid dynamic import of @supabase/supabase-js
@@ -68,8 +72,8 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     const provider = makeProvider({
       getUser: async () => ({
         data: { user: null },
-        error: { message: "Token expired" },
-      }),
+        error: { message: "Token expired" }
+      })
     });
     const result = await provider.verifyToken("expired-token");
     expect(result.ok).toBe(false);
@@ -80,8 +84,8 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     const provider = makeProvider({
       getUser: async () => ({
         data: { user: null },
-        error: null,
-      }),
+        error: null
+      })
     });
     const result = await provider.verifyToken("bad-token");
     expect(result.ok).toBe(false);
@@ -92,7 +96,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     const provider = makeProvider({
       getUser: async () => {
         throw new Error("Network failure");
-      },
+      }
     });
     const result = await provider.verifyToken("crash-token");
     expect(result.ok).toBe(false);
@@ -104,7 +108,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("caches valid tokens and returns from cache on second call", async () => {
     const getUser = vi.fn(async () => ({
       data: { user: { id: "cached-user" } },
-      error: null,
+      error: null
     }));
     const provider = makeProvider({ getUser, cacheTtl: 60 });
 
@@ -123,7 +127,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("does not cache when cacheTtl is 0", async () => {
     const getUser = vi.fn(async () => ({
       data: { user: { id: "no-cache-user" } },
-      error: null,
+      error: null
     }));
     const provider = makeProvider({ getUser, cacheTtl: 0 });
 
@@ -135,7 +139,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("evicts oldest entry when cache exceeds max size", async () => {
     const getUser = vi.fn(async (_jwt?: string) => ({
       data: { user: { id: "user-x" } },
-      error: null,
+      error: null
     }));
     const provider = makeProvider({ getUser, cacheTtl: 60, cacheMax: 2 });
 
@@ -159,7 +163,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("clearCaches resets cache and client", async () => {
     const getUser = vi.fn(async () => ({
       data: { user: { id: "clear-user" } },
-      error: null,
+      error: null
     }));
     const provider = makeProvider({ getUser, cacheTtl: 60 });
 
@@ -183,8 +187,8 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     const provider = makeProvider({
       getUser: async () => ({
         data: { user: null },
-        error: "string-error",
-      }),
+        error: "string-error"
+      })
     });
     const result = await provider.verifyToken("err-token");
     expect(result.ok).toBe(false);
@@ -196,7 +200,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("evicts cached entry after TTL expires", async () => {
     const getUser = vi.fn(async () => ({
       data: { user: { id: "ttl-user" } },
-      error: null,
+      error: null
     }));
     const provider = makeProvider({ getUser, cacheTtl: 10 });
 
@@ -233,7 +237,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     // First call populates cache, second call should use cached result
     const [r1, r2] = await Promise.all([
       provider.verifyToken("tok-concurrent"),
-      provider.verifyToken("tok-concurrent"),
+      provider.verifyToken("tok-concurrent")
     ]);
 
     expect(r1.ok).toBe(true);
@@ -250,7 +254,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("different tokens produce different cache entries", async () => {
     const getUser = vi.fn(async () => ({
       data: { user: { id: "hash-user" } },
-      error: null,
+      error: null
     }));
     const provider = makeProvider({ getUser, cacheTtl: 60 });
 
@@ -270,7 +274,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("LRU refresh: re-accessing tok-a moves it to end, tok-b gets evicted", async () => {
     const getUser = vi.fn(async () => ({
       data: { user: { id: "lru-user" } },
-      error: null,
+      error: null
     }));
     const provider = makeProvider({ getUser, cacheTtl: 60, cacheMax: 2 });
 
@@ -301,7 +305,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("extractTokenFromHeaders extracts Bearer token from plain headers", () => {
     const provider = makeProvider();
     const token = provider.extractTokenFromHeaders({
-      authorization: "Bearer my-jwt-token",
+      authorization: "Bearer my-jwt-token"
     });
     expect(token).toBe("my-jwt-token");
   });
@@ -315,7 +319,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("extractTokenFromHeaders returns null for non-Bearer scheme", () => {
     const provider = makeProvider();
     const token = provider.extractTokenFromHeaders({
-      authorization: "Basic abc123",
+      authorization: "Basic abc123"
     });
     expect(token).toBeNull();
   });
@@ -326,8 +330,8 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     const provider = makeProvider({
       getUser: async () => ({
         data: { user: null },
-        error: 42,
-      }),
+        error: 42
+      })
     });
     const result = await provider.verifyToken("num-err");
     expect(result.ok).toBe(false);
@@ -338,8 +342,8 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     const provider = makeProvider({
       getUser: async () => ({
         data: { user: null },
-        error: true,
-      }),
+        error: true
+      })
     });
     const result = await provider.verifyToken("bool-err");
     expect(result.ok).toBe(false);
@@ -352,10 +356,12 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     const provider = makeProvider({
       getUser: async () => ({
         data: {
-          user: { id: "extra-user", email: "foo@bar.com", name: "Foo" } as { id: string },
+          user: { id: "extra-user", email: "foo@bar.com", name: "Foo" } as {
+            id: string;
+          }
         },
-        error: null,
-      }),
+        error: null
+      })
     });
     const result = await provider.verifyToken("extra-fields-token");
     expect(result.ok).toBe(true);
@@ -369,7 +375,7 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
   it("cacheMax of 1 keeps only one entry at a time", async () => {
     const getUser = vi.fn(async () => ({
       data: { user: { id: "max1-user" } },
-      error: null,
+      error: null
     }));
     const provider = makeProvider({ getUser, cacheTtl: 60, cacheMax: 1 });
 

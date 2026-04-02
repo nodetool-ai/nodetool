@@ -4,7 +4,16 @@
 
 export interface FieldDef {
   name: string;
-  type: "str" | "int" | "float" | "bool" | "enum" | "image" | "audio" | "video" | "list[image]";
+  type:
+    | "str"
+    | "int"
+    | "float"
+    | "bool"
+    | "enum"
+    | "image"
+    | "audio"
+    | "video"
+    | "list[image]";
   default?: unknown;
   title?: string;
   description?: string;

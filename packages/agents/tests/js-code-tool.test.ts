@@ -6,7 +6,7 @@ const mockContext = {
   resolveWorkspacePath: (p: string) => `/tmp/test-workspace/${p}`,
   getSecret: async (_name: string) => undefined,
   environment: {},
-  userId: undefined,
+  userId: undefined
 } as unknown as ProcessingContext;
 
 describe("MiniJSAgentTool", () => {
@@ -16,7 +16,9 @@ describe("MiniJSAgentTool", () => {
     expect(tool.name).toBe("js");
     const pt = tool.toProviderTool();
     expect(pt.inputSchema).toBeDefined();
-    expect((pt.inputSchema as Record<string, unknown>)["required"]).toEqual(["code"]);
+    expect((pt.inputSchema as Record<string, unknown>)["required"]).toEqual([
+      "code"
+    ]);
   });
 
   // --- Basic expressions ---
@@ -33,17 +35,17 @@ describe("MiniJSAgentTool", () => {
 
   it("returns an object", async () => {
     const result = await tool.process(mockContext, {
-      code: 'return { name: "test", value: 123 }',
+      code: 'return { name: "test", value: 123 }'
     });
     expect(result).toEqual({
       success: true,
-      result: { name: "test", value: 123 },
+      result: { name: "test", value: 123 }
     });
   });
 
   it("returns null for no return", async () => {
     const result = (await tool.process(mockContext, {
-      code: "const x = 1;",
+      code: "const x = 1;"
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.result).toBeNull();
@@ -53,7 +55,7 @@ describe("MiniJSAgentTool", () => {
 
   it("captures console.log output", async () => {
     const result = (await tool.process(mockContext, {
-      code: 'console.log("step 1"); console.log("step 2"); return "done"',
+      code: 'console.log("step 1"); console.log("step 2"); return "done"'
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.logs).toEqual(["step 1", "step 2"]);
@@ -62,7 +64,7 @@ describe("MiniJSAgentTool", () => {
 
   it("captures console.warn and console.error", async () => {
     const result = (await tool.process(mockContext, {
-      code: 'console.warn("warning"); console.error("error"); return true',
+      code: 'console.warn("warning"); console.error("error"); return true'
     })) as Record<string, unknown>;
     expect(result.logs).toEqual(["[warn] warning", "[error] error"]);
   });
@@ -77,7 +79,7 @@ describe("MiniJSAgentTool", () => {
           sum += i;
         }
         return sum;
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.result).toBe(55);
@@ -89,7 +91,7 @@ describe("MiniJSAgentTool", () => {
         let n = 1;
         while (n < 100) n *= 2;
         return n;
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.result).toBe(128);
@@ -104,7 +106,7 @@ describe("MiniJSAgentTool", () => {
           upper.push(item.toUpperCase());
         }
         return upper;
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual(["A", "B", "C"]);
   });
@@ -120,14 +122,14 @@ describe("MiniJSAgentTool", () => {
         } else {
           return "small";
         }
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toBe("big");
   });
 
   it("supports ternary operator", async () => {
     const result = (await tool.process(mockContext, {
-      code: "return 3 > 2 ? 'yes' : 'no';",
+      code: "return 3 > 2 ? 'yes' : 'no';"
     })) as Record<string, unknown>;
     expect(result.result).toBe("yes");
   });
@@ -141,7 +143,7 @@ describe("MiniJSAgentTool", () => {
           case "friday": return "end";
           default: return "middle";
         }
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toBe("start");
   });
@@ -156,7 +158,7 @@ describe("MiniJSAgentTool", () => {
           return n * factorial(n - 1);
         }
         return factorial(5);
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toBe(120);
   });
@@ -166,7 +168,7 @@ describe("MiniJSAgentTool", () => {
       code: `
         const double = x => x * 2;
         return [1, 2, 3].map(double);
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual([2, 4, 6]);
   });
@@ -181,12 +183,12 @@ describe("MiniJSAgentTool", () => {
         const doubled = evens.map(x => x * 2);
         const total = doubled.reduce((a, b) => a + b, 0);
         return { evens, doubled, total };
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({
       evens: [2, 4, 6],
       doubled: [4, 8, 12],
-      total: 24,
+      total: 24
     });
   });
 
@@ -198,14 +200,14 @@ describe("MiniJSAgentTool", () => {
         const [a, b, ...rest] = [1, 2, 3, 4, 5];
         const { x, y } = { x: 10, y: 20, z: 30 };
         return { a, b, rest, x, y };
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({
       a: 1,
       b: 2,
       rest: [3, 4, 5],
       x: 10,
-      y: 20,
+      y: 20
     });
   });
 
@@ -213,7 +215,7 @@ describe("MiniJSAgentTool", () => {
 
   it("supports template literals", async () => {
     const result = (await tool.process(mockContext, {
-      code: "const name = 'world'; return `hello ${name}!`;",
+      code: "const name = 'world'; return `hello ${name}!`;"
     })) as Record<string, unknown>;
     expect(result.result).toBe("hello world!");
   });
@@ -225,7 +227,7 @@ describe("MiniJSAgentTool", () => {
       code: `
         await sleep(10);
         return "done";
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.result).toBe("done");
@@ -235,14 +237,14 @@ describe("MiniJSAgentTool", () => {
 
   it("generates number ranges with Array.from", async () => {
     const result = (await tool.process(mockContext, {
-      code: "return Array.from({length: 5}, (_, i) => i);",
+      code: "return Array.from({length: 5}, (_, i) => i);"
     })) as Record<string, unknown>;
     expect(result.result).toEqual([0, 1, 2, 3, 4]);
   });
 
   it("deduplicates with Set", async () => {
     const result = (await tool.process(mockContext, {
-      code: "return [...new Set([1, 2, 2, 3, 3, 3])];",
+      code: "return [...new Set([1, 2, 2, 3, 3, 3])];"
     })) as Record<string, unknown>;
     expect(result.result).toEqual([1, 2, 3]);
   });
@@ -256,14 +258,14 @@ describe("MiniJSAgentTool", () => {
           { type: "a", val: 3 },
         ];
         return _.groupBy(data, item => item.type);
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({
       a: [
         { type: "a", val: 1 },
-        { type: "a", val: 3 },
+        { type: "a", val: 3 }
       ],
-      b: [{ type: "b", val: 2 }],
+      b: [{ type: "b", val: 2 }]
     });
   });
 
@@ -277,7 +279,7 @@ describe("MiniJSAgentTool", () => {
           min: Math.min(...data),
           max: Math.max(...data),
         };
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({ sum: 150, avg: 30, min: 10, max: 50 });
   });
@@ -287,7 +289,7 @@ describe("MiniJSAgentTool", () => {
       code: `
         const users = [{name: "Alice"}, {name: "Bob"}, {name: "Carol"}];
         return users.map(u => u.name);
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual(["Alice", "Bob", "Carol"]);
   });
@@ -297,7 +299,7 @@ describe("MiniJSAgentTool", () => {
       code: `
         const { a, c } = { a: 1, b: 2, c: 3 };
         return { a, c };
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({ a: 1, c: 3 });
   });
@@ -307,7 +309,7 @@ describe("MiniJSAgentTool", () => {
       code: `
         const data = { user: { profile: { name: "Alice" } } };
         return data?.user?.profile?.name;
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toBe("Alice");
   });
@@ -321,13 +323,13 @@ describe("MiniJSAgentTool", () => {
           lines: "a\\nb\\nc".split("\\n"),
           reversed: [..."abc"].reverse().join(""),
         };
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({
       upper: "HELLO",
       lower: "world",
       lines: ["a", "b", "c"],
-      reversed: "cba",
+      reversed: "cba"
     });
   });
 
@@ -338,7 +340,7 @@ describe("MiniJSAgentTool", () => {
         u.searchParams.set("q", "test");
         u.searchParams.set("page", "2");
         return u.toString();
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toContain("q=test");
     expect(result.result).toContain("page=2");
@@ -353,12 +355,12 @@ describe("MiniJSAgentTool", () => {
           pathname: u.pathname,
           params: Object.fromEntries(u.searchParams),
         };
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({
       hostname: "example.com",
       pathname: "/path",
-      params: { foo: "bar", baz: "1" },
+      params: { foo: "bar", baz: "1" }
     });
   });
 
@@ -367,7 +369,7 @@ describe("MiniJSAgentTool", () => {
       code: `
         const id = uuid();
         return typeof id === "string" && id.length === 36;
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toBe(true);
   });
@@ -378,7 +380,7 @@ describe("MiniJSAgentTool", () => {
         const ts = Date.now();
         const iso = new Date().toISOString();
         return typeof ts === "number" && typeof iso === "string" && iso.includes("T");
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toBe(true);
   });
@@ -387,7 +389,7 @@ describe("MiniJSAgentTool", () => {
 
   it("returns error for empty code", async () => {
     const result = (await tool.process(mockContext, {
-      code: "",
+      code: ""
     })) as Record<string, unknown>;
     expect(result.success).toBe(false);
     expect(result.error).toContain("No code");
@@ -395,7 +397,7 @@ describe("MiniJSAgentTool", () => {
 
   it("catches runtime errors", async () => {
     const result = (await tool.process(mockContext, {
-      code: "throw new Error('boom');",
+      code: "throw new Error('boom');"
     })) as Record<string, unknown>;
     expect(result.success).toBe(false);
     expect(result.error).toContain("boom");
@@ -403,7 +405,7 @@ describe("MiniJSAgentTool", () => {
 
   it("catches reference errors", async () => {
     const result = (await tool.process(mockContext, {
-      code: "return unknownVariable;",
+      code: "return unknownVariable;"
     })) as Record<string, unknown>;
     expect(result.success).toBe(false);
     expect(result.error).toContain("unknownVariable");
@@ -417,7 +419,7 @@ describe("MiniJSAgentTool", () => {
         } catch (e) {
           return { caught: true, message: e.message };
         }
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     const inner = result.result as Record<string, unknown>;
@@ -451,7 +453,7 @@ describe("MiniJSAgentTool", () => {
           };
         }
         return stats;
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     const stats = result.result as Record<string, Record<string, unknown>>;
@@ -467,7 +469,7 @@ describe("MiniJSAgentTool", () => {
         const json = JSON.stringify(data);
         const parsed = JSON.parse(json);
         return parsed.users.length;
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toBe(2);
   });
@@ -480,7 +482,7 @@ describe("MiniJSAgentTool", () => {
         m.set("b", 2);
         const s = new Set([1, 2, 2, 3]);
         return { mapSize: m.size, setSize: s.size, hasA: m.has("a") };
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({ mapSize: 2, setSize: 3, hasA: true });
   });
@@ -491,7 +493,7 @@ describe("MiniJSAgentTool", () => {
         const text = "Contact: alice@example.com and bob@test.org";
         const emails = text.match(/[\\w.+-]+@[\\w.-]+\\.[a-z]{2,}/g);
         return emails;
-      `,
+      `
     })) as Record<string, unknown>;
     expect(result.result).toEqual(["alice@example.com", "bob@test.org"]);
   });
@@ -506,7 +508,9 @@ describe("MiniJSAgentTool", () => {
 
   it("userMessage shows line count for long code", () => {
     const longFirstLine = "a".repeat(70);
-    const msg = tool.userMessage({ code: `${longFirstLine}\nline2\nline3\nline4\nline5` });
+    const msg = tool.userMessage({
+      code: `${longFirstLine}\nline2\nline3\nline4\nline5`
+    });
     expect(msg).toContain("5 lines");
   });
 });

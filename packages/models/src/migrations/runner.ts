@@ -15,17 +15,17 @@ import {
   BaselineError,
   LockError,
   MigrationError,
-  RollbackError,
+  RollbackError
 } from "./exceptions.js";
 import {
   APPLICATION_TABLES,
   DatabaseState,
   MIGRATION_LOCK_TABLE,
-  MIGRATION_TRACKING_TABLE,
+  MIGRATION_TRACKING_TABLE
 } from "./state.js";
 import {
   migrations as builtinMigrations,
-  type MigrationDef,
+  type MigrationDef
 } from "./versions.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ function computeChecksum(def: MigrationDef): string {
     def.up.toString(),
     def.down.toString(),
     JSON.stringify(def.createsTables),
-    JSON.stringify(def.modifiesTables),
+    JSON.stringify(def.modifiesTables)
   ].join("\n");
   return createHash("sha256").update(content).digest("hex");
 }
@@ -90,10 +90,7 @@ export class MigrationRunner {
   private migrationsCache: Migration[] | null = null;
   private customMigrations: MigrationDef[] | null;
 
-  constructor(
-    adapter: MigrationDBAdapter,
-    customMigrations?: MigrationDef[],
-  ) {
+  constructor(adapter: MigrationDBAdapter, customMigrations?: MigrationDef[]) {
     this.adapter = adapter;
     this.customMigrations = customMigrations ?? null;
   }
@@ -164,7 +161,7 @@ export class MigrationRunner {
         checksum: row.checksum,
         appliedAt: row.applied_at,
         executionTimeMs: row.execution_time_ms,
-        baselined: Boolean(row.baselined),
+        baselined: Boolean(row.baselined)
       });
     }
     return applied;
@@ -173,7 +170,7 @@ export class MigrationRunner {
   private async recordMigration(
     migration: Migration,
     executionTimeMs: number,
-    baselined = false,
+    baselined = false
   ): Promise<void> {
     await this.adapter.execute(
       `INSERT INTO ${MIGRATION_TRACKING_TABLE}
@@ -185,8 +182,8 @@ export class MigrationRunner {
         migration.checksum,
         new Date().toISOString(),
         executionTimeMs,
-        baselined ? 1 : 0,
-      ],
+        baselined ? 1 : 0
+      ]
     );
     await this.adapter.commit();
   }
@@ -194,7 +191,7 @@ export class MigrationRunner {
   private async removeMigrationRecord(version: string): Promise<void> {
     await this.adapter.execute(
       `DELETE FROM ${MIGRATION_TRACKING_TABLE} WHERE version = ?`,
-      [version],
+      [version]
     );
     await this.adapter.commit();
   }
@@ -210,7 +207,7 @@ export class MigrationRunner {
         `UPDATE ${MIGRATION_LOCK_TABLE}
          SET locked_at = ?, locked_by = ?
          WHERE id = 1 AND locked_at IS NULL`,
-        [new Date().toISOString(), lockId],
+        [new Date().toISOString(), lockId]
       );
       await this.adapter.commit();
 
@@ -220,7 +217,7 @@ export class MigrationRunner {
 
       // Check for stale lock (older than 5 minutes)
       const row = await this.adapter.fetchone(
-        `SELECT locked_at, locked_by FROM ${MIGRATION_LOCK_TABLE} WHERE id = 1`,
+        `SELECT locked_at, locked_by FROM ${MIGRATION_LOCK_TABLE} WHERE id = 1`
       );
       if (row?.locked_at) {
         const lockedAt = new Date(row.locked_at).getTime();
@@ -229,7 +226,7 @@ export class MigrationRunner {
             `UPDATE ${MIGRATION_LOCK_TABLE}
              SET locked_at = ?, locked_by = ?
              WHERE id = 1 AND locked_at = ?`,
-            [new Date().toISOString(), lockId, row.locked_at],
+            [new Date().toISOString(), lockId, row.locked_at]
           );
           await this.adapter.commit();
           if (this.adapter.getRowcount() > 0) {
@@ -242,7 +239,7 @@ export class MigrationRunner {
     }
 
     throw new LockError(
-      `Could not acquire migration lock within ${timeout}ms. Another migration may be in progress.`,
+      `Could not acquire migration lock within ${timeout}ms. Another migration may be in progress.`
     );
   }
 
@@ -250,7 +247,7 @@ export class MigrationRunner {
     await this.adapter.execute(
       `UPDATE ${MIGRATION_LOCK_TABLE}
        SET locked_at = NULL, locked_by = NULL
-       WHERE id = 1`,
+       WHERE id = 1`
     );
     await this.adapter.commit();
   }
@@ -270,7 +267,7 @@ export class MigrationRunner {
       up: def.up,
       down: def.down,
       createsTables: def.createsTables,
-      modifiesTables: def.modifiesTables,
+      modifiesTables: def.modifiesTables
     }));
 
     result.sort((a, b) => a.version.localeCompare(b.version));
@@ -283,7 +280,7 @@ export class MigrationRunner {
   async validateChecksums(): Promise<string[]> {
     const applied = await this.getAppliedMigrations();
     const migrationsMap = new Map(
-      this.discoverMigrations().map((m) => [m.version, m]),
+      this.discoverMigrations().map((m) => [m.version, m])
     );
     const mismatches: string[] = [];
 
@@ -323,7 +320,7 @@ export class MigrationRunner {
     const {
       target,
       dryRun = false,
-      validateChecksums: doValidate = true,
+      validateChecksums: doValidate = true
     } = opts ?? {};
 
     const dbState = await this.detectDatabaseState();
@@ -393,7 +390,7 @@ export class MigrationRunner {
       await this.adapter.rollback();
       throw new MigrationError(
         `Migration ${migration.version} failed: ${e}`,
-        migration.version,
+        migration.version
       );
     }
   }
@@ -403,7 +400,7 @@ export class MigrationRunner {
   private async repairBaselinedAlterMigrations(): Promise<void> {
     const applied = await this.getAppliedMigrations();
     const migrationsMap = new Map(
-      this.discoverMigrations().map((m) => [m.version, m]),
+      this.discoverMigrations().map((m) => [m.version, m])
     );
 
     for (const [version, appliedMigration] of applied) {
@@ -421,14 +418,12 @@ export class MigrationRunner {
           `UPDATE ${MIGRATION_TRACKING_TABLE}
            SET baselined = 0, applied_at = ?
            WHERE version = ?`,
-          [new Date().toISOString(), migration.version],
+          [new Date().toISOString(), migration.version]
         );
         await this.adapter.commit();
       } catch (e) {
         await this.adapter.rollback();
-        console.error(
-          `Failed to repair migration ${migration.version}: ${e}`,
-        );
+        console.error(`Failed to repair migration ${migration.version}: ${e}`);
       }
     }
   }
@@ -462,12 +457,12 @@ export class MigrationRunner {
 
   async baseline(force = false): Promise<number> {
     const hasTracking = await this.adapter.tableExists(
-      MIGRATION_TRACKING_TABLE,
+      MIGRATION_TRACKING_TABLE
     );
 
     if (hasTracking && !force) {
       throw new BaselineError(
-        "Migration tracking already exists. Use force to re-baseline.",
+        "Migration tracking already exists. Use force to re-baseline."
       );
     }
 
@@ -479,9 +474,7 @@ export class MigrationRunner {
 
     try {
       if (force && hasTracking) {
-        await this.adapter.execute(
-          `DELETE FROM ${MIGRATION_TRACKING_TABLE}`,
-        );
+        await this.adapter.execute(`DELETE FROM ${MIGRATION_TRACKING_TABLE}`);
         await this.adapter.commit();
       }
 
@@ -524,7 +517,7 @@ export class MigrationRunner {
     try {
       const applied = await this.getAppliedMigrations();
       const migrationsMap = new Map(
-        this.discoverMigrations().map((m) => [m.version, m]),
+        this.discoverMigrations().map((m) => [m.version, m])
       );
 
       const versionsToRollback = [...applied.keys()]
@@ -551,7 +544,7 @@ export class MigrationRunner {
         if (!migration) {
           throw new RollbackError(
             `Migration ${version} not found in migrations. Cannot rollback.`,
-            version,
+            version
           );
         }
 
@@ -574,7 +567,7 @@ export class MigrationRunner {
       await this.adapter.rollback();
       throw new RollbackError(
         `Rollback of migration ${migration.version} failed: ${e}`,
-        migration.version,
+        migration.version
       );
     }
   }
@@ -591,8 +584,8 @@ export class MigrationRunner {
         applied: [],
         pending: this.discoverMigrations().map((m) => ({
           version: m.version,
-          name: m.name,
-        })),
+          name: m.name
+        }))
       };
     }
 
@@ -601,8 +594,7 @@ export class MigrationRunner {
     const pending = allMigrations.filter((m) => !applied.has(m.version));
 
     const versions = [...applied.keys()];
-    const currentVersion =
-      versions.length > 0 ? versions.sort().pop()! : null;
+    const currentVersion = versions.length > 0 ? versions.sort().pop()! : null;
 
     return {
       state: dbState,
@@ -612,12 +604,12 @@ export class MigrationRunner {
         name: m.name,
         appliedAt: m.appliedAt,
         executionTimeMs: m.executionTimeMs,
-        baselined: m.baselined,
+        baselined: m.baselined
       })),
       pending: pending.map((m) => ({
         version: m.version,
-        name: m.name,
-      })),
+        name: m.name
+      }))
     };
   }
 

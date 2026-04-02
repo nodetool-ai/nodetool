@@ -16,7 +16,7 @@ import {
   ErrorNode,
   SlowNode,
   SilentNode,
-  Multiply,
+  Multiply
 } from "../src/nodes/test-nodes.js";
 
 // ---------------------------------------------------------------------------
@@ -145,9 +145,13 @@ describe("getNodeMetadata — additional coverage", () => {
       @prop({ type: "bool", default: true })
       declare flag: boolean;
 
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
     }
-    const meta = getNodeMetadata(BoolNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      BoolNode as unknown as import("../src/base-node.js").NodeClass
+    );
     const flagProp = meta.properties.find((p) => p.name === "flag");
     expect(flagProp).toBeDefined();
     expect(flagProp!.type.type).toBe("bool");
@@ -165,9 +169,13 @@ describe("getNodeMetadata — additional coverage", () => {
       @prop({ type: "list[int]", default: [1, 2, 3] })
       declare items: number[];
 
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
     }
-    const meta = getNodeMetadata(ListNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      ListNode as unknown as import("../src/base-node.js").NodeClass
+    );
     const itemsProp = meta.properties.find((p) => p.name === "items");
     expect(itemsProp).toBeDefined();
     expect(itemsProp!.type.type).toBe("list");
@@ -185,9 +193,13 @@ describe("getNodeMetadata — additional coverage", () => {
       @prop({ type: "dict", default: { key: "value" } })
       declare config: Record<string, unknown>;
 
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
     }
-    const meta = getNodeMetadata(DictNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      DictNode as unknown as import("../src/base-node.js").NodeClass
+    );
     const configProp = meta.properties.find((p) => p.name === "config");
     expect(configProp).toBeDefined();
     expect(configProp!.type.type).toBe("dict");
@@ -197,7 +209,14 @@ describe("getNodeMetadata — additional coverage", () => {
   // ── is_dynamic is always false ────────────────────────────────────────
 
   it("is_dynamic is always false for multiple node types", () => {
-    const nodeClasses = [Add, Passthrough, StreamingCounter, Constant, StringConcat, ThresholdProcessor];
+    const nodeClasses = [
+      Add,
+      Passthrough,
+      StreamingCounter,
+      Constant,
+      StringConcat,
+      ThresholdProcessor
+    ];
     for (const cls of nodeClasses) {
       const meta = getNodeMetadata(cls);
       expect(meta.is_dynamic).toBe(false);
@@ -211,9 +230,13 @@ describe("getNodeMetadata — additional coverage", () => {
       static readonly nodeType = "nodetool.test.NoDescNode";
       static readonly title = "No Desc";
       static readonly description = "";
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
     }
-    const meta = getNodeMetadata(NoDescNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      NoDescNode as unknown as import("../src/base-node.js").NodeClass
+    );
     expect(meta.description).toBe("");
   });
 
@@ -224,9 +247,13 @@ describe("getNodeMetadata — additional coverage", () => {
       static readonly nodeType = "nodetool.test.NoTitleNode";
       static readonly title = "";
       static readonly description = "A node without title";
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
     }
-    const meta = getNodeMetadata(NoTitleNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      NoTitleNode as unknown as import("../src/base-node.js").NodeClass
+    );
     expect(meta.title).toBe("nodetool.test.NoTitleNode");
   });
 
@@ -241,13 +268,17 @@ describe("getNodeMetadata — additional coverage", () => {
       static toDescriptor(id?: string) {
         return {
           ...super.toDescriptor(id),
-          outputs: { result: "number", label: "string" },
+          outputs: { result: "number", label: "string" }
         };
       }
 
-      async process() { return { result: 42, label: "hello" }; }
+      async process() {
+        return { result: 42, label: "hello" };
+      }
     }
-    const meta = getNodeMetadata(OutputNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      OutputNode as unknown as import("../src/base-node.js").NodeClass
+    );
     expect(meta.outputs).toHaveLength(2);
     const resultOut = meta.outputs.find((o) => o.name === "result");
     const labelOut = meta.outputs.find((o) => o.name === "label");
@@ -270,9 +301,13 @@ describe("getNodeMetadata — additional coverage", () => {
       static readonly nodeType = "FlatNode";
       static readonly title = "Flat";
       static readonly description = "";
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
     }
-    const meta = getNodeMetadata(FlatNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      FlatNode as unknown as import("../src/base-node.js").NodeClass
+    );
     expect(meta.namespace).toBe("");
   });
 
@@ -308,7 +343,9 @@ describe("getNodeMetadata – decorator-based properties", () => {
       }
     }
 
-    const meta = getNodeMetadata(DecoratedNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      DecoratedNode as unknown as import("../src/base-node.js").NodeClass
+    );
     expect(meta.properties).toHaveLength(2);
 
     const answerProp = meta.properties.find((p) => p.name === "answer");
@@ -339,7 +376,9 @@ describe("getNodeMetadata – decorator-based properties", () => {
       }
     }
 
-    const meta = getNodeMetadata(ConstrainedNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      ConstrainedNode as unknown as import("../src/base-node.js").NodeClass
+    );
     const ratioProp = meta.properties.find((p) => p.name === "ratio");
     expect(ratioProp).toBeDefined();
     expect(ratioProp!.min).toBe(0);
@@ -363,7 +402,9 @@ describe("getNodeMetadata – decorator-based properties", () => {
       }
     }
 
-    const meta = getNodeMetadata(EnumNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      EnumNode as unknown as import("../src/base-node.js").NodeClass
+    );
 
     const colorProp = meta.properties.find((p) => p.name === "color");
     expect(colorProp).toBeDefined();
@@ -391,7 +432,9 @@ describe("getNodeMetadata – decorator-based properties", () => {
       }
     }
 
-    const meta = getNodeMetadata(RequiredNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      RequiredNode as unknown as import("../src/base-node.js").NodeClass
+    );
 
     const nameProp = meta.properties.find((p) => p.name === "name");
     expect(nameProp).toBeDefined();
@@ -419,7 +462,9 @@ describe("getNodeMetadata – decorator-based properties", () => {
       }
     }
 
-    const meta = getNodeMetadata(ComplexTypesNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      ComplexTypesNode as unknown as import("../src/base-node.js").NodeClass
+    );
 
     const tagsProp = meta.properties.find((p) => p.name === "tags");
     expect(tagsProp).toBeDefined();
@@ -441,7 +486,7 @@ describe("getNodeMetadata – decorator-based properties", () => {
       @prop({
         type: "str",
         default: "",
-        json_schema_extra: { format: "email", pattern: "^.*@.*$" },
+        json_schema_extra: { format: "email", pattern: "^.*@.*$" }
       })
       declare email: string;
 
@@ -450,13 +495,15 @@ describe("getNodeMetadata – decorator-based properties", () => {
       }
     }
 
-    const meta = getNodeMetadata(ExtraSchemaNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      ExtraSchemaNode as unknown as import("../src/base-node.js").NodeClass
+    );
 
     const emailProp = meta.properties.find((p) => p.name === "email");
     expect(emailProp).toBeDefined();
     expect(emailProp!.json_schema_extra).toEqual({
       format: "email",
-      pattern: "^.*@.*$",
+      pattern: "^.*@.*$"
     });
   });
 
@@ -486,7 +533,9 @@ describe("getNodeMetadata – decorator-based properties", () => {
       }
     }
 
-    const childMeta = getNodeMetadata(ChildWithProps as unknown as import("../src/base-node.js").NodeClass);
+    const childMeta = getNodeMetadata(
+      ChildWithProps as unknown as import("../src/base-node.js").NodeClass
+    );
     expect(childMeta.properties).toHaveLength(2);
 
     const baseProp = childMeta.properties.find((p) => p.name === "baseProp");
@@ -512,7 +561,9 @@ describe("getNodeMetadata – decorator-based properties", () => {
       }
     }
 
-    const meta = getNodeMetadata(MixedNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      MixedNode as unknown as import("../src/base-node.js").NodeClass
+    );
 
     const valueProp = meta.properties.find((p) => p.name === "value");
     expect(valueProp).toBeDefined();
@@ -534,15 +585,15 @@ describe("getNodeMetadata – decorator-based properties", () => {
           default: 99,
           title: "Python A",
           description: "Python property",
-          required: true,
-        },
+          required: true
+        }
       ],
       outputs: [
         {
           name: "output",
           type: { type: "int", type_args: [] },
-          stream: true,
-        },
+          stream: true
+        }
       ],
       basic_fields: ["a"],
       is_dynamic: true,
@@ -550,12 +601,12 @@ describe("getNodeMetadata – decorator-based properties", () => {
       expose_as_tool: true,
       supports_dynamic_outputs: true,
       recommended_models: [{ id: "model-1" }],
-      model_packs: [{ id: "pack-1" }],
+      model_packs: [{ id: "pack-1" }]
     };
 
     const meta = getNodeMetadata(Add, {
       pythonMetadata,
-      mergePythonBackfill: true,
+      mergePythonBackfill: true
     });
 
     // TS class is authoritative: title, description, properties come from TS
@@ -578,7 +629,7 @@ describe("getNodeMetadata – outputTypes support", () => {
       static readonly description = "";
       static readonly outputTypes = {
         result: "int",
-        message: "str",
+        message: "str"
       };
 
       async process() {
@@ -586,7 +637,9 @@ describe("getNodeMetadata – outputTypes support", () => {
       }
     }
 
-    const meta = getNodeMetadata(OutputNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      OutputNode as unknown as import("../src/base-node.js").NodeClass
+    );
     expect(meta.outputs).toHaveLength(2);
 
     const resultOut = meta.outputs.find((o) => o.name === "result");
@@ -605,7 +658,7 @@ describe("getNodeMetadata – outputTypes support", () => {
       static readonly description = "";
       static readonly isStreamingOutput = true;
       static readonly outputTypes = {
-        value: "int",
+        value: "int"
       };
 
       async process() {
@@ -613,7 +666,9 @@ describe("getNodeMetadata – outputTypes support", () => {
       }
     }
 
-    const meta = getNodeMetadata(StreamingOutputNode as unknown as import("../src/base-node.js").NodeClass);
+    const meta = getNodeMetadata(
+      StreamingOutputNode as unknown as import("../src/base-node.js").NodeClass
+    );
     expect(meta.outputs).toHaveLength(1);
     expect(meta.outputs[0].stream).toBeUndefined();
     expect(meta.is_streaming_output).toBe(true);

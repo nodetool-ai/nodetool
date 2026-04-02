@@ -22,7 +22,14 @@ export interface ComfyExecutorResult {
 
 /** Progress events emitted during execution. */
 export interface ComfyProgressEvent {
-  type: "executing" | "progress" | "executed" | "execution_cached" | "execution_start" | "execution_error" | "execution_interrupted";
+  type:
+    | "executing"
+    | "progress"
+    | "executed"
+    | "execution_cached"
+    | "execution_start"
+    | "execution_error"
+    | "execution_interrupted";
   node?: string | null;
   progress?: number;
   total?: number;
@@ -67,7 +74,7 @@ export function executeComfy(
   prompt: ComfyPrompt,
   addr: string,
   onProgress?: (event: ComfyProgressEvent) => void,
-  timeoutMs = 600000,
+  timeoutMs = 600000
 ): ComfyExecutionHandle {
   const base = normalizeBaseUrl(addr);
   const clientId = `nodetool-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -79,10 +86,16 @@ export function executeComfy(
     cancelled = true;
     // Tell ComfyUI to interrupt
     void fetch(`${base}/interrupt`, { method: "POST" }).catch((err) => {
-      log.warn("Failed to send ComfyUI interrupt request", { error: String(err) });
+      log.warn("Failed to send ComfyUI interrupt request", {
+        error: String(err)
+      });
     });
     if (ws) {
-      try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
+      try {
+        ws.close();
+      } catch {
+        /* Intentional: best-effort WebSocket close during cleanup */
+      }
     }
   };
 
@@ -103,7 +116,11 @@ export function executeComfy(
     }
 
     if (cancelled) {
-      try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
+      try {
+        ws.close();
+      } catch {
+        /* Intentional: best-effort WebSocket close during cleanup */
+      }
       return { status: "failed", error: "Cancelled before submission" };
     }
 
@@ -112,30 +129,51 @@ export function executeComfy(
     try {
       const url = `${base}/prompt`;
       const body = JSON.stringify({ prompt, client_id: clientId });
-      log.info(`Submitting prompt to ${url} (${body.length} bytes, ${Object.keys(prompt).length} nodes)`);
+      log.info(
+        `Submitting prompt to ${url} (${body.length} bytes, ${Object.keys(prompt).length} nodes)`
+      );
       const submitRes = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body,
+        body
       });
       if (!submitRes.ok) {
         const text = await submitRes.text();
         log.error(`Submit failed: HTTP ${submitRes.status} — ${text}`);
-        try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
-        return { status: "failed", error: `Submit failed (${submitRes.status}): ${text}` };
+        try {
+          ws.close();
+        } catch {
+          /* Intentional: best-effort WebSocket close during cleanup */
+        }
+        return {
+          status: "failed",
+          error: `Submit failed (${submitRes.status}): ${text}`
+        };
       }
       const submitData = (await submitRes.json()) as { prompt_id: string };
       promptId = submitData.prompt_id;
       log.info(`Prompt accepted: ${promptId}`);
     } catch (err) {
-      const errMsg = err instanceof Error ? `${err.message} (${err.cause ?? "no cause"})` : String(err);
+      const errMsg =
+        err instanceof Error
+          ? `${err.message} (${err.cause ?? "no cause"})`
+          : String(err);
       log.error(`Submit error to ${base}/prompt: ${errMsg}`);
-      try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
+      try {
+        ws.close();
+      } catch {
+        /* Intentional: best-effort WebSocket close during cleanup */
+      }
       return { status: "failed", error: `Submit error: ${errMsg}` };
     }
 
     // Listen for progress events on the already-connected WebSocket
-    const listenResult = await listenForCompletion(ws, promptId, onProgress, timeoutMs);
+    const listenResult = await listenForCompletion(
+      ws,
+      promptId,
+      onProgress,
+      timeoutMs
+    );
 
     if (listenResult.status === "failed") {
       return listenResult;
@@ -147,7 +185,7 @@ export function executeComfy(
     return {
       status: "completed",
       images,
-      raw_output: listenResult.raw_output,
+      raw_output: listenResult.raw_output
     };
   })();
 
@@ -162,7 +200,7 @@ function listenForCompletion(
   ws: WebSocket,
   promptId: string,
   onProgress: ((event: ComfyProgressEvent) => void) | undefined,
-  timeoutMs: number,
+  timeoutMs: number
 ): Promise<ComfyExecutorResult> {
   return new Promise((resolve) => {
     let settled = false;
@@ -174,7 +212,11 @@ function listenForCompletion(
       clearTimeout(timer);
       // Remove message listener before closing to prevent stale callbacks
       ws.removeAllListeners("message");
-      try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
+      try {
+        ws.close();
+      } catch {
+        /* Intentional: best-effort WebSocket close during cleanup */
+      }
       resolve(result);
     };
 
@@ -190,7 +232,10 @@ function listenForCompletion(
 
     ws.on("close", () => {
       if (!settled) {
-        settle({ status: "failed", error: "ComfyUI WebSocket closed unexpectedly" });
+        settle({
+          status: "failed",
+          error: "ComfyUI WebSocket closed unexpectedly"
+        });
       }
     });
 
@@ -247,7 +292,7 @@ function listenForCompletion(
             type: "progress",
             node: currentNode,
             progress: value,
-            total: max,
+            total: max
           });
           break;
         }
@@ -264,11 +309,16 @@ function listenForCompletion(
           break;
 
         case "execution_error": {
-          const errMsg = typeof data.exception_message === "string"
-            ? data.exception_message
-            : "ComfyUI execution error";
+          const errMsg =
+            typeof data.exception_message === "string"
+              ? data.exception_message
+              : "ComfyUI execution error";
           const nodeId = data.node != null ? String(data.node) : currentNode;
-          onProgress?.({ type: "execution_error", node: nodeId, error: errMsg });
+          onProgress?.({
+            type: "execution_error",
+            node: nodeId,
+            error: errMsg
+          });
           settle({ status: "failed", error: errMsg });
           break;
         }
@@ -285,11 +335,14 @@ function listenForCompletion(
 /**
  * Fetch output images from ComfyUI history after prompt completes.
  */
-async function fetchOutputImages(base: string, promptId: string): Promise<ComfyImage[]> {
+async function fetchOutputImages(
+  base: string,
+  promptId: string
+): Promise<ComfyImage[]> {
   const images: ComfyImage[] = [];
   try {
     const histRes = await fetch(`${base}/history/${promptId}`, {
-      signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
+      signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS)
     });
     if (!histRes.ok) return images;
 
@@ -298,7 +351,16 @@ async function fetchOutputImages(base: string, promptId: string): Promise<ComfyI
     if (!entry) return images;
 
     const outputs = entry.outputs as
-      | Record<string, { images?: Array<{ filename: string; subfolder: string; type: string }> }>
+      | Record<
+          string,
+          {
+            images?: Array<{
+              filename: string;
+              subfolder: string;
+              type: string;
+            }>;
+          }
+        >
       | undefined;
 
     if (outputs) {
@@ -309,15 +371,19 @@ async function fetchOutputImages(base: string, promptId: string): Promise<ComfyI
             const params = new URLSearchParams({
               filename: img.filename,
               subfolder: img.subfolder,
-              type: img.type,
+              type: img.type
             });
             const viewRes = await fetch(`${base}/view?${params.toString()}`, {
-              signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
+              signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS)
             });
             if (viewRes.ok) {
               const buffer = await viewRes.arrayBuffer();
               const base64 = Buffer.from(buffer).toString("base64");
-              images.push({ type: "image", data: base64, filename: img.filename });
+              images.push({
+                type: "image",
+                data: base64,
+                filename: img.filename
+              });
             }
           } catch (err) {
             log.warn(`Failed to fetch image ${img.filename}: ${String(err)}`);

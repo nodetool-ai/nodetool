@@ -15,7 +15,7 @@ function createAsset(
     name,
     content_type: contentType,
     parent_id: "",
-    ...extra,
+    ...extra
   });
 }
 
@@ -53,7 +53,7 @@ describe("Asset CRUD", () => {
 
     const res = await put(`/assets/${created.id}`, {
       ...created,
-      name: "new.txt",
+      name: "new.txt"
     });
     expect(res.status).toBe(200);
     expect((await res.json()).name).toBe("new.txt");

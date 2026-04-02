@@ -64,9 +64,9 @@ describe("NodeRegistry", () => {
   });
 
   it("resolve() throws for unknown type", () => {
-    expect(() =>
-      registry.resolve({ id: "x", type: "test.Unknown" })
-    ).toThrow("Unknown node type: test.Unknown");
+    expect(() => registry.resolve({ id: "x", type: "test.Unknown" })).toThrow(
+      "Unknown node type: test.Unknown"
+    );
   });
 
   it("resolve() passes properties to instance", async () => {
@@ -74,7 +74,7 @@ describe("NodeRegistry", () => {
     const executor = registry.resolve({
       id: "b1",
       type: "test.NodeB",
-      properties: { factor: 5 },
+      properties: { factor: 5 }
     });
     const result = await executor.process({ value: 3 });
     expect(result.result).toBe(15);
@@ -83,7 +83,9 @@ describe("NodeRegistry", () => {
   it("register() throws for node without nodeType", () => {
     class BadNode extends BaseNode {
       static readonly nodeType = "";
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
     }
     expect(() => registry.register(BadNode)).toThrow(
       "Cannot register node class without nodeType"

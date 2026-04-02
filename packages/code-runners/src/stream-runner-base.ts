@@ -116,7 +116,7 @@ export class StreamRunnerBase {
   async *stream(
     userCode: string,
     envLocals: Record<string, unknown>,
-    options?: StreamOptions,
+    options?: StreamOptions
   ): AsyncGenerator<[Slot, string], void> {
     this._stopped = false;
 
@@ -175,11 +175,9 @@ export class StreamRunnerBase {
    */
   buildContainerCommand(
     _userCode: string,
-    _envLocals: Record<string, unknown>,
+    _envLocals: Record<string, unknown>
   ): string[] {
-    throw new Error(
-      "buildContainerCommand must be implemented by subclasses",
-    );
+    throw new Error("buildContainerCommand must be implemented by subclasses");
   }
 
   /**
@@ -190,9 +188,7 @@ export class StreamRunnerBase {
    *
    * @returns `[wrappedCommand, cleanupData]`
    */
-  wrapSubprocessCommand(
-    command: string[],
-  ): [string[], unknown] {
+  wrapSubprocessCommand(command: string[]): [string[], unknown] {
     return [command, null];
   }
 
@@ -209,7 +205,7 @@ export class StreamRunnerBase {
    * Converts values to strings; unconvertible values become empty strings.
    */
   buildContainerEnvironment(
-    env: Record<string, unknown>,
+    env: Record<string, unknown>
   ): Record<string, string> {
     const out: Record<string, string> = {};
     for (const [k, v] of Object.entries(env ?? {})) {
@@ -264,7 +260,7 @@ export class StreamRunnerBase {
   // ---- Private: workspace helpers ----------------------------------------
 
   private _resolveWorkspaceMount(
-    workspaceDir?: string,
+    workspaceDir?: string
   ): [string, string] | null {
     if (this.workspaceMountPath === null) {
       return null;
@@ -274,14 +270,12 @@ export class StreamRunnerBase {
       return null;
     }
     const containerPath =
-      this.workspaceMountPath === "host"
-        ? hostPath
-        : this.workspaceMountPath;
+      this.workspaceMountPath === "host" ? hostPath : this.workspaceMountPath;
     return [hostPath, containerPath];
   }
 
   private _determineContainerWorkdir(
-    workspaceMount: [string, string] | null,
+    workspaceMount: [string, string] | null
   ): string | undefined {
     if (workspaceMount) {
       return workspaceMount[1];
@@ -336,7 +330,7 @@ export class StreamRunnerBase {
   private async *_dockerRun(
     userCode: string,
     envLocals: Record<string, unknown>,
-    options?: StreamOptions,
+    options?: StreamOptions
   ): AsyncGenerator<[Slot, string], void> {
     const env: Record<string, unknown> = {};
     const command = this.buildContainerCommand(userCode, envLocals);
@@ -351,7 +345,7 @@ export class StreamRunnerBase {
       await docker.ping();
     } catch (e) {
       throw new Error(
-        `Docker daemon is not available. Please start Docker and try again. (${e})`,
+        `Docker daemon is not available. Please start Docker and try again. (${e})`
       );
     }
 
@@ -363,9 +357,8 @@ export class StreamRunnerBase {
       const pullStream = await docker.pull(imageName);
       // Wait for pull to complete
       await new Promise<void>((resolve, reject) => {
-        docker.modem.followProgress(
-          pullStream,
-          (err: Error | null) => (err ? reject(err) : resolve()),
+        docker.modem.followProgress(pullStream, (err: Error | null) =>
+          err ? reject(err) : resolve()
         );
       });
     }
@@ -384,7 +377,7 @@ export class StreamRunnerBase {
       NanoCpus: this.nanoCpus,
       NetworkMode: this.networkDisabled ? "none" : undefined,
       Binds: binds.length > 0 ? binds : undefined,
-      IpcMode: this.ipcMode ?? undefined,
+      IpcMode: this.ipcMode ?? undefined
     };
 
     const container = await docker.createContainer({
@@ -394,7 +387,7 @@ export class StreamRunnerBase {
       WorkingDir: workingDir,
       OpenStdin: stdinStream !== null,
       Tty: false,
-      HostConfig: hostConfig,
+      HostConfig: hostConfig
     });
 
     this._activeContainerId = container.id;
@@ -407,7 +400,7 @@ export class StreamRunnerBase {
         stream: true,
         stdout: true,
         stderr: true,
-        stdin: stdinStream !== null,
+        stdin: stdinStream !== null
       });
 
       await container.start();
@@ -443,17 +436,17 @@ export class StreamRunnerBase {
 
       // Wait for container exit
       const waitResult = await container.wait().catch(() => ({
-        StatusCode: -1,
+        StatusCode: -1
       }));
       const exitCode =
         typeof waitResult === "object" && waitResult !== null
-          ? (waitResult as { StatusCode: number }).StatusCode ?? 0
+          ? ((waitResult as { StatusCode: number }).StatusCode ?? 0)
           : 0;
 
       if (exitCode !== 0) {
         throw new ContainerFailureError(
           `Container exited with non-zero status: ${exitCode}`,
-          exitCode,
+          exitCode
         );
       }
     } finally {
@@ -478,7 +471,7 @@ export class StreamRunnerBase {
    * Stream type: 1 = stdout, 2 = stderr
    */
   private async *_demuxDockerStream(
-    stream: NodeJS.ReadableStream,
+    stream: NodeJS.ReadableStream
   ): AsyncGenerator<[Slot, string], void> {
     let buffer = Buffer.alloc(0);
     let stdoutBuf = "";
@@ -582,7 +575,7 @@ export class StreamRunnerBase {
   private async *_localRun(
     userCode: string,
     envLocals: Record<string, unknown>,
-    options?: StreamOptions,
+    options?: StreamOptions
   ): AsyncGenerator<[Slot, string], void> {
     const env: Record<string, unknown> = {};
     let commandVec = this.buildContainerCommand(userCode, envLocals);
@@ -595,19 +588,15 @@ export class StreamRunnerBase {
 
     // Prepare environment and working directory
     const procEnv: Record<string, string> = {
-      ...process.env as Record<string, string>,
-      ...this.buildContainerEnvironment(env),
+      ...(process.env as Record<string, string>),
+      ...this.buildContainerEnvironment(env)
     };
     const cwd = options?.workspaceDir ?? process.cwd();
 
     const child = spawn(commandVec[0], commandVec.slice(1), {
       cwd,
       env: procEnv,
-      stdio: [
-        stdinStream !== null ? "pipe" : "ignore",
-        "pipe",
-        "pipe",
-      ],
+      stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
     });
 
     this._activeChild = child;
@@ -654,7 +643,10 @@ export class StreamRunnerBase {
           return;
         }
         let resolved = false;
-        const onDone = (code: number | null, signal: string | NodeJS.Signals | null): void => {
+        const onDone = (
+          code: number | null,
+          signal: string | NodeJS.Signals | null
+        ): void => {
           if (resolved) return;
           resolved = true;
           if (signal) {
@@ -672,7 +664,7 @@ export class StreamRunnerBase {
       if (exitCode !== 0) {
         throw new ContainerFailureError(
           `Process exited with code ${exitCode}`,
-          exitCode,
+          exitCode
         );
       }
     } finally {
@@ -704,7 +696,7 @@ export class StreamRunnerBase {
    * async generator. Lines are yielded in the order they arrive.
    */
   private async *_interleaveStreams(
-    child: ChildProcess,
+    child: ChildProcess
   ): AsyncGenerator<[Slot, string], void> {
     type QueueItem =
       | { type: "line"; slot: Slot; value: string }
@@ -726,7 +718,7 @@ export class StreamRunnerBase {
 
     const setupStream = (
       stream: NodeJS.ReadableStream | null,
-      slot: Slot,
+      slot: Slot
     ): void => {
       if (!stream) {
         push({ type: "end" });
@@ -737,7 +729,7 @@ export class StreamRunnerBase {
         push({
           type: "line",
           slot,
-          value: line.endsWith("\n") ? line : line + "\n",
+          value: line.endsWith("\n") ? line : line + "\n"
         });
       });
       rl.on("close", () => {

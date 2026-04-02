@@ -8,7 +8,7 @@ export const ELEVENLABS_NODES: readonly NodeClass[] = [
   ...TEXT_TO_SPEECH_NODES,
   ...SPEECH_TO_TEXT_NODES,
   ...REALTIME_TTS_NODES,
-  ...REALTIME_STT_NODES,
+  ...REALTIME_STT_NODES
 ];
 
 export function registerElevenLabsNodes(registry: {

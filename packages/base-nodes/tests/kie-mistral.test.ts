@@ -4,7 +4,7 @@ import {
   CodeComplete,
   Embedding,
   ImageToText,
-  OCR,
+  OCR
 } from "../src/nodes/mistral.js";
 
 const originalFetch = globalThis.fetch;
@@ -26,7 +26,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   } as unknown as Response;
 }
 
@@ -39,7 +39,7 @@ describe("ChatComplete", () => {
     const node = new ChatComplete();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "Hello back!" } }],
+        choices: [{ message: { content: "Hello back!" } }]
       })
     );
 
@@ -56,7 +56,7 @@ describe("ChatComplete", () => {
     const node = new ChatComplete();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "response" } }],
+        choices: [{ message: { content: "response" } }]
       })
     );
 
@@ -80,9 +80,7 @@ describe("ChatComplete", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(node.process()).rejects.toThrow("Prompt cannot be empty");
   });
 
   it("throws when API key missing", async () => {
@@ -106,9 +104,7 @@ describe("ChatComplete", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Mistral API error 429");
+    await expect(node.process()).rejects.toThrow("Mistral API error 429");
   });
 
   it("throws on empty choices", async () => {
@@ -120,9 +116,9 @@ describe("ChatComplete", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No response from Mistral API");
+    await expect(node.process()).rejects.toThrow(
+      "No response from Mistral API"
+    );
   });
 
   it("handles null content in response", async () => {
@@ -163,7 +159,7 @@ describe("CodeComplete", () => {
     const node = new CodeComplete();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "def hello(): pass" } }],
+        choices: [{ message: { content: "def hello(): pass" } }]
       })
     );
 
@@ -180,7 +176,7 @@ describe("CodeComplete", () => {
     const node = new CodeComplete();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "middle part" } }],
+        choices: [{ message: { content: "middle part" } }]
       })
     );
 
@@ -199,7 +195,7 @@ describe("CodeComplete", () => {
     const node = new CodeComplete();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "code" } }],
+        choices: [{ message: { content: "code" } }]
       })
     );
 
@@ -221,9 +217,7 @@ describe("CodeComplete", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(node.process()).rejects.toThrow("Prompt cannot be empty");
   });
 
   it("throws on empty choices", async () => {
@@ -235,9 +229,9 @@ describe("CodeComplete", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No response from Mistral API");
+    await expect(node.process()).rejects.toThrow(
+      "No response from Mistral API"
+    );
   });
 });
 
@@ -248,7 +242,7 @@ describe("Embedding", () => {
     const node = new Embedding();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        data: [{ embedding: [0.1, 0.2, 0.3] }],
+        data: [{ embedding: [0.1, 0.2, 0.3] }]
       })
     );
 
@@ -268,10 +262,7 @@ describe("Embedding", () => {
     const node = new Embedding();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        data: [
-          { embedding: [2.0, 4.0] },
-          { embedding: [4.0, 6.0] },
-        ],
+        data: [{ embedding: [2.0, 4.0] }, { embedding: [4.0, 6.0] }]
       })
     );
 
@@ -295,9 +286,7 @@ describe("Embedding", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Input text cannot be empty");
+    await expect(node.process()).rejects.toThrow("Input text cannot be empty");
   });
 
   it("throws on empty embeddings response", async () => {
@@ -309,9 +298,9 @@ describe("Embedding", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No embeddings from Mistral API");
+    await expect(node.process()).rejects.toThrow(
+      "No embeddings from Mistral API"
+    );
   });
 });
 
@@ -322,7 +311,7 @@ describe("ImageToText", () => {
     const node = new ImageToText();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "A cat sitting on a mat" } }],
+        choices: [{ message: { content: "A cat sitting on a mat" } }]
       })
     );
     const b64 = Buffer.from("fake-image").toString("base64");
@@ -341,7 +330,7 @@ describe("ImageToText", () => {
     const node = new ImageToText();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "description" } }],
+        choices: [{ message: { content: "description" } }]
       })
     );
 
@@ -359,7 +348,7 @@ describe("ImageToText", () => {
     const node = new ImageToText();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "from uri" } }],
+        choices: [{ message: { content: "from uri" } }]
       })
     );
 
@@ -382,9 +371,7 @@ describe("ImageToText", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Image is required");
+    await expect(node.process()).rejects.toThrow("Image is required");
   });
 
   it("throws on empty prompt", async () => {
@@ -397,9 +384,7 @@ describe("ImageToText", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Prompt cannot be empty");
+    await expect(node.process()).rejects.toThrow("Prompt cannot be empty");
   });
 
   it("throws on empty choices", async () => {
@@ -413,9 +398,9 @@ describe("ImageToText", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No response from Mistral API");
+    await expect(node.process()).rejects.toThrow(
+      "No response from Mistral API"
+    );
   });
 });
 
@@ -426,7 +411,7 @@ describe("OCR", () => {
     const node = new OCR();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "Hello World" } }],
+        choices: [{ message: { content: "Hello World" } }]
       })
     );
     const b64 = Buffer.from("screenshot").toString("base64");
@@ -448,9 +433,7 @@ describe("OCR", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Image is required");
+    await expect(node.process()).rejects.toThrow("Image is required");
   });
 
   it("throws on empty choices", async () => {
@@ -463,9 +446,9 @@ describe("OCR", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No response from Mistral API");
+    await expect(node.process()).rejects.toThrow(
+      "No response from Mistral API"
+    );
   });
 
   it("throws on API error", async () => {
@@ -478,9 +461,7 @@ describe("OCR", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Mistral API error 500");
+    await expect(node.process()).rejects.toThrow("Mistral API error 500");
   });
 });
 
@@ -538,8 +519,8 @@ describe("Node defaults coverage", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Image must include data or uri");
+    await expect(node.process()).rejects.toThrow(
+      "Image must include data or uri"
+    );
   });
 });

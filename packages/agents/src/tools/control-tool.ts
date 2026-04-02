@@ -39,9 +39,12 @@ export interface ControlNodeInfo {
   node_type: string;
   node_title: string;
   node_description?: string;
-  control_actions?: Record<string, {
-    properties?: Record<string, Record<string, unknown>>;
-  }>;
+  control_actions?: Record<
+    string,
+    {
+      properties?: Record<string, Record<string, unknown>>;
+    }
+  >;
   properties?: Record<string, unknown>;
   upstream_data?: Record<string, unknown>;
 }
@@ -75,7 +78,7 @@ export class ControlNodeTool extends Tool {
     this.inputSchema = {
       type: "object",
       properties,
-      required: [],
+      required: []
     };
 
     // Set name from normalized node title
@@ -117,7 +120,7 @@ export class ControlNodeTool extends Tool {
    */
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const event = this.createControlEvent(params);
     const nodeTitle = this.nodeInfo.node_title || this.targetNodeId;

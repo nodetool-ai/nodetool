@@ -40,7 +40,7 @@ export async function stopServer(): Promise<void> {
 
 const DEFAULT_HEADERS: Record<string, string> = {
   "content-type": "application/json",
-  "x-user-id": "test-user",
+  "x-user-id": "test-user"
 };
 
 function headers(extra: Record<string, string> = {}): Record<string, string> {
@@ -56,7 +56,7 @@ export async function get(
   opts: { userId?: string } = {}
 ): Promise<Response> {
   return fetch(api(path), {
-    headers: headers(opts.userId ? { "x-user-id": opts.userId } : {}),
+    headers: headers(opts.userId ? { "x-user-id": opts.userId } : {})
   });
 }
 
@@ -68,7 +68,7 @@ export async function post(
   return fetch(api(path), {
     method: "POST",
     headers: headers(opts.userId ? { "x-user-id": opts.userId } : {}),
-    body: JSON.stringify(body),
+    body: JSON.stringify(body)
   });
 }
 
@@ -80,7 +80,7 @@ export async function put(
   return fetch(api(path), {
     method: "PUT",
     headers: headers(opts.userId ? { "x-user-id": opts.userId } : {}),
-    body: JSON.stringify(body),
+    body: JSON.stringify(body)
   });
 }
 
@@ -90,6 +90,6 @@ export async function del(
 ): Promise<Response> {
   return fetch(api(path), {
     method: "DELETE",
-    headers: headers(opts.userId ? { "x-user-id": opts.userId } : {}),
+    headers: headers(opts.userId ? { "x-user-id": opts.userId } : {})
   });
 }

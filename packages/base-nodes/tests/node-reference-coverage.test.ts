@@ -47,7 +47,7 @@ import {
   SplitPathLibNode,
   TeamAgentNode,
   TeamLeadNode,
-  TransformLibNode,
+  TransformLibNode
 } from "../src/index.js";
 
 const ALL_REFERENCED_NODES = [
@@ -90,7 +90,7 @@ const ALL_REFERENCED_NODES = [
   SplitPathLibNode,
   TeamAgentNode,
   TeamLeadNode,
-  TransformLibNode,
+  TransformLibNode
 ];
 
 describe("node reference coverage", () => {

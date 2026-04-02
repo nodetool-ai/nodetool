@@ -34,7 +34,7 @@ export function runLocalDocker(
     "-d",
     "-p",
     "8000:8000",
-    `${fullImageName}:${imageTag}`,
+    `${fullImageName}:${imageTag}`
   ];
 
   runCommand(dockerRunCmd.join(" "));
@@ -49,9 +49,7 @@ export function runLocalDocker(
 }
 
 /** Function to retrieve Docker username from config file. */
-export type GetDockerUsernameFromConfigFn = (
-  registry: string
-) => string | null;
+export type GetDockerUsernameFromConfigFn = (registry: string) => string | null;
 
 /**
  * Get Docker username from multiple sources with validation.
@@ -76,7 +74,7 @@ export function getDockerUsername(opts: {
     dockerRegistry = "docker.io",
     skipBuild = false,
     skipPush = false,
-    getDockerUsernameFromConfig,
+    getDockerUsernameFromConfig
   } = opts;
 
   const username =
@@ -90,7 +88,7 @@ export function getDockerUsername(opts: {
       "Provide it via one of these methods:",
       "1. Command line: --docker-username myusername",
       "2. Environment variable: export DOCKER_USERNAME=myusername",
-      "3. Docker login: docker login (will be read from ~/.docker/config.json)",
+      "3. Docker login: docker login (will be read from ~/.docker/config.json)"
     ].join("\n");
     throw new Error(message);
   }
@@ -119,7 +117,7 @@ export function printDeploymentSummary(opts: {
     platform,
     templateId,
     endpointId,
-    deploymentPlatform = "RunPod",
+    deploymentPlatform = "RunPod"
   } = opts;
 
   console.log(`\n${deploymentPlatform} Deployment completed successfully!`);

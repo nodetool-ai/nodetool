@@ -110,7 +110,7 @@ export function hfCacheRoot(): string {
 export function hfRepoCacheDir(
   repoId: string,
   repoType: string = "model",
-  cacheDir?: string | null,
+  cacheDir?: string | null
 ): string {
   const root = cacheDir ?? hfCacheRoot();
   const parts = [`${repoType}s`, ...repoId.split("/")];
@@ -134,7 +134,7 @@ export function hfHubFileUrl(
   filename: string,
   revision: string = "main",
   repoType: string = "model",
-  endpoint: string = HF_ENDPOINT,
+  endpoint: string = HF_ENDPOINT
 ): string {
   let prefix: string;
   if (repoType === "model" || repoType == null) {
@@ -165,11 +165,11 @@ export function hfHubFileUrl(
 export async function hfHeadMetadata(
   url: string,
   token?: string | null,
-  timeout: number = 10_000,
+  timeout: number = 10_000
 ): Promise<HfFileMeta> {
   const headers: Record<string, string> = {
     "Accept-Encoding": "identity",
-    "User-Agent": "nodetool-hf-downloader",
+    "User-Agent": "nodetool-hf-downloader"
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -184,7 +184,7 @@ export async function hfHeadMetadata(
       method: "HEAD",
       headers,
       redirect: "manual", // don't follow -- we want the 3xx headers
-      signal: controller.signal,
+      signal: controller.signal
     });
   } finally {
     clearTimeout(timer);
@@ -194,7 +194,7 @@ export async function hfHeadMetadata(
   if (resp.status === 401 || resp.status === 403) {
     throw new Error(
       `Unauthorized to access ${url}. Status: ${resp.status}. ` +
-        `Check your Hugging Face token and permissions. Token present: ${!!token}`,
+        `Check your Hugging Face token and permissions. Token present: ${!!token}`
     );
   }
   if (resp.status >= 400) {
@@ -220,7 +220,11 @@ export async function hfHeadMetadata(
 
   // Location (redirect target or original URL)
   let location = resp.headers.get("location") || url;
-  if (location && !location.startsWith("http://") && !location.startsWith("https://")) {
+  if (
+    location &&
+    !location.startsWith("http://") &&
+    !location.startsWith("https://")
+  ) {
     location = new URL(location, url).href;
   }
 
@@ -234,7 +238,7 @@ export async function hfHeadMetadata(
     size,
     commitHash,
     acceptRanges,
-    originalUrl: url,
+    originalUrl: url
   };
 }
 
@@ -252,7 +256,7 @@ export async function hfHeadMetadata(
 export async function downloadWithResume(
   url: string,
   dest: string,
-  opts: DownloadWithResumeOptions = {},
+  opts: DownloadWithResumeOptions = {}
 ): Promise<void> {
   const {
     token = null,
@@ -261,7 +265,7 @@ export async function downloadWithResume(
     chunkSize: _chunkSize = 1024 * 1024,
     maxRetries = 5,
     progressCallback,
-    cancelSignal,
+    cancelSignal
   } = opts;
 
   await fsp.mkdir(path.dirname(dest), { recursive: true });
@@ -311,7 +315,7 @@ export async function downloadWithResume(
     }
 
     const headers: Record<string, string> = {
-      "Accept-Encoding": "identity",
+      "Accept-Encoding": "identity"
     };
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -325,7 +329,7 @@ export async function downloadWithResume(
         method: "GET",
         headers,
         redirect: "follow",
-        signal: cancelSignal,
+        signal: cancelSignal
       });
 
       // Server ignored Range -- start over
@@ -349,7 +353,9 @@ export async function downloadWithResume(
       }
 
       if (!resp.ok && resp.status !== 206) {
-        throw new Error(`HTTP ${resp.status} ${resp.statusText} fetching ${url}`);
+        throw new Error(
+          `HTTP ${resp.status} ${resp.statusText} fetching ${url}`
+        );
       }
 
       if (!resp.body) {
@@ -386,7 +392,7 @@ export async function downloadWithResume(
         const actualSize = (await fsp.stat(tmp)).size;
         if (actualSize !== expectedSize) {
           throw new Error(
-            `Size mismatch for ${url}: expected ${expectedSize}, got ${actualSize}`,
+            `Size mismatch for ${url}: expected ${expectedSize}, got ${actualSize}`
           );
         }
       }
@@ -398,7 +404,7 @@ export async function downloadWithResume(
       // On the last retry, propagate
       if (attempt >= maxRetries) {
         throw new Error(
-          `Download failed after ${attempt} attempts: ${err instanceof Error ? err.message : String(err)}`,
+          `Download failed after ${attempt} attempts: ${err instanceof Error ? err.message : String(err)}`
         );
       }
       // Otherwise loop and resume
@@ -422,7 +428,7 @@ export async function downloadWithResume(
 export async function asyncHfDownload(
   repoId: string,
   filename: string,
-  opts: AsyncHfDownloadOptions = {},
+  opts: AsyncHfDownloadOptions = {}
 ): Promise<string> {
   const {
     revision = "main",
@@ -431,7 +437,7 @@ export async function asyncHfDownload(
     cacheDir: rawCacheDir,
     chunkSize = 1024 * 1024,
     progressCallback,
-    cancelSignal,
+    cancelSignal
   } = opts;
 
   const tokenStr = await resolveHfToken(rawToken);
@@ -489,7 +495,7 @@ export async function asyncHfDownload(
     acceptRanges: meta.acceptRanges,
     chunkSize,
     progressCallback,
-    cancelSignal,
+    cancelSignal
   });
 
   // 6. Expose snapshot path as symlink (or copy on unsupported FS)

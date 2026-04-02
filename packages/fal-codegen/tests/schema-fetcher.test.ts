@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 vi.mock("node:fs/promises", () => ({
   readFile: vi.fn(),
   writeFile: vi.fn(),
-  mkdir: vi.fn(),
+  mkdir: vi.fn()
 }));
 
 import { SchemaFetcher } from "../src/schema-fetcher.js";
@@ -42,7 +42,7 @@ describe("SchemaFetcher", () => {
 
     // Default: cache miss
     readFileMock.mockRejectedValue(
-      Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      Object.assign(new Error("ENOENT"), { code: "ENOENT" })
     );
     writeFileMock.mockResolvedValue(undefined);
     mkdirMock.mockResolvedValue(undefined);
@@ -52,7 +52,7 @@ describe("SchemaFetcher", () => {
       ok: true,
       status: 200,
       statusText: "OK",
-      json: async () => FAKE_SCHEMA,
+      json: async () => FAKE_SCHEMA
     } as unknown as Response);
 
     vi.stubGlobal("fetch", fetchMock);
@@ -77,7 +77,7 @@ describe("SchemaFetcher", () => {
     it("produces different keys for different endpoint IDs", () => {
       const fetcher = new SchemaFetcher("/tmp/test-cache");
       expect(fetcher.cacheKey("fal-ai/flux/dev")).not.toBe(
-        fetcher.cacheKey("fal-ai/flux/schnell"),
+        fetcher.cacheKey("fal-ai/flux/schnell")
       );
     });
 
@@ -110,7 +110,7 @@ describe("SchemaFetcher", () => {
       expect(fetchMock).toHaveBeenCalledOnce();
       expect(fetchMock).toHaveBeenCalledWith(
         `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=${ENDPOINT}`,
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
       expect(writeFileMock).toHaveBeenCalledOnce();
     });
@@ -139,7 +139,7 @@ describe("SchemaFetcher", () => {
       expect(writeFileMock).toHaveBeenCalledOnce();
       const [, writtenContent] = writeFileMock.mock.calls[0] as [
         unknown,
-        string,
+        string
       ];
       expect(JSON.parse(writtenContent)).toEqual(FAKE_SCHEMA);
     });
@@ -155,13 +155,11 @@ describe("SchemaFetcher", () => {
         ok: false,
         status: 404,
         statusText: "Not Found",
-        json: async () => ({}),
+        json: async () => ({})
       } as unknown as Response);
 
       const fetcher = new SchemaFetcher("/tmp/test-cache");
-      await expect(fetcher.fetchSchema(ENDPOINT, false)).rejects.toThrow(
-        /404/,
-      );
+      await expect(fetcher.fetchSchema(ENDPOINT, false)).rejects.toThrow(/404/);
     });
   });
 

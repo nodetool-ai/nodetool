@@ -41,9 +41,9 @@ class MockWebSocket extends EventEmitter {
           Buffer.from(
             JSON.stringify({
               audio: "ZmFrZS1hdWRpbw==", // base64: "fake-audio"
-              isFinal: false,
-            }),
-          ),
+              isFinal: false
+            })
+          )
         );
       }, 0);
     }
@@ -59,7 +59,7 @@ class MockWebSocket extends EventEmitter {
 }
 
 vi.mock("ws", () => ({
-  WebSocket: MockWebSocket,
+  WebSocket: MockWebSocket
 }));
 
 import { RealtimeTextToSpeechNode } from "../src/nodes/realtime-tts.js";
@@ -88,28 +88,34 @@ describe("RealtimeTextToSpeechNode", () => {
     await node.run(
       {
         async *any() {
-          yield ["chunk", {
-            content: "Hello world",
-            content_type: "text",
-            done: false,
-          }] as [string, unknown];
-          yield ["chunk", {
-            content: "",
-            content_type: "text",
-            done: true,
-          }] as [string, unknown];
+          yield [
+            "chunk",
+            {
+              content: "Hello world",
+              content_type: "text",
+              done: false
+            }
+          ] as [string, unknown];
+          yield [
+            "chunk",
+            {
+              content: "",
+              content_type: "text",
+              done: true
+            }
+          ] as [string, unknown];
         },
         async *stream() {},
         async first() {
           return undefined;
-        },
+        }
       },
       {
         async emit(_slot: string, value: unknown) {
           emitted.push(value as Record<string, unknown>);
         },
-        complete() {},
-      },
+        complete() {}
+      }
     );
 
     // Should have sent init message, text content, and EOS
@@ -117,8 +123,8 @@ describe("RealtimeTextToSpeechNode", () => {
       expect.arrayContaining([
         expect.objectContaining({ text: " " }), // init
         expect.objectContaining({ text: "Hello world " }), // content + trailing space
-        expect.objectContaining({ text: "" }), // EOS
-      ]),
+        expect.objectContaining({ text: "" }) // EOS
+      ])
     );
 
     const audioChunks = emitted.filter((c) => !c.done);
@@ -128,13 +134,13 @@ describe("RealtimeTextToSpeechNode", () => {
     expect(audioChunks[0]).toMatchObject({
       type: "chunk",
       done: false,
-      content_type: "audio",
+      content_type: "audio"
     });
     expect(finalChunk).toMatchObject({
       type: "chunk",
       content: "",
       done: true,
-      content_type: "audio",
+      content_type: "audio"
     });
   });
 
@@ -149,13 +155,13 @@ describe("RealtimeTextToSpeechNode", () => {
           async *stream() {},
           async first() {
             return undefined;
-          },
+          }
         },
         {
           async emit() {},
-          complete() {},
-        },
-      ),
+          complete() {}
+        }
+      )
     ).rejects.toThrow("ELEVENLABS_API_KEY");
   });
 
@@ -170,13 +176,13 @@ describe("RealtimeTextToSpeechNode", () => {
           async *stream() {},
           async first() {
             return undefined;
-          },
+          }
         },
         {
           async emit() {},
-          complete() {},
-        },
-      ),
+          complete() {}
+        }
+      )
     ).rejects.toThrow("Unknown voice");
   });
 
@@ -193,12 +199,12 @@ describe("RealtimeTextToSpeechNode", () => {
         async *stream() {},
         async first() {
           return undefined;
-        },
+        }
       },
       {
         async emit() {},
-        complete() {},
-      },
+        complete() {}
+      }
     );
 
     const initMsg = sentMessages[0];
@@ -206,8 +212,8 @@ describe("RealtimeTextToSpeechNode", () => {
       text: " ",
       voice_settings: expect.objectContaining({
         stability: 0.9,
-        similarity_boost: 0.6,
-      }),
+        similarity_boost: 0.6
+      })
     });
   });
 });

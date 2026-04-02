@@ -7,7 +7,11 @@
  * Supports downloading a remote binary once and caching it on disk.
  */
 
-import { createConnection, type Socket as NetSocket, createServer } from "node:net";
+import {
+  createConnection,
+  type Socket as NetSocket,
+  createServer
+} from "node:net";
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
 import {
   existsSync,
@@ -19,7 +23,7 @@ import {
   readdirSync,
   unlinkSync,
   readFileSync,
-  writeFileSync,
+  writeFileSync
 } from "node:fs";
 import { resolve as pathResolve, join as pathJoin, sep } from "node:path";
 import { getNodetoolDataDir } from "@nodetool/config";
@@ -72,9 +76,17 @@ function sleep(ms: number): Promise<void> {
 /**
  * TCP-probe a host:port. Resolves true on connect, false on error/timeout.
  */
-function tcpProbe(host: string, port: number, timeoutMs = 1000): Promise<boolean> {
+function tcpProbe(
+  host: string,
+  port: number,
+  timeoutMs = 1000
+): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
-    const sock: NetSocket = createConnection({ host, port, timeout: timeoutMs });
+    const sock: NetSocket = createConnection({
+      host,
+      port,
+      timeout: timeoutMs
+    });
     sock.once("connect", () => {
       sock.destroy();
       resolve(true);
@@ -137,7 +149,10 @@ function safeDownloadTo(destPath: string, url: string): Promise<void> {
       ws.on("error", (e) => reject(e));
     };
 
-    getter(url, handleResponse as (res: IncomingMessage) => void).on("error", (e) => reject(e));
+    getter(url, handleResponse as (res: IncomingMessage) => void).on(
+      "error",
+      (e) => reject(e)
+    );
   });
 }
 
@@ -164,7 +179,7 @@ function safeExtractZip(zipPath: string, destDir: string): void {
   // Use system unzip for simplicity
   execFileSync("unzip", ["-o", zipPath, "-d", destDir], {
     stdio: "ignore",
-    timeout: 120_000,
+    timeout: 120_000
   });
 
   // Post-extraction Zip Slip check: verify no symlinks or paths escaped destDir
@@ -179,7 +194,10 @@ function safeExtractZip(zipPath: string, destDir: string): void {
     for (const entry of entries) {
       const full = pathJoin(dir, entry);
       const resolved = pathResolve(full);
-      if (!resolved.startsWith(resolvedDest) && resolved !== pathResolve(destDir)) {
+      if (
+        !resolved.startsWith(resolvedDest) &&
+        resolved !== pathResolve(destDir)
+      ) {
         // Escaped destDir — remove it
         try {
           unlinkSync(full);
@@ -211,7 +229,7 @@ function safeExtractZip(zipPath: string, destDir: string): void {
 function cacheRemoteBinary(
   url: string,
   name: string,
-  archiveInnerPath?: string | null,
+  archiveInnerPath?: string | null
 ): string {
   const binDir = defaultCacheDir();
   const dst = pathJoin(binDir, name);
@@ -262,7 +280,7 @@ function cacheRemoteBinary(
         exePath = found;
       } else {
         throw new Error(
-          `Executable path '${archiveInnerPath}' not found after extraction in ${extractDir}`,
+          `Executable path '${archiveInnerPath}' not found after extraction in ${extractDir}`
         );
       }
     }
@@ -274,7 +292,7 @@ function cacheRemoteBinary(
   // Direct binary case
   if (url.toLowerCase().endsWith(".zip")) {
     throw new Error(
-      "ZIP archive URL provided but no 'archiveExecutablePath' was specified",
+      "ZIP archive URL provided but no 'archiveExecutablePath' was specified"
     );
   }
 
@@ -303,7 +321,7 @@ function downloadSync(destPath: string, url: string): void {
   const partPath = destPath + ".part";
   execFileSync("curl", ["-fsSL", "-o", partPath, url], {
     stdio: "ignore",
-    timeout: 300_000,
+    timeout: 300_000
   });
   renameSync(partPath, destPath);
 }
@@ -311,7 +329,10 @@ function downloadSync(destPath: string, url: string): void {
 /**
  * Recursively search for a file matching `relativePath` under `baseDir`.
  */
-function findFileRecursive(baseDir: string, relativePath: string): string | null {
+function findFileRecursive(
+  baseDir: string,
+  relativePath: string
+): string | null {
   const target = relativePath.split("/").pop();
   if (!target) return null;
 
@@ -369,7 +390,7 @@ async function waitForServerReady(
   host: string,
   port: number,
   proc: ChildProcess,
-  timeoutSeconds: number,
+  timeoutSeconds: number
 ): Promise<boolean> {
   const deadline = Date.now() + Math.max(0, timeoutSeconds) * 1000;
 
@@ -450,7 +471,8 @@ export class ServerSubprocessRunner {
     }
     this.endpointPath = ep;
 
-    this.portEnvVar = options.portEnvVar === undefined ? "PORT" : (options.portEnvVar ?? null);
+    this.portEnvVar =
+      options.portEnvVar === undefined ? "PORT" : (options.portEnvVar ?? null);
     this.timeoutSeconds = options.timeoutSeconds ?? 0;
     this.archiveExecutablePath = options.archiveExecutablePath ?? null;
   }
@@ -464,7 +486,7 @@ export class ServerSubprocessRunner {
   async *stream(
     userCode: string,
     envLocals: Record<string, unknown>,
-    options?: ServerSubprocessStreamOptions,
+    options?: ServerSubprocessStreamOptions
   ): AsyncGenerator<[string, string], void> {
     const stdinStream = options?.stdinStream ?? null;
     let proc: ChildProcess | null = null;
@@ -475,7 +497,7 @@ export class ServerSubprocessRunner {
       const binaryPath = cacheRemoteBinary(
         this.binaryUrl,
         "server",
-        this.archiveExecutablePath,
+        this.archiveExecutablePath
       );
 
       // 2) Resolve port
@@ -483,14 +505,14 @@ export class ServerSubprocessRunner {
 
       // 3) Build argv
       const templated = this.argsTemplate.map((arg) =>
-        arg.replace(/\{port\}/g, String(port)),
+        arg.replace(/\{port\}/g, String(port))
       );
       const extra = userCode ? shellSplit(userCode) : [];
       const argv = [binaryPath, ...templated, ...extra];
 
       // 4) Launch process
       const env: Record<string, string> = {
-        ...(process.env as Record<string, string>),
+        ...(process.env as Record<string, string>)
       };
       if (this.portEnvVar) {
         env[this.portEnvVar] = String(port);
@@ -500,11 +522,7 @@ export class ServerSubprocessRunner {
       proc = spawn(argv[0], argv.slice(1), {
         cwd,
         env,
-        stdio: [
-          stdinStream !== null ? "pipe" : "ignore",
-          "pipe",
-          "pipe",
-        ],
+        stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
       });
 
       this._activeProc = proc;
@@ -530,7 +548,7 @@ export class ServerSubprocessRunner {
 
       const setupReader = (
         readable: NodeJS.ReadableStream | null,
-        slot: "stdout" | "stderr",
+        slot: "stdout" | "stderr"
       ): void => {
         if (!readable) {
           pushLog({ type: "end" });
@@ -546,7 +564,7 @@ export class ServerSubprocessRunner {
             pushLog({
               type: "line",
               slot,
-              value: line.endsWith("\n") ? line : line + "\n",
+              value: line.endsWith("\n") ? line : line + "\n"
             });
           }
         });
@@ -555,7 +573,7 @@ export class ServerSubprocessRunner {
             pushLog({
               type: "line",
               slot,
-              value: buf.endsWith("\n") ? buf : buf + "\n",
+              value: buf.endsWith("\n") ? buf : buf + "\n"
             });
           }
           pushLog({ type: "end" });
@@ -589,11 +607,11 @@ export class ServerSubprocessRunner {
         this.hostIp,
         port,
         proc,
-        this.readyTimeoutSeconds,
+        this.readyTimeoutSeconds
       );
       if (!ready) {
         throw new Error(
-          `Server did not become ready on ${this.hostIp}:${port}`,
+          `Server did not become ready on ${this.hostIp}:${port}`
         );
       }
 

@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  initTestDb,
-  Workflow,
-} from "@nodetool/models";
+import { initTestDb, Workflow } from "@nodetool/models";
 import { SqliteVecStore, resetDefaultStore } from "@nodetool/vectorstore";
 import { handleCollectionRequest } from "../src/collection-api.js";
 import { tmpdir } from "node:os";
@@ -27,7 +24,10 @@ let dbPath: string;
 describe("Collection API (sqlite-vec)", () => {
   beforeEach(async () => {
     // Use a fresh in-memory-like temp DB for each test
-    dbPath = join(tmpdir(), `nt-vec-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+    dbPath = join(
+      tmpdir(),
+      `nt-vec-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`
+    );
     process.env.VECTORSTORE_DB_PATH = dbPath;
     resetDefaultStore();
 
@@ -37,9 +37,15 @@ describe("Collection API (sqlite-vec)", () => {
   afterEach(() => {
     resetDefaultStore();
     delete process.env.VECTORSTORE_DB_PATH;
-    try { unlinkSync(dbPath); } catch {}
-    try { unlinkSync(dbPath + "-wal"); } catch {}
-    try { unlinkSync(dbPath + "-shm"); } catch {}
+    try {
+      unlinkSync(dbPath);
+    } catch {}
+    try {
+      unlinkSync(dbPath + "-wal");
+    } catch {}
+    try {
+      unlinkSync(dbPath + "-shm");
+    } catch {}
   });
 
   // ── List ─────────────────────────────────────────────────────────
@@ -49,7 +55,10 @@ describe("Collection API (sqlite-vec)", () => {
     const res = await handleCollectionRequest(req, "/api/collections", {});
     expect(res).not.toBeNull();
     expect(res!.status).toBe(200);
-    const body = (await jsonBody(res!)) as { collections: unknown[]; count: number };
+    const body = (await jsonBody(res!)) as {
+      collections: unknown[];
+      count: number;
+    };
     expect(body.collections).toEqual([]);
     expect(body.count).toBe(0);
   });
@@ -62,8 +71,8 @@ describe("Collection API (sqlite-vec)", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         name: "test-collection",
-        embedding_model: "text-embedding-ada-002",
-      }),
+        embedding_model: "text-embedding-ada-002"
+      })
     });
     const res = await handleCollectionRequest(req, "/api/collections", {});
     expect(res).not.toBeNull();
@@ -72,7 +81,7 @@ describe("Collection API (sqlite-vec)", () => {
     expect(body.name).toBe("test-collection");
     expect(body.count).toBe(0);
     expect((body.metadata as Record<string, string>).embedding_model).toBe(
-      "text-embedding-ada-002",
+      "text-embedding-ada-002"
     );
   });
 
@@ -80,7 +89,7 @@ describe("Collection API (sqlite-vec)", () => {
     const req = new Request("http://localhost/api/collections", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({}),
+      body: JSON.stringify({})
     });
     const res = await handleCollectionRequest(req, "/api/collections", {});
     expect(res!.status).toBe(400);
@@ -93,13 +102,17 @@ describe("Collection API (sqlite-vec)", () => {
     const createReq = new Request("http://localhost/api/collections", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "my-col" }),
+      body: JSON.stringify({ name: "my-col" })
     });
     await handleCollectionRequest(createReq, "/api/collections", {});
 
     // Get
     const req = new Request("http://localhost/api/collections/my-col");
-    const res = await handleCollectionRequest(req, "/api/collections/my-col", {});
+    const res = await handleCollectionRequest(
+      req,
+      "/api/collections/my-col",
+      {}
+    );
     expect(res).not.toBeNull();
     expect(res!.status).toBe(200);
     const body = (await jsonBody(res!)) as Record<string, unknown>;
@@ -115,16 +128,22 @@ describe("Collection API (sqlite-vec)", () => {
       const req = new Request("http://localhost/api/collections", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name })
       });
       await handleCollectionRequest(req, "/api/collections", {});
     }
 
     const req = new Request("http://localhost/api/collections");
     const res = await handleCollectionRequest(req, "/api/collections", {});
-    const body = (await jsonBody(res!)) as { collections: Array<Record<string, unknown>>; count: number };
+    const body = (await jsonBody(res!)) as {
+      collections: Array<Record<string, unknown>>;
+      count: number;
+    };
     expect(body.count).toBe(2);
-    expect(body.collections.map((c) => c.name).sort()).toEqual(["alpha", "beta"]);
+    expect(body.collections.map((c) => c.name).sort()).toEqual([
+      "alpha",
+      "beta"
+    ]);
   });
 
   it("GET /api/collections returns workflow_name when workflow exists", async () => {
@@ -132,14 +151,14 @@ describe("Collection API (sqlite-vec)", () => {
       user_id: "user-1",
       name: "My Workflow",
       access: "private",
-      graph: { nodes: [], edges: [] },
+      graph: { nodes: [], edges: [] }
     });
 
     // Create collection with workflow metadata
     const createReq = new Request("http://localhost/api/collections", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "wf-col" }),
+      body: JSON.stringify({ name: "wf-col" })
     });
     await handleCollectionRequest(createReq, "/api/collections", {});
 
@@ -147,14 +166,16 @@ describe("Collection API (sqlite-vec)", () => {
     const putReq = new Request("http://localhost/api/collections/wf-col", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ metadata: { workflow: wf.id } }),
+      body: JSON.stringify({ metadata: { workflow: wf.id } })
     });
     await handleCollectionRequest(putReq, "/api/collections/wf-col", {});
 
     // List and verify workflow_name
     const req = new Request("http://localhost/api/collections");
     const res = await handleCollectionRequest(req, "/api/collections", {});
-    const body = (await jsonBody(res!)) as { collections: Array<Record<string, unknown>> };
+    const body = (await jsonBody(res!)) as {
+      collections: Array<Record<string, unknown>>;
+    };
     expect(body.collections[0].workflow_name).toBe("My Workflow");
   });
 
@@ -165,7 +186,7 @@ describe("Collection API (sqlite-vec)", () => {
     const createReq = new Request("http://localhost/api/collections", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "original" }),
+      body: JSON.stringify({ name: "original" })
     });
     await handleCollectionRequest(createReq, "/api/collections", {});
 
@@ -173,9 +194,13 @@ describe("Collection API (sqlite-vec)", () => {
     const req = new Request("http://localhost/api/collections/original", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "renamed", metadata: { foo: "bar" } }),
+      body: JSON.stringify({ name: "renamed", metadata: { foo: "bar" } })
     });
-    const res = await handleCollectionRequest(req, "/api/collections/original", {});
+    const res = await handleCollectionRequest(
+      req,
+      "/api/collections/original",
+      {}
+    );
     expect(res!.status).toBe(200);
     const body = (await jsonBody(res!)) as Record<string, unknown>;
     expect(body.name).toBe("renamed");
@@ -189,22 +214,30 @@ describe("Collection API (sqlite-vec)", () => {
     const createReq = new Request("http://localhost/api/collections", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "to-delete" }),
+      body: JSON.stringify({ name: "to-delete" })
     });
     await handleCollectionRequest(createReq, "/api/collections", {});
 
     // Delete
     const req = new Request("http://localhost/api/collections/to-delete", {
-      method: "DELETE",
+      method: "DELETE"
     });
-    const res = await handleCollectionRequest(req, "/api/collections/to-delete", {});
+    const res = await handleCollectionRequest(
+      req,
+      "/api/collections/to-delete",
+      {}
+    );
     expect(res!.status).toBe(200);
     const body = (await jsonBody(res!)) as Record<string, unknown>;
     expect(body.message).toContain("deleted successfully");
 
     // Verify it's gone
     const getReq = new Request("http://localhost/api/collections/to-delete");
-    const getRes = await handleCollectionRequest(getReq, "/api/collections/to-delete", {});
+    const getRes = await handleCollectionRequest(
+      getReq,
+      "/api/collections/to-delete",
+      {}
+    );
     expect(getRes!.status).toBe(404);
   });
 
@@ -212,7 +245,11 @@ describe("Collection API (sqlite-vec)", () => {
 
   it("returns 404 when collection not found", async () => {
     const req = new Request("http://localhost/api/collections/missing");
-    const res = await handleCollectionRequest(req, "/api/collections/missing", {});
+    const res = await handleCollectionRequest(
+      req,
+      "/api/collections/missing",
+      {}
+    );
     expect(res!.status).toBe(404);
     const body = (await jsonBody(res!)) as Record<string, unknown>;
     expect(body.detail).toBe("Collection not found");
@@ -220,7 +257,7 @@ describe("Collection API (sqlite-vec)", () => {
 
   it("returns 405 for unsupported method on root", async () => {
     const req = new Request("http://localhost/api/collections", {
-      method: "DELETE",
+      method: "DELETE"
     });
     const res = await handleCollectionRequest(req, "/api/collections", {});
     expect(res!.status).toBe(405);
@@ -239,7 +276,7 @@ describe("Collection API (sqlite-vec)", () => {
     const createReq = new Request("http://localhost/api/collections", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "index-col" }),
+      body: JSON.stringify({ name: "index-col" })
     });
     await handleCollectionRequest(createReq, "/api/collections", {});
 
@@ -247,14 +284,17 @@ describe("Collection API (sqlite-vec)", () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    const req = new Request("http://localhost/api/collections/index-col/index", {
-      method: "POST",
-      body: formData,
-    });
+    const req = new Request(
+      "http://localhost/api/collections/index-col/index",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
     const res = await handleCollectionRequest(
       req,
       "/api/collections/index-col/index",
-      {},
+      {}
     );
     expect(res!.status).toBe(200);
     const body = (await jsonBody(res!)) as Record<string, unknown>;
@@ -264,21 +304,28 @@ describe("Collection API (sqlite-vec)", () => {
 
     // Verify the document was actually added to the collection
     const getReq = new Request("http://localhost/api/collections/index-col");
-    const getRes = await handleCollectionRequest(getReq, "/api/collections/index-col", {});
+    const getRes = await handleCollectionRequest(
+      getReq,
+      "/api/collections/index-col",
+      {}
+    );
     const getBody = (await jsonBody(getRes!)) as Record<string, unknown>;
     expect(getBody.count).toBe(1);
   });
 
   it("POST /api/collections/:name/index returns 400 without multipart", async () => {
-    const req = new Request("http://localhost/api/collections/test-collection/index", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "{}",
-    });
+    const req = new Request(
+      "http://localhost/api/collections/test-collection/index",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}"
+      }
+    );
     const res = await handleCollectionRequest(
       req,
       "/api/collections/test-collection/index",
-      {},
+      {}
     );
     expect(res!.status).toBe(400);
   });

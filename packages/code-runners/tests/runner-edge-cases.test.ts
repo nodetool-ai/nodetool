@@ -15,7 +15,7 @@ import {
   LuaRunner,
   LuaSubprocessRunner,
   luaEscapeString,
-  luaLiteral,
+  luaLiteral
 } from "../src/lua-runner.js";
 
 // ============================================================================
@@ -34,7 +34,7 @@ describe("BashDockerRunner – edge cases", () => {
     const cmd = runner.buildContainerCommand("echo 1", {
       "invalid-key": 1,
       "also bad!": 2,
-      "has space": 3,
+      "has space": 3
     });
     expect(cmd[2]).not.toContain("invalid-key");
     expect(cmd[2]).not.toContain("also bad!");
@@ -42,14 +42,17 @@ describe("BashDockerRunner – edge cases", () => {
   });
 
   it("allows underscored keys", () => {
-    const cmd = runner.buildContainerCommand("", { _private: "ok", __dunder: "ok" });
+    const cmd = runner.buildContainerCommand("", {
+      _private: "ok",
+      __dunder: "ok"
+    });
     expect(cmd[2]).toContain("_private=");
     expect(cmd[2]).toContain("__dunder=");
   });
 
   it("handles deeply nested objects", () => {
     const cmd = runner.buildContainerCommand("", {
-      deep: { a: { b: { c: 1 } } },
+      deep: { a: { b: { c: 1 } } }
     });
     expect(cmd[2]).toContain('"c": 1');
   });
@@ -66,7 +69,7 @@ describe("BashDockerRunner – edge cases", () => {
 
   it("handles string with special shell characters", () => {
     const cmd = runner.buildContainerCommand("", {
-      msg: 'hello "world" $HOME',
+      msg: 'hello "world" $HOME'
     });
     // JSON.stringify should properly escape the string
     expect(cmd[2]).toContain("msg=");
@@ -74,7 +77,7 @@ describe("BashDockerRunner – edge cases", () => {
 
   it("handles mixed types in array", () => {
     const cmd = runner.buildContainerCommand("", {
-      arr: [1, "two", true, null, { x: 1 }],
+      arr: [1, "two", true, null, { x: 1 }]
     });
     expect(cmd[2]).toContain("arr=");
     expect(cmd[2]).toContain("1, ");
@@ -110,14 +113,14 @@ describe("PythonDockerRunner – edge cases", () => {
 
   it("handles string with newlines", () => {
     const cmd = runner.buildContainerCommand("", {
-      text: "line1\nline2",
+      text: "line1\nline2"
     });
     expect(cmd[2]).toContain("text=");
   });
 
   it("handles nested dict with list values", () => {
     const cmd = runner.buildContainerCommand("", {
-      data: { items: [1, 2, 3], name: "test" },
+      data: { items: [1, 2, 3], name: "test" }
     });
     expect(cmd[2]).toContain('"items": [1, 2, 3]');
     expect(cmd[2]).toContain('"name": "test"');
@@ -171,7 +174,7 @@ describe("JavaScriptDockerRunner – edge cases", () => {
 
   it("handles deeply nested objects", () => {
     const cmd = runner.buildContainerCommand("", {
-      config: { db: { host: "localhost", port: 5432 } },
+      config: { db: { host: "localhost", port: 5432 } }
     });
     expect(cmd[2]).toContain("localhost");
     expect(cmd[2]).toContain("5432");
@@ -181,7 +184,7 @@ describe("JavaScriptDockerRunner – edge cases", () => {
     const cmd = runner.buildContainerCommand("", {
       a: true,
       b: false,
-      c: null,
+      c: null
     });
     expect(cmd[2]).toContain("const a = true;");
     expect(cmd[2]).toContain("const b = false;");
@@ -197,14 +200,14 @@ describe("RubyDockerRunner – edge cases", () => {
   const runner = new RubyDockerRunner();
 
   it("skips keys with special chars", () => {
-    const cmd = runner.buildContainerCommand("", { "bad-key": 1, "ok_key": 2 });
+    const cmd = runner.buildContainerCommand("", { "bad-key": 1, ok_key: 2 });
     expect(cmd[2]).not.toContain("bad-key");
     expect(cmd[2]).toContain("ok_key=2");
   });
 
   it("handles nested hash with array values", () => {
     const cmd = runner.buildContainerCommand("", {
-      data: { items: [1, 2], meta: { count: 2 } },
+      data: { items: [1, 2], meta: { count: 2 } }
     });
     expect(cmd[2]).toContain("=>");
   });
@@ -221,7 +224,7 @@ describe("RubyDockerRunner – edge cases", () => {
 
   it("handles mixed-type array", () => {
     const cmd = runner.buildContainerCommand("", {
-      arr: [1, "two", true, null],
+      arr: [1, "two", true, null]
     });
     const code = cmd[2];
     expect(code).toContain("1, ");

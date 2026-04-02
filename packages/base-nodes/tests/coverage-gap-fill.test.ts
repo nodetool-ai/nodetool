@@ -170,7 +170,7 @@ import {
   RunJavaScriptCommandDockerNode,
   RunBashCommandDockerNode,
   RunRubyCommandDockerNode,
-  RunShellCommandDockerNode,
+  RunShellCommandDockerNode
 } from "../src/index.js";
 
 // ============================================================================
@@ -262,7 +262,7 @@ describe("lib-audio-dsp gaps", () => {
   it.skip("DBToAmplitude handles 2D arrays - node not in source", async () => {
     const __n0 = new (class {} as any)();
     __n0.assign({
-      tensor: { data: [[0, 20], [-6]] },
+      tensor: { data: [[0, 20], [-6]] }
     });
     const res = await __n0.process();
     const out = res.output as { data: number[][] };
@@ -273,7 +273,7 @@ describe("lib-audio-dsp gaps", () => {
   it.skip("DBToPower handles 2D arrays - node not in source", async () => {
     const __n1 = new (class {} as any)();
     __n1.assign({
-      tensor: { data: [[0, 10]] },
+      tensor: { data: [[0, 10]] }
     });
     const res = await __n1.process();
     const out = res.output as { data: number[][] };
@@ -284,7 +284,7 @@ describe("lib-audio-dsp gaps", () => {
   it.skip("PowerToDB handles 2D arrays - node not in source", async () => {
     const __n2 = new (class {} as any)();
     __n2.assign({
-      tensor: { data: [[1, 100]] },
+      tensor: { data: [[1, 100]] }
     });
     const res = await __n2.process();
     const out = res.output as { data: number[][] };
@@ -339,8 +339,12 @@ describe("lib-audio-dsp gaps", () => {
     // PlotSpectrogramNode are not in the current source - skipped
     expect(new GainNode_().serialize()).toHaveProperty("gain_db");
     expect(new DelayNode_().serialize()).toHaveProperty("delay_seconds");
-    expect(new HighPassFilterNode().serialize()).toHaveProperty("cutoff_frequency_hz");
-    expect(new LowPassFilterNode().serialize()).toHaveProperty("cutoff_frequency_hz");
+    expect(new HighPassFilterNode().serialize()).toHaveProperty(
+      "cutoff_frequency_hz"
+    );
+    expect(new LowPassFilterNode().serialize()).toHaveProperty(
+      "cutoff_frequency_hz"
+    );
     expect(new HighShelfFilterNode().serialize()).toHaveProperty("gain_db");
     expect(new LowShelfFilterNode().serialize()).toHaveProperty("gain_db");
     expect(new PeakFilterNode().serialize()).toHaveProperty("q_factor");
@@ -362,7 +366,7 @@ describe("lib-synthesis gaps", () => {
       sample_rate: 8000,
       pitch_envelope_amount: 12,
       pitch_envelope_time: 0.05,
-      pitch_envelope_curve: "linear",
+      pitch_envelope_curve: "linear"
     });
     const res = await __n9.process();
     const out = res.output as { data: string };
@@ -379,7 +383,7 @@ describe("lib-synthesis gaps", () => {
       sample_rate: 8000,
       pitch_envelope_amount: 12,
       pitch_envelope_time: 0.05,
-      pitch_envelope_curve: "exponential",
+      pitch_envelope_curve: "exponential"
     });
     const res = await __n10.process();
     const out = res.output as { data: string };
@@ -388,7 +392,9 @@ describe("lib-synthesis gaps", () => {
 
   it("Oscillator defaults() returns expected shape", () => {
     expect(new OscillatorLibNode().serialize()).toHaveProperty("waveform");
-    expect(new OscillatorLibNode().serialize()).toHaveProperty("pitch_envelope_amount");
+    expect(new OscillatorLibNode().serialize()).toHaveProperty(
+      "pitch_envelope_amount"
+    );
   });
 
   it("WhiteNoise defaults()", () => {
@@ -400,7 +406,9 @@ describe("lib-synthesis gaps", () => {
   });
 
   it("FM_Synthesis defaults()", () => {
-    expect(new FM_SynthesisLibNode().serialize()).toHaveProperty("carrier_freq");
+    expect(new FM_SynthesisLibNode().serialize()).toHaveProperty(
+      "carrier_freq"
+    );
   });
 
   it("Envelope defaults()", () => {
@@ -410,7 +418,7 @@ describe("lib-synthesis gaps", () => {
   it("Envelope non-RIFF data passes through", async () => {
     const __n11 = new EnvelopeLibNode();
     __n11.assign({
-      audio: { data: Buffer.from("not-a-wav").toString("base64") },
+      audio: { data: Buffer.from("not-a-wav").toString("base64") }
     });
     const res = await __n11.process();
     expect(res.output).toHaveProperty("data");
@@ -427,7 +435,7 @@ describe("lib-synthesis gaps", () => {
       attack: 1.0,
       decay: 1.0,
       release: 1.0,
-      peak_amplitude: 1.0,
+      peak_amplitude: 1.0
     });
     const res = await __n12.process();
     const out = res.output as { data: string };
@@ -444,7 +452,7 @@ describe("lib-numpy gaps", () => {
     const __n13 = new AddArrayNode();
     __n13.assign({
       a: { data: [1, 2, 3], shape: [3] },
-      b: { data: [4, 5, 6], shape: [3] },
+      b: { data: [4, 5, 6], shape: [3] }
     });
     const res = await __n13.process();
     expect(res.output).toEqual({ data: [5, 7, 9], shape: [3] });
@@ -454,7 +462,7 @@ describe("lib-numpy gaps", () => {
     const __n14 = new SubtractArrayNode();
     __n14.assign({
       a: { data: [10, 20], shape: [2] },
-      b: { data: [1, 2], shape: [2] },
+      b: { data: [1, 2], shape: [2] }
     });
     const res = await __n14.process();
     expect(res.output).toEqual({ data: [9, 18], shape: [2] });
@@ -464,7 +472,7 @@ describe("lib-numpy gaps", () => {
     const __n15 = new MultiplyArrayNode();
     __n15.assign({
       a: { data: [2, 3], shape: [2] },
-      b: { data: [4, 5], shape: [2] },
+      b: { data: [4, 5], shape: [2] }
     });
     const res = await __n15.process();
     expect(res.output).toEqual({ data: [8, 15], shape: [2] });
@@ -474,7 +482,7 @@ describe("lib-numpy gaps", () => {
     const __n16 = new DivideArrayNode();
     __n16.assign({
       a: { data: [10, 20], shape: [2] },
-      b: { data: [2, 5], shape: [2] },
+      b: { data: [2, 5], shape: [2] }
     });
     const res = await __n16.process();
     expect(res.output).toEqual({ data: [5, 4], shape: [2] });
@@ -484,7 +492,7 @@ describe("lib-numpy gaps", () => {
     const __n17 = new ModulusArrayNode();
     __n17.assign({
       a: { data: [7, 10], shape: [2] },
-      b: { data: [3, 4], shape: [2] },
+      b: { data: [3, 4], shape: [2] }
     });
     const res = await __n17.process();
     expect(res.output).toEqual({ data: [1, 2], shape: [2] });
@@ -493,7 +501,7 @@ describe("lib-numpy gaps", () => {
   it("AbsArray", async () => {
     const __n18 = new AbsArrayNode();
     __n18.assign({
-      values: { data: [-1, 2, -3], shape: [3] },
+      values: { data: [-1, 2, -3], shape: [3] }
     });
     const res = await __n18.process();
     expect(res.output).toEqual({ data: [1, 2, 3], shape: [3] });
@@ -520,7 +528,7 @@ describe("lib-numpy gaps", () => {
   it("ExpArray", async () => {
     const __n21 = new ExpArrayNode();
     __n21.assign({
-      values: { data: [0, 1], shape: [2] },
+      values: { data: [0, 1], shape: [2] }
     });
     const res = await __n21.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -531,7 +539,7 @@ describe("lib-numpy gaps", () => {
   it("LogArray", async () => {
     const __n22 = new LogArrayNode();
     __n22.assign({
-      values: { data: [1, Math.E], shape: [2] },
+      values: { data: [1, Math.E], shape: [2] }
     });
     const res = await __n22.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -542,7 +550,7 @@ describe("lib-numpy gaps", () => {
   it("SqrtArray", async () => {
     const __n23 = new SqrtArrayNode();
     __n23.assign({
-      values: { data: [4, 9], shape: [2] },
+      values: { data: [4, 9], shape: [2] }
     });
     const res = await __n23.process();
     expect(res.output).toEqual({ data: [2, 3], shape: [2] });
@@ -552,7 +560,7 @@ describe("lib-numpy gaps", () => {
     const __n24 = new PowerArrayNode();
     __n24.assign({
       base: { data: [2, 3], shape: [2] },
-      exponent: { data: [3, 2], shape: [2] },
+      exponent: { data: [3, 2], shape: [2] }
     });
     const res = await __n24.process();
     expect(res.output).toEqual({ data: [8, 9], shape: [2] });
@@ -561,7 +569,7 @@ describe("lib-numpy gaps", () => {
   it("SumArray", async () => {
     const __n25 = new SumArrayNode();
     __n25.assign({
-      values: { data: [1, 2, 3, 4], shape: [4] },
+      values: { data: [1, 2, 3, 4], shape: [4] }
     });
     const res = await __n25.process();
     expect(res.output).toBe(10);
@@ -570,7 +578,7 @@ describe("lib-numpy gaps", () => {
   it("MeanArray", async () => {
     const __n26 = new MeanArrayNode();
     __n26.assign({
-      values: { data: [2, 4, 6], shape: [3] },
+      values: { data: [2, 4, 6], shape: [3] }
     });
     const res = await __n26.process();
     expect(res.output).toBe(4);
@@ -579,7 +587,7 @@ describe("lib-numpy gaps", () => {
   it("MinArray", async () => {
     const __n27 = new MinArrayNode();
     __n27.assign({
-      values: { data: [3, 1, 4, 1, 5], shape: [5] },
+      values: { data: [3, 1, 4, 1, 5], shape: [5] }
     });
     const res = await __n27.process();
     expect(res.output).toBe(1);
@@ -588,7 +596,7 @@ describe("lib-numpy gaps", () => {
   it("MaxArray", async () => {
     const __n28 = new MaxArrayNode();
     __n28.assign({
-      values: { data: [3, 1, 4, 1, 5], shape: [5] },
+      values: { data: [3, 1, 4, 1, 5], shape: [5] }
     });
     const res = await __n28.process();
     expect(res.output).toBe(5);
@@ -597,7 +605,7 @@ describe("lib-numpy gaps", () => {
   it("ArgMinArray", async () => {
     const __n29 = new ArgMinArrayNode();
     __n29.assign({
-      values: { data: [3, 1, 4], shape: [3] },
+      values: { data: [3, 1, 4], shape: [3] }
     });
     const res = await __n29.process();
     expect(res.output).toBe(1);
@@ -606,7 +614,7 @@ describe("lib-numpy gaps", () => {
   it("ArgMaxArray", async () => {
     const __n30 = new ArgMaxArrayNode();
     __n30.assign({
-      values: { data: [3, 1, 4], shape: [3] },
+      values: { data: [3, 1, 4], shape: [3] }
     });
     const res = await __n30.process();
     expect(res.output).toBe(2);
@@ -618,7 +626,7 @@ describe("lib-numpy gaps", () => {
       values: { data: [10, 20, 30, 40, 50], shape: [5] },
       start: 1,
       stop: 4,
-      step: 1,
+      step: 1
     });
     const res = await __n31.process();
     expect(res.output).toEqual({ data: [20, 30, 40], shape: [3] });
@@ -628,7 +636,7 @@ describe("lib-numpy gaps", () => {
     const __n32 = new IndexArrayNode();
     __n32.assign({
       values: { data: [10, 20, 30, 40], shape: [4] },
-      indices: "0,2",
+      indices: "0,2"
     });
     const res = await __n32.process();
     expect(res.output).toEqual({ data: [10, 30], shape: [2] });
@@ -637,7 +645,7 @@ describe("lib-numpy gaps", () => {
   it("TransposeArray 2D", async () => {
     const __n33 = new TransposeArrayNode();
     __n33.assign({
-      values: { data: [1, 2, 3, 4, 5, 6], shape: [2, 3] },
+      values: { data: [1, 2, 3, 4, 5, 6], shape: [2, 3] }
     });
     const res = await __n33.process();
     expect(res.output).toEqual({ data: [1, 4, 2, 5, 3, 6], shape: [3, 2] });
@@ -646,7 +654,7 @@ describe("lib-numpy gaps", () => {
   it("TransposeArray 1D is no-op", async () => {
     const __n34 = new TransposeArrayNode();
     __n34.assign({
-      values: { data: [1, 2, 3], shape: [3] },
+      values: { data: [1, 2, 3], shape: [3] }
     });
     const res = await __n34.process();
     expect(res.output).toEqual({ data: [1, 2, 3], shape: [3] });
@@ -655,7 +663,7 @@ describe("lib-numpy gaps", () => {
   it("TransposeArray 3D", async () => {
     const __n35 = new TransposeArrayNode();
     __n35.assign({
-      values: { data: [1, 2, 3, 4, 5, 6, 7, 8], shape: [2, 2, 2] },
+      values: { data: [1, 2, 3, 4, 5, 6, 7, 8], shape: [2, 2, 2] }
     });
     const res = await __n35.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -667,7 +675,7 @@ describe("lib-numpy gaps", () => {
     const __n36 = new MatMulNode();
     __n36.assign({
       a: { data: [1, 2, 3, 4], shape: [2, 2] },
-      b: { data: [5, 6, 7, 8], shape: [2, 2] },
+      b: { data: [5, 6, 7, 8], shape: [2, 2] }
     });
     const res = await __n36.process();
     expect(res.output).toEqual({ data: [19, 22, 43, 50], shape: [2, 2] });
@@ -676,23 +684,19 @@ describe("lib-numpy gaps", () => {
   it("MatMul shape mismatch throws", async () => {
     const __n37 = new MatMulNode();
     __n37.assign({
-        a: { data: [1, 2, 3], shape: [1, 3] },
-        b: { data: [1, 2], shape: [1, 2] },
-      });
-    await expect(
-      __n37.process()
-    ).rejects.toThrow("Shape mismatch");
+      a: { data: [1, 2, 3], shape: [1, 3] },
+      b: { data: [1, 2], shape: [1, 2] }
+    });
+    await expect(__n37.process()).rejects.toThrow("Shape mismatch");
   });
 
   it("MatMul non-2D throws", async () => {
     const __n38 = new MatMulNode();
     __n38.assign({
-        a: { data: [1, 2, 3], shape: [3] },
-        b: { data: [1, 2, 3], shape: [3] },
-      });
-    await expect(
-      __n38.process()
-    ).rejects.toThrow("2D");
+      a: { data: [1, 2, 3], shape: [3] },
+      b: { data: [1, 2, 3], shape: [3] }
+    });
+    await expect(__n38.process()).rejects.toThrow("2D");
   });
 
   it("StackNode", async () => {
@@ -700,9 +704,9 @@ describe("lib-numpy gaps", () => {
     __n39.assign({
       arrays: [
         { data: [1, 2], shape: [2] },
-        { data: [3, 4], shape: [2] },
+        { data: [3, 4], shape: [2] }
       ],
-      axis: 0,
+      axis: 0
     });
     const res = await __n39.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -720,7 +724,7 @@ describe("lib-numpy gaps", () => {
     const __n41 = new SplitArrayNode();
     __n41.assign({
       values: { data: [1, 2, 3, 4, 5, 6], shape: [6] },
-      num_splits: 3,
+      num_splits: 3
     });
     const res = await __n41.process();
     const out = res.output as { data: number[]; shape: number[] }[];
@@ -730,7 +734,7 @@ describe("lib-numpy gaps", () => {
   it("Reshape1D", async () => {
     const __n42 = new Reshape1DNode();
     __n42.assign({
-      values: { data: [1, 2, 3, 4], shape: [2, 2] },
+      values: { data: [1, 2, 3, 4], shape: [2, 2] }
     });
     const res = await __n42.process();
     expect(res.output).toEqual({ data: [1, 2, 3, 4], shape: [4] });
@@ -741,7 +745,7 @@ describe("lib-numpy gaps", () => {
     __n43.assign({
       values: { data: [1, 2, 3, 4], shape: [4] },
       num_rows: 2,
-      num_cols: 2,
+      num_cols: 2
     });
     const res = await __n43.process();
     expect(res.output).toEqual({ data: [1, 2, 3, 4], shape: [2, 2] });
@@ -753,7 +757,7 @@ describe("lib-numpy gaps", () => {
       values: { data: [1, 2, 3, 4, 5, 6, 7, 8], shape: [8] },
       num_rows: 2,
       num_cols: 2,
-      num_depths: 2,
+      num_depths: 2
     });
     const res = await __n44.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -767,7 +771,7 @@ describe("lib-numpy gaps", () => {
       num_rows: 1,
       num_cols: 1,
       num_depths: 2,
-      num_channels: 2,
+      num_channels: 2
     });
     const res = await __n45.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -777,7 +781,10 @@ describe("lib-numpy gaps", () => {
   it("ListToArray with nested", async () => {
     const __n46 = new ListToArrayNode();
     __n46.assign({
-      values: [[1, 2], [3, 4]],
+      values: [
+        [1, 2],
+        [3, 4]
+      ]
     });
     const res = await __n46.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -788,10 +795,13 @@ describe("lib-numpy gaps", () => {
   it("ArrayToList 2D", async () => {
     const __n47 = new ArrayToListNode();
     __n47.assign({
-      values: { data: [1, 2, 3, 4], shape: [2, 2] },
+      values: { data: [1, 2, 3, 4], shape: [2, 2] }
     });
     const res = await __n47.process();
-    expect(res.output).toEqual([[1, 2], [3, 4]]);
+    expect(res.output).toEqual([
+      [1, 2],
+      [3, 4]
+    ]);
   });
 
   it("ScalarToArray", async () => {
@@ -804,7 +814,7 @@ describe("lib-numpy gaps", () => {
   it("ArrayToScalar", async () => {
     const __n49 = new ArrayToScalarNode();
     __n49.assign({
-      values: { data: [7], shape: [1] },
+      values: { data: [7], shape: [1] }
     });
     const res = await __n49.process();
     expect(res.output).toBe(7);
@@ -813,7 +823,7 @@ describe("lib-numpy gaps", () => {
   it("ConvertToImage 2D grayscale", async () => {
     const __n50 = new NumpyConvertToImageNode();
     __n50.assign({
-      values: { data: [0, 0.5, 0.5, 1], shape: [2, 2] },
+      values: { data: [0, 0.5, 0.5, 1], shape: [2, 2] }
     });
     const res = await __n50.process();
     const out = res.output as { data: string };
@@ -824,7 +834,7 @@ describe("lib-numpy gaps", () => {
     const data = new Array(2 * 2 * 3).fill(0.5);
     const __n51 = new NumpyConvertToImageNode();
     __n51.assign({
-      values: { data, shape: [2, 2, 3] },
+      values: { data, shape: [2, 2, 3] }
     });
     const res = await __n51.process();
     const out = res.output as { data: string };
@@ -834,26 +844,22 @@ describe("lib-numpy gaps", () => {
   it("ConvertToImage empty throws", async () => {
     const __n52 = new NumpyConvertToImageNode();
     __n52.assign({ values: { data: [], shape: [0] } });
-    await expect(
-      __n52.process()
-    ).rejects.toThrow("not connected");
+    await expect(__n52.process()).rejects.toThrow("not connected");
   });
 
   it("ConvertToImage bad channels throws", async () => {
     const __n53 = new NumpyConvertToImageNode();
     __n53.assign({
-        values: { data: new Array(2 * 2 * 2).fill(0.5), shape: [2, 2, 2] },
-      });
-    await expect(
-      __n53.process()
-    ).rejects.toThrow("channels");
+      values: { data: new Array(2 * 2 * 2).fill(0.5), shape: [2, 2, 2] }
+    });
+    await expect(__n53.process()).rejects.toThrow("channels");
   });
 
   it("ConvertToAudio", async () => {
     const __n54 = new NumpyConvertToAudioNode();
     __n54.assign({
       values: { data: [0, 0.5, -0.5, 0], shape: [4] },
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const res = await __n54.process();
     const out = res.output as { data: string };
@@ -871,7 +877,7 @@ describe("lib-numpy gaps", () => {
     const __n56 = new SaveArrayNode();
     __n56.assign({
       values: { data: [1, 2], shape: [2] },
-      name: "test.json",
+      name: "test.json"
     });
     const res = await __n56.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -881,7 +887,7 @@ describe("lib-numpy gaps", () => {
   it("PlotArrayNode 2D", async () => {
     const __n57 = new PlotArrayNode();
     __n57.assign({
-      values: { data: [0, 1, 2, 3], shape: [2, 2] },
+      values: { data: [0, 1, 2, 3], shape: [2, 2] }
     });
     const res = await __n57.process();
     const out = res.output as { data: string };
@@ -891,7 +897,7 @@ describe("lib-numpy gaps", () => {
   it("PlotArrayNode 1D", async () => {
     const __n58 = new PlotArrayNode();
     __n58.assign({
-      values: { data: [1, 3, 2, 4, 0], shape: [5] },
+      values: { data: [1, 3, 2, 4, 0], shape: [5] }
     });
     const res = await __n58.process();
     const out = res.output as { data: string };
@@ -901,9 +907,7 @@ describe("lib-numpy gaps", () => {
   it("PlotArrayNode empty throws", async () => {
     const __n59 = new PlotArrayNode();
     __n59.assign({ values: { data: [], shape: [0] } });
-    await expect(
-      __n59.process()
-    ).rejects.toThrow("Empty");
+    await expect(__n59.process()).rejects.toThrow("Empty");
   });
 
   it("AddArray scalar broadcast", async () => {
@@ -918,7 +922,7 @@ describe("lib-numpy gaps", () => {
     const __n61 = new AddArrayNode();
     __n61.assign({
       a: { data: [1, 2], shape: [2] },
-      b: { data: [10, 20, 30], shape: [3] },
+      b: { data: [10, 20, 30], shape: [3] }
     });
     const res = await __n61.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -929,7 +933,7 @@ describe("lib-numpy gaps", () => {
     const __n62 = new SumArrayNode();
     __n62.assign({
       values: { data: [1, 2, 3, 4, 5, 6], shape: [2, 3] },
-      axis: 1,
+      axis: 1
     });
     const res = await __n62.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -939,7 +943,7 @@ describe("lib-numpy gaps", () => {
   it("convertOutput single element returns scalar", async () => {
     const __n63 = new SumArrayNode();
     __n63.assign({
-      values: { data: [42], shape: [1] },
+      values: { data: [42], shape: [1] }
     });
     const res = await __n63.process();
     expect(res.output).toBe(42);
@@ -956,7 +960,7 @@ describe("lib-numpy gaps", () => {
     const __n65 = new IndexArrayNode();
     __n65.assign({
       values: { data: [1, 2, 3], shape: [3] },
-      indices: "",
+      indices: ""
     });
     const res = await __n65.process();
     expect(res.output).toEqual({ data: [], shape: [0] });
@@ -965,7 +969,7 @@ describe("lib-numpy gaps", () => {
   it("SliceArray with empty data returns empty", async () => {
     const __n66 = new SliceArrayNode();
     __n66.assign({
-      values: { data: [], shape: [] },
+      values: { data: [], shape: [] }
     });
     const res = await __n66.process();
     expect(res.output).toEqual({ data: [], shape: [] });
@@ -976,12 +980,19 @@ describe("lib-numpy gaps", () => {
     // Create a 2x2 red PNG via sharp
     const sharp = (await import("sharp")).default;
     const pngBuf = await sharp({
-      create: { width: 2, height: 2, channels: 3, background: { r: 255, g: 0, b: 0 } },
-    }).png().toBuffer();
+      create: {
+        width: 2,
+        height: 2,
+        channels: 3,
+        background: { r: 255, g: 0, b: 0 }
+      }
+    })
+      .png()
+      .toBuffer();
 
     const __n67 = new ConvertToArrayNumpyNode();
     __n67.assign({
-      image: { data: pngBuf.toString("base64") },
+      image: { data: pngBuf.toString("base64") }
     });
     const res = await __n67.process();
     const out = res.output as { data: number[]; shape: number[] };
@@ -992,9 +1003,7 @@ describe("lib-numpy gaps", () => {
   it("ConvertToArrayNumpyNode no data throws", async () => {
     const __n68 = new ConvertToArrayNumpyNode();
     __n68.assign({ image: {} });
-    await expect(
-      __n68.process()
-    ).rejects.toThrow("not connected");
+    await expect(__n68.process()).rejects.toThrow("not connected");
   });
 
   it("defaults for all numpy nodes", () => {
@@ -1031,7 +1040,9 @@ describe("lib-numpy gaps", () => {
     expect(new ScalarToArrayNode().serialize()).toHaveProperty("value");
     expect(new ArrayToScalarNode().serialize()).toHaveProperty("values");
     expect(new NumpyConvertToImageNode().serialize()).toHaveProperty("values");
-    expect(new NumpyConvertToAudioNode().serialize()).toHaveProperty("sample_rate");
+    expect(new NumpyConvertToAudioNode().serialize()).toHaveProperty(
+      "sample_rate"
+    );
     expect(new ConvertToArrayNumpyNode().serialize()).toHaveProperty("image");
     expect(new SaveArrayNode().serialize()).toHaveProperty("name");
     expect(new BinaryOperationNode().serialize()).toHaveProperty("a");
@@ -1145,15 +1156,33 @@ startxref
 
   it("defaults for all pdf nodes", () => {
     expect(new GetPageCountPdfPlumberNode().serialize()).toHaveProperty("pdf");
-    expect(new ExtractTextPdfPlumberNode().serialize()).toHaveProperty("start_page");
-    expect(new ExtractPageMetadataPdfPlumberNode().serialize()).toHaveProperty("start_page");
-    expect(new ExtractTablesPdfPlumberNode().serialize()).toHaveProperty("start_page");
-    expect(new ExtractImagesPdfPlumberNode().serialize()).toHaveProperty("start_page");
-    expect(new ExtractTextPyMuPdfNode().serialize()).toHaveProperty("start_page");
-    expect(new ExtractMarkdownPyMuPdfNode().serialize()).toHaveProperty("start_page");
-    expect(new ExtractTextBlocksPyMuPdfNode().serialize()).toHaveProperty("start_page");
-    expect(new ExtractTextWithStylePyMuPdfNode().serialize()).toHaveProperty("start_page");
-    expect(new ExtractTablesPyMuPdfNode().serialize()).toHaveProperty("start_page");
+    expect(new ExtractTextPdfPlumberNode().serialize()).toHaveProperty(
+      "start_page"
+    );
+    expect(new ExtractPageMetadataPdfPlumberNode().serialize()).toHaveProperty(
+      "start_page"
+    );
+    expect(new ExtractTablesPdfPlumberNode().serialize()).toHaveProperty(
+      "start_page"
+    );
+    expect(new ExtractImagesPdfPlumberNode().serialize()).toHaveProperty(
+      "start_page"
+    );
+    expect(new ExtractTextPyMuPdfNode().serialize()).toHaveProperty(
+      "start_page"
+    );
+    expect(new ExtractMarkdownPyMuPdfNode().serialize()).toHaveProperty(
+      "start_page"
+    );
+    expect(new ExtractTextBlocksPyMuPdfNode().serialize()).toHaveProperty(
+      "start_page"
+    );
+    expect(new ExtractTextWithStylePyMuPdfNode().serialize()).toHaveProperty(
+      "start_page"
+    );
+    expect(new ExtractTablesPyMuPdfNode().serialize()).toHaveProperty(
+      "start_page"
+    );
   });
 });
 
@@ -1165,71 +1194,106 @@ describe("lib-sqlite gaps", () => {
   const ctx = { workspaceDir: tmpDir() } as any;
 
   /** Helper: assign props then call process(ctx) */
-  function sqliteRun<T extends { assign(p: Record<string, unknown>): void; process(ctx?: any): Promise<Record<string, unknown>> }>(
-    node: T, props: Record<string, unknown>, context: any
+  function sqliteRun<
+    T extends {
+      assign(p: Record<string, unknown>): void;
+      process(ctx?: any): Promise<Record<string, unknown>>;
+    }
+  >(
+    node: T,
+    props: Record<string, unknown>,
+    context: any
   ): Promise<Record<string, unknown>> {
     node.assign(props);
     return node.process(context);
   }
 
   it("CreateTable + Insert + Query + Update + Delete flow", async () => {
-    const createRes = await sqliteRun(new CreateTableLibNode(), {
-      database_name: "test.db",
-      table_name: "items",
-      columns: {
-        type: "record_type",
-        columns: [
-          { name: "id", data_type: "int" },
-          { name: "name", data_type: "string" },
-          { name: "value", data_type: "float" },
-        ],
+    const createRes = await sqliteRun(
+      new CreateTableLibNode(),
+      {
+        database_name: "test.db",
+        table_name: "items",
+        columns: {
+          type: "record_type",
+          columns: [
+            { name: "id", data_type: "int" },
+            { name: "name", data_type: "string" },
+            { name: "value", data_type: "float" }
+          ]
+        },
+        add_primary_key: true,
+        if_not_exists: true
       },
-      add_primary_key: true,
-      if_not_exists: true,
-    }, ctx);
+      ctx
+    );
     expect(createRes.table_name).toBe("items");
 
     // Insert
-    const ins = await sqliteRun(new SqliteInsertLibNode(),
-      { database_name: "test.db", table_name: "items", data: { name: "foo", value: 42.5 } },
+    const ins = await sqliteRun(
+      new SqliteInsertLibNode(),
+      {
+        database_name: "test.db",
+        table_name: "items",
+        data: { name: "foo", value: 42.5 }
+      },
       ctx
     );
     expect(ins.row_id).toBeDefined();
 
     // Query
-    const query = await sqliteRun(new QueryLibNode(),
-      { database_name: "test.db", table_name: "items", where: "", order_by: "", limit: 0 },
+    const query = await sqliteRun(
+      new QueryLibNode(),
+      {
+        database_name: "test.db",
+        table_name: "items",
+        where: "",
+        order_by: "",
+        limit: 0
+      },
       ctx
     );
     expect((query.output as any[]).length).toBe(1);
 
     // Query with columns, where, order_by, limit
-    const query2 = await sqliteRun(new QueryLibNode(), {
-      database_name: "test.db",
-      table_name: "items",
-      columns: { columns: [{ name: "name" }] },
-      where: "name = 'foo'",
-      order_by: "name",
-      limit: 1,
-    }, ctx);
+    const query2 = await sqliteRun(
+      new QueryLibNode(),
+      {
+        database_name: "test.db",
+        table_name: "items",
+        columns: { columns: [{ name: "name" }] },
+        where: "name = 'foo'",
+        order_by: "name",
+        limit: 1
+      },
+      ctx
+    );
     expect((query2.output as any[]).length).toBe(1);
 
     // Update
-    const upd = await sqliteRun(new SqliteUpdateLibNode(),
-      { database_name: "test.db", table_name: "items", data: { name: "bar" }, where: "name = 'foo'" },
+    const upd = await sqliteRun(
+      new SqliteUpdateLibNode(),
+      {
+        database_name: "test.db",
+        table_name: "items",
+        data: { name: "bar" },
+        where: "name = 'foo'"
+      },
       ctx
     );
     expect(upd.rows_affected).toBe(1);
 
     // Update without where
-    const upd2 = await sqliteRun(new SqliteUpdateLibNode(),
+    const upd2 = await sqliteRun(
+      new SqliteUpdateLibNode(),
       { database_name: "test.db", table_name: "items", data: { name: "baz" } },
       ctx
     );
     expect(upd2.rows_affected).toBe(1);
 
     // Delete
-    const del = await sqliteRun(new SqliteDeleteLibNode(),
+    const del = await sqliteRun(
+      new SqliteDeleteLibNode(),
       { database_name: "test.db", table_name: "items", where: "name = 'baz'" },
       ctx
     );
@@ -1244,18 +1308,28 @@ describe("lib-sqlite gaps", () => {
 
   it("ExecuteSQL modifying", async () => {
     // Create table first
-    await sqliteRun(new ExecuteSQLLibNode(),
-      { database_name: "exec.db", sql: "CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT)" },
+    await sqliteRun(
+      new ExecuteSQLLibNode(),
+      {
+        database_name: "exec.db",
+        sql: "CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT)"
+      },
       ctx
     );
-    const ins = await sqliteRun(new ExecuteSQLLibNode(),
-      { database_name: "exec.db", sql: "INSERT INTO t (val) VALUES (?)", parameters: ["hello"] },
+    const ins = await sqliteRun(
+      new ExecuteSQLLibNode(),
+      {
+        database_name: "exec.db",
+        sql: "INSERT INTO t (val) VALUES (?)",
+        parameters: ["hello"]
+      },
       ctx
     );
     expect(ins.rows_affected).toBe(1);
 
     // Query
-    const q = await sqliteRun(new ExecuteSQLLibNode(),
+    const q = await sqliteRun(
+      new ExecuteSQLLibNode(),
       { database_name: "exec.db", sql: "SELECT * FROM t" },
       ctx
     );
@@ -1280,31 +1354,46 @@ describe("lib-sqlite gaps", () => {
 
   it("CreateTable with existing table returns early", async () => {
     const ctx2 = { workspaceDir: tmpDir() } as any;
-    await sqliteRun(new CreateTableLibNode(), {
-      database_name: "dup.db",
-      table_name: "t",
-      columns: { columns: [{ name: "a", data_type: "string" }] },
-    }, ctx2);
+    await sqliteRun(
+      new CreateTableLibNode(),
+      {
+        database_name: "dup.db",
+        table_name: "t",
+        columns: { columns: [{ name: "a", data_type: "string" }] }
+      },
+      ctx2
+    );
     // Second call - table already exists
-    const res = await sqliteRun(new CreateTableLibNode(), {
-      database_name: "dup.db",
-      table_name: "t",
-      columns: { columns: [{ name: "a", data_type: "string" }] },
-    }, ctx2);
+    const res = await sqliteRun(
+      new CreateTableLibNode(),
+      {
+        database_name: "dup.db",
+        table_name: "t",
+        columns: { columns: [{ name: "a", data_type: "string" }] }
+      },
+      ctx2
+    );
     expect(res.table_name).toBe("t");
   });
 
   it("Insert with JSON value serialization", async () => {
     const ctx2 = { workspaceDir: tmpDir() } as any;
-    await sqliteRun(new ExecuteSQLLibNode(),
+    await sqliteRun(
+      new ExecuteSQLLibNode(),
       { database_name: "json.db", sql: "CREATE TABLE j (data TEXT)" },
       ctx2
     );
-    await sqliteRun(new SqliteInsertLibNode(),
-      { database_name: "json.db", table_name: "j", data: { data: { nested: true } } },
+    await sqliteRun(
+      new SqliteInsertLibNode(),
+      {
+        database_name: "json.db",
+        table_name: "j",
+        data: { data: { nested: true } }
+      },
       ctx2
     );
-    const q = await sqliteRun(new QueryLibNode(),
+    const q = await sqliteRun(
+      new QueryLibNode(),
       { database_name: "json.db", table_name: "j" },
       ctx2
     );
@@ -1313,13 +1402,17 @@ describe("lib-sqlite gaps", () => {
   });
 
   it("defaults for all sqlite nodes", () => {
-    expect(new CreateTableLibNode().serialize()).toHaveProperty("database_name");
+    expect(new CreateTableLibNode().serialize()).toHaveProperty(
+      "database_name"
+    );
     expect(new SqliteInsertLibNode().serialize()).toHaveProperty("data");
     expect(new QueryLibNode().serialize()).toHaveProperty("where");
     expect(new SqliteUpdateLibNode().serialize()).toHaveProperty("where");
     expect(new SqliteDeleteLibNode().serialize()).toHaveProperty("where");
     expect(new ExecuteSQLLibNode().serialize()).toHaveProperty("sql");
-    expect(new GetDatabasePathLibNode().serialize()).toHaveProperty("database_name");
+    expect(new GetDatabasePathLibNode().serialize()).toHaveProperty(
+      "database_name"
+    );
   });
 });
 
@@ -1336,9 +1429,14 @@ describe("lib-excel gaps", () => {
     const __n80 = new DataFrameToExcelLibNode();
     __n80.assign({
       workbook: wb.output,
-      dataframe: { rows: [{ name: "Alice", age: 30 }, { name: "Bob", age: 25 }] },
+      dataframe: {
+        rows: [
+          { name: "Alice", age: 30 },
+          { name: "Bob", age: 25 }
+        ]
+      },
       sheet_name: "S1",
-      include_header: true,
+      include_header: true
     });
     const written = await __n80.process();
 
@@ -1346,7 +1444,7 @@ describe("lib-excel gaps", () => {
     __n81.assign({
       workbook: written.output,
       sheet_name: "S1",
-      has_header: true,
+      has_header: true
     });
     const read = await __n81.process();
     const rows = (read.output as any).rows;
@@ -1358,7 +1456,7 @@ describe("lib-excel gaps", () => {
     __n82.assign({
       workbook: written.output,
       sheet_name: "S1",
-      has_header: false,
+      has_header: false
     });
     const read2 = await __n82.process();
     expect((read2.output as any).rows.length).toBe(3); // header row + 2 data rows
@@ -1371,7 +1469,7 @@ describe("lib-excel gaps", () => {
       cell_range: "A1:B1",
       bold: true,
       background_color: "FFFF00",
-      text_color: "000000",
+      text_color: "000000"
     });
     const formatted = await __n83.process();
     expect(formatted.output).toBeDefined();
@@ -1380,7 +1478,7 @@ describe("lib-excel gaps", () => {
     const __n84 = new AutoFitColumnsLibNode();
     __n84.assign({
       workbook: written.output,
-      sheet_name: "S1",
+      sheet_name: "S1"
     });
     const fitted = await __n84.process();
     expect(fitted.output).toBeDefined();
@@ -1394,7 +1492,7 @@ describe("lib-excel gaps", () => {
     __n86.assign({
       workbook: wb.output,
       dataframe: { rows: [] },
-      sheet_name: "S1",
+      sheet_name: "S1"
     });
     const res = await __n86.process();
     expect(res.output).toBeDefined();
@@ -1408,7 +1506,7 @@ describe("lib-excel gaps", () => {
     __n88.assign({
       workbook: wb.output,
       dataframe: { rows: [{ x: 1 }] },
-      sheet_name: "NewSheet",
+      sheet_name: "NewSheet"
     });
     const res = await __n88.process();
     expect(res.output).toBeDefined();
@@ -1423,7 +1521,7 @@ describe("lib-excel gaps", () => {
     __n90.assign({
       workbook: wb.output,
       folder: { path: dir },
-      filename: "test.xlsx",
+      filename: "test.xlsx"
     });
     const res = await __n90.process();
     expect(typeof res.output).toBe("string");
@@ -1432,10 +1530,12 @@ describe("lib-excel gaps", () => {
   it("SaveWorkbook no path throws", async () => {
     const wb = await new CreateWorkbookLibNode().process();
     const __n91 = new SaveWorkbookLibNode();
-    __n91.assign({ workbook: wb.output, folder: { path: "" }, filename: "x.xlsx" });
-    await expect(
-      __n91.process()
-    ).rejects.toThrow("Path");
+    __n91.assign({
+      workbook: wb.output,
+      folder: { path: "" },
+      filename: "x.xlsx"
+    });
+    await expect(__n91.process()).rejects.toThrow("Path");
   });
 
   it("ExcelToDataFrame missing sheet throws", async () => {
@@ -1444,17 +1544,23 @@ describe("lib-excel gaps", () => {
     const wb = await __n92.process();
     const __n93 = new ExcelToDataFrameLibNode();
     __n93.assign({ workbook: wb.output, sheet_name: "Missing" });
-    await expect(
-      __n93.process()
-    ).rejects.toThrow("not found");
+    await expect(__n93.process()).rejects.toThrow("not found");
   });
 
   it("defaults for all excel nodes", () => {
-    expect(new CreateWorkbookLibNode().serialize()).toHaveProperty("sheet_name");
-    expect(new ExcelToDataFrameLibNode().serialize()).toHaveProperty("has_header");
-    expect(new DataFrameToExcelLibNode().serialize()).toHaveProperty("include_header");
+    expect(new CreateWorkbookLibNode().serialize()).toHaveProperty(
+      "sheet_name"
+    );
+    expect(new ExcelToDataFrameLibNode().serialize()).toHaveProperty(
+      "has_header"
+    );
+    expect(new DataFrameToExcelLibNode().serialize()).toHaveProperty(
+      "include_header"
+    );
     expect(new FormatCellsLibNode().serialize()).toHaveProperty("bold");
-    expect(new AutoFitColumnsLibNode().serialize()).toHaveProperty("sheet_name");
+    expect(new AutoFitColumnsLibNode().serialize()).toHaveProperty(
+      "sheet_name"
+    );
     expect(new SaveWorkbookLibNode().serialize()).toHaveProperty("filename");
   });
 });
@@ -1486,7 +1592,7 @@ describe("lib-docx gaps", () => {
       alignment: "CENTER",
       bold: true,
       italic: true,
-      font_size: 14,
+      font_size: 14
     });
     const res = await __n95.process();
     expect((res.output as any).elements.length).toBe(1);
@@ -1497,7 +1603,7 @@ describe("lib-docx gaps", () => {
     const __n96 = new AddTableLibNode();
     __n96.assign({
       document: doc,
-      data: { rows: [{ a: "1", b: "2" }] },
+      data: { rows: [{ a: "1", b: "2" }] }
     });
     const res = await __n96.process();
     expect((res.output as any).elements.length).toBe(1);
@@ -1508,7 +1614,12 @@ describe("lib-docx gaps", () => {
     const __n97 = new AddTableLibNode();
     __n97.assign({
       document: doc,
-      data: { data: [["a", "b"], ["c", "d"]] },
+      data: {
+        data: [
+          ["a", "b"],
+          ["c", "d"]
+        ]
+      }
     });
     const res = await __n97.process();
     expect((res.output as any).elements[0].type).toBe("table");
@@ -1530,7 +1641,7 @@ describe("lib-docx gaps", () => {
       title: "My Doc",
       author: "Author",
       subject: "Test",
-      keywords: "kw",
+      keywords: "kw"
     });
     const res = await __n99.process();
     expect((res.output as any).properties.title).toBe("My Doc");
@@ -1544,7 +1655,7 @@ describe("lib-docx gaps", () => {
       document: doc,
       image: { data: imgData },
       width: 1,
-      height: 1,
+      height: 1
     });
     const res = await __n100.process();
     expect((res.output as any).elements[0].type).toBe("image");
@@ -1553,10 +1664,8 @@ describe("lib-docx gaps", () => {
   it("AddImage invalid throws", async () => {
     const doc = { elements: [] };
     const __n101 = new AddImageLibNode();
-    __n101.assign({ document: doc, image: { }, width: 0, height: 0 });
-    await expect(
-      __n101.process()
-    ).rejects.toThrow("path");
+    __n101.assign({ document: doc, image: {}, width: 0, height: 0 });
+    await expect(__n101.process()).rejects.toThrow("path");
   });
 
   it("SaveDocument renders all element types", async () => {
@@ -1564,18 +1673,36 @@ describe("lib-docx gaps", () => {
     const doc = {
       elements: [
         { type: "heading", text: "Title", level: 1 },
-        { type: "paragraph", text: "Para", alignment: "LEFT", bold: false, italic: false, font_size: 12 },
-        { type: "table", data: [["a", "b"], ["c", "d"]] },
+        {
+          type: "paragraph",
+          text: "Para",
+          alignment: "LEFT",
+          bold: false,
+          italic: false,
+          font_size: 12
+        },
+        {
+          type: "table",
+          data: [
+            ["a", "b"],
+            ["c", "d"]
+          ]
+        },
         { type: "page_break" },
-        { type: "image", image_data: Buffer.alloc(100, 0xff), width: 0, height: 0 },
+        {
+          type: "image",
+          image_data: Buffer.alloc(100, 0xff),
+          width: 0,
+          height: 0
+        }
       ],
-      properties: { title: "T", author: "A", subject: "S", keywords: "K" },
+      properties: { title: "T", author: "A", subject: "S", keywords: "K" }
     };
     const __n102 = new SaveDocumentLibNode();
     __n102.assign({
       document: doc,
       path: { path: dir },
-      filename: "test.docx",
+      filename: "test.docx"
     });
     const res = await __n102.process();
     expect(typeof res.output).toBe("string");
@@ -1584,9 +1711,7 @@ describe("lib-docx gaps", () => {
   it("SaveDocument no path throws", async () => {
     const __n103 = new SaveDocumentLibNode();
     __n103.assign({ document: { elements: [] }, path: "", filename: "x.docx" });
-    await expect(
-      __n103.process()
-    ).rejects.toThrow("Path");
+    await expect(__n103.process()).rejects.toThrow("Path");
   });
 
   it("defaults for all docx nodes", () => {
@@ -1597,7 +1722,9 @@ describe("lib-docx gaps", () => {
     expect(new AddTableLibNode().serialize()).toHaveProperty("data");
     expect(new AddImageLibNode().serialize()).toHaveProperty("width");
     expect(new AddPageBreakLibNode().serialize()).toHaveProperty("document");
-    expect(new SetDocumentPropertiesLibNode().serialize()).toHaveProperty("title");
+    expect(new SetDocumentPropertiesLibNode().serialize()).toHaveProperty(
+      "title"
+    );
     expect(new SaveDocumentLibNode().serialize()).toHaveProperty("filename");
   });
 });
@@ -1682,7 +1809,7 @@ describe("lib-beautifulsoup gaps", () => {
     const __n112 = new HTMLToTextLibNode();
     __n112.assign({
       text: "<p>Hello</p>",
-      preserve_linebreaks: false,
+      preserve_linebreaks: false
     });
     const res = await __n112.process();
     expect(typeof res.output).toBe("string");
@@ -1713,8 +1840,12 @@ describe("lib-beautifulsoup gaps", () => {
     expect(new ExtractAudioLibNode().serialize()).toHaveProperty("html");
     expect(new ExtractVideosLibNode().serialize()).toHaveProperty("html");
     expect(new ExtractMetadataLibNode().serialize()).toHaveProperty("html");
-    expect(new HTMLToTextLibNode().serialize()).toHaveProperty("preserve_linebreaks");
-    expect(new WebsiteContentExtractorLibNode().serialize()).toHaveProperty("html_content");
+    expect(new HTMLToTextLibNode().serialize()).toHaveProperty(
+      "preserve_linebreaks"
+    );
+    expect(new WebsiteContentExtractorLibNode().serialize()).toHaveProperty(
+      "html_content"
+    );
   });
 });
 
@@ -1724,7 +1855,12 @@ describe("lib-beautifulsoup gaps", () => {
 
 // canvas native module required for chart rendering
 let hasCanvas = false;
-try { require("canvas"); hasCanvas = true; } catch { /* not installed */ }
+try {
+  require("canvas");
+  hasCanvas = true;
+} catch {
+  /* not installed */
+}
 
 describe.skipIf(!hasCanvas)("lib-seaborn gaps", () => {
   it("ChartRenderer renders a basic bar chart", async () => {
@@ -1734,14 +1870,18 @@ describe.skipIf(!hasCanvas)("lib-seaborn gaps", () => {
         title: "Test Chart",
         x_label: "X",
         y_label: "Y",
-        data: { series: [{ plot_type: "barplot", x: "name", y: "value" }] },
+        data: { series: [{ plot_type: "barplot", x: "name", y: "value" }] }
       },
       width: 200,
       height: 150,
       data: {
         columns: [{ name: "name" }, { name: "value" }],
-        data: [["A", 10], ["B", 20], ["C", 15]],
-      },
+        data: [
+          ["A", 10],
+          ["B", 20],
+          ["C", 15]
+        ]
+      }
     });
     const res = await __n115.process();
     const out = res.output as { data: string };
@@ -1751,24 +1891,25 @@ describe.skipIf(!hasCanvas)("lib-seaborn gaps", () => {
   it("ChartRenderer empty data throws", async () => {
     const __n116 = new ChartRendererLibNode();
     __n116.assign({
-        chart_config: {},
-        data: { columns: [], data: [] },
-      });
-    await expect(
-      __n116.process()
-    ).rejects.toThrow("Data is required");
+      chart_config: {},
+      data: { columns: [], data: [] }
+    });
+    await expect(__n116.process()).rejects.toThrow("Data is required");
   });
 
   it("ChartRenderer scatter type", async () => {
     const __n117 = new ChartRendererLibNode();
     __n117.assign({
       chart_config: {
-        data: { series: [{ plot_type: "scatter", x: "x", y: "y" }] },
+        data: { series: [{ plot_type: "scatter", x: "x", y: "y" }] }
       },
       data: {
         columns: [{ name: "x" }, { name: "y" }],
-        data: [[1, 2], [3, 4]],
-      },
+        data: [
+          [1, 2],
+          [3, 4]
+        ]
+      }
     });
     const res = await __n117.process();
     expect((res.output as any).data.length).toBeGreaterThan(0);
@@ -1791,7 +1932,7 @@ describe("lib-pedalboard-extra gaps", () => {
     __n118.assign({
       audio,
       bit_depth: 4,
-      sample_rate_reduction: 2,
+      sample_rate_reduction: 2
     });
     const res = await __n118.process();
     expect((res.output as any).data.length).toBeGreaterThan(0);
@@ -1811,7 +1952,7 @@ describe("lib-pedalboard-extra gaps", () => {
       threshold: -10,
       ratio: 4,
       attack: 5,
-      release: 50,
+      release: 50
     });
     const res = await __n120.process();
     expect((res.output as any).data.length).toBeGreaterThan(0);
@@ -1859,7 +2000,7 @@ describe("lib-pedalboard-extra gaps", () => {
       room_scale: 0.5,
       damping: 0.5,
       wet_level: 0.15,
-      dry_level: 0.5,
+      dry_level: 0.5
     });
     const res = await __n126.process();
     expect((res.output as any).data.length).toBeGreaterThan(0);
@@ -1969,7 +2110,7 @@ describe("lib-librosa-spectral gaps", () => {
       audio,
       n_fft: 2048,
       hop_length: 512,
-      n_mels: 32,
+      n_mels: 32
     });
     const res = await __n138.process();
     const out = res.output as { data: number[][] };
@@ -1989,7 +2130,7 @@ describe("lib-librosa-spectral gaps", () => {
       audio,
       n_mfcc: 13,
       n_fft: 2048,
-      hop_length: 512,
+      hop_length: 512
     });
     const res = await __n140.process();
     const out = res.output as { data: number[][] };
@@ -2073,7 +2214,7 @@ describe("lib-librosa-spectral gaps", () => {
     __n150.assign({
       audio,
       onsets: { data: [0.1, 0.3] },
-      min_segment_length: 0.05,
+      min_segment_length: 0.05
     });
     const res = await __n150.process();
     expect(Array.isArray(res.output)).toBe(true);
@@ -2090,7 +2231,7 @@ describe("lib-librosa-spectral gaps", () => {
     const __n152 = new SaveAudioSegmentsNode();
     __n152.assign({
       segments: [],
-      output_folder: {},
+      output_folder: {}
     });
     const res = await __n152.process();
     expect(res.output).toEqual({});
@@ -2101,14 +2242,14 @@ describe("lib-librosa-spectral gaps", () => {
     const __n153 = new OscillatorLibNode();
     __n153.assign({
       duration: 0.05,
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const osc = await __n153.process();
     const __n154 = new SaveAudioSegmentsNode();
     __n154.assign({
       segments: [osc.output],
       output_folder: { path: dir },
-      name_prefix: "seg",
+      name_prefix: "seg"
     });
     const res = await __n154.process();
     expect(res.output).toHaveProperty("path");
@@ -2123,8 +2264,12 @@ describe("lib-librosa-spectral gaps", () => {
     expect(new SpectralContrastNode().serialize()).toHaveProperty("n_fft");
     expect(new GriffinLimNode().serialize()).toHaveProperty("n_iter");
     expect(new DetectOnsetsNode().serialize()).toHaveProperty("hop_length");
-    expect(new SegmentAudioByOnsetsNode().serialize()).toHaveProperty("min_segment_length");
-    expect(new SaveAudioSegmentsNode().serialize()).toHaveProperty("name_prefix");
+    expect(new SegmentAudioByOnsetsNode().serialize()).toHaveProperty(
+      "min_segment_length"
+    );
+    expect(new SaveAudioSegmentsNode().serialize()).toHaveProperty(
+      "name_prefix"
+    );
   });
 });
 
@@ -2146,7 +2291,7 @@ describe("data.ts gaps", () => {
     const __n156 = new FilterDataframeNode();
     __n156.assign({
       df: df([{ x: 1 }, { x: 2 }, { x: 3 }]),
-      condition: "x > 1",
+      condition: "x > 1"
     });
     const res = await __n156.process();
     expect((res.output as any).rows.length).toBe(2);
@@ -2156,7 +2301,7 @@ describe("data.ts gaps", () => {
     const __n157 = new FilterDataframeNode();
     __n157.assign({
       df: df([{ x: 1 }, { x: 2 }, { x: 3 }]),
-      condition: "x > 1 and x < 3",
+      condition: "x > 1 and x < 3"
     });
     const res = await __n157.process();
     expect((res.output as any).rows.length).toBe(1);
@@ -2167,7 +2312,7 @@ describe("data.ts gaps", () => {
     __n158.assign({
       dataframe: df([{ x: 1 }, { x: 2 }, { x: 3 }]),
       start_index: 1,
-      end_index: 2,
+      end_index: 2
     });
     const res = await __n158.process();
     expect((res.output as any).rows.length).toBe(1);
@@ -2179,7 +2324,7 @@ describe("data.ts gaps", () => {
     __n159.assign({
       df: df([{ a: 1, b: 2 }]),
       folder: dir,
-      name: "test.csv",
+      name: "test.csv"
     });
     const res = await __n159.process();
     expect(res.path).toBeDefined();
@@ -2188,7 +2333,7 @@ describe("data.ts gaps", () => {
   it("FromList", async () => {
     const __n160 = new FromListNode();
     __n160.assign({
-      values: [{ name: "Alice" }, { name: "Bob" }],
+      values: [{ name: "Alice" }, { name: "Bob" }]
     });
     const res = await __n160.process();
     expect((res.output as any).rows.length).toBe(2);
@@ -2197,7 +2342,7 @@ describe("data.ts gaps", () => {
   it("FromList with value wrapper", async () => {
     const __n161 = new FromListNode();
     __n161.assign({
-      values: [{ name: { value: "Alice" } }],
+      values: [{ name: { value: "Alice" } }]
     });
     const res = await __n161.process();
     expect((res.output as any).rows[0].name).toBe("Alice");
@@ -2206,7 +2351,7 @@ describe("data.ts gaps", () => {
   it("FromList with non-primitive values", async () => {
     const __n162 = new FromListNode();
     __n162.assign({
-      values: [{ arr: [1, 2, 3] }],
+      values: [{ arr: [1, 2, 3] }]
     });
     const res = await __n162.process();
     expect((res.output as any).rows[0].arr).toBe("1,2,3");
@@ -2215,15 +2360,13 @@ describe("data.ts gaps", () => {
   it("FromList non-dict throws", async () => {
     const __n163 = new FromListNode();
     __n163.assign({ values: ["not-a-dict"] });
-    await expect(
-      __n163.process()
-    ).rejects.toThrow("dicts");
+    await expect(__n163.process()).rejects.toThrow("dicts");
   });
 
   it("JSONToDataframe", async () => {
     const __n164 = new JSONToDataframeNode();
     __n164.assign({
-      text: '[{"a":1},{"a":2}]',
+      text: '[{"a":1},{"a":2}]'
     });
     const res = await __n164.process();
     expect((res.output as any).rows.length).toBe(2);
@@ -2232,7 +2375,7 @@ describe("data.ts gaps", () => {
   it("ToList", async () => {
     const __n165 = new ToListNode();
     __n165.assign({
-      dataframe: df([{ x: 1 }]),
+      dataframe: df([{ x: 1 }])
     });
     const res = await __n165.process();
     expect(res.output).toEqual([{ x: 1 }]);
@@ -2242,7 +2385,7 @@ describe("data.ts gaps", () => {
     const __n166 = new SelectColumnNode();
     __n166.assign({
       dataframe: df([{ a: 1, b: 2 }]),
-      columns: "a",
+      columns: "a"
     });
     const res = await __n166.process();
     expect((res.output as any).rows[0]).toEqual({ a: 1 });
@@ -2252,7 +2395,7 @@ describe("data.ts gaps", () => {
     const __n167 = new ExtractColumnNode();
     __n167.assign({
       dataframe: df([{ x: 10 }, { x: 20 }]),
-      column_name: "x",
+      column_name: "x"
     });
     const res = await __n167.process();
     expect(res.output).toEqual([10, 20]);
@@ -2263,7 +2406,7 @@ describe("data.ts gaps", () => {
     __n168.assign({
       dataframe: df([{ a: 1 }]),
       column_name: "b",
-      values: [2],
+      values: [2]
     });
     const res = await __n168.process();
     expect((res.output as any).rows[0].b).toBe(2);
@@ -2273,7 +2416,7 @@ describe("data.ts gaps", () => {
     const __n169 = new MergeDataframeNode();
     __n169.assign({
       dataframe_a: df([{ a: 1 }]),
-      dataframe_b: df([{ b: 2 }]),
+      dataframe_b: df([{ b: 2 }])
     });
     const res = await __n169.process();
     expect((res.output as any).rows[0]).toEqual({ a: 1, b: 2 });
@@ -2283,7 +2426,7 @@ describe("data.ts gaps", () => {
     const __n170 = new AppendDataframeNode();
     __n170.assign({
       dataframe_a: df([{ x: 1 }]),
-      dataframe_b: df([{ x: 2 }]),
+      dataframe_b: df([{ x: 2 }])
     });
     const res = await __n170.process();
     expect((res.output as any).rows.length).toBe(2);
@@ -2292,19 +2435,17 @@ describe("data.ts gaps", () => {
   it("Append column mismatch throws", async () => {
     const __n171 = new AppendDataframeNode();
     __n171.assign({
-        dataframe_a: df([{ x: 1 }]),
-        dataframe_b: df([{ y: 2 }]),
-      });
-    await expect(
-      __n171.process()
-    ).rejects.toThrow("Columns");
+      dataframe_a: df([{ x: 1 }]),
+      dataframe_b: df([{ y: 2 }])
+    });
+    await expect(__n171.process()).rejects.toThrow("Columns");
   });
 
   it("Append with empty a", async () => {
     const __n172 = new AppendDataframeNode();
     __n172.assign({
       dataframe_a: df([]),
-      dataframe_b: df([{ x: 1 }]),
+      dataframe_b: df([{ x: 1 }])
     });
     const res = await __n172.process();
     expect((res.output as any).rows.length).toBe(1);
@@ -2315,7 +2456,7 @@ describe("data.ts gaps", () => {
     __n173.assign({
       dataframe_a: df([{ id: 1, a: "x" }]),
       dataframe_b: df([{ id: 1, b: "y" }]),
-      join_on: "id",
+      join_on: "id"
     });
     const res = await __n173.process();
     expect((res.output as any).rows[0].b).toBe("y");
@@ -2324,9 +2465,7 @@ describe("data.ts gaps", () => {
   it("RowIterator genProcess", async () => {
     const node = new RowIteratorNode();
     node.assign({ dataframe: df([{ x: 1 }, { x: 2 }]) });
-    const items = await collectGen(
-      node.genProcess()
-    );
+    const items = await collectGen(node.genProcess());
     expect(items.length).toBe(2);
     expect(items[0].index).toBe(0);
   });
@@ -2335,7 +2474,7 @@ describe("data.ts gaps", () => {
     const __n174 = new FindRowNode();
     __n174.assign({
       df: df([{ x: 1 }, { x: 2 }]),
-      condition: "x == 2",
+      condition: "x == 2"
     });
     const res = await __n174.process();
     expect((res.output as any).rows.length).toBe(1);
@@ -2345,7 +2484,7 @@ describe("data.ts gaps", () => {
     const __n175 = new SortByColumnNode();
     __n175.assign({
       df: df([{ n: "b" }, { n: "a" }]),
-      column: "n",
+      column: "n"
     });
     const res = await __n175.process();
     expect((res.output as any).rows[0].n).toBe("a");
@@ -2354,7 +2493,7 @@ describe("data.ts gaps", () => {
   it("DropDuplicates", async () => {
     const __n176 = new DropDuplicatesNode();
     __n176.assign({
-      df: df([{ x: 1 }, { x: 1 }, { x: 2 }]),
+      df: df([{ x: 1 }, { x: 1 }, { x: 2 }])
     });
     const res = await __n176.process();
     expect((res.output as any).rows.length).toBe(2);
@@ -2363,7 +2502,7 @@ describe("data.ts gaps", () => {
   it("DropNA", async () => {
     const __n177 = new DropNANode();
     __n177.assign({
-      df: df([{ x: 1 }, { x: null }, { x: "" }]),
+      df: df([{ x: 1 }, { x: null }, { x: "" }])
     });
     const res = await __n177.process();
     expect((res.output as any).rows.length).toBe(1);
@@ -2372,9 +2511,7 @@ describe("data.ts gaps", () => {
   it("ForEachRow genProcess", async () => {
     const node = new ForEachRowNode();
     node.assign({ dataframe: df([{ a: 1 }]) });
-    const items = await collectGen(
-      node.genProcess()
-    );
+    const items = await collectGen(node.genProcess());
     expect(items[0].row).toEqual({ a: 1 });
   });
 
@@ -2384,10 +2521,10 @@ describe("data.ts gaps", () => {
       dataframe: df([
         { g: "a", v: 10 },
         { g: "a", v: 20 },
-        { g: "b", v: 5 },
+        { g: "b", v: 5 }
       ]),
       columns: "g",
-      aggregation: "sum",
+      aggregation: "sum"
     });
     const res = await __n178.process();
     const rows = (res.output as any).rows;
@@ -2395,12 +2532,23 @@ describe("data.ts gaps", () => {
   });
 
   it("Aggregate all types", async () => {
-    for (const agg of ["mean", "count", "min", "max", "median", "first", "last"]) {
+    for (const agg of [
+      "mean",
+      "count",
+      "min",
+      "max",
+      "median",
+      "first",
+      "last"
+    ]) {
       const __n179 = new AggregateNode();
       __n179.assign({
-        dataframe: df([{ g: "a", v: 10 }, { g: "a", v: 20 }]),
+        dataframe: df([
+          { g: "a", v: 10 },
+          { g: "a", v: 20 }
+        ]),
         columns: "g",
-        aggregation: agg,
+        aggregation: agg
       });
       const res = await __n179.process();
       expect((res.output as any).rows.length).toBe(1);
@@ -2410,13 +2558,11 @@ describe("data.ts gaps", () => {
   it("Aggregate unknown throws", async () => {
     const __n180 = new AggregateNode();
     __n180.assign({
-        dataframe: df([{ g: "a", v: 1 }]),
-        columns: "g",
-        aggregation: "bogus",
-      });
-    await expect(
-      __n180.process()
-    ).rejects.toThrow("Unknown");
+      dataframe: df([{ g: "a", v: 1 }]),
+      columns: "g",
+      aggregation: "bogus"
+    });
+    await expect(__n180.process()).rejects.toThrow("Unknown");
   });
 
   it("Pivot", async () => {
@@ -2424,12 +2570,12 @@ describe("data.ts gaps", () => {
     __n181.assign({
       dataframe: df([
         { idx: "A", col: "X", val: 10 },
-        { idx: "A", col: "Y", val: 20 },
+        { idx: "A", col: "Y", val: 20 }
       ]),
       index: "idx",
       columns: "col",
       values: "val",
-      aggfunc: "sum",
+      aggfunc: "sum"
     });
     const res = await __n181.process();
     const rows = (res.output as any).rows;
@@ -2445,7 +2591,7 @@ describe("data.ts gaps", () => {
         index: "i",
         columns: "c",
         values: "v",
-        aggfunc: agg,
+        aggfunc: agg
       });
       const res = await __n182.process();
       expect((res.output as any).rows.length).toBe(1);
@@ -2455,22 +2601,20 @@ describe("data.ts gaps", () => {
   it("Pivot unknown aggfunc throws", async () => {
     const __n183 = new PivotNode();
     __n183.assign({
-        dataframe: df([{ i: "a", c: "x", v: 1 }]),
-        index: "i",
-        columns: "c",
-        values: "v",
-        aggfunc: "bogus",
-      });
-    await expect(
-      __n183.process()
-    ).rejects.toThrow("Unknown");
+      dataframe: df([{ i: "a", c: "x", v: 1 }]),
+      index: "i",
+      columns: "c",
+      values: "v",
+      aggfunc: "bogus"
+    });
+    await expect(__n183.process()).rejects.toThrow("Unknown");
   });
 
   it("Rename", async () => {
     const __n184 = new RenameNode();
     __n184.assign({
       dataframe: df([{ old_name: 1 }]),
-      rename_map: "old_name:new_name",
+      rename_map: "old_name:new_name"
     });
     const res = await __n184.process();
     expect((res.output as any).rows[0].new_name).toBe(1);
@@ -2482,7 +2626,7 @@ describe("data.ts gaps", () => {
       dataframe: df([{ x: null }, { x: 5 }]),
       value: 0,
       method: "value",
-      columns: "x",
+      columns: "x"
     });
     const res = await __n185.process();
     expect((res.output as any).rows[0].x).toBe(0);
@@ -2492,7 +2636,7 @@ describe("data.ts gaps", () => {
     const __n186 = new FillNANode();
     __n186.assign({
       dataframe: df([{ x: 1 }, { x: null }]),
-      method: "forward",
+      method: "forward"
     });
     const res = await __n186.process();
     expect((res.output as any).rows[1].x).toBe(1);
@@ -2502,7 +2646,7 @@ describe("data.ts gaps", () => {
     const __n187 = new FillNANode();
     __n187.assign({
       dataframe: df([{ x: null }, { x: 2 }]),
-      method: "backward",
+      method: "backward"
     });
     const res = await __n187.process();
     expect((res.output as any).rows[0].x).toBe(2);
@@ -2512,7 +2656,7 @@ describe("data.ts gaps", () => {
     const __n188 = new FillNANode();
     __n188.assign({
       dataframe: df([{ x: 10 }, { x: null }, { x: 20 }]),
-      method: "mean",
+      method: "mean"
     });
     const res = await __n188.process();
     expect((res.output as any).rows[1].x).toBe(15);
@@ -2522,7 +2666,7 @@ describe("data.ts gaps", () => {
     const __n189 = new FillNANode();
     __n189.assign({
       dataframe: df([{ x: 10 }, { x: null }, { x: 20 }, { x: 30 }]),
-      method: "median",
+      method: "median"
     });
     const res = await __n189.process();
     expect((res.output as any).rows[1].x).toBe(20);
@@ -2531,9 +2675,7 @@ describe("data.ts gaps", () => {
   it("FillNA unknown method throws", async () => {
     const __n190 = new FillNANode();
     __n190.assign({ dataframe: df([{ x: 1 }]), method: "bogus" });
-    await expect(
-      __n190.process()
-    ).rejects.toThrow("Unknown");
+    await expect(__n190.process()).rejects.toThrow("Unknown");
   });
 
   it("SaveCSVDataframeFile", async () => {
@@ -2542,7 +2684,7 @@ describe("data.ts gaps", () => {
     __n191.assign({
       dataframe: df([{ a: 1 }]),
       folder: dir,
-      filename: "out.csv",
+      filename: "out.csv"
     });
     const res = await __n191.process();
     expect(res.path).toBeDefined();
@@ -2551,25 +2693,21 @@ describe("data.ts gaps", () => {
   it("SaveCSVDataframeFile no folder throws", async () => {
     const __n192 = new SaveCSVDataframeFileNode();
     __n192.assign({
-        dataframe: df([]),
-        folder: "",
-        filename: "x.csv",
-      });
-    await expect(
-      __n192.process()
-    ).rejects.toThrow("folder");
+      dataframe: df([]),
+      folder: "",
+      filename: "x.csv"
+    });
+    await expect(__n192.process()).rejects.toThrow("folder");
   });
 
   it("SaveCSVDataframeFile no filename throws", async () => {
     const __n193 = new SaveCSVDataframeFileNode();
     __n193.assign({
-        dataframe: df([]),
-        folder: "/tmp",
-        filename: "",
-      });
-    await expect(
-      __n193.process()
-    ).rejects.toThrow("filename");
+      dataframe: df([]),
+      folder: "/tmp",
+      filename: ""
+    });
+    await expect(__n193.process()).rejects.toThrow("filename");
   });
 
   it("FilterNone passes through non-null", async () => {
@@ -2590,7 +2728,7 @@ describe("data.ts gaps", () => {
   it("asRows handles data wrapper", async () => {
     const __n196 = new ToListNode();
     __n196.assign({
-      dataframe: { data: [{ x: 1 }] },
+      dataframe: { data: [{ x: 1 }] }
     });
     const res = await __n196.process();
     expect(res.output).toEqual([{ x: 1 }]);
@@ -2623,7 +2761,9 @@ describe("data.ts gaps", () => {
     expect(new PivotNode().serialize()).toHaveProperty("aggfunc");
     expect(new RenameNode().serialize()).toHaveProperty("rename_map");
     expect(new FillNANode().serialize()).toHaveProperty("method");
-    expect(new SaveCSVDataframeFileNode().serialize()).toHaveProperty("filename");
+    expect(new SaveCSVDataframeFileNode().serialize()).toHaveProperty(
+      "filename"
+    );
     expect(new FilterNoneNode().serialize()).toHaveProperty("value");
   });
 });
@@ -2711,57 +2851,54 @@ describe("document.ts gaps", () => {
     // chunk_size and chunk_overlap are accessed via (this as any), not declared props
     (node as any).chunk_size = 50;
     (node as any).chunk_overlap = 10;
-    const items = await collectGen(
-      node.genProcess()
-    );
+    const items = await collectGen(node.genProcess());
     expect(items.length).toBeGreaterThan(1);
   });
 
   it("SplitHTML genProcess", async () => {
     const node = new SplitHTMLNode();
-    node.assign({ document: { text: "<p>" + "word ".repeat(50) + "</p>" }, chunk_size: 50 });
-    const items = await collectGen(
-      node.genProcess()
-    );
+    node.assign({
+      document: { text: "<p>" + "word ".repeat(50) + "</p>" },
+      chunk_size: 50
+    });
+    const items = await collectGen(node.genProcess());
     expect(items.length).toBeGreaterThan(0);
   });
 
   it("SplitJSON genProcess", async () => {
     const node = new SplitJSONNode();
-    node.assign({ document: { text: JSON.stringify({ a: "b".repeat(100) }) }, chunk_size: 50 });
-    const items = await collectGen(
-      node.genProcess()
-    );
+    node.assign({
+      document: { text: JSON.stringify({ a: "b".repeat(100) }) },
+      chunk_size: 50
+    });
+    const items = await collectGen(node.genProcess());
     expect(items.length).toBeGreaterThan(0);
   });
 
   it("SplitJSON with invalid JSON", async () => {
     const node = new SplitJSONNode();
-    node.assign({ document: { text: "not json " + "x".repeat(100) }, chunk_size: 50 });
-    const items = await collectGen(
-      node.genProcess()
-    );
+    node.assign({
+      document: { text: "not json " + "x".repeat(100) },
+      chunk_size: 50
+    });
+    const items = await collectGen(node.genProcess());
     expect(items.length).toBeGreaterThan(0);
   });
 
   it("SplitRecursively genProcess", async () => {
     const node = new SplitRecursivelyNode();
     node.assign({ document: { text: "A\n\nB\n\nC" }, chunk_size: 5 });
-    const items = await collectGen(
-      node.genProcess()
-    );
+    const items = await collectGen(node.genProcess());
     expect(items.length).toBeGreaterThan(0);
   });
 
   it("SplitMarkdown genProcess", async () => {
     const node = new SplitMarkdownNode();
     node.assign({
-        document: { text: "# Title\n" + "word ".repeat(300) },
-        chunk_size: 50,
-      });
-    const items = await collectGen(
-      node.genProcess()
-    );
+      document: { text: "# Title\n" + "word ".repeat(300) },
+      chunk_size: 50
+    });
+    const items = await collectGen(node.genProcess());
     expect(items.length).toBeGreaterThan(1);
   });
 
@@ -2786,7 +2923,7 @@ describe("code.ts gaps", () => {
     const __n202 = new ExecuteJavaScriptNode();
     __n202.assign({
       code: "console.log('hello')",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await __n202.process();
     expect(res.output).toContain("hello");
@@ -2797,7 +2934,7 @@ describe("code.ts gaps", () => {
     const __n203 = new ExecuteBashNode();
     __n203.assign({
       code: "echo hi",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await __n203.process();
     expect(res.output).toContain("hi");
@@ -2807,7 +2944,7 @@ describe("code.ts gaps", () => {
     const __n204 = new ExecuteCommandNode();
     __n204.assign({
       command: "echo test",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await __n204.process();
     expect(res.output).toContain("test");
@@ -2817,7 +2954,7 @@ describe("code.ts gaps", () => {
     const __n205 = new RunJavaScriptCommandNode();
     __n205.assign({
       command: "console.log(42)",
-      timeout_ms: 5000,
+      timeout_ms: 5000
     });
     const res = await __n205.process();
     expect(res.output).toContain("42");
@@ -2827,7 +2964,7 @@ describe("code.ts gaps", () => {
     const __n206 = new RunBashCommandNode();
     __n206.assign({
       command: "echo bash",
-      timeout_ms: 5000,
+      timeout_ms: 5000
     });
     const res = await __n206.process();
     expect(res.output).toContain("bash");
@@ -2837,7 +2974,7 @@ describe("code.ts gaps", () => {
     const __n207 = new RunShellCommandNode();
     __n207.assign({
       command: "echo shell",
-      timeout_ms: 5000,
+      timeout_ms: 5000
     });
     const res = await __n207.process();
     expect(res.output).toContain("shell");
@@ -2857,17 +2994,29 @@ describe("code.ts gaps", () => {
 
   it("defaults for RunCommandNode subclasses", () => {
     expect(new RunPythonCommandNode().serialize()).toHaveProperty("command");
-    expect(new RunJavaScriptCommandNode().serialize()).toHaveProperty("command");
+    expect(new RunJavaScriptCommandNode().serialize()).toHaveProperty(
+      "command"
+    );
     expect(new RunBashCommandNode().serialize()).toHaveProperty("command");
     expect(new RunRubyCommandNode().serialize()).toHaveProperty("command");
     expect(new RunLuaCommandNode().serialize()).toHaveProperty("command");
     expect(new RunLuaCommandDockerNode().serialize()).toHaveProperty("command");
     expect(new RunShellCommandNode().serialize()).toHaveProperty("command");
-    expect(new RunPythonCommandDockerNode().serialize()).toHaveProperty("command");
-    expect(new RunJavaScriptCommandDockerNode().serialize()).toHaveProperty("command");
-    expect(new RunBashCommandDockerNode().serialize()).toHaveProperty("command");
-    expect(new RunRubyCommandDockerNode().serialize()).toHaveProperty("command");
-    expect(new RunShellCommandDockerNode().serialize()).toHaveProperty("command");
+    expect(new RunPythonCommandDockerNode().serialize()).toHaveProperty(
+      "command"
+    );
+    expect(new RunJavaScriptCommandDockerNode().serialize()).toHaveProperty(
+      "command"
+    );
+    expect(new RunBashCommandDockerNode().serialize()).toHaveProperty(
+      "command"
+    );
+    expect(new RunRubyCommandDockerNode().serialize()).toHaveProperty(
+      "command"
+    );
+    expect(new RunShellCommandDockerNode().serialize()).toHaveProperty(
+      "command"
+    );
   });
 });
 
@@ -2883,7 +3032,7 @@ describe("lib-audio-dsp round 2", () => {
     const __n208 = new GainNode_();
     __n208.assign({
       audio: { uri: "", data: new Uint8Array(rawBytes) },
-      gain_db: 0,
+      gain_db: 0
     });
     const res = await __n208.process();
     expect(res.output).toBeDefined();
@@ -2892,21 +3041,19 @@ describe("lib-audio-dsp round 2", () => {
   it("Gain with invalid audio data throws", async () => {
     const __n209 = new GainNode_();
     __n209.assign({ audio: { uri: "", data: 12345 }, gain_db: 0 });
-    await expect(
-      __n209.process()
-    ).rejects.toThrow("Invalid audio data");
+    await expect(__n209.process()).rejects.toThrow("Invalid audio data");
   });
 
   it("Gain with invalid WAV (not RIFF) throws", async () => {
-    const badWav = Buffer.from("NOTRIFFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+    const badWav = Buffer.from(
+      "NOTRIFFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    );
     const __n210 = new GainNode_();
     __n210.assign({
-        audio: { uri: "", data: badWav.toString("base64") },
-        gain_db: 0,
-      });
-    await expect(
-      __n210.process()
-    ).rejects.toThrow("Invalid WAV");
+      audio: { uri: "", data: badWav.toString("base64") },
+      gain_db: 0
+    });
+    await expect(__n210.process()).rejects.toThrow("Invalid WAV");
   });
 });
 
@@ -2914,15 +3061,13 @@ describe("lib-synthesis round 2", () => {
   it("Oscillator with invalid waveform throws", async () => {
     const __n211 = new OscillatorLibNode();
     __n211.assign({
-        waveform: "invalid_wave",
-        frequency: 440,
-        amplitude: 0.5,
-        duration: 0.01,
-        sample_rate: 8000,
-      });
-    await expect(
-      __n211.process()
-    ).rejects.toThrow("Invalid waveform");
+      waveform: "invalid_wave",
+      frequency: 440,
+      amplitude: 0.5,
+      duration: 0.01,
+      sample_rate: 8000
+    });
+    await expect(__n211.process()).rejects.toThrow("Invalid waveform");
   });
 });
 
@@ -2941,7 +3086,7 @@ describe("lib-numpy round 2", () => {
     const __n213 = new AddArrayNode();
     __n213.assign({
       a: { data: [1, 2, 3], shape: [3] },
-      b: { data: [10], shape: [1] },
+      b: { data: [10], shape: [1] }
     });
     const res = await __n213.process();
     // scalar broadcast — single element array isn't padded, just broadcast
@@ -2952,7 +3097,7 @@ describe("lib-numpy round 2", () => {
     const __n214 = new AddArrayNode();
     __n214.assign({
       a: { data: [1, 2, 3], shape: [3] },
-      b: { data: [10, 20], shape: [2] },
+      b: { data: [10, 20], shape: [2] }
     });
     const res = await __n214.process();
     expect((res.output as any).data.length).toBe(3);
@@ -2963,7 +3108,7 @@ describe("lib-numpy round 2", () => {
     const __n215 = new SaveArrayNode();
     __n215.assign({
       values: { data: [1, 2, 3], shape: [3] },
-      name: "test_%Y.json",
+      name: "test_%Y.json"
     });
     const res = await __n215.process();
     expect((res.output as any).data).toEqual([1, 2, 3]);
@@ -3057,7 +3202,7 @@ startxref
 %%EOF`;
     const __n219 = new ExtractTablesPyMuPdfNode();
     __n219.assign({
-      pdf: { data: Buffer.from(pdf).toString("base64") },
+      pdf: { data: Buffer.from(pdf).toString("base64") }
     });
     const res = await __n219.process();
     expect(Array.isArray(res.output)).toBe(true);
@@ -3092,7 +3237,7 @@ startxref
     writeFileSync(filePath, pdf);
     const __n220 = new GetPageCountPdfPlumberNode();
     __n220.assign({
-      pdf: { uri: `file://${filePath}` },
+      pdf: { uri: `file://${filePath}` }
     });
     const res = await __n220.process();
     expect(res.output).toBe(1);
@@ -3101,9 +3246,7 @@ startxref
   it("PDF with no data and no URI throws", async () => {
     const __n221 = new GetPageCountPdfPlumberNode();
     __n221.assign({ pdf: {} });
-    await expect(
-      __n221.process()
-    ).rejects.toThrow("No PDF data or URI");
+    await expect(__n221.process()).rejects.toThrow("No PDF data or URI");
   });
 });
 
@@ -3126,7 +3269,8 @@ describe("lib-pedalboard-extra round 2", () => {
     const dur = 0.05;
     const n = Math.floor(sr * dur);
     const samples = new Float32Array(n);
-    for (let i = 0; i < n; i++) samples[i] = 0.9 * Math.sin(2 * Math.PI * 440 * i / sr);
+    for (let i = 0; i < n; i++)
+      samples[i] = 0.9 * Math.sin((2 * Math.PI * 440 * i) / sr);
     const buf = Buffer.alloc(44 + n * 2);
     buf.write("RIFF", 0);
     buf.writeUInt32LE(36 + n * 2, 4);
@@ -3149,7 +3293,7 @@ describe("lib-pedalboard-extra round 2", () => {
     __n222.assign({
       audio,
       threshold_db: -20, // very low threshold to trigger limiting
-      release_ms: 10,
+      release_ms: 10
     });
     const res = await __n222.process();
     expect(res.output).toBeDefined();
@@ -3160,7 +3304,7 @@ describe("lib-pedalboard-extra round 2", () => {
     const __n223 = new PitchShiftNode();
     __n223.assign({
       audio,
-      semitones: 2,
+      semitones: 2
     });
     const res = await __n223.process();
     expect(res.output).toBeDefined();
@@ -3171,7 +3315,7 @@ describe("lib-pedalboard-extra round 2", () => {
     const __n224 = new TimeStretchNode();
     __n224.assign({
       audio,
-      rate: 1.5,
+      rate: 1.5
     });
     const res = await __n224.process();
     expect(res.output).toBeDefined();
@@ -3186,7 +3330,7 @@ describe("lib-pedalboard-extra round 2", () => {
       threshold_db: -10,
       ratio: 4,
       attack_ms: 5,
-      release_ms: 50,
+      release_ms: 50
     });
     const res = await __n225.process();
     expect(res.output).toBeDefined();
@@ -3195,23 +3339,22 @@ describe("lib-pedalboard-extra round 2", () => {
   it("Bitcrush with invalid WAV throws", async () => {
     const __n226 = new BitcrushNode();
     __n226.assign({
-        audio: { uri: "", data: Buffer.from("NOT_A_WAV_FILE").toString("base64") },
-        bit_depth: 8,
-      });
-    await expect(
-      __n226.process()
-    ).rejects.toThrow("Invalid WAV");
+      audio: {
+        uri: "",
+        data: Buffer.from("NOT_A_WAV_FILE").toString("base64")
+      },
+      bit_depth: 8
+    });
+    await expect(__n226.process()).rejects.toThrow("Invalid WAV");
   });
 
   it("Distortion with invalid audio data throws", async () => {
     const __n227 = new DistortionNode();
     __n227.assign({
-        audio: { uri: "", data: 12345 },
-        drive: 0.5,
-      });
-    await expect(
-      __n227.process()
-    ).rejects.toThrow("Invalid audio data");
+      audio: { uri: "", data: 12345 },
+      drive: 0.5
+    });
+    await expect(__n227.process()).rejects.toThrow("Invalid audio data");
   });
 });
 
@@ -3222,7 +3365,7 @@ describe("lib-librosa-spectral round 2", () => {
     __n228.assign({
       audio,
       n_fft: 256,
-      hop_length: 128,
+      hop_length: 128
     });
     const res = await __n228.process();
     expect(res.output).toBeDefined();
@@ -3236,7 +3379,7 @@ describe("lib-librosa-spectral round 2", () => {
     __n229.assign({
       segments: [{ uri: "", data: new Uint8Array(rawBytes) }],
       folder: { path: dir },
-      prefix: "seg",
+      prefix: "seg"
     });
     const res = await __n229.process();
     expect(res.output).toBeDefined();
@@ -3251,7 +3394,7 @@ describe("lib-excel round 2", () => {
     __n230.assign({
       workbook: wb.output,
       folder: { path: dir },
-      filename: "test.xlsx",
+      filename: "test.xlsx"
     });
     const res = await __n230.process();
     expect(typeof res.output).toBe("string");
@@ -3268,20 +3411,20 @@ describe("lib-docx round 2", () => {
     __n231.assign({
       document: doc.output,
       text: "Test",
-      level: 1,
+      level: 1
     });
     const withHeading = await __n231.process();
     const __n232 = new SaveDocumentLibNode();
     __n232.assign({
       document: withHeading.output,
       path: { path: dir },
-      filename: "load_test.docx",
+      filename: "load_test.docx"
     });
     const saved = await __n232.process();
     // Now load it
     const __n233 = new LoadWordDocumentLibNode();
     __n233.assign({
-      path: String(saved.output),
+      path: String(saved.output)
     });
     const loaded = await __n233.process();
     expect(typeof loaded.output).toBe("string");
@@ -3299,7 +3442,7 @@ describe("lib-docx round 2", () => {
       document: doc.output,
       image: { data: png },
       width: 100,
-      height: 100,
+      height: 100
     });
     const res = await __n234.process();
     expect((res.output as any).elements.length).toBe(1);
@@ -3309,10 +3452,11 @@ describe("lib-docx round 2", () => {
 describe("lib-beautifulsoup round 2", () => {
   it("WebsiteContentExtractor fallback path", async () => {
     // HTML that Readability can't parse → fallback to cheerio stripping
-    const html = "<html><body><script>bad()</script><div id='content'>Real content here</div></body></html>";
+    const html =
+      "<html><body><script>bad()</script><div id='content'>Real content here</div></body></html>";
     const __n235 = new WebsiteContentExtractorLibNode();
     __n235.assign({
-      html,
+      html
     });
     const res = await __n235.process();
     expect(typeof res.output).toBe("string");
@@ -3334,7 +3478,7 @@ describe("data.ts round 2", () => {
   it("ForEachRow genProcess yields rows", async () => {
     const node = new ForEachRowNode();
     node.assign({
-      dataframe: df([{ x: 1 }, { x: 2 }, { x: 3 }]),
+      dataframe: df([{ x: 1 }, { x: 2 }, { x: 3 }])
     });
     const gen = node.genProcess();
     const results = await collectGen(gen);
@@ -3346,7 +3490,7 @@ describe("data.ts round 2", () => {
   it("RowIterator genProcess yields rows", async () => {
     const node = new RowIteratorNode();
     node.assign({
-      dataframe: df([{ a: "x" }, { a: "y" }]),
+      dataframe: df([{ a: "x" }, { a: "y" }])
     });
     const gen = node.genProcess();
     const results = await collectGen(gen);
@@ -3371,10 +3515,10 @@ describe("data.ts round 2", () => {
       dataframe: df([
         { group: "A", val: 10 },
         { group: "A", val: 20 },
-        { group: "B", val: 30 },
+        { group: "B", val: 30 }
       ]),
       columns: "group",
-      aggregation: "sum",
+      aggregation: "sum"
     });
     const res = await __n237.process();
     expect((res.output as any).rows.length).toBe(2);
@@ -3409,7 +3553,7 @@ describe("document.ts round 2", () => {
     node.assign({
       document: { text: "A".repeat(100) + " " + "B".repeat(100) },
       chunk_size: 80,
-      chunk_overlap: 10,
+      chunk_overlap: 10
     });
     const gen = node.genProcess();
     const results = await collectGen(gen);
@@ -3421,7 +3565,7 @@ describe("document.ts round 2", () => {
     node.assign({
       document: { text: "<p>" + "Hello world. ".repeat(50) + "</p>" },
       chunk_size: 100,
-      chunk_overlap: 10,
+      chunk_overlap: 10
     });
     const gen = node.genProcess();
     const results = await collectGen(gen);
@@ -3433,7 +3577,7 @@ describe("document.ts round 2", () => {
     node.assign({
       document: { text: JSON.stringify({ data: "x".repeat(200) }) },
       chunk_size: 50,
-      chunk_overlap: 5,
+      chunk_overlap: 5
     });
     const gen = node.genProcess();
     const results = await collectGen(gen);
@@ -3443,9 +3587,11 @@ describe("document.ts round 2", () => {
   it("SplitRecursively genProcess splits by paragraphs", async () => {
     const node = new SplitRecursivelyNode();
     node.assign({
-      document: { text: "Para one content.\n\nPara two content.\n\nPara three content." },
+      document: {
+        text: "Para one content.\n\nPara two content.\n\nPara three content."
+      },
       chunk_size: 30,
-      chunk_overlap: 5,
+      chunk_overlap: 5
     });
     const gen = node.genProcess();
     const results = await collectGen(gen);
@@ -3455,8 +3601,10 @@ describe("document.ts round 2", () => {
   it("SplitMarkdown genProcess splits by headings", async () => {
     const node = new SplitMarkdownNode();
     node.assign({
-      document: { text: "# Title\n\nSome text content here.\n\n## Subtitle\n\nMore content." },
-      chunk_size: 200,
+      document: {
+        text: "# Title\n\nSome text content here.\n\n## Subtitle\n\nMore content."
+      },
+      chunk_size: 200
     });
     const gen = node.genProcess();
     const results = await collectGen(gen);
@@ -3467,7 +3615,7 @@ describe("document.ts round 2", () => {
     const node = new SplitDocumentNode();
     node.assign({
       document: { data: Buffer.from("Hello from bytes").toString("base64") },
-      chunk_size: 100,
+      chunk_size: 100
     });
     const gen = node.genProcess();
     const results = await collectGen(gen);
@@ -3480,7 +3628,7 @@ describe("code.ts round 2", () => {
     const __n239 = new ExecuteBashNode();
     __n239.assign({
       code: "echo error >&2; echo ok",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await __n239.process();
     expect(res.output).toContain("ok");
@@ -3492,7 +3640,7 @@ describe("code.ts round 2", () => {
     const __n240 = new ExecuteCommandNode();
     __n240.assign({
       command: "echo done",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await __n240.process();
     expect(res.output).toContain("done");
@@ -3503,7 +3651,7 @@ describe("code.ts round 2", () => {
     __n241.assign({
       code: "process.stdin.on('data', d => { console.log('got: ' + d); process.stdin.resume(); }); setTimeout(() => process.exit(0), 100);",
       stdin: "hello",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await __n241.process();
     // Just check it doesn't crash
@@ -3519,14 +3667,20 @@ describe("code.ts round 2", () => {
 // Every result must have: stdout (string), stderr (string), exit_code (number),
 // output (string), success (boolean).
 function assertFullResult(
-  res: { stdout: string; stderr: string; exit_code: number; output: string; success: boolean },
+  res: {
+    stdout: string;
+    stderr: string;
+    exit_code: number;
+    output: string;
+    success: boolean;
+  },
   expected: {
     stdoutContains?: string;
     stdoutEquals?: string;
     stderrContains?: string;
     exit_code: number;
     success: boolean;
-  },
+  }
 ) {
   // All five fields must be present and correctly typed
   expect(typeof res.stdout).toBe("string");
@@ -3563,7 +3717,7 @@ describe("code.ts round 3 — full return field verification", () => {
     assertFullResult(res, {
       stdoutEquals: "hello_world",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3571,14 +3725,14 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteBashNode();
     node.assign({
       code: "echo out_line; echo err_line >&2",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     assertFullResult(res, {
       stdoutContains: "out_line",
       stderrContains: "err_line",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3588,7 +3742,7 @@ describe("code.ts round 3 — full return field verification", () => {
     const res = await node.process();
     assertFullResult(res, {
       exit_code: 42,
-      success: false,
+      success: false
     });
   });
 
@@ -3604,13 +3758,13 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteJavaScriptNode();
     node.assign({
       code: "console.log('js_output')",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     assertFullResult(res, {
       stdoutEquals: "js_output",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3618,14 +3772,14 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteJavaScriptNode();
     node.assign({
       code: "console.error('js_err'); console.log('js_out')",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     assertFullResult(res, {
       stdoutContains: "js_out",
       stderrContains: "js_err",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3633,12 +3787,12 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteJavaScriptNode();
     node.assign({
       code: "process.exit(7)",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     assertFullResult(res, {
       exit_code: 7,
-      success: false,
+      success: false
     });
   });
 
@@ -3654,13 +3808,13 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteRubyNode();
     node.assign({
       code: 'puts "ruby_output"',
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     assertFullResult(res, {
       stdoutEquals: "ruby_output",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3668,14 +3822,14 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteRubyNode();
     node.assign({
       code: '$stderr.puts "ruby_err"; puts "ruby_out"',
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     assertFullResult(res, {
       stdoutContains: "ruby_out",
       stderrContains: "ruby_err",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3683,12 +3837,12 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteRubyNode();
     node.assign({
       code: "exit 3",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     assertFullResult(res, {
       exit_code: 3,
-      success: false,
+      success: false
     });
   });
 
@@ -3704,13 +3858,13 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteLuaNode();
     node.assign({
       code: 'print("lua_output")',
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     assertFullResult(res, {
       stdoutEquals: "lua_output",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3718,7 +3872,7 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteLuaNode();
     node.assign({
       code: 'error("lua_err_msg")',
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     // Verify all fields exist and are correctly typed
@@ -3737,7 +3891,7 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteLuaNode();
     node.assign({
       code: "this is not valid lua !!!",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     expect(typeof res.stdout).toBe("string");
@@ -3761,13 +3915,13 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteCommandNode();
     node.assign({
       command: "echo cmd_output",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     assertFullResult(res, {
       stdoutEquals: "cmd_output",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3775,7 +3929,7 @@ describe("code.ts round 3 — full return field verification", () => {
     const node = new ExecuteCommandNode();
     node.assign({
       command: "false",
-      execution_mode: "subprocess",
+      execution_mode: "subprocess"
     });
     const res = await node.process();
     expect(typeof res.stdout).toBe("string");
@@ -3803,7 +3957,7 @@ describe("code.ts round 3 — full return field verification", () => {
     assertFullResult(res, {
       stdoutEquals: "py_run",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3814,7 +3968,7 @@ describe("code.ts round 3 — full return field verification", () => {
     assertFullResult(res, {
       stdoutEquals: "",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3827,7 +3981,7 @@ describe("code.ts round 3 — full return field verification", () => {
     assertFullResult(res, {
       stdoutEquals: "js_run",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3840,7 +3994,7 @@ describe("code.ts round 3 — full return field verification", () => {
     assertFullResult(res, {
       stdoutEquals: "bash_run",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3853,7 +4007,7 @@ describe("code.ts round 3 — full return field verification", () => {
     assertFullResult(res, {
       stdoutEquals: "ruby_run",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3866,7 +4020,7 @@ describe("code.ts round 3 — full return field verification", () => {
     assertFullResult(res, {
       stdoutEquals: "lua_run",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3879,7 +4033,7 @@ describe("code.ts round 3 — full return field verification", () => {
     assertFullResult(res, {
       stdoutEquals: "shell_run",
       exit_code: 0,
-      success: true,
+      success: true
     });
   });
 
@@ -3887,7 +4041,9 @@ describe("code.ts round 3 — full return field verification", () => {
 
   it("RunPythonCommandDockerNode constructs correctly", () => {
     const node = new RunPythonCommandDockerNode();
-    expect(RunPythonCommandDockerNode.nodeType).toBe("nodetool.code.RunPythonCommandDocker");
+    expect(RunPythonCommandDockerNode.nodeType).toBe(
+      "nodetool.code.RunPythonCommandDocker"
+    );
     expect(RunPythonCommandDockerNode.defaultMode).toBe("docker");
     expect(RunPythonCommandDockerNode.lang).toBe("python");
     const s = node.serialize();
@@ -3904,7 +4060,9 @@ describe("code.ts round 3 — full return field verification", () => {
 
   it("RunJavaScriptCommandDockerNode constructs correctly", () => {
     const node = new RunJavaScriptCommandDockerNode();
-    expect(RunJavaScriptCommandDockerNode.nodeType).toBe("nodetool.code.RunJavaScriptCommandDocker");
+    expect(RunJavaScriptCommandDockerNode.nodeType).toBe(
+      "nodetool.code.RunJavaScriptCommandDocker"
+    );
     expect(RunJavaScriptCommandDockerNode.defaultMode).toBe("docker");
     expect(RunJavaScriptCommandDockerNode.lang).toBe("javascript");
     const s = node.serialize();
@@ -3921,7 +4079,9 @@ describe("code.ts round 3 — full return field verification", () => {
 
   it("RunBashCommandDockerNode constructs correctly", () => {
     const node = new RunBashCommandDockerNode();
-    expect(RunBashCommandDockerNode.nodeType).toBe("nodetool.code.RunBashCommandDocker");
+    expect(RunBashCommandDockerNode.nodeType).toBe(
+      "nodetool.code.RunBashCommandDocker"
+    );
     expect(RunBashCommandDockerNode.defaultMode).toBe("docker");
     expect(RunBashCommandDockerNode.lang).toBe("bash");
     const s = node.serialize();
@@ -3938,7 +4098,9 @@ describe("code.ts round 3 — full return field verification", () => {
 
   it("RunRubyCommandDockerNode constructs correctly", () => {
     const node = new RunRubyCommandDockerNode();
-    expect(RunRubyCommandDockerNode.nodeType).toBe("nodetool.code.RunRubyCommandDocker");
+    expect(RunRubyCommandDockerNode.nodeType).toBe(
+      "nodetool.code.RunRubyCommandDocker"
+    );
     expect(RunRubyCommandDockerNode.defaultMode).toBe("docker");
     expect(RunRubyCommandDockerNode.lang).toBe("ruby");
     const s = node.serialize();
@@ -3955,7 +4117,9 @@ describe("code.ts round 3 — full return field verification", () => {
 
   it("RunLuaCommandDockerNode constructs correctly", () => {
     const node = new RunLuaCommandDockerNode();
-    expect(RunLuaCommandDockerNode.nodeType).toBe("nodetool.code.RunLuaCommandDocker");
+    expect(RunLuaCommandDockerNode.nodeType).toBe(
+      "nodetool.code.RunLuaCommandDocker"
+    );
     expect(RunLuaCommandDockerNode.defaultMode).toBe("docker");
     expect(RunLuaCommandDockerNode.lang).toBe("lua");
     const s = node.serialize();
@@ -3972,7 +4136,9 @@ describe("code.ts round 3 — full return field verification", () => {
 
   it("RunShellCommandDockerNode constructs correctly", () => {
     const node = new RunShellCommandDockerNode();
-    expect(RunShellCommandDockerNode.nodeType).toBe("nodetool.code.RunShellCommandDocker");
+    expect(RunShellCommandDockerNode.nodeType).toBe(
+      "nodetool.code.RunShellCommandDocker"
+    );
     expect(RunShellCommandDockerNode.defaultMode).toBe("docker");
     expect(RunShellCommandDockerNode.lang).toBe("command");
     const s = node.serialize();
@@ -4054,7 +4220,11 @@ function maxAbsVal(arr: Float32Array): number {
 }
 
 /** Check if two Float32Arrays differ meaningfully */
-function arraysAreDifferent(a: Float32Array, b: Float32Array, threshold = 0.001): boolean {
+function arraysAreDifferent(
+  a: Float32Array,
+  b: Float32Array,
+  threshold = 0.001
+): boolean {
   const len = Math.min(a.length, b.length);
   let diffSum = 0;
   for (let i = 0; i < len; i++) diffSum += Math.abs(a[i] - b[i]);
@@ -4229,8 +4399,12 @@ describe("lib-audio-effects signal verification", () => {
 
     expect(outputSamples.length).toBe(inputSamples.length);
     // With 4-bit depth, samples should be quantized to fewer unique values
-    const uniqueInput = new Set(Array.from(inputSamples).map(v => Math.round(v * 1000)));
-    const uniqueOutput = new Set(Array.from(outputSamples).map(v => Math.round(v * 1000)));
+    const uniqueInput = new Set(
+      Array.from(inputSamples).map((v) => Math.round(v * 1000))
+    );
+    const uniqueOutput = new Set(
+      Array.from(outputSamples).map((v) => Math.round(v * 1000))
+    );
     expect(uniqueOutput.size).toBeLessThan(uniqueInput.size);
     expect(arraysAreDifferent(inputSamples, outputSamples)).toBe(true);
   });
@@ -4317,7 +4491,13 @@ describe("lib-audio-effects signal verification", () => {
     const audio = makeAudioRef(samples, 8000);
 
     const node = new ReverbNode();
-    node.assign({ audio, room_scale: 0.8, damping: 0.3, wet_level: 0.5, dry_level: 0.5 });
+    node.assign({
+      audio,
+      room_scale: 0.8,
+      damping: 0.3,
+      wet_level: 0.5,
+      dry_level: 0.5
+    });
     const res = await node.process();
     const outputSamples = decodeTestWav(res.output as { data: string }).samples;
 
@@ -4454,13 +4634,20 @@ describe("lib-audio-spectral signal verification", () => {
 
   it("MelSpectrogram has energy in mel bands corresponding to 440Hz", async () => {
     const node = new MelSpectrogramNode();
-    node.assign({ audio, n_fft: 2048, hop_length: 512, n_mels: 64, fmin: 0, fmax: 4000 });
+    node.assign({
+      audio,
+      n_fft: 2048,
+      hop_length: 512,
+      n_mels: 64,
+      fmin: 0,
+      fmax: 4000
+    });
     const res = await node.process();
     const out = res.output as { data: number[][] };
 
     // Sum energy per mel band
-    const bandEnergy = out.data.map(
-      (frames) => frames.reduce((a, b) => a + b, 0)
+    const bandEnergy = out.data.map((frames) =>
+      frames.reduce((a, b) => a + b, 0)
     );
     const totalEnergy = bandEnergy.reduce((a, b) => a + b, 0);
     expect(totalEnergy).toBeGreaterThan(0);
@@ -4509,8 +4696,8 @@ describe("lib-audio-spectral signal verification", () => {
     const out = res.output as { data: number[][] };
 
     // A = pitch class 9 (C=0, C#=1, ... A=9)
-    const chromaEnergy = out.data.map(
-      (frames) => frames.reduce((a, b) => a + b, 0)
+    const chromaEnergy = out.data.map((frames) =>
+      frames.reduce((a, b) => a + b, 0)
     );
     const peakChroma = chromaEnergy.indexOf(Math.max(...chromaEnergy));
     expect(peakChroma).toBe(9);
@@ -4553,7 +4740,7 @@ describe("lib-audio-spectral signal verification", () => {
     glNode.assign({
       magnitude_spectrogram: { data: stftData },
       n_iter: 10,
-      hop_length: 64,
+      hop_length: 64
     });
     const glRes = await glNode.process();
     const out = (glRes.output as { data: number[] }).data;
@@ -4596,7 +4783,7 @@ describe("lib-audio-spectral signal verification", () => {
     node.assign({
       audio,
       onsets: { data: [0.1, 0.3] },
-      min_segment_length: 0.05,
+      min_segment_length: 0.05
     });
     const res = await node.process();
     const segments = res.output as { data: string }[];
@@ -4614,7 +4801,7 @@ describe("lib-audio-spectral signal verification", () => {
     node.assign({
       audio,
       onsets: { data: [0.1, 0.105, 0.3] },
-      min_segment_length: 0.05,
+      min_segment_length: 0.05
     });
     const res = await node.process();
     const segments = res.output as { data: string }[];
@@ -4666,7 +4853,7 @@ describe("lib-synthesis signal verification", () => {
       modulation_index: 5,
       amplitude: 0.5,
       duration: 0.1,
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const res = await node.process();
     const out = decodeTestWav(res.output as { data: string });
@@ -4684,7 +4871,7 @@ describe("lib-synthesis signal verification", () => {
       frequency: 440,
       amplitude: 0.8,
       duration: 0.1,
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const res = await node.process();
     const out = decodeTestWav(res.output as { data: string });
@@ -4710,7 +4897,7 @@ describe("lib-synthesis signal verification", () => {
       frequency: 440,
       amplitude: 0.5,
       duration: 0.05,
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const res = await node.process();
     const out = decodeTestWav(res.output as { data: string });
@@ -4721,7 +4908,9 @@ describe("lib-synthesis signal verification", () => {
       if (Math.abs(out.samples[i] - 0.5) < 0.05) nearPositive++;
       if (Math.abs(out.samples[i] + 0.5) < 0.05) nearNegative++;
     }
-    expect(nearPositive + nearNegative).toBeGreaterThan(out.samples.length * 0.8);
+    expect(nearPositive + nearNegative).toBeGreaterThan(
+      out.samples.length * 0.8
+    );
   });
 
   it("Oscillator sawtooth and triangle produce valid output", async () => {
@@ -4732,7 +4921,7 @@ describe("lib-synthesis signal verification", () => {
         frequency: 440,
         amplitude: 0.5,
         duration: 0.05,
-        sample_rate: 8000,
+        sample_rate: 8000
       });
       const res = await node.process();
       const out = decodeTestWav(res.output as { data: string });
@@ -4748,7 +4937,7 @@ describe("lib-synthesis signal verification", () => {
       frequency: 440,
       amplitude: 1.0,
       duration: 0.5,
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const oscRes = await oscNode.process();
     const oscSamples = decodeTestWav(oscRes.output as { data: string }).samples;
@@ -4759,7 +4948,7 @@ describe("lib-synthesis signal verification", () => {
       attack: 0.1,
       decay: 0.1,
       release: 0.2,
-      peak_amplitude: 1.0,
+      peak_amplitude: 1.0
     });
     const envRes = await envNode.process();
     const envSamples = decodeTestWav(envRes.output as { data: string }).samples;
@@ -4783,7 +4972,7 @@ describe("lib-synthesis signal verification", () => {
       frequency: 440,
       amplitude: 0.5,
       duration: 0.1,
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const oscRes = await oscNode.process();
 
@@ -4793,7 +4982,7 @@ describe("lib-synthesis signal verification", () => {
       attack: 0.01,
       decay: 0.01,
       release: 0.01,
-      peak_amplitude: 0.0,
+      peak_amplitude: 0.0
     });
     const envRes = await envNode.process();
     const envSamples = decodeTestWav(envRes.output as { data: string }).samples;

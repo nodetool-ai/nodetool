@@ -47,7 +47,7 @@ function simpleExecutor(
   return {
     async process(inputs) {
       return fn(inputs);
-    },
+    }
   };
 }
 
@@ -59,7 +59,7 @@ function makeRunner(executorMap: Record<string, NodeExecutor>): WorkflowRunner {
         return simpleExecutor(() => ({}));
       }
       return exec;
-    },
+    }
   });
 }
 
@@ -73,54 +73,73 @@ describe("Gap #3 – _filter_invalid_edges (silent removal of dangling edges)", 
     // missing nodes, then proceeds with execution.
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Input", name: "a_in" },
-      { id: "b", type: "test.Output", name: "result" },
+      { id: "b", type: "test.Output", name: "result" }
     ];
     const edges: Edge[] = [
       makeEdge("a", "out", "b", "in"),
-      makeEdge("ghost", "out", "b", "extra"), // dangling source
+      makeEdge("ghost", "out", "b", "extra") // dangling source
     ];
 
     const runner = makeRunner({
-      "test.Output": simpleExecutor((inputs) => ({ value: inputs.in })),
+      "test.Output": simpleExecutor((inputs) => ({ value: inputs.in }))
     });
 
-    const result = await runner.run({ job_id: "j1", params: { a_in: 42 } }, { nodes, edges });
+    const result = await runner.run(
+      { job_id: "j1", params: { a_in: 42 } },
+      { nodes, edges }
+    );
     expect(result.status).toBe("completed");
   });
 
   it("runner silently removes edges with non-existent target nodes", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Input", name: "a_in" },
-      { id: "b", type: "test.Output", name: "result" },
+      { id: "b", type: "test.Output", name: "result" }
     ];
     const edges: Edge[] = [
       makeEdge("a", "out", "b", "in"),
-      makeEdge("a", "extra", "ghost", "in"), // dangling target
+      makeEdge("a", "extra", "ghost", "in") // dangling target
     ];
 
     const runner = makeRunner({
-      "test.Output": simpleExecutor((inputs) => ({ value: inputs.in })),
+      "test.Output": simpleExecutor((inputs) => ({ value: inputs.in }))
     });
 
-    const result = await runner.run({ job_id: "j1", params: { a_in: 7 } }, { nodes, edges });
+    const result = await runner.run(
+      { job_id: "j1", params: { a_in: 7 } },
+      { nodes, edges }
+    );
     expect(result.status).toBe("completed");
   });
 
   it("runner should complete when graph has dangling edges (after filtering)", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "in", type: "test.Input", name: "x" },
-      { id: "out", type: "test.Output", name: "result" },
+      { id: "out", type: "test.Output", name: "result" }
     ];
     const edges: Edge[] = [
-      { source: "in", sourceHandle: "value", target: "out", targetHandle: "value" },
-      { source: "ghost", sourceHandle: "out", target: "out", targetHandle: "extra" }, // dangling
+      {
+        source: "in",
+        sourceHandle: "value",
+        target: "out",
+        targetHandle: "value"
+      },
+      {
+        source: "ghost",
+        sourceHandle: "out",
+        target: "out",
+        targetHandle: "extra"
+      } // dangling
     ];
 
     const runner = makeRunner({
-      "test.Output": simpleExecutor((inputs) => ({ value: inputs.value })),
+      "test.Output": simpleExecutor((inputs) => ({ value: inputs.value }))
     });
 
-    const result = await runner.run({ job_id: "j1", params: { x: 42 } }, { nodes, edges });
+    const result = await runner.run(
+      { job_id: "j1", params: { x: 42 } },
+      { nodes, edges }
+    );
     expect(result.status).toBe("completed");
     expect(result.outputs.result).toContain(42);
   });
@@ -129,22 +148,25 @@ describe("Gap #3 – _filter_invalid_edges (silent removal of dangling edges)", 
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Input", name: "a_in" },
       { id: "b", type: "test.Proc" },
-      { id: "c", type: "test.Output", name: "result" },
+      { id: "c", type: "test.Output", name: "result" }
     ];
     const edges: Edge[] = [
-      makeEdge("a", "out", "b", "in"),        // valid
-      makeEdge("b", "out", "c", "in"),         // valid
+      makeEdge("a", "out", "b", "in"), // valid
+      makeEdge("b", "out", "c", "in"), // valid
       makeEdge("ghost1", "out", "b", "extra"), // dangling source
-      makeEdge("c", "out", "ghost2", "in"),    // dangling target
-      makeEdge("ghost1", "out", "ghost2", "in"), // both dangling
+      makeEdge("c", "out", "ghost2", "in"), // dangling target
+      makeEdge("ghost1", "out", "ghost2", "in") // both dangling
     ];
 
     const runner = makeRunner({
       "test.Proc": simpleExecutor((inputs) => ({ out: inputs.in })),
-      "test.Output": simpleExecutor((inputs) => ({ value: inputs.in })),
+      "test.Output": simpleExecutor((inputs) => ({ value: inputs.in }))
     });
 
-    const result = await runner.run({ job_id: "j1", params: { a_in: 99 } }, { nodes, edges });
+    const result = await runner.run(
+      { job_id: "j1", params: { a_in: 99 } },
+      { nodes, edges }
+    );
     expect(result.status).toBe("completed");
   });
 });
@@ -153,7 +175,7 @@ describe("Gap #3 – type compatibility checking (validateEdgeTypes)", () => {
   it("rejects edge connecting incompatible types (image output to str input)", () => {
     const nodes = [
       makeNode("a", { outputs: { out: "image" } }),
-      makeNode("b", { properties: { in: { type: "str" } } }),
+      makeNode("b", { properties: { in: { type: "str" } } })
     ];
     const edges = [makeEdge("a", "out", "b", "in")];
     const graph = new Graph({ nodes, edges });
@@ -164,7 +186,7 @@ describe("Gap #3 – type compatibility checking (validateEdgeTypes)", () => {
   it("accepts edge connecting compatible types (int output to float input)", () => {
     const nodes = [
       makeNode("a", { outputs: { out: "int" } }),
-      makeNode("b", { properties: { in: { type: "float" } } }),
+      makeNode("b", { properties: { in: { type: "float" } } })
     ];
     const edges = [makeEdge("a", "out", "b", "in")];
     const graph = new Graph({ nodes, edges });
@@ -174,7 +196,7 @@ describe("Gap #3 – type compatibility checking (validateEdgeTypes)", () => {
   it("accepts edge connecting same types", () => {
     const nodes = [
       makeNode("a", { outputs: { out: "int" } }),
-      makeNode("b", { properties: { in: { type: "int" } } }),
+      makeNode("b", { properties: { in: { type: "int" } } })
     ];
     const edges = [makeEdge("a", "out", "b", "in")];
     const graph = new Graph({ nodes, edges });
@@ -184,7 +206,7 @@ describe("Gap #3 – type compatibility checking (validateEdgeTypes)", () => {
   it("accepts edge where either type is 'any'", () => {
     const nodes = [
       makeNode("a", { outputs: { out: "image" } }),
-      makeNode("b", { properties: { in: { type: "any" } } }),
+      makeNode("b", { properties: { in: { type: "any" } } })
     ];
     const edges = [makeEdge("a", "out", "b", "in")];
     const graph = new Graph({ nodes, edges });
@@ -194,7 +216,7 @@ describe("Gap #3 – type compatibility checking (validateEdgeTypes)", () => {
   it("skips type check when type info is missing", () => {
     const nodes = [
       makeNode("a"), // no outputs type info
-      makeNode("b", { properties: { in: { type: "str" } } }),
+      makeNode("b", { properties: { in: { type: "str" } } })
     ];
     const edges = [makeEdge("a", "out", "b", "in")];
     const graph = new Graph({ nodes, edges });
@@ -215,14 +237,14 @@ describe("Gap #14 – Graph.fromDict() with skip_errors", () => {
     const data = {
       nodes: [
         { id: "known", type: "test.KnownType" },
-        { id: "unknown", type: "test.UnknownType" },
+        { id: "unknown", type: "test.UnknownType" }
       ],
-      edges: [],
+      edges: []
     };
 
     const graph = Graph.fromDict(data, {
       skipErrors: true,
-      validateNodeType: (type) => type === "test.KnownType",
+      validateNodeType: (type) => type === "test.KnownType"
     });
 
     expect(graph.nodes).toHaveLength(1);
@@ -235,19 +257,29 @@ describe("Gap #14 – Graph.fromDict() with skip_errors", () => {
     const data = {
       nodes: [
         { id: "known", type: "test.KnownType" },
-        { id: "unknown", type: "test.UnknownType" },
+        { id: "unknown", type: "test.UnknownType" }
       ],
       edges: [
         // Edge pointing FROM the dropped node
-        { source: "unknown", sourceHandle: "out", target: "known", targetHandle: "in" },
+        {
+          source: "unknown",
+          sourceHandle: "out",
+          target: "known",
+          targetHandle: "in"
+        },
         // Edge pointing TO the dropped node
-        { source: "known", sourceHandle: "out", target: "unknown", targetHandle: "in" },
-      ],
+        {
+          source: "known",
+          sourceHandle: "out",
+          target: "unknown",
+          targetHandle: "in"
+        }
+      ]
     };
 
     const graph = Graph.fromDict(data, {
       skipErrors: true,
-      validateNodeType: (type) => type === "test.KnownType",
+      validateNodeType: (type) => type === "test.KnownType"
     });
 
     expect(graph.nodes).toHaveLength(1);
@@ -261,20 +293,20 @@ describe("Gap #14 – Graph.fromDict() with skip_errors", () => {
     // the same via validateNodeType callback with skipErrors=false.
     const data = {
       nodes: [{ id: "a", type: "test.UnknownType" }],
-      edges: [],
+      edges: []
     };
 
     expect(() =>
       Graph.fromDict(data, {
         skipErrors: false,
-        validateNodeType: (type) => type === "test.KnownType",
+        validateNodeType: (type) => type === "test.KnownType"
       })
     ).toThrow(GraphValidationError);
 
     expect(() =>
       Graph.fromDict(data, {
         skipErrors: false,
-        validateNodeType: (type) => type === "test.KnownType",
+        validateNodeType: (type) => type === "test.KnownType"
       })
     ).toThrow(/Invalid node type/);
   });
@@ -297,22 +329,32 @@ describe("Gap #14 – property filtering for nodes with incoming edges", () => {
       {
         id: "proc",
         type: "test.Proc",
-        properties: { value: 999 }, // static property that should be overridden
+        properties: { value: 999 } // static property that should be overridden
       },
-      { id: "out", type: "test.Output", name: "result" },
+      { id: "out", type: "test.Output", name: "result" }
     ];
     const edges: Edge[] = [
-      { source: "in", sourceHandle: "value", target: "proc", targetHandle: "value" },
-      { source: "proc", sourceHandle: "result", target: "out", targetHandle: "value" },
+      {
+        source: "in",
+        sourceHandle: "value",
+        target: "proc",
+        targetHandle: "value"
+      },
+      {
+        source: "proc",
+        sourceHandle: "result",
+        target: "out",
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner({
       "test.Proc": simpleExecutor((inputs) => ({
-        result: inputs.value, // should receive edge value (5), not static (999)
+        result: inputs.value // should receive edge value (5), not static (999)
       })),
       "test.Output": simpleExecutor((inputs) => ({
-        value: inputs.value,
-      })),
+        value: inputs.value
+      }))
     });
 
     const result = await runner.run(
@@ -342,12 +384,17 @@ describe("Gap #14 – property filtering for nodes with incoming edges", () => {
         {
           id: "proc",
           type: "test.Proc",
-          properties: { value: 999, other: "static" }, // "value" has an edge, "other" does not
-        },
+          properties: { value: 999, other: "static" } // "value" has an edge, "other" does not
+        }
       ],
       edges: [
-        { source: "src", sourceHandle: "out", target: "proc", targetHandle: "value" },
-      ],
+        {
+          source: "src",
+          sourceHandle: "out",
+          target: "proc",
+          targetHandle: "value"
+        }
+      ]
     };
 
     const graph = Graph.fromDict(data);
@@ -372,10 +419,10 @@ describe("Gap #14 – allow_undefined_properties flag", () => {
           id: "a",
           type: "test.Node",
           properties: { known: 1, unknown_prop: 42 },
-          propertyTypes: { known: "int" }, // only "known" is declared
-        },
+          propertyTypes: { known: "int" } // only "known" is declared
+        }
       ],
-      edges: [],
+      edges: []
     };
 
     // Should not throw; all properties are preserved
@@ -396,31 +443,31 @@ describe("Gap #14 – allow_undefined_properties flag", () => {
           id: "a",
           type: "test.Node",
           properties: { known: 1, unknown_prop: 42 },
-          propertyTypes: { known: "int" }, // only "known" is declared
-        },
+          propertyTypes: { known: "int" } // only "known" is declared
+        }
       ],
-      edges: [],
+      edges: []
     };
 
     // skipErrors=false → should throw
     expect(() =>
       Graph.fromDict(data, {
         allowUndefinedProperties: false,
-        skipErrors: false,
+        skipErrors: false
       })
     ).toThrow(GraphValidationError);
 
     expect(() =>
       Graph.fromDict(data, {
         allowUndefinedProperties: false,
-        skipErrors: false,
+        skipErrors: false
       })
     ).toThrow(/does not exist on node/);
 
     // skipErrors=true → should strip instead of throw
     const graph = Graph.fromDict(data, {
       allowUndefinedProperties: false,
-      skipErrors: true,
+      skipErrors: true
     });
     const node = graph.findNode("a");
     expect(node!.properties).toHaveProperty("known", 1);

@@ -14,7 +14,7 @@ import {
   type HFRepoFile,
   type OllamaAdapter,
   type CacheInfo,
-  type AdminProgressUpdate,
+  type AdminProgressUpdate
 } from "../src/admin-operations.js";
 import * as fs from "fs";
 import * as path from "path";
@@ -32,7 +32,7 @@ vi.mock("fs", async (importOriginal) => {
     existsSync: vi.fn((p: fs.PathLike) => {
       if (_existsSyncOverride) return _existsSyncOverride(p);
       return actual.existsSync(p);
-    }),
+    })
   };
 });
 
@@ -46,10 +46,10 @@ function createMockHub(overrides?: Partial<HFHubAdapter>): HFHubAdapter {
     scanCache: vi.fn().mockReturnValue({
       size_on_disk: 0,
       repos: [],
-      warnings: [],
+      warnings: []
     } satisfies CacheInfo),
     deleteCachedModel: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -61,7 +61,7 @@ function createMockOllama(
       for (const c of chunks) {
         yield c;
       }
-    },
+    }
   };
 }
 
@@ -83,7 +83,7 @@ describe("filterRepoFiles", () => {
     { path: "config.json", size: 100 },
     { path: "README.md", size: 50 },
     { path: "tokenizer/vocab.txt", size: 200 },
-    { path: "tokenizer/special_tokens.json", size: 30 },
+    { path: "tokenizer/special_tokens.json", size: 30 }
   ];
 
   it("returns all files when no patterns specified", () => {
@@ -162,7 +162,7 @@ describe("getHFToken", () => {
     const getSecret = vi.fn().mockResolvedValue("secret-token");
     const result = await getHFToken({
       userId: "u1",
-      getSecret,
+      getSecret
     });
     expect(result).toBe("secret-token");
     expect(getSecret).toHaveBeenCalledWith("HF_TOKEN", "u1");
@@ -207,10 +207,10 @@ describe("AdminDownloadManager", () => {
     hub = createMockHub({
       listRepoFiles: vi.fn().mockResolvedValue([
         { path: "model.bin", size: 500 },
-        { path: "config.json", size: 100 },
+        { path: "config.json", size: 100 }
       ]),
       tryLoadFromCache: vi.fn().mockReturnValue(null),
-      downloadFile: vi.fn().mockResolvedValue("/cache/downloaded"),
+      downloadFile: vi.fn().mockResolvedValue("/cache/downloaded")
     });
   });
 
@@ -271,7 +271,7 @@ describe("AdminDownloadManager", () => {
     const updates = await collect(
       mgr.downloadWithProgress({
         repoId: "org/model",
-        filePath: "model.bin",
+        filePath: "model.bin"
       })
     );
     expect(updates[0].status).toBe("starting");
@@ -284,12 +284,12 @@ describe("AdminDownloadManager", () => {
     const hubWithCache = createMockHub({
       listRepoFiles: vi.fn().mockResolvedValue([
         { path: "model.bin", size: 500 },
-        { path: "config.json", size: 100 },
+        { path: "config.json", size: 100 }
       ]),
       tryLoadFromCache: vi.fn().mockImplementation((_repo, filePath) => {
         return filePath === "config.json" ? "/cache/config.json" : null;
       }),
-      downloadFile: vi.fn().mockResolvedValue("/cache/downloaded"),
+      downloadFile: vi.fn().mockResolvedValue("/cache/downloaded")
     });
     // Override fs.existsSync for the cached file
     _existsSyncOverride = (p) => String(p) === "/cache/config.json";
@@ -299,8 +299,8 @@ describe("AdminDownloadManager", () => {
       mgr.downloadWithProgress({ repoId: "org/model" })
     );
 
-    const foundMsg = updates.find(
-      (u) => u.message?.includes("1 already cached")
+    const foundMsg = updates.find((u) =>
+      u.message?.includes("1 already cached")
     );
     expect(foundMsg).toBeDefined();
     // Only model.bin should be downloaded
@@ -312,10 +312,10 @@ describe("AdminDownloadManager", () => {
 
   it("downloadWithProgress yields error status on download failure", async () => {
     const failHub = createMockHub({
-      listRepoFiles: vi.fn().mockResolvedValue([
-        { path: "model.bin", size: 500 },
-      ]),
-      downloadFile: vi.fn().mockRejectedValue(new Error("network error")),
+      listRepoFiles: vi
+        .fn()
+        .mockResolvedValue([{ path: "model.bin", size: 500 }]),
+      downloadFile: vi.fn().mockRejectedValue(new Error("network error"))
     });
     const mgr = new AdminDownloadManager({ hub: failHub });
     const updates = await collect(
@@ -329,9 +329,7 @@ describe("AdminDownloadManager", () => {
 
   it("downloadWithProgress handles repo listing failure", async () => {
     const failHub = createMockHub({
-      listRepoFiles: vi
-        .fn()
-        .mockRejectedValue(new Error("repo not found")),
+      listRepoFiles: vi.fn().mockRejectedValue(new Error("repo not found"))
     });
     const mgr = new AdminDownloadManager({ hub: failHub });
     const updates = await collect(
@@ -344,10 +342,10 @@ describe("AdminDownloadManager", () => {
 
   it("downloadWithProgress reports all cached when nothing to download", async () => {
     const allCachedHub = createMockHub({
-      listRepoFiles: vi.fn().mockResolvedValue([
-        { path: "model.bin", size: 500 },
-      ]),
-      tryLoadFromCache: vi.fn().mockReturnValue("/cache/model.bin"),
+      listRepoFiles: vi
+        .fn()
+        .mockResolvedValue([{ path: "model.bin", size: 500 }]),
+      tryLoadFromCache: vi.fn().mockReturnValue("/cache/model.bin")
     });
     _existsSyncOverride = () => true;
 
@@ -367,7 +365,7 @@ describe("AdminDownloadManager", () => {
     const updates = await collect(
       mgr.downloadWithProgress({
         repoId: "org/model",
-        allowPatterns: ["*.bin"],
+        allowPatterns: ["*.bin"]
       })
     );
     // Should only try to download model.bin
@@ -381,7 +379,7 @@ describe("AdminDownloadManager", () => {
       mgr.downloadWithProgress({
         repoId: "org/model",
         userId: "u1",
-        getSecret,
+        getSecret
       })
     );
     expect(mgr.token).toBe("lazy-token");
@@ -394,7 +392,7 @@ describe("streamOllamaModelPull", () => {
   it("yields starting, chunks, and completed", async () => {
     const ollama = createMockOllama([
       { status: "pulling manifest" },
-      { status: "downloading", completed: 50, total: 100 },
+      { status: "downloading", completed: 50, total: 100 }
     ]);
     const updates = await collect(streamOllamaModelPull("llama3", ollama));
     expect(updates[0].status).toBe("starting");
@@ -407,7 +405,7 @@ describe("streamOllamaModelPull", () => {
     const ollama: OllamaAdapter = {
       async *pull() {
         throw new Error("connection refused");
-      },
+      }
     };
     const updates = await collect(streamOllamaModelPull("bad-model", ollama));
     const errUpdate = updates.find((u) => u.status === "error");
@@ -427,10 +425,8 @@ describe("downloadHFModel", () => {
 
   it("streams all updates when stream=true", async () => {
     const hub = createMockHub({
-      listRepoFiles: vi.fn().mockResolvedValue([
-        { path: "f.bin", size: 100 },
-      ]),
-      downloadFile: vi.fn().mockResolvedValue("/p"),
+      listRepoFiles: vi.fn().mockResolvedValue([{ path: "f.bin", size: 100 }]),
+      downloadFile: vi.fn().mockResolvedValue("/p")
     });
     const updates = await collect(
       downloadHFModel(hub, { repoId: "org/m", stream: true })
@@ -441,10 +437,8 @@ describe("downloadHFModel", () => {
 
   it("yields only final update when stream=false", async () => {
     const hub = createMockHub({
-      listRepoFiles: vi.fn().mockResolvedValue([
-        { path: "f.bin", size: 100 },
-      ]),
-      downloadFile: vi.fn().mockResolvedValue("/p"),
+      listRepoFiles: vi.fn().mockResolvedValue([{ path: "f.bin", size: 100 }]),
+      downloadFile: vi.fn().mockResolvedValue("/p")
     });
     const updates = await collect(
       downloadHFModel(hub, { repoId: "org/m", stream: false })
@@ -472,9 +466,7 @@ describe("downloadOllamaModel", () => {
 
   it("yields only completion when stream=false", async () => {
     const ollama = createMockOllama([{ status: "pulling" }]);
-    const updates = await collect(
-      downloadOllamaModel(ollama, "llama3", false)
-    );
+    const updates = await collect(downloadOllamaModel(ollama, "llama3", false));
     expect(updates).toHaveLength(1);
     expect(updates[0].status).toBe("completed");
   });
@@ -483,11 +475,9 @@ describe("downloadOllamaModel", () => {
     const ollama: OllamaAdapter = {
       async *pull() {
         throw new Error("pull failed");
-      },
+      }
     };
-    const updates = await collect(
-      downloadOllamaModel(ollama, "bad", false)
-    );
+    const updates = await collect(downloadOllamaModel(ollama, "bad", false));
     expect(updates[0].status).toBe("error");
     expect(updates[0].error).toContain("pull failed");
   });
@@ -500,9 +490,11 @@ describe("scanHFCache", () => {
     const cacheInfo: CacheInfo = {
       size_on_disk: 1024,
       repos: [],
-      warnings: [],
+      warnings: []
     };
-    const hub = createMockHub({ scanCache: vi.fn().mockReturnValue(cacheInfo) });
+    const hub = createMockHub({
+      scanCache: vi.fn().mockReturnValue(cacheInfo)
+    });
     const results = await collect(scanHFCache(hub));
     expect(results[0]).toEqual({ status: "completed", cache_info: cacheInfo });
   });
@@ -511,7 +503,7 @@ describe("scanHFCache", () => {
     const hub = createMockHub({
       scanCache: vi.fn().mockImplementation(() => {
         throw new Error("scan error");
-      }),
+      })
     });
     const results = await collect(scanHFCache(hub));
     expect(results[0].status).toBe("error");
@@ -526,15 +518,13 @@ describe("deleteHFModel", () => {
     const results = await collect(deleteHFModel(hub, "org/model"));
     expect(results[0]).toMatchObject({
       status: "completed",
-      repo_id: "org/model",
+      repo_id: "org/model"
     });
   });
 
   it("yields error on failure", async () => {
     const hub = createMockHub({
-      deleteCachedModel: vi
-        .fn()
-        .mockRejectedValue(new Error("delete failed")),
+      deleteCachedModel: vi.fn().mockRejectedValue(new Error("delete failed"))
     });
     const results = await collect(deleteHFModel(hub, "org/model"));
     expect(results[0].status).toBe("error");
@@ -557,7 +547,9 @@ describe("calculateCacheSize", () => {
       const results = await collect(calculateCacheSize(tmpDir));
       expect(results[0]).toHaveProperty("success", true);
       expect(results[0]).toHaveProperty("total_size_bytes");
-      expect((results[0] as { total_size_bytes: number }).total_size_bytes).toBeGreaterThan(0);
+      expect(
+        (results[0] as { total_size_bytes: number }).total_size_bytes
+      ).toBeGreaterThan(0);
     } finally {
       fs.rmSync(tmpDir, { recursive: true });
     }
@@ -568,7 +560,9 @@ describe("calculateCacheSize", () => {
       calculateCacheSize("/nonexistent/path/xxxxx")
     );
     expect(results[0]).toHaveProperty("success", true);
-    expect((results[0] as { total_size_bytes: number }).total_size_bytes).toBe(0);
+    expect((results[0] as { total_size_bytes: number }).total_size_bytes).toBe(
+      0
+    );
   });
 
   it("calculates size recursively", async () => {
@@ -579,7 +573,9 @@ describe("calculateCacheSize", () => {
     fs.writeFileSync(path.join(subDir, "b.bin"), "bbb");
     try {
       const results = await collect(calculateCacheSize(tmpDir));
-      expect((results[0] as { total_size_bytes: number }).total_size_bytes).toBe(6);
+      expect(
+        (results[0] as { total_size_bytes: number }).total_size_bytes
+      ).toBe(6);
     } finally {
       fs.rmSync(tmpDir, { recursive: true });
     }

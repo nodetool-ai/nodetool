@@ -66,7 +66,7 @@ name: my-tool
 description: A test tool
 ---
 This is the body of the skill.
-`,
+`
     );
 
     const originalEnv = process.env.NODETOOL_AGENT_SKILL_DIRS;
@@ -79,7 +79,7 @@ This is the body of the skill.
       expect(body.count).toBeGreaterThanOrEqual(1);
 
       const skill = body.skills.find(
-        (s: { name: string }) => s.name === "my-tool",
+        (s: { name: string }) => s.name === "my-tool"
       );
       expect(skill).toBeDefined();
       expect(skill.description).toBe("A test tool");
@@ -100,20 +100,17 @@ This is the body of the skill.
     // Name contains "claude" — should be blocked
     await fsp.writeFile(
       path.join(skillDir, "claude-helper.md"),
-      "This skill should be blocked.",
+      "This skill should be blocked."
     );
 
     // Name with uppercase — invalid
     await fsp.writeFile(
       path.join(skillDir, "MyTool.md"),
-      "This has invalid name.",
+      "This has invalid name."
     );
 
     // Valid skill
-    await fsp.writeFile(
-      path.join(skillDir, "valid-tool.md"),
-      "A valid skill.",
-    );
+    await fsp.writeFile(path.join(skillDir, "valid-tool.md"), "A valid skill.");
 
     const originalEnv = process.env.NODETOOL_AGENT_SKILL_DIRS;
     process.env.NODETOOL_AGENT_SKILL_DIRS = skillDir;
@@ -148,7 +145,7 @@ name: no-desc
 This is the first real paragraph.
 
 More content here.
-`,
+`
     );
 
     const originalEnv = process.env.NODETOOL_AGENT_SKILL_DIRS;
@@ -158,7 +155,7 @@ More content here.
       const res = handleSkillsRequest(makeRequest());
       const body = await res.json();
       const skill = body.skills.find(
-        (s: { name: string }) => s.name === "no-desc",
+        (s: { name: string }) => s.name === "no-desc"
       );
       expect(skill).toBeDefined();
       expect(skill.description).toBe("This is the first real paragraph.");
@@ -177,7 +174,7 @@ More content here.
 
     await fsp.writeFile(
       path.join(skillDir, "filename-tool.md"),
-      "Just body content, no frontmatter.",
+      "Just body content, no frontmatter."
     );
 
     const originalEnv = process.env.NODETOOL_AGENT_SKILL_DIRS;
@@ -187,7 +184,7 @@ More content here.
       const res = handleSkillsRequest(makeRequest());
       const body = await res.json();
       const skill = body.skills.find(
-        (s: { name: string }) => s.name === "filename-tool",
+        (s: { name: string }) => s.name === "filename-tool"
       );
       expect(skill).toBeDefined();
     } finally {
@@ -207,14 +204,14 @@ More content here.
 describe("handleFontsRequest", () => {
   it("returns 405 for non-GET methods", () => {
     const res = handleFontsRequest(
-      new Request("http://localhost/api/fonts", { method: "POST" }),
+      new Request("http://localhost/api/fonts", { method: "POST" })
     );
     expect(res.status).toBe(405);
   });
 
   it("returns a sorted deduplicated font list", async () => {
     const res = handleFontsRequest(
-      new Request("http://localhost/api/fonts", { method: "GET" }),
+      new Request("http://localhost/api/fonts", { method: "GET" })
     );
     expect(res.status).toBe(200);
     const body = await res.json();

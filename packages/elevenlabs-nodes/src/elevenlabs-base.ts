@@ -1,8 +1,6 @@
 export function getElevenLabsApiKey(secrets: Record<string, string>): string {
   const key =
-    secrets?.ELEVENLABS_API_KEY ||
-    process.env.ELEVENLABS_API_KEY ||
-    "";
+    secrets?.ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY || "";
   if (!key) throw new Error("ELEVENLABS_API_KEY is not configured");
   return key;
 }
@@ -26,7 +24,7 @@ export const VOICE_ID_MAP: Record<string, string> = {
   Brian: "nPczCjzI2devNBz1zQrb",
   Daniel: "onwK4e9ZLuTAKqWW03F9",
   Lily: "pFZP5JQG7iQjIQuC4Bku",
-  Bill: "pqHfZKP75CvOlQylNhV4",
+  Bill: "pqHfZKP75CvOlQylNhV4"
 };
 
 export const VOICE_NAMES = Object.keys(VOICE_ID_MAP);

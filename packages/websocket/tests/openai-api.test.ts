@@ -5,11 +5,15 @@ import {
   convertTools,
   createSSEStream,
   resolveProvider,
-  type OpenAIApiOptions,
+  type OpenAIApiOptions
 } from "../src/openai-api.js";
 import * as security from "@nodetool/security";
 import type { BaseProvider } from "@nodetool/runtime";
-import type { Message, ProviderStreamItem, ProviderTool } from "@nodetool/runtime";
+import type {
+  Message,
+  ProviderStreamItem,
+  ProviderTool
+} from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 
 // ---------------------------------------------------------------------------
@@ -24,8 +28,12 @@ function createMockProvider(items: ProviderStreamItem[]): BaseProvider {
         yield item;
       }
     }),
-    async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
-    async generateMessageTraced(...args: any[]) { return (this as any).generateMessage(...args); },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
     generateMessage: vi.fn(),
     hasToolSupport: async () => true,
     getAvailableLanguageModels: async () => [],
@@ -34,7 +42,7 @@ function createMockProvider(items: ProviderStreamItem[]): BaseProvider {
     getAvailableTTSModels: async () => [],
     getAvailableASRModels: async () => [],
     getAvailableEmbeddingModels: async () => [],
-    getContainerEnv: () => ({}),
+    getContainerEnv: () => ({})
   } as unknown as BaseProvider;
 }
 
@@ -42,7 +50,11 @@ function makeChunk(content: string): Chunk {
   return { type: "chunk", content };
 }
 
-function makeToolCall(id: string, name: string, args: Record<string, unknown>): ProviderStreamItem {
+function makeToolCall(
+  id: string,
+  name: string,
+  args: Record<string, unknown>
+): ProviderStreamItem {
   return { id, name, args } as ProviderStreamItem;
 }
 
@@ -51,7 +63,9 @@ async function jsonBody(response: Response): Promise<unknown> {
   return text ? JSON.parse(text) : null;
 }
 
-async function collectSSE(stream: ReadableStream<Uint8Array>): Promise<string[]> {
+async function collectSSE(
+  stream: ReadableStream<Uint8Array>
+): Promise<string[]> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   const events: string[] = [];
@@ -77,8 +91,14 @@ describe("OpenAI-compatible API", () => {
 
   describe("GET /v1/models", () => {
     it("returns a list of models", async () => {
-      const request = new Request("http://localhost/v1/models", { method: "GET" });
-      const response = await handleOpenAIRequest(request, "/v1/models", "user-1");
+      const request = new Request("http://localhost/v1/models", {
+        method: "GET"
+      });
+      const response = await handleOpenAIRequest(
+        request,
+        "/v1/models",
+        "user-1"
+      );
 
       expect(response).not.toBeNull();
       expect(response!.status).toBe(200);
@@ -100,7 +120,7 @@ describe("OpenAI-compatible API", () => {
     it("returns a chat completion response", async () => {
       const mockProvider = createMockProvider([
         makeChunk("Hello"),
-        makeChunk(", world!"),
+        makeChunk(", world!")
       ]);
 
       const options: OpenAIApiOptions = { provider: mockProvider };
@@ -110,15 +130,15 @@ describe("OpenAI-compatible API", () => {
         body: JSON.stringify({
           model: "test-model",
           messages: [{ role: "user", content: "Hi" }],
-          stream: false,
-        }),
+          stream: false
+        })
       });
 
       const response = await handleOpenAIRequest(
         request,
         "/v1/chat/completions",
         "user-1",
-        options,
+        options
       );
 
       expect(response).not.toBeNull();
@@ -148,7 +168,7 @@ describe("OpenAI-compatible API", () => {
 
     it("includes tool calls in non-streaming response", async () => {
       const mockProvider = createMockProvider([
-        makeToolCall("call-1", "get_weather", { city: "NYC" }),
+        makeToolCall("call-1", "get_weather", { city: "NYC" })
       ]);
 
       const options: OpenAIApiOptions = { provider: mockProvider };
@@ -165,18 +185,21 @@ describe("OpenAI-compatible API", () => {
               function: {
                 name: "get_weather",
                 description: "Get weather",
-                parameters: { type: "object", properties: { city: { type: "string" } } },
-              },
-            },
-          ],
-        }),
+                parameters: {
+                  type: "object",
+                  properties: { city: { type: "string" } }
+                }
+              }
+            }
+          ]
+        })
       });
 
       const response = await handleOpenAIRequest(
         request,
         "/v1/chat/completions",
         "user-1",
-        options,
+        options
       );
 
       expect(response).not.toBeNull();
@@ -197,9 +220,13 @@ describe("OpenAI-compatible API", () => {
       expect(body.choices[0].finish_reason).toBe("tool_calls");
       expect(body.choices[0].message.tool_calls).toHaveLength(1);
       expect(body.choices[0].message.tool_calls![0].id).toBe("call-1");
-      expect(body.choices[0].message.tool_calls![0].function.name).toBe("get_weather");
-      expect(JSON.parse(body.choices[0].message.tool_calls![0].function.arguments)).toEqual({
-        city: "NYC",
+      expect(body.choices[0].message.tool_calls![0].function.name).toBe(
+        "get_weather"
+      );
+      expect(
+        JSON.parse(body.choices[0].message.tool_calls![0].function.arguments)
+      ).toEqual({
+        city: "NYC"
       });
     });
   });
@@ -208,7 +235,7 @@ describe("OpenAI-compatible API", () => {
     it("returns SSE-formatted stream", async () => {
       const mockProvider = createMockProvider([
         makeChunk("Hello"),
-        makeChunk(" there"),
+        makeChunk(" there")
       ]);
 
       const options: OpenAIApiOptions = { provider: mockProvider };
@@ -218,15 +245,15 @@ describe("OpenAI-compatible API", () => {
         body: JSON.stringify({
           model: "test-model",
           messages: [{ role: "user", content: "Hi" }],
-          stream: true,
-        }),
+          stream: true
+        })
       });
 
       const response = await handleOpenAIRequest(
         request,
         "/v1/chat/completions",
         "user-1",
-        options,
+        options
       );
 
       expect(response).not.toBeNull();
@@ -250,7 +277,9 @@ describe("OpenAI-compatible API", () => {
       expect(secondData.choices[0].delta.content).toBe(" there");
 
       // Final chunk should have finish_reason = "stop"
-      const finalData = JSON.parse(events[events.length - 2].replace("data: ", ""));
+      const finalData = JSON.parse(
+        events[events.length - 2].replace("data: ", "")
+      );
       expect(finalData.choices[0].finish_reason).toBe("stop");
       expect(finalData.choices[0].delta).toEqual({});
 
@@ -260,7 +289,7 @@ describe("OpenAI-compatible API", () => {
 
     it("streams tool calls in SSE format", async () => {
       const mockProvider = createMockProvider([
-        makeToolCall("call-42", "search", { query: "test" }),
+        makeToolCall("call-42", "search", { query: "test" })
       ]);
 
       const options: OpenAIApiOptions = { provider: mockProvider };
@@ -270,15 +299,15 @@ describe("OpenAI-compatible API", () => {
         body: JSON.stringify({
           model: "test-model",
           messages: [{ role: "user", content: "search for test" }],
-          stream: true,
-        }),
+          stream: true
+        })
       });
 
       const response = await handleOpenAIRequest(
         request,
         "/v1/chat/completions",
         "user-1",
-        options,
+        options
       );
 
       const events = await collectSSE(response!.body!);
@@ -288,10 +317,14 @@ describe("OpenAI-compatible API", () => {
       const toolChunkData = JSON.parse(events[0].replace("data: ", ""));
       expect(toolChunkData.choices[0].delta.tool_calls).toBeDefined();
       expect(toolChunkData.choices[0].delta.tool_calls[0].id).toBe("call-42");
-      expect(toolChunkData.choices[0].delta.tool_calls[0].function.name).toBe("search");
+      expect(toolChunkData.choices[0].delta.tool_calls[0].function.name).toBe(
+        "search"
+      );
 
       // finish_reason should be "tool_calls"
-      const finalData = JSON.parse(events[events.length - 2].replace("data: ", ""));
+      const finalData = JSON.parse(
+        events[events.length - 2].replace("data: ", "")
+      );
       expect(finalData.choices[0].finish_reason).toBe("tool_calls");
     });
 
@@ -303,15 +336,15 @@ describe("OpenAI-compatible API", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           model: "test-model",
-          messages: [{ role: "user", content: "Hi" }],
-        }),
+          messages: [{ role: "user", content: "Hi" }]
+        })
       });
 
       const response = await handleOpenAIRequest(
         request,
         "/v1/chat/completions",
         "user-1",
-        options,
+        options
       );
 
       // Per OpenAI API spec, default is non-streaming (stream must be explicitly true)
@@ -323,12 +356,12 @@ describe("OpenAI-compatible API", () => {
     it("converts basic messages", () => {
       const result = convertMessages([
         { role: "system", content: "You are helpful" },
-        { role: "user", content: "Hello" },
+        { role: "user", content: "Hello" }
       ]);
 
       expect(result).toEqual([
         { role: "system", content: "You are helpful" },
-        { role: "user", content: "Hello" },
+        { role: "user", content: "Hello" }
       ]);
     });
 
@@ -341,20 +374,22 @@ describe("OpenAI-compatible API", () => {
             {
               id: "tc-1",
               type: "function" as const,
-              function: { name: "get_time", arguments: "{}" },
-            },
-          ],
-        },
+              function: { name: "get_time", arguments: "{}" }
+            }
+          ]
+        }
       ]);
 
       expect(result).toHaveLength(1);
       expect(result[0].role).toBe("assistant");
-      expect(result[0].toolCalls).toEqual([{ id: "tc-1", name: "get_time", args: {} }]);
+      expect(result[0].toolCalls).toEqual([
+        { id: "tc-1", name: "get_time", args: {} }
+      ]);
     });
 
     it("converts tool result messages", () => {
       const result = convertMessages([
-        { role: "tool", content: "result data", tool_call_id: "tc-1" },
+        { role: "tool", content: "result data", tool_call_id: "tc-1" }
       ]);
 
       expect(result).toHaveLength(1);
@@ -379,10 +414,10 @@ describe("OpenAI-compatible API", () => {
             description: "Search the web",
             parameters: {
               type: "object",
-              properties: { query: { type: "string" } },
-            },
-          },
-        },
+              properties: { query: { type: "string" } }
+            }
+          }
+        }
       ]);
 
       expect(result).toEqual([
@@ -391,29 +426,47 @@ describe("OpenAI-compatible API", () => {
           description: "Search the web",
           inputSchema: {
             type: "object",
-            properties: { query: { type: "string" } },
-          },
-        },
+            properties: { query: { type: "string" } }
+          }
+        }
       ]);
     });
   });
 
   describe("unmatched routes", () => {
     it("returns null for unknown paths", async () => {
-      const request = new Request("http://localhost/v1/unknown", { method: "GET" });
-      const response = await handleOpenAIRequest(request, "/v1/unknown", "user-1");
+      const request = new Request("http://localhost/v1/unknown", {
+        method: "GET"
+      });
+      const response = await handleOpenAIRequest(
+        request,
+        "/v1/unknown",
+        "user-1"
+      );
       expect(response).toBeNull();
     });
 
     it("returns null for wrong method on /v1/models", async () => {
-      const request = new Request("http://localhost/v1/models", { method: "POST" });
-      const response = await handleOpenAIRequest(request, "/v1/models", "user-1");
+      const request = new Request("http://localhost/v1/models", {
+        method: "POST"
+      });
+      const response = await handleOpenAIRequest(
+        request,
+        "/v1/models",
+        "user-1"
+      );
       expect(response).toBeNull();
     });
 
     it("returns null for wrong method on /v1/chat/completions", async () => {
-      const request = new Request("http://localhost/v1/chat/completions", { method: "GET" });
-      const response = await handleOpenAIRequest(request, "/v1/chat/completions", "user-1");
+      const request = new Request("http://localhost/v1/chat/completions", {
+        method: "GET"
+      });
+      const response = await handleOpenAIRequest(
+        request,
+        "/v1/chat/completions",
+        "user-1"
+      );
       expect(response).toBeNull();
     });
   });
@@ -423,14 +476,14 @@ describe("OpenAI-compatible API", () => {
       const request = new Request("http://localhost/v1/chat/completions", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: "not json",
+        body: "not json"
       });
 
       const response = await handleOpenAIRequest(
         request,
         "/v1/chat/completions",
         "user-1",
-        { provider: createMockProvider([]) },
+        { provider: createMockProvider([]) }
       );
 
       expect(response).not.toBeNull();
@@ -444,7 +497,11 @@ describe("OpenAI-compatible API", () => {
         .spyOn(security, "getSecret")
         .mockImplementation(async (key, userId) => `${userId}-${key}`);
 
-      const provider = await resolveProvider("gpt-4o", undefined, "user-2") as { apiKey: string };
+      const provider = (await resolveProvider(
+        "gpt-4o",
+        undefined,
+        "user-2"
+      )) as { apiKey: string };
       expect(getSecretSpy).toHaveBeenCalledWith("OPENAI_API_KEY", "user-2");
       expect(provider.apiKey).toBe("user-2-OPENAI_API_KEY");
     });

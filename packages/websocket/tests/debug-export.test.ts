@@ -27,15 +27,15 @@ describe("T-WS-13: redactSecrets", () => {
   });
 
   it("redacts Bearer tokens", () => {
-    expect(redactSecrets("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.something")).toBe(
-      "***REDACTED***"
-    );
+    expect(
+      redactSecrets("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.something")
+    ).toBe("***REDACTED***");
   });
 
   it("redacts values in nested objects", () => {
     const input = {
       config: { key: "sk-testkeywith12chars" },
-      list: ["hf_tokenvalue12345"],
+      list: ["hf_tokenvalue12345"]
     };
     const result = redactSecrets(input);
     expect(result.config.key).toBe("***REDACTED***");
@@ -90,7 +90,7 @@ describe("T-WS-13: buildDebugExport", () => {
 describe("T-WS-13: POST /api/debug/export endpoint", () => {
   it("returns 200 with expected payload", async () => {
     const request = new Request("http://localhost/api/debug/export", {
-      method: "POST",
+      method: "POST"
     });
     const response = await handleApiRequest(request);
     expect(response.status).toBe(200);
@@ -104,7 +104,7 @@ describe("T-WS-13: POST /api/debug/export endpoint", () => {
 
   it("rejects non-POST methods", async () => {
     const request = new Request("http://localhost/api/debug/export", {
-      method: "GET",
+      method: "GET"
     });
     const response = await handleApiRequest(request);
     expect(response.status).toBe(405);
@@ -119,11 +119,11 @@ describe("T-WS-13: POST /api/debug/export endpoint", () => {
       envVar: "MY_DEBUG_TEST_KEY",
       group: "Test",
       description: "Test key",
-      isSecret: true,
+      isSecret: true
     });
 
     const request = new Request("http://localhost/api/debug/export", {
-      method: "POST",
+      method: "POST"
     });
     const response = await handleApiRequest(request);
     const text = await response.text();

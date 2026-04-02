@@ -8,5 +8,5 @@ export type {
   FolderRef,
   ChartConfig,
   ChartData,
-  ChartSeries,
+  ChartSeries
 } from "@nodetool/protocol";

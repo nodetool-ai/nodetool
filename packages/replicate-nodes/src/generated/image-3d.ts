@@ -9,7 +9,7 @@ import {
   outputToImageRef,
   outputToVideoRef,
   outputToAudioRef,
-  outputToString,
+  outputToString
 } from "../replicate-base.js";
 
 const ReplicateNode = BaseNode;
@@ -24,46 +24,96 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "bool", default: true, description: "Generate color video render" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Generate color video render"
+  })
   declare generate_color: any;
 
-  @prop({ type: "bool", default: false, description: "Generate 3D model file (GLB)" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Generate 3D model file (GLB)"
+  })
   declare generate_model: any;
 
-  @prop({ type: "bool", default: false, description: "Generate normal video render" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Generate normal video render"
+  })
   declare generate_normal: any;
 
-  @prop({ type: "list[image]", default: [], description: "List of input images to generate 3D asset from" })
+  @prop({
+    type: "list[image]",
+    default: [],
+    description: "List of input images to generate 3D asset from"
+  })
   declare images: any;
 
-  @prop({ type: "float", default: 0.95, description: "GLB Extraction - Mesh Simplification (only used if generate_model=True)" })
+  @prop({
+    type: "float",
+    default: 0.95,
+    description:
+      "GLB Extraction - Mesh Simplification (only used if generate_model=True)"
+  })
   declare mesh_simplify: any;
 
   @prop({ type: "bool", default: true, description: "Randomize seed" })
   declare randomize_seed: any;
 
-  @prop({ type: "bool", default: false, description: "Return the preprocessed images without background" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Return the preprocessed images without background"
+  })
   declare return_no_background: any;
 
-  @prop({ type: "bool", default: false, description: "Save Gaussian point cloud as PLY file" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Save Gaussian point cloud as PLY file"
+  })
   declare save_gaussian_ply: any;
 
   @prop({ type: "int", default: 0, description: "Random seed for generation" })
   declare seed: any;
 
-  @prop({ type: "float", default: 3, description: "Stage 2: Structured Latent Generation - Guidance Strength" })
+  @prop({
+    type: "float",
+    default: 3,
+    description: "Stage 2: Structured Latent Generation - Guidance Strength"
+  })
   declare slat_guidance_strength: any;
 
-  @prop({ type: "int", default: 12, description: "Stage 2: Structured Latent Generation - Sampling Steps" })
+  @prop({
+    type: "int",
+    default: 12,
+    description: "Stage 2: Structured Latent Generation - Sampling Steps"
+  })
   declare slat_sampling_steps: any;
 
-  @prop({ type: "float", default: 7.5, description: "Stage 1: Sparse Structure Generation - Guidance Strength" })
+  @prop({
+    type: "float",
+    default: 7.5,
+    description: "Stage 1: Sparse Structure Generation - Guidance Strength"
+  })
   declare ss_guidance_strength: any;
 
-  @prop({ type: "int", default: 12, description: "Stage 1: Sparse Structure Generation - Sampling Steps" })
+  @prop({
+    type: "int",
+    default: 12,
+    description: "Stage 1: Sparse Structure Generation - Sampling Steps"
+  })
   declare ss_sampling_steps: any;
 
-  @prop({ type: "int", default: 1024, description: "GLB Extraction - Texture Size (only used if generate_model=True)" })
+  @prop({
+    type: "int",
+    default: 1024,
+    description:
+      "GLB Extraction - Texture Size (only used if generate_model=True)"
+  })
   declare texture_size: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -83,19 +133,19 @@ replicate, ai`;
     const textureSize = Number(this.texture_size ?? 1024);
 
     const args: Record<string, unknown> = {
-      "generate_color": generateColor,
-      "generate_model": generateModel,
-      "generate_normal": generateNormal,
-      "mesh_simplify": meshSimplify,
-      "randomize_seed": randomizeSeed,
-      "return_no_background": returnNoBackground,
-      "save_gaussian_ply": saveGaussianPly,
-      "seed": seed,
-      "slat_guidance_strength": slatGuidanceStrength,
-      "slat_sampling_steps": slatSamplingSteps,
-      "ss_guidance_strength": ssGuidanceStrength,
-      "ss_sampling_steps": ssSamplingSteps,
-      "texture_size": textureSize,
+      generate_color: generateColor,
+      generate_model: generateModel,
+      generate_normal: generateNormal,
+      mesh_simplify: meshSimplify,
+      randomize_seed: randomizeSeed,
+      return_no_background: returnNoBackground,
+      save_gaussian_ply: saveGaussianPly,
+      seed: seed,
+      slat_guidance_strength: slatGuidanceStrength,
+      slat_sampling_steps: slatSamplingSteps,
+      ss_guidance_strength: ssGuidanceStrength,
+      ss_sampling_steps: ssSamplingSteps,
+      texture_size: textureSize
     };
 
     const imagesRef = this.images as Record<string, unknown> | undefined;
@@ -105,7 +155,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "firtoz/trellis:e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "firtoz/trellis:e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -123,22 +177,50 @@ replicate, ai`;
   @prop({ type: "int", default: 1, description: "Number of output" })
   declare batch_size: any;
 
-  @prop({ type: "float", default: 15, description: "Set the scale for guidanece" })
+  @prop({
+    type: "float",
+    default: 15,
+    description: "Set the scale for guidanece"
+  })
   declare guidance_scale: any;
 
-  @prop({ type: "image", default: "", description: "A synthetic view image for generating the 3D modeld. To get the best result, remove background from the input image" })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "A synthetic view image for generating the 3D modeld. To get the best result, remove background from the input image"
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for generating the 3D model, ignored if an image is provide below" })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Text prompt for generating the 3D model, ignored if an image is provide below"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "nerf", values: ["nerf", "stf"], description: "Choose a render mode" })
+  @prop({
+    type: "enum",
+    default: "nerf",
+    values: ["nerf", "stf"],
+    description: "Choose a render mode"
+  })
   declare render_mode: any;
 
-  @prop({ type: "int", default: 128, description: "Set the size of the a renderer, higher values take longer to render" })
+  @prop({
+    type: "int",
+    default: 128,
+    description:
+      "Set the size of the a renderer, higher values take longer to render"
+  })
   declare render_size: any;
 
-  @prop({ type: "bool", default: false, description: "Save the latents as meshes." })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Save the latents as meshes."
+  })
   declare save_mesh: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -151,12 +233,12 @@ replicate, ai`;
     const saveMesh = Boolean(this.save_mesh ?? false);
 
     const args: Record<string, unknown> = {
-      "batch_size": batchSize,
-      "guidance_scale": guidanceScale,
-      "prompt": prompt,
-      "render_mode": renderMode,
-      "render_size": renderSize,
-      "save_mesh": saveMesh,
+      batch_size: batchSize,
+      guidance_scale: guidanceScale,
+      prompt: prompt,
+      render_mode: renderMode,
+      render_size: renderSize,
+      save_mesh: saveMesh
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -166,7 +248,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "cjwbw/shap-e:5957069d5c509126a73c7cb68abcddbb985aeefa4d318e7c63ec1352ce6da68c", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "cjwbw/shap-e:5957069d5c509126a73c7cb68abcddbb985aeefa4d318e7c63ec1352ce6da68c",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -181,7 +267,12 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "enum", default: "deep3d_v1.0_640x360", values: ["deep3d_v1.0_640x360", "deep3d_v1.0_1280x720"], description: "Model size" })
+  @prop({
+    type: "enum",
+    default: "deep3d_v1.0_640x360",
+    values: ["deep3d_v1.0_640x360", "deep3d_v1.0_1280x720"],
+    description: "Model size"
+  })
   declare model: any;
 
   @prop({ type: "video", default: "", description: "Input video" })
@@ -192,7 +283,7 @@ replicate, ai`;
     const model = String(this.model ?? "deep3d_v1.0_640x360");
 
     const args: Record<string, unknown> = {
-      "model": model,
+      model: model
     };
 
     const videoRef = this.video as Record<string, unknown> | undefined;
@@ -202,7 +293,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "lucataco/deep3d:108b6cc8629f25abea20f56446a34e9d676dd1d7218f1ecefdd52239166903e3", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "lucataco/deep3d:108b6cc8629f25abea20f56446a34e9d676dd1d7218f1ecefdd52239166903e3",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -217,16 +312,33 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "int", default: 40000, description: "Target number of faces for simplification" })
+  @prop({
+    type: "int",
+    default: 40000,
+    description: "Target number of faces for simplification"
+  })
   declare face_count: any;
 
-  @prop({ type: "enum", default: "glb", values: ["glb", "obj"], description: "File type" })
+  @prop({
+    type: "enum",
+    default: "glb",
+    values: ["glb", "obj"],
+    description: "File type"
+  })
   declare file_type: any;
 
-  @prop({ type: "int", default: 12345, description: "Seed for random generator" })
+  @prop({
+    type: "int",
+    default: 12345,
+    description: "Seed for random generator"
+  })
   declare generator_seed: any;
 
-  @prop({ type: "image", default: "", description: "Input image for hunyuan3d control" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Input image for hunyuan3d control"
+  })
   declare image_path: any;
 
   @prop({ type: "int", default: 20000, description: "Number of chunks" })
@@ -238,7 +350,12 @@ replicate, ai`;
   @prop({ type: "int", default: 200, description: "Octree resolution" })
   declare octree_resolution: any;
 
-  @prop({ type: "enum", default: "Juiced 🔥 (fast)", values: ["Unsqueezed 🍋 (highest quality)", "Juiced 🔥 (fast)"], description: "Speed optimization level" })
+  @prop({
+    type: "enum",
+    default: "Juiced 🔥 (fast)",
+    values: ["Unsqueezed 🍋 (highest quality)", "Juiced 🔥 (fast)"],
+    description: "Speed optimization level"
+  })
   declare speed_mode: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -252,13 +369,13 @@ replicate, ai`;
     const speedMode = String(this.speed_mode ?? "Juiced 🔥 (fast)");
 
     const args: Record<string, unknown> = {
-      "face_count": faceCount,
-      "file_type": fileType,
-      "generator_seed": generatorSeed,
-      "num_chunks": numChunks,
-      "num_inference_steps": numInferenceSteps,
-      "octree_resolution": octreeResolution,
-      "speed_mode": speedMode,
+      face_count: faceCount,
+      file_type: fileType,
+      generator_seed: generatorSeed,
+      num_chunks: numChunks,
+      num_inference_steps: numInferenceSteps,
+      octree_resolution: octreeResolution,
+      speed_mode: speedMode
     };
 
     const imagePathRef = this.image_path as Record<string, unknown> | undefined;
@@ -268,7 +385,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "prunaai/hunyuan3d-2:6dd3e3e1f8a29a38807e8f23aaf8953a0051996ccc8c1861f709a5b1ee6826b5", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "prunaai/hunyuan3d-2:6dd3e3e1f8a29a38807e8f23aaf8953a0051996ccc8c1861f709a5b1ee6826b5",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -283,19 +404,40 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "float", default: 5.5, description: "Guidance scale for generation" })
+  @prop({
+    type: "float",
+    default: 5.5,
+    description: "Guidance scale for generation"
+  })
   declare guidance_scale: any;
 
-  @prop({ type: "image", default: "", description: "Input image for generating 3D shape" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Input image for generating 3D shape"
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: 256, values: ["256", "384", "512"], description: "Octree resolution for mesh generation" })
+  @prop({
+    type: "enum",
+    default: 256,
+    values: ["256", "384", "512"],
+    description: "Octree resolution for mesh generation"
+  })
   declare octree_resolution: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to remove background from input image" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to remove background from input image"
+  })
   declare remove_background: any;
 
-  @prop({ type: "int", default: 1234, description: "Random seed for generation" })
+  @prop({
+    type: "int",
+    default: 1234,
+    description: "Random seed for generation"
+  })
   declare seed: any;
 
   @prop({ type: "int", default: 50, description: "Number of inference steps" })
@@ -310,11 +452,11 @@ replicate, ai`;
     const steps = Number(this.steps ?? 50);
 
     const args: Record<string, unknown> = {
-      "guidance_scale": guidanceScale,
-      "octree_resolution": octreeResolution,
-      "remove_background": removeBackground,
-      "seed": seed,
-      "steps": steps,
+      guidance_scale: guidanceScale,
+      octree_resolution: octreeResolution,
+      remove_background: removeBackground,
+      seed: seed,
+      steps: steps
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -324,7 +466,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "tencent/hunyuan3d-2:b1b9449a1277e10402781c5d41eb30c0a0683504fb23fab591ca9dfc2aabe1cb", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "tencent/hunyuan3d-2:b1b9449a1277e10402781c5d41eb30c0a0683504fb23fab591ca9dfc2aabe1cb",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -342,7 +488,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Back view image" })
   declare back_image: any;
 
-  @prop({ type: "enum", default: "glb", values: ["glb", "obj", "ply", "stl"], description: "Output file type" })
+  @prop({
+    type: "enum",
+    default: "glb",
+    values: ["glb", "obj", "ply", "stl"],
+    description: "Output file type"
+  })
   declare file_type: any;
 
   @prop({ type: "image", default: "", description: "Front view image" })
@@ -375,7 +526,11 @@ replicate, ai`;
   @prop({ type: "int", default: 30, description: "Number of inference steps" })
   declare steps: any;
 
-  @prop({ type: "int", default: 10000, description: "Target number of faces for mesh simplification" })
+  @prop({
+    type: "int",
+    default: 10000,
+    description: "Target number of faces for mesh simplification"
+  })
   declare target_face_num: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -391,15 +546,15 @@ replicate, ai`;
     const targetFaceNum = Number(this.target_face_num ?? 10000);
 
     const args: Record<string, unknown> = {
-      "file_type": fileType,
-      "guidance_scale": guidanceScale,
-      "num_chunks": numChunks,
-      "octree_resolution": octreeResolution,
-      "randomize_seed": randomizeSeed,
-      "remove_background": removeBackground,
-      "seed": seed,
-      "steps": steps,
-      "target_face_num": targetFaceNum,
+      file_type: fileType,
+      guidance_scale: guidanceScale,
+      num_chunks: numChunks,
+      octree_resolution: octreeResolution,
+      randomize_seed: randomizeSeed,
+      remove_background: removeBackground,
+      seed: seed,
+      steps: steps,
+      target_face_num: targetFaceNum
     };
 
     const backImageRef = this.back_image as Record<string, unknown> | undefined;
@@ -408,7 +563,9 @@ replicate, ai`;
       if (backImageUrl) args["back_image"] = backImageUrl;
     }
 
-    const frontImageRef = this.front_image as Record<string, unknown> | undefined;
+    const frontImageRef = this.front_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(frontImageRef)) {
       const frontImageUrl = await assetToUrl(frontImageRef!, apiKey);
       if (frontImageUrl) args["front_image"] = frontImageUrl;
@@ -420,14 +577,20 @@ replicate, ai`;
       if (leftImageUrl) args["left_image"] = leftImageUrl;
     }
 
-    const rightImageRef = this.right_image as Record<string, unknown> | undefined;
+    const rightImageRef = this.right_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(rightImageRef)) {
       const rightImageUrl = await assetToUrl(rightImageRef!, apiKey);
       if (rightImageUrl) args["right_image"] = rightImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "tencent/hunyuan3d-2mv:71798fbc3c9f7b7097e3bb85496e5a797d8b8f616b550692e7c3e176a8e9e5db", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "tencent/hunyuan3d-2mv:71798fbc3c9f7b7097e3bb85496e5a797d8b8f616b550692e7c3e176a8e9e5db",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -442,34 +605,79 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "bool", default: false, description: "Apply optional wavelet color correction (matches official demo)." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Apply optional wavelet color correction (matches official demo)."
+  })
   declare apply_color_fix: any;
 
-  @prop({ type: "float", default: 1, description: "Classifier-free guidance scale (higher = stronger restoration)." })
+  @prop({
+    type: "float",
+    default: 1,
+    description:
+      "Classifier-free guidance scale (higher = stronger restoration)."
+  })
   declare cfg_scale: any;
 
-  @prop({ type: "int", default: 24, description: "Frames-per-second for video outputs." })
+  @prop({
+    type: "int",
+    default: 24,
+    description: "Frames-per-second for video outputs."
+  })
   declare fps: any;
 
-  @prop({ type: "image", default: "", description: "Video (mp4/mov) or image (png/jpg/webp) to restore." })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Video (mp4/mov) or image (png/jpg/webp) to restore."
+  })
   declare media: any;
 
-  @prop({ type: "enum", default: "3b", values: ["3b", "7b"], description: "Model size to run." })
+  @prop({
+    type: "enum",
+    default: "3b",
+    values: ["3b", "7b"],
+    description: "Model size to run."
+  })
   declare model_variant: any;
 
-  @prop({ type: "enum", default: "webp", values: ["png", "webp", "jpg"], description: "Image output format (only used for image inputs)." })
+  @prop({
+    type: "enum",
+    default: "webp",
+    values: ["png", "webp", "jpg"],
+    description: "Image output format (only used for image inputs)."
+  })
   declare output_format: any;
 
-  @prop({ type: "int", default: 90, description: "Image quality for lossy formats (jpg/webp)." })
+  @prop({
+    type: "int",
+    default: 90,
+    description: "Image quality for lossy formats (jpg/webp)."
+  })
   declare output_quality: any;
 
-  @prop({ type: "int", default: 1, description: "Sampling steps (1 = fast one-step mode)." })
+  @prop({
+    type: "int",
+    default: 1,
+    description: "Sampling steps (1 = fast one-step mode)."
+  })
   declare sample_steps: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Leave blank for a random seed each call." })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Leave blank for a random seed each call."
+  })
   declare seed: any;
 
-  @prop({ type: "int", default: 1, description: "Sequence-parallel shard heuristic (single-GPU build only accepts 1)." })
+  @prop({
+    type: "int",
+    default: 1,
+    description:
+      "Sequence-parallel shard heuristic (single-GPU build only accepts 1)."
+  })
   declare sp_size: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -485,15 +693,15 @@ replicate, ai`;
     const spSize = Number(this.sp_size ?? 1);
 
     const args: Record<string, unknown> = {
-      "apply_color_fix": applyColorFix,
-      "cfg_scale": cfgScale,
-      "fps": fps,
-      "model_variant": modelVariant,
-      "output_format": outputFormat,
-      "output_quality": outputQuality,
-      "sample_steps": sampleSteps,
-      "seed": seed,
-      "sp_size": spSize,
+      apply_color_fix: applyColorFix,
+      cfg_scale: cfgScale,
+      fps: fps,
+      model_variant: modelVariant,
+      output_format: outputFormat,
+      output_quality: outputQuality,
+      sample_steps: sampleSteps,
+      seed: seed,
+      sp_size: spSize
     };
 
     const mediaRef = this.media as Record<string, unknown> | undefined;
@@ -503,7 +711,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "zsxkib/seedvr2:ca98249be9cb623f02a80a7851a2b1a33d5104c251a8f5a1588f251f79bf7c78", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "zsxkib/seedvr2:ca98249be9cb623f02a80a7851a2b1a33d5104c251a8f5a1588f251f79bf7c78",
+      args
+    );
     return { output: outputToString(res.output) };
   }
 }
@@ -515,5 +727,5 @@ export const REPLICATE_IMAGE_3D_NODES: readonly NodeClass[] = [
   Hunyuan3D_2,
   Tencent_Hunyuan3D_2,
   Hunyuan3D_2MV,
-  SeedVR2,
+  SeedVR2
 ] as const;

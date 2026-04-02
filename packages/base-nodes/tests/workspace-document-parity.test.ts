@@ -6,14 +6,14 @@ import {
   ensureWorkspacePath,
   ListWorkspaceFilesNode,
   ReadTextFileNode,
-  WriteTextFileNode,
+  WriteTextFileNode
 } from "../src/nodes/workspace.js";
 import {
   ListDocumentsNode,
   LoadDocumentFileNode,
   SaveDocumentFileNode,
   SplitMarkdownNode,
-  SplitRecursivelyNode,
+  SplitRecursivelyNode
 } from "../src/nodes/document.js";
 
 async function collectGen<T>(iter: AsyncGenerator<T>): Promise<T[]> {
@@ -25,7 +25,10 @@ async function collectGen<T>(iter: AsyncGenerator<T>): Promise<T[]> {
 }
 
 /** Patch a node so that workspace_dir appears in serialize() output */
-function withWorkspace<T extends { serialize: () => Record<string, unknown> }>(node: T, workspace: string): T {
+function withWorkspace<T extends { serialize: () => Record<string, unknown> }>(
+  node: T,
+  workspace: string
+): T {
   const origSerialize = node.serialize.bind(node);
   node.serialize = () => ({ ...origSerialize(), workspace_dir: workspace });
   return node;
@@ -36,12 +39,18 @@ describe("workspace/document parity", () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "nodetool-ws-parity-"));
 
     expect(ensureWorkspacePath(workspace, "subdir/file.txt")).toBe(
-      path.resolve(workspace, "subdir/file.txt"),
+      path.resolve(workspace, "subdir/file.txt")
     );
     expect(ensureWorkspacePath(workspace, ".")).toBe(path.resolve(workspace));
-    expect(() => ensureWorkspacePath(workspace, "")).toThrow("Path cannot be empty");
-    expect(() => ensureWorkspacePath(workspace, "/etc/passwd")).toThrow("Absolute paths are not allowed");
-    expect(() => ensureWorkspacePath(workspace, "../outside")).toThrow("Parent directory traversal");
+    expect(() => ensureWorkspacePath(workspace, "")).toThrow(
+      "Path cannot be empty"
+    );
+    expect(() => ensureWorkspacePath(workspace, "/etc/passwd")).toThrow(
+      "Absolute paths are not allowed"
+    );
+    expect(() => ensureWorkspacePath(workspace, "../outside")).toThrow(
+      "Parent directory traversal"
+    );
   });
 
   it("matches workspace file listing and write semantics", async () => {
@@ -55,23 +64,29 @@ describe("workspace/document parity", () => {
     const listNode = withWorkspace(new ListWorkspaceFilesNode(), workspace);
     Object.assign(listNode, { path: ".", pattern: "*.txt" });
     const files = await collectGen(listNode.genProcess());
-    expect(files.map((item) => item.file).sort()).toEqual(["file1.txt", "file2.txt"]);
+    expect(files.map((item) => item.file).sort()).toEqual([
+      "file1.txt",
+      "file2.txt"
+    ]);
 
     Object.assign(listNode, { path: ".", pattern: "*.txt", recursive: true });
     const recursiveFiles = await collectGen(listNode.genProcess());
     expect(recursiveFiles.map((item) => item.file).sort()).toEqual([
       "file1.txt",
       "file2.txt",
-      path.join("subdir", "nested.txt"),
+      path.join("subdir", "nested.txt")
     ]);
 
     const writeNode = withWorkspace(new WriteTextFileNode(), workspace);
     const readNode = withWorkspace(new ReadTextFileNode(), workspace);
-    Object.assign(writeNode, { path: "sub/deep/file.txt", content: "nested content" });
+    Object.assign(writeNode, {
+      path: "sub/deep/file.txt",
+      content: "nested content"
+    });
     await writeNode.process();
     Object.assign(readNode, { path: "sub/deep/file.txt" });
     expect(await readNode.process()).toEqual({
-      output: "nested content",
+      output: "nested content"
     });
 
     await writeFile(path.join(workspace, "append.txt"), "First line\n");
@@ -79,10 +94,12 @@ describe("workspace/document parity", () => {
       workspace_dir: workspace,
       path: "append.txt",
       content: "Second line",
-      append: true,
+      append: true
     });
     await writeNode.process();
-    expect(await readFile(path.join(workspace, "append.txt"), "utf8")).toBe("First line\nSecond line");
+    expect(await readFile(path.join(workspace, "append.txt"), "utf8")).toBe(
+      "First line\nSecond line"
+    );
   });
 
   it("matches document load/save and document listing behavior", async () => {
@@ -90,14 +107,16 @@ describe("workspace/document parity", () => {
     const docPath = path.join(root, "notes.txt");
     await writeFile(docPath, "hello document");
 
-    const loaded = await Object.assign(new LoadDocumentFileNode(), { path: docPath }).process();
+    const loaded = await Object.assign(new LoadDocumentFileNode(), {
+      path: docPath
+    }).process();
     expect(typeof loaded.output.data).toBe("string");
     expect(loaded.output.uri).toBe(`file://${docPath}`);
 
     const savedPath = path.join(root, "copy.txt");
     await Object.assign(new SaveDocumentFileNode(), {
       path: savedPath,
-      document: loaded.output,
+      document: loaded.output
     }).process();
     expect(await readFile(savedPath, "utf8")).toBe("hello document");
 
@@ -111,7 +130,9 @@ describe("workspace/document parity", () => {
     Object.assign(listNode, { folder: root, pattern: "*.txt" });
     const direct = await collectGen(listNode.genProcess());
     expect(direct).toHaveLength(3);
-    expect(direct.every((item) => String(item.document?.uri).endsWith(".txt"))).toBe(true);
+    expect(
+      direct.every((item) => String(item.document?.uri).endsWith(".txt"))
+    ).toBe(true);
 
     Object.assign(listNode, { folder: root, recursive: true, pattern: "*.md" });
     const recursive = await collectGen(listNode.genProcess());
@@ -124,34 +145,62 @@ describe("workspace/document parity", () => {
     Object.assign(splitRecNode, {
       document: {
         uri: "test-doc",
-        text: "First line\nSecond line\nThird line",
+        text: "First line\nSecond line\nThird line"
       },
       chunk_size: 5,
       chunk_overlap: 0,
-      separators: ["\n\n", "\n", "."],
+      separators: ["\n\n", "\n", "."]
     });
     const recursiveChunks = await collectGen(splitRecNode.genProcess());
 
     expect(recursiveChunks).toEqual([
-      { chunk: "First line", text: "First line", source_id: "test-doc:0", start_index: 0 },
-      { chunk: "\nSecond line", text: "\nSecond line", source_id: "test-doc:1", start_index: 10 },
-      { chunk: "\nThird line", text: "\nThird line", source_id: "test-doc:2", start_index: 22 },
+      {
+        chunk: "First line",
+        text: "First line",
+        source_id: "test-doc:0",
+        start_index: 0
+      },
+      {
+        chunk: "\nSecond line",
+        text: "\nSecond line",
+        source_id: "test-doc:1",
+        start_index: 10
+      },
+      {
+        chunk: "\nThird line",
+        text: "\nThird line",
+        source_id: "test-doc:2",
+        start_index: 22
+      }
     ]);
 
     const splitMdNode = new SplitMarkdownNode();
     Object.assign(splitMdNode, {
       document: {
         uri: "test-md-doc",
-        text: "# Header 1\nContent 1\n## Header 2\nContent 2",
+        text: "# Header 1\nContent 1\n## Header 2\nContent 2"
       },
-      headers_to_split_on: [["#", "Header 1"], ["##", "Header 2"]],
-      strip_headers: true,
+      headers_to_split_on: [
+        ["#", "Header 1"],
+        ["##", "Header 2"]
+      ],
+      strip_headers: true
     });
     const markdownChunks = await collectGen(splitMdNode.genProcess());
 
     expect(markdownChunks).toEqual([
-      { chunk: "Content 1", text: "Content 1", source_id: "test-md-doc", start_index: 0 },
-      { chunk: "Content 2", text: "Content 2", source_id: "test-md-doc", start_index: 0 },
+      {
+        chunk: "Content 1",
+        text: "Content 1",
+        source_id: "test-md-doc",
+        start_index: 0
+      },
+      {
+        chunk: "Content 2",
+        text: "Content 2",
+        source_id: "test-md-doc",
+        start_index: 0
+      }
     ]);
   });
 });

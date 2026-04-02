@@ -12,7 +12,7 @@ function makeAsyncIterable(items: unknown[]) {
     },
     async close() {
       return;
-    },
+    }
   };
 }
 
@@ -33,14 +33,14 @@ describe("Cost tracking – BaseProvider", () => {
 
     const cost1 = provider.trackUsage("gpt-4o", {
       inputTokens: 1000,
-      outputTokens: 500,
+      outputTokens: 500
     });
     expect(cost1).toBeGreaterThan(0);
     expect(provider.getTotalCost()).toBe(cost1);
 
     const cost2 = provider.trackUsage("gpt-4o", {
       inputTokens: 2000,
-      outputTokens: 1000,
+      outputTokens: 1000
     });
     expect(provider.getTotalCost()).toBe(cost1 + cost2);
   });
@@ -66,7 +66,7 @@ describe("Cost tracking – BaseProvider", () => {
 
     const cost = provider.trackUsage("unknown-model-xyz", {
       inputTokens: 1000,
-      outputTokens: 500,
+      outputTokens: 500
     });
     expect(cost).toBe(0);
   });
@@ -77,21 +77,21 @@ describe("Cost tracking – OpenAI generateMessage", () => {
     const create = vi.fn().mockResolvedValue({
       choices: [
         {
-          message: { content: "hello", tool_calls: null },
-        },
+          message: { content: "hello", tool_calls: null }
+        }
       ],
       usage: {
         prompt_tokens: 100,
-        completion_tokens: 50,
-      },
+        completion_tokens: 50
+      }
     });
 
     const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
@@ -105,17 +105,17 @@ describe("Cost tracking – OpenAI generateMessage", () => {
     const create = vi.fn().mockResolvedValue({
       choices: [
         {
-          message: { content: "hello", tool_calls: null },
-        },
-      ],
+          message: { content: "hello", tool_calls: null }
+        }
+      ]
     });
 
     const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
@@ -130,19 +130,15 @@ describe("Cost tracking – OpenAI generateMessages (streaming)", () => {
   it("tracks cost from streaming usage chunk", async () => {
     const chunks = [
       {
-        choices: [
-          { delta: { content: "hi" }, finish_reason: null },
-        ],
+        choices: [{ delta: { content: "hi" }, finish_reason: null }]
       },
       {
-        choices: [
-          { delta: { content: "" }, finish_reason: "stop" },
-        ],
+        choices: [{ delta: { content: "" }, finish_reason: "stop" }],
         usage: {
           prompt_tokens: 200,
-          completion_tokens: 100,
-        },
-      },
+          completion_tokens: 100
+        }
+      }
     ];
 
     const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
@@ -151,8 +147,8 @@ describe("Cost tracking – OpenAI generateMessages (streaming)", () => {
       { OPENAI_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
@@ -160,7 +156,7 @@ describe("Cost tracking – OpenAI generateMessages (streaming)", () => {
     const items: unknown[] = [];
     for await (const item of provider.generateMessages({
       messages,
-      model: "gpt-4o",
+      model: "gpt-4o"
     })) {
       items.push(item);
     }
@@ -175,26 +171,26 @@ describe("Cost tracking – Anthropic generateMessage", () => {
       content: [{ type: "text", text: "hello" }],
       usage: {
         input_tokens: 150,
-        output_tokens: 75,
-      },
+        output_tokens: 75
+      }
     });
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
       {
         client: {
-          messages: { create: mockCreate, stream: vi.fn() },
-        } as any,
+          messages: { create: mockCreate, stream: vi.fn() }
+        } as any
       }
     );
 
     const messages: Message[] = [
       { role: "system", content: "You are helpful" },
-      { role: "user", content: "hi" },
+      { role: "user", content: "hi" }
     ];
     await provider.generateMessage({
       messages,
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-3-5-sonnet-20241022"
     });
 
     expect(provider.getTotalCost()).toBeGreaterThan(0);
@@ -207,20 +203,20 @@ describe("Cost tracking – Anthropic generateMessages (streaming)", () => {
       {
         type: "message_start",
         message: {
-          usage: { input_tokens: 200 },
-        },
+          usage: { input_tokens: 200 }
+        }
       },
       {
         type: "content_block_delta",
-        delta: { text: "hello" },
+        delta: { text: "hello" }
       },
       {
         type: "message_delta",
-        usage: { output_tokens: 100 },
+        usage: { output_tokens: 100 }
       },
       {
-        type: "message_stop",
-      },
+        type: "message_stop"
+      }
     ];
 
     const mockStream = vi.fn().mockReturnValue(makeAsyncIterable(events));
@@ -229,19 +225,19 @@ describe("Cost tracking – Anthropic generateMessages (streaming)", () => {
       { ANTHROPIC_API_KEY: "k" },
       {
         client: {
-          messages: { create: vi.fn(), stream: mockStream },
-        } as any,
+          messages: { create: vi.fn(), stream: mockStream }
+        } as any
       }
     );
 
     const messages: Message[] = [
       { role: "system", content: "You are helpful" },
-      { role: "user", content: "hi" },
+      { role: "user", content: "hi" }
     ];
     const items: unknown[] = [];
     for await (const item of provider.generateMessages({
       messages,
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-3-5-sonnet-20241022"
     })) {
       items.push(item);
     }
