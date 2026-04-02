@@ -61,8 +61,10 @@ function getSilentWav(): string {
   return cachedWav;
 }
 
-// Asset type -> property type mapping
-const ASSET_TYPE_MAP: Record<string, () => Record<string, unknown>> = {
+// Property type -> test value factory
+// Only used when the current value is empty/null/default-empty
+const TEST_VALUE_MAP: Record<string, () => unknown> = {
+  // Asset refs
   image: () => ({
     type: "image",
     data: TINY_PNG_BASE64
@@ -73,19 +75,74 @@ const ASSET_TYPE_MAP: Record<string, () => Record<string, unknown>> = {
   }),
   video: () => ({
     type: "video",
-    data: getSilentWav() // reuse WAV as minimal binary data
+    data: getSilentWav()
   }),
-  model_file: () => ({
-    type: "model_file",
+  model_3d: () => ({
+    type: "model_3d",
     data: "",
-    uri: ""
-  })
+    uri: "",
+    format: "glb"
+  }),
+
+  // Primitive types
+  str: () => "test input",
+  int: () => 1,
+  float: () => 1.0,
+  bool: () => true,
+  color: () => "#ff0000",
+
+  // Structured types
+  dataframe: () => ({
+    type: "dataframe",
+    uri: "",
+    columns: [
+      { name: "name", data_type: "string", description: "" },
+      { name: "value", data_type: "float", description: "" }
+    ],
+    data: [
+      ["alice", 1.0],
+      ["bob", 2.0]
+    ]
+  }),
+  dict: () => ({ key: "value" }),
+  "dict[str, any]": () => ({ key: "value" }),
+  "list[any]": () => ["item1", "item2"],
+  "list[str]": () => ["hello", "world"],
+  np_array: () => ({
+    data: [1.0, 2.0, 3.0, 4.0],
+    shape: [4],
+    dtype: "float32"
+  }),
+  "union[float, int, np_array]": () => 1.0,
+  "union[int, float, np_array]": () => 1,
+  image_size: () => ({ width: 64, height: 64 }),
+  folder: () => "."
 };
 
 /**
- * Fill empty asset ref properties with minimal test data.
- * Detects image/audio/video/document property types and provides
- * tiny valid files so nodes can execute.
+ * Check if a property value is effectively empty and should be
+ * replaced with a test value.
+ */
+function isEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (value === "" || value === 0 || value === false) return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  if (typeof value === "object" && value !== null) {
+    const obj = value as Record<string, unknown>;
+    // Asset refs: empty when no data and no uri
+    if ("type" in obj) {
+      return (!obj.data || obj.data === "") && (!obj.uri || obj.uri === "");
+    }
+    // Empty objects
+    return Object.keys(obj).length === 0;
+  }
+  return false;
+}
+
+/**
+ * Fill empty properties with sensible test data.
+ * Covers asset refs (image/audio/video), primitives (str/int/float),
+ * and structured types (dataframe/dict/list/np_array).
  */
 export function applyTestAssets(
   properties: Record<string, unknown>,
@@ -95,21 +152,10 @@ export function applyTestAssets(
 
   for (const prop of propertyMetadata) {
     const propType = prop.type.type;
-    const factory = ASSET_TYPE_MAP[propType];
+    const factory = TEST_VALUE_MAP[propType];
     if (!factory) continue;
 
-    const current = result[prop.name] as
-      | Record<string, unknown>
-      | null
-      | undefined;
-
-    // Check if the asset ref is empty (no data and no uri)
-    const isEmpty =
-      !current ||
-      (!current.data && !current.uri) ||
-      (current.data === "" && (!current.uri || current.uri === ""));
-
-    if (isEmpty) {
+    if (isEmptyValue(result[prop.name])) {
       result[prop.name] = factory();
     }
   }
