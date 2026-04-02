@@ -31,6 +31,7 @@ export function useNodeTestRunner() {
   const activeRef = useRef(0);
   const cancelledRef = useRef(false);
   const unsubscribesRef = useRef<Map<string, () => void>>(new Map());
+  const completedRef = useRef<Set<string>>(new Set());
 
   const updateResult = useCallback(
     (nodeType: string, update: Partial<NodeTestResult>) => {
@@ -113,6 +114,9 @@ export function useNodeTestRunner() {
           if (type === "node_update") {
             const status = message.status as string;
             if (status === "completed") {
+              // Only take the first completed update — ignore duplicates
+              if (completedRef.current.has(nodeType)) return;
+              completedRef.current.add(nodeType);
               const durationMs = Math.round(performance.now() - startTime);
               const result = message.result as
                 | Record<string, unknown>
@@ -194,6 +198,7 @@ export function useNodeTestRunner() {
     (metadataList: NodeMetadata[]) => {
       cancelledRef.current = false;
       for (const m of metadataList) {
+        completedRef.current.delete(m.node_type);
         updateResult(m.node_type, { status: "queued" });
       }
       queueRef.current.push(...metadataList);
