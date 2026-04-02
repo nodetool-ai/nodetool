@@ -3,7 +3,14 @@
 import { css, keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PortalRecents from "./PortalRecents";
@@ -24,7 +31,7 @@ const KNOWN_PROVIDER_KEYS = [
   "ANTHROPIC_API_KEY",
   "GOOGLE_API_KEY",
   "OPENROUTER_API_KEY",
-  "HUGGINGFACE_API_KEY",
+  "HUGGINGFACE_API_KEY"
 ];
 
 type PortalState = "idle" | "setup";
@@ -58,7 +65,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "0 24px",
-      paddingTop: 40,
+      paddingTop: 40
     },
     ".portal-heading": {
       fontSize: 18,
@@ -67,7 +74,7 @@ const styles = (theme: Theme) =>
       marginBottom: 20,
       letterSpacing: "0.01em",
       textAlign: "center" as const,
-      lineHeight: 1.5,
+      lineHeight: 1.5
     },
     ".portal-input-wrapper": {
       width: "100%",
@@ -77,16 +84,16 @@ const styles = (theme: Theme) =>
       "& .chat-input-section": {
         margin: "0 auto",
         width: "100%",
-        maxWidth: "100%",
+        maxWidth: "100%"
       },
       // Composer box: slightly more padding for a roomier feel
       "& .compose-message": {
         padding: "10px 16px 8px",
-        borderRadius: 16,
+        borderRadius: 16
       },
       "& .compose-message textarea": {
         padding: "4px 8px 8px 4px",
-        fontSize: "15px",
+        fontSize: "15px"
       },
       // Footer: keep toolbar left, send button right — but tighten gap
       "& .composer-footer": {
@@ -96,8 +103,8 @@ const styles = (theme: Theme) =>
           marginLeft: "auto",
           opacity: 0.6,
           transition: "opacity 0.2s ease",
-          "&:hover": { opacity: 1 },
-        },
+          "&:hover": { opacity: 1 }
+        }
       },
       // Flatten the toolbar — no background, no border, no shadow
       "& .chat-toolbar": {
@@ -109,7 +116,7 @@ const styles = (theme: Theme) =>
         minHeight: "unset",
         gap: "2px",
         "&::before": { display: "none" },
-        "&:hover": { border: "none", boxShadow: "none" },
+        "&:hover": { border: "none", boxShadow: "none" }
       },
       // Remove model select border/bg
       "& .toolbar-group-primary": {
@@ -119,8 +126,8 @@ const styles = (theme: Theme) =>
         padding: "2px 4px",
         "&:hover": {
           background: `${theme.vars.palette.action.hover} !important`,
-          borderColor: "transparent !important",
-        },
+          borderColor: "transparent !important"
+        }
       },
       // Dim toolbar icon groups
       "& .toolbar-group": {
@@ -128,30 +135,30 @@ const styles = (theme: Theme) =>
         transition: "opacity 0.2s ease",
         "&:hover": {
           opacity: 0.9,
-          background: theme.vars.palette.action.hover,
-        },
-      },
+          background: theme.vars.palette.action.hover
+        }
+      }
     },
     ".portal-hint": {
       fontSize: 11,
       color: theme.vars.palette.text.disabled,
       textAlign: "center" as const,
-      marginTop: 12,
+      marginTop: 12
     },
 
     // Recents wrapper
     ".portal-recents": {
       marginTop: 24,
       width: "100%",
-      maxWidth: 600,
+      maxWidth: 600
     },
 
     // Transition states
     "&.portal-transitioning": {
-      pointerEvents: "none",
+      pointerEvents: "none"
     },
     "&.portal-transitioning .portal-center": {
-      animation: `${portalExit} ${TRANSITION_DURATION}ms ease-in forwards`,
+      animation: `${portalExit} ${TRANSITION_DURATION}ms ease-in forwards`
     },
 
     // Setup state
@@ -162,13 +169,13 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "0 24px",
-      paddingTop: 64,
+      paddingTop: 64
     },
     ".portal-setup-message": {
       maxWidth: 480,
       padding: "16px 20px",
-      animation: `${fadeIn} 300ms ease-out`,
-    },
+      animation: `${fadeIn} 300ms ease-out`
+    }
   });
 
 const Portal: React.FC = () => {
@@ -199,17 +206,12 @@ const Portal: React.FC = () => {
     deleteThread: _deleteThread,
     setSelectedModel,
     setAgentMode,
-    setSelectedTools,
+    setSelectedTools
   } = usePortalChat();
 
-  const {
-    sortedWorkflows,
-    startTemplates,
-  } = useDashboardData();
+  const { sortedWorkflows, startTemplates } = useDashboardData();
 
-  const {
-    handleExampleClick,
-  } = useWorkflowActions();
+  const { handleExampleClick, handleCreateNewWorkflow } = useWorkflowActions();
 
   const fetchSecrets = useSecretsStore((s) => s.fetchSecrets);
   const secrets = useSecretsStore((s) => s.secrets);
@@ -230,8 +232,8 @@ const Portal: React.FC = () => {
   }, []);
 
   const hasConfiguredProvider = useMemo(() => {
-    return secrets.some((s) =>
-      KNOWN_PROVIDER_KEYS.includes(s.key) && s.is_configured
+    return secrets.some(
+      (s) => KNOWN_PROVIDER_KEYS.includes(s.key) && s.is_configured
     );
   }, [secrets]);
 
@@ -250,7 +252,7 @@ const Portal: React.FC = () => {
           content,
           thread_id: threadId,
           created_at: new Date().toISOString(),
-          model: selectedModel?.id,
+          model: selectedModel?.id
         };
         await sendMessage(message);
         setTimeout(() => {
@@ -294,7 +296,7 @@ const Portal: React.FC = () => {
         type: "language_model",
         provider: provider as any,
         id: id,
-        name: id,
+        name: id
       };
       setSelectedModel(model);
 
@@ -308,13 +310,10 @@ const Portal: React.FC = () => {
     [pendingMessage, setSelectedModel, sendAndNavigate]
   );
 
-  const transitionTo = useCallback(
-    (onComplete: () => void) => {
-      setIsTransitioning(true);
-      setTimeout(onComplete, TRANSITION_DURATION);
-    },
-    []
-  );
+  const transitionTo = useCallback((onComplete: () => void) => {
+    setIsTransitioning(true);
+    setTimeout(onComplete, TRANSITION_DURATION);
+  }, []);
 
   // Handle clicking a recent chat thread
   const handleThreadClick = useCallback(
@@ -434,6 +433,7 @@ const Portal: React.FC = () => {
               threads={threads}
               onWorkflowClick={handleWorkflowItemClick}
               onThreadClick={handleThreadClick}
+              onCreateWorkflow={handleCreateNewWorkflow}
             />
           </div>
         )}
@@ -442,7 +442,6 @@ const Portal: React.FC = () => {
           <div className="portal-hint">Type anything to get started</div>
         )}
       </div>
-
     </Box>
   );
 };
