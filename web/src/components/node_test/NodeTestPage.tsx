@@ -47,6 +47,7 @@ function NodeTestPage() {
   const flatRows = useMemo(() => {
     const allNodes = Object.values(metadata);
     const filtered = allNodes.filter((m) => {
+      if (m.node_type.startsWith("comfy.")) return false;
       if (search) {
         const q = search.toLowerCase();
         if (
