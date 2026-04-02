@@ -507,6 +507,23 @@ await app.register(websocketPlugin, {
     log.info(
       `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`
     );
+    // Notify connected clients to reload metadata
+    try {
+      const { encode } = await import("@msgpack/msgpack");
+      const msg = encode({
+        type: "resource_change",
+        event: "updated",
+        resource_type: "metadata",
+        resource: { id: "nodes", etag: String(Date.now()) }
+      });
+      for (const client of app.websocketServer.clients) {
+        if (client.readyState === 1) {
+          client.send(msg);
+        }
+      }
+    } catch {
+      // broadcast is best-effort
+    }
     registerPythonProviders(pythonBridge)
       .then((registered) => {
         if (registered.length > 0) {
@@ -655,6 +672,22 @@ if (pythonBridge.hasPython()) {
       log.info(
         `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`
       );
+      // Notify connected clients to reload metadata
+      import("@msgpack/msgpack")
+        .then(({ encode }) => {
+          const msg = encode({
+            type: "resource_change",
+            event: "updated",
+            resource_type: "metadata",
+            resource: { id: "nodes", etag: String(Date.now()) }
+          });
+          for (const client of app.websocketServer.clients) {
+            if (client.readyState === 1) {
+              client.send(msg);
+            }
+          }
+        })
+        .catch(() => {});
       registerPythonProviders(pythonBridge)
         .then((registered) => {
           if (registered.length > 0) {
