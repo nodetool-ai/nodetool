@@ -36,17 +36,6 @@ export class OutputNode extends BaseNode {
   })
   declare description: any;
 
-  private inferOutputType(value: unknown): string {
-    if (value === null || value === undefined) return "any";
-    if (typeof value === "string") return "str";
-    if (typeof value === "number")
-      return Number.isInteger(value) ? "int" : "float";
-    if (typeof value === "boolean") return "bool";
-    if (Array.isArray(value)) return "list";
-    if (value && typeof value === "object") return "dict";
-    return "any";
-  }
-
   private async normalize(
     value: unknown,
     context?: ProcessingContext
@@ -56,32 +45,12 @@ export class OutputNode extends BaseNode {
     return context.normalizeOutputValue(value);
   }
 
-  private emitOutputUpdate(value: unknown, context?: ProcessingContext): void {
-    if (!context || typeof context.emit !== "function") return;
-    const nodeId = String(
-      this.__node_id ?? this.name ?? this.__node_name ?? ""
-    );
-    const nodeName = String(this.__node_name ?? this.name ?? nodeId);
-    const outputName =
-      typeof this.name === "string" && this.name.trim().length > 0
-        ? this.name
-        : "output";
-    context.emit({
-      type: "output_update",
-      node_id: nodeId,
-      node_name: nodeName,
-      output_name: outputName,
-      value,
-      output_type: this.inferOutputType(value),
-      metadata: {}
-    });
-  }
-
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const value = this.value ?? null;
 
     const normalized = await this.normalize(value, context);
-    this.emitOutputUpdate(normalized, context);
+    // Don't emit output_update here — the runner already emits one
+    // per output handle from the result. Emitting here caused duplicates.
     return { output: normalized };
   }
 }
