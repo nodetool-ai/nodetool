@@ -20,14 +20,13 @@ export const SKETCH_COLORS = {
   textSecondary: "grey.300", // labels, secondary info
   textMuted: "grey.400",     // placeholders, hints
   textFaint: "grey.500",     // disabled / very subtle
-} as const;
+ } as const;
 
 // Checkerboard transparency pattern used for thumbnails and color swatches.
 // Two shades that are visually distinct but subtle on dark backgrounds.
 export const SKETCH_CHECKERBOARD = {
-  backgroundImage:
-    "repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%)",
-  backgroundSize: "8px 8px",
+  backgroundImage: "repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%)",
+  backgroundSize: "8px 8px"
 } as const;
 
 // ─── Typography Scale ──────────────────────────────────────────────────────────
@@ -54,9 +53,9 @@ export const SKETCH_SIZE = {
   /** Row min-height; thumbnails sized to match (~40% larger than original 36/28). */
   layerItemHeight: "50.4px",
   layerThumbnail: "39.2px",
-  panelWidth:      "260px",
-  iconButtonPad:   "3px",
-  borderRadius:    "4px",
+  panelWidth: "260px",
+  iconButtonPad: "3px",
+  borderRadius: "4px"
 } as const;
 
 // ─── Z-Index Scale ───────────────────────────────────────────────────────────
@@ -79,12 +78,12 @@ export const sketchSliderSx: SxProps<Theme> = (theme) => ({
   "& .MuiSlider-rail": {
     height: "2px",
     opacity: 0.3,
-    backgroundColor: (theme as Theme).palette.grey[400],
+    backgroundColor: (theme as Theme).palette.grey[400]
   },
   "& .MuiSlider-track": {
     height: "2px",
     border: "none",
-    backgroundColor: (theme as Theme).palette.grey[300],
+    backgroundColor: (theme as Theme).palette.grey[300]
   },
   "& .MuiSlider-thumb": {
     width: "10px",
@@ -93,10 +92,10 @@ export const sketchSliderSx: SxProps<Theme> = (theme) => ({
     boxShadow: "none",
     "&:hover, &.Mui-focusVisible": {
       boxShadow: "none",
-      backgroundColor: "#fff",
+      backgroundColor: "#fff"
     },
-    "&::before": { display: "none" },
-  },
+    "&::before": { display: "none" }
+  }
 });
 
 /**
