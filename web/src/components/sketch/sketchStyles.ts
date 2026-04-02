@@ -16,9 +16,10 @@ export const SKETCH_COLORS = {
   bgSecondary: "grey.800",   // panels, toolbars
   bgHover: "grey.700",       // hover states
   border: "grey.700",        // all panel borders
-  textPrimary: "grey.200",   // main readable text
-  textSecondary: "grey.400", // labels, secondary info
-  textMuted: "grey.500",     // placeholders, hints
+  textPrimary: "grey.100",   // main readable text (bright)
+  textSecondary: "grey.300", // labels, secondary info
+  textMuted: "grey.400",     // placeholders, hints
+  textFaint: "grey.500",     // disabled / very subtle
 } as const;
 
 // Checkerboard transparency pattern used for thumbnails and color swatches.
@@ -148,13 +149,13 @@ export const settingRowChildrenSx = (t: Theme) => ({
     "& .setting-label": {
       fontSize: SKETCH_FONT.sm,
       whiteSpace: "nowrap",
-      color: t.vars.palette.grey[300],
+      color: t.vars.palette.grey[200],
     },
     "& .setting-value": {
       fontSize: SKETCH_FONT.sm,
       minWidth: "24px",
       textAlign: "right",
-      color: t.vars.palette.grey[200],
+      color: t.vars.palette.grey[100],
     },
   },
   "& .MuiToggleButtonGroup-root": {
@@ -203,13 +204,13 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
       "& .setting-label": {
         fontSize: SKETCH_FONT.sm,
         whiteSpace: "nowrap",
-        color: t.palette.grey[300],
+        color: t.vars.palette.grey[200],
       },
       "& .setting-value": {
         fontSize: SKETCH_FONT.sm,
         minWidth: "24px",
         textAlign: "right",
-        color: t.palette.grey[200],
+        color: t.vars.palette.grey[100],
       },
     },
     "& .MuiToggleButtonGroup-root": {
@@ -224,6 +225,27 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
       padding: SKETCH_SIZE.iconButtonPad,
     },
   };
+};
+
+// ─── Shared Button / Hint Styles ──────────────────────────────────────────
+
+/**
+ * Small action buttons (Apply, Cancel, Commit, Reset) used in tool settings.
+ * Keeps font and padding consistent across all panels.
+ */
+export const sketchButtonSmallSx: SxProps<Theme> = {
+  fontSize: SKETCH_FONT.sm,
+  py: SKETCH_SPACING.xs,
+  minWidth: "50px",
+};
+
+/**
+ * Italic hint text (e.g. "Alt+click to set source point", "No settings for this tool").
+ */
+export const sketchHintTextSx: SxProps<Theme> = {
+  fontSize: SKETCH_FONT.md,
+  color: SKETCH_COLORS.textFaint,
+  fontStyle: "italic",
 };
 
 // ─── Color Utilities ──────────────────────────────────────────────────────────
