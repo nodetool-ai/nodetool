@@ -89,6 +89,15 @@ protocol → config → security → auth → storage
 - **Serialization**: MsgPack for WebSocket messages, JSON for REST API
 - **ES Modules**: All packages use `"type": "module"`. Imports need `.js` extension in compiled output.
 
+## Pre-Commit
+
+Before every commit, run lint and typecheck. Do not commit if either fails.
+
+```bash
+make lint        # Must pass before committing
+make typecheck   # Must pass before committing
+```
+
 ## Rules
 
 - TypeScript strict mode. No `any`. Use `const` by default.

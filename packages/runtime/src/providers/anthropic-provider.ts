@@ -583,18 +583,17 @@ export class AnthropicProvider extends BaseProvider {
     >();
 
     for await (const event of stream) {
-      const type = String(event?.type ?? "");
-
-      if (type === "message_start" && event?.message?.usage) {
-        streamInputTokens += event.message.usage.input_tokens ?? 0;
-        streamCachedTokens += event.message.usage.cache_read_input_tokens ?? 0;
+      if (event.type === "message_start") {
+        const usage = event.message.usage;
+        streamInputTokens += usage.input_tokens ?? 0;
+        streamCachedTokens += usage.cache_read_input_tokens ?? 0;
       }
 
-      if (type === "message_delta" && event?.usage) {
+      if (event.type === "message_delta") {
         streamOutputTokens += event.usage.output_tokens ?? 0;
       }
 
-      if (type === "message_stop") {
+      if (event.type === "message_stop") {
         this.trackUsage(args.model, {
           inputTokens: streamInputTokens,
           outputTokens: streamOutputTokens,
@@ -603,10 +602,10 @@ export class AnthropicProvider extends BaseProvider {
       }
 
       // Record the start of a tool_use content block so we can accumulate its JSON.
-      if (type === "content_block_start") {
-        const block = event?.content_block;
-        if (block?.type === "tool_use" && !structured.isStructured) {
-          activeToolBlocks.set(Number(event.index ?? 0), {
+      if (event.type === "content_block_start") {
+        const block = event.content_block;
+        if (block.type === "tool_use" && !structured.isStructured) {
+          activeToolBlocks.set(event.index, {
             id: String(block.id ?? ""),
             name: String(block.name ?? ""),
             json: ""
@@ -615,9 +614,9 @@ export class AnthropicProvider extends BaseProvider {
         continue;
       }
 
-      if (type === "content_block_delta") {
+      if (event.type === "content_block_delta") {
         const delta = event.delta;
-        if (typeof delta?.thinking === "string") {
+        if ("thinking" in delta && typeof delta.thinking === "string") {
           const chunk: Chunk = {
             type: "chunk",
             content: delta.thinking,
@@ -628,7 +627,10 @@ export class AnthropicProvider extends BaseProvider {
           continue;
         }
 
-        if (typeof delta?.partial_json === "string") {
+        if (
+          "partial_json" in delta &&
+          typeof delta.partial_json === "string"
+        ) {
           if (structured.isStructured) {
             // Structured output: stream partial JSON as text chunks.
             const chunk: Chunk = {
@@ -639,7 +641,7 @@ export class AnthropicProvider extends BaseProvider {
             yield chunk;
           } else {
             // Regular tool call: accumulate the JSON into the active block.
-            const block = activeToolBlocks.get(Number(event.index ?? 0));
+            const block = activeToolBlocks.get(event.index);
             if (block) {
               block.json += delta.partial_json;
             }
@@ -647,7 +649,11 @@ export class AnthropicProvider extends BaseProvider {
           continue;
         }
 
-        if (!structured.isStructured && typeof delta?.text === "string") {
+        if (
+          !structured.isStructured &&
+          "text" in delta &&
+          typeof delta.text === "string"
+        ) {
           const chunk: Chunk = {
             type: "chunk",
             content: delta.text,
@@ -658,10 +664,10 @@ export class AnthropicProvider extends BaseProvider {
         continue;
       }
 
-      if (type === "content_block_stop") {
+      if (event.type === "content_block_stop") {
         // content_block_stop does NOT carry the content_block in the raw API event.
         // Use the block we recorded from content_block_start + accumulated partial_json.
-        const index = Number(event.index ?? 0);
+        const index = event.index;
         const toolBlock = activeToolBlocks.get(index);
         if (toolBlock && !structured.isStructured) {
           activeToolBlocks.delete(index);
@@ -688,7 +694,7 @@ export class AnthropicProvider extends BaseProvider {
         continue;
       }
 
-      if (type === "message_stop") {
+      if (event.type === "message_stop") {
         const chunk: Chunk = {
           type: "chunk",
           content: "",
