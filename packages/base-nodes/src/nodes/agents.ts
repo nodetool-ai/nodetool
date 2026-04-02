@@ -858,11 +858,19 @@ export async function runAgentLoop(
     }
 
     if (assistantText || assistantToolCalls.length > 0) {
-      messages.push({
+      const assistantMsg: Message = {
         role: "assistant",
         content: [{ type: "text", text: assistantText }],
         toolCalls: assistantToolCalls.length > 0 ? assistantToolCalls : null
-      });
+      };
+      // Propagate raw Gemini parts for thought signature replay
+      const rawParts = assistantToolCalls.find(
+        (tc) => tc._rawGeminiParts
+      )?._rawGeminiParts;
+      if (rawParts) {
+        assistantMsg._rawGeminiParts = rawParts as unknown[];
+      }
+      messages.push(assistantMsg);
     }
 
     for (const toolCall of assistantToolCalls) {

@@ -34,6 +34,7 @@ interface GeminiProviderOptions {
 /** A Gemini content part. */
 interface GeminiPart {
   text?: string;
+  thought?: boolean;
   inlineData?: { mimeType: string; data: string };
   functionCall?: {
     name: string;
@@ -271,6 +272,15 @@ export class GeminiProvider extends BaseProvider {
       }
 
       if (msg.role === "assistant") {
+        // If we have raw Gemini parts (with thought content), replay them exactly
+        if (msg._rawGeminiParts && Array.isArray(msg._rawGeminiParts)) {
+          contents.push({
+            role: "model",
+            parts: msg._rawGeminiParts as GeminiPart[]
+          });
+          continue;
+        }
+
         const parts: GeminiPart[] = [];
 
         // Tool calls
@@ -536,14 +546,19 @@ export class GeminiProvider extends BaseProvider {
           const parts = event.candidates?.[0]?.content?.parts;
           if (!parts) continue;
 
+          // Collect all parts from this event for raw replay
+          const hasThoughts = parts.some((p: GeminiPart) => p.thought);
+
           for (const part of parts) {
-            if (part.text !== undefined) {
+            if (part.text !== undefined && !part.thought) {
               const chunk: Chunk = {
                 type: "chunk",
                 content: part.text,
                 done: false
               };
               yield chunk;
+            } else if (part.text !== undefined && part.thought) {
+              // Thought text — preserved via _rawGeminiParts, not yielded
             } else if (part.functionCall) {
               const originalName =
                 reverseMap.get(part.functionCall.name) ??
@@ -556,6 +571,10 @@ export class GeminiProvider extends BaseProvider {
               if (part.functionCall.thought_signature) {
                 toolCall.thought_signature =
                   part.functionCall.thought_signature;
+              }
+              // Attach all parts from this event so thoughts can be replayed
+              if (hasThoughts) {
+                toolCall._rawGeminiParts = parts;
               }
               yield toolCall;
             }
@@ -604,11 +623,16 @@ export class GeminiProvider extends BaseProvider {
       }
     }
 
-    return {
+    const hasThoughts = parts.some((p) => p.thought);
+    const msg: Message = {
       role: "assistant",
       content: textParts.join("") || null,
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined
     };
+    if (hasThoughts) {
+      msg._rawGeminiParts = parts;
+    }
+    return msg;
   }
 
   // ---------------------------------------------------------------------------

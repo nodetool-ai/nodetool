@@ -52,6 +52,8 @@ export interface ToolCall {
   name: string;
   args: Record<string, unknown>;
   thought_signature?: string;
+  /** Raw Gemini parts to echo back (preserves thought content). */
+  _rawGeminiParts?: unknown[];
 }
 
 export interface ProviderTool {
@@ -95,6 +97,8 @@ export interface Message {
   toolCalls?: ToolCall[] | null;
   toolCallId?: string | null;
   threadId?: string | null;
+  /** Provider-specific raw parts to echo back (e.g., Gemini thought parts). */
+  _rawGeminiParts?: unknown[];
 }
 
 export interface TextToImageParams {
