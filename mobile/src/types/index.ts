@@ -10,8 +10,6 @@ export type {
   Workflow,
   Node,
   Edge,
-  GraphNode,
-  GraphEdge,
 } from "./workflow";
 export type {
   MiniAppInputKind,

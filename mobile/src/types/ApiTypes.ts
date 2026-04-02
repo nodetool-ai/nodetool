@@ -177,7 +177,6 @@ export type {
 // Node Metadata — use protocol names; keep legacy aliases for backward compat
 export type TypeMetadata = PropertyTypeMetadata;
 export type { Property, OutputSlot, IndexResponse };
-export type BaseNodeMetadata = _NodeMetadata;
 export type { PropertyTypeMetadata };
 
 // Job
