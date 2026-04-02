@@ -16,6 +16,12 @@ Guidelines for working with code in this repository. These are linter-like rules
 
 ---
 
+## Prerequisites
+
+- **Node.js 22.x** (required — see `.nvmrc`). Electron 35 embeds Node 22; native modules must match the ABI.
+- Use `nvm use` to activate the correct version.
+- If you see `NODE_MODULE_VERSION` errors, run `npm rebuild`.
+
 ## Build, Lint & Test Commands
 
 ### Make Targets (Recommended)

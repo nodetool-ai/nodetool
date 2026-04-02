@@ -4,6 +4,12 @@
 
 Desktop application wrapping the NodeTool web UI with native capabilities (local file system, SQLite, Python/Conda integration).
 
+## Prerequisites
+
+- **Node.js 22.x required.** Electron 35 embeds a Node 22 fork (ABI 133). Native modules like `better-sqlite3` must be compiled against this ABI. Using Node 23+ or 24+ will cause `NODE_MODULE_VERSION` mismatch errors at startup.
+- Use `nvm use` from the repo root (reads `.nvmrc`).
+- `make electron-dev` automatically runs `electron-builder install-app-deps` to rebuild native modules before launching.
+
 ## Build, Lint & Test
 
 ```bash

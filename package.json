@@ -61,5 +61,8 @@
   "dependencies": {
     "keytar": "^7.9.0",
     "msgpackr": "^1.11.9"
+  },
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
   }
 }

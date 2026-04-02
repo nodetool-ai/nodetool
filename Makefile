@@ -1,4 +1,4 @@
-.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart electron-dev dev dev-server build-stale-backend screenshots screenshots-force
+.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart check-node-version electron-dev dev dev-server build-stale-backend screenshots screenshots-force
 
 # Default target
 help:
@@ -111,12 +111,25 @@ build-stale-backend:
 	@echo "Building stale backend workspaces..."
 	npm run build:stale --workspace=packages/websocket
 
+check-node-version:
+	@NODE_MAJOR=$$(node -e "console.log(process.versions.node.split('.')[0])"); \
+	if [ "$$NODE_MAJOR" != "22" ]; then \
+		echo "ERROR: Node.js 22.x required (found $$(node -v))"; \
+		echo "  Electron 35 embeds Node 22 — native modules must match."; \
+		echo "  Run: nvm use 22"; \
+		exit 1; \
+	fi
+
 ifeq ($(OS),Windows_NT)
-electron-dev: build-stale-backend
+electron-dev: check-node-version build-stale-backend
+	@echo "Rebuilding native modules for Electron..."
+	cd electron && npx electron-builder install-app-deps
 	@echo "Starting Electron development mode..."
 	powershell -ExecutionPolicy Bypass -File scripts/electron-dev.ps1
 else
-electron-dev: build-stale-backend
+electron-dev: check-node-version build-stale-backend
+	@echo "Rebuilding native modules for Electron..."
+	cd electron && npx electron-builder install-app-deps
 	@echo "Starting Electron development mode..."
 	./scripts/electron-dev.sh
 endif

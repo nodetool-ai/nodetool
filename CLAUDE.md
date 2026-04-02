@@ -36,6 +36,20 @@ cd electron && npm run lint
 # Dev servers
 make dev          # Backend (tsx --watch) + web Vite server
 make dev-server   # Backend only
+make electron-dev # Electron dev (auto-rebuilds native modules)
+```
+
+### Prerequisites
+
+- **Node.js 22.x** (required — see `.nvmrc`). Use `nvm use` to activate.
+- npm (comes with Node)
+- Python 3.11+ with conda (optional, for Python nodes)
+
+```bash
+# First-time setup
+nvm use              # Reads .nvmrc, activates Node 22
+npm install          # Install all workspace dependencies
+npm run build:packages  # Build backend packages
 ```
 
 ## Architecture
@@ -113,11 +127,13 @@ make typecheck   # Must pass before committing
 
 ## Common Pitfalls
 
+- **Node.js 22.x is required**. Electron 35 embeds Node 22 — native modules (better-sqlite3) must be compiled against the same ABI. Use `nvm use 22` (see `.nvmrc`). Node 23+ or 24+ will cause `NODE_MODULE_VERSION` mismatch errors in Electron.
 - **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `make dev`.
 - **Package build order matters**. Use `npm run build:packages` which builds in dependency order, not `npm run build` on individual packages that have unbuilt dependencies.
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`.
+- **Native module ABI mismatch**: If you see `NODE_MODULE_VERSION` errors, run `npm rebuild` (for `make dev`) or `cd electron && npx electron-builder install-app-deps` (for `make electron-dev`). `make electron-dev` does this automatically.
 
 ## Detailed Guidelines
 
