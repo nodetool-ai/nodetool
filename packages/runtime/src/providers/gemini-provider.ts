@@ -553,6 +553,10 @@ export class GeminiProvider extends BaseProvider {
                 name: originalName,
                 args: part.functionCall.args ?? {}
               };
+              if (part.functionCall.thought_signature) {
+                toolCall.thought_signature =
+                  part.functionCall.thought_signature;
+              }
               yield toolCall;
             }
           }
