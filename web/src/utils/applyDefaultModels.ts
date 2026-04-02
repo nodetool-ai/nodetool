@@ -11,7 +11,11 @@ const MODEL_TYPES = new Set([
 
 interface PropertyMeta {
   name: string;
-  type: { type: string };
+  type: { type: string } | string;
+}
+
+function getTypeString(type: { type: string } | string): string {
+  return typeof type === "string" ? type : type.type;
 }
 
 export function applyDefaultModels(
@@ -24,7 +28,7 @@ export function applyDefaultModels(
   const result = { ...properties };
 
   for (const prop of propertyMetadata) {
-    const modelType = prop.type.type;
+    const modelType = getTypeString(prop.type);
     if (!MODEL_TYPES.has(modelType)) continue;
 
     const current = result[prop.name] as

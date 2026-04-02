@@ -146,12 +146,12 @@ function isEmptyValue(value: unknown): boolean {
  */
 export function applyTestAssets(
   properties: Record<string, unknown>,
-  propertyMetadata: { name: string; type: { type: string } }[]
+  propertyMetadata: { name: string; type: { type: string } | string }[]
 ): Record<string, unknown> {
   const result = { ...properties };
 
   for (const prop of propertyMetadata) {
-    const propType = prop.type.type;
+    const propType = typeof prop.type === "string" ? prop.type : prop.type.type;
     const factory = TEST_VALUE_MAP[propType];
     if (!factory) continue;
 
