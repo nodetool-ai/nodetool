@@ -15,6 +15,7 @@ import { createServer as createHttpServer } from "node:http";
 import crypto from "node:crypto";
 import { createLogger, getDefaultDbPath } from "@nodetool/config";
 import { NodeRegistry } from "@nodetool/node-sdk";
+import type { NodeMetadata } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
@@ -486,6 +487,23 @@ await app.register(websocketPlugin, {
     await pythonBridge.ensureConnected();
     pythonBridgeReady = true;
     const meta = pythonBridge.getNodeMetadata();
+    // Register Python bridge nodes into the shared registry
+    for (const nodeMeta of meta) {
+      if (nodeMeta.node_type) {
+        registry.loadMetadata(nodeMeta.node_type, {
+          ...(nodeMeta as unknown as NodeMetadata),
+          namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
+          layout: "default",
+          recommended_models: [],
+          basic_fields: [],
+          required_settings: nodeMeta.required_settings ?? [],
+          is_dynamic: nodeMeta.is_dynamic ?? false,
+          is_streaming_output: nodeMeta.is_streaming_output ?? false,
+          expose_as_tool: false,
+          supports_dynamic_outputs: false
+        });
+      }
+    }
     log.info(
       `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`
     );
@@ -618,6 +636,22 @@ if (pythonBridge.hasPython()) {
     .then(() => {
       pythonBridgeReady = true;
       const meta = pythonBridge.getNodeMetadata();
+      for (const nodeMeta of meta) {
+        if (nodeMeta.node_type) {
+          registry.loadMetadata(nodeMeta.node_type, {
+            ...(nodeMeta as unknown as NodeMetadata),
+            namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
+            layout: "default",
+            recommended_models: [],
+            basic_fields: [],
+            required_settings: nodeMeta.required_settings ?? [],
+            is_dynamic: nodeMeta.is_dynamic ?? false,
+            is_streaming_output: nodeMeta.is_streaming_output ?? false,
+            expose_as_tool: false,
+            supports_dynamic_outputs: false
+          });
+        }
+      }
       log.info(
         `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`
       );

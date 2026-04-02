@@ -125,6 +125,11 @@ export class NodeRegistry {
     );
   }
 
+  /** Add or replace metadata for a node type (e.g. from Python bridge). */
+  loadMetadata(nodeType: string, metadata: NodeMetadata): void {
+    this._loadedMetadataByType.set(nodeType, metadata);
+  }
+
   loadPythonMetadata(
     options: PythonMetadataLoadOptions = {}
   ): PythonMetadataLoadResult {
