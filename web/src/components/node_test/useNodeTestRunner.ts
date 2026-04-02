@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import { applyDefaultModels } from "../../utils/applyDefaultModels";
+import { applyTestAssets } from "../../utils/testAssets";
 import { uuidv4 } from "../../stores/uuidv4";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { isLocalhost } from "../../stores/ApiClient";
@@ -82,12 +83,13 @@ export function useNodeTestRunner() {
         }
       }
       const withModels = applyDefaultModels(properties, metadata.properties);
+      const withAssets = applyTestAssets(withModels, metadata.properties);
 
       // Build graph node
       const graphNode = {
         id: nodeId,
         type: metadata.node_type,
-        data: withModels,
+        data: withAssets,
         ui_properties: { position: { x: 0, y: 0 }, width: 200 }
       };
 
