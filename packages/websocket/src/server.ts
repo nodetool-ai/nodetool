@@ -128,15 +128,11 @@ function detectPipMetadataRoots(): string[] {
 import json, pathlib, subprocess, sys
 roots = set()
 try:
-    # Discover all nodetool-* packages
-    list_proc = subprocess.run(
-        [sys.executable, "-m", "pip", "list", "--format=json"],
-        capture_output=True, text=True, check=False,
-    )
+    # Known nodetool packages — avoids slow pip list
     pkg_names = [
-        p["name"] for p in json.loads(list_proc.stdout or "[]")
-        if p["name"].startswith("nodetool-")
-    ] or ["nodetool-core", "nodetool-base"]
+        "nodetool-core", "nodetool-base", "nodetool-huggingface",
+        "nodetool-mlx", "nodetool-apple", "nodetool-worker",
+    ]
     proc = subprocess.run(
         [sys.executable, "-m", "pip", "show", "-f"] + pkg_names,
         capture_output=True, text=True, check=False,
