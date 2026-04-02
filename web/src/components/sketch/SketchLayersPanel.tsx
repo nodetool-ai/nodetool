@@ -12,8 +12,10 @@ import React, { memo, useCallback, useEffect, useState, useRef } from "react";
 import {
   sketchSliderSx,
   SKETCH_CHECKERBOARD,
+  SKETCH_COLORS,
   SKETCH_FONT,
-  SKETCH_SIZE
+  SKETCH_SIZE,
+  SKETCH_SPACING
 } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -187,7 +189,7 @@ const styles = (theme: Theme) =>
       fontSize: SKETCH_FONT.md,
       fontWeight: 600,
       textTransform: "uppercase",
-      color: theme.vars.palette.grey[400]
+      color: theme.vars.palette.grey[300]
     },
     "& .layer-item": {
       display: "flex",
@@ -261,7 +263,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: "0.5rem",
+      fontSize: SKETCH_FONT.xxs,
       color: theme.vars.palette.grey[500]
     },
     "& .layer-name": {
@@ -279,19 +281,19 @@ const styles = (theme: Theme) =>
     "& .opacity-row": {
       display: "flex",
       alignItems: "center",
-      gap: "4px",
-      padding: "0 6px",
+      gap: SKETCH_SPACING.sm,
+      padding: `0 ${SKETCH_SPACING.md}`,
       "& .MuiSlider-root": {
         flex: 1
       }
     },
     "& .hex-input": {
       "& .MuiInputBase-root": {
-        fontSize: "0.7rem",
+        fontSize: SKETCH_FONT.md,
         height: "28px"
       },
       "& .MuiInputBase-input": {
-        padding: "4px 8px"
+        padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.lg}`
       }
     }
   });
@@ -1119,7 +1121,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       {activeLayer && (
         <>
           <Box className="opacity-row">
-            <Typography sx={{ fontSize: "0.7rem", color: "grey.400" }}>
+            <Typography sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textMuted }}>
               Opacity
             </Typography>
             <Slider
@@ -1134,7 +1136,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
             />
             <Typography
-              sx={{ fontSize: "0.7rem", minWidth: "30px", textAlign: "right" }}
+              sx={{ fontSize: SKETCH_FONT.md, minWidth: "30px", textAlign: "right" }}
             >
               {Math.round(activeLayer.opacity * 100)}%
             </Typography>
@@ -1148,7 +1150,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   e.target.value as BlendMode
                 )
               }
-              sx={{ fontSize: "0.7rem", height: "28px" }}
+              sx={{ fontSize: SKETCH_FONT.md, height: "28px" }}
             >
               <MenuItem value="normal">Normal</MenuItem>
               <MenuItem value="multiply">Multiply</MenuItem>
@@ -1168,8 +1170,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <Box sx={{ px: "6px", pt: "4px" }}>
               <Typography
                 sx={{
-                  fontSize: "0.6rem",
-                  color: "grey.500",
+                  fontSize: SKETCH_FONT.xs,
+                  color: SKETCH_COLORS.textFaint,
                   lineHeight: 1.35,
                   wordBreak: "break-all",
                   fontFamily: "monospace"
@@ -1227,7 +1229,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           }}
           sx={{
             width: "100%",
-            fontSize: "0.65rem",
+            fontSize: SKETCH_FONT.sm,
             "& .MuiSelect-select": { padding: "3px 8px" }
           }}
           renderValue={() => {
@@ -1237,8 +1239,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             return (
               <Typography
                 sx={{
-                  fontSize: "0.65rem",
-                  color: match ? "grey.200" : "grey.500"
+                  fontSize: SKETCH_FONT.sm,
+                  color: match ? "grey.200" : SKETCH_COLORS.textFaint
                 }}
               >
                 {match ? match.label : "Presets…"}
@@ -1250,7 +1252,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <MenuItem
               key={preset.label}
               value={preset.label}
-              sx={{ fontSize: "0.65rem" }}
+              sx={{ fontSize: SKETCH_FONT.sm }}
             >
               {preset.label} — {preset.width}×{preset.height}
             </MenuItem>
@@ -1267,9 +1269,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             value={customWidth}
             onChange={(e) => setCustomWidth(e.target.value)}
             inputProps={{ min: 1, max: 4096, step: 1 }}
-            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
           />
-          <Typography sx={{ fontSize: "0.7rem", color: "grey.500" }}>
+          <Typography sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textFaint }}>
             ×
           </Typography>
           <TextField
@@ -1280,7 +1282,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             value={customHeight}
             onChange={(e) => setCustomHeight(e.target.value)}
             inputProps={{ min: 1, max: 4096, step: 1 }}
-            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
           />
         </Box>
         <Button
@@ -1288,7 +1290,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           variant="contained"
           fullWidth
           onClick={handleApplyCustomSize}
-          sx={{ mt: "4px", fontSize: "0.7rem", py: "2px" }}
+          sx={{ mt: "4px", fontSize: SKETCH_FONT.md, py: "2px" }}
         >
           Apply
         </Button>
@@ -1555,8 +1557,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <Box
           component="dl"
           sx={{
-            fontSize: "0.72rem",
-            color: "grey.400",
+            fontSize: SKETCH_FONT.section,
+            color: SKETCH_COLORS.textMuted,
             display: "grid",
             gridTemplateColumns: "auto 1fr",
             gap: "1px 6px",

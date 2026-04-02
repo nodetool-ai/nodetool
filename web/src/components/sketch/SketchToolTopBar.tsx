@@ -28,14 +28,19 @@ import {
 } from "./types";
 import type { SamModelInfo } from "./sam";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
+import {
+  SKETCH_SPACING,
+  SKETCH_SIZE,
+  settingRowChildrenSx
+} from "./sketchStyles";
 
 const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: "8px",
-    padding: "4px 8px",
+    gap: SKETCH_SPACING.lg,
+    padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.lg}`,
     backgroundColor: theme.vars.palette.grey[800],
     borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
     minHeight: "40px",
@@ -44,6 +49,7 @@ const styles = (theme: Theme) =>
     alignContent: "center",
     flexShrink: 0,
     "& .MuiIconButton-root": {
+      padding: SKETCH_SIZE.iconButtonPad,
       padding: "3px"
     },
     "& .setting-row": {
@@ -69,12 +75,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.grey[200]
       }
     },
-    "& .MuiToggleButtonGroup-root": {
-      "& .MuiToggleButton-root": {
-        padding: "2px 6px",
-        fontSize: "0.6rem"
-      }
-    }
+    ...settingRowChildrenSx(theme),
   });
 
 export interface SketchToolTopBarProps {

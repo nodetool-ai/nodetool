@@ -20,6 +20,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
+import { SKETCH_SPACING } from "./sketchStyles";
 
 /** Base left padding for the layer row (px). */
 const BASE_PADDING = 8;
@@ -150,7 +151,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               e.stopPropagation();
               onToggleGroupCollapsed?.(layer.id);
             }}
-            sx={{ padding: "2px", flexShrink: 0 }}
+            sx={{ padding: SKETCH_SPACING.xs, flexShrink: 0 }}
           >
             {layer.collapsed ? (
               <ChevronRightIcon sx={{ fontSize: "1rem" }} />
@@ -187,7 +188,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
             e.stopPropagation();
             onToggleVisibility(layer.id);
           }}
-          sx={{ padding: "4px", flexShrink: 0 }}
+          sx={{ padding: SKETCH_SPACING.sm, flexShrink: 0 }}
         >
           {layer.visible ? (
             <VisibilityIcon sx={{ fontSize: "1.125rem" }} />
@@ -208,7 +209,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 onToggleIsolateLayer(layer.id);
               }}
               sx={{
-                padding: "4px",
+                padding: SKETCH_SPACING.sm,
                 flexShrink: 0,
                 color: isIsolated ? "warning.main" : "grey.500",
                 opacity: isIsolated ? 1 : 0.75,
@@ -250,7 +251,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               flex: 1,
               display: "flex",
               alignItems: "center",
-              gap: "4px",
+              gap: SKETCH_SPACING.sm,
               minWidth: 0
             }}
           >

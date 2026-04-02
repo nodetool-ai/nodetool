@@ -10,6 +10,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { SKETCH_Z_INDEX } from "./sketchStyles";
 
 type ResizeEdge =
   | "n"
@@ -134,7 +135,7 @@ const CURSOR_MAP: Record<ResizeEdge, string> = {
 const containerStyles = css({
   position: "absolute",
   pointerEvents: "none",
-  zIndex: 6
+  zIndex: SKETCH_Z_INDEX.handles,
 });
 
 const handleStyles = css({
