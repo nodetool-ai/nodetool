@@ -522,6 +522,12 @@ export class GeminiProvider extends BaseProvider {
     const decoder = new TextDecoder();
     let buffer = "";
 
+    // Accumulate all parts across SSE events for raw replay.
+    // Gemini thinking models emit thought parts and function calls across
+    // separate SSE events, but they must all be sent back together.
+    const allParts: GeminiPart[] = [];
+    const pendingToolCalls: ToolCall[] = [];
+
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -546,10 +552,9 @@ export class GeminiProvider extends BaseProvider {
           const parts = event.candidates?.[0]?.content?.parts;
           if (!parts) continue;
 
-          // Collect all parts from this event for raw replay
-          const hasThoughts = parts.some((p: GeminiPart) => p.thought);
-
           for (const part of parts) {
+            allParts.push(part);
+
             if (part.text !== undefined && !part.thought) {
               const chunk: Chunk = {
                 type: "chunk",
@@ -557,8 +562,6 @@ export class GeminiProvider extends BaseProvider {
                 done: false
               };
               yield chunk;
-            } else if (part.text !== undefined && part.thought) {
-              // Thought text — preserved via _rawGeminiParts, not yielded
             } else if (part.functionCall) {
               const originalName =
                 reverseMap.get(part.functionCall.name) ??
@@ -572,17 +575,23 @@ export class GeminiProvider extends BaseProvider {
                 toolCall.thought_signature =
                   part.functionCall.thought_signature;
               }
-              // Attach all parts from this event so thoughts can be replayed
-              if (hasThoughts) {
-                toolCall._rawGeminiParts = parts;
-              }
-              yield toolCall;
+              pendingToolCalls.push(toolCall);
             }
+            // Thought text parts are silently accumulated in allParts
           }
         }
       }
     } finally {
       reader.releaseLock();
+    }
+
+    // Attach accumulated raw parts to tool calls for thought replay
+    const hasThoughts = allParts.some((p) => p.thought);
+    for (const tc of pendingToolCalls) {
+      if (hasThoughts) {
+        tc._rawGeminiParts = allParts;
+      }
+      yield tc;
     }
 
     // Emit synthetic done chunk
