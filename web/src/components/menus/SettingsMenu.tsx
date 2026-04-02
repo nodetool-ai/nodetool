@@ -525,6 +525,20 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           gap: "0.75em"
                         }}
                       >
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => {
+                            setMenuOpen(false);
+                            window.location.href = "/node-test";
+                          }}
+                        >
+                          Node Integration Tests
+                        </Button>
+                        <Typography className="description">
+                          Run all registered nodes as single-node workflows with
+                          concurrent execution and output preview.
+                        </Typography>
                         {isLocalhost && (
                           <>
                             <Button

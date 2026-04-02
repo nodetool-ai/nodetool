@@ -437,15 +437,16 @@ function getRoutes() {
       path: "/preview/:component?",
       element: <ComponentPreview />
     });
-    routes.push({
-      path: "/node-test",
-      element: (
-        <React.Suspense fallback={<div>Loading...</div>}>
-          <NodeTestPage />
-        </React.Suspense>
-      )
-    });
   }
+
+  routes.push({
+    path: "/node-test",
+    element: (
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <NodeTestPage />
+      </React.Suspense>
+    )
+  });
 
   routes.forEach((route) => {
     route.ErrorBoundary = ErrorBoundary;
