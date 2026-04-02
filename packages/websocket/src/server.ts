@@ -8,7 +8,7 @@
  */
 
 import { join, resolve, dirname } from "node:path";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 import crypto from "node:crypto";
@@ -178,7 +178,34 @@ print(json.dumps(sorted(roots)))
 }
 
 const metadataRoots = detectPipMetadataRoots();
-log.info(`Pip metadata roots detected [${startupMs()}]`, {
+
+// Also scan local TS node packages that have nodetool/package_metadata
+const localPackagesDir = resolve(__dirname, "../../");
+if (existsSync(localPackagesDir)) {
+  try {
+    for (const entry of readdirSync(localPackagesDir, {
+      withFileTypes: true
+    })) {
+      if (!entry.isDirectory()) continue;
+      const metaDir = join(
+        localPackagesDir,
+        entry.name,
+        "nodetool",
+        "package_metadata"
+      );
+      if (existsSync(metaDir)) {
+        const resolved = resolve(localPackagesDir, entry.name);
+        if (!metadataRoots.includes(resolved)) {
+          metadataRoots.push(resolved);
+        }
+      }
+    }
+  } catch {
+    // ignore scan errors
+  }
+}
+
+log.info(`Metadata roots detected [${startupMs()}]`, {
   roots: metadataRoots
 });
 
