@@ -39,9 +39,10 @@ interface GeminiPart {
   functionCall?: {
     name: string;
     args?: Record<string, unknown>;
-    thought_signature?: string;
   };
   functionResponse?: { name: string; response: unknown };
+  /** Thought signature — at part level, camelCase per Gemini API. */
+  thoughtSignature?: string;
 }
 
 /** A Gemini content entry (role + parts). */
@@ -286,14 +287,13 @@ export class GeminiProvider extends BaseProvider {
         // Tool calls
         if (msg.toolCalls && msg.toolCalls.length > 0) {
           for (const tc of msg.toolCalls) {
-            const fc: GeminiPart["functionCall"] = {
-              name: tc.name,
-              args: tc.args
+            const part: GeminiPart = {
+              functionCall: { name: tc.name, args: tc.args }
             };
             if (tc.thought_signature) {
-              fc!.thought_signature = tc.thought_signature;
+              part.thoughtSignature = tc.thought_signature;
             }
-            parts.push({ functionCall: fc });
+            parts.push(part);
           }
         }
 
@@ -571,9 +571,8 @@ export class GeminiProvider extends BaseProvider {
                 name: originalName,
                 args: part.functionCall.args ?? {}
               };
-              if (part.functionCall.thought_signature) {
-                toolCall.thought_signature =
-                  part.functionCall.thought_signature;
+              if (part.thoughtSignature) {
+                toolCall.thought_signature = part.thoughtSignature;
               }
               pendingToolCalls.push(toolCall);
             }
@@ -625,8 +624,8 @@ export class GeminiProvider extends BaseProvider {
           name: originalName,
           args: part.functionCall.args ?? {}
         };
-        if (part.functionCall.thought_signature) {
-          tc.thought_signature = part.functionCall.thought_signature;
+        if (part.thoughtSignature) {
+          tc.thought_signature = part.thoughtSignature;
         }
         toolCalls.push(tc);
       }
