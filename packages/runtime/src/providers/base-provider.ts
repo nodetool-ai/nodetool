@@ -365,7 +365,8 @@ export abstract class BaseProvider {
     language?: string;
     prompt?: string;
     temperature?: number;
-  }): Promise<string> {
+    word_timestamps?: boolean;
+  }): Promise<import("./types.js").ASRResult> {
     throw new Error(
       `${this.provider} does not support automaticSpeechRecognition`
     );

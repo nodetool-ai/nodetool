@@ -542,14 +542,21 @@ export class PythonStdioBridge extends EventEmitter {
     audio: Uint8Array,
     model: string,
     options?: Record<string, unknown>
-  ): Promise<string> {
+  ): Promise<import("./providers/types.js").ASRResult> {
     const result = await this._providerCall("provider.asr", {
       provider: providerId,
       audio,
       model,
       ...options
     });
-    return (result as { text: string }).text;
+    const r = result as {
+      text: string;
+      chunks?: Array<{ timestamp: [number, number]; text: string }>;
+    };
+    return {
+      text: r.text,
+      chunks: r.chunks
+    };
   }
 
   async providerEmbedding(

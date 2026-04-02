@@ -199,7 +199,8 @@ export class PythonProvider extends BaseProvider {
     language?: string;
     prompt?: string;
     temperature?: number;
-  }): Promise<string> {
+    word_timestamps?: boolean;
+  }): Promise<import("./types.js").ASRResult> {
     return this._bridge.providerASR(
       this._pythonProviderId,
       args.audio,
@@ -208,6 +209,7 @@ export class PythonProvider extends BaseProvider {
         language: args.language,
         prompt: args.prompt,
         temperature: args.temperature,
+        word_timestamps: args.word_timestamps,
         secrets: this._secrets
       }
     );

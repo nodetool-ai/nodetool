@@ -1045,7 +1045,8 @@ export class OpenAIProvider extends BaseProvider {
     language?: string;
     prompt?: string;
     temperature?: number;
-  }): Promise<string> {
+    word_timestamps?: boolean;
+  }): Promise<import("./types.js").ASRResult> {
     if (!args.audio || args.audio.length === 0) {
       throw new Error("audio must not be empty");
     }
@@ -1060,17 +1061,55 @@ export class OpenAIProvider extends BaseProvider {
             name: "audio.mp3"
           });
 
-    const response = await (
-      this.getClient().audio.transcriptions as any
-    ).create({
+    const requestParams: Record<string, unknown> = {
       file: fileLike,
       model: args.model,
       language: args.language,
       prompt: args.prompt,
       temperature
-    });
+    };
 
-    return String(response.text ?? "");
+    if (args.word_timestamps) {
+      requestParams.response_format = "verbose_json";
+      requestParams.timestamp_granularities = ["word", "segment"];
+    }
+
+    const response = await (
+      this.getClient().audio.transcriptions as any
+    ).create(requestParams);
+
+    const text = String(response.text ?? "");
+
+    if (!args.word_timestamps) {
+      return { text };
+    }
+
+    const chunks: import("./types.js").AudioChunk[] = [];
+    const rawWords = response.words as
+      | Array<{ start: number; end: number; word: string }>
+      | undefined;
+    if (rawWords) {
+      for (const w of rawWords) {
+        chunks.push({
+          timestamp: [w.start, w.end],
+          text: w.word
+        });
+      }
+    } else {
+      const rawSegments = response.segments as
+        | Array<{ start: number; end: number; text: string }>
+        | undefined;
+      if (rawSegments) {
+        for (const s of rawSegments) {
+          chunks.push({
+            timestamp: [s.start, s.end],
+            text: s.text
+          });
+        }
+      }
+    }
+
+    return { text, chunks: chunks.length > 0 ? chunks : undefined };
   }
 
   async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {

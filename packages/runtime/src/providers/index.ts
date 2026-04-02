@@ -98,7 +98,9 @@ export type {
   TextToVideoParams,
   ImageToVideoParams,
   ProviderStreamItem,
-  StreamingAudioChunk
+  StreamingAudioChunk,
+  AudioChunk,
+  ASRResult
 } from "./types.js";
 
 registerBuiltinProvider("openai", OpenAIProvider, {

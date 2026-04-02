@@ -40,6 +40,16 @@ export interface ASRModel {
   provider: ProviderId;
 }
 
+export interface AudioChunk {
+  timestamp: [number, number];
+  text: string;
+}
+
+export interface ASRResult {
+  text: string;
+  chunks?: AudioChunk[];
+}
+
 export interface EmbeddingModel {
   id: string;
   name: string;

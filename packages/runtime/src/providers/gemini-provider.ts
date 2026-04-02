@@ -994,7 +994,7 @@ export class GeminiProvider extends BaseProvider {
     language?: string;
     prompt?: string;
     temperature?: number;
-  }): Promise<string> {
+  }): Promise<import("./types.js").ASRResult> {
     const { audio, model, language, temperature = 0 } = args;
 
     if (!audio || audio.length === 0) {
@@ -1066,12 +1066,13 @@ export class GeminiProvider extends BaseProvider {
 
     const data = (await response.json()) as GeminiResponse;
     const parts = data.candidates?.[0]?.content?.parts;
-    if (!parts) return "";
+    if (!parts) return { text: "" };
 
-    return parts
+    const text = parts
       .filter((p) => p.text !== undefined)
       .map((p) => p.text!)
       .join("");
+    return { text };
   }
 
   // ---------------------------------------------------------------------------
