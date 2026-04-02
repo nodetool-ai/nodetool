@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
-import { sketchToolSettingsContainerSx } from "./sketchStyles";
+import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   Box,
@@ -45,7 +45,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <Typography
       sx={{
         mb: 1.05,
-        fontSize: "0.72rem",
+        fontSize: SKETCH_FONT.section,
         fontWeight: 800,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
@@ -70,9 +70,7 @@ function ColorPreview({ label, color }: { label: string; color: string }) {
           background: color
         }}
       />
-      <Typography
-        sx={{ fontSize: "0.62rem", fontWeight: 700, color: "text.secondary" }}
-      >
+      <Typography sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 700, color: "text.secondary" }}>
         {label}
       </Typography>
     </Stack>
@@ -138,7 +136,7 @@ function ToolGridButton({
             py: 0.1,
             borderRadius: 1,
             backgroundColor: shortcutBg,
-            fontSize: "0.56rem",
+            fontSize: SKETCH_FONT.xxs,
             fontWeight: 700,
             lineHeight: 1.2,
             color: "text.secondary"
@@ -156,7 +154,7 @@ function ToolGridButton({
       <Typography
         sx={{
           mt: 0.65,
-          fontSize: "0.78rem",
+          fontSize: SKETCH_FONT.md,
           fontWeight: 400,
           color: "text.secondary"
         }}
@@ -442,7 +440,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             component="span"
             sx={{
               flex: "0 0 auto",
-              fontSize: "0.92rem",
+              fontSize: SKETCH_FONT.section,
               fontWeight: 700,
               color: "text.primary",
               whiteSpace: "nowrap"
@@ -458,7 +456,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 px: 0.65,
                 py: 0.2,
                 borderRadius: "6px",
-                fontSize: "0.68rem",
+                border: "1px solid",
+                borderColor: theme.vars.palette.grey[600],
+                fontSize: SKETCH_FONT.sm,
                 fontWeight: 700,
                 lineHeight: 1.2,
                 color: "text.secondary",

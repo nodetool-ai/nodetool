@@ -43,6 +43,12 @@ import {
   DEFAULT_PEN_PRESSURE
 } from "./types";
 import type { SketchTool } from "./types";
+import {
+  SKETCH_SPACING,
+  SKETCH_SIZE,
+  SKETCH_Z_INDEX,
+  settingRowChildrenSx
+} from "./sketchStyles";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
   return tool === "brush" || tool === "pencil" || tool === "eraser";
@@ -55,7 +61,7 @@ const styles = (theme: Theme) =>
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 9999,
+    zIndex: SKETCH_Z_INDEX.modal,
     display: "flex",
     flexDirection: "column",
     backgroundColor: theme.vars.palette.grey[900],
@@ -63,53 +69,28 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       flexWrap: "wrap",
-      rowGap: "6px",
-      columnGap: "8px",
-      padding: "4px 12px",
+      rowGap: SKETCH_SPACING.md,
+      columnGap: SKETCH_SPACING.lg,
+      padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.xl}`,
       backgroundColor: theme.vars.palette.grey[800],
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
       minHeight: "36px",
       "& .MuiIconButton-root": {
-        padding: "3px"
+        padding: SKETCH_SIZE.iconButtonPad,
       },
       "& .sketch-modal-pen-inline": {
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
-        gap: "8px",
+        gap: SKETCH_SPACING.lg,
         flexShrink: 0,
-        "& .setting-row": {
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          "& .MuiSlider-root": {
-            width: "80px",
-            minWidth: "60px"
-          },
-          "& .setting-label": {
-            fontSize: "0.65rem",
-            whiteSpace: "nowrap",
-            color: theme.vars.palette.grey[300]
-          },
-          "& .setting-value": {
-            fontSize: "0.65rem",
-            minWidth: "24px",
-            textAlign: "right",
-            color: theme.vars.palette.grey[200]
-          }
-        },
-        "& .MuiToggleButtonGroup-root": {
-          "& .MuiToggleButton-root": {
-            padding: "2px 6px",
-            fontSize: "0.6rem"
-          }
-        }
-      }
+        ...settingRowChildrenSx(theme),
+      },
     },
     "& .sketch-modal-body": {
       flex: 1,
-      overflow: "hidden"
-    }
+      overflow: "hidden",
+    },
   });
 
 export interface SketchModalProps {
