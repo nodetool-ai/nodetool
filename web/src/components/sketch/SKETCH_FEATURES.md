@@ -16,7 +16,11 @@
 
 - [ ] Selection drawing is slow
 - [ ] Move tool is slow: dragging layer around feels slow
-- [ ] Transform tool should show update while scaling. gizmo and layer should always be aligned - position and scale.
+- [ ] Transform tool should show update while scaling, not only at commit
+- [ ] Transform tool gizmo should adapt to layer size, so if layer is smaller than canvas the gizmo should be small
+- [ ] Transform tool: fix transforming from top and left side, currently scales from opposite side
+- [ ] Transform tool: add options for perspective, skew, etc.
+- [ ] Commit, cancel, reset as icons instead of text buttons
 - [ ] Changing brush properties is slow: e.g. changing brush size is laggy
 
 ## PHASE 1: Current Priorities
