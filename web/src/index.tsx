@@ -486,7 +486,7 @@ const preloadComfyMetadata = async (): Promise<void> => {
       return;
     }
     const objectInfo = (objectInfoModule.default ??
-      objectInfoModule) as ComfyUIObjectInfo;
+      objectInfoModule) as unknown as ComfyUIObjectInfo;
     const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
     const comfyMetadataCount = Object.keys(comfyMetadata).length;
     if (comfyMetadataCount === 0) {
