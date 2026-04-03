@@ -18,6 +18,7 @@ import type {
   LayerContentBounds
 } from "../types";
 import type { ActiveStrokeInfo } from "../rendering";
+import type { SelectionMoveAntsRef } from "../sketchCanvasHooks/useOverlayRenderer";
 
 /** Optional flags for `onStrokeEnd` when raster data is read back from the CPU canvas. */
 export interface StrokeEndOptions {
@@ -132,6 +133,24 @@ export interface ToolContext {
     ctx: CanvasRenderingContext2D,
     offset: Point
   ) => boolean;
+
+  // ── Foreground color ───────────────────────────────────────────────
+  foregroundColor?: string;
+
+  // ── Transform preview ────────────────────────────────────────────────
+  setLayerTransformPreview?: (layerId: string, transform: LayerTransform) => void;
+  clearLayerTransformPreview?: (layerId?: string) => void;
+
+  // ── Selection movement overlay (marching ants during drag) ──────────
+  selectionMoveAntsRef?: SelectionMoveAntsRef;
+  appendSelectionOverlay?: () => void;
+
+  // ── Lasso / polygon selection refs ──────────────────────────────────
+  selectStartRef?: React.MutableRefObject<Point | null>;
+  lassoPointsRef?: React.MutableRefObject<Point[]>;
+
+  // ── Full composite readback (magic wand, eyedropper) ───────────────
+  getFullCompositeImageData?: () => ImageData | null;
 }
 
 // ─── Pointer event data ───────────────────────────────────────────────────
@@ -173,6 +192,17 @@ export interface ToolHandler {
    * Called when the primary button is released and a gesture was active.
    */
   onUp?(ctx: ToolContext, event: ToolPointerEvent): void;
+
+  /**
+   * Called on pointer-move when no gesture is active (hover).
+   * Allows tools to draw rubber-band previews (e.g. polygon lasso).
+   */
+  onHoverMove?(ctx: ToolContext, event: ToolPointerEvent): void;
+
+  /**
+   * Called on double-click. Used by select tool for polygon close.
+   */
+  onDoubleClick?(ctx: ToolContext, point: Point): void;
 
   /**
    * Called when the tool is activated (switched to).
