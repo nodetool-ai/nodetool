@@ -14,10 +14,10 @@
 
 ## PHASE 0: Current Fixes
 
-- [ ] Move tool only shows preview after using drawing tool. it should work on first move action as well, not only after drawing.
-- [ ] Transform tool should draw gizom on top of canvas and outside canvas bounds
-- [ ] Transform tool gizmo looks blurry
-- [ ] Transform tool needs general improvments: fitting mouse cursor on hover, ALT modifier for scaling from center, preview while transforming not only on commit
+- [ ] Selection drawing is slow
+- [ ] Move tool is slow: dragging layer around feels slow
+- [ ] Transform tool should show update while scaling. gizmo and layer should always be aligned - position and scale.
+- [ ] Changing brush properties is slow: e.g. changing brush size is laggy
 
 ## PHASE 1: Current Priorities
 
