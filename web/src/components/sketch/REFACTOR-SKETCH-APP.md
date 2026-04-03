@@ -578,7 +578,7 @@ Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
 | 2B — Compositing Evaluation Hook | ✅ Done | 2026-04-02 |
 | 2C — Delta History | ✅ Done | 2026-04-03 |
 | 3 — WebGPU Compositing | Not started | — |
-| 4A — Matrix-Capable Transforms | Not started | — |
+| 4A — Matrix-Capable Transforms | ✅ Done | 2026-04-03 |
 | 4B — Overlay Canvas for Gizmos | Not started | — |
 
 ### Phase 1D Notes
@@ -605,3 +605,18 @@ Key implementation details:
   the new oldest to maintain the baseline invariant
 - `undo()`/`redo()` return resolved entries (all layer data) for canvas restoration
 - `changedLayerIds` is optional on `HistoryEntry` for backward compatibility
+
+### Phase 4A Notes
+
+Matrix-capable transforms add an `AffineMatrix` type (`[a, b, c, d, e, f]`)
+and a `matrix` field to `LayerTransform`. Key changes:
+
+- `composeAffineMatrix(x, y, scaleX, scaleY, rotation)` builds the matrix
+- `decomposeAffineMatrix(m)` extracts decomposed values (round-trips correctly)
+- `ensureTransformMatrix(t)` computes matrix from decomposed values if absent
+- `normalizeSketchDocument` computes matrix on load (schema migration)
+- `CoordinateMapper` uses full inverse matrix for accurate doc↔layer mapping
+- `Canvas2DRuntime.drawWithTransform` uses matrix when present
+- `TransformTool.computeTransform` returns transforms with computed matrix
+- `offsetLayerTransformInDocument` recomputes matrix on translate
+- 22 new tests for compose/decompose round-trip and CoordinateMapper with matrix
