@@ -50,6 +50,8 @@ export class CoordinateMapper {
     const [a, b, c, d, e, f] = m;
     const det = a * d - b * c;
     if (Math.abs(det) < 1e-12) {
+      // Singular / near-singular matrix (e.g. zero scale); return identity so
+      // callers get a no-op mapping instead of NaN/Infinity values.
       return [1, 0, 0, 1, 0, 0];
     }
     const invDet = 1 / det;

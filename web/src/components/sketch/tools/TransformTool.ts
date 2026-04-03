@@ -180,7 +180,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
-    this.clearGizmoCanvas(ctx);
+    ctx.clearGizmo();
     ctx.clearOverlay();
     ctx.drawSelectionOverlay();
   }
@@ -466,10 +466,6 @@ export class TransformTool implements ToolHandler {
   }
 
   // ── Gizmo drawing (screen-resolution canvas) ──────────────────────────────
-
-  private clearGizmoCanvas(ctx: ToolContext): void {
-    ctx.clearGizmo();
-  }
 
   /**
    * Convert a document-space point to screen-space (gizmo canvas pixel coordinates).
