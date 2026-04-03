@@ -1193,6 +1193,23 @@ export class Canvas2DRuntime implements SketchRuntime {
     });
   }
 
+  // ─── Effects evaluation ──────────────────────────────────────────────
+
+  evaluateLayerEffects(
+    _layerId: string,
+    source: HTMLCanvasElement,
+    effects: import("../types").LayerEffect[]
+  ): HTMLCanvasElement {
+    // Pass-through: when FX layers are implemented, this method will apply
+    // effects in order and return a processed canvas. For now, return the
+    // source unchanged if there are no enabled effects.
+    if (!effects || effects.length === 0 || effects.every((e) => !e.enabled)) {
+      return source;
+    }
+    // TODO: implement per-effect evaluation (hue_saturation, brightness_contrast, etc.)
+    return source;
+  }
+
   // ─── Lifecycle ───────────────────────────────────────────────────────
 
   dispose(): void {

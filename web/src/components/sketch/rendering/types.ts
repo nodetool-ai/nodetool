@@ -8,7 +8,7 @@
  * It does NOT own the display canvas DOM element (React manages that).
  */
 
-import type { LayerContentBounds, Selection, SketchDocument } from "../types";
+import type { LayerContentBounds, LayerEffect, Selection, SketchDocument } from "../types";
 
 // ─── Dirty rect for partial compositing ──────────────────────────────────────
 
@@ -187,6 +187,21 @@ export interface SketchRuntime {
     layerId: string,
     doc: SketchDocument
   ): string | null;
+
+  // ─── Effects evaluation ──────────────────────────────────────────────
+  /**
+   * Apply non-destructive effects to a layer's raster before compositing.
+   * Returns `source` unchanged if `effects` is empty or all disabled.
+   *
+   * This method is the single integration point for the FX pipeline —
+   * all output paths (main canvas, thumbnails, flatten/export, solo preview)
+   * must call it. Bypassing it is a bug.
+   */
+  evaluateLayerEffects(
+    layerId: string,
+    source: HTMLCanvasElement,
+    effects: LayerEffect[]
+  ): HTMLCanvasElement;
 
   // ─── Lifecycle ───────────────────────────────────────────────────────
   /** Release all resources held by the runtime. */

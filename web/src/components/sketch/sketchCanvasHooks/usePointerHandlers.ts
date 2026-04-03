@@ -16,74 +16,27 @@ import type {
   LayerContentBounds
 } from "../types";
 import {
-  isShapeTool,
   isPaintingTool,
-  isLayerCompositeVisible,
-  layerAllowsTransformWhilePixelLocked
 } from "../types";
-import {
-  drawGradient as drawGradientUtil,
-  floodFill as floodFillUtil
-} from "../drawingUtils";
 import type { ActiveStrokeInfo } from "./useCompositing";
 import { Canvas2DRuntime } from "../rendering";
 import { getToolHandler } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
-import type {
-  ToolContext,
-  ToolPointerEvent,
-  StrokeEndOptions
-} from "../tools/types";
-import { getCanvasRasterBounds } from "../painting";
+import { CloneStampTool } from "../tools/CloneStampTool";
+import { SelectTool } from "../tools/SelectTool";
+import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
 import type { SelectionMoveAntsRef } from "./useOverlayRenderer";
-import {
-  cloneSelectionMask,
-  combineMasks,
-  type SelectionCombineOp,
-  magicWandFromRgba,
-  polygonToBinaryMask,
-  ellipseSelectionMask,
-  marqueeAdjustedDocPoints,
-  marqueeRectFromDocPoints,
-  rectSelectionMask,
-  offsetSelectionByDocumentDelta,
-  selectionHasAnyPixels,
-  selectionHitTest
-} from "../selection/selectionMask";
 import {
   useSketchStore,
   SKETCH_ZOOM_MAX,
   SKETCH_ZOOM_MIN
 } from "../state/useSketchStore";
 import {
-  coalescedStrokePressure,
   normalizePointerPressure,
   pointerHasPaintContact
 } from "../pointerPen";
-
-/** Rect/ellipse marquee: require this much document-space delta (or screen slop below) before commit. */
-const MARQUEE_MIN_DRAG_DOC_PX = 1;
-/**
- * Marquee is a deliberate drag if the pointer moves this many CSS px from pointer-down.
- * When zoomed in, a 1×1 doc selection can have both doc deltas under 1 while the stroke stays inside
- * one document pixel — screen slop still detects that. Pure clicks stay under this threshold.
- */
-const MARQUEE_DRAG_MIN_SCREEN_PX = 3;
-
-function selectionCombineMode(shift: boolean, alt: boolean): SelectionCombineOp {
-  if (shift && alt) {
-    return "intersect";
-  }
-  if (shift) {
-    return "add";
-  }
-  if (alt) {
-    return "subtract";
-  }
-  return "replace";
-}
 
 /** Matches `useOverlayRenderer` brush-ring tools (software cursor). */
 function interactionToolShowsBrushCursor(t: SketchTool): boolean {
@@ -265,50 +218,7 @@ export function usePointerHandlers({
   const sizeDragStartRef = useRef<Point>({ x: 0, y: 0 });
   const sizeDragInitialSize = useRef(0);
 
-  // Tool-specific state
-  const moveStartRef = useRef<Point | null>(null);
-  const moveLayerStartTransformRef = useRef<LayerTransform>({ x: 0, y: 0 });
-  const movePreviewTransformRef = useRef<LayerTransform | null>(null);
-  const movePreviewLayerIdRef = useRef<string | null>(null);
-  const gradientStartRef = useRef<Point | null>(null);
-  const gradientEndRef = useRef<Point | null>(null);
-  const cropStartRef = useRef<Point | null>(null);
-
-  // Selection movement state
-  const isMovingSelectionRef = useRef(false);
-  const moveSelectionOriginRef = useRef<Point | null>(null);
-  const selectionAtMoveStartRef = useRef<Selection | null>(null);
-
-  /** Shift/Alt at pointer-down for lasso / polygon / wand (combine); key-up before up still applies. */
-  const selectionDragModifiersRef = useRef<{ shift: boolean; alt: boolean } | null>(
-    null
-  );
-
-  /**
-   * Rect/ellipse: Shift/Alt at pointer-down set combine (add / subtract / intersect),
-   * same as lasso. While dragging, live Shift/Alt in refs control constrain and
-   * from-center; commit still uses these captured flags for combine op only.
-   */
-  const marqueeCombineAtDownRef = useRef<{
-    shift: boolean;
-    alt: boolean;
-  } | null>(null);
-
-  /**
-   * Rect/ellipse: true after pointermove shows ≥ {@link MARQUEE_MIN_DRAG_DOC_PX}
-   * document delta from the marquee anchor, or ≥ {@link MARQUEE_DRAG_MIN_SCREEN_PX}
-   * CSS px from pointer-down. The screen test is required so a 1×1 doc mask while zoomed
-   * in (drag entirely inside one document pixel) still counts as a drag; the doc test keeps
-   * 1×1 possible at zoom 1 with a sub–3px but ≥1 doc-unit motion.
-   */
-  const marqueeDocDragSeenRef = useRef(false);
-  const marqueePointerDownClientRef = useRef<{ x: number; y: number } | null>(null);
-
-  // Alpha lock & stroke tracking
-  const alphaSnapshotRef = useRef<ImageData | null>(null);
-  const lastStrokeEndRef = useRef<Point | null>(null);
-  const currentPressureRef = useRef<number>(0.5);
-  const paintLayerOffsetRef = useRef<Point>({ x: 0, y: 0 });
+  // Tool-specific state (now managed by tool handlers; only kept for legacy refs)
 
   /**
    * WebGPU uses a "webgpu" context on the display canvas, so getContext("2d") is null.
@@ -327,24 +237,12 @@ export function usePointerHandlers({
   const { shiftHeldRef, altHeldRef, spaceHeldRef, sKeyHeldRef } =
     useKeyboardModifiers({ isSpacePanningRef, isSizeDraggingRef });
 
-  // ─── Utility callbacks + clone stamp / blur refs ────────────────────
+  // ─── Utility callbacks ───────────────────────────────────────────────
   const {
-    cloneSourceRef,
-    cloneOffsetRef,
-    clonePaintOffsetRef,
-    cloneSourceCanvasRef,
-    cloneSourceCanvasMetaRef,
-    strokeDirtyRectRef,
     screenToCanvas,
     withMirror,
     rgbToHex,
     clipSelectionForOffset,
-    ensureLayerViewportStorage,
-    getLayerPaintOffset,
-    getCloneSourceSignature,
-    buildCloneSourceCanvas,
-    drawBlurStroke,
-    drawCloneStampStroke,
     drawActiveStrokePreview
   } = usePointerHandlerUtils({
     zoom,
@@ -363,81 +261,7 @@ export function usePointerHandlers({
     onLayerContentBoundsChange
   });
 
-  // ─── Tool context ref ──────────────────────────────────────────────
-  // Updated synchronously every render. Handlers read this ref to get
-  // the latest values without needing all ToolContext properties in
-  // their dependency arrays.
-  const toolCtxRef = useRef<ToolContext>(null!);
-  toolCtxRef.current = {
-    doc,
-    activeTool: interactionTool,
-    zoom,
-    pan,
-    mirrorX,
-    mirrorY,
-    symmetryMode,
-    symmetryRays,
-    selection: selection ?? null,
-    displayCanvasRef,
-    overlayCanvasRef,
-    gizmoCanvasRef,
-    cursorCanvasRef,
-    containerRef,
-    layerCanvasesRef,
-    mousePositionRef,
-    activeStrokeRef,
-    getOrCreateLayerCanvas,
-    invalidateLayer,
-    redraw,
-    redrawDirty,
-    requestRedraw,
-    requestDirtyRedraw: _requestDirtyRedraw,
-    clearOverlay,
-    drawSelectionOverlay,
-    drawOverlayShape,
-    drawOverlayGradient,
-    drawOverlayCrop,
-    drawOverlaySelection,
-    drawOverlayLassoPreview,
-    drawCursor,
-    onZoomChange,
-    onPanChange,
-    onStrokeStart,
-    onStrokeEnd,
-    onLayerTransformChange,
-    onLayerContentBoundsChange,
-    onBrushSizeChange,
-    onContextMenu,
-    onCropComplete,
-    onEyedropperPick,
-    onSelectionChange,
-    onAutoPickLayer,
-    screenToCanvas,
-    shiftHeldRef,
-    altHeldRef,
-    withMirror,
-    clipSelectionForOffset,
-  };
-
-  // ─── Tool pointer event helpers ────────────────────────────────────
-  const buildToolPointerEvent = (e: React.PointerEvent): ToolPointerEvent => ({
-    point: toolCtxRef.current.screenToCanvas(e.clientX, e.clientY),
-    pressure: normalizePointerPressure(e.nativeEvent),
-    nativeEvent: e,
-  });
-
-  const buildCoalescedEvents = (e: React.PointerEvent): ToolPointerEvent[] => {
-    const nativePointerEvent = e.nativeEvent as PointerEvent;
-    const coalescedEvents =
-      typeof nativePointerEvent.getCoalescedEvents === "function"
-        ? nativePointerEvent.getCoalescedEvents()
-        : [nativePointerEvent];
-    return coalescedEvents.map((ep) => ({
-      point: toolCtxRef.current.screenToCanvas(ep.clientX, ep.clientY),
-      pressure: normalizePointerPressure(ep),
-      nativeEvent: e,
-    }));
-  };
+  // ─── Composite readback helpers ─────────────────────────────────────
 
   const getFullCompositeImageData = useCallback((): ImageData | null => {
     const cw = doc.canvas.width;
@@ -512,33 +336,100 @@ export function usePointerHandlers({
     [screenToCanvas, getFullCompositeImageData]
   );
 
+  // ─── Tool context ref ──────────────────────────────────────────────
+  // Updated synchronously every render. Handlers read this ref to get
+  // the latest values without needing all ToolContext properties in
+  // their dependency arrays.
+  const toolCtxRef = useRef<ToolContext>(null!);
+  toolCtxRef.current = {
+    doc,
+    activeTool: interactionTool,
+    zoom,
+    pan,
+    mirrorX,
+    mirrorY,
+    symmetryMode,
+    symmetryRays,
+    selection: selection ?? null,
+    displayCanvasRef,
+    overlayCanvasRef,
+    gizmoCanvasRef,
+    cursorCanvasRef,
+    containerRef,
+    layerCanvasesRef,
+    mousePositionRef,
+    activeStrokeRef,
+    getOrCreateLayerCanvas,
+    invalidateLayer,
+    redraw,
+    redrawDirty,
+    requestRedraw,
+    requestDirtyRedraw: _requestDirtyRedraw,
+    clearOverlay,
+    drawSelectionOverlay,
+    drawOverlayShape,
+    drawOverlayGradient,
+    drawOverlayCrop,
+    drawOverlaySelection,
+    drawOverlayLassoPreview,
+    drawCursor,
+    onZoomChange,
+    onPanChange,
+    onStrokeStart,
+    onStrokeEnd,
+    onLayerTransformChange,
+    onLayerContentBoundsChange,
+    onBrushSizeChange,
+    onContextMenu,
+    onCropComplete,
+    onEyedropperPick,
+    onSelectionChange,
+    onAutoPickLayer,
+    screenToCanvas,
+    shiftHeldRef,
+    altHeldRef,
+    withMirror,
+    clipSelectionForOffset,
+    foregroundColor,
+    setLayerTransformPreview,
+    clearLayerTransformPreview,
+    selectionMoveAntsRef,
+    appendSelectionOverlay,
+    selectStartRef,
+    lassoPointsRef,
+    getFullCompositeImageData,
+  };
+
+  // ─── Tool pointer event helpers ────────────────────────────────────
+  const buildToolPointerEvent = (e: React.PointerEvent): ToolPointerEvent => ({
+    point: toolCtxRef.current.screenToCanvas(e.clientX, e.clientY),
+    pressure: normalizePointerPressure(e.nativeEvent),
+    nativeEvent: e,
+  });
+
+  const buildCoalescedEvents = (e: React.PointerEvent): ToolPointerEvent[] => {
+    const nativePointerEvent = e.nativeEvent as PointerEvent;
+    const coalescedEvents =
+      typeof nativePointerEvent.getCoalescedEvents === "function"
+        ? nativePointerEvent.getCoalescedEvents()
+        : [nativePointerEvent];
+    return coalescedEvents.map((ep) => ({
+      point: toolCtxRef.current.screenToCanvas(ep.clientX, ep.clientY),
+      pressure: normalizePointerPressure(ep),
+      nativeEvent: e,
+    }));
+  };
+
   // ─── Pointer Down ──────────────────────────────────────────────────
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       // Clone stamp: Alt+click sets the clone source point
       if (e.button === 0 && e.altKey && activeTool === "clone_stamp") {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        cloneSourceRef.current = pt;
-        cloneOffsetRef.current = null;
-        clonePaintOffsetRef.current = null;
-        const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-        if (activeLayer) {
-          const signature = getCloneSourceSignature(
-            activeLayer.id,
-            doc.toolSettings.cloneStamp.sampling
-          );
-          cloneSourceCanvasRef.current = buildCloneSourceCanvas(
-            activeLayer.id,
-            doc.toolSettings.cloneStamp.sampling
-          );
-          cloneSourceCanvasMetaRef.current = cloneSourceCanvasRef.current
-            ? {
-                activeLayerId: activeLayer.id,
-                sampling: doc.toolSettings.cloneStamp.sampling,
-                signature
-              }
-            : null;
+        const handler = getToolHandler("clone_stamp");
+        if (handler instanceof CloneStampTool) {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          handler.setCloneSource(pt);
         }
         return;
       }
@@ -620,511 +511,44 @@ export function usePointerHandlers({
         return;
       }
 
-      if (interactionTool === "eyedropper") {
-        const rgb = sampleRgbAtDocPoint(e.clientX, e.clientY);
-        if (rgb) {
-          const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
-          containerRef.current?.dispatchEvent(
-            new CustomEvent("sketch-eyedropper", {
-              detail: { color: hex },
-              bubbles: true
-            })
-          );
-        }
-        return;
-      }
-
-      if (interactionTool === "move") {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        let moveTargetLayer = activeLayer;
-
-        if ((e.ctrlKey || e.metaKey) && e.altKey) {
-          useSketchStore.getState().duplicateLayer(activeLayer.id);
-          const freshDoc = useSketchStore.getState().document;
-          const dup = freshDoc.layers.find((l) => l.id === freshDoc.activeLayerId);
-          if (dup) {
-            moveTargetLayer = dup;
-          }
-        } else if (e.altKey && onAutoPickLayer) {
-          const px = Math.floor(pt.x);
-          const py = Math.floor(pt.y);
-          for (let i = doc.layers.length - 1; i >= 0; i--) {
-            const layer = doc.layers[i];
-            const skipForHit =
-              !isLayerCompositeVisible(doc.layers, layer, null) ||
-              (layer.locked && !layer.imageReference);
-            if (skipForHit) {
-              continue;
-            }
-            const layerCanvas = layerCanvasesRef.current.get(layer.id);
-            if (!layerCanvas) {
-              continue;
-            }
-            const ctx = layerCanvas.getContext("2d");
-            if (!ctx) {
-              continue;
-            }
-            const compositeOffset = getLayerPaintOffset(layer.id);
-            const localX = px - compositeOffset.x;
-            const localY = py - compositeOffset.y;
-            if (
-              localX >= 0 &&
-              localX < layerCanvas.width &&
-              localY >= 0 &&
-              localY < layerCanvas.height
-            ) {
-              const pixel = ctx.getImageData(localX, localY, 1, 1).data;
-              if (pixel[3] > 0) {
-                onAutoPickLayer(layer.id);
-                break;
-              }
-            }
-          }
-        }
-
-        // Ensure the layer canvas exists so that the compositing pipeline can
-        // render the layer while it is being dragged. Without this, the first
-        // move action on a layer that has never been drawn on shows no preview
-        // because Canvas2DRuntime.compositeToDisplay skips layers without a canvas.
-        getOrCreateLayerCanvas(moveTargetLayer.id);
-
-        moveStartRef.current = pt;
-        moveLayerStartTransformRef.current = {
-          x: moveTargetLayer.transform?.x ?? 0,
-          y: moveTargetLayer.transform?.y ?? 0
-        };
-        movePreviewTransformRef.current = {
-          x: moveTargetLayer.transform?.x ?? 0,
-          y: moveTargetLayer.transform?.y ?? 0
-        };
-        movePreviewLayerIdRef.current = moveTargetLayer.id;
-        clearLayerTransformPreview?.(moveTargetLayer.id);
-        isDrawingRef.current = true;
-        onStrokeStart();
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
-
+      // ─── Generic tool delegation ─────────────────────────────────────
+      // For transform: ensure the layer canvas exists for live preview compositing
       if (interactionTool === "transform") {
-        // Ensure the layer canvas exists for live transform preview compositing
         getOrCreateLayerCanvas(activeLayer.id);
-        const handler = getToolHandler(interactionTool);
-        const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
-        if (started) {
-          isDrawingRef.current = true;
-        }
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
       }
 
-      if (interactionTool === "segment") {
-        const handler = getToolHandler(interactionTool);
-        const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
-        if (started) {
-          isDrawingRef.current = true;
-        }
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
-
-      if (interactionTool === "crop") {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        cropStartRef.current = pt;
+      const handler = getToolHandler(interactionTool);
+      const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
+      if (started) {
         isDrawingRef.current = true;
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
       }
-
-      if (interactionTool === "select") {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        const cw = doc.canvas.width;
-        const ch = doc.canvas.height;
-        const mode = doc.toolSettings.select.mode;
-        const polygonInProgress =
-          mode === "lasso_polygon" && lassoPointsRef.current.length > 0;
-        if (
-          mode !== "magic_wand" &&
-          !polygonInProgress &&
-          selection &&
-          selectionHitTest(selection, pt.x, pt.y) &&
-          !shiftHeldRef.current &&
-          !altHeldRef.current
-        ) {
-          isMovingSelectionRef.current = true;
-          moveSelectionOriginRef.current = pt;
-          const cloned = cloneSelectionMask(selection);
-          selectionAtMoveStartRef.current = cloned;
-          selectionMoveAntsRef.current = { start: cloned, dx: 0, dy: 0 };
-          isDrawingRef.current = true;
-          (e.target as HTMLElement).setPointerCapture(e.pointerId);
-          return;
-        }
-        if (mode === "magic_wand") {
-          if (onSelectionChange) {
-            const id = getFullCompositeImageData();
-            if (id) {
-              const bin = magicWandFromRgba(
-                id,
-                pt.x,
-                pt.y,
-                doc.toolSettings.select.magicWandTolerance
-              );
-              const overlay: Selection = { width: cw, height: ch, data: bin };
-              const op = selectionCombineMode(
-                shiftHeldRef.current,
-                altHeldRef.current
-              );
-              const base = op === "replace" ? null : selection ?? null;
-              onSelectionChange(combineMasks(base, overlay, op));
-            }
-          }
-          return;
-        }
-        if (mode === "lasso") {
-          lassoPointsRef.current = [pt];
-          selectStartRef.current = null;
-          selectionDragModifiersRef.current = {
-            shift: shiftHeldRef.current,
-            alt: altHeldRef.current
-          };
-          isDrawingRef.current = true;
-          if (!shiftHeldRef.current && !altHeldRef.current) {
-            onSelectionChange?.(null);
-          }
-          (e.target as HTMLElement).setPointerCapture(e.pointerId);
-          return;
-        }
-        if (mode === "lasso_polygon") {
-          // Click to add vertices; pointer-move rubber-band when !isDrawing (below).
-          // Double-click closes the polygon (handleDoubleClick).
-          selectStartRef.current = null;
-          const isFirstVertex = lassoPointsRef.current.length === 0;
-          if (isFirstVertex) {
-            selectionDragModifiersRef.current = {
-              shift: shiftHeldRef.current,
-              alt: altHeldRef.current
-            };
-            if (!shiftHeldRef.current && !altHeldRef.current) {
-              onSelectionChange?.(null);
-            }
-          }
-          lassoPointsRef.current = [...lassoPointsRef.current, pt];
-          drawOverlayLassoPreview(lassoPointsRef.current, pt);
-          return;
-        }
-        selectStartRef.current = pt;
-        lassoPointsRef.current = [];
-        marqueeDocDragSeenRef.current = false;
-        marqueePointerDownClientRef.current = {
-          x: e.clientX,
-          y: e.clientY
-        };
-        marqueeCombineAtDownRef.current = {
-          shift: shiftHeldRef.current,
-          alt: altHeldRef.current
-        };
-        selectionDragModifiersRef.current = null;
-        isDrawingRef.current = true;
-        const marqueeOpAtDown = selectionCombineMode(
-          marqueeCombineAtDownRef.current.shift,
-          marqueeCombineAtDownRef.current.alt
-        );
-        if (marqueeOpAtDown === "replace") {
-          onSelectionChange?.(null);
-        }
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
-
-      if (activeLayer.locked && !layerAllowsTransformWhilePixelLocked(activeLayer)) {
-        return;
-      }
-
-      if (interactionTool === "fill") {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        if (selection && selectionHasAnyPixels(selection)) {
-          if (!selectionHitTest(selection, pt.x, pt.y)) {
-            return;
-          }
-        }
-        onStrokeStart();
-        const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
-        const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-        const ctx = layerCanvas.getContext("2d");
-        if (ctx) {
-          paintLayerOffsetRef.current = ensuredBounds
-            ? {
-                x: (activeLayer.transform?.x ?? 0) + ensuredBounds.x,
-                y: (activeLayer.transform?.y ?? 0) + ensuredBounds.y
-              }
-            : getLayerPaintOffset(activeLayer.id);
-          const localPt = {
-            x: pt.x - paintLayerOffsetRef.current.x,
-            y: pt.y - paintLayerOffsetRef.current.y
-          };
-          // Apply selection clip for fill
-          const clipped = clipSelectionForOffset(
-            ctx,
-            paintLayerOffsetRef.current
-          );
-          floodFillUtil(ctx, localPt.x, localPt.y, {
-            ...doc.toolSettings.fill,
-            color: foregroundColor
-          });
-          if (clipped) {
-            ctx.restore();
-          }
-          const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
-          onStrokeEnd(activeLayer.id, null, committedBounds);
-          invalidateLayer(activeLayer.id);
-          redraw();
-        }
-        return;
-      }
-
-      // Clone stamp: begin painting stroke
-      if (interactionTool === "clone_stamp") {
-        if (!cloneSourceRef.current) {
-          return;
-        }
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        if (!cloneOffsetRef.current) {
-          cloneOffsetRef.current = {
-            x: cloneSourceRef.current.x - pt.x,
-            y: cloneSourceRef.current.y - pt.y
-          };
-        }
-        clonePaintOffsetRef.current = null;
-        const settings = doc.toolSettings.cloneStamp;
-        const cloneSignature = getCloneSourceSignature(activeLayer.id, settings.sampling);
-        const cachedMeta = cloneSourceCanvasMetaRef.current;
-        if (
-          !cloneSourceCanvasRef.current ||
-          !cachedMeta ||
-          cachedMeta.activeLayerId !== activeLayer.id ||
-          cachedMeta.sampling !== settings.sampling ||
-          cachedMeta.signature !== cloneSignature
-        ) {
-          cloneSourceCanvasRef.current = buildCloneSourceCanvas(
-            activeLayer.id,
-            settings.sampling
-          );
-          cloneSourceCanvasMetaRef.current = cloneSourceCanvasRef.current
-            ? {
-                activeLayerId: activeLayer.id,
-                sampling: settings.sampling,
-                signature: cloneSignature
-              }
-            : null;
-        }
-        isDrawingRef.current = true;
-        paintStrokeHasMovedRef.current = false;
-        lastPointRef.current = pt;
-        lastSmoothedPointRef.current = pt;
-        currentPressureRef.current = normalizePointerPressure(e.nativeEvent);
-        onStrokeStart();
-        const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
-        paintLayerOffsetRef.current = ensuredBounds
-          ? {
-              x: (activeLayer.transform?.x ?? 0) + ensuredBounds.x,
-              y: (activeLayer.transform?.y ?? 0) + ensuredBounds.y
-            }
-          : getLayerPaintOffset(activeLayer.id);
-        clonePaintOffsetRef.current =
-          settings.sampling === "composited" && cloneOffsetRef.current
-            ? {
-                x: cloneOffsetRef.current.x + paintLayerOffsetRef.current.x,
-                y: cloneOffsetRef.current.y + paintLayerOffsetRef.current.y
-              }
-            : cloneOffsetRef.current;
-        strokeDirtyRectRef.current = null;
-        if (activeLayer.alphaLock) {
-          const lc = getOrCreateLayerCanvas(activeLayer.id);
-          const snapCtx = lc.getContext("2d");
-          if (snapCtx) {
-            alphaSnapshotRef.current = snapCtx.getImageData(
-              0,
-              0,
-              lc.width,
-              lc.height
-            );
-          }
-        } else {
-          alphaSnapshotRef.current = null;
-        }
-        const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-        const ctx = layerCanvas.getContext("2d");
-        if (ctx) {
-          const localPt = {
-            x: pt.x - paintLayerOffsetRef.current.x,
-            y: pt.y - paintLayerOffsetRef.current.y
-          };
-          drawCloneStampStroke(localPt, localPt, doc.toolSettings.cloneStamp, ctx);
-          invalidateLayer(activeLayer.id);
-          redraw();
-        }
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
-
-      if (isShapeTool(interactionTool)) {
-        const handler = getToolHandler(interactionTool);
-        const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
-        if (started) {
-          isDrawingRef.current = true;
-        }
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
-
-      if (interactionTool === "gradient") {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        gradientStartRef.current = pt;
-        gradientEndRef.current = pt;
-        isDrawingRef.current = true;
-        onStrokeStart();
-        const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
-        paintLayerOffsetRef.current = ensuredBounds
-          ? {
-              x: (activeLayer.transform?.x ?? 0) + ensuredBounds.x,
-              y: (activeLayer.transform?.y ?? 0) + ensuredBounds.y
-            }
-          : getLayerPaintOffset(activeLayer.id);
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
-
-      // ─── Brush / Pencil / Eraser: delegate to shared PaintSession ─────
-      if (
-        interactionTool === "brush" ||
-        interactionTool === "pencil" ||
-        interactionTool === "eraser"
-      ) {
-        const handler = getToolHandler(interactionTool);
-        const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
-        if (started) {
-          isDrawingRef.current = true;
-          // Live preview: render the merged active-layer preview on the overlay
-          // for all paint tools while WebGPU hides the active layer underneath.
-          if (activeStrokeRef.current) {
-            drawActiveStrokePreview();
-          }
-        }
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
-
-      // ─── Blur: inline path ─────────────────────────────────────────────
-      isDrawingRef.current = true;
-      const pt = screenToCanvas(e.clientX, e.clientY);
-      lastPointRef.current = pt;
-      lastSmoothedPointRef.current = pt;
-      currentPressureRef.current = normalizePointerPressure(e.nativeEvent);
-      onStrokeStart();
-      const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
-      paintLayerOffsetRef.current = ensuredBounds
-        ? {
-            x: (activeLayer.transform?.x ?? 0) + ensuredBounds.x,
-            y: (activeLayer.transform?.y ?? 0) + ensuredBounds.y
-          }
-        : getLayerPaintOffset(activeLayer.id);
-
-      strokeDirtyRectRef.current = null;
-
-      if (activeLayer.alphaLock) {
-        const layerCanvasForSnapshot = getOrCreateLayerCanvas(activeLayer.id);
-        const snapCtx = layerCanvasForSnapshot.getContext("2d");
-        if (snapCtx) {
-          alphaSnapshotRef.current = snapCtx.getImageData(
-            0,
-            0,
-            layerCanvasForSnapshot.width,
-            layerCanvasForSnapshot.height
-          );
-        }
-      } else {
-        alphaSnapshotRef.current = null;
-      }
-
-      const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-      const paintCtx = layerCanvas.getContext("2d");
-      if (paintCtx) {
-        const currentOffset = paintLayerOffsetRef.current;
-        const localPt = {
-          x: pt.x - currentOffset.x,
-          y: pt.y - currentOffset.y
-        };
-        const hasSelClip = clipSelectionForOffset(paintCtx, currentOffset);
-
-        if (shiftHeldRef.current && lastStrokeEndRef.current) {
-          const from = {
-            x: lastStrokeEndRef.current.x - currentOffset.x,
-            y: lastStrokeEndRef.current.y - currentOffset.y
-          };
-          if (interactionTool === "blur") {
-            drawBlurStroke(from, localPt, doc.toolSettings.blur, layerCanvas);
-          }
-        } else {
-          if (interactionTool === "blur") {
-            drawBlurStroke(localPt, localPt, doc.toolSettings.blur, layerCanvas);
-          }
-        }
-
-        if (hasSelClip) {
-          paintCtx.restore();
-        }
-
-        invalidateLayer(activeLayer.id);
-        redraw();
-      }
-
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
+      // Post-delegation: active stroke preview for paint tools
+      if (
+        started &&
+        (interactionTool === "brush" ||
+          interactionTool === "pencil" ||
+          interactionTool === "eraser") &&
+        activeStrokeRef.current
+      ) {
+        drawActiveStrokePreview();
+      }
     },
     [
       doc,
       activeTool,
       interactionTool,
-      selection,
       screenToCanvas,
-      onStrokeStart,
-      onStrokeEnd,
       onBrushSizeChange,
       getOrCreateLayerCanvas,
-      drawBlurStroke,
-      drawCloneStampStroke,
-      redraw,
-      clipSelectionForOffset,
       onEyedropperPick,
       rgbToHex,
-      ensureLayerViewportStorage,
-      getLayerPaintOffset,
-      onSelectionChange,
-      containerRef,
-      layerCanvasesRef,
-      onAutoPickLayer,
       activeStrokeRef,
-      invalidateLayer,
-      getCloneSourceSignature,
-      buildCloneSourceCanvas,
       drawActiveStrokePreview,
-      cloneSourceRef,
-      cloneOffsetRef,
-      clonePaintOffsetRef,
-      cloneSourceCanvasRef,
-      cloneSourceCanvasMetaRef,
-      strokeDirtyRectRef,
       spaceHeldRef,
       sKeyHeldRef,
-      shiftHeldRef,
-      altHeldRef,
-      foregroundColor,
-      clearLayerTransformPreview,
-      lassoPointsRef,
-      selectStartRef,
-      drawOverlayLassoPreview,
-      getFullCompositeImageData,
       sampleRgbAtDocPoint,
-      selectionMoveAntsRef
     ]
   );
 
@@ -1164,176 +588,49 @@ export function usePointerHandlers({
         drawCursor(e.clientX, e.clientY);
       }
 
-      if (
-        !isDrawingRef.current &&
-        interactionTool === "select" &&
-        doc.toolSettings.select.mode === "lasso_polygon" &&
-        lassoPointsRef.current.length > 0
-      ) {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        drawOverlayLassoPreview(lassoPointsRef.current, pt);
-        return;
-      }
-
-      // Transform tool: update cursor based on which handle is under the pointer
-      if (!isDrawingRef.current && interactionTool === "transform") {
-        const handler = getToolHandler(interactionTool);
-        if (handler instanceof TransformTool) {
-          const docPt = screenToCanvas(e.clientX, e.clientY);
-          const cursor = handler.getHoverCursor(toolCtxRef.current, docPt);
-          const el = containerRef.current;
-          if (el) {
-            el.style.cursor = cursor ?? "default";
-          }
-        }
-      }
-
+      // ─── Non-drawing hover dispatches ─────────────────────────────────
       if (!isDrawingRef.current) {
-        return;
-      }
-
-      // Key off moveStartRef, not activeTool — the closure can lag the store right
-      // after switching tools (e.g. V for move), which would skip this branch while
-      // isDrawingRef is still true from pointerDown.
-      if (moveStartRef.current) {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        const dx = pt.x - moveStartRef.current.x;
-        const dy = pt.y - moveStartRef.current.y;
-        const previewId = movePreviewLayerIdRef.current;
-        const freshDoc = useSketchStore.getState().document;
-        const layer =
-          previewId != null
-            ? freshDoc.layers.find((l) => l.id === previewId)
-            : null;
-        if (layer) {
-          const previewTransform = {
-            x: Math.round(moveLayerStartTransformRef.current.x + dx),
-            y: Math.round(moveLayerStartTransformRef.current.y + dy)
-          };
-          movePreviewTransformRef.current = previewTransform;
-          movePreviewLayerIdRef.current = layer.id;
-          setLayerTransformPreview?.(layer.id, previewTransform);
+        // Select tool: polygon lasso rubber-band preview
+        if (interactionTool === "select") {
+          const handler = getToolHandler("select");
+          handler.onHoverMove?.(toolCtxRef.current, buildToolPointerEvent(e));
         }
-        return;
-      }
 
-      if (interactionTool === "transform") {
-        const handler = getToolHandler(interactionTool);
-        handler.onMove?.(toolCtxRef.current, buildToolPointerEvent(e), []);
-        return;
-      }
-
-      if (interactionTool === "segment") {
-        const handler = getToolHandler(interactionTool);
-        handler.onMove?.(toolCtxRef.current, buildToolPointerEvent(e), []);
-        return;
-      }
-
-      if (isShapeTool(interactionTool)) {
-        const handler = getToolHandler(interactionTool);
-        handler.onMove?.(toolCtxRef.current, buildToolPointerEvent(e), []);
-        return;
-      }
-
-      if (interactionTool === "gradient" && gradientStartRef.current) {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        gradientEndRef.current = pt;
-        drawOverlayGradient(gradientStartRef.current, pt);
-        return;
-      }
-
-      if (interactionTool === "crop" && cropStartRef.current) {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        drawOverlayCrop(cropStartRef.current, pt);
-        return;
-      }
-
-      if (
-        interactionTool === "select" &&
-        isMovingSelectionRef.current &&
-        moveSelectionOriginRef.current &&
-        selectionAtMoveStartRef.current
-      ) {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        const dx = Math.round(pt.x - moveSelectionOriginRef.current.x);
-        const dy = Math.round(pt.y - moveSelectionOriginRef.current.y);
-        const start = selectionAtMoveStartRef.current;
-        if (start) {
-          selectionMoveAntsRef.current = { start, dx, dy };
-          drawSelectionOverlay();
-        }
-        return;
-      }
-
-      if (interactionTool === "select" && lassoPointsRef.current.length > 0) {
-        const selectMode = doc.toolSettings.select.mode;
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        const pts = lassoPointsRef.current;
-
-        if (selectMode === "lasso") {
-          const last = pts[pts.length - 1];
-          if (!last || last.x !== pt.x || last.y !== pt.y) {
-            pts.push(pt);
-          }
-          drawOverlayLassoPreview(pts, pt);
-          return;
-        }
-      }
-
-      if (interactionTool === "select" && selectStartRef.current) {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        const sm = doc.toolSettings.select.mode;
-        if (sm === "rectangle" || sm === "ellipse") {
-          const anchor = selectStartRef.current;
-          const downClient = marqueePointerDownClientRef.current;
-          const screenDx = downClient ? e.clientX - downClient.x : 0;
-          const screenDy = downClient ? e.clientY - downClient.y : 0;
-          if (
-            Math.abs(pt.x - anchor.x) >= MARQUEE_MIN_DRAG_DOC_PX ||
-            Math.abs(pt.y - anchor.y) >= MARQUEE_MIN_DRAG_DOC_PX ||
-            screenDx * screenDx + screenDy * screenDy >=
-              MARQUEE_DRAG_MIN_SCREEN_PX * MARQUEE_DRAG_MIN_SCREEN_PX
-          ) {
-            marqueeDocDragSeenRef.current = true;
-          }
-          const { start, end } = marqueeAdjustedDocPoints(
-            selectStartRef.current,
-            pt,
-            {
-              fromCenter: altHeldRef.current,
-              constrainSquare: shiftHeldRef.current
+        // Transform tool: update cursor based on which handle is under the pointer
+        if (interactionTool === "transform") {
+          const handler = getToolHandler(interactionTool);
+          if (handler instanceof TransformTool) {
+            const docPt = screenToCanvas(e.clientX, e.clientY);
+            const cursor = handler.getHoverCursor(toolCtxRef.current, docPt);
+            const el = containerRef.current;
+            if (el) {
+              el.style.cursor = cursor ?? "default";
             }
-          );
-          drawOverlaySelection(start, end);
-        } else {
-          drawOverlaySelection(selectStartRef.current, pt);
+          }
         }
         return;
       }
 
-      // ─── Brush / Pencil / Eraser: delegate to shared PaintSession ─────
+      // ─── Active drawing: delegate to tool handler ─────────────────────
+      const handler = getToolHandler(interactionTool);
+      handler.onMove?.(
+        toolCtxRef.current,
+        buildToolPointerEvent(e),
+        buildCoalescedEvents(e)
+      );
+
+      // Post-delegation: active stroke preview for paint tools
       if (
-        interactionTool === "brush" ||
-        interactionTool === "pencil" ||
-        interactionTool === "eraser"
+        (interactionTool === "brush" ||
+          interactionTool === "pencil" ||
+          interactionTool === "eraser") &&
+        activeStrokeRef.current
       ) {
-        // Do not gate pointermove on pen contact: many tablet drivers briefly
-        // report buttons=0 / pressure=0 between samples while the tip is down;
-        // skipping moves causes short, broken strokes. Hover is filtered on
-        // pointerdown via pointerHasPaintContact.
-        const handler = getToolHandler(interactionTool);
-        handler.onMove?.(
-          toolCtxRef.current,
-          buildToolPointerEvent(e),
-          buildCoalescedEvents(e)
-        );
-        // Live preview: render the merged active-layer preview on the overlay
-        // for all paint tools while WebGPU hides the active layer underneath.
-        if (activeStrokeRef.current) {
-          drawActiveStrokePreview();
-        }
-        // Draw last: compatibility mousemove may run after pointermove and would
-        // call drawCursor with stale coords if we only relied on the top of handler.
+        drawActiveStrokePreview();
+      }
+
+      // Post-delegation: cursor update for brush-cursor tools during drawing
+      if (interactionToolShowsBrushCursor(interactionTool)) {
         const r = containerRef.current?.getBoundingClientRect();
         if (r) {
           mousePositionRef.current = {
@@ -1342,147 +639,19 @@ export function usePointerHandlers({
           };
           drawCursor(e.clientX, e.clientY);
         }
-        return;
-      }
-
-      // ─── Blur / Clone Stamp: inline path ──────────────────────────────
-      if (!lastPointRef.current) {
-        return;
-      }
-      const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-      if (!activeLayer) {
-        return;
-      }
-
-      const nativePointerEvent = e.nativeEvent as PointerEvent;
-      const coalescedEvents =
-        typeof nativePointerEvent.getCoalescedEvents === "function"
-          ? nativePointerEvent.getCoalescedEvents()
-          : [nativePointerEvent];
-      const eventPoints = coalescedEvents.map((eventPoint) => ({
-        point: screenToCanvas(eventPoint.clientX, eventPoint.clientY),
-        pressure: coalescedStrokePressure(
-          eventPoint,
-          currentPressureRef.current || 0.5
-        )
-      }));
-      if (eventPoints.length === 0) {
-        return;
-      }
-
-      const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-      const currentOffset = paintLayerOffsetRef.current;
-
-      const ctx = layerCanvas.getContext("2d");
-      if (!ctx) {
-        return;
-      }
-
-      const hasSelectionClip = clipSelectionForOffset(ctx, currentOffset);
-
-      const pointsToProcess =
-        interactionTool === "blur" ? [eventPoints[eventPoints.length - 1]] : eventPoints;
-
-      for (const eventPoint of pointsToProcess) {
-        const pt = eventPoint.point;
-        if (
-          !paintStrokeHasMovedRef.current &&
-          lastPointRef.current &&
-          (pt.x !== lastPointRef.current.x || pt.y !== lastPointRef.current.y)
-        ) {
-          paintStrokeHasMovedRef.current = true;
-        }
-        const localPt = {
-          x: pt.x - currentOffset.x,
-          y: pt.y - currentOffset.y
-        };
-        const pressure = eventPoint.pressure;
-        currentPressureRef.current = pressure;
-
-        if (interactionTool === "blur") {
-          const from = lastPointRef.current
-            ? {
-                x: lastPointRef.current.x - currentOffset.x,
-                y: lastPointRef.current.y - currentOffset.y
-              }
-            : localPt;
-          drawBlurStroke(from, localPt, doc.toolSettings.blur, layerCanvas);
-        } else if (interactionTool === "clone_stamp") {
-          const from = lastPointRef.current
-            ? {
-                x: lastPointRef.current.x - currentOffset.x,
-                y: lastPointRef.current.y - currentOffset.y
-              }
-            : localPt;
-          drawCloneStampStroke(
-            from,
-            localPt,
-            doc.toolSettings.cloneStamp,
-            ctx
-          );
-        }
-
-        lastPointRef.current = pt;
-      }
-
-      if (hasSelectionClip) {
-        ctx.restore();
-      }
-
-      invalidateLayer(activeLayer.id);
-      // Use dirty-rect compositing during painting for better performance on large canvases
-      const dirty = strokeDirtyRectRef.current;
-      if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY) {
-        redrawDirty(
-          dirty.minX + currentOffset.x,
-          dirty.minY + currentOffset.y,
-          dirty.maxX - dirty.minX,
-          dirty.maxY - dirty.minY
-        );
-      } else {
-        requestRedraw();
-      }
-
-      const rPaint = containerRef.current?.getBoundingClientRect();
-      if (rPaint) {
-        mousePositionRef.current = {
-          x: e.clientX - rPaint.left,
-          y: e.clientY - rPaint.top
-        };
-        drawCursor(e.clientX, e.clientY);
       }
     },
     [
-      doc,
       activeTool,
       interactionTool,
       screenToCanvas,
       onPanChange,
       onBrushSizeChange,
-      getOrCreateLayerCanvas,
-      drawBlurStroke,
-      drawCloneStampStroke,
-      drawOverlayGradient,
-      drawOverlayCrop,
-      redrawDirty,
-      requestRedraw,
-      clipSelectionForOffset,
-      drawOverlaySelection,
-      drawOverlayLassoPreview,
-      lassoPointsRef,
-      selectStartRef,
-      setLayerTransformPreview,
       activeStrokeRef,
-      invalidateLayer,
       drawActiveStrokePreview,
-      strokeDirtyRectRef,
       drawCursor,
       containerRef,
       mousePositionRef,
-      drawSelectionOverlay,
-      selectionMoveAntsRef,
-      shiftHeldRef,
-      altHeldRef
     ]
   );
 
@@ -1505,223 +674,16 @@ export function usePointerHandlers({
       }
       isDrawingRef.current = false;
 
-      const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+      // ─── Generic tool delegation ─────────────────────────────────────
+      const handler = getToolHandler(interactionTool);
+      handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
 
-      // Same as pointerMove: finalize using gesture refs, not activeTool closure.
-      if (moveStartRef.current) {
-        const previewLayerId = movePreviewLayerIdRef.current;
-        const previewTransform = movePreviewTransformRef.current;
-        if (previewLayerId && previewTransform && onLayerTransformChange) {
-          onLayerTransformChange(previewLayerId, previewTransform);
-        }
-        clearLayerTransformPreview?.(previewLayerId ?? undefined);
-        moveStartRef.current = null;
-        moveLayerStartTransformRef.current = { x: 0, y: 0 };
-        movePreviewTransformRef.current = null;
-        movePreviewLayerIdRef.current = null;
-        // Move only changes transform; pixels are unchanged. Do not enqueue the
-        // deferred getLayerData sync used by paint tools — it can overwrite
-        // document `layer.data` with empty/not-yet-hydrated CPU canvases.
-        if (previewLayerId) {
-          onStrokeEnd(previewLayerId, null, undefined, {
-            syncDocumentFromCanvas: false
-          });
-        }
-        return;
-      }
-      if (interactionTool === "clone_stamp") {
-        clonePaintOffsetRef.current = null;
-      }
-
-      if (interactionTool === "transform") {
-        const handler = getToolHandler(interactionTool);
-        handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
-        return;
-      }
-
-      if (interactionTool === "segment") {
-        const handler = getToolHandler(interactionTool);
-        handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
-        return;
-      }
-
-      if (isShapeTool(interactionTool)) {
-        const handler = getToolHandler(interactionTool);
-        handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
-        return;
-      }
-
-      if (
-        interactionTool === "gradient" &&
-        gradientStartRef.current &&
-        activeLayer
-      ) {
-        const start = gradientStartRef.current;
-        const end = gradientEndRef.current ?? start;
-        const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-        const ctx = layerCanvas.getContext("2d");
-        if (ctx) {
-          const currentOffset = paintLayerOffsetRef.current;
-          drawGradientUtil(
-            ctx,
-            {
-              x: start.x - currentOffset.x,
-              y: start.y - currentOffset.y
-            },
-            {
-              x: end.x - currentOffset.x,
-              y: end.y - currentOffset.y
-            },
-            doc.toolSettings.gradient
-          );
-          const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
-          onStrokeEnd(activeLayer.id, null, committedBounds);
-          invalidateLayer(activeLayer.id);
-          clearOverlay();
-          drawSelectionOverlay();
-          redraw();
-        }
-        gradientStartRef.current = null;
-        gradientEndRef.current = null;
-        return;
-      }
-
-      if (interactionTool === "crop" && cropStartRef.current) {
-        const pt = screenToCanvas(
-          mousePositionRef.current.x +
-            (containerRef.current?.getBoundingClientRect().left ?? 0),
-          mousePositionRef.current.y +
-            (containerRef.current?.getBoundingClientRect().top ?? 0)
-        );
-        const x1 = Math.round(Math.min(cropStartRef.current.x, pt.x));
-        const y1 = Math.round(Math.min(cropStartRef.current.y, pt.y));
-        const x2 = Math.round(Math.max(cropStartRef.current.x, pt.x));
-        const y2 = Math.round(Math.max(cropStartRef.current.y, pt.y));
-        const w = x2 - x1;
-        const h = y2 - y1;
-        clearOverlay();
-        drawSelectionOverlay();
-        cropStartRef.current = null;
-        if (w > 1 && h > 1 && onCropComplete) {
-          onCropComplete(x1, y1, w, h);
-        }
-        return;
-      }
-
-      // Finalize selection movement (preserve mask pixels past canvas via origin shift)
-      if (interactionTool === "select" && isMovingSelectionRef.current) {
-        const ants = selectionMoveAntsRef.current;
-        const start = selectionAtMoveStartRef.current;
-        if (start && onSelectionChange) {
-          const dx = ants?.dx ?? 0;
-          const dy = ants?.dy ?? 0;
-          onSelectionChange(offsetSelectionByDocumentDelta(start, dx, dy));
-        }
-        selectionMoveAntsRef.current = null;
-        isMovingSelectionRef.current = false;
-        moveSelectionOriginRef.current = null;
-        selectionAtMoveStartRef.current = null;
-        drawSelectionOverlay();
-        return;
-      }
-
-      if (interactionTool === "select" && lassoPointsRef.current.length > 0) {
-        if (doc.toolSettings.select.mode === "lasso_polygon") {
-          return;
-        }
-        const pt = screenToCanvas(
-          mousePositionRef.current.x +
-            (containerRef.current?.getBoundingClientRect().left ?? 0),
-          mousePositionRef.current.y +
-            (containerRef.current?.getBoundingClientRect().top ?? 0)
-        );
-        const pts = [...lassoPointsRef.current];
-        lassoPointsRef.current = [];
-        const last = pts[pts.length - 1];
-        if (!last || last.x !== pt.x || last.y !== pt.y) {
-          pts.push(pt);
-        }
-        clearOverlay();
-        drawSelectionOverlay();
-        selectStartRef.current = null;
-        const cw = doc.canvas.width;
-        const ch = doc.canvas.height;
-        if (pts.length >= 3 && onSelectionChange) {
-          const bin = polygonToBinaryMask(cw, ch, pts);
-          const overlay: Selection = { width: cw, height: ch, data: bin };
-          if (selectionHasAnyPixels(overlay)) {
-            const mod = selectionDragModifiersRef.current;
-            selectionDragModifiersRef.current = null;
-            const op = selectionCombineMode(
-              mod?.shift ?? shiftHeldRef.current,
-              mod?.alt ?? altHeldRef.current
-            );
-            const base = op === "replace" ? null : selection ?? null;
-            onSelectionChange(combineMasks(base, overlay, op));
-          }
-        }
-        selectionDragModifiersRef.current = null;
-        return;
-      }
-
-      if (interactionTool === "select" && selectStartRef.current) {
-        const pt = screenToCanvas(
-          mousePositionRef.current.x +
-            (containerRef.current?.getBoundingClientRect().left ?? 0),
-          mousePositionRef.current.y +
-            (containerRef.current?.getBoundingClientRect().top ?? 0)
-        );
-        const selMode = doc.toolSettings.select.mode;
-        const anchor = selectStartRef.current;
-        const { start: mStart, end: mEnd } =
-          selMode === "rectangle" || selMode === "ellipse"
-            ? marqueeAdjustedDocPoints(anchor, pt, {
-                fromCenter: altHeldRef.current,
-                constrainSquare: shiftHeldRef.current
-              })
-            : { start: anchor, end: pt };
-        const { x, y, w, h } = marqueeRectFromDocPoints(mStart, mEnd);
-        clearOverlay();
-        selectStartRef.current = null;
-        const cw = doc.canvas.width;
-        const ch = doc.canvas.height;
-        const mc = marqueeCombineAtDownRef.current;
-        marqueeCombineAtDownRef.current = null;
-        const op: SelectionCombineOp = mc
-          ? selectionCombineMode(mc.shift, mc.alt)
-          : "replace";
-        const isMarqueeShape =
-          selMode === "rectangle" || selMode === "ellipse";
-        const marqueeDragged = marqueeDocDragSeenRef.current;
-        marqueeDocDragSeenRef.current = false;
-        marqueePointerDownClientRef.current = null;
-        if (
-          w >= 1 &&
-          h >= 1 &&
-          onSelectionChange &&
-          (!isMarqueeShape || marqueeDragged)
-        ) {
-          const overlay =
-            selMode === "ellipse"
-              ? ellipseSelectionMask(cw, ch, x, y, w, h)
-              : rectSelectionMask(cw, ch, x, y, w, h);
-          if (selectionHasAnyPixels(overlay)) {
-            const base = op === "replace" ? null : selection ?? null;
-            onSelectionChange(combineMasks(base, overlay, op));
-          }
-        }
-        drawSelectionOverlay();
-        return;
-      }
-
-      // ─── Brush / Pencil / Eraser: delegate to shared PaintSession ─────
+      // Post-delegation: active stroke preview for paint tools
       if (
         interactionTool === "brush" ||
         interactionTool === "pencil" ||
         interactionTool === "eraser"
       ) {
-        const handler = getToolHandler(interactionTool);
-        handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
         // Shift-line continuation keeps `activeStrokeRef` until the next non-shift
         // stroke; WebGPU hides the active layer while it is set, so the 2D overlay
         // must keep showing the merged preview — do not clear it in that case.
@@ -1732,99 +694,15 @@ export function usePointerHandlers({
           clearOverlay();
           drawSelectionOverlay();
         }
-        return;
-      }
-
-      // ─── Blur / Clone Stamp: inline cleanup path ──────────────────────
-      // Save the stroke endpoint for Shift+click straight line feature
-      if (isPaintingTool(activeTool)) {
-        lastStrokeEndRef.current = screenToCanvas(e.clientX, e.clientY);
-      }
-
-      clearOverlay();
-      drawSelectionOverlay();
-
-      lastPointRef.current = null;
-      lastSmoothedPointRef.current = null;
-      paintStrokeHasMovedRef.current = false;
-      paintLayerOffsetRef.current = { x: 0, y: 0 };
-
-      // Alpha lock: restore original alpha channel after merging
-      if (activeLayer?.alphaLock && alphaSnapshotRef.current) {
-        const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
-        if (layerCanvas) {
-          const ctx = layerCanvas.getContext("2d");
-          if (ctx) {
-            const dirtyRect = strokeDirtyRectRef.current ?? {
-              minX: 0,
-              minY: 0,
-              maxX: layerCanvas.width,
-              maxY: layerCanvas.height
-            };
-            const x = Math.max(0, dirtyRect.minX);
-            const y = Math.max(0, dirtyRect.minY);
-            const width = Math.min(layerCanvas.width - x, dirtyRect.maxX - x);
-            const height = Math.min(layerCanvas.height - y, dirtyRect.maxY - y);
-            if (width > 0 && height > 0) {
-              const currentData = ctx.getImageData(x, y, width, height);
-              const snapshot = alphaSnapshotRef.current;
-              for (let yy = 0; yy < height; yy++) {
-                for (let xx = 0; xx < width; xx++) {
-                  const localIndex = (yy * width + xx) * 4 + 3;
-                  const snapshotIndex =
-                    ((y + yy) * layerCanvas.width + (x + xx)) * 4 + 3;
-                  currentData.data[localIndex] = Math.min(
-                    currentData.data[localIndex],
-                    snapshot.data[snapshotIndex]
-                  );
-                }
-              }
-              ctx.putImageData(currentData, x, y);
-              invalidateLayer(activeLayer.id);
-            }
-          }
-        }
-        alphaSnapshotRef.current = null;
-      }
-      strokeDirtyRectRef.current = null;
-      redraw();
-
-      if (activeLayer) {
-        const layerId = activeLayer.id;
-        const layerCanvas = layerCanvasesRef.current.get(layerId);
-        const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
-        onStrokeEnd(layerId, null, committedBounds);
       }
     },
     [
-      doc,
-      activeTool,
       interactionTool,
-      selection,
-      onStrokeEnd,
-      onLayerTransformChange,
-      clearLayerTransformPreview,
-      onCropComplete,
-      getOrCreateLayerCanvas,
       clearOverlay,
       drawSelectionOverlay,
       appendSelectionOverlay,
       drawActiveStrokePreview,
       activeStrokeRef,
-      redraw,
-      screenToCanvas,
-      onSelectionChange,
-      containerRef,
-      mousePositionRef,
-      layerCanvasesRef,
-      invalidateLayer,
-      clonePaintOffsetRef,
-      strokeDirtyRectRef,
-      shiftHeldRef,
-      altHeldRef,
-      lassoPointsRef,
-      selectStartRef,
-      selectionMoveAntsRef
     ]
   );
 
@@ -1922,47 +800,23 @@ export function usePointerHandlers({
 
   const handleDoubleClick = useCallback(
     (_e: React.MouseEvent) => {
-      if (
-        interactionTool !== "select" ||
-        doc.toolSettings.select.mode !== "lasso_polygon" ||
-        lassoPointsRef.current.length < 3
-      ) {
+      if (interactionTool !== "select") {
         return;
       }
-      const pts = [...lassoPointsRef.current];
-      lassoPointsRef.current = [];
-      clearOverlay();
-      drawSelectionOverlay();
-      const cw = doc.canvas.width;
-      const ch = doc.canvas.height;
-      if (onSelectionChange) {
-        const bin = polygonToBinaryMask(cw, ch, pts);
-        const overlay: Selection = { width: cw, height: ch, data: bin };
-        if (selectionHasAnyPixels(overlay)) {
-          const mod = selectionDragModifiersRef.current;
-          selectionDragModifiersRef.current = null;
-          const op = selectionCombineMode(
-            mod?.shift ?? shiftHeldRef.current,
-            mod?.alt ?? altHeldRef.current
-          );
-          const base = op === "replace" ? null : selection ?? null;
-          onSelectionChange(combineMasks(base, overlay, op));
-        }
-      }
-      selectionDragModifiersRef.current = null;
+      const handler = getToolHandler("select");
+      const pt = screenToCanvas(
+        mousePositionRef.current.x +
+          (containerRef.current?.getBoundingClientRect().left ?? 0),
+        mousePositionRef.current.y +
+          (containerRef.current?.getBoundingClientRect().top ?? 0)
+      );
+      handler.onDoubleClick?.(toolCtxRef.current, pt);
     },
     [
       interactionTool,
-      doc.toolSettings.select.mode,
-      doc.canvas.width,
-      doc.canvas.height,
-      selection,
-      onSelectionChange,
-      clearOverlay,
-      drawSelectionOverlay,
-      lassoPointsRef,
-      shiftHeldRef,
-      altHeldRef
+      screenToCanvas,
+      containerRef,
+      mousePositionRef,
     ]
   );
 
@@ -1970,6 +824,11 @@ export function usePointerHandlers({
   useEffect(() => {
     if (!selection && lassoPointsRef.current.length > 0 && doc.toolSettings.select.mode === "lasso_polygon") {
       lassoPointsRef.current = [];
+      // Also clear internal SelectTool state
+      const handler = getToolHandler("select");
+      if (handler instanceof SelectTool) {
+        handler.clearPolygon();
+      }
       clearOverlay();
     }
   }, [selection, doc.toolSettings.select.mode, lassoPointsRef, clearOverlay]);
@@ -2009,6 +868,8 @@ export function usePointerHandlers({
       return;
     }
     const prevHandler = getToolHandler(prev);
+    // Cancel any pending async work before deactivating
+    prevHandler.onCancel?.(toolCtxRef.current);
     prevHandler.onDeactivate?.(toolCtxRef.current);
     const nextHandler = getToolHandler(activeTool);
     nextHandler.onActivate?.(toolCtxRef.current);

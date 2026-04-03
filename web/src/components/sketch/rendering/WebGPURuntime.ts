@@ -902,6 +902,17 @@ export class WebGPURuntime implements SketchRuntime {
     return result;
   }
 
+  // ─── Effects evaluation ──────────────────────────────────────────────
+
+  evaluateLayerEffects(
+    layerId: string,
+    source: HTMLCanvasElement,
+    effects: import("../types").LayerEffect[]
+  ): HTMLCanvasElement {
+    // Delegate to the CPU runtime; WebGPU-accelerated effects will be added later
+    return this.cpuRuntime.evaluateLayerEffects(layerId, source, effects);
+  }
+
   // ─── Lifecycle ───────────────────────────────────────────────────────
 
   dispose(): void {

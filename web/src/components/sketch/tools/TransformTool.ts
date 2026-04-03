@@ -19,9 +19,10 @@
  * so it is not clipped by the document-stack overflow and appears crisp at any zoom.
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point, LayerTransform, LayerContentBounds } from "../types";
 import { layerAllowsTransformWhilePixelLocked } from "../types";
+import TransformIcon from "@mui/icons-material/Transform";
 
 // ─── Handle types ─────────────────────────────────────────────────────────────
 
@@ -696,3 +697,11 @@ export class TransformTool implements ToolHandler {
     oc.restore();
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "transform",
+  label: "Transform",
+  shortcut: "F",
+  Icon: TransformIcon,
+  group: "painting"
+};

@@ -8,9 +8,10 @@
  * pixel grid and other UI; copying the full bitmap would tint the whole layer.
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point } from "../types";
 import { drawShapeOnCtx } from "../drawingUtils";
+import CategoryIcon from "@mui/icons-material/Category";
 import {
   CoordinateMapper,
   ensureLayerRasterBounds,
@@ -115,3 +116,11 @@ export class ShapeTool implements ToolHandler {
     this.shapeStart = null;
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "shape",
+  label: "Shape",
+  shortcut: "U",
+  Icon: CategoryIcon,
+  group: "shape"
+};

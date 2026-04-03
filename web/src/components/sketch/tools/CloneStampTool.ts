@@ -7,7 +7,8 @@
  *   handlePointerUp   (~line 1411-1413)
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
@@ -306,3 +307,11 @@ export class CloneStampTool implements ToolHandler {
     }
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "clone_stamp",
+  label: "Clone Stamp",
+  shortcut: "S",
+  Icon: ContentCopyIcon,
+  group: "painting"
+};

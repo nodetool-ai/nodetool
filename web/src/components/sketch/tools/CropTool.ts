@@ -7,8 +7,9 @@
  *   handlePointerUp   (~line 1449-1469)
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point } from "../types";
+import CropIcon from "@mui/icons-material/Crop";
 
 export class CropTool implements ToolHandler {
   readonly toolId = "crop" as const;
@@ -51,3 +52,11 @@ export class CropTool implements ToolHandler {
     }
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "crop",
+  label: "Crop",
+  shortcut: "C",
+  Icon: CropIcon,
+  group: "shape"
+};

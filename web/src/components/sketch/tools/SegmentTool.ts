@@ -9,8 +9,9 @@
  * draws overlay feedback on the canvas.
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point, SegmentPointPrompt, SegmentBoxPrompt } from "../types";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 // ─── Overlay Rendering Constants ──────────────────────────────────────────────
 
@@ -196,3 +197,11 @@ export class SegmentTool implements ToolHandler {
     );
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "segment",
+  label: "Segment",
+  shortcut: "W",
+  Icon: AutoAwesomeIcon,
+  group: "shape"
+};

@@ -5,8 +5,9 @@
  * and dirty-rect tracking to PaintSession + EraserEngine.
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import { PaintSession, EraserEngine } from "../painting";
+import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
 import {
   DEFAULT_ERASER_SETTINGS,
   DEFAULT_BRUSH_SETTINGS,
@@ -50,3 +51,11 @@ export class EraserTool implements ToolHandler {
     this.session.end(ctx, event);
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "eraser",
+  label: "Eraser",
+  shortcut: "E",
+  Icon: AutoFixNormalIcon,
+  group: "painting"
+};

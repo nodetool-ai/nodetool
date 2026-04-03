@@ -4,9 +4,11 @@
  * Extracted from usePointerHandlers handlePointerDown (~line 810-835).
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import { floodFill as floodFillUtil } from "../drawingUtils";
+import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { getCanvasRasterBounds } from "../painting";
 import {
   selectionHasAnyPixels,
   selectionHitTest
@@ -52,12 +54,22 @@ export class FillTool implements ToolHandler {
     // Apply selection clip for fill
     const offset = mapper.offset;
     const clipped = ctx.clipSelectionForOffset(layerCtx, offset);
-    floodFillUtil(layerCtx, localPt.x, localPt.y, doc.toolSettings.fill);
+    floodFillUtil(layerCtx, localPt.x, localPt.y, { ...doc.toolSettings.fill, color: ctx.foregroundColor || doc.toolSettings.fill.color });
     if (clipped) {
       layerCtx.restore();
     }
+    const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
+    ctx.onStrokeEnd(activeLayer.id, null, committedBounds);
+    ctx.invalidateLayer?.(activeLayer.id);
     ctx.redraw();
-    ctx.onStrokeEnd(activeLayer.id, null);
     return false;
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "fill",
+  label: "Fill",
+  shortcut: "G",
+  Icon: FormatColorFillIcon,
+  group: "painting"
+};

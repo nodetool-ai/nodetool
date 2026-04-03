@@ -9,6 +9,7 @@
  * the React hook's internal refs.
  */
 
+import type { SvgIconProps } from "@mui/material/SvgIcon";
 import type {
   SketchDocument,
   SketchTool,
@@ -18,6 +19,19 @@ import type {
   LayerContentBounds
 } from "../types";
 import type { ActiveStrokeInfo } from "../rendering";
+
+// ─── Tool definition types (used by toolDefinitions registry) ─────────────
+
+export type ToolIconComponent = React.ComponentType<SvgIconProps>;
+
+export interface ToolDefinition {
+  tool: SketchTool;
+  label: string;
+  shortcut?: string;
+  Icon: ToolIconComponent;
+  group: "painting" | "shape";
+}
+import type { SelectionMoveAntsRef } from "../sketchCanvasHooks/useOverlayRenderer";
 
 /** Optional flags for `onStrokeEnd` when raster data is read back from the CPU canvas. */
 export interface StrokeEndOptions {
@@ -132,6 +146,24 @@ export interface ToolContext {
     ctx: CanvasRenderingContext2D,
     offset: Point
   ) => boolean;
+
+  // ── Foreground color ───────────────────────────────────────────────
+  foregroundColor?: string;
+
+  // ── Transform preview ────────────────────────────────────────────────
+  setLayerTransformPreview?: (layerId: string, transform: LayerTransform) => void;
+  clearLayerTransformPreview?: (layerId?: string) => void;
+
+  // ── Selection movement overlay (marching ants during drag) ──────────
+  selectionMoveAntsRef?: SelectionMoveAntsRef;
+  appendSelectionOverlay?: () => void;
+
+  // ── Lasso / polygon selection refs ──────────────────────────────────
+  selectStartRef?: React.MutableRefObject<Point | null>;
+  lassoPointsRef?: React.MutableRefObject<Point[]>;
+
+  // ── Full composite readback (magic wand, eyedropper) ───────────────
+  getFullCompositeImageData?: () => ImageData | null;
 }
 
 // ─── Pointer event data ───────────────────────────────────────────────────
@@ -175,6 +207,17 @@ export interface ToolHandler {
   onUp?(ctx: ToolContext, event: ToolPointerEvent): void;
 
   /**
+   * Called on pointer-move when no gesture is active (hover).
+   * Allows tools to draw rubber-band previews (e.g. polygon lasso).
+   */
+  onHoverMove?(ctx: ToolContext, event: ToolPointerEvent): void;
+
+  /**
+   * Called on double-click. Used by select tool for polygon close.
+   */
+  onDoubleClick?(ctx: ToolContext, point: Point): void;
+
+  /**
    * Called when the tool is activated (switched to).
    * Allows the tool to initialize state.
    */
@@ -185,4 +228,39 @@ export interface ToolHandler {
    * Allows the tool to clean up state.
    */
   onDeactivate?(ctx: ToolContext): void;
+
+  // ── Async tool lifecycle (optional) ──────────────────────────────────
+  //
+  // Tools with long-running operations (e.g. SAM segmentation, AI inpaint)
+  // implement these methods instead of / alongside onUp. The dispatcher
+  // calls onCommit after onUp if present, catches errors, and exposes
+  // getProgress to the toolbar for a progress indicator.
+  //
+  // Lifecycle rules:
+  //   - An onCommit result is ignored if the tool/document/session changed
+  //     while work was pending.
+  //   - Tool switch or explicit cancel calls onCancel if present.
+  //   - Only successful current-session commits may write to store/history.
+  //   - Cancelled, superseded, or stale commits must not push history entries.
+
+  /**
+   * Commit the current tool operation asynchronously.
+   * Called after onUp for tools that need async processing (inference, etc.).
+   * Must create exactly one history transaction on success.
+   */
+  onCommit?(ctx: ToolContext): Promise<void>;
+
+  /**
+   * Cancel an in-progress async operation.
+   * Called when the user switches tools, presses Escape, or starts a new
+   * gesture that supersedes the pending one.
+   */
+  onCancel?(ctx: ToolContext): void;
+
+  /**
+   * Return the progress of an in-progress async operation.
+   * 0–1 for determinate progress, null for indeterminate.
+   * Undefined or not implemented means the tool has no async work pending.
+   */
+  getProgress?(ctx: ToolContext): number | null;
 }

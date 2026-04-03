@@ -7,8 +7,9 @@
  *   handlePointerUp   (~line 1408-1409) – cleanup
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point, BlurSettings } from "../types";
+import BlurOnIcon from "@mui/icons-material/BlurOn";
 import {
   drawBlurStroke as drawBlurStrokeUtil
 } from "../drawingUtils";
@@ -254,3 +255,11 @@ export class BlurTool implements ToolHandler {
     }
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "blur",
+  label: "Blur",
+  shortcut: "Q",
+  Icon: BlurOnIcon,
+  group: "painting"
+};
