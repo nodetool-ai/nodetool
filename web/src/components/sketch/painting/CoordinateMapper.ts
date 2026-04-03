@@ -6,9 +6,13 @@
  * document origin after being moved with the MoveTool; this mapper
  * accounts for that offset so paint tools always operate in the correct
  * coordinate space.
+ *
+ * When a layer has a full affine matrix, the mapper uses it for accurate
+ * doc↔layer conversion that accounts for scale and rotation. Otherwise
+ * it falls back to translation-only mapping.
  */
 
-import type { Point, LayerTransform } from "../types";
+import type { Point, LayerTransform, AffineMatrix } from "../types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -26,16 +30,53 @@ export class CoordinateMapper {
   private ty: number;
   private rx: number;
   private ry: number;
+  /** Forward affine matrix (layer→doc for the translation+raster part). */
+  private matrix: AffineMatrix | undefined;
+  /** Inverse matrix for doc→layer. Computed lazily. */
+  private inverseMatrix: AffineMatrix | undefined;
 
   constructor(config: CoordinateMapperConfig) {
     this.tx = config.layerTransform.x;
     this.ty = config.layerTransform.y;
     this.rx = config.rasterBounds?.x ?? 0;
     this.ry = config.rasterBounds?.y ?? 0;
+    this.matrix = config.layerTransform.matrix;
+  }
+
+  /**
+   * Compute the inverse of a 2D affine matrix.
+   */
+  private static invertMatrix(m: AffineMatrix): AffineMatrix {
+    const [a, b, c, d, e, f] = m;
+    const det = a * d - b * c;
+    if (Math.abs(det) < 1e-12) {
+      // Singular / near-singular matrix (e.g. zero scale); return identity so
+      // callers get a no-op mapping instead of NaN/Infinity values.
+      return [1, 0, 0, 1, 0, 0];
+    }
+    const invDet = 1 / det;
+    return [
+      d * invDet,
+      -b * invDet,
+      -c * invDet,
+      a * invDet,
+      (c * f - d * e) * invDet,
+      (b * e - a * f) * invDet
+    ];
   }
 
   /** Convert a document-space point to backing-raster coordinates. */
   docToLayer(pt: Point): Point {
+    if (this.matrix) {
+      if (!this.inverseMatrix) {
+        this.inverseMatrix = CoordinateMapper.invertMatrix(this.matrix);
+      }
+      const [a, b, c, d, e, f] = this.inverseMatrix;
+      return {
+        x: a * pt.x + c * pt.y + e - this.rx,
+        y: b * pt.x + d * pt.y + f - this.ry
+      };
+    }
     return {
       x: pt.x - this.tx - this.rx,
       y: pt.y - this.ty - this.ry
@@ -44,6 +85,15 @@ export class CoordinateMapper {
 
   /** Convert backing-raster coordinates to document-space coordinates. */
   layerToDoc(pt: Point): Point {
+    if (this.matrix) {
+      const [a, b, c, d, e, f] = this.matrix;
+      const lx = pt.x + this.rx;
+      const ly = pt.y + this.ry;
+      return {
+        x: a * lx + c * ly + e,
+        y: b * lx + d * ly + f
+      };
+    }
     return {
       x: pt.x + this.tx + this.rx,
       y: pt.y + this.ty + this.ry

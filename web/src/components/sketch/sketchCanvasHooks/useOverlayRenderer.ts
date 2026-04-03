@@ -13,9 +13,9 @@ import type {
   Point,
   Selection
 } from "../types";
+import { drawShapeOnCtx } from "../tools/ShapeTool";
+import { drawGradient } from "../tools/GradientTool";
 import {
-  drawShapeOnCtx as drawShapeOnCtxUtil,
-  drawGradient as drawGradientUtil,
   drawPixelGrid,
   PENCIL_PIXEL_CURSOR_MIN_ZOOM
 } from "../drawingUtils";
@@ -66,6 +66,18 @@ export interface UseOverlayRendererParams {
   lassoPointsRef: React.MutableRefObject<Point[]>;
 }
 
+/**
+ * Callback signature for `drawGizmo`. Receives the screen-resolution 2D
+ * context (already cleared), the device pixel ratio, and container CSS
+ * dimensions so the caller can draw crisp overlays in screen space.
+ */
+export type GizmoDrawCallback = (
+  gc: CanvasRenderingContext2D,
+  dpr: number,
+  containerW: number,
+  containerH: number
+) => void;
+
 export interface UseOverlayRendererResult {
   clearOverlay: () => void;
   drawSelectionOverlay: () => void;
@@ -78,6 +90,17 @@ export interface UseOverlayRendererResult {
   drawOverlayLassoPreview: (points: Point[], cursor: Point | null) => void;
   /** Viewport `clientX` / `clientY` (CSS pixels); mapped into the cursor canvas internally. */
   drawCursor: (clientX: number, clientY: number) => void;
+
+  // ── Screen-resolution gizmo overlay ──────────────────────────────────
+  /** Clear the gizmo canvas (screen-resolution overlay for tool handles). */
+  clearGizmo: () => void;
+  /**
+   * Draw on the screen-resolution gizmo canvas. Clears the canvas first,
+   * then calls `callback` with the 2D context, device pixel ratio, and
+   * container CSS dimensions. Any tool can use this for crisp overlays
+   * that are not clipped by the document bounds.
+   */
+  drawGizmo: (callback: GizmoDrawCallback) => void;
 }
 
 export function useOverlayRenderer({
@@ -298,23 +321,52 @@ export function useOverlayRenderer({
     lassoPointsRef
   ]);
 
+  // ─── Screen-resolution gizmo canvas API ─────────────────────────────
+
+  const clearGizmo = useCallback(() => {
+    const gizmoCanvas = gizmoCanvasRef.current;
+    if (!gizmoCanvas) {
+      return;
+    }
+    const gc = gizmoCanvas.getContext("2d");
+    if (gc) {
+      gc.setTransform(1, 0, 0, 1, 0, 0);
+      gc.clearRect(0, 0, gizmoCanvas.width, gizmoCanvas.height);
+    }
+  }, [gizmoCanvasRef]);
+
+  const drawGizmo = useCallback(
+    (callback: GizmoDrawCallback) => {
+      const gizmoCanvas = gizmoCanvasRef.current;
+      const container = containerRef.current;
+      if (!gizmoCanvas || !container) {
+        return;
+      }
+      const gc = gizmoCanvas.getContext("2d");
+      if (!gc) {
+        return;
+      }
+      const dpr = window.devicePixelRatio || 1;
+      const containerW = container.clientWidth;
+      const containerH = container.clientHeight;
+
+      gc.setTransform(1, 0, 0, 1, 0, 0);
+      gc.clearRect(0, 0, gizmoCanvas.width, gizmoCanvas.height);
+      callback(gc, dpr, containerW, containerH);
+    },
+    [gizmoCanvasRef, containerRef]
+  );
+
   // Clear overlay preview when switching tools (skip for tools that draw their own overlay on activate)
   useEffect(() => {
     if (activeTool !== "gradient" && activeTool !== "transform") {
       clearOverlay();
       drawSelectionOverlay();
     }
-    // Clear the gizmo canvas when switching away from transform
-    if (activeTool !== "transform") {
-      const gizmoCanvas = gizmoCanvasRef.current;
-      if (gizmoCanvas) {
-        const gc = gizmoCanvas.getContext("2d");
-        if (gc) {
-          gc.clearRect(0, 0, gizmoCanvas.width, gizmoCanvas.height);
-        }
-      }
-    }
-  }, [activeTool, clearOverlay, drawSelectionOverlay, gizmoCanvasRef]);
+    // Clear the gizmo canvas when switching tools — tools that need the gizmo
+    // will redraw it in their onActivate handler.
+    clearGizmo();
+  }, [activeTool, clearOverlay, drawSelectionOverlay, clearGizmo]);
 
   const drawOverlayShape = useCallback(
     (start: Point, end: Point) => {
@@ -327,7 +379,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      drawShapeOnCtxUtil(ctx, doc.toolSettings.shape.shapeType, start, end, doc.toolSettings.shape, shiftHeldRef.current, altHeldRef.current);
+      drawShapeOnCtx(ctx, doc.toolSettings.shape.shapeType, start, end, doc.toolSettings.shape, shiftHeldRef.current, altHeldRef.current);
     },
     [doc.toolSettings.shape, overlayCanvasRef, shiftHeldRef, altHeldRef]
   );
@@ -343,7 +395,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      drawGradientUtil(ctx, start, end, doc.toolSettings.gradient);
+      drawGradient(ctx, start, end, doc.toolSettings.gradient);
       // Draw guide line
       ctx.save();
       ctx.setLineDash([4, 4]);
@@ -648,6 +700,8 @@ export function useOverlayRenderer({
     drawOverlayCrop,
     drawOverlaySelection,
     drawOverlayLassoPreview,
-    drawCursor
+    drawCursor,
+    clearGizmo,
+    drawGizmo
   };
 }

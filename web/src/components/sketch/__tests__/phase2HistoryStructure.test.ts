@@ -330,7 +330,7 @@ describe("History — layer structure snapshots", () => {
     });
 
     let layer = useSketchStore.getState().document.layers[0];
-    expect(layer.transform).toEqual({ x: 0, y: 0 });
+    expect(layer.transform).toMatchObject({ x: 0, y: 0 });
     expect(layer.data).toBe("moved-layer-data");
     expect(layer.contentBounds).toEqual({
       x: -20,
@@ -344,7 +344,7 @@ describe("History — layer structure snapshots", () => {
     });
 
     layer = useSketchStore.getState().document.layers[0];
-    expect(layer.transform).toEqual({ x: 18, y: -9 });
+    expect(layer.transform).toMatchObject({ x: 18, y: -9 });
     expect(layer.data).toBe("moved-layer-data");
     expect(layer.contentBounds).toEqual({
       x: -20,
@@ -379,7 +379,7 @@ describe("History — layer structure snapshots", () => {
     });
 
     let layer = useSketchStore.getState().document.layers[0];
-    expect(layer.transform).toEqual({ x: 0, y: 0 });
+    expect(layer.transform).toMatchObject({ x: 0, y: 0 });
     expect(layer.data).toBe("nudged-layer-data");
     expect(layer.contentBounds).toEqual({
       x: 5,
@@ -393,7 +393,7 @@ describe("History — layer structure snapshots", () => {
     });
 
     layer = useSketchStore.getState().document.layers[0];
-    expect(layer.transform).toEqual({ x: 6, y: 4 });
+    expect(layer.transform).toMatchObject({ x: 6, y: 4 });
     expect(layer.data).toBe("nudged-layer-data");
     expect(layer.contentBounds).toEqual({
       x: 5,
@@ -420,7 +420,7 @@ describe("History — layer structure snapshots", () => {
 
     const entry = useSketchStore.getState().history[0];
     expect(entry.layerSnapshots[layerId]).toBe("paint-after-transform");
-    expect(entry.layerStructure[0]?.transform).toEqual({ x: 14, y: -3 });
+    expect(entry.layerStructure[0]?.transform).toMatchObject({ x: 14, y: -3 });
     expect(entry.layerStructure[0]?.contentBounds).toEqual({
       x: -9,
       y: 11,

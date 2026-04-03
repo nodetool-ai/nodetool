@@ -7,7 +7,6 @@
 
 import type { Point } from "./geometry";
 import type {
-  Layer,
   LayerType,
   BlendMode,
   LayerTransform,
@@ -49,7 +48,14 @@ export interface PushHistoryOptions {
 }
 
 export interface HistoryEntry {
-  /** Snapshot of layers data (pixel data URLs keyed by layer ID) */
+  /**
+   * IDs of layers whose raster data changed in this entry.
+   * Only these layers have snapshots in `layerSnapshots`.
+   * When absent (legacy entries or full snapshots), all layers in
+   * `layerSnapshots` are assumed to be present.
+   */
+  changedLayerIds?: string[];
+  /** Snapshot of layers data (pixel data URLs keyed by layer ID) — only changed layers for delta entries. */
   layerSnapshots: Record<string, string | null>;
   /** Optional in-memory canvas snapshots keyed by layer ID for fast undo/redo. */
   layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>;

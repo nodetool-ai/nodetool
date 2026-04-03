@@ -68,6 +68,33 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     drawOverlayLassoPreview: jest.fn(),
     drawOverlaySelection: jest.fn(),
     drawCursor: jest.fn(),
+    clearGizmo: jest.fn(),
+    drawGizmo: jest.fn((cb) => {
+      // Provide a mock 2D context to the callback
+      const mockGc = {
+        save: jest.fn(),
+        restore: jest.fn(),
+        translate: jest.fn(),
+        rotate: jest.fn(),
+        scale: jest.fn(),
+        setTransform: jest.fn(),
+        clearRect: jest.fn(),
+        strokeRect: jest.fn(),
+        fillRect: jest.fn(),
+        beginPath: jest.fn(),
+        moveTo: jest.fn(),
+        lineTo: jest.fn(),
+        arc: jest.fn(),
+        stroke: jest.fn(),
+        fill: jest.fn(),
+        setLineDash: jest.fn(),
+        set strokeStyle(_: string) { /* noop */ },
+        set fillStyle(_: string) { /* noop */ },
+        set lineWidth(_: number) { /* noop */ },
+        set lineDashOffset(_: number) { /* noop */ },
+      } as unknown as CanvasRenderingContext2D;
+      cb(mockGc, 1, 800, 600);
+    }),
     onZoomChange: jest.fn(),
     onPanChange: jest.fn(),
     onStrokeStart: jest.fn(),
@@ -310,6 +337,23 @@ describe("TransformTool", () => {
     tool.onDeactivate!(ctx);
     expect(ctx.clearOverlay).toHaveBeenCalled();
     expect(ctx.drawSelectionOverlay).toHaveBeenCalled();
+  });
+
+  it("uses ctx.drawGizmo on activation", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+    expect(ctx.drawGizmo).toHaveBeenCalled();
+  });
+
+  it("uses ctx.clearGizmo on deactivation", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+    tool.onDeactivate!(ctx);
+    expect(ctx.clearGizmo).toHaveBeenCalled();
   });
 });
 

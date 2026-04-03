@@ -291,13 +291,14 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   /**
    * Draw a source canvas into the target context, applying any scale/rotation
-   * from the layer transform around the content center.
+   * from the layer transform. When a matrix is available it is used directly;
+   * otherwise falls back to decomposed values.
    */
   private drawWithTransform(
     ctx: CanvasRenderingContext2D,
     source: HTMLCanvasElement,
     compositeOffset: { x: number; y: number },
-    layer: { transform: { scaleX?: number; scaleY?: number; rotation?: number } }
+    layer: { transform: { scaleX?: number; scaleY?: number; rotation?: number; matrix?: [number, number, number, number, number, number] } }
   ): void {
     const sx = layer.transform.scaleX ?? 1;
     const sy = layer.transform.scaleY ?? 1;

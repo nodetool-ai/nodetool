@@ -3,7 +3,7 @@
 > **Goal**: Clear, incremental path to an architecture that makes Phase 3–7 features
 > easy to add without rewrites. Every phase leaves the app fully functional.
 >
-> **Last updated**: 2026-04-02
+> **Last updated**: 2026-04-03
 
 ---
 
@@ -560,3 +560,81 @@ Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
   Extend it for smudge/color-smudge when the time comes; no structural change needed.
 - **Event bus** — Zustand subscriptions handle cross-cutting notifications adequately.
   Not adding another messaging layer.
+
+---
+
+## Completion Status
+
+| Phase | Status | Date |
+| ----- | ------ | ---- |
+| 1A — Store Split | ✅ Done | 2026-04-01 |
+| 1B — Types Split | ✅ Done | 2026-04-01 |
+| 1C — Pointer Handler Decomposition | ✅ Done | 2026-04-02 |
+| 1D — `drawingUtils.ts` Split | ✅ Done | 2026-04-03 |
+| 1E — Tool Registry | ✅ Done | 2026-04-02 |
+| 1F — CoordinateMapper | ✅ Done | 2026-04-02 |
+| 1G — Async Tool Pattern | ✅ Done | 2026-04-02 |
+| 2A — Layer Effects Slot | ✅ Done | 2026-04-02 |
+| 2B — Compositing Evaluation Hook | ✅ Done | 2026-04-02 |
+| 2C — Delta History | ✅ Done | 2026-04-03 |
+| 3 — WebGPU Compositing | Not started | — |
+| 4A — Matrix-Capable Transforms | ✅ Done | 2026-04-03 |
+| 4B — Overlay Canvas for Gizmos | ✅ Done | 2026-04-03 |
+
+### Phase 1D Notes
+
+`drawingUtils.ts` is now a pure barrel re-export file. All implementations
+live in their domain-specific modules:
+
+- `drawGradient` → `tools/GradientTool.ts`
+- `constrainEnd`, `applyAltCenterDraw`, `drawShapeOnCtx` → `tools/ShapeTool.ts`
+- `floodFill` → `tools/FillTool.ts`
+- Stroke rendering → `painting/strokeRendering.ts`
+- Blur rendering → `painting/blurRendering.ts`
+- Clone rendering → `painting/cloneRendering.ts`
+- Canvas utilities → `rendering/canvasUtils.ts`
+
+### Phase 2C Notes
+
+Delta history stores raster data only for layers that changed since the
+previous entry. The first entry is always a full baseline snapshot.
+
+Key implementation details:
+- `resolveLayerData(history, index, layerId)` walks backward to find data
+- When the oldest entry is trimmed (MAX_HISTORY_SIZE), its data merges into
+  the new oldest to maintain the baseline invariant
+- `undo()`/`redo()` return resolved entries (all layer data) for canvas restoration
+- `changedLayerIds` is optional on `HistoryEntry` for backward compatibility
+
+### Phase 4A Notes
+
+Matrix-capable transforms add an `AffineMatrix` type (`[a, b, c, d, e, f]`)
+and a `matrix` field to `LayerTransform`. Key changes:
+
+- `composeAffineMatrix(x, y, scaleX, scaleY, rotation)` builds the matrix
+- `decomposeAffineMatrix(m)` extracts decomposed values (round-trips correctly)
+- `ensureTransformMatrix(t)` computes matrix from decomposed values if absent
+- `normalizeSketchDocument` computes matrix on load (schema migration)
+- `CoordinateMapper` uses full inverse matrix for accurate doc↔layer mapping
+- `Canvas2DRuntime.drawWithTransform` uses matrix when present
+- `TransformTool.computeTransform` returns transforms with computed matrix
+- `offsetLayerTransformInDocument` recomputes matrix on translate
+- 22 new tests for compose/decompose round-trip and CoordinateMapper with matrix
+
+### Phase 4B Notes
+
+The gizmo canvas for tool overlays is now a first-class API available to any
+tool, not just TransformTool. Key changes:
+
+- `GizmoDrawCallback` type exported from `useOverlayRenderer` — receives the
+  2D context, DPR, and container dimensions
+- `clearGizmo()` and `drawGizmo(callback)` added to `UseOverlayRendererResult`,
+  `ToolContext`, and wired through `usePointerHandlers` ↔ `SketchCanvas`
+- `TransformTool` refactored to use `ctx.drawGizmo()` / `ctx.clearGizmo()`
+  instead of direct `gizmoCanvasRef` manipulation — the canvas is now acquired,
+  cleared, and reset to identity by the overlay renderer
+- Removed `drawOverlayFallback` from TransformTool (dead code after gizmo canvas
+  became always-available)
+- Ad-hoc gizmo clearing in `useOverlayRenderer` replaced with `clearGizmo()` call
+  — tools that need the gizmo redraw it in `onActivate`
+- 2 new tests verifying TransformTool uses the new API
