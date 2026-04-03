@@ -15,7 +15,7 @@ export type { ViewportSlice } from "./viewportSlice";
 export { createToolSlice } from "./toolSlice";
 export type { ToolSlice } from "./toolSlice";
 
-export { createHistorySlice } from "./historySlice";
+export { createHistorySlice, resolveLayerData } from "./historySlice";
 export type { HistorySlice } from "./historySlice";
 
 export { createSelectionSlice } from "./selectionSlice";
