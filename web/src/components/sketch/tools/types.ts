@@ -9,6 +9,7 @@
  * the React hook's internal refs.
  */
 
+import type { SvgIconProps } from "@mui/material/SvgIcon";
 import type {
   SketchDocument,
   SketchTool,
@@ -18,6 +19,18 @@ import type {
   LayerContentBounds
 } from "../types";
 import type { ActiveStrokeInfo } from "../rendering";
+
+// ─── Tool definition types (used by toolDefinitions registry) ─────────────
+
+export type ToolIconComponent = React.ComponentType<SvgIconProps>;
+
+export interface ToolDefinition {
+  tool: SketchTool;
+  label: string;
+  shortcut?: string;
+  Icon: ToolIconComponent;
+  group: "painting" | "shape";
+}
 import type { SelectionMoveAntsRef } from "../sketchCanvasHooks/useOverlayRenderer";
 
 /** Optional flags for `onStrokeEnd` when raster data is read back from the CPU canvas. */

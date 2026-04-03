@@ -7,11 +7,12 @@
  *   handlePointerUp   (~line 1430-1447)
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point } from "../types";
 import { drawGradient as drawGradientUtil } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { getCanvasRasterBounds } from "../painting";
+import GradientIcon from "@mui/icons-material/Gradient";
 
 export class GradientTool implements ToolHandler {
   readonly toolId = "gradient" as const;
@@ -83,3 +84,11 @@ export class GradientTool implements ToolHandler {
     this.mapper = null;
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "gradient",
+  label: "Gradient",
+  shortcut: "T",
+  Icon: GradientIcon,
+  group: "shape"
+};

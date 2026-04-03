@@ -8,8 +8,9 @@
  *   - clearLayerTransformPreview on release
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point, LayerTransform } from "../types";
+import OpenWithIcon from "@mui/icons-material/OpenWith";
 import {
   isLayerCompositeVisible,
   layerAllowsTransformWhilePixelLocked
@@ -163,3 +164,11 @@ export class MoveTool implements ToolHandler {
     }
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "move",
+  label: "Move",
+  shortcut: "V",
+  Icon: OpenWithIcon,
+  group: "painting"
+};

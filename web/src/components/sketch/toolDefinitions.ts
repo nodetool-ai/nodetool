@@ -4,60 +4,56 @@
  * Single source of truth for tool metadata used across SketchToolbar,
  * SketchCanvasContextMenu, and SketchToolTopBar.
  *
- * Adding or changing a tool should only require updating this file.
+ * Each tool file exports its own `definition` object. This module
+ * assembles them into the canonical lists and lookup helpers.
+ * Adding a new tool only requires creating a single tool file with
+ * a `definition` export.
  */
 
-import type { SvgIconProps } from "@mui/material/SvgIcon";
-import OpenWithIcon from "@mui/icons-material/OpenWith";
-import SelectAllIcon from "@mui/icons-material/SelectAll";
-import BrushIcon from "@mui/icons-material/Brush";
-import CreateIcon from "@mui/icons-material/Create";
-import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
-import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
-import ColorizeIcon from "@mui/icons-material/Colorize";
-import CategoryIcon from "@mui/icons-material/Category";
-import BlurOnIcon from "@mui/icons-material/BlurOn";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import GradientIcon from "@mui/icons-material/Gradient";
-import CropIcon from "@mui/icons-material/Crop";
-import TransformIcon from "@mui/icons-material/Transform";
-import TuneIcon from "@mui/icons-material/Tune";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import type { SketchTool } from "./types";
+import type { ToolDefinition, ToolIconComponent } from "./tools/types";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+export type { ToolDefinition, ToolIconComponent };
 
-export type ToolIconComponent = React.ComponentType<SvgIconProps>;
+// ─── Import definitions from individual tool files ────────────────────────
 
-export interface ToolDefinition {
-  tool: SketchTool;
-  label: string;
-  shortcut?: string;
-  Icon: ToolIconComponent;
-  group: "painting" | "shape";
-}
+import { definition as moveDef } from "./tools/MoveTool";
+import { definition as transformDef } from "./tools/TransformTool";
+import { definition as selectDef } from "./tools/SelectTool";
+import { definition as brushDef } from "./tools/BrushTool";
+import { definition as pencilDef } from "./tools/PencilTool";
+import { definition as eraserDef } from "./tools/EraserTool";
+import { definition as fillDef } from "./tools/FillTool";
+import { definition as eyedropperDef } from "./tools/EyedropperTool";
+import { definition as blurDef } from "./tools/BlurTool";
+import { definition as cloneStampDef } from "./tools/CloneStampTool";
+import { definition as shapeDef } from "./tools/ShapeTool";
+import { definition as gradientDef } from "./tools/GradientTool";
+import { definition as cropDef } from "./tools/CropTool";
+import { definition as adjustDef } from "./tools/AdjustTool";
+import { definition as segmentDef } from "./tools/SegmentTool";
 
 // ─── Definitions ──────────────────────────────────────────────────────────────
 
 export const PAINTING_TOOLS: ToolDefinition[] = [
-  { tool: "move", label: "Move", shortcut: "V", Icon: OpenWithIcon, group: "painting" },
-  { tool: "transform", label: "Transform", shortcut: "F", Icon: TransformIcon, group: "painting" },
-  { tool: "select", label: "Select", Icon: SelectAllIcon, group: "painting" },
-  { tool: "brush", label: "Brush", shortcut: "B", Icon: BrushIcon, group: "painting" },
-  { tool: "pencil", label: "Pencil", shortcut: "P", Icon: CreateIcon, group: "painting" },
-  { tool: "eraser", label: "Eraser", shortcut: "E", Icon: AutoFixNormalIcon, group: "painting" },
-  { tool: "fill", label: "Fill", shortcut: "G", Icon: FormatColorFillIcon, group: "painting" },
-  { tool: "eyedropper", label: "Eyedropper", shortcut: "I", Icon: ColorizeIcon, group: "painting" },
-  { tool: "blur", label: "Blur", shortcut: "Q", Icon: BlurOnIcon, group: "painting" },
-  { tool: "clone_stamp", label: "Clone Stamp", shortcut: "S", Icon: ContentCopyIcon, group: "painting" }
+  moveDef,
+  transformDef,
+  selectDef,
+  brushDef,
+  pencilDef,
+  eraserDef,
+  fillDef,
+  eyedropperDef,
+  blurDef,
+  cloneStampDef
 ];
 
 export const SHAPE_TOOLS: ToolDefinition[] = [
-  { tool: "shape", label: "Shape", shortcut: "U", Icon: CategoryIcon, group: "shape" },
-  { tool: "gradient", label: "Gradient", shortcut: "T", Icon: GradientIcon, group: "shape" },
-  { tool: "crop", label: "Crop", shortcut: "C", Icon: CropIcon, group: "shape" },
-  { tool: "adjust", label: "Adjustments", shortcut: "J", Icon: TuneIcon, group: "shape" },
-  { tool: "segment", label: "Segment", shortcut: "W", Icon: AutoAwesomeIcon, group: "shape" }
+  shapeDef,
+  gradientDef,
+  cropDef,
+  adjustDef,
+  segmentDef
 ];
 
 export const ALL_TOOL_DEFINITIONS: ToolDefinition[] = [

@@ -8,8 +8,9 @@
  *   Shift = constrain to square/circle, Alt = draw from center
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point, Selection } from "../types";
+import SelectAllIcon from "@mui/icons-material/SelectAll";
 import {
   selectionHitTest,
   selectionHasAnyPixels,
@@ -437,3 +438,10 @@ export class SelectTool implements ToolHandler {
     this.selectionDragModifiers = null;
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "select",
+  label: "Select",
+  Icon: SelectAllIcon,
+  group: "painting"
+};

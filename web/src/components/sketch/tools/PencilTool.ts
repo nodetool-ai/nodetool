@@ -5,9 +5,10 @@
  * tracking to PaintSession + PencilEngine.
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import { PaintSession, PencilEngine } from "../painting";
 import { DEFAULT_PENCIL_SETTINGS, mergePenPressureIntoPencil } from "../types";
+import CreateIcon from "@mui/icons-material/Create";
 
 export class PencilTool implements ToolHandler {
   readonly toolId = "pencil" as const;
@@ -41,3 +42,11 @@ export class PencilTool implements ToolHandler {
     this.session.end(ctx, event);
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "pencil",
+  label: "Pencil",
+  shortcut: "P",
+  Icon: CreateIcon,
+  group: "painting"
+};

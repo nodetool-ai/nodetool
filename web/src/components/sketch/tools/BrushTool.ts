@@ -5,9 +5,10 @@
  * alpha-lock, and dirty-rect tracking to PaintSession + BrushEngine.
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import { PaintSession, BrushEngine } from "../painting";
 import { DEFAULT_BRUSH_SETTINGS, mergePenPressureIntoBrush } from "../types";
+import BrushIcon from "@mui/icons-material/Brush";
 
 export class BrushTool implements ToolHandler {
   readonly toolId = "brush" as const;
@@ -47,3 +48,11 @@ export class BrushTool implements ToolHandler {
     this.session.end(ctx, event);
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "brush",
+  label: "Brush",
+  shortcut: "B",
+  Icon: BrushIcon,
+  group: "painting"
+};

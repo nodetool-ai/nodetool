@@ -4,8 +4,9 @@
  * Extracted from usePointerHandlers handlePointerDown (~line 810-835).
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import { floodFill as floodFillUtil } from "../drawingUtils";
+import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { getCanvasRasterBounds } from "../painting";
 import {
@@ -64,3 +65,11 @@ export class FillTool implements ToolHandler {
     return false;
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "fill",
+  label: "Fill",
+  shortcut: "G",
+  Icon: FormatColorFillIcon,
+  group: "painting"
+};

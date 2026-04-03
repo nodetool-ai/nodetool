@@ -14,7 +14,9 @@ export type {
   ToolHandler,
   ToolContext,
   ToolPointerEvent,
-  StrokeEndOptions
+  StrokeEndOptions,
+  ToolDefinition,
+  ToolIconComponent
 } from "./types";
 
 export { EyedropperTool } from "./EyedropperTool";

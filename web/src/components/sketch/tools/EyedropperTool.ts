@@ -5,7 +5,8 @@
  * that does not support getContext("2d").
  */
 
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
+import ColorizeIcon from "@mui/icons-material/Colorize";
 
 function rgbToHex(r: number, g: number, b: number): string {
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
@@ -56,3 +57,11 @@ export class EyedropperTool implements ToolHandler {
     return false;
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "eyedropper",
+  label: "Eyedropper",
+  shortcut: "I",
+  Icon: ColorizeIcon,
+  group: "painting"
+};

@@ -7,7 +7,8 @@
  * no-op and so the tool can be cleanly selected and deactivated.
  */
 
-import type { ToolHandler, ToolContext } from "./types";
+import type { ToolHandler, ToolContext, ToolDefinition } from "./types";
+import TuneIcon from "@mui/icons-material/Tune";
 
 export class AdjustTool implements ToolHandler {
   readonly toolId = "adjust" as const;
@@ -20,3 +21,11 @@ export class AdjustTool implements ToolHandler {
     // Slider state and base snapshots are managed by useCanvasActions; nothing to do here.
   }
 }
+
+export const definition: ToolDefinition = {
+  tool: "adjust",
+  label: "Adjustments",
+  shortcut: "J",
+  Icon: TuneIcon,
+  group: "shape"
+};
