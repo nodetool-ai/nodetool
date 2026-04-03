@@ -77,8 +77,8 @@ export function floodFill(
     const y = stack.pop()!;
     const x = stack.pop()!;
 
-    if (filled[y * w + x]) continue;
-    if (!colorMatches((y * w + x) * 4)) continue;
+    if (filled[y * w + x]) { continue; }
+    if (!colorMatches((y * w + x) * 4)) { continue; }
 
     // ── Scan left from seed ────────────────────────────────────────────
     let x1 = x;

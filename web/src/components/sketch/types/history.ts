@@ -7,7 +7,6 @@
 
 import type { Point } from "./geometry";
 import type {
-  Layer,
   LayerType,
   BlendMode,
   LayerTransform,
