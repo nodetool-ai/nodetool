@@ -17,7 +17,8 @@ import {
   createDefaultGroupLayer,
   generateLayerId,
   getDescendantIds,
-  isLayerCompositeVisible
+  isLayerCompositeVisible,
+  ensureTransformMatrix
 } from "../../types";
 
 // ─── Private helpers ────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ function setLayerTransformInDocument(
   return withUpdatedDocumentTimestamp({
     ...document,
     layers: document.layers.map((layer) =>
-      layer.id === layerId ? { ...layer, transform } : layer
+      layer.id === layerId ? { ...layer, transform: ensureTransformMatrix(transform) } : layer
     )
   });
 }
@@ -55,18 +56,22 @@ function offsetLayerTransformInDocument(
 ): SketchDocument {
   return withUpdatedDocumentTimestamp({
     ...document,
-    layers: document.layers.map((layer) =>
-      layer.id === layerId
-        ? {
-            ...layer,
-            transform: {
-              ...layer.transform,
-              x: layer.transform.x + dx,
-              y: layer.transform.y + dy
-            }
-          }
-        : layer
-    )
+    layers: document.layers.map((layer) => {
+      if (layer.id !== layerId) {
+        return layer;
+      }
+      const newTransform: LayerTransform = {
+        ...layer.transform,
+        x: layer.transform.x + dx,
+        y: layer.transform.y + dy
+      };
+      // Recompute matrix with updated translation
+      if (layer.transform.matrix) {
+        const m = layer.transform.matrix;
+        newTransform.matrix = [m[0], m[1], m[2], m[3], newTransform.x, newTransform.y];
+      }
+      return { ...layer, transform: ensureTransformMatrix(newTransform) };
+    })
   });
 }
 

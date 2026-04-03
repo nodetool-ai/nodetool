@@ -21,7 +21,7 @@
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point, LayerTransform, LayerContentBounds } from "../types";
-import { layerAllowsTransformWhilePixelLocked } from "../types";
+import { layerAllowsTransformWhilePixelLocked, ensureTransformMatrix } from "../types";
 import TransformIcon from "@mui/icons-material/Transform";
 
 // ─── Handle types ─────────────────────────────────────────────────────────────
@@ -357,11 +357,11 @@ export class TransformTool implements ToolHandler {
     if (handle === "move") {
       const dx = cursor.x - start.x;
       const dy = cursor.y - start.y;
-      return {
+      return ensureTransformMatrix({
         ...ds,
         x: Math.round(ds.x + dx),
         y: Math.round(ds.y + dy)
-      };
+      });
     }
 
     if (handle === "rotate") {
@@ -371,7 +371,7 @@ export class TransformTool implements ToolHandler {
       if (shift) {
         newRot = snapAngle(newRot);
       }
-      return { ...ds, rotation: newRot };
+      return ensureTransformMatrix({ ...ds, rotation: newRot });
     }
 
     // Scale handles
@@ -459,10 +459,10 @@ export class TransformTool implements ToolHandler {
       result.x = Math.round(ds.x + offsetX * cos - offsetY * sin);
       result.y = Math.round(ds.y + offsetX * sin + offsetY * cos);
 
-      return result;
+      return ensureTransformMatrix(result);
     }
 
-    return { ...ds, scaleX: newSx, scaleY: newSy };
+    return ensureTransformMatrix({ ...ds, scaleX: newSx, scaleY: newSy });
   }
 
   // ── Gizmo drawing (screen-resolution canvas) ──────────────────────────────

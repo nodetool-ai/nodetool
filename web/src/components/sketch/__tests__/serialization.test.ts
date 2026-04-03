@@ -149,7 +149,7 @@ describe("Sketch Serialization", () => {
 
       const restored = deserializeDocument(JSON.stringify(parsed));
 
-      expect(restored?.layers[0].transform).toEqual({ x: 0, y: 0 });
+      expect(restored?.layers[0].transform).toMatchObject({ x: 0, y: 0 });
       expect(restored?.layers[0].contentBounds).toEqual({
         x: 0,
         y: 0,
@@ -165,7 +165,7 @@ describe("Sketch Serialization", () => {
 
       const restored = deserializeDocument(serializeDocument(doc));
 
-      expect(restored?.layers[0].transform).toEqual({ x: 24, y: -12 });
+      expect(restored?.layers[0].transform).toMatchObject({ x: 24, y: -12 });
       expect(restored?.layers[0].contentBounds).toEqual({
         x: 10,
         y: 20,
@@ -190,7 +190,7 @@ describe("Sketch Serialization", () => {
       const restored = deserializeDocument(serializeDocument(doc));
 
       expect(restored?.layers[0].data).toBe(doc.layers[0].data);
-      expect(restored?.layers[0].transform).toEqual({ x: 13, y: -6 });
+      expect(restored?.layers[0].transform).toMatchObject({ x: 13, y: -6 });
       expect(restored?.layers[0].contentBounds).toEqual({
         x: -11,
         y: 9,
