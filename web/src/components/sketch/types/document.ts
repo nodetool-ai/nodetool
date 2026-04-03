@@ -31,7 +31,7 @@ import {
 
 // ─── Document Format Version ──────────────────────────────────────────────────
 
-export const SKETCH_FORMAT_VERSION = 2;
+export const SKETCH_FORMAT_VERSION = 3;
 
 /** Display name for the raster created from the Sketch node `input_image` handle. */
 export const SKETCH_NODE_INPUT_IMAGE_LAYER_NAME = "Input Image";
@@ -136,6 +136,37 @@ export interface LayerImageReference {
   objectFit: LayerImageObjectFit;
 }
 
+// ─── Layer Effects ────────────────────────────────────────────────────────────
+
+/**
+ * Supported per-layer effect types.
+ * Each effect is evaluated between "draw raster" and "blend into composite"
+ * via the runtime's `evaluateLayerEffects` method.
+ */
+export type LayerEffectType =
+  | "hue_saturation"
+  | "brightness_contrast"
+  | "exposure"
+  | "curves"    // future
+  | "tonemap";  // future
+
+/**
+ * A single non-destructive effect attached to a layer.
+ * Effects are evaluated in order before the layer is blended into its parent.
+ *
+ * - `enabled`: toggling without removing allows quick A/B comparison.
+ * - `params`: typed per-effect; keys and ranges documented per effect type.
+ *
+ * When absent on a loaded document (`effects` missing from Layer), default is `[]`.
+ */
+export interface LayerEffect {
+  type: LayerEffectType;
+  enabled: boolean;
+  params: Record<string, number>;
+}
+
+// ─── Layer ────────────────────────────────────────────────────────────────────
+
 export interface Layer {
   id: string;
   name: string;
@@ -167,6 +198,12 @@ export interface Layer {
   collapsed?: boolean;
   /** Provenance metadata for layers created by SAM segmentation. */
   segmentationMeta?: SegmentationLayerMeta | null;
+  /**
+   * Non-destructive effects applied to this layer before compositing.
+   * Evaluated in order by the runtime's `evaluateLayerEffects` method.
+   * Absent or empty means no effects.
+   */
+  effects?: LayerEffect[];
 }
 
 // ─── Color Mode ───────────────────────────────────────────────────────────────
@@ -434,6 +471,7 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         parentId: layer.parentId ?? undefined,
         collapsed: layer.collapsed ?? false,
         segmentationMeta: layer.segmentationMeta ?? undefined,
+        effects: Array.isArray(layer.effects) ? layer.effects : undefined,
         transform: {
           x: layer.transform?.x ?? 0,
           y: layer.transform?.y ?? 0,
