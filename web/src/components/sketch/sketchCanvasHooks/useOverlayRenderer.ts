@@ -13,9 +13,9 @@ import type {
   Point,
   Selection
 } from "../types";
+import { drawShapeOnCtx } from "../tools/ShapeTool";
+import { drawGradient } from "../tools/GradientTool";
 import {
-  drawShapeOnCtx as drawShapeOnCtxUtil,
-  drawGradient as drawGradientUtil,
   drawPixelGrid,
   PENCIL_PIXEL_CURSOR_MIN_ZOOM
 } from "../drawingUtils";
@@ -327,7 +327,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      drawShapeOnCtxUtil(ctx, doc.toolSettings.shape.shapeType, start, end, doc.toolSettings.shape, shiftHeldRef.current, altHeldRef.current);
+      drawShapeOnCtx(ctx, doc.toolSettings.shape.shapeType, start, end, doc.toolSettings.shape, shiftHeldRef.current, altHeldRef.current);
     },
     [doc.toolSettings.shape, overlayCanvasRef, shiftHeldRef, altHeldRef]
   );
@@ -343,7 +343,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      drawGradientUtil(ctx, start, end, doc.toolSettings.gradient);
+      drawGradient(ctx, start, end, doc.toolSettings.gradient);
       // Draw guide line
       ctx.save();
       ctx.setLineDash([4, 4]);

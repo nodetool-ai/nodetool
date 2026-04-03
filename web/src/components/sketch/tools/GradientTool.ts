@@ -8,11 +8,43 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
-import type { Point } from "../types";
-import { drawGradient as drawGradientUtil } from "../drawingUtils";
+import type { Point, GradientSettings } from "../types";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { getCanvasRasterBounds } from "../painting";
 import GradientIcon from "@mui/icons-material/Gradient";
+
+// ─── Gradient Drawing (moved from drawingUtils.ts) ───────────────────────────
+
+export function drawGradient(
+  ctx: CanvasRenderingContext2D,
+  start: Point,
+  end: Point,
+  settings: GradientSettings
+): void {
+  ctx.save();
+  let gradient: CanvasGradient;
+  if (settings.type === "radial") {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const radius = Math.sqrt(dx * dx + dy * dy);
+    // Minimum radius of 1 prevents invalid gradient when start/end points overlap
+    gradient = ctx.createRadialGradient(
+      start.x,
+      start.y,
+      0,
+      start.x,
+      start.y,
+      Math.max(radius, 1)
+    );
+  } else {
+    gradient = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
+  }
+  gradient.addColorStop(0, settings.startColor);
+  gradient.addColorStop(1, settings.endColor);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.restore();
+}
 
 export class GradientTool implements ToolHandler {
   readonly toolId = "gradient" as const;
@@ -71,7 +103,7 @@ export class GradientTool implements ToolHandler {
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const layerCtx = layerCanvas.getContext("2d");
     if (layerCtx) {
-      drawGradientUtil(layerCtx, localStart, localEnd, doc.toolSettings.gradient);
+      drawGradient(layerCtx, localStart, localEnd, doc.toolSettings.gradient);
       const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
       ctx.onStrokeEnd(activeLayer.id, null, committedBounds);
       ctx.invalidateLayer?.(activeLayer.id);
