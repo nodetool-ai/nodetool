@@ -38,6 +38,21 @@ export const SKETCH_NODE_INPUT_IMAGE_LAYER_NAME = "Input Image";
 
 // ─── Layer Transform & Bounds ─────────────────────────────────────────────────
 
+/**
+ * 2D affine matrix stored as [a, b, c, d, e, f] matching the DOMMatrix
+ * convention:
+ *
+ *   | a  c  e |
+ *   | b  d  f |
+ *   | 0  0  1 |
+ *
+ * a=scaleX, b=skewY, c=skewX, d=scaleY, e=translateX, f=translateY.
+ */
+export type AffineMatrix = [number, number, number, number, number, number];
+
+/** Identity matrix: no transformation applied. */
+export const IDENTITY_MATRIX: Readonly<AffineMatrix> = [1, 0, 0, 1, 0, 0];
+
 export interface LayerTransform {
   x: number;
   y: number;
@@ -47,6 +62,95 @@ export interface LayerTransform {
   scaleY?: number;
   /** Rotation in radians. 0 = no rotation. Default 0. */
   rotation?: number;
+  /**
+   * Composed 2D affine matrix. When present, authoritative for rendering
+   * and hit testing. Decomposed fields (x, y, scaleX, scaleY, rotation)
+   * remain as UI helpers and are kept in sync by the transform factories.
+   *
+   * DOMMatrix-compatible [a, b, c, d, e, f].
+   * Absent on legacy documents — computed from decomposed values on load.
+   */
+  matrix?: AffineMatrix;
+}
+
+// ─── Affine Matrix Helpers ────────────────────────────────────────────────────
+
+/**
+ * Build an affine matrix from decomposed translate/scale/rotate values.
+ * Operation order: translate → rotate → scale (standard TRS).
+ */
+export function composeAffineMatrix(
+  x: number,
+  y: number,
+  scaleX: number,
+  scaleY: number,
+  rotation: number
+): AffineMatrix {
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return [
+    cos * scaleX,   // a
+    sin * scaleX,   // b
+    -sin * scaleY,  // c
+    cos * scaleY,   // d
+    x,              // e
+    y               // f
+  ];
+}
+
+/**
+ * Decompose an affine matrix into translate, scale, and rotation.
+ * Handles non-uniform scale but assumes no skew.
+ */
+export function decomposeAffineMatrix(m: AffineMatrix): {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+} {
+  const [a, b, c, d, e, f] = m;
+  const x = e;
+  const y = f;
+  const scaleX = Math.sqrt(a * a + b * b);
+  const scaleY = Math.sqrt(c * c + d * d);
+  const det = a * d - b * c;
+  const correctedScaleY = det < 0 ? -scaleY : scaleY;
+  const rotation = Math.atan2(b, a);
+  return { x, y, scaleX, scaleY: correctedScaleY, rotation };
+}
+
+/**
+ * Returns true when a LayerTransform is the identity (no visual change).
+ */
+export function isIdentityTransform(t: LayerTransform): boolean {
+  return (
+    t.x === 0 &&
+    t.y === 0 &&
+    (t.scaleX === undefined || t.scaleX === 1) &&
+    (t.scaleY === undefined || t.scaleY === 1) &&
+    (t.rotation === undefined || t.rotation === 0)
+  );
+}
+
+/**
+ * Ensure a LayerTransform has a `matrix` field computed from its
+ * decomposed values. Returns the input unchanged if matrix is already set.
+ */
+export function ensureTransformMatrix(t: LayerTransform): LayerTransform {
+  if (t.matrix) {
+    return t;
+  }
+  return {
+    ...t,
+    matrix: composeAffineMatrix(
+      t.x,
+      t.y,
+      t.scaleX ?? 1,
+      t.scaleY ?? 1,
+      t.rotation ?? 0
+    )
+  };
 }
 
 export interface LayerContentBounds {
@@ -329,7 +433,7 @@ export function createDefaultLayer(
     alphaLock: false,
     blendMode: "normal",
     data: null,
-    transform: { x: 0, y: 0 },
+    transform: { x: 0, y: 0, matrix: [...IDENTITY_MATRIX] as AffineMatrix },
     contentBounds: {
       x: 0,
       y: 0,
@@ -378,7 +482,7 @@ export function createDefaultGroupLayer(name: string): Layer {
     alphaLock: false,
     blendMode: "normal",
     data: null,
-    transform: { x: 0, y: 0 },
+    transform: { x: 0, y: 0, matrix: [...IDENTITY_MATRIX] as AffineMatrix },
     contentBounds: { x: 0, y: 0, width: 0, height: 0 },
     collapsed: false
   };
@@ -472,13 +576,16 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         collapsed: layer.collapsed ?? false,
         segmentationMeta: layer.segmentationMeta ?? undefined,
         effects: Array.isArray(layer.effects) ? layer.effects : undefined,
-        transform: {
+        transform: ensureTransformMatrix({
           x: layer.transform?.x ?? 0,
           y: layer.transform?.y ?? 0,
           scaleX: layer.transform?.scaleX,
           scaleY: layer.transform?.scaleY,
-          rotation: layer.transform?.rotation
-        },
+          rotation: layer.transform?.rotation,
+          matrix: Array.isArray(layer.transform?.matrix) && layer.transform!.matrix!.length === 6
+            ? layer.transform!.matrix as AffineMatrix
+            : undefined
+        }),
         contentBounds: {
           x: layer.contentBounds?.x ?? 0,
           y: layer.contentBounds?.y ?? 0,

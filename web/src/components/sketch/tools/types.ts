@@ -31,7 +31,7 @@ export interface ToolDefinition {
   Icon: ToolIconComponent;
   group: "painting" | "shape";
 }
-import type { SelectionMoveAntsRef } from "../sketchCanvasHooks/useOverlayRenderer";
+import type { SelectionMoveAntsRef, GizmoDrawCallback } from "../sketchCanvasHooks/useOverlayRenderer";
 
 /** Optional flags for `onStrokeEnd` when raster data is read back from the CPU canvas. */
 export interface StrokeEndOptions {
@@ -93,6 +93,17 @@ export interface ToolContext {
   drawOverlaySelection: (start: Point, end: Point) => void;
   drawOverlayLassoPreview: (points: Point[], cursor: Point | null) => void;
   drawCursor: (clientX: number, clientY: number) => void;
+
+  // ── Screen-resolution gizmo overlay ──────────────────────────────────
+  /** Clear the gizmo canvas (screen-resolution overlay for tool handles). */
+  clearGizmo: () => void;
+  /**
+   * Draw on the screen-resolution gizmo canvas. Clears the canvas first,
+   * then calls `callback` with the 2D context, device pixel ratio, and
+   * container CSS dimensions. Any tool can use this for crisp overlays
+   * that are not clipped by the document bounds.
+   */
+  drawGizmo: (callback: GizmoDrawCallback) => void;
 
   // ── Editor callbacks ─────────────────────────────────────────────────
   onZoomChange: (zoom: number) => void;

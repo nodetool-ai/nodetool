@@ -27,7 +27,7 @@ import { SelectTool } from "../tools/SelectTool";
 import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
-import type { SelectionMoveAntsRef } from "./useOverlayRenderer";
+import type { SelectionMoveAntsRef, GizmoDrawCallback } from "./useOverlayRenderer";
 import {
   useSketchStore,
   SKETCH_ZOOM_MAX,
@@ -87,6 +87,8 @@ export interface UsePointerHandlersParams {
   drawOverlaySelection: (start: Point, end: Point) => void;
   drawOverlayLassoPreview: (points: Point[], cursor: Point | null) => void;
   drawCursor: (clientX: number, clientY: number) => void;
+  clearGizmo: () => void;
+  drawGizmo: (callback: GizmoDrawCallback) => void;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
@@ -181,6 +183,8 @@ export function usePointerHandlers({
   drawOverlaySelection,
   drawOverlayLassoPreview,
   drawCursor,
+  clearGizmo,
+  drawGizmo,
   onZoomChange,
   onPanChange,
   onStrokeStart,
@@ -373,6 +377,8 @@ export function usePointerHandlers({
     drawOverlaySelection,
     drawOverlayLassoPreview,
     drawCursor,
+    clearGizmo,
+    drawGizmo,
     onZoomChange,
     onPanChange,
     onStrokeStart,

@@ -353,7 +353,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().setLayerTransform(layerId, { x: 12, y: -8 });
       });
-      expect(useSketchStore.getState().document.layers[0].transform).toEqual({
+      expect(useSketchStore.getState().document.layers[0].transform).toMatchObject({
         x: 12,
         y: -8
       });
@@ -365,7 +365,7 @@ describe("useSketchStore", () => {
         useSketchStore.getState().setLayerTransform(layerId, { x: 3, y: 4 });
         useSketchStore.getState().translateLayer(layerId, 5, -2);
       });
-      expect(useSketchStore.getState().document.layers[0].transform).toEqual({
+      expect(useSketchStore.getState().document.layers[0].transform).toMatchObject({
         x: 8,
         y: 2
       });
@@ -385,7 +385,7 @@ describe("useSketchStore", () => {
         useSketchStore.getState().offsetLayerTransform(layerId, -4, 3);
       });
       const layer = useSketchStore.getState().document.layers[0];
-      expect(layer.transform).toEqual({
+      expect(layer.transform).toMatchObject({
         x: 6,
         y: 9
       });
@@ -427,7 +427,7 @@ describe("useSketchStore", () => {
       const state = useSketchStore.getState();
       expect(state.document.layers).toHaveLength(1);
       expect(state.document.layers[0].id).toBe(lowerId);
-      expect(state.document.layers[0].transform).toEqual({ x: 0, y: 0 });
+      expect(state.document.layers[0].transform).toMatchObject({ x: 0, y: 0 });
       expect(state.document.layers[0].contentBounds).toEqual({
         x: 0,
         y: 0,
@@ -458,7 +458,7 @@ describe("useSketchStore", () => {
       expect(state.document.layers).toHaveLength(1);
       expect(state.document.activeLayerId).toBe(state.document.layers[0].id);
       expect(state.document.maskLayerId).toBeNull();
-      expect(state.document.layers[0].transform).toEqual({ x: 0, y: 0 });
+      expect(state.document.layers[0].transform).toMatchObject({ x: 0, y: 0 });
       expect(state.document.layers[0].contentBounds).toEqual({
         x: 0,
         y: 0,
@@ -511,7 +511,7 @@ describe("useSketchStore", () => {
         useSketchStore.getState().setLayerTransform(layerId, { x: 7, y: 9 });
         useSketchStore.getState().pushHistory("move");
       });
-      expect(useSketchStore.getState().history[0].layerStructure[0]?.transform).toEqual({
+      expect(useSketchStore.getState().history[0].layerStructure[0]?.transform).toMatchObject({
         x: 7,
         y: 9
       });

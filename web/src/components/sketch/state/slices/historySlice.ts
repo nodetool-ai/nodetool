@@ -1,5 +1,14 @@
 /**
- * History Slice — undo/redo history management.
+ * History Slice — undo/redo history management with delta snapshots.
+ *
+ * Delta history: each entry stores raster data only for layers that changed
+ * since the previous entry, rather than full snapshots of every layer.
+ * The first entry (index 0) always holds all layers as a baseline.
+ *
+ * Reconstruction: to get a layer's data at a given history index, walk
+ * backward from that index until an entry with a snapshot for that layer
+ * is found. This is O(history_length) per layer but bounded by
+ * MAX_HISTORY_SIZE (30).
  */
 
 import type { StateCreator } from "zustand";
@@ -11,6 +20,46 @@ import type {
   PushHistoryOptions
 } from "../../types";
 import { MAX_HISTORY_SIZE } from "../../types";
+
+/**
+ * Resolve a layer's raster data at a given history index by walking
+ * backward through delta entries to find the most recent snapshot.
+ * Returns `null` if no snapshot is found (new/empty layer).
+ */
+export function resolveLayerData(
+  history: HistoryEntry[],
+  upToIndex: number,
+  layerId: string
+): string | null {
+  for (let i = upToIndex; i >= 0; i--) {
+    const entry = history[i];
+    if (layerId in entry.layerSnapshots) {
+      return entry.layerSnapshots[layerId] ?? null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Build a LayerStructureSnapshot array from current document layers.
+ */
+function captureLayerStructure(layers: readonly Layer[]): LayerStructureSnapshot[] {
+  return layers.map((l) => ({
+    id: l.id,
+    name: l.name,
+    type: l.type,
+    visible: l.visible,
+    opacity: l.opacity,
+    locked: l.locked,
+    alphaLock: l.alphaLock,
+    blendMode: l.blendMode,
+    transform: l.transform,
+    contentBounds: l.contentBounds,
+    exposedAsInput: l.exposedAsInput,
+    exposedAsOutput: l.exposedAsOutput,
+    imageReference: l.imageReference
+  }));
+}
 
 export interface HistorySlice {
   history: HistoryEntry[];
@@ -42,27 +91,34 @@ export const createHistorySlice: StateCreator<
   ) => {
     const state = get();
     const restoreMode = options?.restoreMode ?? "full";
+
+    // Truncate future history first so prevEntry is accurate
+    const newHistory = state.history.slice(0, state.historyIndex + 1);
+    const prevEntry = newHistory.length > 0 ? newHistory[newHistory.length - 1] : null;
+
+    // Build delta snapshot: only include layers whose data changed
     const snapshot: Record<string, string | null> = {};
+    const changedLayerIds: string[] = [];
+
     for (const layer of state.document.layers) {
-      snapshot[layer.id] = layer.data;
+      if (!prevEntry) {
+        // First entry — full snapshot (baseline)
+        snapshot[layer.id] = layer.data;
+        changedLayerIds.push(layer.id);
+      } else {
+        // Delta: compare with the resolved data at the previous entry
+        const prevData = resolveLayerData(newHistory, newHistory.length - 1, layer.id);
+        if (prevData !== layer.data) {
+          snapshot[layer.id] = layer.data;
+          changedLayerIds.push(layer.id);
+        }
+      }
     }
-    const layerStructure: LayerStructureSnapshot[] =
-      state.document.layers.map((l) => ({
-        id: l.id,
-        name: l.name,
-        type: l.type,
-        visible: l.visible,
-        opacity: l.opacity,
-        locked: l.locked,
-        alphaLock: l.alphaLock,
-        blendMode: l.blendMode,
-        transform: l.transform,
-        contentBounds: l.contentBounds,
-        exposedAsInput: l.exposedAsInput,
-        exposedAsOutput: l.exposedAsOutput,
-        imageReference: l.imageReference
-      }));
+
+    const layerStructure = captureLayerStructure(state.document.layers);
+
     const entry: HistoryEntry = {
+      changedLayerIds,
       layerSnapshots: snapshot,
       layerCanvasSnapshots,
       layerStructure,
@@ -73,13 +129,22 @@ export const createHistorySlice: StateCreator<
       timestamp: Date.now()
     };
 
-    // Truncate future history if we're not at the end
-    const newHistory = state.history.slice(0, state.historyIndex + 1);
     newHistory.push(entry);
 
-    // Trim to max size
+    // Trim to max size — merge dropped entry's data into the new oldest
     if (newHistory.length > MAX_HISTORY_SIZE) {
-      newHistory.shift();
+      const dropped = newHistory.shift()!;
+      const newOldest = newHistory[0];
+      // Always merge dropped data forward to maintain the baseline invariant.
+      // The dropped entry (former baseline) may have data for layers not in
+      // the new oldest — e.g. layers that were removed between the two entries.
+      for (const [layerId, data] of Object.entries(dropped.layerSnapshots)) {
+        if (!(layerId in newOldest.layerSnapshots)) {
+          newOldest.layerSnapshots[layerId] = data;
+        }
+      }
+      // Mark as full snapshot since it's now the baseline
+      newOldest.changedLayerIds = undefined;
     }
 
     set({
@@ -94,33 +159,17 @@ export const createHistorySlice: StateCreator<
       return null;
     }
 
-    // When undoing from the tip of history, append a snapshot of the current
-    // state so that redo can restore it later.
+    // When undoing from the tip of history, append a full snapshot of
+    // the current state so that redo can restore it later.
     let history = state.history;
     if (state.historyIndex === state.history.length - 1) {
       const tipSnapshot: Record<string, string | null> = {};
       for (const layer of state.document.layers) {
         tipSnapshot[layer.id] = layer.data;
       }
-      const tipStructure: LayerStructureSnapshot[] =
-        state.document.layers.map((l) => ({
-          id: l.id,
-          name: l.name,
-          type: l.type,
-          visible: l.visible,
-          opacity: l.opacity,
-          locked: l.locked,
-          alphaLock: l.alphaLock,
-          blendMode: l.blendMode,
-          transform: l.transform,
-          contentBounds: l.contentBounds,
-          exposedAsInput: l.exposedAsInput,
-          exposedAsOutput: l.exposedAsOutput,
-          imageReference: l.imageReference
-        }));
       const tipEntry: HistoryEntry = {
         layerSnapshots: tipSnapshot,
-        layerStructure: tipStructure,
+        layerStructure: captureLayerStructure(state.document.layers),
         activeLayerId: state.document.activeLayerId,
         maskLayerId: state.document.maskLayerId,
         restoreMode: "full",
@@ -137,17 +186,28 @@ export const createHistorySlice: StateCreator<
     }
 
     let layers: Layer[];
+    // Build resolved snapshots for all layers so that the returned entry
+    // can be used to restore runtime canvases (useHistoryActions).
+    const resolvedSnapshots: Record<string, string | null> = {};
     if (entry.layerStructure && entry.layerStructure.length > 0) {
-      layers = entry.layerStructure.map((ls) => ({
-        ...ls,
-        data: entry.layerSnapshots[ls.id] ?? null
-      }));
+      layers = entry.layerStructure.map((ls) => {
+        const data = resolveLayerData(history, newIndex, ls.id);
+        resolvedSnapshots[ls.id] = data;
+        return { ...ls, data };
+      });
     } else {
-      layers = state.document.layers.map((l) => ({
-        ...l,
-        data: entry.layerSnapshots[l.id] ?? l.data
-      }));
+      layers = state.document.layers.map((l) => {
+        const data = entry.layerSnapshots[l.id] ?? l.data;
+        resolvedSnapshots[l.id] = data;
+        return { ...l, data };
+      });
     }
+
+    // Return a resolved copy so restoreEntry can restore all layer canvases
+    const resolvedEntry: HistoryEntry = {
+      ...entry,
+      layerSnapshots: resolvedSnapshots
+    };
 
     set({
       document: {
@@ -163,7 +223,7 @@ export const createHistorySlice: StateCreator<
       history,
       historyIndex: newIndex
     });
-    return entry;
+    return resolvedEntry;
   },
 
   redo: () => {
@@ -178,17 +238,25 @@ export const createHistorySlice: StateCreator<
     }
 
     let layers: Layer[];
+    const resolvedSnapshots: Record<string, string | null> = {};
     if (entry.layerStructure && entry.layerStructure.length > 0) {
-      layers = entry.layerStructure.map((ls) => ({
-        ...ls,
-        data: entry.layerSnapshots[ls.id] ?? null
-      }));
+      layers = entry.layerStructure.map((ls) => {
+        const data = resolveLayerData(state.history, newIndex, ls.id);
+        resolvedSnapshots[ls.id] = data;
+        return { ...ls, data };
+      });
     } else {
-      layers = state.document.layers.map((l) => ({
-        ...l,
-        data: entry.layerSnapshots[l.id] ?? l.data
-      }));
+      layers = state.document.layers.map((l) => {
+        const data = entry.layerSnapshots[l.id] ?? l.data;
+        resolvedSnapshots[l.id] = data;
+        return { ...l, data };
+      });
     }
+
+    const resolvedEntry: HistoryEntry = {
+      ...entry,
+      layerSnapshots: resolvedSnapshots
+    };
 
     set({
       document: {
@@ -203,7 +271,7 @@ export const createHistorySlice: StateCreator<
       },
       historyIndex: newIndex
     });
-    return entry;
+    return resolvedEntry;
   },
 
   canUndo: () => get().historyIndex > 0,
