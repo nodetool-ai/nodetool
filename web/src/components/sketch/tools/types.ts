@@ -228,4 +228,39 @@ export interface ToolHandler {
    * Allows the tool to clean up state.
    */
   onDeactivate?(ctx: ToolContext): void;
+
+  // ── Async tool lifecycle (optional) ──────────────────────────────────
+  //
+  // Tools with long-running operations (e.g. SAM segmentation, AI inpaint)
+  // implement these methods instead of / alongside onUp. The dispatcher
+  // calls onCommit after onUp if present, catches errors, and exposes
+  // getProgress to the toolbar for a progress indicator.
+  //
+  // Lifecycle rules:
+  //   - An onCommit result is ignored if the tool/document/session changed
+  //     while work was pending.
+  //   - Tool switch or explicit cancel calls onCancel if present.
+  //   - Only successful current-session commits may write to store/history.
+  //   - Cancelled, superseded, or stale commits must not push history entries.
+
+  /**
+   * Commit the current tool operation asynchronously.
+   * Called after onUp for tools that need async processing (inference, etc.).
+   * Must create exactly one history transaction on success.
+   */
+  onCommit?(ctx: ToolContext): Promise<void>;
+
+  /**
+   * Cancel an in-progress async operation.
+   * Called when the user switches tools, presses Escape, or starts a new
+   * gesture that supersedes the pending one.
+   */
+  onCancel?(ctx: ToolContext): void;
+
+  /**
+   * Return the progress of an in-progress async operation.
+   * 0–1 for determinate progress, null for indeterminate.
+   * Undefined or not implemented means the tool has no async work pending.
+   */
+  getProgress?(ctx: ToolContext): number | null;
 }

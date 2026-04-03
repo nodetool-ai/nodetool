@@ -868,6 +868,8 @@ export function usePointerHandlers({
       return;
     }
     const prevHandler = getToolHandler(prev);
+    // Cancel any pending async work before deactivating
+    prevHandler.onCancel?.(toolCtxRef.current);
     prevHandler.onDeactivate?.(toolCtxRef.current);
     const nextHandler = getToolHandler(activeTool);
     nextHandler.onActivate?.(toolCtxRef.current);
