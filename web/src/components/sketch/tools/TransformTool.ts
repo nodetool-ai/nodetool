@@ -180,7 +180,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
-    this.clearGizmo(ctx);
+    this.clearGizmoCanvas(ctx);
     ctx.clearOverlay();
     ctx.drawSelectionOverlay();
   }
@@ -467,16 +467,8 @@ export class TransformTool implements ToolHandler {
 
   // ── Gizmo drawing (screen-resolution canvas) ──────────────────────────────
 
-  private clearGizmo(ctx: ToolContext): void {
-    const gizmo = ctx.gizmoCanvasRef.current;
-    if (!gizmo) {
-      return;
-    }
-    const gc = gizmo.getContext("2d");
-    if (gc) {
-      gc.setTransform(1, 0, 0, 1, 0, 0);
-      gc.clearRect(0, 0, gizmo.width, gizmo.height);
-    }
+  private clearGizmoCanvas(ctx: ToolContext): void {
+    ctx.clearGizmo();
   }
 
   /**
@@ -500,25 +492,22 @@ export class TransformTool implements ToolHandler {
   }
 
   private drawGizmo(ctx: ToolContext): void {
-    const gizmo = ctx.gizmoCanvasRef.current;
-    const container = ctx.containerRef.current;
-    if (!gizmo || !container) {
-      // Fall back to old overlay approach if gizmo canvas unavailable
-      this.drawOverlayFallback(ctx);
-      return;
-    }
-    const gc = gizmo.getContext("2d");
-    if (!gc) {
-      return;
-    }
+    ctx.drawGizmo((gc, dpr, containerW, containerH) => {
+      this.paintGizmo(gc, dpr, containerW, containerH, ctx);
+    });
+  }
 
-    const dpr = window.devicePixelRatio || 1;
-    const containerW = container.clientWidth;
-    const containerH = container.clientHeight;
-
-    gc.setTransform(1, 0, 0, 1, 0, 0);
-    gc.clearRect(0, 0, gizmo.width, gizmo.height);
-
+  /**
+   * Internal gizmo paint routine. Called via `ctx.drawGizmo()` which handles
+   * canvas acquisition, clearing, and DPR scaling.
+   */
+  private paintGizmo(
+    gc: CanvasRenderingContext2D,
+    dpr: number,
+    containerW: number,
+    containerH: number,
+    ctx: ToolContext
+  ): void {
     const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (!layer) {
       return;
@@ -607,94 +596,6 @@ export class TransformTool implements ToolHandler {
     gc.stroke();
 
     gc.restore();
-  }
-
-  /** Fallback: draw gizmo on the document-space overlay canvas (clipped, lower resolution). */
-  private drawOverlayFallback(ctx: ToolContext): void {
-    const overlay = ctx.overlayCanvasRef.current;
-    if (!overlay) {
-      return;
-    }
-    const oc = overlay.getContext("2d");
-    if (!oc) {
-      return;
-    }
-
-    oc.clearRect(0, 0, overlay.width, overlay.height);
-
-    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
-    if (!layer) {
-      return;
-    }
-
-    const bounds = layerDocBounds(layer.contentBounds, layer.transform);
-    const sx = layer.transform.scaleX ?? 1;
-    const sy = layer.transform.scaleY ?? 1;
-    const rot = layer.transform.rotation ?? 0;
-
-    const w = bounds.width * sx;
-    const h = bounds.height * sy;
-    const cx = bounds.x + w / 2;
-    const cy = bounds.y + h / 2;
-
-    oc.save();
-    oc.translate(cx, cy);
-    oc.rotate(rot);
-
-    // Bounding box
-    oc.strokeStyle = "rgba(0, 120, 255, 0.8)";
-    oc.lineWidth = 1 / ctx.zoom;
-    oc.setLineDash([4 / ctx.zoom, 4 / ctx.zoom]);
-    oc.strokeRect(-w / 2, -h / 2, w, h);
-    oc.setLineDash([]);
-
-    // Handle size
-    const hs = 6 / ctx.zoom;
-
-    // Corner handles (filled squares)
-    const corners: Point[] = [
-      { x: -w / 2, y: -h / 2 },
-      { x: w / 2, y: -h / 2 },
-      { x: -w / 2, y: h / 2 },
-      { x: w / 2, y: h / 2 }
-    ];
-    oc.fillStyle = "#ffffff";
-    oc.strokeStyle = "rgba(0, 120, 255, 1)";
-    oc.lineWidth = 1 / ctx.zoom;
-    for (const c of corners) {
-      oc.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs);
-      oc.strokeRect(c.x - hs / 2, c.y - hs / 2, hs, hs);
-    }
-
-    // Edge midpoint handles (filled squares)
-    const mids: Point[] = [
-      { x: 0, y: -h / 2 },
-      { x: 0, y: h / 2 },
-      { x: -w / 2, y: 0 },
-      { x: w / 2, y: 0 }
-    ];
-    for (const m of mids) {
-      oc.fillRect(m.x - hs / 2, m.y - hs / 2, hs, hs);
-      oc.strokeRect(m.x - hs / 2, m.y - hs / 2, hs, hs);
-    }
-
-    // Rotation handle: circle above top-center with connecting line
-    const rotY = -h / 2 - ROTATION_HANDLE_OFFSET / ctx.zoom;
-    oc.beginPath();
-    oc.moveTo(0, -h / 2);
-    oc.lineTo(0, rotY);
-    oc.strokeStyle = "rgba(0, 120, 255, 0.6)";
-    oc.lineWidth = 1 / ctx.zoom;
-    oc.stroke();
-
-    oc.beginPath();
-    oc.arc(0, rotY, hs * 0.7, 0, Math.PI * 2);
-    oc.fillStyle = "#ffffff";
-    oc.fill();
-    oc.strokeStyle = "rgba(0, 120, 255, 1)";
-    oc.stroke();
-
-    oc.restore();
   }
 }
 

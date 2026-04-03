@@ -400,6 +400,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       drawOverlaySelection: overlay.drawOverlaySelection,
       drawOverlayLassoPreview: overlay.drawOverlayLassoPreview,
       drawCursor: overlay.drawCursor,
+      clearGizmo: overlay.clearGizmo,
+      drawGizmo: overlay.drawGizmo,
       onZoomChange,
       onPanChange,
       onStrokeStart,

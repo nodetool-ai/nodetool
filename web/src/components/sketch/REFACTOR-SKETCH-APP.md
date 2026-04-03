@@ -579,7 +579,7 @@ Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
 | 2C — Delta History | ✅ Done | 2026-04-03 |
 | 3 — WebGPU Compositing | Not started | — |
 | 4A — Matrix-Capable Transforms | ✅ Done | 2026-04-03 |
-| 4B — Overlay Canvas for Gizmos | Not started | — |
+| 4B — Overlay Canvas for Gizmos | ✅ Done | 2026-04-03 |
 
 ### Phase 1D Notes
 
@@ -620,3 +620,21 @@ and a `matrix` field to `LayerTransform`. Key changes:
 - `TransformTool.computeTransform` returns transforms with computed matrix
 - `offsetLayerTransformInDocument` recomputes matrix on translate
 - 22 new tests for compose/decompose round-trip and CoordinateMapper with matrix
+
+### Phase 4B Notes
+
+The gizmo canvas for tool overlays is now a first-class API available to any
+tool, not just TransformTool. Key changes:
+
+- `GizmoDrawCallback` type exported from `useOverlayRenderer` — receives the
+  2D context, DPR, and container dimensions
+- `clearGizmo()` and `drawGizmo(callback)` added to `UseOverlayRendererResult`,
+  `ToolContext`, and wired through `usePointerHandlers` ↔ `SketchCanvas`
+- `TransformTool` refactored to use `ctx.drawGizmo()` / `ctx.clearGizmo()`
+  instead of direct `gizmoCanvasRef` manipulation — the canvas is now acquired,
+  cleared, and reset to identity by the overlay renderer
+- Removed `drawOverlayFallback` from TransformTool (dead code after gizmo canvas
+  became always-available)
+- Ad-hoc gizmo clearing in `useOverlayRenderer` replaced with `clearGizmo()` call
+  — tools that need the gizmo redraw it in `onActivate`
+- 2 new tests verifying TransformTool uses the new API
