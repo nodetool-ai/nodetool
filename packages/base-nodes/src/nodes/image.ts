@@ -414,7 +414,7 @@ export class SaveImageNode extends BaseNode {
     const mime = inferImageMime(undefined, bytes);
     const meta = await metadataFor(bytes);
 
-    // Use context to create an asset if available
+    // Create asset via context (persists to DB + storage)
     if (context && typeof context.createAsset === "function") {
       const folderRef = this.folder as Record<string, unknown> | undefined;
       const parentId = (folderRef?.asset_id as string) ?? null;
