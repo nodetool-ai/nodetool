@@ -714,7 +714,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           minHeight: 0,
           width: "100%",
           overflow: "visible", // Allow handles to render outside bounds
-          clipPath: "inset(0 -20px)" // Clip top/bottom, extend left/right for handles
+          clipPath: "inset(0 -60px)" // Clip top/bottom, extend left/right for handles and add-button
         }}
       >
         <NodeContent
