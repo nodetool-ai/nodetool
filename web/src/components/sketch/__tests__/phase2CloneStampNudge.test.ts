@@ -11,7 +11,7 @@ import {
   isPaintingTool,
   SketchTool
 } from "../types";
-import { getSelectionBounds } from "../selection/selectionMask";
+import { getSelectionBounds } from "../selection";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 function resetStore() {

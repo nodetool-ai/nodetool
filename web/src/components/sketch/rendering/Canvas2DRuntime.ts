@@ -22,7 +22,7 @@ import {
 import {
   drawStrokeBufferForDisplayWithSelectionFeather,
   selectionHasAnyPixels
-} from "../selection/selectionMask";
+} from "../selection";
 import { blendModeToComposite, drawCheckerboard } from "../drawingUtils";
 import {
   getCanvasRasterBounds,
@@ -88,6 +88,7 @@ function deserializeLayerData(
       })
     };
   } catch {
+    // Malformed serialized layer data — return empty raster with default bounds
     return { image: null, bounds: getDefaultRasterBounds(fallbackBounds) };
   }
 }

@@ -14,7 +14,7 @@ import {
   selectionHasAnyPixels,
   selectionToDocumentAligned,
   smoothSelectionBorders
-} from "../../selection/selectionMask";
+} from "../../selection";
 
 export interface SelectionSlice {
   selection: Selection | null;

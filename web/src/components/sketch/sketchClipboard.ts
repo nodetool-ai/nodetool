@@ -9,7 +9,7 @@ import {
   getSelectionBounds,
   sampleMask,
   selectionHasAnyPixels
-} from "./selection/selectionMask";
+} from "./selection";
 import type { Layer, Point, Selection } from "./types";
 
 /**

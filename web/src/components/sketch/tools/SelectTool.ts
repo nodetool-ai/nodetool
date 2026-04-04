@@ -24,7 +24,7 @@ import {
   marqueeAdjustedDocPoints,
   marqueeRectFromDocPoints,
   type SelectionCombineOp,
-} from "../selection/selectionMask";
+} from "../selection";
 
 /** Require this much document-space delta before commit. */
 const MARQUEE_MIN_DRAG_DOC_PX = 1;

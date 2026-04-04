@@ -13,7 +13,7 @@ import { getCanvasRasterBounds } from "../painting";
 import {
   selectionHasAnyPixels,
   selectionHitTest
-} from "../selection/selectionMask";
+} from "../selection";
 
 // ─── Flood Fill (moved from drawingUtils.ts) ─────────────────────────────────
 //

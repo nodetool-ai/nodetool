@@ -9,7 +9,7 @@
 
 import { act } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
-import { rectSelectionMask, getSelectionBounds } from "../selection/selectionMask";
+import { rectSelectionMask, getSelectionBounds } from "../selection";
 
 // Reset store before each test
 beforeEach(() => {

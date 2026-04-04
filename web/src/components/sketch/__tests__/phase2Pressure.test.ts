@@ -11,7 +11,7 @@ import {
   createDefaultDocument,
   SketchDocument
 } from "../types";
-import { rectSelectionMask, getSelectionBounds } from "../selection/selectionMask";
+import { rectSelectionMask, getSelectionBounds } from "../selection";
 
 // Reset store before each test
 beforeEach(() => {

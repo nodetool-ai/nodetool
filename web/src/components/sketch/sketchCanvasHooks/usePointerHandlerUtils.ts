@@ -43,7 +43,7 @@ import {
 import {
   clipContextToSelectionMask,
   selectionHasAnyPixels
-} from "../selection/selectionMask";
+} from "../selection";
 
 export interface UsePointerHandlerUtilsParams {
   zoom: number;
