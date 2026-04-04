@@ -26,3 +26,11 @@
 ## 2024-05-24 - NodeStore `getSelectedNodeCount` `O(N)` Selection Optimization
 **Learning:** Functions exposed on the Zustand `store.getState()` (like `getSelectedNodeCount`) that compute derived state (`O(N)`) are extremely dangerous when subscribed to directly inside a component's `useNodes` hook (e.g. `const count = useNodes((state) => state.getSelectedNodeCount())`). Because Zustand evaluates selector functions on *every* store update (which is 60fps during dragging), an `O(N)` getter becomes `O(K * N)` per frame when `K` components subscribe to it.
 **Action:** When creating derived getters on a Zustand store, either use memoized selectors that components can consume or add a lightweight internal cache (`lastNodesForSelectionCount === get().nodes`) inside the getter itself so it only computes the `O(N)` operation once per state reference update.
+
+## 2026-03-24 - Streaming Array Deduplication Performance
+**Learning:** During high-frequency streaming events (like LLM token generation or agent execution logs) where a message object is continuously updated in a Zustand store array, using `array.findIndex()` to locate and replace the existing message creates an O(N²) time complexity bottleneck. Because the updated message is almost always the *last* item appended to the list, `findIndex()` unnecessarily scans from the beginning of the array on every stream tick.
+**Action:** Always use `array.findLastIndex()` or maintain an O(1) Map lookup when deduplicating or updating elements in an array during real-time streaming operations, especially if the array grows over time.
+
+## 2026-03-24 - Array Iteration for Last Element Matching
+**Learning:** Using `array.reduce((lastIdx, msg, idx) => condition ? idx : lastIdx, -1)` to find the index of the last element matching a condition forces a full O(N) scan of the array every time the component renders or state updates. This is inefficient when the array is large.
+**Action:** Use `array.findLastIndex((msg) => condition)` to efficiently scan backwards from the end of the array, returning in O(1) to O(K) time where K is the distance from the end.

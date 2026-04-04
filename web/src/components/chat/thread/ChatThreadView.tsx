@@ -238,9 +238,8 @@ const MemoizedMessageList = memo<MemoizedMessageListProps>(
         // Keep the message if it has any visible element
         return hasContent || hasToolCalls || hasExecutionEvent;
       });
-      const lastUserIdx = filtered.reduce(
-        (lastIdx, msg, idx) => (msg.role === "user" ? idx : lastIdx),
-        -1
+      const lastUserIdx = filtered.findLastIndex(
+        (msg) => msg.role === "user"
       );
       return { filteredMessages: filtered, lastUserMessageIndex: lastUserIdx };
     }, [messages]);
