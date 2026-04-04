@@ -123,123 +123,26 @@ import JobsPanel from "./jobs/JobsPanel";
 import VerticalToolbar from "./VerticalToolbar";
 
 /* ------------------------------------------------------------------ */
-/*  ChatAgentTabbedPanel – tab pills for "Workflow Chat" and "Agent"   */
+/*  ChatAgentPanel – renders either Workflow Chat or Agent directly    */
 /* ------------------------------------------------------------------ */
 
-const tabbedPanelStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    height: "100%",
-    overflow: "hidden",
-
-    ".tab-bar": {
-      display: "flex",
-      alignItems: "center",
-      gap: "2px",
-      padding: "8px 12px 4px",
-      flexShrink: 0
-    },
-
-    ".tab-pills": {
-      display: "flex",
-      alignItems: "center",
-      gap: "2px",
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "1em",
-      height: "1.7em",
-      padding: "0 2px"
-    },
-
-    ".tab-pill": {
-      padding: "4px 14px",
-      borderRadius: "14px",
-      fontWeight: 500,
-      letterSpacing: "0.02em",
-      color: theme.vars.palette.text.secondary,
-      minWidth: "auto",
-      textTransform: "none",
-      fontSize: theme.fontSizeSmall,
-      transition: "all 0.2s ease-out",
-      border: "none",
-      backgroundColor: "transparent",
-      cursor: "pointer",
-      whiteSpace: "nowrap" as const,
-      "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.06)",
-        color: theme.vars.palette.text.primary
-      },
-      "&.active": {
-        backgroundColor: "rgba(255, 255, 255, 0.10)",
-        color: theme.vars.palette.text.primary,
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.12)"
-      }
-    },
-
-    ".tab-content": {
-      flex: 1,
-      overflow: "hidden",
-      minHeight: 0
-    }
-  });
-
-interface ChatAgentTabbedPanelProps {
+interface ChatAgentPanelProps {
   activeTab: "assistant" | "agent";
-  onTabChange: (tab: RightPanelView) => void;
   activeNodeStore: NodeStore | undefined;
 }
 
-const ChatAgentTabbedPanel = memo(function ChatAgentTabbedPanel({
+const ChatAgentPanel = memo(function ChatAgentPanel({
   activeTab,
-  onTabChange,
-  activeNodeStore
-}: ChatAgentTabbedPanelProps) {
-  const theme = useTheme();
-
-  const handleAssistantClick = useCallback(() => {
-    if (activeTab !== "assistant") {
-      onTabChange("assistant");
-    }
-  }, [activeTab, onTabChange]);
-
-  const handleAgentClick = useCallback(() => {
-    if (activeTab !== "agent") {
-      onTabChange("agent");
-    }
-  }, [activeTab, onTabChange]);
-
-  return (
-    <Box css={tabbedPanelStyles(theme)} className="chat-agent-tabbed-panel">
-      <div className="tab-bar">
-        <div className="tab-pills">
-          <button
-            className={`tab-pill ${activeTab === "assistant" ? "active" : ""}`}
-            onClick={handleAssistantClick}
-          >
-            Workflow Chat
-          </button>
-          <button
-            className={`tab-pill ${activeTab === "agent" ? "active" : ""}`}
-            onClick={handleAgentClick}
-          >
-            Agent
-          </button>
-        </div>
-      </div>
-      <div className="tab-content">
-        {activeTab === "assistant" ? (
-          activeNodeStore ? (
-            <NodeContext.Provider value={activeNodeStore}>
-              <WorkflowAssistantChat />
-            </NodeContext.Provider>
-          ) : null
-        ) : (
-          <AgentPanel />
-        )}
-      </div>
-    </Box>
-  );
+  activeNodeStore,
+}: ChatAgentPanelProps) {
+  if (activeTab === "assistant") {
+    return activeNodeStore ? (
+      <NodeContext.Provider value={activeNodeStore}>
+        <WorkflowAssistantChat />
+      </NodeContext.Provider>
+    ) : null;
+  }
+  return <AgentPanel />;
 });
 
 const PanelRight: React.FC = () => {
@@ -551,9 +454,8 @@ const PanelRight: React.FC = () => {
                     </Box>
                   </Box>
                 ) : (activeView === "assistant" || activeView === "agent") ? (
-                  <ChatAgentTabbedPanel
+                  <ChatAgentPanel
                     activeTab={activeView}
-                    onTabChange={(tab: RightPanelView) => setActiveView(tab)}
                     activeNodeStore={activeNodeStore}
                   />
                 ) : (

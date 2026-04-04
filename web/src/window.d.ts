@@ -311,18 +311,25 @@ declare global {
       // Claude Agent SDK operations (available in Electron only)
       agent?: {
         createSession: (options: {
-          provider?: "claude" | "codex";
+          provider?: "claude" | "codex" | "opencode";
           model: string;
           workspacePath?: string;
           resumeSessionId?: string;
+          modelParams?: {
+            maxTurns?: number;
+            reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh";
+          };
         }) => Promise<string>;
         listModels: (options?: {
-          provider?: "claude" | "codex";
+          provider?: "claude" | "codex" | "opencode";
           workspacePath?: string;
         }) => Promise<Array<{
           id: string;
           label: string;
           isDefault?: boolean;
+          provider?: "claude" | "codex" | "opencode";
+          supportsReasoningEffort?: boolean;
+          supportsMaxTurns?: boolean;
         }>>;
         sendMessage: (
           sessionId: string,
@@ -349,6 +356,36 @@ declare global {
         >;
         stopExecution: (sessionId: string) => Promise<void>;
         closeSession: (sessionId: string) => Promise<void>;
+        listSessions: (options?: {
+          dir?: string;
+          limit?: number;
+          offset?: number;
+        }) => Promise<
+          Array<{
+            sessionId: string;
+            summary: string;
+            lastModified: number;
+            cwd?: string;
+            gitBranch?: string;
+            customTitle?: string;
+            firstPrompt?: string;
+            createdAt?: number;
+            provider?: "claude" | "codex" | "opencode";
+          }>
+        >;
+        getSessionMessages: (options: {
+          sessionId: string;
+          dir?: string;
+        }) => Promise<
+          Array<{
+            type: "user" | "assistant";
+            uuid: string;
+            session_id: string;
+            text: string;
+          }>
+        >;
+        /** Start the MCP tool server and return its URL */
+        startMcpServer: () => Promise<string>;
         /** Subscribe to streaming messages from the Claude Agent */
         onStreamMessage: (
           callback: (event: {

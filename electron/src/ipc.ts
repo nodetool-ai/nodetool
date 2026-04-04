@@ -1413,6 +1413,30 @@ export function initializeIpcHandlers(): void {
     },
   );
 
+  createIpcMainHandler(
+    IpcChannels.AGENT_LIST_SESSIONS,
+    async (_event, options) => {
+      const { listAgentSessions } = await import("./agent");
+      return await listAgentSessions(options ?? {});
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.AGENT_GET_SESSION_MESSAGES,
+    async (_event, options) => {
+      const { getAgentSessionMessages } = await import("./agent");
+      return await getAgentSessionMessages(options);
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.AGENT_START_MCP_SERVER,
+    async (event) => {
+      const { startMcpToolServer } = await import("./mcpToolServer");
+      return await startMcpToolServer(event.sender);
+    },
+  );
+
   // Frontend tools handlers
   // Get the frontend tools manifest from the renderer
   createIpcMainHandler(

@@ -684,7 +684,7 @@ const api = {
       ipcRenderer.invoke(IpcChannels.AGENT_CREATE_SESSION, options),
 
     /** List available models for the selected provider */
-    listModels: (options?: { provider?: "claude" | "codex"; workspacePath?: string }) =>
+    listModels: (options?: { provider?: "claude" | "codex" | "opencode"; workspacePath?: string }) =>
       ipcRenderer.invoke(IpcChannels.AGENT_LIST_MODELS, options || {}),
 
     /** Send a message to an active Claude Agent session */
@@ -701,6 +701,18 @@ const api = {
     /** Close an active Claude Agent session */
     closeSession: (sessionId: string) =>
       ipcRenderer.invoke(IpcChannels.AGENT_CLOSE_SESSION, sessionId),
+
+    /** List previous Claude Agent sessions from SDK storage */
+    listSessions: (options?: { dir?: string; limit?: number; offset?: number }) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_LIST_SESSIONS, options || {}),
+
+    /** Load conversation messages from a session transcript */
+    getSessionMessages: (options: { sessionId: string; dir?: string }) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_GET_SESSION_MESSAGES, options),
+
+    /** Start the MCP tool server and return its URL */
+    startMcpServer: () =>
+      ipcRenderer.invoke(IpcChannels.AGENT_START_MCP_SERVER),
 
     /** Subscribe to streaming messages from the Claude Agent */
     onStreamMessage: createEventSubscription(

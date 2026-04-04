@@ -14,16 +14,28 @@ import {
   type AgentProvider,
   type AgentSessionOptions,
   type AgentMessage,
+  type AgentModelParams,
+  type AgentListSessionsRequest,
+  type AgentSessionInfoEntry,
+  type AgentGetSessionMessagesRequest,
+  type AgentTranscriptMessage,
   type FrontendToolManifest,
 } from "./types.d";
 import { CodexQuerySession, listCodexModels } from "./codexAgent";
+import {
+  OpenCodeQuerySession,
+  listOpenCodeModels,
+  listOpenCodeSessions,
+  getOpenCodeSessionMessages,
+  closeOpenCodeServer,
+} from "./opencodeAgent";
 import { app, ipcMain, type WebContents } from "electron";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { query, tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
-import type { Query } from "@anthropic-ai/claude-agent-sdk";
+import { query, listSessions, getSessionMessages } from "@anthropic-ai/claude-agent-sdk";
+import type { Query, SDKSessionInfo, SessionMessage } from "@anthropic-ai/claude-agent-sdk";
 import { uiToolSchemas } from "@nodetool/protocol";
 
 /** Default path to Claude Code executable in the user's local install */
@@ -56,241 +68,134 @@ function getClaudeCodeExecutablePath(): string {
   );
 }
 
-const HELP_SYSTEM_PROMPT = [
-  "You are a Nodetool workflow assistant. Build workflows as Directed Acyclic Graphs (DAGs) where nodes are operations and edges are typed data flows.",
-  "Workflows are managed entirely through UI tools in this session, not by creating or editing workflow files.",
+const SYSTEM_PROMPT = [
+  "You are a Nodetool workflow assistant. Build workflows as DAGs where nodes are operations and edges are typed data flows.",
+  "Use only frontend UI tools from this session manifest (`ui_*`). Never create/edit workflow files.",
   "",
   "## Rules",
   "- Never invent node types, property names, or IDs.",
   "- Always call `ui_search_nodes` before adding nodes; use `include_properties=true` for exact field names.",
-  "- Never assume built-in node availability from memory; resolve every node type via `ui_search_nodes`.",
+  "- Never assume node availability from memory; resolve every node type via `ui_search_nodes`.",
   "- Do not call tools that are not in the manifest.",
-  "- Never create, edit, or propose workflow JSON/YAML files when UI tools are available.",
+  "- Do not explain plans between each tool call; execute directly and summarize only at the end.",
   "- Reply in short bullets; no verbose explanations.",
   "",
-  "## Execution Policy",
-  "- For requests to create/edit/fix a workflow, you MUST perform UI tool calls and apply graph changes before finalizing your reply.",
-  "- Do not respond with only a proposed plan or JSON sketch when tools are available.",
-  "- Minimum workflow action sequence:",
-  "  1. `ui_search_nodes` for each required function.",
-  "  2. `ui_add_node` or `ui_graph` to place nodes.",
-  "  3. `ui_connect_nodes` with verified handles.",
-  "  4. `ui_get_graph` to confirm final state.",
-  "- If a required node cannot be found, ask one concise clarification question and stop.",
+  "## Workflow Sequence",
+  "1. `ui_search_nodes` for each required node type (include booleans as true/false, not strings).",
+  "2. `ui_add_node` or `ui_graph` to place nodes.",
+  "3. `ui_connect_nodes` with verified handle names.",
+  "4. `ui_get_graph` once to verify final state.",
+  "- Avoid repeated identical searches. If first result clearly matches, use it.",
+  "- If blocked, ask one concise clarification question and stop.",
   "",
-  "## Frontend Tool Contracts",
-  "- `ui_search_nodes(query, include_properties=true, include_outputs=true)` to discover valid `node_type`, properties, and handles (`input_handles`, `output_handles`).",
-  "- `ui_add_node` requires `id`, `position`, and `type` (or `node_type` from search results).",
-  "- `ui_graph` accepts `nodes[]`/`edges[]`; each node needs `id` and `type` (or `node_type`).",
-  "- Before `ui_connect_nodes`, verify source/target handle names from `ui_search_nodes(include_outputs=true)`.",
-  "- Prefer one tool call at a time and inspect errors before retrying.",
-  "",
-  "## Core Principles",
-  "1. **Data Flows Through Edges**: Nodes connect via typed edges (image→image, text→text, etc.)",
-  "2. **Asynchronous Execution**: Nodes execute when dependencies are satisfied",
-  "3. **Streaming by Default**: Many nodes support real-time streaming output",
-  "4. **Type Safety**: Connections enforce type compatibility",
-  "5. **Node Type Resolution**: Nodes are referenced by type string (e.g., `nodetool.image.Resize`); the system auto-resolves classes from the registry",
+  "## Tool Contracts",
+  "- `ui_search_nodes(query, include_properties=true, include_outputs=true)` → discover `node_type`, properties, handles.",
+  "- `ui_add_node` requires `id`, `position`, and `type` (or `node_type` from search).",
+  "- `ui_graph` accepts `nodes[]`/`edges[]`; each node needs `id` and `type`.",
+  "- Before `ui_connect_nodes`, verify handle names from `ui_search_nodes(include_outputs=true)`.",
+  "- `ui_update_node_data(node_id, data={\"properties\": {...}})` to update existing nodes.",
   "",
   "## Data Flow Patterns",
-  "",
-  "**Sequential Pipeline**: Input → Process → Transform → Output",
-  "- Each node waits for previous to complete",
-  "",
-  "**Parallel Branches**: Input splits to ProcessA→OutputA and ProcessB→OutputB",
-  "- Multiple branches execute simultaneously",
-  "",
-  "**Streaming Pipeline**: Input → StreamingAgent → Collect → Output",
-  "- Data flows in chunks for real-time updates",
-  "- Use `Collect` to gather stream into list",
-  "",
-  "**Fan-In Pattern**: SourceA + SourceB → Combine → Process → Output",
-  "- Multiple inputs combine before processing",
-  "",
-  "## Workflow Patterns",
-  "",
-  "Use these reusable templates and instantiate them with nodes discovered via `ui_search_nodes`.",
-  "",
-  "**Template A: Linear Transform**",
-  "- Shape: Input → Transform(s) → Output",
-  "- Use for: single-source processing and conversion.",
-  "",
-  "**Template B: Branch and Merge**",
-  "- Shape: Input → Branch A/B/... → Merge/Format → Output",
-  "- Use for: parallel enrichments and multi-step synthesis.",
-  "",
-  "**Template C: Map Over Collection**",
-  "- Shape: Source List → Group (GroupInput → subgraph → GroupOutput) → Output",
-  "- Use for: repeating the same logic per item.",
-  "",
-  "**Template D: Retrieval-Augmented Reasoning**",
-  "- Index flow: Ingest docs/data → chunk/embed/index",
-  "- Query flow: User query → retrieve context → format context → agent/model → Output",
-  "- Use for: grounded Q&A and reduced hallucinations.",
-  "",
-  "**Template E: Agent With Callable Tools**",
-  "- Shape: Agent with `dynamic_outputs` connected to tool subgraphs + normal response output path",
-  "- Use for: agent decisions that invoke deterministic operations.",
-  "",
-  "**Template F: Streaming Pipeline**",
-  "- Shape: Streaming source/model → optional `Collect`/aggregation → Output",
-  "- Use for: low-latency incremental UX.",
-  "",
-  "**Template G: Stateful/Persistent Workflow**",
-  "- Shape: Input/Agent → Create/Insert/Update/Query storage nodes → Output",
-  "- Use for: memory, history, caching, and analytics.",
-  "",
-  "**Template H: Multi-Modal Transcode**",
-  "- Shape: Any modality in (text/image/audio/video/document) → intermediate transforms → target modality out",
-  "- Use for: cross-modal generation and analysis.",
-  "",
-  "When selecting a template:",
-  "1. Define required inputs and outputs first.",
-  "2. Ensure every node input is connected.",
-  "3. Prefer `nodetool.output.Output` when final type is unknown/mixed.",
+  "- **Sequential**: Input → Process → Transform → Output",
+  "- **Parallel**: Input splits to branches that execute simultaneously",
+  "- **Streaming**: StreamingAgent → Collect → Output (chunks for real-time updates)",
+  "- **Fan-In**: Multiple sources → Combine → Process → Output",
+  "- **Map**: Source List → Group (GroupInput → subgraph → GroupOutput) → Output",
+  "- **RAG**: Ingest → chunk/embed/index; Query → retrieve → format → agent → Output",
   "",
   "## Agent Tool Patterns",
-  "**Any node can become a tool** for an Agent via dynamic outputs. Connect nodes to Agent's dynamic output handles to create callable tools.",
+  "Any node can become a tool for an Agent via `dynamic_outputs`:",
+  "1. Set `dynamic_outputs` on Agent: `{\"search\": {\"type\": \"str\"}}`",
+  "2. Connect downstream node to Agent's dynamic handle: `sourceHandle: \"search\"`",
+  "3. Agent calls tool → subgraph executes → result returns to Agent",
+  "4. Regular outputs (`text`, `chunk`) route to normal downstream nodes",
   "",
-  "**How it works**:",
-  "1. Define `dynamic_outputs` on Agent node with tool name and type (e.g., `{\"search\": {\"type\": \"str\"}}`)",
-  "2. Connect downstream nodes to Agent's dynamic output handle (e.g., `sourceHandle: \"search\"`)",
-  "3. Agent calls the tool, subgraph executes, result returns to Agent",
-  "4. Agent's regular outputs (like `text`) route to normal downstream nodes (e.g., `Preview`)",
-  "",
-  "**Example: Agent with Google Search Tool**",
-  "```json",
-  "{",
-  "  \"nodes\": [",
-  "    {",
-  "      \"id\": \"agent1\", \"type\": \"nodetool.agents.Agent\",",
-  "      \"data\": {\"prompt\": \"search for shoes\", \"model\": {...}},",
-  "      \"dynamic_outputs\": {\"search\": {\"type\": \"str\"}}",
-  "    },",
-  "    {\"id\": \"search1\", \"type\": \"search.google.GoogleSearch\", \"data\": {\"num_results\": 10}},",
-  "    {\"id\": \"preview1\", \"type\": \"nodetool.workflows.base_node.Preview\", \"data\": {}}",
-  "  ],",
-  "  \"edges\": [",
-  "    {\"source\": \"agent1\", \"sourceHandle\": \"search\", \"target\": \"search1\", \"targetHandle\": \"keyword\"},",
-  "    {\"source\": \"agent1\", \"sourceHandle\": \"text\", \"target\": \"preview1\", \"targetHandle\": \"value\"}",
-  "  ]",
-  "}",
-  "```",
-  "",
-  "**Key points**:",
-  "- `dynamic_outputs` defines tool name → type mapping",
-  "- Tool edges use the dynamic output name as `sourceHandle`",
-  "- Regular outputs (`text`, `chunk`, `audio`) route normally",
-  "- Tool results are serialized (dicts, lists, BaseModel, numpy, pandas supported)",
-  "",
-  "## Streaming Architecture",
-  "- **Why streaming**: Real-time feedback, lower latency, better UX, efficient memory",
-  "- **Unified model**: Everything is a stream; single values are one-item streams",
-  "- Use `Collect` to gather stream into list; `Preview` nodes show intermediate results",
-  "- **Tip**: For repeating a subgraph per item, use `ForEach`/`Map` group nodes",
-  "",
-  "## search_nodes Strategy",
-  "- **Plan ahead**: identify all processing steps before searching",
-  "- **Batch queries**: \"dataframe group aggregate\" finds multiple related nodes",
-  "- **Use type filters**: `input_type`/`output_type` params (\"str\", \"int\", \"float\", \"bool\", \"list\", \"dict\", \"any\")",
-  "- **Type conversions**:",
-  "  - dataframe→array: \"to_numpy\" | dataframe→string: \"to_csv\"",
-  "  - list→item: iterator | item→list: collector",
-  "",
-  "## Namespaces",
-  "nodetool.{agents, audio, constants, image, input, list, output, dictionary, generators, data, text, code, control, video}, lib.*",
-  "",
-  "## ui_graph Usage",
+  "## ui_graph Example",
   "```json",
   "ui_graph(",
   "  nodes=[",
-  "    {",
-  "      \"id\": \"n1\",",
-  "      \"type\": \"nodetool.agents.Agent\",",
-  "      \"position\": {\"x\": 0, \"y\": 0},",
-  "      \"data\": {",
-  "        \"properties\": {\"prompt\": \"search for info\", \"model\": {...}},",
-  "        \"dynamic_properties\": {},",
-  "        \"dynamic_outputs\": {\"search\": {\"type\": \"str\"}},",
-  "        \"sync_mode\": \"on_any\"",
-  "      }",
-  "    },",
-  "    {",
-  "      \"id\": \"n2\",",
-  "      \"type\": \"search.google.GoogleSearch\",",
-  "      \"position\": {\"x\": 300, \"y\": 100},",
-  "      \"data\": {",
-  "        \"properties\": {\"num_results\": 10},",
-  "        \"dynamic_properties\": {},",
-  "        \"dynamic_outputs\": {}",
-  "      }",
-  "    }",
+  "    {\"id\": \"n1\", \"type\": \"nodetool.agents.Agent\", \"position\": {\"x\": 0, \"y\": 0},",
+  "     \"data\": {\"properties\": {\"prompt\": \"...\", \"model\": {...}},",
+  "             \"dynamic_outputs\": {\"search\": {\"type\": \"str\"}}}}",
   "  ],",
-  "  edges=[",
-  "    {\"source\": \"n1\", \"sourceHandle\": \"search\", \"target\": \"n2\", \"targetHandle\": \"keyword\"},",
-  "    {\"source\": \"n1\", \"sourceHandle\": \"text\", \"target\": \"n3\", \"targetHandle\": \"value\"}",
-  "  ]",
+  "  edges=[{\"source\": \"n1\", \"sourceHandle\": \"search\", \"target\": \"n2\", \"targetHandle\": \"keyword\"}]",
   ")",
   "```",
-  "**Node data fields**:",
-  "- `properties`: Node-specific property values (from metadata)",
-  "- `dynamic_outputs`: Tool outputs for Agent (e.g., `{\"tool_name\": {\"type\": \"str\"}}`)",
-  "- `dynamic_properties`: Runtime-configurable properties (usually `{}`)",
-  "- `sync_mode`: `\"on_any\"` | `\"on_all\"` (default: `\"on_any\"`)",
+  "Node data fields: `properties`, `dynamic_outputs`, `dynamic_properties` (usually `{}`), `sync_mode` (`on_any`|`on_all`)",
   "",
-  "## ui_update_node_data Usage",
-  "Update an existing node's properties:",
-  "```json",
-  "ui_update_node_data(node_id=\"n1\", data={\"properties\": {\"prompt\": \"new prompt\"}})",
-  "```",
-  "- `node_id`: ID of the node to update",
-  "- `data`: Object with fields to update (e.g., `properties`, `dynamic_outputs`)",
+  "## Agent Node Reference",
+  "",
+  "Use the right agent for the task — do NOT use ad-hoc JSON or text parsing when a dedicated agent exists.",
+  "",
+  "### Core Agents (`nodetool.agents.*`)",
+  "",
+  "**Agent** (`nodetool.agents.Agent`): Full agentic loop with tool calling and streaming.",
+  "- Outputs: `text`, `chunk`, `thinking`, `audio`. Supports `dynamic_outputs` for tool subgraphs.",
+  "- Props: `model`, `prompt`, `system_prompt`, `tools`",
+  "- Use for: multi-step reasoning, tool use, complex tasks",
+  "",
+  "**Extractor** (`nodetool.agents.Extractor`): **Structured data extraction. Use instead of ad-hoc JSON parsing.**",
+  "- Define typed output schema via `dynamic_outputs`: `{\"name\": {\"type\": \"str\"}, \"price\": {\"type\": \"float\"}}`",
+  "- LLM outputs directly into typed fields — no parsing needed",
+  "- Props: `model`, `prompt`, `system_prompt`",
+  "- Use for: extracting structured fields from text, converting unstructured data to typed values",
+  "",
+  "**Classifier** (`nodetool.agents.Classifier`): Categorize text into predefined classes.",
+  "- Use for: sentiment, intent detection, categorization",
+  "",
+  "**Summarizer** (`nodetool.agents.Summarizer`): Summarize text with streaming output.",
+  "",
+  "**ResearchAgent** (`nodetool.agents.ResearchAgent`): Autonomous research with web tools and structured results.",
+  "- Props: `model`, `objective`, `tools`. Supports `dynamic_outputs`.",
+  "",
+  "### Specialized Tool Agents (`nodetool.agents.*`)",
+  "Each has bounded tools for a specific domain. Props: `model`, `prompt`, `timeout_seconds`.",
+  "- **BrowserAgent**: Web scraping, form filling, screenshots",
+  "- **ShellAgent**: Workspace shell commands",
+  "- **SQLiteAgent**: Database queries",
+  "- **FilesystemAgent**: File read/write/listing",
+  "- **HttpApiAgent**: REST API calls",
+  "- **DocumentAgent / DocxAgent / PdfLibAgent / PptxAgent / SpreadsheetAgent**: Document processing",
+  "- **EmailAgent**: Email operations",
+  "- **FfmpegAgent**: Audio/video encoding",
+  "- **GitAgent**: Version control",
+  "- **ImageAgent / MediaAgent**: Image and media processing",
+  "- **VectorStoreAgent**: Vector DB and RAG",
+  "- **YtDlpDownloaderAgent**: Video/audio download",
+  "",
+  "### Team Orchestration (`nodetool.team.*`)",
+  "**TeamLead**: Orchestrates multiple agents. Props: `objective`, `strategy` (coordinator|autonomous|hybrid).",
+  "**Team Agent**: Worker in a team. Props: `name`, `role`, `skills`, `model`, `tools`.",
+  "",
+  "### External Agents",
+  "**ClaudeAgent** (`anthropic.agents.ClaudeAgent`): Claude SDK with sandboxed tool execution.",
+  "**RealtimeAgent** (`openai.agents.RealtimeAgent`): Low-latency streaming with audio I/O.",
+  "",
+  "### Decision Guide",
+  "| Need | Use |",
+  "|------|-----|",
+  "| Extract typed fields from text | **Extractor** with `dynamic_outputs` |",
+  "| Classify/categorize | **Classifier** |",
+  "| Summarize | **Summarizer** |",
+  "| Multi-step reasoning with tools | **Agent** with `dynamic_outputs` |",
+  "| Web research | **ResearchAgent** |",
+  "| Domain-specific (files, DB, browser…) | Matching **ToolAgent** |",
+  "| Coordinate multiple agents | **TeamLead** + **Team Agents** |",
+  "| Real-time audio | **RealtimeAgent** |",
   "",
   "## Data Types",
   "Primitives: str, int, float, bool, list, dict",
   "Assets: `{\"type\": \"image|audio|video|document\", \"uri\": \"...\"}`",
   "",
+  "## Namespaces",
+  "nodetool.{agents, audio, constants, image, input, list, output, dictionary, generators, data, text, code, control, video}, lib.*",
+  "",
   "## Special Nodes",
-  "- Prefer `nodetool.output.Output` when final output type is unknown or mixed (`value` accepts any type).",
-  "- Treat input/output/utility node names as discoverable metadata, not hardcoded constants.",
-  "- If a node lookup returns no results, try a broader query (e.g., `output`, `input`, `preview`) and select from returned `node_type` values only.",
-  "If workflow context is provided, use exact `workflow_id`, `thread_id`, node IDs, and handles—never invent them."
+  "- Prefer `nodetool.output.Output` when final type is unknown/mixed.",
+  "- If node lookup returns no results, try a broader query and select from returned `node_type` values only.",
+  "- If workflow context is provided, use exact IDs and handles — never invent them.",
 ].join("\n");
 
-const CODEX_SYSTEM_PROMPT = [
-  "You are a Nodetool assistant operating through Codex app-server.",
-  "- Use only tools that are actually available in this Codex session.",
-  "- Workflows in this environment are managed entirely via UI tools (`ui_*`), not files.",
-  "- For workflow creation/edits, perform tool calls to modify the graph directly.",
-  "- Never create or edit workflow files (JSON/YAML/Python) as a substitute for UI tool actions.",
-  "- If a required UI tool is missing from the manifest, ask a concise blocking question instead of generating file-based workflow output.",
-  "- Keep responses concise and actionable.",
-].join("\n");
-
-const FAST_WORKFLOW_SYSTEM_PROMPT = [
-  "You are a Nodetool workflow assistant.",
-  "Use only frontend UI tools from this session manifest (`ui_*`).",
-  "",
-  "Hard constraints:",
-  "- Never call MCP tools, shell/command tools, Todo tools, or file-editing tools.",
-  "- Never claim UI tools are unavailable if any `ui_*` tool exists in manifest.",
-  "- Do not explain plans between each tool call; execute directly and summarize only at the end.",
-  "",
-  "For workflow-edit requests, use this minimal sequence:",
-  "1. `ui_search_nodes` once per required node type (include booleans as true/false, not strings).",
-  "2. `ui_add_node` for required nodes.",
-  "3. `ui_connect_nodes` with verified handle names.",
-  "4. `ui_get_graph` once to verify final state.",
-  "",
-  "Efficiency rules:",
-  "- Avoid repeated identical searches.",
-  "- If first search result clearly matches, use it; do not run extra exploratory searches.",
-  "- If blocked, ask one concise clarification question and stop.",
-  "",
-  "Response style:",
-  "- Very short bullet points.",
-  "- Include exactly what nodes/connections were changed.",
-].join("\n");
 
 const CLAUDE_DISALLOWED_TOOLS = [
   "Bash",
@@ -307,27 +212,6 @@ const CLAUDE_DISALLOWED_TOOLS = [
   "TaskOutput",
 ];
 
-function buildMcpServer(
-  webContents: WebContents,
-  sessionId: string,
-): ReturnType<typeof createSdkMcpServer> {
-  const mcpTools = Object.entries(uiToolSchemas).map(([name, schema]) =>
-    tool(name, schema.description, schema.parameters, async (args) => {
-      const result = await executeFrontendTool(
-        webContents,
-        sessionId,
-        randomUUID(),
-        name,
-        args,
-      );
-      const text =
-        typeof result === "string" ? result : JSON.stringify(result ?? null);
-      return { content: [{ type: "text" as const, text }] };
-    }),
-  );
-
-  return createSdkMcpServer({ name: "nodetool-ui", version: "1.0.0", tools: mcpTools });
-}
 
 function convertSdkMessage(
   msg: { type: string; [key: string]: unknown },
@@ -434,19 +318,23 @@ class ClaudeAgentSession implements AgentQuerySession {
   private readonly model: string;
   private readonly workspacePath: string;
   private readonly systemPrompt: string;
+  private readonly maxTurns: number;
   private resolvedSessionId: string | null;
   private inFlight = false;
   private activeQuery: Query | null = null;
+  private mcpServerUrl: string | null = null;
 
   constructor(options: {
     model: string;
     workspacePath: string;
     resumeSessionId?: string;
     systemPrompt?: string;
+    maxTurns?: number;
   }) {
     this.model = options.model;
     this.workspacePath = options.workspacePath;
-    this.systemPrompt = options.systemPrompt ?? FAST_WORKFLOW_SYSTEM_PROMPT;
+    this.systemPrompt = options.systemPrompt ?? SYSTEM_PROMPT;
+    this.maxTurns = options.maxTurns ?? 50;
     this.resolvedSessionId = options.resumeSessionId ?? null;
   }
 
@@ -467,11 +355,17 @@ class ClaudeAgentSession implements AgentQuerySession {
     this.inFlight = true;
 
     try {
-      const mcpServer = webContents
-        ? buildMcpServer(webContents, sessionId)
-        : undefined;
+      // Start or reuse the HTTP MCP tool server if renderer is available
+      if (webContents && !this.mcpServerUrl) {
+        const { startMcpToolServer } = await import("./mcpToolServer");
+        this.mcpServerUrl = await startMcpToolServer(webContents);
+      } else if (webContents) {
+        const { setMcpToolServerWebContents } = await import("./mcpToolServer");
+        setMcpToolServerWebContents(webContents);
+      }
 
-      const allowedTools = mcpServer
+      const hasMcp = Boolean(this.mcpServerUrl);
+      const allowedTools = hasMcp
         ? Object.keys(uiToolSchemas).map((n) => `mcp__nodetool-ui__${n}`)
         : [];
 
@@ -489,8 +383,12 @@ class ClaudeAgentSession implements AgentQuerySession {
           allowDangerouslySkipPermissions: true,
           disallowedTools: CLAUDE_DISALLOWED_TOOLS,
           allowedTools,
-          maxTurns: 50,
-          ...(mcpServer && { mcpServers: { "nodetool-ui": mcpServer } }),
+          maxTurns: this.maxTurns,
+          ...(this.mcpServerUrl && {
+            mcpServers: {
+              "nodetool-ui": { type: "http" as const, url: this.mcpServerUrl },
+            },
+          }),
           ...(this.resolvedSessionId && { resume: this.resolvedSessionId }),
         },
       });
@@ -572,6 +470,7 @@ class ClaudeCliSession {
   private readonly model: string;
   private readonly workspacePath: string;
   private readonly systemPrompt: string;
+  private readonly maxTurns: number;
   private inFlight = false;
   private activeProcess: ChildProcessWithoutNullStreams | null = null;
   private interruptRequested = false;
@@ -581,10 +480,12 @@ class ClaudeCliSession {
     workspacePath: string;
     resumeSessionId?: string;
     systemPrompt?: string;
+    maxTurns?: number;
   }) {
     this.model = options.model;
     this.workspacePath = options.workspacePath;
-    this.systemPrompt = options.systemPrompt ?? FAST_WORKFLOW_SYSTEM_PROMPT;
+    this.systemPrompt = options.systemPrompt ?? SYSTEM_PROMPT;
+    this.maxTurns = options.maxTurns ?? 50;
     this.resolvedSessionId = options.resumeSessionId ?? null;
   }
 
@@ -1099,27 +1000,216 @@ interface AgentQuerySession {
   close(): void;
 }
 
+/**
+ * Provider interface for agent SDKs (Claude, Codex, etc.).
+ * Each provider implements session creation, model listing, and transcript access.
+ */
+export interface AgentSdkProvider {
+  readonly name: string;
+
+  /** Return available models for this provider. */
+  listModels(workspacePath?: string): Promise<AgentModelDescriptor[]>;
+
+  /** Create a new query session. */
+  createSession(options: {
+    model: string;
+    workspacePath: string;
+    resumeSessionId?: string;
+    systemPrompt?: string;
+    modelParams?: AgentModelParams;
+  }): AgentQuerySession;
+
+  /** List previous sessions from provider storage. Returns empty if unsupported. */
+  listSessions(options: AgentListSessionsRequest): Promise<AgentSessionInfoEntry[]>;
+
+  /** Load conversation transcript for a session. Returns empty if unsupported. */
+  getSessionMessages(options: AgentGetSessionMessagesRequest): Promise<AgentTranscriptMessage[]>;
+}
+
+// ---------------------------------------------------------------------------
+// Claude provider
+// ---------------------------------------------------------------------------
+
+const DEFAULT_CLAUDE_MODELS: AgentModelDescriptor[] = [
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", isDefault: true, provider: "claude", supportsMaxTurns: true },
+  { id: "claude-opus-4-6", label: "Claude Opus 4.6", provider: "claude", supportsMaxTurns: true },
+  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", provider: "claude", supportsMaxTurns: true },
+];
+
+class ClaudeSdkProvider implements AgentSdkProvider {
+  readonly name = "claude";
+
+  async listModels(): Promise<AgentModelDescriptor[]> {
+    return DEFAULT_CLAUDE_MODELS;
+  }
+
+  createSession(options: {
+    model: string;
+    workspacePath: string;
+    resumeSessionId?: string;
+    systemPrompt?: string;
+    modelParams?: AgentModelParams;
+  }): AgentQuerySession {
+    const useCliAgent = process.env.NODETOOL_AGENT_USE_CLI === "1";
+    const systemPrompt = options.systemPrompt ?? SYSTEM_PROMPT;
+
+    if (useCliAgent) {
+      return new ClaudeCliSession({ ...options, systemPrompt, maxTurns: options.modelParams?.maxTurns });
+    }
+    return new ClaudeAgentSession({ ...options, systemPrompt, maxTurns: options.modelParams?.maxTurns });
+  }
+
+  async listSessions(options: AgentListSessionsRequest): Promise<AgentSessionInfoEntry[]> {
+    try {
+      const sdkSessions: SDKSessionInfo[] = await listSessions({
+        dir: options.dir,
+        limit: options.limit ?? 50,
+        offset: options.offset ?? 0,
+      });
+
+      return sdkSessions.map((s) => ({
+        sessionId: s.sessionId,
+        summary: s.summary,
+        lastModified: s.lastModified,
+        cwd: s.cwd,
+        gitBranch: s.gitBranch,
+        customTitle: s.customTitle,
+        firstPrompt: s.firstPrompt,
+        createdAt: s.createdAt,
+        provider: "claude" as const,
+      }));
+    } catch (error) {
+      logMessage(`Failed to list Claude sessions: ${error}`, "error");
+      return [];
+    }
+  }
+
+  async getSessionMessages(options: AgentGetSessionMessagesRequest): Promise<AgentTranscriptMessage[]> {
+    try {
+      const sdkMessages: SessionMessage[] = await getSessionMessages(
+        options.sessionId,
+        { dir: options.dir },
+      );
+
+      return sdkMessages
+        .filter((m) => m.type === "user" || m.type === "assistant")
+        .map((m) => {
+          const msg = m.message as Record<string, unknown>;
+          let textContent = "";
+
+          if (typeof msg.content === "string") {
+            textContent = msg.content;
+          } else if (Array.isArray(msg.content)) {
+            textContent = (msg.content as Array<Record<string, unknown>>)
+              .filter((block) => block.type === "text" && typeof block.text === "string")
+              .map((block) => block.text as string)
+              .join("\n");
+          }
+
+          return {
+            type: m.type as "user" | "assistant",
+            uuid: m.uuid,
+            session_id: m.session_id,
+            text: textContent,
+          };
+        })
+        .filter((m) => m.text.length > 0);
+    } catch (error) {
+      logMessage(`Failed to get Claude session messages: ${error}`, "error");
+      return [];
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Codex provider
+// ---------------------------------------------------------------------------
+
+class CodexSdkProvider implements AgentSdkProvider {
+  readonly name = "codex";
+
+  async listModels(): Promise<AgentModelDescriptor[]> {
+    return listCodexModels();
+  }
+
+  createSession(options: {
+    model: string;
+    workspacePath: string;
+    resumeSessionId?: string;
+    systemPrompt?: string;
+    modelParams?: AgentModelParams;
+  }): AgentQuerySession {
+    return new CodexQuerySession({
+      ...options,
+      systemPrompt: options.systemPrompt ?? SYSTEM_PROMPT,
+      reasoningEffort: options.modelParams?.reasoningEffort,
+    });
+  }
+
+  async listSessions(): Promise<AgentSessionInfoEntry[]> {
+    // Codex SDK does not support session listing yet
+    return [];
+  }
+
+  async getSessionMessages(): Promise<AgentTranscriptMessage[]> {
+    // Codex SDK does not support transcript retrieval yet
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// OpenCode provider
+// ---------------------------------------------------------------------------
+
+class OpenCodeSdkProvider implements AgentSdkProvider {
+  readonly name = "opencode";
+
+  async listModels(): Promise<AgentModelDescriptor[]> {
+    return listOpenCodeModels();
+  }
+
+  createSession(options: {
+    model: string;
+    workspacePath: string;
+    resumeSessionId?: string;
+    systemPrompt?: string;
+    modelParams?: AgentModelParams;
+  }): AgentQuerySession {
+    return new OpenCodeQuerySession({
+      ...options,
+      systemPrompt: options.systemPrompt ?? SYSTEM_PROMPT,
+    });
+  }
+
+  async listSessions(options: AgentListSessionsRequest): Promise<AgentSessionInfoEntry[]> {
+    return listOpenCodeSessions(options);
+  }
+
+  async getSessionMessages(options: AgentGetSessionMessagesRequest): Promise<AgentTranscriptMessage[]> {
+    return getOpenCodeSessionMessages(options);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Provider registry
+// ---------------------------------------------------------------------------
+
+const providers: Record<string, AgentSdkProvider> = {
+  claude: new ClaudeSdkProvider(),
+  codex: new CodexSdkProvider(),
+  opencode: new OpenCodeSdkProvider(),
+};
+
+function getProvider(name?: string): AgentSdkProvider {
+  return providers[name ?? "claude"] ?? providers.claude;
+}
+
 /** Active sessions indexed by session ID */
 const activeSessions = new Map<string, AgentQuerySession>();
 
 /** Counter for generating temporary session IDs before Claude Code assigns one */
 let sessionCounter = 0;
 const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
-const DEFAULT_CLAUDE_MODELS: AgentModelDescriptor[] = [
-  {
-    id: "claude-sonnet-4-6",
-    label: "Claude Sonnet 4.6",
-    isDefault: true,
-  },
-  {
-    id: "claude-opus-4-6",
-    label: "Claude Opus 4.6",
-  },
-  {
-    id: "claude-haiku-4-5",
-    label: "Claude Haiku 4.5",
-  },
-];
 
 async function requestRendererToolsEvent<T>(
   webContents: WebContents,
@@ -1250,7 +1340,7 @@ async function executeFrontendTool(
 }
 
 /**
- * Create a new Claude Agent SDK session.
+ * Create a new agent session via the appropriate provider.
  * Returns the session ID.
  */
 export async function createAgentSession(
@@ -1258,7 +1348,7 @@ export async function createAgentSession(
 ): Promise<string> {
   if (!options.resumeSessionId && !options.workspacePath) {
     throw new Error(
-      "workspacePath is required when creating a new Claude Agent session",
+      "workspacePath is required when creating a new agent session",
     );
   }
 
@@ -1266,45 +1356,22 @@ export async function createAgentSession(
     throw new Error("workspacePath is required");
   }
 
-  const tempId = `claude-session-${++sessionCounter}`;
-  const provider: AgentProvider = options.provider ?? "claude";
+  const provider = getProvider(options.provider);
+  const tempId = `${provider.name}-session-${++sessionCounter}`;
   const sessionMode = options.resumeSessionId ? "resuming" : "creating";
   logMessage(
-    `${sessionMode} ${provider} agent session with model: ${options.model} (workspace: ${options.workspacePath})`,
+    `${sessionMode} ${provider.name} agent session with model: ${options.model} (workspace: ${options.workspacePath})`,
   );
 
-  const useCliAgent = process.env.NODETOOL_AGENT_USE_CLI === "1";
-
-  const session: AgentQuerySession =
-    provider === "codex"
-      ? new CodexQuerySession({
-          model: options.model,
-          workspacePath: options.workspacePath,
-          resumeSessionId: options.resumeSessionId,
-          systemPrompt: CODEX_SYSTEM_PROMPT,
-        })
-      : useCliAgent
-        ? new ClaudeCliSession({
-            model: options.model,
-            workspacePath: options.workspacePath,
-            resumeSessionId: options.resumeSessionId,
-            systemPrompt:
-              process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
-                ? HELP_SYSTEM_PROMPT
-                : FAST_WORKFLOW_SYSTEM_PROMPT,
-          })
-        : new ClaudeAgentSession({
-            model: options.model,
-            workspacePath: options.workspacePath,
-            resumeSessionId: options.resumeSessionId,
-            systemPrompt:
-              process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
-                ? HELP_SYSTEM_PROMPT
-                : FAST_WORKFLOW_SYSTEM_PROMPT,
-          });
+  const session = provider.createSession({
+    model: options.model,
+    workspacePath: options.workspacePath,
+    resumeSessionId: options.resumeSessionId,
+    modelParams: options.modelParams,
+  });
 
   activeSessions.set(tempId, session);
-  logMessage(`${provider} agent session created: ${tempId}`);
+  logMessage(`${provider.name} agent session created: ${tempId}`);
   return tempId;
 }
 
@@ -1350,7 +1417,11 @@ export async function sendAgentMessageStreaming(
     throw new Error(`No active Claude Agent session with ID: ${sessionId}`);
   }
 
-  logMessage(`Sending message to Claude Agent session ${sessionId} (streaming)`);
+  logMessage(`Sending message to agent session ${sessionId} (streaming)`);
+
+  // Ensure MCP tool server is running for this renderer
+  const { startMcpToolServer } = await import("./mcpToolServer");
+  await startMcpToolServer(webContents);
 
   const frontendTools = await getFrontendToolsManifest(webContents, sessionId);
 
@@ -1414,31 +1485,52 @@ export function closeAgentSession(sessionId: string): void {
 export function closeAllAgentSessions(): void {
   const uniqueSessions = new Set(activeSessions.values());
   for (const session of uniqueSessions) {
-    logMessage("Closing Claude Agent session on shutdown");
+    logMessage("Closing agent session on shutdown");
     session.close();
   }
   activeSessions.clear();
+  closeOpenCodeServer();
+
+  // Stop MCP tool server
+  import("./mcpToolServer").then(({ stopMcpToolServer }) => stopMcpToolServer()).catch(() => {});
 }
 
 export async function listAgentModels(
   options: AgentModelsRequest,
 ): Promise<AgentModelDescriptor[]> {
-  const provider: AgentProvider = options.provider ?? "claude";
-  if (provider === "codex") {
-    const workspacePath = options.workspacePath || process.cwd();
-    try {
-      return await listCodexModels(workspacePath);
-    } catch (error) {
-      logMessage(`Failed to list Codex models: ${error}`, "warn");
-      return [
-        {
-          id: "gpt-5.3-codex",
-          label: "gpt-5.3-codex",
-          isDefault: true,
-        },
-      ];
+  const provider = getProvider(options.provider);
+  return provider.listModels(options.workspacePath);
+}
+
+/**
+ * List sessions from provider storage.
+ */
+export async function listAgentSessions(
+  options: AgentListSessionsRequest,
+): Promise<AgentSessionInfoEntry[]> {
+  if (options.provider) {
+    const provider = getProvider(options.provider);
+    return provider.listSessions(options);
+  }
+  // Query all providers and merge results
+  const results = await Promise.all(
+    Object.values(providers).map((p) => p.listSessions(options)),
+  );
+  return results.flat();
+}
+
+/**
+ * Load conversation transcript for a session.
+ * Tries each provider until one returns results.
+ */
+export async function getAgentSessionMessages(
+  options: AgentGetSessionMessagesRequest,
+): Promise<AgentTranscriptMessage[]> {
+  for (const provider of Object.values(providers)) {
+    const messages = await provider.getSessionMessages(options);
+    if (messages.length > 0) {
+      return messages;
     }
   }
-
-  return DEFAULT_CLAUDE_MODELS;
+  return [];
 }

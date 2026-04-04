@@ -260,6 +260,8 @@ declare global {
         ) => Promise<AgentMessage[]>;
         stopExecution: (sessionId: string) => Promise<void>;
         closeSession: (sessionId: string) => Promise<void>;
+        listSessions: (options?: AgentListSessionsRequest) => Promise<AgentSessionInfoEntry[]>;
+        getSessionMessages: (options: AgentGetSessionMessagesRequest) => Promise<AgentTranscriptMessage[]>;
       };
     };
 
@@ -595,6 +597,9 @@ export enum IpcChannels {
   AGENT_SEND_MESSAGE = "agent-send-message",
   AGENT_STOP_EXECUTION = "agent-stop-execution",
   AGENT_CLOSE_SESSION = "agent-close-session",
+  AGENT_LIST_SESSIONS = "agent-list-sessions",
+  AGENT_GET_SESSION_MESSAGES = "agent-get-session-messages",
+  AGENT_START_MCP_SERVER = "agent-start-mcp-server",
   // Claude Agent SDK streaming event (sent from main to renderer)
   AGENT_STREAM_MESSAGE = "agent-stream-message",
   // Frontend tools channels
@@ -781,6 +786,9 @@ export interface IpcRequest {
   [IpcChannels.AGENT_SEND_MESSAGE]: AgentSendRequest;
   [IpcChannels.AGENT_STOP_EXECUTION]: string; // sessionId
   [IpcChannels.AGENT_CLOSE_SESSION]: string; // sessionId
+  [IpcChannels.AGENT_LIST_SESSIONS]: AgentListSessionsRequest;
+  [IpcChannels.AGENT_GET_SESSION_MESSAGES]: AgentGetSessionMessagesRequest;
+  [IpcChannels.AGENT_START_MCP_SERVER]: void;
   // Frontend tools
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolsGetManifestRequest;
   [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallRequest;
@@ -889,6 +897,9 @@ export interface IpcResponse {
   [IpcChannels.AGENT_SEND_MESSAGE]: AgentMessage[];
   [IpcChannels.AGENT_STOP_EXECUTION]: void;
   [IpcChannels.AGENT_CLOSE_SESSION]: void;
+  [IpcChannels.AGENT_LIST_SESSIONS]: AgentSessionInfoEntry[];
+  [IpcChannels.AGENT_GET_SESSION_MESSAGES]: AgentTranscriptMessage[];
+  [IpcChannels.AGENT_START_MCP_SERVER]: string; // URL
   // Frontend tools
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolManifest[];
   [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallResponse;
@@ -1029,14 +1040,29 @@ export interface AgentSessionOptions {
   model: string;
   workspacePath?: string;
   resumeSessionId?: string;
+  modelParams?: AgentModelParams;
 }
 
-export type AgentProvider = "claude" | "codex";
+export type AgentProvider = "claude" | "codex" | "opencode";
 
 export interface AgentModelDescriptor {
   id: string;
   label: string;
   isDefault?: boolean;
+  /** Provider that owns this model */
+  provider?: AgentProvider;
+  /** Supports adjustable reasoning effort (Codex) */
+  supportsReasoningEffort?: boolean;
+  /** Supports max turns setting */
+  supportsMaxTurns?: boolean;
+}
+
+/** Runtime parameters for an agent session */
+export interface AgentModelParams {
+  /** Max agentic turns before stopping */
+  maxTurns?: number;
+  /** Reasoning effort level (Codex only) */
+  reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh";
 }
 
 export interface AgentModelsRequest {
@@ -1047,6 +1073,39 @@ export interface AgentModelsRequest {
 export interface AgentSendRequest {
   sessionId: string;
   message: string;
+}
+
+export interface AgentListSessionsRequest {
+  dir?: string;
+  limit?: number;
+  offset?: number;
+  /** When set, only query this provider. Otherwise queries all providers. */
+  provider?: AgentProvider;
+}
+
+export interface AgentSessionInfoEntry {
+  sessionId: string;
+  summary: string;
+  lastModified: number;
+  cwd?: string;
+  gitBranch?: string;
+  customTitle?: string;
+  firstPrompt?: string;
+  createdAt?: number;
+  /** Which provider owns this session */
+  provider?: AgentProvider;
+}
+
+export interface AgentGetSessionMessagesRequest {
+  sessionId: string;
+  dir?: string;
+}
+
+export interface AgentTranscriptMessage {
+  type: "user" | "assistant";
+  uuid: string;
+  session_id: string;
+  text: string;
 }
 
 // Frontend tools types

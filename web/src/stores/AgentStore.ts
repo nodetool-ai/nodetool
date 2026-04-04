@@ -24,11 +24,14 @@ import {
 import "../lib/tools/frontendToolsIpc";
 import log from "loglevel";
 
-export type AgentProvider = "claude" | "codex";
+export type AgentProvider = "claude" | "codex" | "opencode";
 export interface AgentModelDescriptor {
   id: string;
   label: string;
   isDefault?: boolean;
+  provider?: AgentProvider;
+  supportsReasoningEffort?: boolean;
+  supportsMaxTurns?: boolean;
 }
 
 export type AgentStatus =
@@ -47,6 +50,7 @@ export interface AgentSessionHistoryEntry {
   workspaceId?: string;
   createdAt: string;
   lastUsedAt: string;
+  summary?: string;
 }
 
 interface AgentState {
@@ -111,6 +115,8 @@ interface AgentState {
   setProvider: (provider: AgentProvider) => void;
   /** Load models for current provider/workspace */
   loadModels: () => Promise<void>;
+  /** Load previous sessions from the Claude Agent SDK */
+  loadSessions: () => Promise<void>;
 }
 
 /**
@@ -205,6 +211,8 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
   setProvider: (provider: AgentProvider) => {
     set({ provider });
+    // Reload models for the new provider
+    void get().loadModels();
   },
 
   loadModels: async () => {
@@ -571,8 +579,33 @@ const useAgentStore = create<AgentState>((set, get) => ({
         log.error("Failed to close Claude Agent session:", err);
       });
     }
+
+    // Load transcript from SDK if not already cached in memory
+    let cachedMessages = sessionMessages[targetSessionId];
+    if ((!cachedMessages || cachedMessages.length === 0) && window.api?.agent?.getSessionMessages) {
+      try {
+        const transcript = await window.api.agent.getSessionMessages({
+          sessionId: targetSessionId,
+          dir: target.workspacePath || undefined,
+        });
+        cachedMessages = transcript.map((m) => ({
+          type: "message" as const,
+          id: m.uuid,
+          role: m.type === "user" ? ("user" as const) : ("assistant" as const),
+          content: [{ type: "text" as const, text: m.text }],
+          created_at: new Date().toISOString(),
+          thread_id: m.session_id,
+          provider: "anthropic",
+          model: "claude-agent",
+        }));
+      } catch (err) {
+        log.error("Failed to load session transcript:", err);
+        cachedMessages = [];
+      }
+    }
+
     set({
-      messages: sessionMessages[targetSessionId] ?? [],
+      messages: cachedMessages ?? [],
       sessionId: null,
       error: null,
       status: "disconnected",
@@ -594,6 +627,40 @@ const useAgentStore = create<AgentState>((set, get) => ({
       workspaceId: target.workspaceId,
       resumeSessionId: targetSessionId
     });
+  },
+
+  loadSessions: async () => {
+    if (!isAgentAvailable() || !window.api.agent?.listSessions) {
+      return;
+    }
+
+    try {
+      const sdkSessions = await window.api.agent.listSessions({ limit: 50 });
+      const { sessionHistory } = get();
+
+      const entries: AgentSessionHistoryEntry[] = sdkSessions.map((s) => ({
+        id: s.sessionId,
+        provider: (s.provider ?? "claude") as AgentProvider,
+        model: "",
+        workspacePath: s.cwd ?? "",
+        createdAt: s.createdAt
+          ? new Date(s.createdAt).toISOString()
+          : new Date(s.lastModified).toISOString(),
+        lastUsedAt: new Date(s.lastModified).toISOString(),
+        summary: s.customTitle || s.summary || s.firstPrompt,
+      }));
+
+      // Merge: keep any in-memory entries that are active, add SDK entries
+      const activeIds = new Set(sessionHistory.map((e) => e.id));
+      const merged = [
+        ...sessionHistory,
+        ...entries.filter((e) => !activeIds.has(e.id)),
+      ].slice(0, 50);
+
+      set({ sessionHistory: merged });
+    } catch (error) {
+      log.error("Failed to load sessions from SDK:", error);
+    }
   }
 }));
 

@@ -430,6 +430,13 @@ app.on("ready", async () => {
       }
 
       await initialize();
+
+      // Start the MCP tool server so all agent providers can use UI tools
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        import("./mcpToolServer")
+          .then(({ startMcpToolServer }) => startMcpToolServer(mainWindow!.webContents))
+          .catch((err) => logMessage(`Failed to start MCP tool server: ${err}`, "warn"));
+      }
     }
   });
 });
