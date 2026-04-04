@@ -4,56 +4,76 @@
  * WebGPU implementation of the SketchRuntime interface.
  * Manages GPU device/context, layer textures, and compositing.
  *
- * Layer content is still authored on CPU Canvas2D (Phase 2 scope).
- * The runtime uploads dirty layer canvases to GPU textures, then
- * composites them on the GPU for display.
+ * Phase 3: WebGPU is the primary document renderer. All 12 blend modes are
+ * supported via a custom blend-composite shader. Layer transforms (translate,
+ * scale, rotation) are handled via an inverse affine matrix in the shader.
+ * Device loss triggers automatic fallback to Canvas2D.
  *
- * Readback (flatten / mask export) goes: GPU texture → CPU canvas → data URL
- * via the same Canvas2DRuntime helpers (kept as a readback fallback).
+ * Layer content is still authored on CPU Canvas2D. The runtime uploads dirty
+ * layer canvases to GPU textures, then composites them on the GPU for display.
+ *
+ * Readback (flatten / mask export) goes through Canvas2DRuntime helpers.
  */
 
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
-  type BlendMode,
+  type Layer,
   type LayerContentBounds,
   type Selection,
   type SketchDocument
 } from "../types";
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
-import { blendModeToComposite, checkerboardDocumentCellPx } from "../drawingUtils";
+import { checkerboardDocumentCellPx } from "../drawingUtils";
 import { getLayerCompositeOffset } from "../painting/layerBounds";
 import { drawStrokeBufferForDisplayWithSelectionFeather } from "../selection/selectionMask";
 import {
   FULLSCREEN_QUAD_VERTEX,
   CHECKERBOARD_FRAGMENT,
   LAYER_COMPOSITE_FRAGMENT,
+  BLEND_COMPOSITE_FRAGMENT,
+  BLIT_FRAGMENT,
   BORDER_FRAGMENT
 } from "./shaders";
 
-// ─── Blend mode → GPUBlendState mapping ──────────────────────────────────
+// ─── Blend mode ID mapping (must match shader switch cases) ──────────────
 
-function blendModeToGPUBlend(mode: BlendMode | string): GPUBlendState {
-  // Uploaded layer/stroke textures come from Canvas2D sources and are treated
-  // here as straight-alpha samples. Use a standard source-over blend so both
-  // partially transparent fills and live brush previews stay visible.
-  switch (mode) {
-    case "normal":
-    default:
-      return {
-        color: {
-          srcFactor: "src-alpha",
-          dstFactor: "one-minus-src-alpha",
-          operation: "add"
-        },
-        alpha: {
-          srcFactor: "one",
-          dstFactor: "one-minus-src-alpha",
-          operation: "add"
-        }
-      };
+const BLEND_MODE_ID: Record<string, number> = {
+  "normal": 0,
+  "multiply": 1,
+  "screen": 2,
+  "overlay": 3,
+  "darken": 4,
+  "lighten": 5,
+  "color-dodge": 6,
+  "color-burn": 7,
+  "hard-light": 8,
+  "soft-light": 9,
+  "difference": 10,
+  "exclusion": 11
+};
+
+/** Hardware source-over blend for normal blend mode (fast path). */
+const SOURCE_OVER_BLEND: GPUBlendState = {
+  color: {
+    srcFactor: "src-alpha",
+    dstFactor: "one-minus-src-alpha",
+    operation: "add"
+  },
+  alpha: {
+    srcFactor: "one",
+    dstFactor: "one-minus-src-alpha",
+    operation: "add"
   }
+};
+
+// ─── Inverse affine matrix type ──────────────────────────────────────────
+
+/** 2×3 affine matrix mapping screen pixels → layer texels. */
+interface InverseAffine {
+  a: number; b: number; tx: number;
+  c: number; d: number; ty: number;
 }
 
 // ─── WebGPURuntime ───────────────────────────────────────────────────────
@@ -73,8 +93,26 @@ export class WebGPURuntime implements SketchRuntime {
   private checkerboardBindGroupLayout: GPUBindGroupLayout | null = null;
   private layerPipeline: GPURenderPipeline | null = null;
   private layerBindGroupLayout: GPUBindGroupLayout | null = null;
+  /** Pipeline for non-normal blend modes (shader-based compositing). */
+  private blendPipeline: GPURenderPipeline | null = null;
+  private blendBindGroupLayout: GPUBindGroupLayout | null = null;
+  /** Pipeline for blitting composite texture → swap chain. */
+  private blitPipeline: GPURenderPipeline | null = null;
+  private blitBindGroupLayout: GPUBindGroupLayout | null = null;
   private borderPipeline: GPURenderPipeline | null = null;
   private borderBindGroupLayout: GPUBindGroupLayout | null = null;
+
+  // ── Intermediate compositing textures (ping-pong pair) ─────────────
+  /**
+   * Two textures that alternate between "read" (source for blend shader)
+   * and "write" (render target). After each layer, the roles swap.
+   * This avoids reading and writing the same texture in one pass.
+   */
+  private pingPongA: GPUTexture | null = null;
+  private pingPongB: GPUTexture | null = null;
+  /** Cached size of the ping-pong textures. */
+  private pingPongWidth = 0;
+  private pingPongHeight = 0;
 
   // ── Layer textures ───────────────────────────────────────────────────
   private layerTextures = new Map<string, GPUTexture>();
@@ -83,6 +121,12 @@ export class WebGPURuntime implements SketchRuntime {
   private strokeMergeCpuCanvas: HTMLCanvasElement | null = null;
   private strokeMergeTexture: GPUTexture | null = null;
   private strokeMaskScratchCanvas: HTMLCanvasElement | null = null;
+
+  // ── FX evaluation ────────────────────────────────────────────────────
+  /** Temp canvas for FX-evaluated layer content (reused across layers within a frame). */
+  private fxTempCanvas: HTMLCanvasElement | null = null;
+  /** Temp GPU texture for uploading FX-evaluated layer content. */
+  private fxTempTexture: GPUTexture | null = null;
 
   // ── CPU-side fallback for readback & layer pixel ops ─────────────────
   private cpuRuntime: Canvas2DRuntime;
@@ -98,14 +142,28 @@ export class WebGPURuntime implements SketchRuntime {
   /** Layers whose CPU canvas changed and need re-upload to GPU. */
   private dirtyLayers = new Set<string>();
 
+  // ── Device loss ──────────────────────────────────────────────────────
+  private _deviceLost = false;
+  private _onDeviceLost?: () => void;
+
   constructor(
     device: GPUDevice,
-    layerCanvases?: Map<string, HTMLCanvasElement>
+    layerCanvases?: Map<string, HTMLCanvasElement>,
+    onDeviceLost?: () => void
   ) {
     this.device = device;
     this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     this.layerCanvases = layerCanvases ?? new Map();
     this.cpuRuntime = new Canvas2DRuntime(this.layerCanvases);
+    this._onDeviceLost = onDeviceLost;
+
+    // Register device loss handler
+    device.lost.then((info) => {
+      console.error("[WebGPU] Device lost:", info.message, info.reason);
+      this._deviceLost = true;
+      this._onDeviceLost?.();
+    });
+
     this.initPipelines();
   }
 
@@ -113,12 +171,6 @@ export class WebGPURuntime implements SketchRuntime {
 
   private initPipelines(): void {
     const device = this.device;
-
-    // Shared vertex shader module
-    const vertexModule = device.createShaderModule({
-      label: "fullscreen-quad-vert",
-      code: FULLSCREEN_QUAD_VERTEX
-    });
 
     // ── Checkerboard ───────────────────────────────────────────────────
     const checkerboardModule = device.createShaderModule({
@@ -154,7 +206,7 @@ export class WebGPURuntime implements SketchRuntime {
       primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
     });
 
-    // ── Layer composite ────────────────────────────────────────────────
+    // ── Layer composite (normal blend — hardware source-over) ──────────
     const layerModule = device.createShaderModule({
       label: "layer-composite-frag",
       code: FULLSCREEN_QUAD_VERTEX + LAYER_COMPOSITE_FRAGMENT
@@ -191,9 +243,92 @@ export class WebGPURuntime implements SketchRuntime {
         targets: [
           {
             format: this.presentationFormat,
-            blend: blendModeToGPUBlend("normal")
+            blend: SOURCE_OVER_BLEND
           }
         ]
+      },
+      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
+    });
+
+    // ── Blend composite (non-normal blend modes — shader compositing) ──
+    const blendModule = device.createShaderModule({
+      label: "blend-composite-frag",
+      code: FULLSCREEN_QUAD_VERTEX + BLEND_COMPOSITE_FRAGMENT
+    });
+
+    this.blendBindGroupLayout = device.createBindGroupLayout({
+      label: "blend-bgl",
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: { type: "uniform" }
+        },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" }
+        },
+        {
+          binding: 2,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" }
+        }
+      ]
+    });
+
+    this.blendPipeline = device.createRenderPipeline({
+      label: "blend-pipeline",
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [this.blendBindGroupLayout]
+      }),
+      vertex: {
+        module: blendModule,
+        entryPoint: "vs_main"
+      },
+      fragment: {
+        module: blendModule,
+        entryPoint: "fs_blend",
+        targets: [
+          {
+            // No hardware blending — shader handles full compositing
+            format: this.presentationFormat
+          }
+        ]
+      },
+      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
+    });
+
+    // ── Blit (composite texture → swap chain) ──────────────────────────
+    const blitModule = device.createShaderModule({
+      label: "blit-frag",
+      code: FULLSCREEN_QUAD_VERTEX + BLIT_FRAGMENT
+    });
+
+    this.blitBindGroupLayout = device.createBindGroupLayout({
+      label: "blit-bgl",
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" }
+        }
+      ]
+    });
+
+    this.blitPipeline = device.createRenderPipeline({
+      label: "blit-pipeline",
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [this.blitBindGroupLayout]
+      }),
+      vertex: {
+        module: blitModule,
+        entryPoint: "vs_main"
+      },
+      fragment: {
+        module: blitModule,
+        entryPoint: "fs_blit",
+        targets: [{ format: this.presentationFormat }]
       },
       primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
     });
@@ -230,7 +365,7 @@ export class WebGPURuntime implements SketchRuntime {
         targets: [
           {
             format: this.presentationFormat,
-            blend: blendModeToGPUBlend("normal")
+            blend: SOURCE_OVER_BLEND
           }
         ]
       },
@@ -269,6 +404,52 @@ export class WebGPURuntime implements SketchRuntime {
     });
     this.configuredCanvasPixelWidth = w;
     this.configuredCanvasPixelHeight = h;
+
+    // Recreate intermediate compositing textures at the new size
+    this.ensureCompositeTextures(w, h);
+  }
+
+  /**
+   * Ensure ping-pong compositing textures exist at the given size.
+   * Both textures need identical usages since they alternate roles.
+   */
+  private ensureCompositeTextures(width: number, height: number): void {
+    if (
+      this.pingPongA &&
+      this.pingPongWidth === width &&
+      this.pingPongHeight === height
+    ) {
+      return;
+    }
+    const safeW = Math.max(1, width);
+    const safeH = Math.max(1, height);
+
+    // Destroy old textures
+    this.pingPongA?.destroy();
+    this.pingPongB?.destroy();
+
+    const usage =
+      GPUTextureUsage.RENDER_ATTACHMENT |
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_SRC |
+      GPUTextureUsage.COPY_DST;
+
+    this.pingPongA = this.device.createTexture({
+      label: "ping-pong-A",
+      size: { width: safeW, height: safeH },
+      format: this.presentationFormat,
+      usage
+    });
+
+    this.pingPongB = this.device.createTexture({
+      label: "ping-pong-B",
+      size: { width: safeW, height: safeH },
+      format: this.presentationFormat,
+      usage
+    });
+
+    this.pingPongWidth = width;
+    this.pingPongHeight = height;
   }
 
   // ─── Layer texture management ────────────────────────────────────────
@@ -460,44 +641,56 @@ export class WebGPURuntime implements SketchRuntime {
     return this.strokeMergeTexture;
   }
 
-  // ─── SketchRuntime: Compositing ──────────────────────────────────────
+  // ─── SketchRuntime: Compositing (ping-pong architecture) ──────────────
+  //
+  // Every layer is composited via a shader that reads both the current
+  // composite ("read" texture) and the layer texture, applies the blend
+  // mode formula, and writes the result to the "write" texture. After each
+  // layer the two textures swap roles (ping-pong). This allows all 12
+  // Photoshop-style blend modes without any texture copies.
+  //
+  // Flow:
+  //   1. Draw checkerboard → pingPongA (becomes initial "read")
+  //   2. For each layer: blend shader reads "read" + layer → writes "write", swap
+  //   3. Draw border → current "read" (the final composite)
+  //   4. Blit current "read" → swap chain
 
   compositeToDisplay(
     targetCanvas: HTMLCanvasElement,
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
     activeStroke: ActiveStrokeInfo | null,
-    dirtyRect?: DirtyRect | null
+    _dirtyRect?: DirtyRect | null
   ): void {
-    // Ensure context is configured for this canvas
-    this.configureContext(targetCanvas);
-    if (!this.context) {
+    // Guard against device loss
+    if (this._deviceLost) {
       return;
     }
 
-    // Upload CPU canvas → GPU texture for any layer that is dirty or whose
-    // texture doesn't exist yet (handles initial sync after the WebGPU runtime
-    // takes over from Canvas2DRuntime). "Full redraw" controls compositing
-    // scope (full canvas vs. dirty rect clip), not upload scope — we never
-    // need to re-upload unchanged layers just because the clip region changed.
+    this.configureContext(targetCanvas);
+    if (!this.context || !this.pingPongA || !this.pingPongB) {
+      return;
+    }
+
     this.syncLayerTextures();
 
     const device = this.device;
-    const textureView = this.context.getCurrentTexture().createView();
-
-    const encoder = device.createCommandEncoder({
-      label: "composite-frame"
-    });
+    const swapChainView = this.context.getCurrentTexture().createView();
+    const encoder = device.createCommandEncoder({ label: "composite-frame" });
 
     const fullW = targetCanvas.width;
     const fullH = targetCanvas.height;
 
-    // ── Pass 1: Checkerboard background ───────────────────────────────
+    // Ping-pong state: readTex is the current composite, writeTex is the target.
+    let readTex = this.pingPongA;
+    let writeTex = this.pingPongB;
+
+    // ── Pass 1: Checkerboard → readTex ────────────────────────────────
     {
       const pass = encoder.beginRenderPass({
         colorAttachments: [
           {
-            view: textureView,
+            view: readTex.createView(),
             clearValue: { r: 0, g: 0, b: 0, a: 1 },
             loadOp: "clear",
             storeOp: "store"
@@ -506,23 +699,11 @@ export class WebGPURuntime implements SketchRuntime {
       });
 
       if (this.checkerboardPipeline && this.checkerboardBindGroupLayout) {
-        // Checkerboard uniforms: canvasSize, cellSize, pad, colorA, colorB
-        // Integer document cell size (see checkerboardDocumentCellPx) so GPU
-        // tiles match Canvas2D and stay even under CSS scale + pixelated view.
         const effectiveCell = checkerboardDocumentCellPx(this.zoom);
         const uniformData = new Float32Array([
-          fullW,
-          fullH,
-          effectiveCell,
-          0.0, // canvasSize, cellSize, pad
-          0x2a / 255,
-          0x2a / 255,
-          0x2a / 255,
-          1.0, // colorA (#2a2a2a)
-          0x3a / 255,
-          0x3a / 255,
-          0x3a / 255,
-          1.0 // colorB (#3a3a3a)
+          fullW, fullH, effectiveCell, 0.0,
+          0x2a / 255, 0x2a / 255, 0x2a / 255, 1.0,
+          0x3a / 255, 0x3a / 255, 0x3a / 255, 1.0
         ]);
         const uniformBuffer = device.createBuffer({
           size: uniformData.byteLength,
@@ -543,7 +724,7 @@ export class WebGPURuntime implements SketchRuntime {
       pass.end();
     }
 
-    // ── Pass 2: Layer compositing ─────────────────────────────────────
+    // ── Pass 2: Layer compositing (ping-pong) ─────────────────────────
     const mergeTex =
       activeStroke != null ? this.uploadStrokeMergePreview(activeStroke) : null;
 
@@ -558,37 +739,57 @@ export class WebGPURuntime implements SketchRuntime {
         continue;
       }
 
-      const layerTexture = this.layerTextures.get(layer.id);
-      if (!layerTexture) {
+      // Determine source texture (stroke merge preview, FX-evaluated, or raw layer)
+      let srcTex = this.layerTextures.get(layer.id);
+      if (!srcTex) {
         continue;
       }
-      const drawTex =
-        mergeTex != null &&
-        activeStroke != null &&
-        layer.id === activeStroke.layerId
-          ? mergeTex
-          : layerTexture;
+
+      // Stroke merge preview overrides the layer texture for the active stroke layer
+      if (mergeTex && activeStroke && layer.id === activeStroke.layerId) {
+        srcTex = mergeTex;
+      }
+
+      // FX evaluation: if the layer has enabled effects, evaluate on CPU and upload
+      if (layer.effects && layer.effects.some((e) => e.enabled)) {
+        const cpuCanvas = this.layerCanvases.get(layer.id);
+        if (cpuCanvas) {
+          const effected = this.cpuRuntime.evaluateLayerEffects(
+            layer.id, cpuCanvas, layer.effects
+          );
+          if (effected !== cpuCanvas) {
+            srcTex = this.uploadFxTempTexture(effected);
+          }
+        }
+      }
+
       const opacityScale = getAncestorGroupOpacityProduct(
-        doc.layers,
-        layer,
-        isolatedLayerId
+        doc.layers, layer, isolatedLayerId
       );
-      this.compositeLayerGPU(
-        encoder,
-        textureView,
-        { ...layer, opacity: layer.opacity * opacityScale },
-        fullW,
-        fullH,
-        drawTex
+      const finalOpacity = layer.opacity * opacityScale;
+      const blendModeId = BLEND_MODE_ID[layer.blendMode || "normal"] ?? 0;
+
+      // Compute inverse affine transform: screen pixel → layer texel
+      const invAffine = this.computeInverseAffine(layer, srcTex.width, srcTex.height);
+
+      // Render blend pass: reads readTex (dst) + srcTex (layer) → writes writeTex
+      this.renderBlendPass(
+        encoder, readTex, writeTex, srcTex,
+        finalOpacity, blendModeId, fullW, fullH, invAffine
       );
+
+      // Swap ping-pong roles
+      const tmp = readTex;
+      readTex = writeTex;
+      writeTex = tmp;
     }
 
-    // ── Pass 3: Border ────────────────────────────────────────────────
-    if (!dirtyRect && this.borderPipeline && this.borderBindGroupLayout) {
+    // ── Pass 3: Border → readTex (current composite) ──────────────────
+    if (this.borderPipeline && this.borderBindGroupLayout) {
       const pass = encoder.beginRenderPass({
         colorAttachments: [
           {
-            view: textureView,
+            view: readTex.createView(),
             loadOp: "load",
             storeOp: "store"
           }
@@ -596,14 +797,8 @@ export class WebGPURuntime implements SketchRuntime {
       });
 
       const borderData = new Float32Array([
-        fullW,
-        fullH,
-        1.0,
-        0.0, // canvasSize, lineWidth, pad
-        1.0,
-        1.0,
-        1.0,
-        0.25 // color (rgba)
+        fullW, fullH, 1.0, 0.0,
+        1.0, 1.0, 1.0, 0.25
       ]);
       const borderBuffer = device.createBuffer({
         size: borderData.byteLength,
@@ -622,76 +817,61 @@ export class WebGPURuntime implements SketchRuntime {
       pass.end();
     }
 
+    // ── Pass 4: Blit readTex → swap chain ─────────────────────────────
+    if (this.blitPipeline && this.blitBindGroupLayout) {
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: swapChainView,
+            loadOp: "clear",
+            storeOp: "store"
+          }
+        ]
+      });
+
+      const bindGroup = device.createBindGroup({
+        layout: this.blitBindGroupLayout,
+        entries: [
+          { binding: 0, resource: readTex.createView() }
+        ]
+      });
+
+      pass.setPipeline(this.blitPipeline);
+      pass.setBindGroup(0, bindGroup);
+      pass.draw(4);
+      pass.end();
+    }
+
     device.queue.submit([encoder.finish()]);
   }
 
-  private compositeLayerGPU(
+  // ─── Ping-pong blend pass ───────────────────────────────────────────
+
+  /**
+   * Render one layer blend pass. Reads `readTex` (current composite) and
+   * `srcTex` (layer), writes the blended result to `writeTex`.
+   * The shader writes every pixel (fullscreen quad), so loadOp is irrelevant.
+   */
+  private renderBlendPass(
     encoder: GPUCommandEncoder,
-    textureView: GPUTextureView,
-    layer: {
-      id: string;
-      opacity: number;
-      blendMode?: BlendMode | string;
-      transform?: { x?: number; y?: number };
-      contentBounds?: { x?: number; y?: number; width?: number; height?: number };
-    },
+    readTex: GPUTexture,
+    writeTex: GPUTexture,
+    srcTex: GPUTexture,
+    opacity: number,
+    blendModeId: number,
     canvasW: number,
     canvasH: number,
-    sourceTexture?: GPUTexture
+    invAffine: InverseAffine
   ): void {
-    if (!this.layerPipeline || !this.layerBindGroupLayout) {
+    if (!this.blendPipeline || !this.blendBindGroupLayout) {
       return;
     }
 
-    const layerTexture = sourceTexture ?? this.layerTextures.get(layer.id);
-    if (!layerTexture) {
-      return;
-    }
-
-    const compositeOffset = getLayerCompositeOffset(layer, {
-      width: layerTexture.width,
-      height: layerTexture.height
-    }, this.layerCanvases.get(layer.id));
-    this.drawTextureGPU(
-      encoder,
-      textureView,
-      layerTexture,
-      layer.opacity,
-      compositeOffset.x,
-      compositeOffset.y,
-      canvasW,
-      canvasH
-    );
-  }
-
-  private drawTextureGPU(
-    encoder: GPUCommandEncoder,
-    textureView: GPUTextureView,
-    texture: GPUTexture,
-    opacity: number,
-    tx: number,
-    ty: number,
-    canvasW: number,
-    canvasH: number
-  ): void {
-    if (!this.layerPipeline || !this.layerBindGroupLayout) {
-      return;
-    }
-
-    const scaleU = canvasW / texture.width;
-    const scaleV = canvasH / texture.height;
-    // Uniforms:
-    // params0 = [opacity, offsetU, offsetV, pad]
-    // params1 = [canvasW / textureW, canvasH / textureH, pad, pad]
+    // Uniforms: params0 + invRow0 + invRow1 = 3 × vec4f = 48 bytes
     const uniformData = new Float32Array([
-      opacity,
-      tx / canvasW,
-      ty / canvasH,
-      0.0,
-      scaleU,
-      scaleV,
-      0.0,
-      0.0
+      opacity, blendModeId, canvasW, canvasH,
+      invAffine.a, invAffine.b, invAffine.tx, 0.0,
+      invAffine.c, invAffine.d, invAffine.ty, 0.0
     ]);
     const uniformBuffer = this.device.createBuffer({
       size: uniformData.byteLength,
@@ -700,27 +880,114 @@ export class WebGPURuntime implements SketchRuntime {
     this.device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
     const bindGroup = this.device.createBindGroup({
-      layout: this.layerBindGroupLayout,
+      layout: this.blendBindGroupLayout,
       entries: [
         { binding: 0, resource: { buffer: uniformBuffer } },
-        { binding: 1, resource: texture.createView() }
+        { binding: 1, resource: srcTex.createView() },
+        { binding: 2, resource: readTex.createView() }
       ]
     });
 
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
-          view: textureView,
-          loadOp: "load",
+          view: writeTex.createView(),
+          loadOp: "clear",
           storeOp: "store"
         }
       ]
     });
 
-    pass.setPipeline(this.layerPipeline);
+    pass.setPipeline(this.blendPipeline);
     pass.setBindGroup(0, bindGroup);
     pass.draw(4);
     pass.end();
+  }
+
+  // ─── Inverse affine transform computation ───────────────────────────
+
+  /**
+   * Compute the inverse affine matrix that maps screen pixels → layer texels.
+   *
+   * Forward transform (texel → screen):
+   *   1. Center texel at origin: p - (texW/2, texH/2)
+   *   2. Scale: × (scaleX, scaleY)
+   *   3. Rotate: × R(rotation)
+   *   4. Translate to screen: + compositeCenter
+   *
+   * This method returns the inverse of that transform.
+   */
+  private computeInverseAffine(
+    layer: Pick<Layer, "transform" | "contentBounds">,
+    texW: number,
+    texH: number
+  ): InverseAffine {
+    const compositeOffset = getLayerCompositeOffset(
+      layer,
+      { width: texW, height: texH },
+      this.layerCanvases.get((layer as Layer).id)
+    );
+
+    const sx = layer.transform?.scaleX ?? 1;
+    const sy = layer.transform?.scaleY ?? 1;
+    const rot = layer.transform?.rotation ?? 0;
+
+    // For no transform, return simple translation
+    if (sx === 1 && sy === 1 && rot === 0) {
+      return {
+        a: 1, b: 0, tx: -compositeOffset.x,
+        c: 0, d: 1, ty: -compositeOffset.y
+      };
+    }
+
+    // Center of the layer in screen space
+    const csx = compositeOffset.x + texW / 2;
+    const csy = compositeOffset.y + texH / 2;
+
+    // Inverse rotation + scale: S^-1 × R^-1
+    const cosR = Math.cos(rot);
+    const sinR = Math.sin(rot);
+    const a = cosR / sx;
+    const b = sinR / sx;
+    const c = -sinR / sy;
+    const d = cosR / sy;
+
+    return {
+      a, b,
+      tx: -a * csx - b * csy + texW / 2,
+      c, d,
+      ty: -c * csx - d * csy + texH / 2
+    };
+  }
+
+  /**
+   * Upload an FX-evaluated canvas to a temporary GPU texture for compositing.
+   * Reuses the texture across layers within the same frame.
+   */
+  private uploadFxTempTexture(canvas: HTMLCanvasElement): GPUTexture {
+    const w = canvas.width;
+    const h = canvas.height;
+    if (
+      !this.fxTempTexture ||
+      this.fxTempTexture.width !== w ||
+      this.fxTempTexture.height !== h
+    ) {
+      this.fxTempTexture?.destroy();
+      this.fxTempTexture = this.device.createTexture({
+        label: "fx-temp",
+        size: { width: Math.max(1, w), height: Math.max(1, h) },
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      });
+    }
+    if (canvas.getContext("2d")) {
+      this.device.queue.copyExternalImageToTexture(
+        { source: canvas, flipY: false },
+        { texture: this.fxTempTexture },
+        { width: w, height: h }
+      );
+    }
+    return this.fxTempTexture;
   }
 
   // ─── SketchRuntime: Readback / export ────────────────────────────────
@@ -926,6 +1193,13 @@ export class WebGPURuntime implements SketchRuntime {
     }
     this.strokeMergeCpuCanvas = null;
     this.strokeMaskScratchCanvas = null;
+    this.pingPongA?.destroy();
+    this.pingPongA = null;
+    this.pingPongB?.destroy();
+    this.pingPongB = null;
+    this.fxTempTexture?.destroy();
+    this.fxTempTexture = null;
+    this.fxTempCanvas = null;
     this.cpuRuntime.dispose();
     this.dirtyLayers.clear();
     this.context = null;

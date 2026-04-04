@@ -127,7 +127,25 @@ export function useCompositing({
   useEffect(() => {
     let cancelled = false;
 
-    createRuntime(layerCanvasesRef.current).then(({ runtime: newRuntime, backend: newBackend }) => {
+    // Device-loss handler: fall back to Canvas2D if the WebGPU device is lost
+    // (e.g. driver crash, tab backgrounded on some platforms, GPU memory pressure).
+    const handleDeviceLost = () => {
+      if (cancelled) {
+        return;
+      }
+      console.warn("[Sketch] WebGPU device lost — falling back to Canvas2D");
+      const fallback = new Canvas2DRuntime(layerCanvasesRef.current);
+      runtimeRef.current = fallback;
+      setBackend("canvas2d");
+      // Schedule a redraw on the next frame so the Canvas2D runtime composites
+      requestAnimationFrame(() => {
+        if (!cancelled) {
+          requestRedraw();
+        }
+      });
+    };
+
+    createRuntime(layerCanvasesRef.current, handleDeviceLost).then(({ runtime: newRuntime, backend: newBackend }) => {
       if (cancelled) {
         // Don't dispose: Canvas2DRuntime.dispose() clears the shared layerCanvases map.
         void newRuntime;
