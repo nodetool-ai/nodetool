@@ -28,7 +28,7 @@ export class MoveTool implements ToolHandler {
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
     const { doc } = ctx;
-    let activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+    const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
     if (!activeLayer) {
       return false;
     }

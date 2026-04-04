@@ -129,6 +129,7 @@ export function getSamService(backend?: "fal" | "node"): SamService {
   } else {
     // Node-based execution. Falls back to stub if SamServiceNode can't be loaded.
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { SamServiceNode } = require("./SamServiceNode");
       newService = new SamServiceNode();
     } catch {

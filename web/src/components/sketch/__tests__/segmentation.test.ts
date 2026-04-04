@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Segmentation feature tests.
  *
@@ -26,9 +27,6 @@ import {
 } from "../types";
 import type {
   SegmentSettings,
-  SegmentPointPrompt,
-  SegmentBoxPrompt,
-  SegmentationMask,
   SegmentationResult,
   SegmentationStatus,
   SegmentPromptMode,
@@ -38,13 +36,13 @@ import type {
 } from "../types";
 import { SegmentTool } from "../tools/SegmentTool";
 import { getToolHandler } from "../tools";
+import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import { SamServiceStub, getSamService, setSamService, SamServiceFal } from "../sam";
 import {
   getMaskOverlayColor,
   getMaskOutlineColor,
   generateSegmentationRunId
 } from "../sam";
-import type { SamModelInfo } from "../sam";
 import { getToolSettingsLabel } from "../ToolSettingsPanels";
 import { useSketchStore } from "../state";
 
@@ -164,8 +162,7 @@ function makeToolContext(overrides?: Record<string, unknown>) {
     withMirror: jest.fn(),
     clipSelectionForOffset: jest.fn(),
     ...overrides
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
+  } as unknown as ToolContext;
 }
 
 function makePointerEvent(overrides?: Record<string, unknown>) {
@@ -183,8 +180,7 @@ function makePointerEvent(overrides?: Record<string, unknown>) {
       stopPropagation: jest.fn()
     },
     ...overrides
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
+  } as unknown as ToolPointerEvent;
 }
 
 describe("SegmentTool", () => {
@@ -1202,7 +1198,6 @@ describe("Backend selection", () => {
     const doc = createDefaultDocument(64, 64);
     // Simulate an old document without backend field
     const oldToolSettings = { ...doc.toolSettings };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const oldSegment = { ...oldToolSettings.segment } as any;
     delete oldSegment.backend;
     oldToolSettings.segment = oldSegment;

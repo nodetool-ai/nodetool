@@ -10,7 +10,6 @@ import type {
   EraserSettings,
   EraserMode,
   PenPressureSettings,
-  StrokeAssistSettings,
   SegmentationLayerMeta
 } from "./tools";
 import {

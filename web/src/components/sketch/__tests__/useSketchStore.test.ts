@@ -5,6 +5,7 @@
 import { act } from "@testing-library/react";
 import { useSketchStore, SKETCH_ZOOM_MAX } from "../state/useSketchStore";
 import { createDefaultDocument } from "../types";
+import type { SketchTool } from "../types";
 
 // Reset store before each test
 beforeEach(() => {
@@ -678,8 +679,7 @@ describe("useSketchStore", () => {
       const shapeTools = ["line", "rectangle", "ellipse", "arrow"] as const;
       for (const tool of shapeTools) {
         act(() => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          useSketchStore.getState().setActiveTool(tool as any);
+          useSketchStore.getState().setActiveTool(tool as unknown as SketchTool);
         });
         expect(useSketchStore.getState().activeTool).toBe(tool);
       }

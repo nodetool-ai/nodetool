@@ -6,7 +6,6 @@ import { useSketchStore } from "../state/useSketchStore";
 import {
   DEFAULT_CLONE_STAMP_SETTINGS,
   DEFAULT_TOOL_SETTINGS,
-  CloneStampSettings,
   createDefaultDocument,
   normalizeSketchDocument,
   isPaintingTool,

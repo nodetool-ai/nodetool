@@ -29,7 +29,7 @@ const SAM2_ENDPOINT = "fal-ai/sam2/image";
 export const MAX_INFERENCE_DIMENSION = 2048;
 
 /** Maximum time to wait for inline execution before timing out (ms). */
-const EXECUTION_TIMEOUT_MS = 120_000;
+const _EXECUTION_TIMEOUT_MS = 120_000;
 
 /** Polling interval for queue status (ms). */
 const QUEUE_POLL_INTERVAL_MS = 1000;

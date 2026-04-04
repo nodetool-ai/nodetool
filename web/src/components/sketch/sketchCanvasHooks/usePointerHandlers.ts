@@ -28,7 +28,6 @@ import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
 import type { SelectionMoveAntsRef, GizmoDrawCallback } from "./useOverlayRenderer";
 import {
-  useSketchStore,
   SKETCH_ZOOM_MAX,
   SKETCH_ZOOM_MIN
 } from "../state/useSketchStore";
@@ -213,9 +212,9 @@ export function usePointerHandlers({
 
   // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
-  const paintStrokeHasMovedRef = useRef(false);
-  const lastPointRef = useRef<Point | null>(null);
-  const lastSmoothedPointRef = useRef<Point | null>(null);
+  const _paintStrokeHasMovedRef = useRef(false);
+  const _lastPointRef = useRef<Point | null>(null);
+  const _lastSmoothedPointRef = useRef<Point | null>(null);
   const isPanningRef = useRef(false);
   const isSpacePanningRef = useRef(false);
   const panStartRef = useRef<Point>({ x: 0, y: 0 });

@@ -91,7 +91,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   const draggingSv = useRef(false);
 
   const svToColor = useCallback((clientX: number, clientY: number) => {
-    if (!svBoxRef.current) return;
+    if (!svBoxRef.current) { return; }
     const rect = svBoxRef.current.getBoundingClientRect();
     const s = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const v = Math.max(0, Math.min(1, 1 - (clientY - rect.top) / rect.height));
@@ -106,8 +106,8 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   }, [svToColor]);
 
   useEffect(() => {
-    if (!open) return;
-    const onMove = (e: MouseEvent) => { if (draggingSv.current) svToColor(e.clientX, e.clientY); };
+    if (!open) { return; }
+    const onMove = (e: MouseEvent) => { if (draggingSv.current) { svToColor(e.clientX, e.clientY); } };
     const onUp = () => { draggingSv.current = false; };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);

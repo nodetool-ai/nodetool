@@ -69,7 +69,7 @@ export function usePointerHandlerUtils({
   zoom,
   displayCanvasRef,
   overlayCanvasRef,
-  activeStrokeRef,
+  activeStrokeRef: _activeStrokeRef,
   mirrorX,
   mirrorY,
   symmetryMode,
