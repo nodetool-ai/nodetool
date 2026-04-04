@@ -5,6 +5,8 @@ export {
   ForEachNode,
   CollectNode,
   RerouteNode,
+  SwitchNode,
+  TryCatchNode,
   CONTROL_NODES
 } from "./nodes/control.js";
 export {
@@ -51,6 +53,13 @@ export {
   LoadTextAssetsNode,
   FilterStringNode,
   FilterRegexStringNode,
+  ConcatTextNode,
+  JoinTextNode,
+  CollectTextNode,
+  FormatTextNode,
+  TemplateTextNode,
+  ReplaceTextNode,
+  ToStringNode,
   TEXT_EXTRA_NODES
 } from "./nodes/text-extra.js";
 export {
@@ -185,6 +194,7 @@ export {
   FillNANode,
   SaveCSVDataframeFileNode,
   FilterNoneNode,
+  DescribeNode,
   DATA_NODES
 } from "./nodes/data.js";
 export {
@@ -235,6 +245,7 @@ export {
   ConcatAudioListNode,
   TextToSpeechNode,
   ChunkToAudioNode,
+  GetAudioInfoNode,
   AUDIO_NODES
 } from "./nodes/audio.js";
 export {
@@ -259,6 +270,8 @@ export {
   ResizeNode,
   CropNode,
   FitNode,
+  RotateNode,
+  FlipNode,
   TextToImageNode,
   ImageToImageNode,
   IMAGE_NODES

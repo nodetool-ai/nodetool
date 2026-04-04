@@ -1230,6 +1230,107 @@ export class ImageToImageNode extends BaseNode {
   }
 }
 
+export class RotateNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Rotate";
+  static readonly title = "Rotate";
+  static readonly description =
+    "Rotate an image by a specified angle in degrees.\n    image, rotate, angle, transform, orientation";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to rotate."
+  })
+  declare image: any;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Angle",
+    description: "Rotation angle in degrees (clockwise).",
+    min: -360,
+    max: 360
+  })
+  declare angle: any;
+
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Expand",
+    description: "If true, expand the output to fit the rotated image."
+  })
+  declare expand: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const angle = Number(this.angle ?? 0);
+    if (angle === 0) {
+      const bytes = await imageBytesAsync(image);
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      };
+    }
+    return transformImage(image, (instance) =>
+      instance.rotate(angle, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    );
+  }
+}
+
+export class FlipNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Flip";
+  static readonly title = "Flip";
+  static readonly description =
+    "Flip an image horizontally or vertically.\n    image, flip, mirror, horizontal, vertical, transform";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to flip."
+  })
+  declare image: any;
+
+  @prop({
+    type: "str",
+    default: "horizontal",
+    title: "Direction",
+    description: "Flip direction.",
+    values: ["horizontal", "vertical"]
+  })
+  declare direction: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const direction = String(this.direction ?? "horizontal");
+    return transformImage(image, (instance) =>
+      direction === "vertical" ? instance.flip() : instance.flop()
+    );
+  }
+}
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -1244,6 +1345,8 @@ export const IMAGE_NODES = [
   ResizeNode,
   CropNode,
   FitNode,
+  RotateNode,
+  FlipNode,
   TextToImageNode,
   ImageToImageNode
 ] as const;

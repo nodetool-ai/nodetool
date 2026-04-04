@@ -2041,6 +2041,204 @@ export class FilterRegexStringNode extends BaseNode {
   }
 }
 
+export class ConcatTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.Concat";
+  static readonly title = "Concatenate Text";
+  static readonly description =
+    "Concatenates two text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  @prop({ type: "str", default: "", title: "A", description: "First text input." })
+  declare a: any;
+
+  @prop({ type: "str", default: "", title: "B", description: "Second text input." })
+  declare b: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: String(this.a ?? "") + String(this.b ?? "") };
+  }
+}
+
+export class JoinTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.Join";
+  static readonly title = "Join";
+  static readonly description =
+    "Joins a list of strings into a single string using a specified separator.\n    text, join, combine, concatenate, merge, list";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  @prop({
+    type: "list[str]",
+    default: [],
+    title: "Strings",
+    description: "The list of strings to join."
+  })
+  declare strings: any;
+
+  @prop({ type: "str", default: "", title: "Separator", description: "Separator between items." })
+  declare separator: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const list = Array.isArray(this.strings) ? this.strings : [];
+    const sep = String(this.separator ?? "");
+    return { output: list.map((s: unknown) => String(s ?? "")).join(sep) };
+  }
+}
+
+export class CollectTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.Collect";
+  static readonly title = "Collect Text";
+  static readonly description =
+    "Collects streaming text inputs into a single concatenated string.\n    text, collect, stream, aggregate";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  static readonly syncMode = "on_any" as const;
+
+  private _items: string[] = [];
+
+  @prop({ type: "str", default: "", title: "Input Item", description: "Text to collect." })
+  declare input_item: any;
+
+  @prop({ type: "str", default: "", title: "Separator", description: "Separator between collected items." })
+  declare separator: any;
+
+  async initialize(): Promise<void> {
+    this._items = [];
+  }
+
+  async process(): Promise<Record<string, unknown>> {
+    this._items.push(String(this.input_item ?? ""));
+    const sep = String(this.separator ?? "");
+    return { output: this._items.join(sep) };
+  }
+}
+
+export class FormatTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.FormatText";
+  static readonly title = "Format Text";
+  static readonly description =
+    "Replaces placeholders in a string with dynamic inputs using {{ variable }} or {variable} syntax.\n    text, template, formatting, format, variable, replace\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  static readonly isDynamic = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Template",
+    description: "Template string with {{ variable }} or {variable} placeholders."
+  })
+  declare template: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    let result = String(this.template ?? "");
+    const dynProps = (this as Record<string, unknown>)._dynamic_properties as
+      | Record<string, unknown>
+      | undefined;
+    const props: Record<string, unknown> = dynProps ? { ...dynProps } : {};
+
+    for (const [key, value] of Object.entries(props)) {
+      const strValue = String(value ?? "");
+      const jinja = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
+      result = result.replace(jinja, strValue);
+      const single = new RegExp(`(?<!\\{)\\{${key}\\}(?!\\})`, "g");
+      result = result.replace(single, strValue);
+    }
+    return { output: result };
+  }
+}
+
+export class TemplateTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.Template";
+  static readonly title = "Template";
+  static readonly description =
+    "Uses template syntax to format strings with variables. Supports {{ variable }} and {variable} patterns.\n    text, template, formatting, format, combine, concatenate, variable, replace\n\n    Use cases:\n    - Generating personalized messages\n    - Creating parameterized queries\n    - Formatting text with variable inputs";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  static readonly isDynamic = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "String",
+    description: "Template string with {{ variable }} or {variable} placeholders."
+  })
+  declare string: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    let result = String(this.string ?? "");
+    const dynProps = (this as Record<string, unknown>)._dynamic_properties as
+      | Record<string, unknown>
+      | undefined;
+    const props: Record<string, unknown> = dynProps ? { ...dynProps } : {};
+
+    for (const [key, value] of Object.entries(props)) {
+      const strValue = String(value ?? "");
+      const jinja = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
+      result = result.replace(jinja, strValue);
+      const single = new RegExp(`(?<!\\{)\\{${key}\\}(?!\\})`, "g");
+      result = result.replace(single, strValue);
+    }
+    return { output: result };
+  }
+}
+
+export class ReplaceTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.Replace";
+  static readonly title = "Replace Text";
+  static readonly description =
+    "Replaces a substring in a text with another substring.\n    text, replace, substitute\n\n    Use cases:\n    - Correcting or updating specific text patterns\n    - Sanitizing or normalizing text data\n    - Implementing simple text transformations";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  @prop({ type: "str", default: "", title: "Text", description: "The input text." })
+  declare text: any;
+
+  @prop({ type: "str", default: "", title: "Old", description: "Substring to find." })
+  declare old: any;
+
+  @prop({ type: "str", default: "", title: "New", description: "Replacement string." })
+  declare new_value: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? "");
+    const oldStr = String(this.old ?? "");
+    const newStr = String(this.new_value ?? "");
+    if (!oldStr) return { output: text };
+    return { output: text.split(oldStr).join(newStr) };
+  }
+}
+
+export class ToStringNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.ToString";
+  static readonly title = "To String";
+  static readonly description =
+    "Converts any input value to its string representation.\n    text, string, convert, repr, str, cast";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  @prop({ type: "any", default: "", title: "Value", description: "The value to convert to string." })
+  declare value: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const v = this.value;
+    if (v === null || v === undefined) return { output: "" };
+    if (typeof v === "object") return { output: JSON.stringify(v) };
+    return { output: String(v) };
+  }
+}
+
 export const TEXT_EXTRA_NODES = [
   SplitTextNode,
   ExtractTextNode,
@@ -2084,5 +2282,12 @@ export const TEXT_EXTRA_NODES = [
   LoadTextFolderNode,
   LoadTextAssetsNode,
   FilterStringNode,
-  FilterRegexStringNode
+  FilterRegexStringNode,
+  ConcatTextNode,
+  JoinTextNode,
+  CollectTextNode,
+  FormatTextNode,
+  TemplateTextNode,
+  ReplaceTextNode,
+  ToStringNode
 ] as const;

@@ -126,9 +126,101 @@ export class RerouteNode extends BaseNode {
   }
 }
 
+export class SwitchNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Switch";
+  static readonly title = "Switch";
+  static readonly description =
+    "Multi-branch routing: match a value against cases and route to the matching output.\n    control, switch, match, case, branch, route, multi-branch, flow-control\n\n    Use cases:\n    - Route data based on string/number matching\n    - Implement multi-way branching logic\n    - Replace chains of If nodes";
+  static readonly metadataOutputTypes = {
+    matched: "any",
+    default: "any",
+    index: "int"
+  };
+
+  @prop({
+    type: "any",
+    default: "",
+    title: "Value",
+    description: "The value to match against cases."
+  })
+  declare value: any;
+
+  @prop({
+    type: "list[any]",
+    default: [],
+    title: "Cases",
+    description: "List of values to match against. The first match wins."
+  })
+  declare cases: any;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input",
+    description: "The data to route to the matched output."
+  })
+  declare input: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.value;
+    const cases = Array.isArray(this.cases) ? this.cases : [];
+    const input = this.input ?? null;
+
+    for (let i = 0; i < cases.length; i++) {
+      if (String(value) === String(cases[i])) {
+        return { matched: input, default: null, index: i };
+      }
+    }
+    return { matched: null, default: input, index: -1 };
+  }
+}
+
+export class TryCatchNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.TryCatch";
+  static readonly title = "Try / Catch";
+  static readonly description =
+    "Error handling wrapper: passes the value through on success, or returns error info on failure.\n    control, error, try, catch, exception, handling, retry, flow-control\n\n    Use cases:\n    - Gracefully handle errors in workflows\n    - Provide fallback values when operations fail\n    - Log error details for debugging";
+  static readonly metadataOutputTypes = {
+    output: "any",
+    error: "str",
+    has_error: "bool"
+  };
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Value",
+    description: "The value to pass through. If this node receives an error signal, the fallback is used."
+  })
+  declare value: any;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Fallback",
+    description: "Value to return if an error occurs."
+  })
+  declare fallback: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    try {
+      const value = this.value;
+      if (value !== null && value !== undefined) {
+        return { output: value, error: "", has_error: false };
+      }
+      return { output: this.fallback ?? null, error: "Value is null or undefined", has_error: true };
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { output: this.fallback ?? null, error: message, has_error: true };
+    }
+  }
+}
+
 export const CONTROL_NODES = [
   IfNode,
   ForEachNode,
   CollectNode,
-  RerouteNode
+  RerouteNode,
+  SwitchNode,
+  TryCatchNode
 ] as const;

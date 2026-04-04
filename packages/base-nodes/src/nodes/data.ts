@@ -1505,6 +1505,76 @@ export class FilterNoneNode extends BaseNode {
   }
 }
 
+export class DescribeNode extends BaseNode {
+  static readonly nodeType = "nodetool.data.Describe";
+  static readonly title = "Describe";
+  static readonly description =
+    "Compute summary statistics for each numeric column: count, mean, std, min, 25%, 50%, 75%, max.\n    dataframe, statistics, describe, summary, stats, mean, std, min, max, quartile";
+  static readonly metadataOutputTypes = {
+    output: "dataframe"
+  };
+
+  @prop({
+    type: "dataframe",
+    default: { rows: [] },
+    title: "Dataframe",
+    description: "The dataframe to describe."
+  })
+  declare dataframe: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe);
+    if (rows.length === 0) return { output: toDataframe([]) };
+
+    const allKeys = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+    const numericCols = allKeys.filter((key) => {
+      const vals = rows.map((r) => r[key]).filter((v) => v != null && v !== "");
+      return vals.length > 0 && vals.every((v) => !Number.isNaN(Number(v)));
+    });
+
+    const statNames = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"];
+    const result: Row[] = statNames.map((stat) => {
+      const row: Row = { stat };
+      for (const col of numericCols) {
+        const values = rows
+          .map((r) => Number(r[col]))
+          .filter((n) => Number.isFinite(n))
+          .sort((a, b) => a - b);
+        const n = values.length;
+        const s = sum(values);
+        const m = n > 0 ? s / n : 0;
+        const variance = n > 0 ? values.reduce((acc, v) => acc + (v - m) ** 2, 0) / n : 0;
+
+        const percentile = (p: number): number => {
+          if (n === 0) return 0;
+          if (n === 1) return values[0];
+          const idx = (p / 100) * (n - 1);
+          const lo = Math.floor(idx);
+          const hi = Math.ceil(idx);
+          if (lo === hi) return values[lo];
+          return values[lo] + (values[hi] - values[lo]) * (idx - lo);
+        };
+
+        const round4 = (v: number): number => Math.round(v * 10000) / 10000;
+
+        switch (stat) {
+          case "count": row[col] = n; break;
+          case "mean": row[col] = round4(m); break;
+          case "std": row[col] = round4(Math.sqrt(variance)); break;
+          case "min": row[col] = n > 0 ? values[0] : 0; break;
+          case "25%": row[col] = round4(percentile(25)); break;
+          case "50%": row[col] = round4(percentile(50)); break;
+          case "75%": row[col] = round4(percentile(75)); break;
+          case "max": row[col] = n > 0 ? values[n - 1] : 0; break;
+        }
+      }
+      return row;
+    });
+
+    return { output: toDataframe(result) };
+  }
+}
+
 export const DATA_NODES = [
   SchemaNode,
   FilterDataframeNode,
@@ -1534,5 +1604,6 @@ export const DATA_NODES = [
   RenameNode,
   FillNANode,
   SaveCSVDataframeFileNode,
-  FilterNoneNode
+  FilterNoneNode,
+  DescribeNode
 ] as const;

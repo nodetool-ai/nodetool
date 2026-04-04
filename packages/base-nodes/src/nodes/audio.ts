@@ -1413,6 +1413,86 @@ export class ChunkToAudioNode extends BaseNode {
   }
 }
 
+export class GetAudioInfoNode extends BaseNode {
+  static readonly nodeType = "nodetool.audio.GetAudioInfo";
+  static readonly title = "Get Audio Info";
+  static readonly description =
+    "Extract metadata from an audio file: duration, sample rate, channels, format.\n    audio, info, metadata, duration, sample_rate, channels, format";
+  static readonly metadataOutputTypes = {
+    duration: "float",
+    sample_rate: "int",
+    channels: "int",
+    format: "str",
+    size_bytes: "int"
+  };
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The audio to inspect."
+  })
+  declare audio: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio);
+    if (bytes.length === 0) {
+      return { duration: 0, sample_rate: 0, channels: 0, format: "unknown", size_bytes: 0 };
+    }
+
+    let format = "unknown";
+    let sampleRate = 0;
+    let channels = 0;
+    let duration = 0;
+
+    if (bytes.length >= 44) {
+      const header = Buffer.from(bytes);
+      const riff = header.toString("ascii", 0, 4);
+      const wave = header.toString("ascii", 8, 12);
+      if (riff === "RIFF" && wave === "WAVE") {
+        format = "wav";
+        channels = header.readUInt16LE(22);
+        sampleRate = header.readUInt32LE(24);
+        const bitsPerSample = header.readUInt16LE(34);
+        const dataSize = header.readUInt32LE(40);
+        if (sampleRate > 0 && channels > 0 && bitsPerSample > 0) {
+          duration = dataSize / (sampleRate * channels * (bitsPerSample / 8));
+        }
+      }
+    }
+
+    if (format === "unknown" && bytes.length >= 4) {
+      if (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) {
+        format = "mp3";
+      } else if (
+        bytes[0] === 0x66 && bytes[1] === 0x4c &&
+        bytes[2] === 0x61 && bytes[3] === 0x43
+      ) {
+        format = "flac";
+      } else if (
+        bytes[0] === 0x4f && bytes[1] === 0x67 &&
+        bytes[2] === 0x67 && bytes[3] === 0x53
+      ) {
+        format = "ogg";
+      }
+    }
+
+    return {
+      duration: Math.round(duration * 1000) / 1000,
+      sample_rate: sampleRate,
+      channels,
+      format,
+      size_bytes: bytes.length
+    };
+  }
+}
+
 export const AUDIO_NODES = [
   LoadAudioAssetsNode,
   LoadAudioFileNode,
@@ -1438,5 +1518,6 @@ export const AUDIO_NODES = [
   ConcatAudioNode,
   ConcatAudioListNode,
   TextToSpeechNode,
-  ChunkToAudioNode
+  ChunkToAudioNode,
+  GetAudioInfoNode
 ] as const;
