@@ -22,7 +22,7 @@ import {
 import {
   drawSelectionMaskOutline,
   drawSelectionPolylineOutline,
-  ellipseSelectionMask,
+  drawSelectionEllipseOutline,
   marqueeRectFromDocPoints,
   rectSelectionMask,
   selectionHasAnyPixels
@@ -460,16 +460,13 @@ export function useOverlayRenderer({
       }
       const { x, y, w, h } = marqueeRectFromDocPoints(start, end);
       if (w >= 1 && h >= 1) {
-        const previewMask =
-          doc.toolSettings.select.mode === "ellipse"
-            ? ellipseSelectionMask(overlay.width, overlay.height, x, y, w, h)
-            : rectSelectionMask(overlay.width, overlay.height, x, y, w, h);
-        drawSelectionMaskOutline(
-          selCtx,
-          previewMask,
-          antsPhaseRef.current,
-          zoom
-        );
+        if (doc.toolSettings.select.mode === "ellipse") {
+          // Draw ellipse path directly so the preview is not clipped to canvas bounds.
+          drawSelectionEllipseOutline(selCtx, x, y, w, h, antsPhaseRef.current, zoom);
+        } else {
+          const previewMask = rectSelectionMask(overlay.width, overlay.height, x, y, w, h);
+          drawSelectionMaskOutline(selCtx, previewMask, antsPhaseRef.current, zoom);
+        }
       }
       selCtx.setTransform(1, 0, 0, 1, 0, 0);
     },

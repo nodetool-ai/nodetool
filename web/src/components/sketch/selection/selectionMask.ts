@@ -716,6 +716,37 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
 }
 
 /**
+ * Marching ants ellipse outline for live preview (not clipped to canvas).
+ * Draws directly as a canvas path so the ellipse can extend beyond document
+ * bounds — unlike ellipseSelectionMask which clips to canvas dimensions.
+ * Expects a context with a document→screen transform already applied.
+ */
+export function drawSelectionEllipseOutline(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  phase: number,
+  zoom = 1
+): void {
+  if (w < 1 || h < 1) {
+    return;
+  }
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const rx = w / 2;
+  const ry = h / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  strokeSoftOuterSelectionHalo(ctx, zoom);
+  const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
+  strokeDualAnts(ctx, dashLen, offset);
+  ctx.restore();
+}
+
+/**
  * Marching ants along an open polyline (lasso in progress).
  * Expects a context with a document→screen transform already applied so that
  * strokes render at screen resolution (~1px, ~2px when zoomed out), with a soft

@@ -135,12 +135,10 @@ export class MoveTool implements ToolHandler {
       };
       this.movePreviewTransform = previewTransform;
       this.movePreviewLayerId = layer.id;
-      // Live compositing preview (fast path, avoids full store update)
+      // Live compositing preview — fast path that avoids a store update + React
+      // re-render on every pointer-move event. The transform is committed to the
+      // store once on pointer-up via onLayerTransformChange.
       ctx.setLayerTransformPreview?.(layer.id, previewTransform);
-      // Also commit to the store so callers see updated transforms immediately
-      if (ctx.onLayerTransformChange) {
-        ctx.onLayerTransformChange(layer.id, previewTransform);
-      }
     }
   }
 

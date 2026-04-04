@@ -101,6 +101,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     onStrokeStart: jest.fn(),
     onStrokeEnd: jest.fn(),
     onLayerTransformChange: jest.fn(),
+    setLayerTransformPreview: jest.fn(),
     onLayerContentBoundsChange: jest.fn(),
     onBrushSizeChange: jest.fn(),
     onContextMenu: jest.fn(),
@@ -217,15 +218,17 @@ describe("MoveTool", () => {
     expect(ctx.onStrokeStart).toHaveBeenCalled();
   });
 
-  it("invokes onLayerTransformChange during move", () => {
+  it("invokes setLayerTransformPreview during move (not the store)", () => {
     const tool = new MoveTool();
     const ctx = makeToolContext();
     tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }));
     tool.onMove!(ctx, makePointerEvent({ point: { x: 20, y: 15 } }), []);
-    expect(ctx.onLayerTransformChange).toHaveBeenCalledWith(
+    expect(ctx.setLayerTransformPreview).toHaveBeenCalledWith(
       ctx.doc.activeLayerId,
       { x: 10, y: 5 }
     );
+    // Store must NOT be updated on every move — only on pointer-up.
+    expect(ctx.onLayerTransformChange).not.toHaveBeenCalled();
   });
 
   it("calls onStrokeEnd on pointer up", () => {

@@ -783,6 +783,29 @@ export function usePointerHandlers({
     ]
   );
 
+  // Redraw cursor immediately when brush/tool settings change so the brush ring
+  // updates without needing mouse movement (e.g. after slider change).
+  const ts = doc.toolSettings;
+  useEffect(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+    const mp = mousePositionRef.current;
+    drawCursorRef.current(mp.x + rect.left, mp.y + rect.top);
+  }, [
+    interactionTool,
+    ts.brush.size,
+    ts.brush.hardness,
+    ts.brush.roundness,
+    ts.brush.angle,
+    ts.brush.brushType,
+    ts.pencil.size,
+    ts.eraser.size,
+    ts.blur.size,
+    ts.cloneStamp.size,
+  ]);
+
   // Clear in-progress polygon when selection is cleared externally (e.g. Escape)
   useEffect(() => {
     if (!selection && lassoPointsRef.current.length > 0 && doc.toolSettings.select.mode === "lasso_polygon") {
