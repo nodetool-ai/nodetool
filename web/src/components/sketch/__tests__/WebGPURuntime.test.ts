@@ -5,6 +5,8 @@
  * - isWebGPUAvailable returns false in JSDOM
  * - createRuntime falls back to Canvas2D when WebGPU is unavailable
  * - WebGPURuntime class exists and has correct shape
+ * - Phase 3: createRuntime accepts onDeviceLost callback
+ * - Phase 3: evaluateLayerEffects exists on both runtime prototypes
  */
 
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
@@ -34,6 +36,15 @@ describe("WebGPU initialization", () => {
       expect(sharedMap.has("test")).toBe(true);
       runtime.dispose();
     });
+
+    it("accepts an onDeviceLost callback", async () => {
+      const onDeviceLost = jest.fn();
+      const { runtime, backend } = await createRuntime(undefined, onDeviceLost);
+      expect(backend).toBe("canvas2d");
+      // Canvas2D fallback doesn't call onDeviceLost (no GPU device)
+      expect(onDeviceLost).not.toHaveBeenCalled();
+      runtime.dispose();
+    });
   });
 
   describe("WebGPURuntime class shape", () => {
@@ -48,6 +59,7 @@ describe("WebGPU initialization", () => {
       expect(typeof proto.getOrCreateLayerCanvas).toBe("function");
       expect(typeof proto.getLayerCanvas).toBe("function");
       expect(typeof proto.deleteLayerCanvas).toBe("function");
+      expect(typeof proto.invalidateLayer).toBe("function");
       // Compositing
       expect(typeof proto.compositeToDisplay).toBe("function");
       // Readback
@@ -64,13 +76,109 @@ describe("WebGPU initialization", () => {
       expect(typeof proto.flipLayer).toBe("function");
       expect(typeof proto.fillLayerWithColor).toBe("function");
       expect(typeof proto.fillLayerRect).toBe("function");
+      expect(typeof proto.clearLayerBySelectionMask).toBe("function");
+      expect(typeof proto.fillLayerBySelectionMask).toBe("function");
       expect(typeof proto.nudgeLayer).toBe("function");
+      expect(typeof proto.trimLayerToBounds).toBe("function");
       expect(typeof proto.mergeLayerDown).toBe("function");
       expect(typeof proto.cropLayers).toBe("function");
       expect(typeof proto.applyAdjustments).toBe("function");
       expect(typeof proto.reconcileLayerToDocumentSpace).toBe("function");
+      // Effects evaluation (Phase 3)
+      expect(typeof proto.evaluateLayerEffects).toBe("function");
       // Lifecycle
       expect(typeof proto.dispose).toBe("function");
     });
+  });
+});
+
+describe("Canvas2DRuntime evaluateLayerEffects", () => {
+  let runtime: Canvas2DRuntime;
+  let sourceCanvas: HTMLCanvasElement;
+
+  beforeEach(() => {
+    runtime = new Canvas2DRuntime();
+    sourceCanvas = document.createElement("canvas");
+    sourceCanvas.width = 64;
+    sourceCanvas.height = 64;
+    const ctx = sourceCanvas.getContext("2d")!;
+    ctx.fillStyle = "red";
+    ctx.fillRect(0, 0, 64, 64);
+  });
+
+  afterEach(() => {
+    runtime.dispose();
+  });
+
+  it("returns source unchanged when effects is empty", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, []);
+    expect(result).toBe(sourceCanvas);
+  });
+
+  it("returns source unchanged when effects is undefined-like", () => {
+    const result = runtime.evaluateLayerEffects(
+      "layer1",
+      sourceCanvas,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      null as any
+    );
+    expect(result).toBe(sourceCanvas);
+  });
+
+  it("returns source unchanged when all effects are disabled", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "brightness_contrast", enabled: false, params: { brightness: 0.5 } }
+    ]);
+    expect(result).toBe(sourceCanvas);
+  });
+
+  it("returns a different canvas when effects are enabled", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "brightness_contrast", enabled: true, params: { brightness: 0.5, contrast: 0 } }
+    ]);
+    expect(result).not.toBe(sourceCanvas);
+    expect(result.width).toBe(64);
+    expect(result.height).toBe(64);
+  });
+
+  it("applies hue_saturation effects", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "hue_saturation", enabled: true, params: { hue: 90, saturation: 0.5 } }
+    ]);
+    expect(result).not.toBe(sourceCanvas);
+    expect(result.width).toBe(64);
+  });
+
+  it("applies exposure effects", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "exposure", enabled: true, params: { exposure: 1.0 } }
+    ]);
+    expect(result).not.toBe(sourceCanvas);
+    expect(result.width).toBe(64);
+  });
+
+  it("skips unsupported effect types gracefully", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      // "curves" and "tonemap" are defined but not yet implemented
+      { type: "curves", enabled: true, params: {} }
+    ]);
+    // Unsupported types produce no filter parts → returns source unchanged
+    expect(result).toBe(sourceCanvas);
+  });
+
+  it("chains multiple enabled effects", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "brightness_contrast", enabled: true, params: { brightness: 0.2, contrast: 0.1 } },
+      { type: "hue_saturation", enabled: true, params: { hue: 45 } }
+    ]);
+    expect(result).not.toBe(sourceCanvas);
+  });
+
+  it("returns source when all params are zero (no-op)", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "brightness_contrast", enabled: true, params: { brightness: 0, contrast: 0 } }
+    ]);
+    // brightness=0 and contrast=0 produce no filter parts
+    expect(result).toBe(sourceCanvas);
   });
 });
