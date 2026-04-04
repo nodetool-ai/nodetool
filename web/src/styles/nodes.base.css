@@ -32,6 +32,7 @@
   flex-direction: column;
   padding: 0;
   border-radius: var(--rounded-node);
+  overflow: visible;
 }
 
 .react-flow .has-result {
@@ -74,11 +75,12 @@
   bottom: 0;
   display: block;
   text-align: right;
+  overflow: visible;
 }
 
 .output-add-button {
   position: absolute;
-  right: -32px;
+  right: -36px;
   top: 50%;
   transform: translateY(-50%);
   width: 24px;
