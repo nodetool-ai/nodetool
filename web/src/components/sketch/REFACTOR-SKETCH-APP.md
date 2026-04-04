@@ -416,6 +416,9 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 - Do not rewrite the existing brush engine just to make more code run on WebGPU.
   Brush feel is already good enough that Phase 3 should focus on compositing parity,
   FX integration, and runtime correctness first.
+- Prefer small helper libraries that reduce WebGPU boilerplate or color/layout bugs
+  without taking ownership of the render model. Engine-style scene graph libraries
+  are out of scope for the sketch runtime.
 - Future GPU-native brush work, selection compute, or more advanced paint simulation
   must build on this phase, not be bundled into it prematurely.
 
@@ -449,30 +452,65 @@ cursor previews, text rasterization helpers, and controlled readback/export help
       a `device.lost` handler that sets a `_deviceLost` guard (early-return in
       compositeToDisplay) and invokes the callback. `useCompositing` handles the
       callback by swapping to a fresh `Canvas2DRuntime` and scheduling a redraw._
+- [ ] Audit the current `WebGPURuntime.ts` / `initWebGPU.ts` path and write down the
+      specific parity gaps to fix first instead of restarting the runtime design.
+- [ ] Resolve ordinary compositing mismatches on the WebGPU path: layer opacity,
+      visibility, isolate/solo behavior, and blend-mode correctness.
+- [ ] Fix transformed-layer parity so preview, commit, export, and history-backed
+      redraws agree between the WebGPU and Canvas2D paths.
+- [ ] Decide whether dirty-region redraw on WebGPU stays, is narrowed, or is replaced
+      by explicit full redraws in known cases, then document and implement that choice.
+- [ ] Implement device-loss / runtime re-init handling for Electron and cover the
+      expected recovery behavior with a focused smoke/regression check.
 
 ### 3B — Readback, Sampling, and Output Consistency
 
 - [ ] Centralize full-document readback so eyedropper, magic wand / selection sampling,
       clipboard/export helpers, and future thumbnail paths do not invent separate
       WebGPU-vs-Canvas2D rules.
-- [ ] Ensure flatten/export, isolate preview, and any other non-editor output path use
-      the same compositing semantics as the main canvas.
-- [ ] Keep Canvas2D helper paths only where they remain clearly justified:
-      overlay/gizmo rendering, cursor/HUD presentation, text rasterization helpers,
-      and explicit CPU readback/export workflows.
-- [ ] Verify that Phase 3 changes preserve current stylus responsiveness; do not trade
-      away brush feel for architectural neatness.
+- [ ] Route flatten/export, isolate preview, and the next thumbnail path through the
+      same compositing/readback rules as the main canvas.
+- [ ] Write down the approved Canvas2D helper paths for Phase 3
+      (overlay/gizmo rendering, cursor/HUD presentation, text rasterization helpers,
+      explicit CPU readback/export) and move any out-of-bounds usage onto the runtime
+      plan or into deferred work.
+- [ ] Run a focused stylus-responsiveness smoke check after each major Phase 3 slice and
+      treat regressions in brush feel as blockers.
 
 ### 3C — FX Pipeline on the WebGPU Path
 
 - [ ] Treat `evaluateLayerEffects` as the single FX seam and wire all output paths to
       respect it consistently.
-- [ ] Start with a narrow first slice: adjustment-style effects already implied by the
-      current `effects` model, rather than a generalized shader/plugin system.
-- [ ] Decide explicitly where CPU-backed effect evaluation is still acceptable
-      temporarily and where WebGPU implementation is required before Phase 3 is done.
-- [ ] Define blend/color-space expectations before expanding GPU blend modes and FX
-      shaders further, so parity work is not built on incorrect assumptions.
+- [ ] Pick the first Phase 3 FX slice from the current `effects` model
+      (adjustment-style effects only) and define which output paths must support it on
+      day one.
+- [ ] Decide which effects may stay CPU-backed temporarily and which ones must move to
+      the WebGPU path before Phase 3 can be called complete.
+- [ ] Write and adopt explicit blend/color-space expectations for CPU and GPU paths
+      before expanding blend-mode coverage or FX shader work further.
+
+### 3D — Tooling and Dependency Boundaries
+
+- [ ] Evaluate `webgpu-utils` as the first concrete helper dependency for runtime
+      boilerplate reduction: shader-data definitions, structured views, buffer/texture
+      setup helpers, and other low-level WebGPU utilities that do not hide pass
+      boundaries or resource ownership.
+- [ ] Evaluate `colorjs.io` as the first concrete color utility for explicit
+      sRGB/linear conversions, blend-parity reference behavior, and future
+      tonemapping/effect work that needs CPU and GPU paths to agree.
+- [ ] If CPU↔WGSL uniform packing still duplicates field definitions or causes alignment
+      bugs after trying `webgpu-utils`, choose one focused struct/layout helper or add a
+      small internal layout layer and document that choice.
+- [ ] Add the first small internal runtime wrappers needed by current Phase 3 work
+      (for example `createFullscreenPass`, `createReadbackManager`, uniform/bind-group
+      helpers, or texture pools) instead of spreading boilerplate across passes.
+- [ ] Document `gl-matrix` as deferred until future lit/PBR brush work creates enough
+      shared `mat3`/`mat4` lighting/material math to justify the dependency.
+- [ ] Record `three.js` and `babylon.js` as explicit non-goals for the core sketch
+      runtime in this phase so dependency decisions stay aligned during implementation.
+- [ ] Restrict future lit/PBR brush preparation in Phase 3 to shared prerequisites that
+      help the current runtime too: color/layout conventions, shader/buffer organization,
+      and clean GPU pass boundaries.
 
 ### Explicitly Deferred from Phase 3
 
@@ -482,6 +520,9 @@ cursor previews, text rasterization helpers, and controlled readback/export help
   are stable and profiling shows a real gain.
 - More ambitious GPU paint simulation (smudge, wet mix, bristle dynamics) belongs in a
   later phase with its own latency and memory validation work.
+- PBR/lit brush rendering is a future extension. It may justify stronger GPU math and
+  material abstractions later, but it does not change the current Phase 3 goal of
+  making the document runtime correct, consistent, and easy to extend.
 
 ---
 

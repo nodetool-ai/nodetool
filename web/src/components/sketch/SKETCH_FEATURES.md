@@ -47,6 +47,59 @@
 - [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
 - [x] fix brush strokes not visible when holding shift for straight lines - they only appear after releasing shift key. also all layers become invisible during drawing of straight lines
 
+## PHASE 1.2: Transform Tool features and shortcuts
+
+The modifier logic for transform tool should follow a consistent pattern:
+
+No modifier → Scale (default)
+Ctrl (Cmd) → "Break free" — independent vertex control (Distort on corners, Skew on edges)
+Shift → Constrain (proportional scale, 15° rotation snap, axis-lock distortion)
+Alt (Option) → From center / symmetrical
+Ctrl+Shift → Skew on sides, constrained distort on corners
+Ctrl+Alt+Shift → Perspective (all three modifiers = maximum control)
+Cursor position determines behavior (outside box = rotate, inside = move, on handle = transform)
+
+support most / all of the following features and shortcuts and check off done items:
+
+Activating & Committing
+
+Ctrl+T (Cmd+T) — Enter Free Transform
+Enter (Return) — Commit the transformation
+Esc — Cancel the transformation
+Ctrl+Z (Cmd+Z) — Undo the last handle adjustment while still in transform mode
+Right-click inside the bounding box — Context menu with all transform modes (Skew, Distort, Perspective, Warp, Rotate 180°, 90° CW/CCW, Flip H/V)
+
+- Scale
+  Action, Shortcut
+  Scale freely (non-proportional) Drag any handle (if Link icon is ON, this scales proportionally)Toggle proportional/non-proportionalHold Shift while dragging a corner handle (toggles the Link icon state)Scale from centerHold Alt (Option) while dragging any handleScale proportionally from centerHold Shift+Alt (Shift+Option) while dragging a corner handleScale width onlyDrag a left or right side handleScale height onlyDrag a top or bottom side handle
+  Rotate
+  Action, Shortcut
+  Free rotate Move cursor outside bounding box (curved arrow appears), dragRotate in 15° snapped incrementsHold Shift while rotatingChange rotation pivot pointDrag the reference point (center target), or click a square on the reference point locator in the Options bar
+- Distort (move one corner independently)
+  Action, Shortcut
+  Distort freely — move a single corner handle independently in any direction
+  Hold Ctrl (Cmd) + drag a corner handleDistort constrained to horizontal or verticalHold Ctrl+Shift (Cmd+Shift) + drag a corner handleDistort from center — move a corner while the diagonally opposite corner moves in the opposite direction
+  Hold Ctrl+Alt (Cmd+Option) + drag a corner handle
+- Skew
+  Action, Shortcut
+  Skew — slide a side edge to slant the image
+  Hold Ctrl+Shift (Cmd+Shift) + drag a side handleSkew via side handle (simpler shortcut) Hold Ctrl (Cmd) + drag a side handleSkew opposite sides simultaneously
+  Hold Alt (Option) while skewing (adds symmetry)
+  Important nuance: Ctrl+drag on a side handle = Skew. Ctrl+drag on a corner handle = Distort. Same modifier key, different handle determines the behavior.
+- Perspective
+  Action, Shortcut
+  Perspective — drag a corner and the opposite corner moves symmetrically in the opposite direction
+  Hold Ctrl+Alt+Shift (Cmd+Option+Shift) + drag a corner handle
+  This creates the classic converging/diverging vanishing point effect. Dragging a corner inward pushes the opposite corner inward too; dragging outward pushes the other outward.
+- Warp
+  Action, Shortcut
+  Enter Warp mode Click the Warp toggle icon in the Options bar, or right-click → WarpDrag warp gridClick and drag any grid intersection, control point, or areaToggle Bézier handles independent vs. unified Alt-click (Option-click) on an anchor pointSelect multiple warp anchor pointsShift-click on additional anchor pointsSwitch back to Free Transform from WarpClick the Warp toggle icon again
+  Flip & Rotate (via context menu)
+  Right-click inside the transform box to access: Rotate 180°, Rotate 90° CW, Rotate 90° CCW, Flip Horizontal, Flip Vertical.
+  Repeat & Additional
+  Action, Shortcut
+  Repeat last transformation Ctrl+Shift+T (Cmd+Shift+T)Repeat transformation on a copyCtrl+Alt+Shift+T (Cmd+Option+Shift+T)Move the object while in transformClick and drag inside the bounding box (not on a handle or the reference point)
+
 ## PHASE 2 - FIXES
 
 - [x] remove white border around canvas, seems not to come from css?
@@ -84,6 +137,7 @@
 - [ ] keep Canvas 2D helper paths explicit and limited to overlay/gizmo UI, cursor/HUD presentation, text rasterization helpers, and controlled CPU readback/export workflows
 - [ ] wire `evaluateLayerEffects` through all relevant output paths so main canvas, export, isolate preview, and future thumbnails stay consistent
 - [ ] preserve current stylus responsiveness while hardening the WebGPU path; do not trade brush feel away for architectural neatness
+- [ ] add only small non-owning GPU helpers where they reduce boilerplate or color/layout bugs: start with `webgpu-utils`, consider `colorjs.io` for color correctness work, and defer `gl-matrix` until future lit/PBR brush math really needs it; do not pull engine-style libraries into the sketch runtime
 - [ ] defer fully GPU-native brush simulation and GPU selection compute until parity/readback/FX work is stable and profiling shows real benefit
 
 ### PHASE 5 - FX LAYER
