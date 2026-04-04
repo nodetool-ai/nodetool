@@ -180,7 +180,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
         onClick={handleAddClick}
         title="Add connected node"
       >
-        <AddIcon sx={{ fontSize: 16 }} />
+        <AddIcon sx={{ fontSize: 10 }} />
       </div>
     </div>
   );

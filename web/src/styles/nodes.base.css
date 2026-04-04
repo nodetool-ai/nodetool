@@ -80,11 +80,10 @@
 
 .output-add-button {
   position: absolute;
-  right: -36px;
-  top: calc(50% - 0.5em);
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
+  right: -22px;
+  top: -1px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--palette-background-paper);
   border: 1px solid var(--palette-divider);
