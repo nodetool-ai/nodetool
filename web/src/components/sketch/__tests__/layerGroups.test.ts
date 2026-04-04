@@ -48,7 +48,8 @@ describe("Layer Group Types", () => {
       blendMode: "normal",
       data: null,
       transform: { x: 0, y: 0 },
-      contentBounds: { x: 0, y: 0, width: 0, height: 0 }
+      contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+      effects: []
     };
     expect(layer.type).toBe("group");
   });
@@ -59,30 +60,32 @@ describe("Layer Tree Helpers", () => {
     {
       id: "root1", name: "Root 1", type: "raster", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
-      transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 }
+      transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+      effects: []
     },
     {
       id: "group1", name: "Group 1", type: "group", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
       transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-      collapsed: false
+      collapsed: false, effects: []
     },
     {
       id: "child1", name: "Child 1", type: "raster", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
       transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
-      parentId: "group1"
+      parentId: "group1", effects: []
     },
     {
       id: "child2", name: "Child 2", type: "raster", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
       transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
-      parentId: "group1"
+      parentId: "group1", effects: []
     },
     {
       id: "root2", name: "Root 2", type: "raster", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
-      transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 }
+      transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+      effects: []
     }
   ];
 
@@ -123,13 +126,13 @@ describe("Layer Tree Helpers", () => {
         id: "subgroup", name: "Sub Group", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-        parentId: "group1", collapsed: false
+        parentId: "group1", collapsed: false, effects: []
       },
       {
         id: "grandchild", name: "Grandchild", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
-        parentId: "subgroup"
+        parentId: "subgroup", effects: []
       }
     ];
     const descendants = getDescendantIds(layers, "group1");
@@ -211,25 +214,26 @@ describe("Layer Tree Helpers", () => {
       {
         id: "root", name: "Root", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 }
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        effects: []
       },
       {
         id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-        collapsed: false
+        collapsed: false, effects: []
       },
       {
         id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-        parentId: "g1", collapsed: false
+        parentId: "g1", collapsed: false, effects: []
       },
       {
         id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
-        parentId: "g2"
+        parentId: "g2", effects: []
       }
     ];
     const rows = buildLayersPanelRows(layers);
@@ -468,25 +472,26 @@ describe("Tree-aware drag-and-drop", () => {
       {
         id: "root", name: "Root", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 }
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        effects: []
       },
       {
         id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-        collapsed: false
+        collapsed: false, effects: []
       },
       {
         id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-        parentId: "g1", collapsed: false
+        parentId: "g1", collapsed: false, effects: []
       },
       {
         id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
-        parentId: "g2"
+        parentId: "g2", effects: []
       }
     ];
     const tree = buildVisibleLayerTree(layers);
@@ -503,19 +508,19 @@ describe("Tree-aware drag-and-drop", () => {
         id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-        collapsed: true
+        collapsed: true, effects: []
       },
       {
         id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-        parentId: "g1", collapsed: false
+        parentId: "g1", collapsed: false, effects: []
       },
       {
         id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
         transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
-        parentId: "g2"
+        parentId: "g2", effects: []
       }
     ];
     const tree = buildVisibleLayerTree(layers);

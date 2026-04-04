@@ -44,7 +44,8 @@ function makeLayer(id: string): Layer {
     data: null,
     type: "raster",
     transform: { x: 0, y: 0 },
-    contentBounds: { x: 0, y: 0, width: 64, height: 64 }
+    contentBounds: { x: 0, y: 0, width: 64, height: 64 },
+    effects: []
   };
 }
 
