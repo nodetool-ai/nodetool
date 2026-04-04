@@ -751,7 +751,7 @@ export class WebGPURuntime implements SketchRuntime {
       }
 
       // FX evaluation: if the layer has enabled effects, evaluate on CPU and upload
-      if (layer.effects && layer.effects.some((e) => e.enabled)) {
+      if (layer.effects.length > 0 && layer.effects.some((e) => e.enabled)) {
         const cpuCanvas = this.layerCanvases.get(layer.id);
         if (cpuCanvas) {
           const effected = this.cpuRuntime.evaluateLayerEffects(

@@ -248,26 +248,110 @@ export interface LayerImageReference {
  * via the runtime's `evaluateLayerEffects` method.
  */
 export type LayerEffectType =
-  | "hue_saturation"
   | "brightness_contrast"
+  | "hue_saturation"
   | "exposure"
-  | "curves"    // future
-  | "tonemap";  // future
+  | "curves"
+  | "tonemap"
+  | "bloom";
 
 /**
- * A single non-destructive effect attached to a layer.
+ * A control point on a curves spline. Both axes range [0, 1].
+ */
+export interface CurvePoint {
+  x: number;
+  y: number;
+}
+
+// ─── Per-effect typed interfaces ──────────────────────────────────────────────
+
+export interface BrightnessContrastEffect {
+  type: "brightness_contrast";
+  enabled: boolean;
+  params: {
+    /** -1 (black) → 0 (no change) → 1 (double brightness) */
+    brightness: number;
+    /** -1 (flat gray) → 0 (no change) → 1 (double contrast) */
+    contrast: number;
+  };
+}
+
+export interface HueSaturationEffect {
+  type: "hue_saturation";
+  enabled: boolean;
+  params: {
+    /** Degrees of hue rotation (-180 to 180) */
+    hueDegrees: number;
+    /** -1 (grayscale) → 0 (no change) → 1 (double saturation) */
+    saturation: number;
+    /** Lightness adjustment mapped to brightness; -1 → 0 → 1 */
+    lightness: number;
+  };
+}
+
+export interface ExposureEffect {
+  type: "exposure";
+  enabled: boolean;
+  params: {
+    /** EV stops; brightness factor = 2^exposureStops */
+    exposureStops: number;
+  };
+}
+
+export interface CurvesEffect {
+  type: "curves";
+  enabled: boolean;
+  params: {
+    /** Master RGB curve control points */
+    rgb: CurvePoint[];
+    /** Optional per-channel curves */
+    red?: CurvePoint[];
+    green?: CurvePoint[];
+    blue?: CurvePoint[];
+  };
+}
+
+export interface TonemapEffect {
+  type: "tonemap";
+  enabled: boolean;
+  params: {
+    operator: "aces" | "reinhard" | "filmic";
+    /** EV stops applied before tonemapping */
+    exposureStops: number;
+    /** White point luminance (operator-dependent); defaults to 1.0 */
+    whitePoint?: number;
+  };
+}
+
+export interface BloomEffect {
+  type: "bloom";
+  enabled: boolean;
+  params: {
+    /** Luminance threshold above which bloom is applied (0–1) */
+    threshold: number;
+    /** Blur radius in pixels for the bloom kernel */
+    radius: number;
+    /** Bloom intensity multiplier */
+    intensity: number;
+  };
+}
+
+/**
+ * Discriminated union of all non-destructive layer effects.
  * Effects are evaluated in order before the layer is blended into its parent.
  *
  * - `enabled`: toggling without removing allows quick A/B comparison.
- * - `params`: typed per-effect; keys and ranges documented per effect type.
+ * - `params`: typed per effect; see individual interfaces for ranges.
  *
- * When absent on a loaded document (`effects` missing from Layer), default is `[]`.
+ * On load, `effects` defaults to `[]` when absent.
  */
-export interface LayerEffect {
-  type: LayerEffectType;
-  enabled: boolean;
-  params: Record<string, number>;
-}
+export type LayerEffect =
+  | BrightnessContrastEffect
+  | HueSaturationEffect
+  | ExposureEffect
+  | CurvesEffect
+  | TonemapEffect
+  | BloomEffect;
 
 // ─── Layer ────────────────────────────────────────────────────────────────────
 
@@ -305,9 +389,9 @@ export interface Layer {
   /**
    * Non-destructive effects applied to this layer before compositing.
    * Evaluated in order by the runtime's `evaluateLayerEffects` method.
-   * Absent or empty means no effects.
+   * Empty array `[]` means no effects.
    */
-  effects?: LayerEffect[];
+  effects: LayerEffect[];
 }
 
 // ─── Color Mode ───────────────────────────────────────────────────────────────
@@ -441,7 +525,8 @@ export function createDefaultLayer(
       height: canvasHeight
     },
     exposedAsInput: true,
-    exposedAsOutput: true
+    exposedAsOutput: true,
+    effects: []
   };
 }
 
@@ -484,11 +569,107 @@ export function createDefaultGroupLayer(name: string): Layer {
     data: null,
     transform: { x: 0, y: 0, matrix: [...IDENTITY_MATRIX] as AffineMatrix },
     contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-    collapsed: false
+    collapsed: false,
+    effects: []
   };
 }
 
 // ─── Normalization Helpers (private) ──────────────────────────────────────────
+
+/**
+ * Migrate legacy effect param names to the new typed schema and ensure
+ * every layer has a valid `effects` array. Unknown effect types are dropped.
+ */
+function normalizeLayerEffects(raw: unknown): LayerEffect[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const result: LayerEffect[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object" || typeof item.type !== "string") {
+      continue;
+    }
+    const enabled = item.enabled === true;
+    const params = item.params && typeof item.params === "object" ? item.params : {};
+    switch (item.type) {
+      case "brightness_contrast":
+        result.push({
+          type: "brightness_contrast",
+          enabled,
+          params: {
+            brightness: typeof params.brightness === "number" ? params.brightness : 0,
+            contrast: typeof params.contrast === "number" ? params.contrast : 0
+          }
+        });
+        break;
+      case "hue_saturation":
+        result.push({
+          type: "hue_saturation",
+          enabled,
+          params: {
+            // Migrate legacy "hue" → "hueDegrees"
+            hueDegrees: typeof params.hueDegrees === "number"
+              ? params.hueDegrees
+              : typeof params.hue === "number" ? params.hue : 0,
+            saturation: typeof params.saturation === "number" ? params.saturation : 0,
+            lightness: typeof params.lightness === "number" ? params.lightness : 0
+          }
+        });
+        break;
+      case "exposure":
+        result.push({
+          type: "exposure",
+          enabled,
+          params: {
+            // Migrate legacy "exposure" → "exposureStops"
+            exposureStops: typeof params.exposureStops === "number"
+              ? params.exposureStops
+              : typeof params.exposure === "number" ? params.exposure : 0
+          }
+        });
+        break;
+      case "curves":
+        result.push({
+          type: "curves",
+          enabled,
+          params: {
+            rgb: Array.isArray(params.rgb) ? params.rgb : [],
+            red: Array.isArray(params.red) ? params.red : undefined,
+            green: Array.isArray(params.green) ? params.green : undefined,
+            blue: Array.isArray(params.blue) ? params.blue : undefined
+          }
+        });
+        break;
+      case "tonemap":
+        result.push({
+          type: "tonemap",
+          enabled,
+          params: {
+            operator: params.operator === "aces" || params.operator === "reinhard" || params.operator === "filmic"
+              ? params.operator : "aces",
+            exposureStops: typeof params.exposureStops === "number" ? params.exposureStops : 0,
+            whitePoint: typeof params.whitePoint === "number" ? params.whitePoint : undefined
+          }
+        });
+        break;
+      case "bloom":
+        result.push({
+          type: "bloom",
+          enabled,
+          params: {
+            threshold: typeof params.threshold === "number" ? params.threshold : 0.8,
+            radius: typeof params.radius === "number" ? params.radius : 10,
+            intensity: typeof params.intensity === "number" ? params.intensity : 0.5
+          }
+        });
+        break;
+      default:
+        // Unknown effect types are dropped during normalization
+        break;
+    }
+  }
+  return result;
+}
 
 /** Upper bound for brush / eraser / blur / clone stamp diameter (matches tool panels). */
 const SKETCH_LARGE_TOOL_SIZE_MAX = 200;
@@ -575,7 +756,7 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         parentId: layer.parentId ?? undefined,
         collapsed: layer.collapsed ?? false,
         segmentationMeta: layer.segmentationMeta ?? undefined,
-        effects: Array.isArray(layer.effects) ? layer.effects : undefined,
+        effects: normalizeLayerEffects(layer.effects),
         transform: ensureTransformMatrix({
           x: layer.transform?.x ?? 0,
           y: layer.transform?.y ?? 0,

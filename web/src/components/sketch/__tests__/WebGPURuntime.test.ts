@@ -127,7 +127,7 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
 
   it("returns source unchanged when all effects are disabled", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
-      { type: "brightness_contrast", enabled: false, params: { brightness: 0.5 } }
+      { type: "brightness_contrast", enabled: false, params: { brightness: 0.5, contrast: 0 } }
     ]);
     expect(result).toBe(sourceCanvas);
   });
@@ -143,7 +143,7 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
 
   it("applies hue_saturation effects", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
-      { type: "hue_saturation", enabled: true, params: { hue: 90, saturation: 0.5 } }
+      { type: "hue_saturation", enabled: true, params: { hueDegrees: 90, saturation: 0.5, lightness: 0 } }
     ]);
     expect(result).not.toBe(sourceCanvas);
     expect(result.width).toBe(64);
@@ -151,7 +151,7 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
 
   it("applies exposure effects", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
-      { type: "exposure", enabled: true, params: { exposure: 1.0 } }
+      { type: "exposure", enabled: true, params: { exposureStops: 1.0 } }
     ]);
     expect(result).not.toBe(sourceCanvas);
     expect(result.width).toBe(64);
@@ -159,8 +159,8 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
 
   it("skips unsupported effect types gracefully", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
-      // "curves" and "tonemap" are defined but not yet implemented
-      { type: "curves", enabled: true, params: {} }
+      // "curves" is a known type but not yet implemented in the filter pipeline
+      { type: "curves", enabled: true, params: { rgb: [] } }
     ]);
     // Unsupported types produce no filter parts → returns source unchanged
     expect(result).toBe(sourceCanvas);
@@ -169,7 +169,7 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
   it("chains multiple enabled effects", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
       { type: "brightness_contrast", enabled: true, params: { brightness: 0.2, contrast: 0.1 } },
-      { type: "hue_saturation", enabled: true, params: { hue: 45 } }
+      { type: "hue_saturation", enabled: true, params: { hueDegrees: 45, saturation: 0, lightness: 0 } }
     ]);
     expect(result).not.toBe(sourceCanvas);
   });
