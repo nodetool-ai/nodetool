@@ -1263,14 +1263,6 @@ export class RotateNode extends TransformImageNode {
   })
   declare angle: any;
 
-  @prop({
-    type: "bool",
-    default: true,
-    title: "Expand",
-    description: "If true, expand the output to fit the rotated image."
-  })
-  declare expand: any;
-
   async process(): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const angle = Number(this.angle ?? 0);

@@ -74,6 +74,9 @@ function assetKind(
 
 function castValue(value: unknown, propType: string): unknown {
   if (value === null || value === undefined) return value;
+  if (propType.startsWith("list[") || propType.startsWith("dict[")) {
+    return value; // pass through structured types as-is
+  }
   switch (propType) {
     case "int":
     case "float":
@@ -280,7 +283,12 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
 
     const propOptions: PropOptions = {
       type: field.propType,
-      default: field.default ?? (field.propType === "bool" ? false : "")
+      default: field.default ?? (
+        field.propType === "bool" ? false :
+        field.propType === "int" || field.propType === "float" ? 0 :
+        field.propType.startsWith("list[") ? [] :
+        ""
+      )
     };
     if (field.description) propOptions.description = field.description;
     if (field.enumValues?.length)
