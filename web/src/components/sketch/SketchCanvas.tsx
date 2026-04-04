@@ -385,6 +385,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       layerCanvasesRef,
       mousePositionRef,
       activeStrokeRef,
+      runtime,
       getOrCreateLayerCanvas,
       invalidateLayer,
       redraw,

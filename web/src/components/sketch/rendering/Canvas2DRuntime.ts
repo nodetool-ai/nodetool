@@ -335,7 +335,7 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   // ─── Readback helpers ────────────────────────────────────────────────
 
-  /** Draw a single layer into a context, respecting opacity and blend mode. */
+  /** Draw a single layer into a context, respecting opacity, blend mode, and effects. */
   private drawLayerToContext(
     ctx: CanvasRenderingContext2D,
     doc: SketchDocument,
@@ -347,6 +347,13 @@ export class Canvas2DRuntime implements SketchRuntime {
     if (!layer || !layerCanvas) {
       return;
     }
+
+    // Apply non-destructive effects (same pipeline as compositeToDisplay)
+    let drawCanvas: HTMLCanvasElement = layerCanvas;
+    if (layer.effects.length > 0 && layer.effects.some((e) => e.enabled)) {
+      drawCanvas = this.evaluateLayerEffects(layer.id, layerCanvas, layer.effects);
+    }
+
     ctx.save();
     if (includeOpacity) {
       const opacityScale = getAncestorGroupOpacityProduct(
@@ -362,12 +369,12 @@ export class Canvas2DRuntime implements SketchRuntime {
     const compositeOffset = getLayerCompositeOffset(
       layer,
       {
-        width: layerCanvas.width,
-        height: layerCanvas.height
+        width: drawCanvas.width,
+        height: drawCanvas.height
       },
       layerCanvas
     );
-    this.drawWithTransform(ctx, layerCanvas, compositeOffset, layer);
+    this.drawWithTransform(ctx, drawCanvas, compositeOffset, layer);
     ctx.restore();
   }
 
@@ -1286,11 +1293,12 @@ export class Canvas2DRuntime implements SketchRuntime {
         case "bloom":
           // These effect types require shader-backed implementation.
           // CSS filters cannot faithfully represent them.
+          // Fail loudly in development so unsupported effects never silently no-op.
           if (process.env.NODE_ENV !== "production") {
-            console.warn(
+            throw new Error(
               `[Canvas2DRuntime] Effect type "${effect.type}" is not yet implemented ` +
-              `in the Canvas2D path. It will be ignored until a shader-backed ` +
-              `implementation is available.`
+              `in the Canvas2D path. A shader-backed implementation is required. ` +
+              `Remove this effect from the layer or implement the evaluation path.`
             );
           }
           break;
@@ -1357,6 +1365,39 @@ export class Canvas2DRuntime implements SketchRuntime {
     return temp;
   }
 
+  // ─── Composite readback ─────────────────────────────────────────────
+
+  private readbackCanvas: HTMLCanvasElement | null = null;
+
+  readbackComposite(
+    doc: SketchDocument,
+    isolatedLayerId: string | null | undefined,
+    activeStroke: ActiveStrokeInfo | null
+  ): ImageData | null {
+    const cw = doc.canvas.width;
+    const ch = doc.canvas.height;
+    if (cw === 0 || ch === 0) {
+      return null;
+    }
+
+    // Reuse a dedicated readback canvas so we don't allocate on every call.
+    let rb = this.readbackCanvas;
+    if (!rb || rb.width !== cw || rb.height !== ch) {
+      rb = window.document.createElement("canvas");
+      rb.width = cw;
+      rb.height = ch;
+      // Acquire willReadFrequently context before compositing — first
+      // getContext call wins for this optimization hint.
+      rb.getContext("2d", { willReadFrequently: true });
+      this.readbackCanvas = rb;
+    }
+
+    this.compositeToDisplay(rb, doc, isolatedLayerId, activeStroke, null);
+
+    const ctx = rb.getContext("2d", { willReadFrequently: true });
+    return ctx ? ctx.getImageData(0, 0, cw, ch) : null;
+  }
+
   // ─── Lifecycle ───────────────────────────────────────────────────────
 
   dispose(): void {
@@ -1365,5 +1406,6 @@ export class Canvas2DRuntime implements SketchRuntime {
     this.strokeMaskScratchCanvas = null;
     this.fxTempCanvas = null;
     this.fxCache.clear();
+    this.readbackCanvas = null;
   }
 }
