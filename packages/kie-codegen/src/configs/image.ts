@@ -220,7 +220,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Seedream45TextToImage",
-      modelId: "seedream/4-5-text-to-image",
+      modelId: "seedream/4.5-text-to-image",
       title: "Seedream 4.5 Text To Image",
       description:
         "Generate images using ByteDance's Seedream 4.5 Text-to-Image model via Kie.ai.\n\n    kie, seedream, bytedance, image generation, ai, text-to-image, 4k\n\n    Seedream 4.5 generates high-quality visuals up to 4K resolution with\n    improved detail fidelity, multi-image blending, and sharp text/face rendering.\n\n    Use cases:\n    - Generate creative and artistic images from text\n    - Create diverse visual content up to 4K\n    - Generate illustrations with unique styles",
@@ -256,10 +256,7 @@ export const imageConfig: ModuleConfig = {
           rule: "not_empty",
           message: "Prompt cannot be empty"
         }
-      ],
-      paramNames: {
-        quality: "resolution"
-      }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -267,7 +264,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Seedream45Edit",
-      modelId: "seedream/4-5-edit",
+      modelId: "seedream/4.5-edit",
       title: "Seedream 4.5 Edit",
       description:
         "Edit images using ByteDance's Seedream 4.5 Edit model via Kie.ai.\n\n    kie, seedream, bytedance, image editing, ai, image-to-image, 4k\n\n    Seedream 4.5 Edit allows you to modify existing images while maintaining\n    high quality and detail fidelity up to 4K resolution.\n\n    Use cases:\n    - Edit and enhance existing images\n    - Apply style changes to photos\n    - Modify specific regions of images\n    - Improve image quality and resolution",
@@ -318,10 +315,7 @@ export const imageConfig: ModuleConfig = {
           rule: "not_empty",
           message: "Prompt cannot be empty"
         }
-      ],
-      paramNames: {
-        quality: "resolution"
-      }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -329,7 +323,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "ZImage",
-      modelId: "z-image/turbo",
+      modelId: "z-image",
       title: "Z-Image Turbo",
       description:
         "Generate images using Alibaba's Z-Image Turbo model via Kie.ai.\n\n    kie, z-image, zimage, alibaba, image generation, ai, text-to-image, photorealistic\n\n    Z-Image Turbo produces realistic, detail-rich images with very low latency.\n    It supports bilingual text (English/Chinese) in images with sharp text rendering.\n\n    Use cases:\n    - Generate high-quality photorealistic images quickly\n    - Create images with embedded text (English/Chinese)\n    - Generate detailed illustrations with low latency\n    - Product visualizations",
@@ -365,7 +359,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "NanoBanana",
-      modelId: "nano-banana/text-to-image",
+      modelId: "google/nano-banana",
       title: "Nano Banana",
       description:
         "Generate images using Google's Nano Banana model (Gemini 2.5) via Kie.ai.\n\n    kie, nano-banana, google, gemini, image generation, ai, text-to-image, fast",
@@ -416,7 +410,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "NanoBananaPro",
-      modelId: "nano-banana-pro/text-to-image",
+      modelId: "nano-banana-pro",
       title: "Nano Banana Pro",
       description:
         "Generate images using Google's Nano Banana Pro model (Gemini 3.0) via Kie.ai.\n\n    kie, nano-banana-pro, google, gemini, image generation, ai, text-to-image, 4k, high-fidelity",
@@ -753,7 +747,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "IdeogramCharacter",
-      modelId: "ideogram/v3-character",
+      modelId: "ideogram/character",
       title: "Ideogram Character",
       description:
         "Generate character images using Ideogram via Kie.ai.\n\n    kie, ideogram, character, image generation, ai, character consistency\n\n    Ideogram Character generates images of characters in different settings while\n    maintaining character consistency using reference images and text prompts.\n\n    Use cases:\n    - Generate character images in various settings\n    - Maintain character consistency across images\n    - Create character portraits with specific backgrounds",
@@ -852,7 +846,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "IdeogramCharacterEdit",
-      modelId: "ideogram/v3-character-edit",
+      modelId: "ideogram/character-edit",
       title: "Ideogram Character Edit",
       description:
         "Edit masked character images using Ideogram via Kie.ai.\n\n    kie, ideogram, character-edit, image editing, ai, inpainting\n\n    Ideogram Character Edit allows you to fill masked parts of character images\n    while maintaining character consistency using reference images and text prompts.\n\n    Use cases:\n    - Edit specific parts of character images\n    - Fill masked areas with new content\n    - Maintain character consistency during edits",
@@ -962,7 +956,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "IdeogramCharacterRemix",
-      modelId: "ideogram/v3-character-remix",
+      modelId: "ideogram/character-remix",
       title: "Ideogram Character Remix",
       description:
         "Remix characters in images using Ideogram via Kie.ai.\n\n    kie, ideogram, character-remix, image generation, ai, remix\n\n    Ideogram Character Remix allows you to remix images while maintaining character consistency\n    using reference images and text prompts.",
@@ -1197,7 +1191,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Imagen4Fast",
-      modelId: "imagen-4/fast",
+      modelId: "google/imagen4-fast",
       title: "Imagen 4 Fast",
       description:
         "Generate images using Google's Imagen 4 Fast model via Kie.ai.\n\n    kie, google, imagen, imagen4, fast, image generation, ai",
@@ -1240,7 +1234,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Imagen4Ultra",
-      modelId: "imagen-4/ultra",
+      modelId: "google/imagen4-ultra",
       title: "Imagen 4 Ultra",
       description:
         "Generate images using Google's Imagen 4 Ultra model via Kie.ai.\n\n    kie, google, imagen, imagen4, ultra, image generation, ai",
@@ -1290,7 +1284,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Imagen4",
-      modelId: "imagen-4/standard",
+      modelId: "google/imagen4",
       title: "Imagen 4",
       description:
         "Generate images using Google's Imagen 4 model via Kie.ai.\n\n    kie, google, imagen, imagen4, image generation, ai",
@@ -1340,7 +1334,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "NanoBananaEdit",
-      modelId: "nano-banana/edit",
+      modelId: "google/nano-banana-edit",
       title: "Nano Banana Edit",
       description:
         "Edit images using Google's Nano Banana model via Kie.ai.\n\n    kie, google, nano-banana, nano-banana-edit, image editing, ai",
@@ -1515,7 +1509,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "GPTImage15TextToImage",
-      modelId: "gpt-image-1-5/text-to-image",
+      modelId: "gpt-image/1.5-text-to-image",
       title: "GPT Image 1.5 Text To Image",
       description:
         "Generate images using OpenAI's GPT Image 1.5 model via Kie.ai.\n\n    kie, openai, gpt-image-1.5, image generation, ai, text-to-image\n\n    GPT Image 1.5 is OpenAI's flagship image generation model for high-quality\n    image creation and precise image editing, with strong instruction following\n    and improved text rendering.\n\n    Use cases:\n    - Generate high-quality images from text descriptions\n    - Create images with excellent text rendering\n    - Generate professional marketing and design materials\n    - Produce creative visuals with precise control",
@@ -1560,7 +1554,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "GPTImage15ImageToImage",
-      modelId: "gpt-image-1-5/image-to-image",
+      modelId: "gpt-image/1.5-image-to-image",
       title: "GPT Image 1.5 Edit",
       description:
         "Edit images using OpenAI's GPT Image 1.5 model via Kie.ai.\n\n    kie, openai, gpt-image-1.5, image editing, ai, image-to-image\n\n    GPT Image 1.5 enables precise image editing with strong instruction following\n    and improved text rendering capabilities.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply specific modifications with precise control\n    - Add or modify text in images accurately\n    - Create variations with high fidelity",
@@ -1702,7 +1696,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "IdeogramV3ImageToImage",
-      modelId: "ideogram/v3-image-to-image",
+      modelId: "ideogram/v3-edit",
       title: "Ideogram V3 Image To Image",
       description:
         "Edit images using Ideogram V3 model via Kie.ai.\n\n    kie, ideogram, v3, image editing, ai, image-to-image\n\n    Ideogram V3 offers image editing capabilities with improved consistency\n    and creative control.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply style changes while maintaining structure\n    - Create variations of existing images",
@@ -1813,7 +1807,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Seedream40TextToImage",
-      modelId: "seedream/4-0-text-to-image",
+      modelId: "bytedance/seedream-v4-text-to-image",
       title: "Seedream 4.0 Text To Image",
       description:
         "Generate images using ByteDance's Seedream 4.0 model via Kie.ai.\n\n    kie, seedream, bytedance, seedream-4, image generation, ai, text-to-image\n\n    Seedream 4.0 is ByteDance's image generation model that combines text-to-image\n    with batch consistency, high speed, and professional-quality outputs.\n\n    Use cases:\n    - Generate creative and artistic images from text\n    - Create professional visual content\n    - Produce consistent batch images",
@@ -1849,10 +1843,7 @@ export const imageConfig: ModuleConfig = {
           rule: "not_empty",
           message: "Prompt cannot be empty"
         }
-      ],
-      paramNames: {
-        quality: "resolution"
-      }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -1860,7 +1851,7 @@ export const imageConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Seedream40ImageToImage",
-      modelId: "seedream/4-0-image-to-image",
+      modelId: "bytedance/seedream-v4-edit",
       title: "Seedream 4.0 Edit",
       description:
         "Edit images using ByteDance's Seedream 4.0 model via Kie.ai.\n\n    kie, seedream, bytedance, seedream-4, image editing, ai, image-to-image\n\n    Seedream 4.0 offers image-to-image capabilities with batch consistency\n    and professional-quality outputs.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply style changes to photos\n    - Create variations of existing images",
@@ -1916,10 +1907,7 @@ export const imageConfig: ModuleConfig = {
           rule: "not_empty",
           message: "Prompt cannot be empty"
         }
-      ],
-      paramNames: {
-        quality: "resolution"
-      }
+      ]
     }
   ]
 };

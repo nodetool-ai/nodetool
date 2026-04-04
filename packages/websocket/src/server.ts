@@ -19,6 +19,7 @@ import type { NodeMetadata } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
+import { registerKieNodes } from "@nodetool/kie-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import { setSecretResolver, PythonStdioBridge } from "@nodetool/runtime";
 import { getSecret, initMasterKey } from "@nodetool/security";
@@ -232,6 +233,7 @@ log.info(`Python metadata loaded [${startupMs()}]`);
 registerBaseNodes(registry);
 registerElevenLabsNodes(registry);
 registerFalNodes(registry);
+registerKieNodes(registry);
 registerReplicateNodes(registry);
 log.info(`Node registry ready [${startupMs()}]`);
 
