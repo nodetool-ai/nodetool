@@ -282,7 +282,7 @@ export interface UnifiedWebSocketRunnerOptions {
   authToken?: string;
   defaultModel?: string;
   defaultProvider?: string;
-  resolveExecutor: (node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor;
+  resolveExecutor: (node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor | Promise<NodeExecutor>;
   resolveNodeType?: NodeTypeResolver;
   resolveProvider?: (providerId: string, userId: string) => Promise<BaseProvider>;
   /** Resolve server-side Tool instances by name (for tool execution in chat). */

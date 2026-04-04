@@ -53,7 +53,7 @@ export interface WorkflowRunnerOptions {
    * Factory that resolves a NodeDescriptor to a NodeExecutor.
    * This is the integration point for actual node implementations.
    */
-  resolveExecutor: (node: NodeDescriptor) => NodeExecutor;
+  resolveExecutor: (node: NodeDescriptor) => NodeExecutor | Promise<NodeExecutor>;
 
   /** Optional per-inbox buffer limit. */
   bufferLimit?: number | null;
@@ -336,7 +336,7 @@ export class WorkflowRunner {
 
   private async _initializeGraph(): Promise<void> {
     for (const node of this._graph.nodes) {
-      const executor = this._options.resolveExecutor(node);
+      const executor = await this._options.resolveExecutor(node);
       if (executor.initialize) {
         await executor.initialize();
       }
@@ -515,7 +515,7 @@ export class WorkflowRunner {
       }
 
       const inbox = this._inboxes.get(node.id)!;
-      const executor = this._options.resolveExecutor(node);
+      const executor = await this._options.resolveExecutor(node);
 
       // Compute sticky handles: handles fed by non-streaming edges
       // are sticky from the start (Python parity: _analyze_streaming).

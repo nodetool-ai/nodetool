@@ -185,6 +185,14 @@ const pythonBridge = new PythonBridge({
 });
 
 let pythonBridgeReady = false;
+let resolveBridgePromise: () => void;
+let rejectBridgePromise: (err: Error) => void;
+const pythonBridgeReadyPromise = new Promise<void>((resolve, reject) => {
+  resolveBridgePromise = resolve;
+  rejectBridgePromise = reject;
+});
+// Prevent unhandled rejection — errors are handled when awaited in resolveExecutor
+pythonBridgeReadyPromise.catch(() => {});
 
 pythonBridge.on("stderr", (msg: string) => {
   for (const line of msg.split("\n")) {
@@ -395,6 +403,7 @@ await app.register(websocketPlugin, {
   registry,
   pythonBridge,
   getPythonBridgeReady: () => pythonBridgeReady,
+  pythonBridgeReadyPromise,
   toolClassMap,
 });
 
@@ -505,6 +514,7 @@ pythonBridge
   .connect()
   .then(() => {
     pythonBridgeReady = true;
+    resolveBridgePromise();
     const meta = pythonBridge.getNodeMetadata();
     log.info(`Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`);
 
@@ -519,6 +529,7 @@ pythonBridge
       });
   })
   .catch((err) => {
+    rejectBridgePromise(err instanceof Error ? err : new Error(String(err)));
     log.warn(
       "Python bridge failed to start (Python nodes will not be available)",
       err instanceof Error ? err : new Error(String(err)),
