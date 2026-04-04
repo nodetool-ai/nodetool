@@ -78,11 +78,11 @@
 
 .output-add-button {
   position: absolute;
-  right: -20px;
+  right: -32px;
   top: 50%;
   transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--palette-background-paper);
   border: 1px solid var(--palette-divider);
@@ -90,17 +90,11 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background-color 0.15s;
+  transition: background-color 0.15s, border-color 0.15s;
   z-index: 10;
   color: var(--palette-text-secondary);
 }
-.output-handle-container:hover .output-add-button,
-.react-flow__node:hover .output-add-button {
-  opacity: 0.7;
-}
 .output-add-button:hover {
-  opacity: 1 !important;
   background: var(--palette-primary-main);
   border-color: var(--palette-primary-main);
   color: var(--palette-primary-contrastText);
