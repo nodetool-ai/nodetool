@@ -51,6 +51,7 @@ import InferenceProviderModelSelect from "../properties/InferenceProviderModelSe
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
+import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../../utils/codeOutputInference";
 
 const propertyInputContainerStyles = (theme: Theme) =>
   css({
@@ -406,6 +407,41 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         updateNodeProperties(id, { [property.name]: value });
       }
 
+      // Auto-infer dynamic inputs and outputs for Code nodes when the code property changes.
+      if (
+        property.name === "code" &&
+        nodeType === "nodetool.code.Code" &&
+        typeof value === "string"
+      ) {
+        const outputKeys = inferOutputKeysFromCode(value);
+        const inputKeys = inferInputKeysFromCode(value);
+        const updates: Record<string, unknown> = {};
+
+        if (outputKeys) {
+          const dynOutputs: Record<string, { type: string; type_args: never[]; optional: boolean }> = {};
+          for (const key of outputKeys) {
+            dynOutputs[key] = { type: "any", type_args: [], optional: false };
+          }
+          updates.dynamic_outputs = dynOutputs;
+        } else {
+          updates.dynamic_outputs = {};
+        }
+
+        // Build dynamic_properties from inferred inputs, preserving existing values.
+        const node = findNode(id);
+        const existingDynProps = (node?.data?.dynamic_properties || {}) as Record<string, unknown>;
+        const newDynProps: Record<string, unknown> = {};
+        if (inputKeys) {
+          for (const key of inputKeys) {
+            // Preserve existing value if the input already exists
+            newDynProps[key] = key in existingDynProps ? existingDynProps[key] : "";
+          }
+        }
+        updates.dynamic_properties = newDynProps;
+
+        updateNodeData(id, updates);
+      }
+
       // Trigger auto-run (hook decides based on settings and node type)
       onPropertyChange();
     },
@@ -413,6 +449,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       findNode,
       id,
       isDynamicProperty,
+      nodeType,
       onPropertyChange,
       onValueChange,
       property.name,

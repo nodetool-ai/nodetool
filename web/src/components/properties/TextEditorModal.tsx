@@ -589,7 +589,7 @@ const TextEditorModal = ({
 
   // Editor mode toggle (extracted hook)
   const { isCodeEditor, toggleEditorMode } = useEditorMode({
-    storageKey: "textEditorModal_useCodeEditor",
+    defaultEnabled: !!defaultLanguage,
     onCodeEnabled: () => {
       void loadMonacoIfNeeded();
     }
@@ -917,7 +917,7 @@ const TextEditorModal = ({
                       </button>
                     </Tooltip>
                   )}
-                  {!readOnly && (language === "javascript" || language === "typescript") && (
+                  {!readOnly && (
                     <Tooltip
                       enterDelay={TOOLTIP_ENTER_DELAY}
                       title={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}

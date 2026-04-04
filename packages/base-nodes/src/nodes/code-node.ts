@@ -102,6 +102,7 @@ export class CodeNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
+  static readonly basicFields = ["code"];
 
   /** Persistent state across streaming invocations; reset each workflow run. */
   private _state: Record<string, unknown> = {};
@@ -127,18 +128,6 @@ export class CodeNode extends BaseNode {
     description: "Max seconds before execution is aborted (0 = no limit)."
   })
   declare timeout: number;
-
-  @prop({
-    type: "enum",
-    default: "zip_all",
-    title: "Sync Mode",
-    description:
-      "How to handle streaming inputs. " +
-      "'zip_all' waits for all inputs before executing. " +
-      "'on_any' fires each time any input arrives (for stream processing).",
-    values: ["zip_all", "on_any"]
-  })
-  declare sync_mode: string;
 
   async initialize(): Promise<void> {
     this._state = {};
