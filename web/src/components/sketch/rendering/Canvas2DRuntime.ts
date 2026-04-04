@@ -11,7 +11,7 @@
  * directly via ref during the migration.
  */
 
-import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
+import type { SketchRuntime, ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "./types";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
@@ -222,7 +222,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       // Apply non-destructive effects (FX pipeline integration)
       let drawCanvas = layerCanvas;
       if (layer.effects.length > 0 && layer.effects.some((e) => e.enabled)) {
-        drawCanvas = this.evaluateLayerEffects(layer.id, layerCanvas, layer.effects);
+        drawCanvas = this.evaluateLayerEffects(layer.id, layerCanvas, layer.effects).surface;
       }
 
       const opacityScale = getAncestorGroupOpacityProduct(
@@ -351,7 +351,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     // Apply non-destructive effects (same pipeline as compositeToDisplay)
     let drawCanvas: HTMLCanvasElement = layerCanvas;
     if (layer.effects.length > 0 && layer.effects.some((e) => e.enabled)) {
-      drawCanvas = this.evaluateLayerEffects(layer.id, layerCanvas, layer.effects);
+      drawCanvas = this.evaluateLayerEffects(layer.id, layerCanvas, layer.effects).surface;
     }
 
     ctx.save();
@@ -1224,10 +1224,16 @@ export class Canvas2DRuntime implements SketchRuntime {
     layerId: string,
     source: HTMLCanvasElement,
     effects: import("../types").LayerEffect[]
-  ): HTMLCanvasElement {
+  ): ResolvedLayerBitmap {
+    /** SDR / sRGB — all current CSS-filter effects stay in this space. */
+    const SDR_SRGB: Pick<ResolvedLayerBitmap, "workingSpace" | "dynamicRange"> = {
+      workingSpace: "srgb",
+      dynamicRange: "sdr"
+    };
+
     if (!effects || effects.length === 0 || effects.every((e) => !e.enabled)) {
       this.fxCache.delete(layerId);
-      return source;
+      return { surface: source, ...SDR_SRGB };
     }
 
     // ── FX cache: skip recomputation if source + params haven't changed ──
@@ -1239,7 +1245,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       cached.canvas.width === source.width &&
       cached.canvas.height === source.height
     ) {
-      return cached.canvas;
+      return { surface: cached.canvas, ...SDR_SRGB };
     }
 
     // Build a composite CSS filter string from all enabled effects.
@@ -1317,7 +1323,7 @@ export class Canvas2DRuntime implements SketchRuntime {
 
     if (filterParts.length === 0) {
       this.fxCache.delete(layerId);
-      return source;
+      return { surface: source, ...SDR_SRGB };
     }
 
     // Apply the filter chain to a temporary canvas
@@ -1362,7 +1368,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       this.fxCache.set(layerId, { key: cacheKey, canvas: cacheCanvas });
     }
 
-    return temp;
+    return { surface: temp, ...SDR_SRGB };
   }
 
   // ─── Composite readback ─────────────────────────────────────────────

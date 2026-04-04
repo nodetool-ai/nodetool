@@ -112,7 +112,9 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
 
   it("returns source unchanged when effects is empty", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, []);
-    expect(result).toBe(sourceCanvas);
+    expect(result.surface).toBe(sourceCanvas);
+    expect(result.workingSpace).toBe("srgb");
+    expect(result.dynamicRange).toBe("sdr");
   });
 
   it("returns source unchanged when effects is undefined-like", () => {
@@ -122,39 +124,41 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       null as any
     );
-    expect(result).toBe(sourceCanvas);
+    expect(result.surface).toBe(sourceCanvas);
   });
 
   it("returns source unchanged when all effects are disabled", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
       { type: "brightness_contrast", enabled: false, params: { brightness: 0.5, contrast: 0 } }
     ]);
-    expect(result).toBe(sourceCanvas);
+    expect(result.surface).toBe(sourceCanvas);
   });
 
   it("returns a different canvas when effects are enabled", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
       { type: "brightness_contrast", enabled: true, params: { brightness: 0.5, contrast: 0 } }
     ]);
-    expect(result).not.toBe(sourceCanvas);
-    expect(result.width).toBe(64);
-    expect(result.height).toBe(64);
+    expect(result.surface).not.toBe(sourceCanvas);
+    expect(result.surface.width).toBe(64);
+    expect(result.surface.height).toBe(64);
+    expect(result.workingSpace).toBe("srgb");
+    expect(result.dynamicRange).toBe("sdr");
   });
 
   it("applies hue_saturation effects", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
       { type: "hue_saturation", enabled: true, params: { hueDegrees: 90, saturation: 0.5, lightness: 0 } }
     ]);
-    expect(result).not.toBe(sourceCanvas);
-    expect(result.width).toBe(64);
+    expect(result.surface).not.toBe(sourceCanvas);
+    expect(result.surface.width).toBe(64);
   });
 
   it("applies exposure effects", () => {
     const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
       { type: "exposure", enabled: true, params: { exposureStops: 1.0 } }
     ]);
-    expect(result).not.toBe(sourceCanvas);
-    expect(result.width).toBe(64);
+    expect(result.surface).not.toBe(sourceCanvas);
+    expect(result.surface.width).toBe(64);
   });
 
   it("throws for unsupported effect types in development", () => {
@@ -172,7 +176,7 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
       { type: "brightness_contrast", enabled: true, params: { brightness: 0.2, contrast: 0.1 } },
       { type: "hue_saturation", enabled: true, params: { hueDegrees: 45, saturation: 0, lightness: 0 } }
     ]);
-    expect(result).not.toBe(sourceCanvas);
+    expect(result.surface).not.toBe(sourceCanvas);
   });
 
   it("returns source when all params are zero (no-op)", () => {
@@ -180,6 +184,6 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
       { type: "brightness_contrast", enabled: true, params: { brightness: 0, contrast: 0 } }
     ]);
     // brightness=0 and contrast=0 produce no filter parts
-    expect(result).toBe(sourceCanvas);
+    expect(result.surface).toBe(sourceCanvas);
   });
 });

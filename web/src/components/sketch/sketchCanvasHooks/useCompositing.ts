@@ -127,7 +127,59 @@ export function useCompositing({
   useEffect(() => {
     let cancelled = false;
 
-    // Device-loss handler: fall back to Canvas2D if the WebGPU device is lost
+    /**
+     * Attempt to re-initialize WebGPU after device loss. On success, swap the
+     * runtime back to WebGPU. On failure, stay on Canvas2D (no further retries).
+     *
+     * Lifecycle rules (Phase 3A — Async Tool Lifecycle / device-loss recovery):
+     * - If the component unmounts (`cancelled`) before recovery completes, the
+     *   new runtime is discarded.
+     * - Layer canvases are shared (DI'd via `layerCanvasesRef`), so switching
+     *   runtimes doesn't lose pixel data.
+     * - A single retry is attempted; exponential backoff or repeated retries
+     *   are not worth the complexity for a rare event.
+     */
+    const attemptWebGPURecovery = () => {
+      if (cancelled) {
+        return;
+      }
+      // Wait a short time before attempting recovery so the GPU driver has time
+      // to reset. 1 second is a conservative delay.
+      const RECOVERY_DELAY_MS = 1000;
+      setTimeout(() => {
+        if (cancelled) {
+          return;
+        }
+        console.info("[Sketch] Attempting WebGPU re-initialization after device loss…");
+        createRuntime(layerCanvasesRef.current, handleDeviceLost).then(
+          ({ runtime: recoveredRuntime, backend: recoveredBackend }) => {
+            if (cancelled) {
+              void recoveredRuntime;
+              return;
+            }
+            if (recoveredBackend === "webgpu") {
+              console.info("[Sketch] WebGPU recovered successfully");
+              runtimeRef.current = recoveredRuntime;
+              setBackend("webgpu");
+              for (const layerId of layerCanvasesRef.current.keys()) {
+                recoveredRuntime.invalidateLayer(layerId);
+              }
+              requestAnimationFrame(() => {
+                if (!cancelled) {
+                  requestRedraw();
+                }
+              });
+            } else {
+              console.warn("[Sketch] WebGPU recovery failed — staying on Canvas2D");
+              void recoveredRuntime;
+            }
+          }
+        );
+      }, RECOVERY_DELAY_MS);
+    };
+
+    // Device-loss handler: immediately fall back to Canvas2D, then try to
+    // recover WebGPU in the background.
     // (e.g. driver crash, tab backgrounded on some platforms, GPU memory pressure).
     const handleDeviceLost = () => {
       if (cancelled) {
@@ -143,6 +195,8 @@ export function useCompositing({
           requestRedraw();
         }
       });
+      // Attempt to recover WebGPU after a short delay
+      attemptWebGPURecovery();
     };
 
     createRuntime(layerCanvasesRef.current, handleDeviceLost).then(({ runtime: newRuntime, backend: newBackend }) => {

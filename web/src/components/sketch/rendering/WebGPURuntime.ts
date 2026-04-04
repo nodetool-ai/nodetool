@@ -15,7 +15,7 @@
  * Readback (flatten / mask export) goes through Canvas2DRuntime helpers.
  */
 
-import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
+import type { SketchRuntime, ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "./types";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
@@ -754,11 +754,11 @@ export class WebGPURuntime implements SketchRuntime {
       if (layer.effects.length > 0 && layer.effects.some((e) => e.enabled)) {
         const cpuCanvas = this.layerCanvases.get(layer.id);
         if (cpuCanvas) {
-          const effected = this.cpuRuntime.evaluateLayerEffects(
+          const resolved = this.cpuRuntime.evaluateLayerEffects(
             layer.id, cpuCanvas, layer.effects
           );
-          if (effected !== cpuCanvas) {
-            srcTex = this.uploadFxTempTexture(effected);
+          if (resolved.surface !== cpuCanvas) {
+            srcTex = this.uploadFxTempTexture(resolved.surface);
           }
         }
       }
@@ -1175,8 +1175,10 @@ export class WebGPURuntime implements SketchRuntime {
     layerId: string,
     source: HTMLCanvasElement,
     effects: import("../types").LayerEffect[]
-  ): HTMLCanvasElement {
-    // Delegate to the CPU runtime; WebGPU-accelerated effects will be added later
+  ): ResolvedLayerBitmap {
+    // Delegate to the CPU runtime; WebGPU-accelerated effects will be added later.
+    // When GPU-backed effects are implemented, this method will evaluate them
+    // directly on the GPU and may return linear-srgb or HDR results.
     return this.cpuRuntime.evaluateLayerEffects(layerId, source, effects);
   }
 
