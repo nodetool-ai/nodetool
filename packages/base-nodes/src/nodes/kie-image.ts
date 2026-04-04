@@ -3,6 +3,7 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getApiKey,
   kieExecuteTask,
+  kieImageRef,
   uploadImageInput,
   isRefSet
 } from "./kie-base.js";
@@ -63,7 +64,7 @@ export class Flux2ProTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -144,7 +145,7 @@ export class Flux2ProImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -204,7 +205,7 @@ export class Flux2FlexTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -285,7 +286,7 @@ export class Flux2FlexImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -344,7 +345,7 @@ export class Seedream45TextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -413,7 +414,7 @@ export class Seedream45EditNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -465,7 +466,7 @@ export class ZImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -526,7 +527,7 @@ export class NanoBananaNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -592,7 +593,7 @@ export class NanoBananaProNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -664,7 +665,7 @@ export class FluxKontextNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -713,7 +714,7 @@ export class GrokImagineTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -759,7 +760,7 @@ export class GrokImagineUpscaleNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -809,7 +810,7 @@ export class QwenTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -875,7 +876,7 @@ export class QwenImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -930,7 +931,7 @@ export class TopazImageUpscaleNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -972,7 +973,7 @@ export class RecraftRemoveBackgroundNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1099,7 +1100,7 @@ export class IdeogramCharacterNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1234,7 +1235,7 @@ export class IdeogramCharacterEditNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1394,7 +1395,7 @@ export class IdeogramCharacterRemixNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1477,7 +1478,7 @@ export class IdeogramV3ReframeNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1519,7 +1520,7 @@ export class RecraftCrispUpscaleNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1576,7 +1577,7 @@ export class Imagen4FastNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1636,7 +1637,7 @@ export class Imagen4UltraNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1696,7 +1697,7 @@ export class Imagen4Node extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1770,7 +1771,7 @@ export class NanoBananaEditNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1838,7 +1839,7 @@ export class GPTImage4oTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1918,7 +1919,7 @@ export class GPTImage4oImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -1978,7 +1979,7 @@ export class GPTImage15TextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -2058,7 +2059,7 @@ export class GPTImage15ImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -2161,7 +2162,7 @@ export class IdeogramV3TextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -2289,7 +2290,7 @@ export class IdeogramV3ImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -2348,7 +2349,7 @@ export class Seedream40TextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 
@@ -2423,7 +2424,7 @@ export class Seedream40ImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { type: "image", data: result.data } };
+    return { output: await kieImageRef(result.data) };
   }
 }
 

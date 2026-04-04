@@ -192,6 +192,24 @@ function isRefSet(ref: unknown): boolean {
 
 export { isRefSet };
 
+export async function kieImageRef(base64: string): Promise<Record<string, unknown>> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const buf = Buffer.from(base64, "base64");
+    const meta = await sharp(buf).metadata();
+    return {
+      type: "image",
+      uri: "",
+      data: base64,
+      mimeType: meta.format ? `image/${meta.format}` : "image/png",
+      width: meta.width,
+      height: meta.height
+    };
+  } catch {
+    return { type: "image", uri: "", data: base64 };
+  }
+}
+
 export async function kieExecuteTask(
   apiKey: string,
   model: string,
