@@ -108,6 +108,13 @@ export class Canvas2DRuntime implements SketchRuntime {
   private fxTempCanvas: HTMLCanvasElement | null = null;
 
   /**
+   * FX result cache: avoids recomputing effects on every composite when
+   * neither the source raster nor effect params have changed.
+   * Keyed by layer ID → { serialized effect params, cached result canvas }.
+   */
+  private fxCache: Map<string, { key: string; canvas: HTMLCanvasElement }> = new Map();
+
+  /**
    * Current zoom level, updated by the compositing hook so that
    * the checkerboard pattern can maintain a constant screen-pixel size.
    */
@@ -154,9 +161,11 @@ export class Canvas2DRuntime implements SketchRuntime {
     this.layerCanvases.delete(layerId);
   }
 
-  invalidateLayer(_layerId: string): void {
+  invalidateLayer(layerId: string): void {
     // Canvas2D reads directly from the authoritative layer canvases, so
-    // there is no extra invalidation work to do here.
+    // there is no extra invalidation work to do here — except clearing
+    // the FX result cache so effects are recomputed from the new source.
+    this.fxCache.delete(layerId);
   }
 
   // ─── Compositing ─────────────────────────────────────────────────────
@@ -212,7 +221,7 @@ export class Canvas2DRuntime implements SketchRuntime {
 
       // Apply non-destructive effects (FX pipeline integration)
       let drawCanvas = layerCanvas;
-      if (layer.effects && layer.effects.some((e) => e.enabled)) {
+      if (layer.effects.length > 0 && layer.effects.some((e) => e.enabled)) {
         drawCanvas = this.evaluateLayerEffects(layer.id, layerCanvas, layer.effects);
       }
 
@@ -1205,12 +1214,25 @@ export class Canvas2DRuntime implements SketchRuntime {
   // ─── Effects evaluation ──────────────────────────────────────────────
 
   evaluateLayerEffects(
-    _layerId: string,
+    layerId: string,
     source: HTMLCanvasElement,
     effects: import("../types").LayerEffect[]
   ): HTMLCanvasElement {
     if (!effects || effects.length === 0 || effects.every((e) => !e.enabled)) {
+      this.fxCache.delete(layerId);
       return source;
+    }
+
+    // ── FX cache: skip recomputation if source + params haven't changed ──
+    const cacheKey = JSON.stringify(effects);
+    const cached = this.fxCache.get(layerId);
+    if (
+      cached &&
+      cached.key === cacheKey &&
+      cached.canvas.width === source.width &&
+      cached.canvas.height === source.height
+    ) {
+      return cached.canvas;
     }
 
     // Build a composite CSS filter string from all enabled effects.
@@ -1224,8 +1246,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       }
       switch (effect.type) {
         case "brightness_contrast": {
-          const brightness = effect.params.brightness ?? 0;
-          const contrast = effect.params.contrast ?? 0;
+          const { brightness, contrast } = effect.params;
           // brightness: -1 → 0 (black), 0 → 1 (no change), 1 → 2 (double)
           if (brightness !== 0) {
             filterParts.push(`brightness(${1 + brightness})`);
@@ -1237,12 +1258,10 @@ export class Canvas2DRuntime implements SketchRuntime {
           break;
         }
         case "hue_saturation": {
-          const hue = effect.params.hue ?? 0;
-          const saturation = effect.params.saturation ?? 0;
-          const lightness = effect.params.lightness ?? 0;
-          // hue: degrees of rotation (-180 to 180)
-          if (hue !== 0) {
-            filterParts.push(`hue-rotate(${hue}deg)`);
+          const { hueDegrees, saturation, lightness } = effect.params;
+          // hueDegrees: degrees of rotation (-180 to 180)
+          if (hueDegrees !== 0) {
+            filterParts.push(`hue-rotate(${hueDegrees}deg)`);
           }
           // saturation: -1 → 0 (grayscale), 0 → 1 (no change), 1 → 2 (double)
           if (saturation !== 0) {
@@ -1255,20 +1274,41 @@ export class Canvas2DRuntime implements SketchRuntime {
           break;
         }
         case "exposure": {
-          const exposure = effect.params.exposure ?? 0;
-          // exposure: EV stops; brightness factor = 2^exposure
-          if (exposure !== 0) {
-            filterParts.push(`brightness(${Math.pow(2, exposure)})`);
+          const { exposureStops } = effect.params;
+          // exposureStops: EV stops; brightness factor = 2^exposureStops
+          if (exposureStops !== 0) {
+            filterParts.push(`brightness(${Math.pow(2, exposureStops)})`);
           }
           break;
         }
-        default:
-          // Unsupported effect types (curves, tonemap) are silently skipped
+        case "curves":
+        case "tonemap":
+        case "bloom":
+          // These effect types require shader-backed implementation.
+          // CSS filters cannot faithfully represent them.
+          if (process.env.NODE_ENV !== "production") {
+            console.warn(
+              `[Canvas2DRuntime] Effect type "${effect.type}" is not yet implemented ` +
+              `in the Canvas2D path. It will be ignored until a shader-backed ` +
+              `implementation is available.`
+            );
+          }
           break;
+        default: {
+          // Exhaustive check: every LayerEffectType must have a case above.
+          // If this fires, a new effect type was added without updating this switch.
+          const _exhaustive: never = effect;
+          if (process.env.NODE_ENV !== "production") {
+            console.error(
+              `[Canvas2DRuntime] Unknown effect type: ${(_exhaustive as { type: string }).type}`
+            );
+          }
+        }
       }
     }
 
     if (filterParts.length === 0) {
+      this.fxCache.delete(layerId);
       return source;
     }
 
@@ -1294,6 +1334,26 @@ export class Canvas2DRuntime implements SketchRuntime {
     ctx.drawImage(source, 0, 0);
     ctx.filter = "none";
 
+    // Cache the result for subsequent composites with unchanged source/params.
+    // Clone into a dedicated canvas so the shared fxTempCanvas can be reused
+    // for other layers without overwriting the cached result.
+    let cacheCanvas = cached?.canvas;
+    if (
+      !cacheCanvas ||
+      cacheCanvas.width !== temp.width ||
+      cacheCanvas.height !== temp.height
+    ) {
+      cacheCanvas = window.document.createElement("canvas");
+      cacheCanvas.width = temp.width;
+      cacheCanvas.height = temp.height;
+    }
+    const cacheCtx = cacheCanvas.getContext("2d");
+    if (cacheCtx) {
+      cacheCtx.clearRect(0, 0, cacheCanvas.width, cacheCanvas.height);
+      cacheCtx.drawImage(temp, 0, 0);
+      this.fxCache.set(layerId, { key: cacheKey, canvas: cacheCanvas });
+    }
+
     return temp;
   }
 
@@ -1304,5 +1364,6 @@ export class Canvas2DRuntime implements SketchRuntime {
     this.strokeTempCanvas = null;
     this.strokeMaskScratchCanvas = null;
     this.fxTempCanvas = null;
+    this.fxCache.clear();
   }
 }

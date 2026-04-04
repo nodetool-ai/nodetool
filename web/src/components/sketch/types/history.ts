@@ -12,6 +12,7 @@ import type {
   LayerTransform,
   LayerContentBounds,
   LayerImageReference,
+  LayerEffect,
   SketchDocument
 } from "./document";
 import type { SketchTool } from "./tools";
@@ -35,6 +36,7 @@ export interface LayerStructureSnapshot {
   imageReference?: LayerImageReference | null;
   parentId?: string | null;
   collapsed?: boolean;
+  effects: LayerEffect[];
 }
 
 export type HistoryRestoreMode = "full" | "structure-only";

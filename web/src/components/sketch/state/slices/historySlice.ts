@@ -57,7 +57,8 @@ function captureLayerStructure(layers: readonly Layer[]): LayerStructureSnapshot
     contentBounds: l.contentBounds,
     exposedAsInput: l.exposedAsInput,
     exposedAsOutput: l.exposedAsOutput,
-    imageReference: l.imageReference
+    imageReference: l.imageReference,
+    effects: l.effects
   }));
 }
 
