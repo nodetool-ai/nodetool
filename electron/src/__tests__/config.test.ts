@@ -2,8 +2,6 @@ import {
   getCondaEnvPath,
   getPythonPath,
   getUVPath,
-  getOllamaPath,
-  getOllamaModelsPath,
   getCondaLockFilePath,
   getProcessEnv,
   srcPath,
@@ -283,42 +281,6 @@ describe('Config', () => {
       const result = getUVPath();
 
       expect(result).toBe(path.join('/test/conda', 'bin', 'uv'));
-    });
-  });
-
-  describe('getOllamaPath', () => {
-    beforeEach(() => {
-      mockReadSettings.mockReturnValue({ CONDA_ENV: '/test/conda' });
-    });
-
-    it('should return Windows ollama path', () => {
-      Object.defineProperty(process, 'platform', {
-        value: 'win32'
-      });
-
-      const result = getOllamaPath();
-
-      expect(result).toBe(path.join('/test/conda', 'Scripts', 'ollama.exe'));
-    });
-
-    it('should return Unix ollama path', () => {
-      Object.defineProperty(process, 'platform', {
-        value: 'linux'
-      });
-
-      const result = getOllamaPath();
-
-      expect(result).toBe(path.join('/test/conda', 'bin', 'ollama'));
-    });
-  });
-
-  describe('getOllamaModelsPath', () => {
-    it('should return ollama models path', () => {
-      const result = getOllamaModelsPath();
-
-      expect(result).toBeDefined();
-      expect(result).toContain('.ollama');
-      expect(result).toContain('models');
     });
   });
 

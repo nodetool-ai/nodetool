@@ -16,7 +16,7 @@ function createMockProvider(
       | { type: "chunk"; content: string; done?: boolean }
       | { id: string; name: string; args: Record<string, unknown> }
     >
-  >,
+  >
 ) {
   let callIndex = 0;
   return {
@@ -29,8 +29,12 @@ function createMockProvider(
         yield item;
       }
     },
-    async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
-    async generateMessageTraced(...args: any[]) { return (this as any).generateMessage(...args); },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
     generateMessage: vi.fn(),
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
     getAvailableImageModels: vi.fn().mockResolvedValue([]),
@@ -46,7 +50,7 @@ function createMockProvider(
     textToVideo: vi.fn(),
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
-    isContextLengthError: () => false,
+    isContextLengthError: () => false
   } as any;
 }
 
@@ -66,7 +70,7 @@ function createMockContext() {
     get: vi.fn((key: string) => {
       return store.get(key);
     }),
-    _store: store,
+    _store: store
   } as any;
 }
 
@@ -76,17 +80,23 @@ function createMockContext() {
 
 describe("parseFrontmatter", () => {
   it("parses key-value pairs", () => {
-    const result = parseFrontmatter("name: my-skill\ndescription: A cool skill");
+    const result = parseFrontmatter(
+      "name: my-skill\ndescription: A cool skill"
+    );
     expect(result).toEqual({ name: "my-skill", description: "A cool skill" });
   });
 
   it("strips surrounding quotes", () => {
-    const result = parseFrontmatter('name: "quoted-name"\ndescription: \'quoted desc\'');
+    const result = parseFrontmatter(
+      "name: \"quoted-name\"\ndescription: 'quoted desc'"
+    );
     expect(result).toEqual({ name: "quoted-name", description: "quoted desc" });
   });
 
   it("skips comments and empty lines", () => {
-    const result = parseFrontmatter("# comment\n\nname: test\n# another comment");
+    const result = parseFrontmatter(
+      "# comment\n\nname: test\n# another comment"
+    );
     expect(result).toEqual({ name: "test" });
   });
 
@@ -116,7 +126,7 @@ describe("loadSkillsFromDirectory", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "---\nname: my-skill\ndescription: A test skill\n---\nDo something useful.",
+      "---\nname: my-skill\ndescription: A test skill\n---\nDo something useful."
     );
 
     const skills = await loadSkillsFromDirectory(tmpDir);
@@ -131,7 +141,7 @@ describe("loadSkillsFromDirectory", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "---\nname: INVALID_NAME!\ndescription: Bad name\n---\nInstructions.",
+      "---\nname: INVALID_NAME!\ndescription: Bad name\n---\nInstructions."
     );
 
     const skills = await loadSkillsFromDirectory(tmpDir);
@@ -143,7 +153,7 @@ describe("loadSkillsFromDirectory", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "---\nname: my-anthropic-skill\ndescription: Uses reserved term\n---\nInstructions.",
+      "---\nname: my-anthropic-skill\ndescription: Uses reserved term\n---\nInstructions."
     );
 
     const skills = await loadSkillsFromDirectory(tmpDir);
@@ -155,7 +165,7 @@ describe("loadSkillsFromDirectory", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "---\nname: claude-helper\ndescription: Claude skill\n---\nInstructions.",
+      "---\nname: claude-helper\ndescription: Claude skill\n---\nInstructions."
     );
 
     const skills = await loadSkillsFromDirectory(tmpDir);
@@ -168,7 +178,7 @@ describe("loadSkillsFromDirectory", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      `---\nname: ${longName}\ndescription: Too long\n---\nInstructions.`,
+      `---\nname: ${longName}\ndescription: Too long\n---\nInstructions.`
     );
 
     const skills = await loadSkillsFromDirectory(tmpDir);
@@ -180,7 +190,7 @@ describe("loadSkillsFromDirectory", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "---\nname: xml-skill\ndescription: Has <script>tags</script>\n---\nInstructions.",
+      "---\nname: xml-skill\ndescription: Has <script>tags</script>\n---\nInstructions."
     );
 
     const skills = await loadSkillsFromDirectory(tmpDir);
@@ -192,7 +202,7 @@ describe("loadSkillsFromDirectory", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "Just some content without frontmatter.",
+      "Just some content without frontmatter."
     );
 
     const skills = await loadSkillsFromDirectory(tmpDir);
@@ -204,7 +214,7 @@ describe("loadSkillsFromDirectory", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "---\nname: empty-instructions\ndescription: No body\n---\n",
+      "---\nname: empty-instructions\ndescription: No body\n---\n"
     );
 
     const skills = await loadSkillsFromDirectory(tmpDir);
@@ -232,11 +242,11 @@ describe("loadSkillsFromDirectory", () => {
     await fs.mkdir(skill2Dir, { recursive: true });
     await fs.writeFile(
       path.join(skill1Dir, "SKILL.md"),
-      "---\nname: skill-one\ndescription: First skill\n---\nFirst instructions.",
+      "---\nname: skill-one\ndescription: First skill\n---\nFirst instructions."
     );
     await fs.writeFile(
       path.join(skill2Dir, "SKILL.md"),
-      "---\nname: skill-two\ndescription: Second skill\n---\nSecond instructions.",
+      "---\nname: skill-two\ndescription: Second skill\n---\nSecond instructions."
     );
 
     const skills = await loadSkillsFromDirectory(tmpDir);
@@ -269,9 +279,10 @@ describe("Agent", () => {
           id: "step_1",
           instructions: "Do the work",
           depends_on: [],
-          output_schema: '{"type":"object","properties":{"answer":{"type":"number"}}}',
-        },
-      ],
+          output_schema:
+            '{"type":"object","properties":{"answer":{"type":"number"}}}'
+        }
+      ]
     };
 
     // Two generateMessages calls: one for planning, one for step execution
@@ -279,13 +290,13 @@ describe("Agent", () => {
       // Planning call
       [
         { type: "chunk", content: "Planning..." },
-        { id: "tc_plan", name: "create_task", args: taskPayload },
+        { id: "tc_plan", name: "create_task", args: taskPayload }
       ],
       // Execution call for step_1
       [
         { type: "chunk", content: "Executing step 1..." },
-        { id: "tc_1", name: "finish_step", args: { result: { answer: 42 } } },
-      ],
+        { id: "tc_1", name: "finish_step", args: { result: { answer: 42 } } }
+      ]
     ]);
 
     const agent = new Agent({
@@ -294,7 +305,7 @@ describe("Agent", () => {
       provider,
       model: "test-model",
       workspace: tmpDir,
-      skillDirs: [], // no skills dirs
+      skillDirs: [] // no skills dirs
     });
 
     const context = createMockContext();
@@ -315,7 +326,7 @@ describe("Agent", () => {
   it("throws when planner fails to create a task", async () => {
     // Provider that returns no task
     const provider = createMockProvider([
-      [{ type: "chunk", content: "I cannot plan this." }],
+      [{ type: "chunk", content: "I cannot plan this." }]
     ]);
 
     const agent = new Agent({
@@ -324,7 +335,7 @@ describe("Agent", () => {
       provider,
       model: "test-model",
       workspace: tmpDir,
-      skillDirs: [],
+      skillDirs: []
     });
 
     const context = createMockContext();
@@ -341,7 +352,7 @@ describe("Agent", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "---\nname: data-analysis\ndescription: Analyze data carefully\n---\nWhen analyzing data, use statistics.",
+      "---\nname: data-analysis\ndescription: Analyze data carefully\n---\nWhen analyzing data, use statistics."
     );
 
     const taskPayload = {
@@ -351,20 +362,21 @@ describe("Agent", () => {
           id: "analyze",
           instructions: "Analyze the data",
           depends_on: [],
-          output_schema: '{"type":"object","properties":{"done":{"type":"boolean"}}}',
-        },
-      ],
+          output_schema:
+            '{"type":"object","properties":{"done":{"type":"boolean"}}}'
+        }
+      ]
     };
 
     const provider = createMockProvider([
       [
         { type: "chunk", content: "Planning..." },
-        { id: "tc_plan", name: "create_task", args: taskPayload },
+        { id: "tc_plan", name: "create_task", args: taskPayload }
       ],
       [
         { type: "chunk", content: "Analyzing..." },
-        { id: "tc_1", name: "finish_step", args: { result: { done: true } } },
-      ],
+        { id: "tc_1", name: "finish_step", args: { result: { done: true } } }
+      ]
     ]);
 
     const agent = new Agent({
@@ -373,7 +385,7 @@ describe("Agent", () => {
       provider,
       model: "test-model",
       workspace: tmpDir,
-      skillDirs: [path.join(tmpDir, "skills")],
+      skillDirs: [path.join(tmpDir, "skills")]
     });
 
     const context = createMockContext();
@@ -389,25 +401,25 @@ describe("Agent", () => {
       title: "Schema Task",
       steps: [
         { id: "step_a", instructions: "Do A", depends_on: [] },
-        { id: "step_b", instructions: "Final step", depends_on: ["step_a"] },
-      ],
+        { id: "step_b", instructions: "Final step", depends_on: ["step_a"] }
+      ]
     };
 
     const provider = createMockProvider([
       [{ id: "tc_plan", name: "create_task", args: taskPayload }],
       [
         { type: "chunk", content: "A" },
-        { id: "tc_a", name: "finish_step", args: { result: { v: 1 } } },
+        { id: "tc_a", name: "finish_step", args: { result: { v: 1 } } }
       ],
       [
         { type: "chunk", content: "B" },
-        { id: "tc_b", name: "finish_step", args: { result: { answer: "yes" } } },
-      ],
+        { id: "tc_b", name: "finish_step", args: { result: { answer: "yes" } } }
+      ]
     ]);
 
     const outputSchema = {
       type: "object",
-      properties: { answer: { type: "string" } },
+      properties: { answer: { type: "string" } }
     };
 
     const agent = new Agent({
@@ -417,7 +429,7 @@ describe("Agent", () => {
       model: "test-model",
       workspace: tmpDir,
       outputSchema,
-      skillDirs: [],
+      skillDirs: []
     });
 
     const context = createMockContext();
@@ -426,7 +438,9 @@ describe("Agent", () => {
     }
 
     // The last step should have the output schema applied
-    expect(agent.task!.steps[1].outputSchema).toBe(JSON.stringify(outputSchema));
+    expect(agent.task!.steps[1].outputSchema).toBe(
+      JSON.stringify(outputSchema)
+    );
   });
 
   it("getResults returns null before execution", () => {
@@ -436,7 +450,7 @@ describe("Agent", () => {
       objective: "Do nothing",
       provider,
       model: "test-model",
-      skillDirs: [],
+      skillDirs: []
     });
 
     expect(agent.getResults()).toBeNull();
@@ -447,8 +461,8 @@ describe("Agent", () => {
     const provider = createMockProvider([
       [
         { type: "chunk", content: "Executing pre-defined step..." },
-        { id: "tc_1", name: "finish_step", args: { result: { value: 99 } } },
-      ],
+        { id: "tc_1", name: "finish_step", args: { result: { value: 99 } } }
+      ]
     ]);
 
     const preDefinedTask = {
@@ -461,9 +475,10 @@ describe("Agent", () => {
           dependsOn: [],
           completed: false,
           logs: [],
-          outputSchema: '{"type":"object","properties":{"value":{"type":"number"}}}',
-        },
-      ],
+          outputSchema:
+            '{"type":"object","properties":{"value":{"type":"number"}}}'
+        }
+      ]
     };
 
     const agent = new Agent({
@@ -473,7 +488,7 @@ describe("Agent", () => {
       model: "test-model",
       workspace: tmpDir,
       task: preDefinedTask,
-      skillDirs: [],
+      skillDirs: []
     });
 
     const context = createMockContext();
@@ -491,15 +506,24 @@ describe("Agent", () => {
     // Spy on provider to capture which model is used
     const calls: string[] = [];
     const baseProvider = createMockProvider([
-      [{ id: "tc_plan", name: "create_task", args: { title: "T", steps: [{ id: "s1", instructions: "Do it", depends_on: [] }] } }],
-      [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }],
+      [
+        {
+          id: "tc_plan",
+          name: "create_task",
+          args: {
+            title: "T",
+            steps: [{ id: "s1", instructions: "Do it", depends_on: [] }]
+          }
+        }
+      ],
+      [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }]
     ]);
     const providerSpy = {
       ...baseProvider,
       generateMessages: async function* (opts: any) {
         calls.push(opts.model ?? "no-model");
         yield* baseProvider.generateMessages(opts);
-      },
+      }
     } as any;
 
     const agent = new Agent({
@@ -509,7 +533,7 @@ describe("Agent", () => {
       model: "exec-model",
       planningModel: "plan-model",
       workspace: tmpDir,
-      skillDirs: [],
+      skillDirs: []
     });
 
     const context = createMockContext();
@@ -530,7 +554,7 @@ describe("Agent", () => {
       objective: "Test defaults",
       provider,
       model: "base-model",
-      skillDirs: [],
+      skillDirs: []
     });
     // Both should default to model — accessed via task which hasn't run yet
     expect(agent.getResults()).toBeNull(); // basic sanity
@@ -541,18 +565,24 @@ describe("Agent", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "---\nname: named-skill\ndescription: A named skill\n---\nNamed skill instructions.",
+      "---\nname: named-skill\ndescription: A named skill\n---\nNamed skill instructions."
     );
 
     const taskPayload = {
       title: "Named Skill Task",
       steps: [
-        { id: "s1", instructions: "Do it", depends_on: [], output_schema: '{"type":"object","properties":{"ok":{"type":"boolean"}}}' },
-      ],
+        {
+          id: "s1",
+          instructions: "Do it",
+          depends_on: [],
+          output_schema:
+            '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+        }
+      ]
     };
     const provider = createMockProvider([
       [{ id: "tc_plan", name: "create_task", args: taskPayload }],
-      [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }],
+      [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }]
     ]);
 
     const agent = new Agent({
@@ -562,7 +592,7 @@ describe("Agent", () => {
       model: "test-model",
       workspace: tmpDir,
       skills: ["named-skill"],
-      skillDirs: [path.join(tmpDir, "skills")],
+      skillDirs: [path.join(tmpDir, "skills")]
     });
 
     const context = createMockContext();
@@ -579,18 +609,24 @@ describe("Agent", () => {
     await fs.mkdir(envSkillDir, { recursive: true });
     await fs.writeFile(
       path.join(envSkillDir, "SKILL.md"),
-      "---\nname: env-skill\ndescription: Env-loaded skill for testing\n---\nEnv skill instructions.",
+      "---\nname: env-skill\ndescription: Env-loaded skill for testing\n---\nEnv skill instructions."
     );
 
     const taskPayload = {
       title: "Env Skill Task",
       steps: [
-        { id: "s1", instructions: "Do it", depends_on: [], output_schema: '{"type":"object","properties":{"ok":{"type":"boolean"}}}' },
-      ],
+        {
+          id: "s1",
+          instructions: "Do it",
+          depends_on: [],
+          output_schema:
+            '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+        }
+      ]
     };
     const provider = createMockProvider([
       [{ id: "tc_plan", name: "create_task", args: taskPayload }],
-      [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }],
+      [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }]
     ]);
 
     const savedEnv = process.env["NODETOOL_AGENT_SKILL_DIRS"];
@@ -602,7 +638,7 @@ describe("Agent", () => {
         provider,
         model: "test-model",
         workspace: tmpDir,
-        skillDirs: [], // No explicit dirs — should pick up env var
+        skillDirs: [] // No explicit dirs — should pick up env var
       });
 
       const context = createMockContext();
@@ -622,11 +658,25 @@ describe("Agent", () => {
 
   it("runs successfully without explicit workspace (auto-creates workspace)", async () => {
     const provider = createMockProvider([
-      [{ id: "tc_plan", name: "create_task", args: {
-        title: "T",
-        steps: [{ id: "s1", instructions: "Do it", depends_on: [], output_schema: '{"type":"object","properties":{"v":{"type":"number"}}}' }],
-      }}],
-      [{ id: "tc_1", name: "finish_step", args: { result: { v: 1 } } }],
+      [
+        {
+          id: "tc_plan",
+          name: "create_task",
+          args: {
+            title: "T",
+            steps: [
+              {
+                id: "s1",
+                instructions: "Do it",
+                depends_on: [],
+                output_schema:
+                  '{"type":"object","properties":{"v":{"type":"number"}}}'
+              }
+            ]
+          }
+        }
+      ],
+      [{ id: "tc_1", name: "finish_step", args: { result: { v: 1 } } }]
     ]);
 
     const agent = new Agent({
@@ -635,7 +685,7 @@ describe("Agent", () => {
       provider,
       model: "test-model",
       // No workspace provided — auto-created under ~/nodetool_workspace/<ts>
-      skillDirs: [],
+      skillDirs: []
     });
 
     const context = createMockContext();
@@ -658,13 +708,30 @@ describe("Agent", () => {
     await fs.mkdir(skillDir, { recursive: true });
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
-      "---\nname: merge-skill\ndescription: Merging test skill for objective\n---\nMerge skill instructions.",
+      "---\nname: merge-skill\ndescription: Merging test skill for objective\n---\nMerge skill instructions."
     );
 
     const capturedPrompts: string[] = [];
     const baseProvider = createMockProvider([
-      [{ id: "tc_plan", name: "create_task", args: { title: "T", steps: [{ id: "s1", instructions: "Do it", depends_on: [], output_schema: '{"type":"object","properties":{"done":{"type":"boolean"}}}' }] } }],
-      [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }],
+      [
+        {
+          id: "tc_plan",
+          name: "create_task",
+          args: {
+            title: "T",
+            steps: [
+              {
+                id: "s1",
+                instructions: "Do it",
+                depends_on: [],
+                output_schema:
+                  '{"type":"object","properties":{"done":{"type":"boolean"}}}'
+              }
+            ]
+          }
+        }
+      ],
+      [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }]
     ]);
     const providerSpy = {
       ...baseProvider,
@@ -673,7 +740,7 @@ describe("Agent", () => {
           capturedPrompts.push(opts.messages[0].content);
         }
         yield* baseProvider.generateMessages(opts);
-      },
+      }
     } as any;
 
     const agent = new Agent({
@@ -683,7 +750,7 @@ describe("Agent", () => {
       model: "test-model",
       workspace: tmpDir,
       systemPrompt: "Custom system prompt.",
-      skillDirs: [path.join(tmpDir, "skills")],
+      skillDirs: [path.join(tmpDir, "skills")]
     });
 
     const context = createMockContext();
@@ -705,17 +772,18 @@ describe("Agent", () => {
           id: "step_1",
           instructions: "Do work",
           depends_on: [],
-          output_schema: '{"type":"object","properties":{"ok":{"type":"boolean"}}}',
-        },
-      ],
+          output_schema:
+            '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+        }
+      ]
     };
 
     const provider = createMockProvider([
       [{ id: "tc_plan", name: "create_task", args: taskPayload }],
       [
         { type: "chunk", content: "Done" },
-        { id: "tc_1", name: "finish_step", args: { result: { ok: true } } },
-      ],
+        { id: "tc_1", name: "finish_step", args: { result: { ok: true } } }
+      ]
     ]);
 
     // Use a temp directory as workspace to avoid leaving files around
@@ -727,7 +795,7 @@ describe("Agent", () => {
       provider,
       model: "test-model",
       workspace,
-      skillDirs: [],
+      skillDirs: []
     });
 
     const context = createMockContext();

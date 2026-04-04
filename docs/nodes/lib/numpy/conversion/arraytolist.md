@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Array To List"
-node_type: "lib.numpy.conversion.ArrayToList"
-namespace: "lib.numpy.conversion"
+node_type: "lib.array.conversion.ArrayToList"
+namespace: "lib.array.conversion"
 ---
 
-**Type:** `lib.numpy.conversion.ArrayToList`
+**Type:** `lib.array.conversion.ArrayToList`
 
-**Namespace:** `lib.numpy.conversion`
+**Namespace:** `lib.array.conversion`
 
 ## Description
 
@@ -35,5 +35,5 @@ Convert a array to a nested list structure.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](../) namespace.
 

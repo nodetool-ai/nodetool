@@ -124,7 +124,7 @@ export class Job extends DBModel {
     nodeId: string,
     reason: string,
     state?: Record<string, unknown>,
-    metadata?: Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): void {
     this.status = "suspended";
     this.suspended_node_id = nodeId;
@@ -178,7 +178,9 @@ export class Job extends DBModel {
   }
 
   isResumable(): boolean {
-    return ["running", "suspended", "paused", "recovering", "failed"].includes(this.status);
+    return ["running", "suspended", "paused", "recovering", "failed"].includes(
+      this.status
+    );
   }
 
   isPaused(): boolean {
@@ -195,19 +197,20 @@ export class Job extends DBModel {
 
   async acquireWithCas(
     workerId: string,
-    expectedVersion: number,
+    expectedVersion: number
   ): Promise<boolean> {
     try {
       const db = getDb();
       const now = new Date().toISOString();
       const newVersion = expectedVersion + 1;
       // Atomic CAS: only update if the database row still has the expected version.
-      const result = db.update(jobs)
+      const result = db
+        .update(jobs)
         .set({
           worker_id: workerId,
           heartbeat_at: now,
           version: newVersion,
-          updated_at: now,
+          updated_at: now
         })
         .where(and(eq(jobs.id, this.id), eq(jobs.version, expectedVersion)))
         .run();
@@ -226,10 +229,7 @@ export class Job extends DBModel {
   // ── Static queries ───────────────────────────────────────────────
 
   /** Find a job by id, scoped to the user. */
-  static async find(
-    userId: string,
-    jobId: string,
-  ): Promise<Job | null> {
+  static async find(userId: string, jobId: string): Promise<Job | null> {
     const job = await Job.get<Job>(jobId);
     if (!job || job.user_id !== userId) return null;
     return job;
@@ -242,7 +242,7 @@ export class Job extends DBModel {
       limit?: number;
       status?: JobStatus;
       workflowId?: string;
-    } = {},
+    } = {}
   ): Promise<[Job[], string]> {
     const { limit = 50, status, workflowId } = opts;
     const db = getDb();
@@ -251,13 +251,15 @@ export class Job extends DBModel {
     if (status) conditions.push(eq(jobs.status, status));
     if (workflowId) conditions.push(eq(jobs.workflow_id, workflowId));
 
-    const rows = db.select().from(jobs)
+    const rows = db
+      .select()
+      .from(jobs)
       .where(and(...conditions))
       .orderBy(desc(jobs.updated_at))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Job(r as Record<string, unknown>));
+    const items = rows.map((r) => new Job(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";

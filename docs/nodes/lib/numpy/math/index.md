@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.numpy.math Nodes"
+title: "lib.array.math Nodes"
 ---
 
 

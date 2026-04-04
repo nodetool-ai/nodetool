@@ -5,208 +5,293 @@ export const config: ModuleConfig = {
     "fal-ai/pixverse/v5.6/image-to-video": {
       className: "PixverseV56ImageToVideo",
       docstring: "Generate high-quality videos from images with Pixverse v5.6.",
-      tags: ["video", "generation", "pixverse", "v5.6", "image-to-video", "img2vid"],
+      tags: [
+        "video",
+        "generation",
+        "pixverse",
+        "v5.6",
+        "image-to-video",
+        "img2vid"
+      ],
       useCases: [
         "Animate photos into professional video clips",
         "Create dynamic product showcase videos",
         "Generate stylized video content from artwork",
         "Produce high-resolution social media animations",
-        "Transform static images with various visual styles",
+        "Transform static images with various visual styles"
       ],
       fieldOverrides: {
         image_url: { description: "The image to transform into a video" },
-        prompt: { description: "Text prompt describing the desired video motion" },
-        resolution: { description: "The resolution quality of the output video" },
-        duration: { description: "The duration of the generated video in seconds" },
-        negative_prompt: { description: "What to avoid in the generated video" },
+        prompt: {
+          description: "Text prompt describing the desired video motion"
+        },
+        resolution: {
+          description: "The resolution quality of the output video"
+        },
+        duration: {
+          description: "The duration of the generated video in seconds"
+        },
+        negative_prompt: {
+          description: "What to avoid in the generated video"
+        },
         style: { description: "Optional visual style for the video" },
         seed: { description: "Optional seed for reproducible generation" },
-        generate_audio_switch: { description: "Whether to generate audio for the video" },
-        thinking_type: { description: "Thinking mode for video generation" },
+        generate_audio_switch: {
+          description: "Whether to generate audio for the video"
+        },
+        thinking_type: { description: "Thinking mode for video generation" }
       },
       enumOverrides: {
         Resolution: "PixverseV56Resolution",
         Duration: "PixverseV56Duration",
         Style: "PixverseV56Style",
-        ThinkingType: "PixverseV56ThinkingType",
+        ThinkingType: "PixverseV56ThinkingType"
       },
       enumValueOverrides: {
         Duration: {
           VALUE_5: "FIVE_SECONDS",
           VALUE_8: "EIGHT_SECONDS",
-          VALUE_10: "TEN_SECONDS",
+          VALUE_10: "TEN_SECONDS"
         },
         Resolution: {
           "360P": "RES_360P",
           "540P": "RES_540P",
           "720P": "RES_720P",
-          "1080P": "RES_1080P",
+          "1080P": "RES_1080P"
         },
         Style: {
-          "3D_ANIMATION": "ANIMATION_3D",
-        },
+          "3D_ANIMATION": "ANIMATION_3D"
+        }
       },
-      basicFields: ["image", "prompt", "resolution"],
+      basicFields: ["image", "prompt", "resolution"]
     },
 
     "fal-ai/luma-dream-machine/image-to-video": {
       className: "LumaDreamMachine",
       docstring:
         "Generate video clips from your images using Luma Dream Machine v1.5. Supports various aspect ratios and optional end-frame blending.",
-      tags: ["video", "generation", "animation", "blending", "aspect-ratio", "img2vid", "image-to-video"],
+      tags: [
+        "video",
+        "generation",
+        "animation",
+        "blending",
+        "aspect-ratio",
+        "img2vid",
+        "image-to-video"
+      ],
       useCases: [
         "Create seamless video loops",
         "Generate video transitions",
         "Transform images into animations",
         "Create motion graphics",
-        "Produce video content",
-      ],
+        "Produce video content"
+      ]
     },
 
     "fal-ai/amt-interpolation/frame-interpolation": {
       className: "AMTFrameInterpolation",
-      docstring: "AMT Frame Interpolation creates smooth transitions between image frames.",
-      tags: ["video", "interpolation", "frame-generation", "amt", "image-to-video"],
+      docstring:
+        "AMT Frame Interpolation creates smooth transitions between image frames.",
+      tags: [
+        "video",
+        "interpolation",
+        "frame-generation",
+        "amt",
+        "image-to-video"
+      ],
       useCases: [
         "Create smooth transitions between images",
         "Generate intermediate frames",
         "Animate image sequences",
         "Create video from image pairs",
-        "Produce smooth motion effects",
+        "Produce smooth motion effects"
       ],
-      basicFields: ["image"],
+      basicFields: ["image"]
     },
 
     "fal-ai/ai-avatar": {
       className: "AIAvatar",
-      docstring: "MultiTalk generates talking avatar videos from images and audio files.",
+      docstring:
+        "MultiTalk generates talking avatar videos from images and audio files.",
       tags: ["video", "avatar", "talking-head", "multitalk", "image-to-video"],
       useCases: [
         "Create talking avatar videos",
         "Animate portrait photos with audio",
         "Generate spokesperson videos",
         "Produce avatar presentations",
-        "Create personalized video messages",
+        "Create personalized video messages"
       ],
       enumOverrides: { Resolution: "AIAvatarResolution" },
-      basicFields: ["image", "audio"],
+      basicFields: ["image", "audio"]
     },
 
     "fal-ai/ai-avatar/single-text": {
       className: "AIAvatarSingleText",
-      docstring: "MultiTalk generates talking avatar videos from an image and text input.",
-      tags: ["video", "avatar", "talking-head", "text-to-speech", "image-to-video"],
+      docstring:
+        "MultiTalk generates talking avatar videos from an image and text input.",
+      tags: [
+        "video",
+        "avatar",
+        "talking-head",
+        "text-to-speech",
+        "image-to-video"
+      ],
       useCases: [
         "Create avatar videos from text",
         "Generate talking heads with TTS",
         "Produce text-driven avatars",
         "Create virtual presenters",
-        "Generate automated spokesperson videos",
+        "Generate automated spokesperson videos"
       ],
       enumOverrides: { Resolution: "AIAvatarSingleTextResolution" },
-      basicFields: ["image", "text"],
+      basicFields: ["image", "text"]
     },
 
     "fal-ai/ai-avatar/multi-text": {
       className: "AIAvatarMultiText",
-      docstring: "MultiTalk generates multi-speaker avatar videos from images and text.",
-      tags: ["video", "avatar", "multi-speaker", "talking-head", "image-to-video"],
+      docstring:
+        "MultiTalk generates multi-speaker avatar videos from images and text.",
+      tags: [
+        "video",
+        "avatar",
+        "multi-speaker",
+        "talking-head",
+        "image-to-video"
+      ],
       useCases: [
         "Create multi-speaker conversations",
         "Generate dialogue between avatars",
         "Produce interactive presentations",
         "Create conversational content",
-        "Generate multi-character scenes",
+        "Generate multi-character scenes"
       ],
       enumOverrides: { Resolution: "AIAvatarMultiTextResolution" },
-      basicFields: ["images", "texts"],
+      basicFields: ["images", "texts"]
     },
 
     "fal-ai/ai-avatar/multi": {
       className: "AIAvatarMulti",
-      docstring: "MultiTalk generates multi-speaker avatar videos with audio synchronization.",
-      tags: ["video", "avatar", "multi-speaker", "talking-head", "image-to-video"],
+      docstring:
+        "MultiTalk generates multi-speaker avatar videos with audio synchronization.",
+      tags: [
+        "video",
+        "avatar",
+        "multi-speaker",
+        "talking-head",
+        "image-to-video"
+      ],
       useCases: [
         "Create multi-speaker videos with audio",
         "Generate synchronized dialogue",
         "Produce conversation videos",
         "Create interactive characters",
-        "Generate multi-avatar content",
+        "Generate multi-avatar content"
       ],
       enumOverrides: { Resolution: "AIAvatarMultiResolution" },
-      basicFields: ["images", "audio"],
+      basicFields: ["images", "audio"]
     },
 
     "fal-ai/bytedance/seedance/v1.5/pro/image-to-video": {
       className: "SeeDanceV15ProImageToVideo",
-      docstring: "SeeDance v1.5 Pro generates high-quality dance videos from images.",
-      tags: ["video", "dance", "animation", "seedance", "bytedance", "image-to-video"],
+      docstring:
+        "SeeDance v1.5 Pro generates high-quality dance videos from images.",
+      tags: [
+        "video",
+        "dance",
+        "animation",
+        "seedance",
+        "bytedance",
+        "image-to-video"
+      ],
       useCases: [
         "Animate photos into dance videos",
         "Create dance choreography from images",
         "Generate dance performances",
         "Produce music video content",
-        "Create dance training materials",
+        "Create dance training materials"
       ],
       enumOverrides: {
         Resolution: "SeeDanceV15ProResolution",
         AspectRatio: "SeeDanceV15ProAspectRatio",
-        Duration: "SeeDanceV15ProDuration",
+        Duration: "SeeDanceV15ProDuration"
       },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/bytedance/seedance/v1/pro/fast/image-to-video": {
       className: "SeeDanceV1ProFastImageToVideo",
-      docstring: "SeeDance v1 Pro Fast generates dance videos quickly from images.",
-      tags: ["video", "dance", "fast", "seedance", "bytedance", "image-to-video"],
+      docstring:
+        "SeeDance v1 Pro Fast generates dance videos quickly from images.",
+      tags: [
+        "video",
+        "dance",
+        "fast",
+        "seedance",
+        "bytedance",
+        "image-to-video"
+      ],
       useCases: [
         "Rapidly generate dance videos",
         "Quick dance animation",
         "Fast dance prototypes",
         "Create dance previews",
-        "Efficient dance video generation",
+        "Efficient dance video generation"
       ],
       enumOverrides: {
         Resolution: "SeeDanceV1ProFastResolution",
         AspectRatio: "SeeDanceV1ProFastAspectRatio",
-        Duration: "SeeDanceV1ProFastDuration",
+        Duration: "SeeDanceV1ProFastDuration"
       },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/bytedance/seedance/v1/lite/reference-to-video": {
       className: "SeeDanceV1LiteReferenceToVideo",
-      docstring: "SeeDance v1 Lite generates lightweight dance videos using reference images.",
-      tags: ["video", "dance", "lite", "reference", "seedance", "image-to-video"],
+      docstring:
+        "SeeDance v1 Lite generates lightweight dance videos using reference images.",
+      tags: [
+        "video",
+        "dance",
+        "lite",
+        "reference",
+        "seedance",
+        "image-to-video"
+      ],
       useCases: [
         "Generate efficient dance videos",
         "Create reference-based animations",
         "Produce lightweight dance content",
         "Generate quick dance outputs",
-        "Create optimized dance videos",
+        "Create optimized dance videos"
       ],
       enumOverrides: {
         Resolution: "SeeDanceV1LiteResolution",
         AspectRatio: "SeeDanceV1LiteAspectRatio",
-        Duration: "SeeDanceV1LiteDuration",
+        Duration: "SeeDanceV1LiteDuration"
       },
-      basicFields: ["image", "reference"],
+      basicFields: ["image", "reference"]
     },
 
     "fal-ai/bytedance/video-stylize": {
       className: "ByteDanceVideoStylize",
-      docstring: "ByteDance Video Stylize applies artistic styles to image-based video generation.",
-      tags: ["video", "style-transfer", "artistic", "bytedance", "image-to-video"],
+      docstring:
+        "ByteDance Video Stylize applies artistic styles to image-based video generation.",
+      tags: [
+        "video",
+        "style-transfer",
+        "artistic",
+        "bytedance",
+        "image-to-video"
+      ],
       useCases: [
         "Apply artistic styles to videos",
         "Create stylized video content",
         "Generate artistic animations",
         "Produce style-transferred videos",
-        "Create visually unique content",
+        "Create visually unique content"
       ],
       enumOverrides: { Resolution: "ByteDanceVideoStylizeResolution" },
-      basicFields: ["image", "style"],
+      basicFields: ["image", "style"]
     },
 
     "fal-ai/bytedance/omnihuman/v1.5": {
@@ -218,98 +303,111 @@ export const config: ModuleConfig = {
         "Create human motion animations",
         "Produce lifelike character videos",
         "Generate human performances",
-        "Create realistic human content",
+        "Create realistic human content"
       ],
       enumOverrides: {
         Resolution: "OmniHumanV15Resolution",
-        AspectRatio: "OmniHumanV15AspectRatio",
+        AspectRatio: "OmniHumanV15AspectRatio"
       },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/cogvideox-5b/image-to-video": {
       className: "CogVideoX5BImageToVideo",
-      docstring: "CogVideoX-5B generates high-quality videos from images with advanced motion.",
+      docstring:
+        "CogVideoX-5B generates high-quality videos from images with advanced motion.",
       tags: ["video", "generation", "cogvideo", "image-to-video", "img2vid"],
       useCases: [
         "Generate videos from images",
         "Create dynamic image animations",
         "Produce high-quality video content",
         "Animate static images",
-        "Generate motion from photos",
+        "Generate motion from photos"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/stable-video": {
       className: "StableVideoImageToVideo",
-      docstring: "Stable Video generates consistent video animations from images.",
+      docstring:
+        "Stable Video generates consistent video animations from images.",
       tags: ["video", "generation", "stable", "consistent", "image-to-video"],
       useCases: [
         "Generate stable video animations",
         "Create consistent motion",
         "Produce reliable video outputs",
         "Animate images consistently",
-        "Generate predictable videos",
+        "Generate predictable videos"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/hunyuan-video/image-to-video": {
       className: "HunyuanImageToVideo",
-      docstring: "Hunyuan Video generates high-quality videos from images with advanced AI.",
+      docstring:
+        "Hunyuan Video generates high-quality videos from images with advanced AI.",
       tags: ["video", "generation", "hunyuan", "tencent", "image-to-video"],
       useCases: [
         "Generate cinematic videos from images",
         "Create high-quality animations",
         "Produce professional video content",
         "Animate images with detail",
-        "Generate advanced video effects",
+        "Generate advanced video effects"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/ltx-video/image-to-video": {
       className: "LTXImageToVideo",
-      docstring: "LTX Video generates temporally consistent videos from images.",
+      docstring:
+        "LTX Video generates temporally consistent videos from images.",
       tags: ["video", "generation", "ltx", "temporal", "image-to-video"],
       useCases: [
         "Generate temporally consistent videos",
         "Create smooth image animations",
         "Produce coherent video sequences",
         "Animate with temporal awareness",
-        "Generate fluid motion videos",
+        "Generate fluid motion videos"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/kling-video/v1/standard/image-to-video": {
       className: "KlingVideoV1StandardImageToVideo",
-      docstring: "Kling Video v1 Standard generates videos from images with balanced quality.",
+      docstring:
+        "Kling Video v1 Standard generates videos from images with balanced quality.",
       tags: ["video", "generation", "kling", "standard", "image-to-video"],
       useCases: [
         "Generate standard quality videos",
         "Create balanced video animations",
         "Produce efficient video content",
         "Generate videos for web use",
-        "Create moderate quality outputs",
+        "Create moderate quality outputs"
       ],
       enumOverrides: { Duration: "KlingVideoV1StandardDuration" },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/kling-video/v1/pro/image-to-video": {
       className: "KlingVideoV1ProImageToVideo",
-      docstring: "Kling Video v1 Pro generates professional quality videos from images.",
-      tags: ["video", "generation", "kling", "pro", "professional", "image-to-video"],
+      docstring:
+        "Kling Video v1 Pro generates professional quality videos from images.",
+      tags: [
+        "video",
+        "generation",
+        "kling",
+        "pro",
+        "professional",
+        "image-to-video"
+      ],
       useCases: [
         "Generate professional videos",
         "Create high-quality animations",
         "Produce premium video content",
         "Generate cinematic outputs",
-        "Create professional grade videos",
+        "Create professional grade videos"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/pixverse/v5.6/transition": {
@@ -322,13 +420,13 @@ export const config: ModuleConfig = {
         "Generate professional video effects",
         "Produce seamless image morphing",
         "Create transition animations",
-        "Generate video connecting two scenes",
+        "Generate video connecting two scenes"
       ],
       enumOverrides: {
         Resolution: "PixverseV56TransitionResolution",
-        Duration: "PixverseV56TransitionDuration",
+        Duration: "PixverseV56TransitionDuration"
       },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/vidu/q2/reference-to-video/pro": {
@@ -341,10 +439,10 @@ export const config: ModuleConfig = {
         "Create style-consistent animations",
         "Produce reference-guided videos",
         "Generate videos matching examples",
-        "Create professional reference-based content",
+        "Create professional reference-based content"
       ],
       enumOverrides: { Resolution: "ViduQ2ReferenceToVideoProResolution" },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "wan/v2.6/image-to-video/flash": {
@@ -357,13 +455,13 @@ export const config: ModuleConfig = {
         "Create rapid video prototypes",
         "Produce instant video previews",
         "Generate quick video iterations",
-        "Create fast video animations",
+        "Create fast video animations"
       ],
       enumOverrides: {
         Resolution: "WanV26FlashResolution",
-        Duration: "WanV26FlashDuration",
+        Duration: "WanV26FlashDuration"
       },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "wan/v2.6/image-to-video": {
@@ -376,13 +474,13 @@ export const config: ModuleConfig = {
         "Create balanced video animations",
         "Produce reliable video content",
         "Generate consistent videos",
-        "Create professional animations",
+        "Create professional animations"
       ],
       enumOverrides: {
         Resolution: "WanV26Resolution",
-        Duration: "WanV26Duration",
+        Duration: "WanV26Duration"
       },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/ltx-2-19b/image-to-video": {
@@ -395,9 +493,9 @@ export const config: ModuleConfig = {
         "Create detailed video animations",
         "Produce superior video content",
         "Generate videos with powerful AI",
-        "Create premium video animations",
+        "Create premium video animations"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/ltx-2-19b/image-to-video/lora": {
@@ -410,9 +508,9 @@ export const config: ModuleConfig = {
         "Create specialized video content",
         "Produce domain-specific animations",
         "Generate with fine-tuned large model",
-        "Create customized video animations",
+        "Create customized video animations"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/ltx-2-19b/distilled/image-to-video": {
@@ -425,9 +523,9 @@ export const config: ModuleConfig = {
         "Create fast quality video animations",
         "Produce optimized video content",
         "Generate videos with good performance",
-        "Create balanced quality-speed videos",
+        "Create balanced quality-speed videos"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/ltx-2-19b/distilled/image-to-video/lora": {
@@ -440,23 +538,24 @@ export const config: ModuleConfig = {
         "Create efficient specialized content",
         "Produce fast domain-specific videos",
         "Generate with optimized custom model",
-        "Create quick customized animations",
+        "Create quick customized animations"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/wan-move": {
       className: "WanMove",
-      docstring: "Wan Move generates videos with natural motion and movement from static images.",
+      docstring:
+        "Wan Move generates videos with natural motion and movement from static images.",
       tags: ["video", "generation", "wan", "motion", "animation"],
       useCases: [
         "Add natural motion to images",
         "Create animated movements",
         "Produce dynamic video content",
         "Generate moving scenes from stills",
-        "Create motion animations",
+        "Create motion animations"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/kandinsky5-pro/image-to-video": {
@@ -469,13 +568,13 @@ export const config: ModuleConfig = {
         "Create stylized video animations",
         "Produce creative video content",
         "Generate videos with artistic flair",
-        "Create professional artistic videos",
+        "Create professional artistic videos"
       ],
       enumOverrides: {
         Resolution: "Kandinsky5ProResolution",
-        Duration: "Kandinsky5ProDuration",
+        Duration: "Kandinsky5ProDuration"
       },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/live-avatar": {
@@ -488,9 +587,9 @@ export const config: ModuleConfig = {
         "Animate portrait images",
         "Generate lip-synced avatars",
         "Produce speaking character videos",
-        "Create animated presenters",
+        "Create animated presenters"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/hunyuan-video-v1.5/image-to-video": {
@@ -503,25 +602,26 @@ export const config: ModuleConfig = {
         "Create sophisticated animations",
         "Produce high-fidelity video content",
         "Generate videos with AI excellence",
-        "Create cutting-edge video animations",
+        "Create cutting-edge video animations"
       ],
       enumOverrides: { Resolution: "HunyuanVideoV15Resolution" },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/kling-video/o1/standard/image-to-video": {
       className: "KlingVideoO1StandardImageToVideo",
-      docstring: "Kling Video O1 Standard generates videos with optimized standard quality from images.",
+      docstring:
+        "Kling Video O1 Standard generates videos with optimized standard quality from images.",
       tags: ["video", "generation", "kling", "o1", "standard"],
       useCases: [
         "Generate standard O1 quality videos",
         "Create optimized video animations",
         "Produce efficient video content",
         "Generate balanced quality videos",
-        "Create standard tier animations",
+        "Create standard tier animations"
       ],
       enumOverrides: { Duration: "KlingVideoO1StandardDuration" },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/kling-video/o1/standard/reference-to-video": {
@@ -534,40 +634,58 @@ export const config: ModuleConfig = {
         "Create style-consistent animations",
         "Produce reference-guided content",
         "Generate videos matching examples",
-        "Create standardized reference videos",
+        "Create standardized reference videos"
       ],
-      enumOverrides: { Duration: "KlingVideoO1StandardReferenceToVideoDuration" },
-      basicFields: ["image", "prompt"],
+      enumOverrides: {
+        Duration: "KlingVideoO1StandardReferenceToVideoDuration"
+      },
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/kling-video/o3/standard/image-to-video": {
       className: "KlingVideoO3StandardImageToVideo",
       docstring:
         "Kling Video O3 Standard generates videos from images with balanced quality and speed.",
-      tags: ["video", "generation", "kling", "o3", "standard", "image-to-video", "img2vid"],
+      tags: [
+        "video",
+        "generation",
+        "kling",
+        "o3",
+        "standard",
+        "image-to-video",
+        "img2vid"
+      ],
       useCases: [
         "Animate static images into videos",
         "Create balanced quality image animations",
         "Produce efficient video content from photos",
         "Generate consistent video clips from images",
-        "Create standard-tier visual storytelling",
+        "Create standard-tier visual storytelling"
       ],
-      basicFields: ["image", "prompt", "duration"],
+      basicFields: ["image", "prompt", "duration"]
     },
 
     "fal-ai/kling-video/o3/pro/image-to-video": {
       className: "KlingVideoO3ProImageToVideo",
       docstring:
         "Kling Video O3 Pro generates professional quality videos from images with enhanced fidelity.",
-      tags: ["video", "generation", "kling", "o3", "pro", "image-to-video", "img2vid"],
+      tags: [
+        "video",
+        "generation",
+        "kling",
+        "o3",
+        "pro",
+        "image-to-video",
+        "img2vid"
+      ],
       useCases: [
         "Create professional image-driven video content",
         "Generate premium animations from photos",
         "Produce cinematic video clips from images",
         "Create high-fidelity marketing videos from photos",
-        "Generate polished video sequences from images",
+        "Generate polished video sequences from images"
       ],
-      basicFields: ["image", "prompt", "duration"],
+      basicFields: ["image", "prompt", "duration"]
     },
 
     "fal-ai/kling-video/o3/standard/reference-to-video": {
@@ -580,9 +698,9 @@ export const config: ModuleConfig = {
         "Create style-consistent animations",
         "Produce reference-guided content",
         "Generate videos matching examples",
-        "Create standardized reference videos",
+        "Create standardized reference videos"
       ],
-      basicFields: ["start_image", "prompt", "duration"],
+      basicFields: ["start_image", "prompt", "duration"]
     },
 
     "fal-ai/kling-video/o3/pro/reference-to-video": {
@@ -595,9 +713,9 @@ export const config: ModuleConfig = {
         "Create premium style-consistent animations",
         "Produce reference-guided professional content",
         "Generate videos matching premium examples",
-        "Create polished reference-based video clips",
+        "Create polished reference-based video clips"
       ],
-      basicFields: ["start_image", "prompt", "duration"],
+      basicFields: ["start_image", "prompt", "duration"]
     },
 
     "fal-ai/kling-video/v2.6/pro/image-to-video": {
@@ -610,10 +728,10 @@ export const config: ModuleConfig = {
         "Create latest quality animations",
         "Produce premium video content",
         "Generate advanced videos",
-        "Create pro-tier animations",
+        "Create pro-tier animations"
       ],
       enumOverrides: { Duration: "KlingVideoV26ProDuration" },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/kling-video/ai-avatar/v2/standard": {
@@ -626,9 +744,9 @@ export const config: ModuleConfig = {
         "Animate portraits with speech",
         "Generate avatar presentations",
         "Produce speaking character videos",
-        "Create AI-driven avatars",
+        "Create AI-driven avatars"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/kling-video/ai-avatar/v2/pro": {
@@ -641,25 +759,32 @@ export const config: ModuleConfig = {
         "Animate portraits with high quality",
         "Generate realistic avatar videos",
         "Produce premium speaking characters",
-        "Create pro-grade AI avatars",
+        "Create pro-grade AI avatars"
       ],
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/creatify/aurora": {
       className: "CreatifyAurora",
       docstring:
         "Creatify Aurora generates creative and visually stunning videos from images with unique effects.",
-      tags: ["video", "generation", "creatify", "aurora", "creative", "effects"],
+      tags: [
+        "video",
+        "generation",
+        "creatify",
+        "aurora",
+        "creative",
+        "effects"
+      ],
       useCases: [
         "Generate creative visual effects videos",
         "Create stunning video animations",
         "Produce artistic video content",
         "Generate unique video effects",
-        "Create visually impressive videos",
+        "Create visually impressive videos"
       ],
       enumOverrides: { Resolution: "CreatifyAuroraResolution" },
-      basicFields: ["image", "prompt"],
+      basicFields: ["image", "prompt"]
     },
 
     "fal-ai/pixverse/v5.5/effects": {
@@ -671,8 +796,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v5.5/transition": {
@@ -684,8 +809,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v5.5/image-to-video": {
@@ -697,8 +822,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/o1/image-to-video": {
@@ -710,8 +835,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/o1/reference-to-video": {
@@ -723,8 +848,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/ltx-2/image-to-video/fast": {
@@ -736,8 +861,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/ltx-2/image-to-video": {
@@ -749,8 +874,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "bytedance/lynx": {
@@ -762,8 +887,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/swap": {
@@ -775,8 +900,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pika/v2.2/pikaframes": {
@@ -788,8 +913,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/longcat-video/image-to-video/720p": {
@@ -801,8 +926,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/longcat-video/image-to-video/480p": {
@@ -814,8 +939,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/longcat-video/distilled/image-to-video/720p": {
@@ -827,8 +952,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/longcat-video/distilled/image-to-video/480p": {
@@ -840,21 +965,28 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/minimax/hailuo-2.3-fast/standard/image-to-video": {
       className: "MinimaxHailuo23FastStandardImageToVideo",
       docstring: "MiniMax Hailuo 2.3 Fast [Standard] (Image to Video)",
-      tags: ["video", "animation", "image-to-video", "img2vid", "fast", "professional"],
+      tags: [
+        "video",
+        "animation",
+        "image-to-video",
+        "img2vid",
+        "fast",
+        "professional"
+      ],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/minimax/hailuo-2.3/standard/image-to-video": {
@@ -866,21 +998,28 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/minimax/hailuo-2.3-fast/pro/image-to-video": {
       className: "MinimaxHailuo23FastProImageToVideo",
       docstring: "MiniMax Hailuo 2.3 Fast [Pro] (Image to Video)",
-      tags: ["video", "animation", "image-to-video", "img2vid", "fast", "professional"],
+      tags: [
+        "video",
+        "animation",
+        "image-to-video",
+        "img2vid",
+        "fast",
+        "professional"
+      ],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/vidu/q2/image-to-video/turbo": {
@@ -892,8 +1031,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/vidu/q2/image-to-video/pro": {
@@ -905,8 +1044,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/v2.5-turbo/standard/image-to-video": {
@@ -918,8 +1057,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/veo3.1/fast/first-last-frame-to-video": {
@@ -931,8 +1070,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/veo3.1/first-last-frame-to-video": {
@@ -944,8 +1083,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/veo3.1/reference-to-video": {
@@ -957,8 +1096,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/veo3.1/fast/image-to-video": {
@@ -970,8 +1109,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/veo3.1/image-to-video": {
@@ -983,8 +1122,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/sora-2/image-to-video/pro": {
@@ -996,8 +1135,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/sora-2/image-to-video": {
@@ -1009,8 +1148,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/ovi/image-to-video": {
@@ -1022,8 +1161,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "veed/fabric-1.0/fast": {
@@ -1035,8 +1174,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "veed/fabric-1.0": {
@@ -1048,8 +1187,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/v1/standard/ai-avatar": {
@@ -1061,8 +1200,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/v1/pro/ai-avatar": {
@@ -1074,8 +1213,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "decart/lucy-14b/image-to-video": {
@@ -1087,8 +1226,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/wan-ati": {
@@ -1100,8 +1239,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/decart/lucy-5b/image-to-video": {
@@ -1114,8 +1253,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v5/transition": {
@@ -1127,34 +1266,36 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v5/effects": {
       className: "PixverseV5Effects",
-      docstring: "Generate high quality video clips with different effects using PixVerse v5",
+      docstring:
+        "Generate high quality video clips with different effects using PixVerse v5",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v5/image-to-video": {
       className: "PixverseV5ImageToVideo",
-      docstring: "Generate high quality video clips from text and image prompts using PixVerse v5",
+      docstring:
+        "Generate high quality video clips from text and image prompts using PixVerse v5",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "moonvalley/marey/i2v": {
@@ -1167,8 +1308,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/wan/v2.2-a14b/image-to-video/lora": {
@@ -1181,8 +1322,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/minimax/hailuo-02-fast/image-to-video": {
@@ -1195,8 +1336,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/veo3/image-to-video": {
@@ -1209,8 +1350,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/wan/v2.2-a14b/image-to-video/turbo": {
@@ -1223,8 +1364,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/wan/v2.2-5b/image-to-video": {
@@ -1237,8 +1378,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/wan/v2.2-a14b/image-to-video": {
@@ -1250,8 +1391,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/bytedance/omnihuman": {
@@ -1264,8 +1405,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/ltxv-13b-098-distilled/image-to-video": {
@@ -1278,8 +1419,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/veo3/fast/image-to-video": {
@@ -1292,21 +1433,22 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/vidu/q1/reference-to-video": {
       className: "ViduQ1ReferenceToVideo",
-      docstring: "Generate video clips from your multiple image references using Vidu Q1",
+      docstring:
+        "Generate video clips from your multiple image references using Vidu Q1",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/minimax/hailuo-02/pro/image-to-video": {
@@ -1319,8 +1461,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/bytedance/seedance/v1/lite/image-to-video": {
@@ -1332,8 +1474,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/hunyuan-avatar": {
@@ -1346,8 +1488,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/v2.1/pro/image-to-video": {
@@ -1360,8 +1502,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/hunyuan-portrait": {
@@ -1374,8 +1516,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/v1.6/standard/elements": {
@@ -1388,21 +1530,22 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/v1.6/pro/elements": {
       className: "KlingVideoV16ProElements",
-      docstring: "Generate video clips from your multiple image references using Kling 1.6 (pro)",
+      docstring:
+        "Generate video clips from your multiple image references using Kling 1.6 (pro)",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/ltx-video-13b-distilled/image-to-video": {
@@ -1415,8 +1558,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/ltx-video-13b-dev/image-to-video": {
@@ -1429,8 +1572,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/ltx-video-lora/image-to-video": {
@@ -1443,21 +1586,22 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v4.5/transition": {
       className: "PixverseV45Transition",
-      docstring: "Create seamless transition between images using PixVerse v4.5",
+      docstring:
+        "Create seamless transition between images using PixVerse v4.5",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v4.5/image-to-video/fast": {
@@ -1470,21 +1614,22 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v4.5/effects": {
       className: "PixverseV45Effects",
-      docstring: "Generate high quality video clips with different effects using PixVerse v4.5",
+      docstring:
+        "Generate high quality video clips with different effects using PixVerse v4.5",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/hunyuan-custom": {
@@ -1497,8 +1642,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/framepack/f1": {
@@ -1511,8 +1656,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/vidu/q1/start-end-to-video": {
@@ -1525,8 +1670,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/vidu/q1/image-to-video": {
@@ -1539,8 +1684,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/magi/image-to-video": {
@@ -1553,21 +1698,22 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v4/effects": {
       className: "PixverseV4Effects",
-      docstring: "Generate high quality video clips with different effects using PixVerse v4",
+      docstring:
+        "Generate high quality video clips with different effects using PixVerse v4",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/magi-distilled/image-to-video": {
@@ -1580,8 +1726,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/framepack/flf2v": {
@@ -1594,8 +1740,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/wan-flf2v": {
@@ -1608,8 +1754,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/framepack": {
@@ -1622,8 +1768,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v4/image-to-video/fast": {
@@ -1636,47 +1782,50 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v4/image-to-video": {
       className: "PixverseV4ImageToVideo",
-      docstring: "Generate high quality video clips from text and image prompts using PixVerse v4",
+      docstring:
+        "Generate high quality video clips from text and image prompts using PixVerse v4",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v3.5/effects": {
       className: "PixverseV35Effects",
-      docstring: "Generate high quality video clips with different effects using PixVerse v3.5",
+      docstring:
+        "Generate high quality video clips with different effects using PixVerse v3.5",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v3.5/transition": {
       className: "PixverseV35Transition",
-      docstring: "Create seamless transition between images using PixVerse v3.5",
+      docstring:
+        "Create seamless transition between images using PixVerse v3.5",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/luma-dream-machine/ray-2-flash/image-to-video": {
@@ -1689,8 +1838,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pika/v1.5/pikaffects": {
@@ -1703,8 +1852,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pika/v2.1/image-to-video": {
@@ -1717,8 +1866,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pika/v2.2/image-to-video": {
@@ -1731,21 +1880,22 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pika/v2.2/pikascenes": {
       className: "PikaV22Pikascenes",
-      docstring: "Pika Scenes v2.2 creates videos from a images with high quality output.",
+      docstring:
+        "Pika Scenes v2.2 creates videos from a images with high quality output.",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pika/v2/turbo/image-to-video": {
@@ -1758,8 +1908,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/vidu/image-to-video": {
@@ -1772,8 +1922,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/vidu/reference-to-video": {
@@ -1786,8 +1936,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/vidu/start-end-to-video": {
@@ -1800,8 +1950,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/vidu/template-to-video": {
@@ -1814,8 +1964,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/wan-i2v-lora": {
@@ -1828,8 +1978,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/hunyuan-video-image-to-video": {
@@ -1841,8 +1991,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/minimax/video-01-director/image-to-video": {
@@ -1855,8 +2005,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/skyreels-i2v": {
@@ -1869,8 +2019,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/luma-dream-machine/ray-2/image-to-video": {
@@ -1883,8 +2033,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/hunyuan-video-img2vid-lora": {
@@ -1897,8 +2047,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v3.5/image-to-video/fast": {
@@ -1911,8 +2061,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/pixverse/v3.5/image-to-video": {
@@ -1925,8 +2075,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/minimax/video-01-subject-reference": {
@@ -1939,8 +2089,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/v1.6/standard/image-to-video": {
@@ -1952,8 +2102,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/sadtalker/reference": {
@@ -1966,21 +2116,22 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/minimax/video-01-live/image-to-video": {
       className: "MinimaxVideo01LiveImageToVideo",
-      docstring: "Generate video clips from your images using MiniMax Video model",
+      docstring:
+        "Generate video clips from your images using MiniMax Video model",
       tags: ["video", "animation", "image-to-video", "img2vid"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/v1.5/pro/image-to-video": {
@@ -1992,8 +2143,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/live-portrait": {
@@ -2005,8 +2156,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/musetalk": {
@@ -2019,8 +2170,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/sadtalker": {
@@ -2033,8 +2184,8 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/fast-svd-lcm": {
@@ -2047,23 +2198,30 @@ export const config: ModuleConfig = {
         "Create engaging social media content",
         "Product demonstrations",
         "Marketing and promotional videos",
-        "Visual storytelling",
-      ],
+        "Visual storytelling"
+      ]
     },
 
     "fal-ai/kling-video/v3/standard/image-to-video": {
       className: "KlingVideoV3StandardImageToVideo",
       docstring:
         "Kling Video V3 Standard generates videos from images with balanced quality and speed using the latest V3 model.",
-      tags: ["video", "generation", "kling", "v3", "standard", "image-to-video"],
+      tags: [
+        "video",
+        "generation",
+        "kling",
+        "v3",
+        "standard",
+        "image-to-video"
+      ],
       useCases: [
         "Animate static images into short video clips",
         "Create engaging social media content from photos",
         "Generate product demonstration videos",
         "Produce marketing and promotional videos",
-        "Transform images into cinematic animations",
+        "Transform images into cinematic animations"
       ],
-      basicFields: ["start_image_url", "prompt", "duration"],
+      basicFields: ["start_image_url", "prompt", "duration"]
     },
 
     "fal-ai/kling-video/v3/pro/image-to-video": {
@@ -2076,9 +2234,9 @@ export const config: ModuleConfig = {
         "Generate cinematic video content with precise motion",
         "Produce high-fidelity product showcase videos",
         "Animate images with enhanced visual quality",
-        "Create premium video content for advertising",
+        "Create premium video content for advertising"
       ],
-      basicFields: ["start_image_url", "prompt", "duration"],
-    },
-  },
+      basicFields: ["start_image_url", "prompt", "duration"]
+    }
+  }
 };

@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
-import { GoogleGroundedSearchTool, GoogleImageGenerationTool } from "../src/tools/google-tools.js";
+import {
+  GoogleGroundedSearchTool,
+  GoogleImageGenerationTool
+} from "../src/tools/google-tools.js";
 
 const ctx = {} as any;
 
@@ -19,12 +22,12 @@ describe("GoogleGroundedSearchTool", () => {
   });
 
   it("returns error when query is missing", async () => {
-    const result = await tool.process(ctx, {}) as any;
+    const result = (await tool.process(ctx, {})) as any;
     expect(result.error).toBeDefined();
   });
 
   it("returns error when query is empty string", async () => {
-    const result = await tool.process(ctx, { query: "" }) as any;
+    const result = (await tool.process(ctx, { query: "" })) as any;
     expect(result.error).toBeDefined();
   });
 
@@ -32,7 +35,7 @@ describe("GoogleGroundedSearchTool", () => {
     const original = process.env["GEMINI_API_KEY"];
     delete process.env["GEMINI_API_KEY"];
     try {
-      const result = await tool.process(ctx, { query: "test query" }) as any;
+      const result = (await tool.process(ctx, { query: "test query" })) as any;
       expect(result.error).toBeDefined();
     } finally {
       if (original !== undefined) process.env["GEMINI_API_KEY"] = original;
@@ -46,10 +49,10 @@ describe("GoogleGroundedSearchTool", () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 403,
-      statusText: "Forbidden",
+      statusText: "Forbidden"
     }) as any;
     try {
-      const result = await tool.process(ctx, { query: "test" }) as any;
+      const result = (await tool.process(ctx, { query: "test" })) as any;
       expect(result.error).toContain("403");
     } finally {
       globalThis.fetch = originalFetch;
@@ -63,24 +66,24 @@ describe("GoogleGroundedSearchTool", () => {
       candidates: [
         {
           content: {
-            parts: [{ text: "Search result text" }],
+            parts: [{ text: "Search result text" }]
           },
           groundingMetadata: {
             groundingChunks: [
               { web: { uri: "https://example.com", title: "Example" } },
-              { web: { uri: "https://other.com", title: "Other" } },
-            ],
-          },
-        },
-      ],
+              { web: { uri: "https://other.com", title: "Other" } }
+            ]
+          }
+        }
+      ]
     };
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockResponse),
+      json: () => Promise.resolve(mockResponse)
     }) as any;
     try {
-      const result = await tool.process(ctx, { query: "test search" }) as any;
+      const result = (await tool.process(ctx, { query: "test search" })) as any;
       expect(result.status).toBe("success");
       expect(result.query).toBe("test search");
       expect(result.results).toContain("Search result text");
@@ -98,10 +101,10 @@ describe("GoogleGroundedSearchTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ candidates: [] }),
+      json: () => Promise.resolve({ candidates: [] })
     }) as any;
     try {
-      const result = await tool.process(ctx, { query: "test" }) as any;
+      const result = (await tool.process(ctx, { query: "test" })) as any;
       expect(result.error).toBeDefined();
     } finally {
       globalThis.fetch = originalFetch;
@@ -114,17 +117,17 @@ describe("GoogleGroundedSearchTool", () => {
     const mockResponse = {
       candidates: [
         {
-          content: { parts: [{ text: "Plain result" }] },
-        },
-      ],
+          content: { parts: [{ text: "Plain result" }] }
+        }
+      ]
     };
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockResponse),
+      json: () => Promise.resolve(mockResponse)
     }) as any;
     try {
-      const result = await tool.process(ctx, { query: "test" }) as any;
+      const result = (await tool.process(ctx, { query: "test" })) as any;
       expect(result.status).toBe("success");
       expect(result.sources).toHaveLength(0);
     } finally {
@@ -159,12 +162,12 @@ describe("GoogleImageGenerationTool", () => {
   });
 
   it("returns error when prompt is missing", async () => {
-    const result = await tool.process(ctx, { output_file: "out.png" }) as any;
+    const result = (await tool.process(ctx, { output_file: "out.png" })) as any;
     expect(result.error).toBeDefined();
   });
 
   it("returns error when output_file is missing", async () => {
-    const result = await tool.process(ctx, { prompt: "a cat" }) as any;
+    const result = (await tool.process(ctx, { prompt: "a cat" })) as any;
     expect(result.error).toBeDefined();
   });
 
@@ -172,7 +175,10 @@ describe("GoogleImageGenerationTool", () => {
     const original = process.env["GEMINI_API_KEY"];
     delete process.env["GEMINI_API_KEY"];
     try {
-      const result = await tool.process(ctx, { prompt: "a cat", output_file: "out.png" }) as any;
+      const result = (await tool.process(ctx, {
+        prompt: "a cat",
+        output_file: "out.png"
+      })) as any;
       expect(result.error).toBeDefined();
     } finally {
       if (original !== undefined) process.env["GEMINI_API_KEY"] = original;
@@ -185,10 +191,13 @@ describe("GoogleImageGenerationTool", () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
-      text: () => Promise.resolve("Bad Request"),
+      text: () => Promise.resolve("Bad Request")
     }) as any;
     try {
-      const result = await tool.process(ctx, { prompt: "a cat", output_file: "out.png" }) as any;
+      const result = (await tool.process(ctx, {
+        prompt: "a cat",
+        output_file: "out.png"
+      })) as any;
       expect(result.error).toContain("400");
     } finally {
       globalThis.fetch = originalFetch;
@@ -201,10 +210,13 @@ describe("GoogleImageGenerationTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ predictions: [] }),
+      json: () => Promise.resolve({ predictions: [] })
     }) as any;
     try {
-      const result = await tool.process(ctx, { prompt: "a cat", output_file: "out.png" }) as any;
+      const result = (await tool.process(ctx, {
+        prompt: "a cat",
+        output_file: "out.png"
+      })) as any;
       expect(result.error).toBeDefined();
     } finally {
       globalThis.fetch = originalFetch;
@@ -217,10 +229,13 @@ describe("GoogleImageGenerationTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ predictions: [{}] }),
+      json: () => Promise.resolve({ predictions: [{}] })
     }) as any;
     try {
-      const result = await tool.process(ctx, { prompt: "a cat", output_file: "out.png" }) as any;
+      const result = (await tool.process(ctx, {
+        prompt: "a cat",
+        output_file: "out.png"
+      })) as any;
       expect(result.error).toBeDefined();
     } finally {
       globalThis.fetch = originalFetch;
@@ -234,16 +249,19 @@ describe("GoogleImageGenerationTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        predictions: [{ bytesBase64Encoded: fakeImageB64 }],
-      }),
+      json: () =>
+        Promise.resolve({
+          predictions: [{ bytesBase64Encoded: fakeImageB64 }]
+        })
     }) as any;
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "google-tools-test-"));
+    const tmpDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "google-tools-test-")
+    );
     try {
-      const result = await tool.process(
-        { workspaceDir: tmpDir } as any,
-        { prompt: "a cute cat", output_file: "cat.png" },
-      ) as any;
+      const result = (await tool.process({ workspaceDir: tmpDir } as any, {
+        prompt: "a cute cat",
+        output_file: "cat.png"
+      })) as any;
       expect(result.status).toBe("success");
       expect(result.type).toBe("image");
       expect(result.prompt).toBe("a cute cat");
@@ -259,13 +277,19 @@ describe("GoogleImageGenerationTool", () => {
   });
 
   it("userMessage returns prompt in short message", () => {
-    const msg = tool.userMessage({ prompt: "a sunset", output_file: "out.png" });
+    const msg = tool.userMessage({
+      prompt: "a sunset",
+      output_file: "out.png"
+    });
     expect(msg).toContain("a sunset");
   });
 
   it("userMessage truncates long prompt", () => {
     const longPrompt = "a".repeat(100);
-    const msg = tool.userMessage({ prompt: longPrompt, output_file: "out.png" });
+    const msg = tool.userMessage({
+      prompt: longPrompt,
+      output_file: "out.png"
+    });
     expect(msg.length).toBeLessThanOrEqual(80);
   });
 });

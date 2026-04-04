@@ -27,22 +27,25 @@ const { values } = parseArgs({
     "no-cache": { type: "boolean", default: false },
     "output-dir": {
       type: "string",
-      default: join(process.cwd(), "..", "fal-nodes", "src", "generated"),
-    },
-  },
+      default: join(process.cwd(), "..", "fal-nodes", "src", "generated")
+    }
+  }
 });
 
 async function generateModule(
   moduleName: string,
   config: ModuleConfig,
   outputDir: string,
-  useCache: boolean,
+  useCache: boolean
 ): Promise<number> {
   const fetcher = new SchemaFetcher();
   const parser = new SchemaParser();
   const generator = new NodeGenerator();
 
-  const specs: { spec: ReturnType<SchemaParser["parse"]>; endpointId: string }[] = [];
+  const specs: {
+    spec: ReturnType<SchemaParser["parse"]>;
+    endpointId: string;
+  }[] = [];
   for (const endpointId of Object.keys(config.configs)) {
     try {
       console.log(`  Fetching ${endpointId}...`);
@@ -50,7 +53,9 @@ async function generateModule(
       const spec = parser.parse(schema);
       // Apply config overrides
       const nodeConfig = config.configs[endpointId];
-      const applied = nodeConfig ? generator.applyConfig(spec, nodeConfig) : spec;
+      const applied = nodeConfig
+        ? generator.applyConfig(spec, nodeConfig)
+        : spec;
       specs.push({ spec: applied, endpointId });
     } catch (e) {
       console.error(`  ERROR: ${endpointId}: ${e}`);
@@ -62,7 +67,7 @@ async function generateModule(
   const moduleCode = generator.generateModule(
     moduleName.replace(/-/g, "_"),
     specs.map((s) => s.spec),
-    config,
+    config
   );
 
   await mkdir(outputDir, { recursive: true });

@@ -4,7 +4,14 @@
  * Read, write, and list files relative to a workspace root directory.
  * All paths are sandboxed to prevent traversal outside the workspace.
  */
-import { readFile, writeFile, mkdir, readdir, stat, access } from "node:fs/promises";
+import {
+  readFile,
+  writeFile,
+  mkdir,
+  readdir,
+  stat,
+  access
+} from "node:fs/promises";
 import { resolve, join, basename, dirname } from "node:path";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { Tool } from "./base-tool.js";
@@ -24,9 +31,12 @@ export class WorkspaceReadTool extends Tool {
   readonly inputSchema = {
     type: "object" as const,
     properties: {
-      path: { type: "string" as const, description: "File path relative to workspace" },
+      path: {
+        type: "string" as const,
+        description: "File path relative to workspace"
+      }
     },
-    required: ["path"],
+    required: ["path"]
   };
 
   private workspaceRoot: string;
@@ -35,9 +45,13 @@ export class WorkspaceReadTool extends Tool {
     this.workspaceRoot = workspaceRoot;
   }
 
-  async process(_context: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
+  async process(
+    _context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
     const rawPath = params.path;
-    if (typeof rawPath !== "string") return { success: false, error: "path must be a string" };
+    if (typeof rawPath !== "string")
+      return { success: false, error: "path must be a string" };
 
     let filePath: string;
     try {
@@ -62,10 +76,13 @@ export class WorkspaceWriteTool extends Tool {
   readonly inputSchema = {
     type: "object" as const,
     properties: {
-      path: { type: "string" as const, description: "File path relative to workspace" },
-      content: { type: "string" as const, description: "Content to write" },
+      path: {
+        type: "string" as const,
+        description: "File path relative to workspace"
+      },
+      content: { type: "string" as const, description: "Content to write" }
     },
-    required: ["path", "content"],
+    required: ["path", "content"]
   };
 
   private workspaceRoot: string;
@@ -74,11 +91,16 @@ export class WorkspaceWriteTool extends Tool {
     this.workspaceRoot = workspaceRoot;
   }
 
-  async process(_context: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
+  async process(
+    _context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
     const rawPath = params.path;
     const content = params.content;
-    if (typeof rawPath !== "string") return { success: false, error: "path must be a string" };
-    if (typeof content !== "string") return { success: false, error: "content must be a string" };
+    if (typeof rawPath !== "string")
+      return { success: false, error: "path must be a string" };
+    if (typeof content !== "string")
+      return { success: false, error: "content must be a string" };
 
     let filePath: string;
     try {
@@ -92,20 +114,27 @@ export class WorkspaceWriteTool extends Tool {
       await writeFile(filePath, content, "utf-8");
       return { success: true, path: rawPath };
     } catch (e) {
-      return { success: false, error: `Failed to write: ${e instanceof Error ? e.message : String(e)}` };
+      return {
+        success: false,
+        error: `Failed to write: ${e instanceof Error ? e.message : String(e)}`
+      };
     }
   }
 }
 
 export class WorkspaceListTool extends Tool {
   readonly name = "workspace_list";
-  readonly description = "List directory contents relative to the agent workspace root.";
+  readonly description =
+    "List directory contents relative to the agent workspace root.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
-      path: { type: "string" as const, description: "Directory path relative to workspace" },
+      path: {
+        type: "string" as const,
+        description: "Directory path relative to workspace"
+      }
     },
-    required: ["path"],
+    required: ["path"]
   };
 
   private workspaceRoot: string;
@@ -114,9 +143,13 @@ export class WorkspaceListTool extends Tool {
     this.workspaceRoot = workspaceRoot;
   }
 
-  async process(_context: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
+  async process(
+    _context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
     const rawPath = params.path;
-    if (typeof rawPath !== "string") return { success: false, error: "path must be a string" };
+    if (typeof rawPath !== "string")
+      return { success: false, error: "path must be a string" };
 
     let dirPath: string;
     try {
@@ -133,7 +166,9 @@ export class WorkspaceListTool extends Tool {
           try {
             const info = await stat(join(dirPath, entry.name));
             size = info.size;
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
           return { name: entry.name, size, is_dir: entry.isDirectory() };
         })
       );

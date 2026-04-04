@@ -35,9 +35,9 @@ export class TogetherProvider extends OpenAIProvider {
           ((key) =>
             new OpenAI({
               apiKey: key,
-              baseURL: "https://api.together.xyz/v1",
+              baseURL: "https://api.together.xyz/v1"
             })),
-        fetchFn,
+        fetchFn
       }
     );
 
@@ -58,8 +58,8 @@ export class TogetherProvider extends OpenAIProvider {
       "https://api.together.xyz/v1/models",
       {
         headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
+          Authorization: `Bearer ${this.apiKey}`
+        }
       }
     );
 
@@ -83,7 +83,7 @@ export class TogetherProvider extends OpenAIProvider {
       .map((row) => ({
         id: row.id,
         name: row.display_name ?? row.id,
-        provider: "together",
+        provider: "together"
       }));
   }
 }

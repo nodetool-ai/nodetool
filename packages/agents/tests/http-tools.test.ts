@@ -18,7 +18,7 @@ afterEach(() => {
 
 function makeMockContext(): ProcessingContext {
   return {
-    resolveWorkspacePath: (p: string) => join(tempDir, p),
+    resolveWorkspacePath: (p: string) => join(tempDir, p)
   } as unknown as ProcessingContext;
 }
 
@@ -28,7 +28,7 @@ function mockFetchResponse(
     status?: number;
     statusText?: string;
     headers?: Record<string, string>;
-  } = {},
+  } = {}
 ) {
   const status = init.status ?? 200;
   const headers = new Headers(init.headers ?? {});
@@ -41,7 +41,7 @@ function mockFetchResponse(
     headers,
     text: async () => (typeof body === "string" ? body : ""),
     arrayBuffer: async () =>
-      typeof body === "string" ? new TextEncoder().encode(body).buffer : body,
+      typeof body === "string" ? new TextEncoder().encode(body).buffer : body
   } as unknown as Response;
 
   return vi.spyOn(globalThis, "fetch").mockResolvedValue(response);
@@ -61,20 +61,20 @@ describe("DownloadFileTool", () => {
     expect(pt.description).toBeTruthy();
     expect(pt.inputSchema).toBeDefined();
     expect((pt.inputSchema as any).required).toEqual(
-      expect.arrayContaining(["url", "output_file"]),
+      expect.arrayContaining(["url", "output_file"])
     );
   });
 
   it("downloads a file and saves to workspace", async () => {
     const content = "hello world file contents";
     const fetchSpy = mockFetchResponse(content, {
-      headers: { "Content-Type": "text/plain", "Content-Length": "25" },
+      headers: { "Content-Type": "text/plain", "Content-Length": "25" }
     });
 
     const ctx = makeMockContext();
     const result = (await tool.process(ctx, {
       url: "https://example.com/file.txt",
-      output_file: "downloads/file.txt",
+      output_file: "downloads/file.txt"
     })) as Record<string, unknown>;
 
     expect(fetchSpy).toHaveBeenCalledOnce();
@@ -91,7 +91,7 @@ describe("DownloadFileTool", () => {
   it("returns error when URL is missing", async () => {
     const ctx = makeMockContext();
     const result = (await tool.process(ctx, {
-      output_file: "out.txt",
+      output_file: "out.txt"
     })) as Record<string, unknown>;
     expect(result.error).toBe("URL is required");
   });
@@ -99,7 +99,7 @@ describe("DownloadFileTool", () => {
   it("returns error when output_file is missing", async () => {
     const ctx = makeMockContext();
     const result = (await tool.process(ctx, {
-      url: "https://example.com/file.txt",
+      url: "https://example.com/file.txt"
     })) as Record<string, unknown>;
     expect(result.error).toBe("Output file is required");
   });
@@ -110,7 +110,7 @@ describe("DownloadFileTool", () => {
     const ctx = makeMockContext();
     const result = (await tool.process(ctx, {
       url: "https://example.com/missing",
-      output_file: "out.txt",
+      output_file: "out.txt"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -124,7 +124,7 @@ describe("DownloadFileTool", () => {
     const ctx = makeMockContext();
     const result = (await tool.process(ctx, {
       url: "https://example.com/fail",
-      output_file: "out.txt",
+      output_file: "out.txt"
     })) as Record<string, unknown>;
 
     expect(result.error).toContain("Network error");
@@ -133,7 +133,7 @@ describe("DownloadFileTool", () => {
   it("userMessage returns descriptive string", () => {
     const msg = tool.userMessage({
       url: "https://example.com/f.txt",
-      output_file: "out.txt",
+      output_file: "out.txt"
     });
     expect(msg).toContain("example.com");
     expect(msg).toContain("out.txt");
@@ -142,7 +142,7 @@ describe("DownloadFileTool", () => {
   it("userMessage truncates long messages", () => {
     const msg = tool.userMessage({
       url: "https://example.com/" + "a".repeat(100),
-      output_file: "o".repeat(100),
+      output_file: "o".repeat(100)
     });
     expect(msg.length).toBeLessThanOrEqual(80);
   });
@@ -150,21 +150,21 @@ describe("DownloadFileTool", () => {
   it("userMessage falls back to generic when output_file is also long", () => {
     const msg = tool.userMessage({
       url: "https://example.com/" + "a".repeat(100),
-      output_file: "very/long/path/" + "f".repeat(80) + ".txt",
+      output_file: "very/long/path/" + "f".repeat(80) + ".txt"
     });
     expect(msg).toBe("Downloading a file...");
   });
 
   it("merges custom headers when provided", async () => {
     const fetchSpy = mockFetchResponse("ok", {
-      headers: { "Content-Type": "text/plain" },
+      headers: { "Content-Type": "text/plain" }
     });
 
     const ctx = makeMockContext();
     await tool.process(ctx, {
       url: "https://example.com/file.txt",
       output_file: "out.txt",
-      headers: { "X-Custom": "value" },
+      headers: { "X-Custom": "value" }
     });
 
     const calledHeaders = (fetchSpy.mock.calls[0][1] as RequestInit)
@@ -174,14 +174,14 @@ describe("DownloadFileTool", () => {
 
   it("applies custom timeout", async () => {
     const fetchSpy = mockFetchResponse("ok", {
-      headers: { "Content-Type": "text/plain" },
+      headers: { "Content-Type": "text/plain" }
     });
 
     const ctx = makeMockContext();
     await tool.process(ctx, {
       url: "https://example.com/file.txt",
       output_file: "out.txt",
-      timeout: 5,
+      timeout: 5
     });
 
     expect(fetchSpy).toHaveBeenCalledOnce();
@@ -190,13 +190,13 @@ describe("DownloadFileTool", () => {
   it("handles binary content", async () => {
     const binaryData = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
     mockFetchResponse(binaryData.buffer as ArrayBuffer, {
-      headers: { "Content-Type": "image/png" },
+      headers: { "Content-Type": "image/png" }
     });
 
     const ctx = makeMockContext();
     const result = (await tool.process(ctx, {
       url: "https://example.com/image.png",
-      output_file: "image.png",
+      output_file: "image.png"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -223,12 +223,12 @@ describe("HttpRequestTool", () => {
 
   it("makes a GET request and returns the body", async () => {
     const fetchSpy = mockFetchResponse('{"key":"value"}', {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" }
     });
 
     const ctx = makeMockContext();
     const result = (await tool.process(ctx, {
-      url: "https://api.example.com/data",
+      url: "https://api.example.com/data"
     })) as Record<string, unknown>;
 
     expect(fetchSpy).toHaveBeenCalledOnce();
@@ -249,7 +249,7 @@ describe("HttpRequestTool", () => {
     const result = (await tool.process(ctx, {
       url: "https://api.example.com/create",
       method: "POST",
-      body: '{"name":"test"}',
+      body: '{"name":"test"}'
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -270,7 +270,7 @@ describe("HttpRequestTool", () => {
 
     const ctx = makeMockContext();
     const result = (await tool.process(ctx, {
-      url: "https://api.example.com/error",
+      url: "https://api.example.com/error"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -280,12 +280,12 @@ describe("HttpRequestTool", () => {
 
   it("returns error when fetch throws", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(
-      new Error("Connection refused"),
+      new Error("Connection refused")
     );
 
     const ctx = makeMockContext();
     const result = (await tool.process(ctx, {
-      url: "https://api.example.com/fail",
+      url: "https://api.example.com/fail"
     })) as Record<string, unknown>;
 
     expect(result.error).toContain("Connection refused");
@@ -308,7 +308,7 @@ describe("HttpRequestTool", () => {
     await tool.process(ctx, {
       url: "https://example.com",
       method: "GET",
-      body: "should be ignored",
+      body: "should be ignored"
     });
 
     const [, calledInit] = fetchSpy.mock.calls[0];
@@ -318,7 +318,7 @@ describe("HttpRequestTool", () => {
   it("userMessage returns method and url", () => {
     const msg = tool.userMessage({
       url: "https://example.com/api",
-      method: "post",
+      method: "post"
     });
     expect(msg).toBe("POST https://example.com/api");
   });
@@ -331,7 +331,7 @@ describe("HttpRequestTool", () => {
   it("userMessage truncates long URLs", () => {
     const msg = tool.userMessage({
       url: "https://example.com/" + "a".repeat(100),
-      method: "GET",
+      method: "GET"
     });
     expect(msg).toBe("GET request...");
   });
@@ -342,7 +342,7 @@ describe("HttpRequestTool", () => {
     const ctx = makeMockContext();
     await tool.process(ctx, {
       url: "https://example.com",
-      headers: { "X-Custom": "value" },
+      headers: { "X-Custom": "value" }
     });
 
     const calledHeaders = (fetchSpy.mock.calls[0][1] as RequestInit)
@@ -356,7 +356,7 @@ describe("HttpRequestTool", () => {
     const ctx = makeMockContext();
     await tool.process(ctx, {
       url: "https://example.com",
-      timeout: 10,
+      timeout: 10
     });
 
     expect(fetchSpy).toHaveBeenCalledOnce();
@@ -370,7 +370,7 @@ describe("HttpRequestTool", () => {
       await tool.process(ctx, {
         url: "https://example.com",
         method,
-        body: '{"data":true}',
+        body: '{"data":true}'
       });
 
       const [, calledInit] = fetchSpy.mock.calls[0];

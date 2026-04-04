@@ -57,7 +57,7 @@ describe("Model listing", () => {
 describe("HuggingFace cache status", () => {
   it("reports cache status for non-existent repos", async () => {
     const res = await post("/models/huggingface/cache_status", [
-      { key: "test", repo_id: "fake/nonexistent", allow_patterns: "*.bin" },
+      { key: "test", repo_id: "fake/nonexistent", allow_patterns: "*.bin" }
     ]);
     expect(res.status).toBe(200);
     const data = await res.json();

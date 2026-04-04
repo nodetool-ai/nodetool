@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Convert Text"
-node_type: "lib.pandoc.ConvertText"
-namespace: "lib.pandoc"
+node_type: "lib.convert.pandoc.ConvertText"
+namespace: "lib.convert.pandoc"
 ---
 
-**Type:** `lib.pandoc.ConvertText`
+**Type:** `lib.convert.pandoc.ConvertText`
 
-**Namespace:** `lib.pandoc`
+**Namespace:** `lib.convert.pandoc`
 
 ## Description
 
@@ -38,5 +38,5 @@ Converts text content between different document formats using pandoc.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pandoc](../) namespace.
+Browse other nodes in the [lib.convert.pandoc](../) namespace.
 

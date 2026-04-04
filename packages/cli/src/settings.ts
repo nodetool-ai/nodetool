@@ -15,12 +15,18 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   model: detectDefaultModel(),
   agentMode: false,
   enabledTools: [
-    "read_file", "write_file", "list_directory",
-    "download_file", "http_request", "http_get",
-    "browser", "screenshot",
-    "run_code", "calculator",
+    "read_file",
+    "write_file",
+    "list_directory",
+    "download_file",
+    "http_request",
+    "http_get",
+    "browser",
+    "screenshot",
+    "run_code",
+    "calculator"
   ],
-  workspace: process.cwd(),
+  workspace: process.cwd()
 };
 
 function detectDefaultProvider(): string {
@@ -33,10 +39,14 @@ function detectDefaultProvider(): string {
 function detectDefaultModel(): string {
   const prov = detectDefaultProvider();
   switch (prov) {
-    case "anthropic": return "claude-sonnet-4-6";
-    case "openai": return "gpt-4o";
-    case "gemini": return "gemini-2.0-flash";
-    default: return "llama3.2";
+    case "anthropic":
+      return "claude-sonnet-4-6";
+    case "openai":
+      return "gpt-4o";
+    case "gemini":
+      return "gemini-2.0-flash";
+    default:
+      return "llama3.2";
   }
 }
 
@@ -52,11 +62,16 @@ export async function loadSettings(): Promise<ChatSettings> {
   }
 }
 
-export async function saveSettings(settings: Partial<ChatSettings>): Promise<void> {
+export async function saveSettings(
+  settings: Partial<ChatSettings>
+): Promise<void> {
   try {
     await mkdir(SETTINGS_DIR, { recursive: true });
     const current = await loadSettings();
-    await writeFile(SETTINGS_FILE, JSON.stringify({ ...current, ...settings }, null, 2));
+    await writeFile(
+      SETTINGS_FILE,
+      JSON.stringify({ ...current, ...settings }, null, 2)
+    );
   } catch {
     // ignore save errors silently
   }

@@ -35,18 +35,24 @@ export function generateDockerfile(spec: ImageBuildSpec): string {
   const SAFE_APT_PKG = /^[a-z0-9.+-]+$/;
   const SAFE_PIP_PKG = /^[a-zA-Z0-9._[\]~=<>!,+-]+$/;
   for (const pkg of spec.apt_packages) {
-    if (!SAFE_APT_PKG.test(pkg)) throw new Error(`Invalid apt package name: ${pkg}`);
+    if (!SAFE_APT_PKG.test(pkg))
+      throw new Error(`Invalid apt package name: ${pkg}`);
   }
   if (spec.python) {
     for (const pkg of spec.python.packages) {
-      if (!SAFE_PIP_PKG.test(pkg)) throw new Error(`Invalid pip package name: ${pkg}`);
+      if (!SAFE_PIP_PKG.test(pkg))
+        throw new Error(`Invalid pip package name: ${pkg}`);
     }
     if (!/^https?:\/\//.test(spec.python.index_url)) {
-      throw new Error(`Invalid index URL (must start with http:// or https://): ${spec.python.index_url}`);
+      throw new Error(
+        `Invalid index URL (must start with http:// or https://): ${spec.python.index_url}`
+      );
     }
     for (const url of spec.python.extra_index_urls) {
       if (!/^https?:\/\//.test(url)) {
-        throw new Error(`Invalid extra index URL (must start with http:// or https://): ${url}`);
+        throw new Error(
+          `Invalid extra index URL (must start with http:// or https://): ${url}`
+        );
       }
     }
   }
@@ -56,7 +62,8 @@ export function generateDockerfile(spec: ImageBuildSpec): string {
   // --- Base image ---
   if (spec.cuda) {
     // CUDA tags require 3-part versions (e.g. 12.1.0, not 12.1)
-    const cudaVersion = spec.cuda.split(".").length === 2 ? `${spec.cuda}.0` : spec.cuda;
+    const cudaVersion =
+      spec.cuda.split(".").length === 2 ? `${spec.cuda}.0` : spec.cuda;
     lines.push(`FROM nvidia/cuda:${cudaVersion}-runtime-ubuntu22.04`);
   } else {
     lines.push("FROM node:20-slim");
@@ -174,7 +181,7 @@ export async function buildImage(
 
     await execFile("docker", ["build", "-f", dockerfilePath, "-t", tag, "."], {
       cwd: contextDir,
-      maxBuffer: 50 * 1024 * 1024, // 50 MB
+      maxBuffer: 50 * 1024 * 1024 // 50 MB
     });
   } finally {
     try {

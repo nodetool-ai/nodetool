@@ -20,7 +20,12 @@
  */
 
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import { getFalApiKey, falSubmit, falUpload, imageToDataUrl } from "./fal-base.js";
+import {
+  getFalApiKey,
+  falSubmit,
+  falUpload,
+  imageToDataUrl
+} from "./fal-base.js";
 
 // ---------------------------------------------------------------------------
 // Helpers: URL / endpoint resolution (ported from dynamic_schema.py)
@@ -39,7 +44,10 @@ function looksLikeEndpointId(value: string): boolean {
 }
 
 function sanitizeEndpointId(value: string): string {
-  const clean = value.trim().replace(/[)\]}>.,;:]+$/, "").trim();
+  const clean = value
+    .trim()
+    .replace(/[)\]}>.,;:]+$/, "")
+    .trim();
   if (!/^[a-zA-Z0-9\-_/]+$/.test(clean)) {
     throw new Error(`Invalid characters in endpoint ID: ${clean}`);
   }
@@ -65,7 +73,10 @@ function coerceLlmsUrl(value: string): string | null {
   if (value.endsWith("/llms.txt")) return value;
   try {
     const parsed = new URL(value);
-    if (parsed.hostname.endsWith("fal.ai") && parsed.pathname.startsWith("/models/")) {
+    if (
+      parsed.hostname.endsWith("fal.ai") &&
+      parsed.pathname.startsWith("/models/")
+    ) {
       return `${value.replace(/\/$/, "")}/llms.txt`;
     }
   } catch {
@@ -129,13 +140,16 @@ function parseModelInfoText(
   let endpointId = endpointHint;
   let openApiUrl: string | null = null;
 
-  const openApiMatch = /https?:\/\/[^\s`]+openapi\.json\?endpoint_id=[^`\s]+/.exec(modelInfoText);
+  const openApiMatch =
+    /https?:\/\/[^\s`]+openapi\.json\?endpoint_id=[^`\s]+/.exec(modelInfoText);
   if (openApiMatch) openApiUrl = openApiMatch[0];
 
   const modelIdMatch = /Model ID\*\*:\s*`([^`]+)`/.exec(modelInfoText);
   if (modelIdMatch) endpointId = sanitizeEndpointId(modelIdMatch[1]);
 
-  const endpointMatch = /Endpoint\*\*:\s*`https?:\/\/[^/]+\/([^`]+)`/.exec(modelInfoText);
+  const endpointMatch = /Endpoint\*\*:\s*`https?:\/\/[^/]+\/([^`]+)`/.exec(
+    modelInfoText
+  );
   if (endpointMatch) endpointId = sanitizeEndpointId(endpointMatch[1]);
 
   if (!endpointId && openApiUrl) {
@@ -163,7 +177,9 @@ function validateFalUrl(url: string): void {
   }
 }
 
-async function fetchOpenApi(openApiUrl: string): Promise<Record<string, unknown>> {
+async function fetchOpenApi(
+  openApiUrl: string
+): Promise<Record<string, unknown>> {
   validateFalUrl(openApiUrl);
   const res = await fetch(openApiUrl, { signal: AbortSignal.timeout(20_000) });
   if (!res.ok) throw new Error(`Failed to fetch OpenAPI schema: ${res.status}`);
@@ -172,7 +188,9 @@ async function fetchOpenApi(openApiUrl: string): Promise<Record<string, unknown>
 
 async function fetchModelInfoText(modelInfoUrl: string): Promise<string> {
   validateFalUrl(modelInfoUrl);
-  const res = await fetch(modelInfoUrl, { signal: AbortSignal.timeout(20_000) });
+  const res = await fetch(modelInfoUrl, {
+    signal: AbortSignal.timeout(20_000)
+  });
   if (!res.ok) throw new Error(`Failed to fetch model info: ${res.status}`);
   return res.text();
 }
@@ -203,7 +221,10 @@ function resolveSchemaRef(
   return schema;
 }
 
-function resolveRef(openapi: Record<string, unknown>, ref: string): Record<string, unknown> {
+function resolveRef(
+  openapi: Record<string, unknown>,
+  ref: string
+): Record<string, unknown> {
   if (!ref.startsWith("#/")) return {};
   const parts = ref.slice(2).split("/");
   let current: unknown = openapi;
@@ -243,36 +264,48 @@ function mergeAllOf(
   return merged;
 }
 
-function extractInputSchema(openapi: Record<string, unknown>): Record<string, unknown> {
+function extractInputSchema(
+  openapi: Record<string, unknown>
+): Record<string, unknown> {
   const paths = openapi.paths as Record<string, unknown> | undefined;
   if (!paths) return {};
   for (const [, methods] of Object.entries(paths)) {
-    const entry = (methods as Record<string, unknown>)?.post as Record<string, unknown> | undefined;
-    if (!entry) continue;
-    const requestBody = entry.requestBody as Record<string, unknown> | undefined;
-    if (!requestBody) continue;
-    const content = (requestBody.content as Record<string, unknown>)?.["application/json"] as
+    const entry = (methods as Record<string, unknown>)?.post as
       | Record<string, unknown>
       | undefined;
+    if (!entry) continue;
+    const requestBody = entry.requestBody as
+      | Record<string, unknown>
+      | undefined;
+    if (!requestBody) continue;
+    const content = (requestBody.content as Record<string, unknown>)?.[
+      "application/json"
+    ] as Record<string, unknown> | undefined;
     const schema = content?.schema as Record<string, unknown> | undefined;
     if (schema) return resolveSchemaRef(openapi, schema);
   }
   return {};
 }
 
-function extractOutputSchema(openapi: Record<string, unknown>): Record<string, unknown> {
+function extractOutputSchema(
+  openapi: Record<string, unknown>
+): Record<string, unknown> {
   const paths = openapi.paths as Record<string, unknown> | undefined;
   if (!paths) return {};
   let candidate: Record<string, unknown> = {};
   for (const [pathKey, methods] of Object.entries(paths)) {
-    const entry = (methods as Record<string, unknown>)?.get as Record<string, unknown> | undefined;
-    if (!entry) continue;
-    const responses = entry.responses as Record<string, unknown> | undefined;
-    const response = (responses?.["200"] ?? responses?.[200]) as Record<string, unknown> | undefined;
-    if (!response) continue;
-    const content = (response.content as Record<string, unknown>)?.["application/json"] as
+    const entry = (methods as Record<string, unknown>)?.get as
       | Record<string, unknown>
       | undefined;
+    if (!entry) continue;
+    const responses = entry.responses as Record<string, unknown> | undefined;
+    const response = (responses?.["200"] ?? responses?.[200]) as
+      | Record<string, unknown>
+      | undefined;
+    if (!response) continue;
+    const content = (response.content as Record<string, unknown>)?.[
+      "application/json"
+    ] as Record<string, unknown> | undefined;
     const schema = content?.schema as Record<string, unknown> | undefined;
     if (!schema) continue;
     const resolved = resolveSchemaRef(openapi, schema);
@@ -289,13 +322,20 @@ function endpointIdFromOpenApi(
   openapi: Record<string, unknown>,
   hint: string | null
 ): string {
-  const metadata = ((openapi.info as Record<string, unknown>)?.["x-fal-metadata"] as Record<string, unknown>) ?? {};
+  const metadata =
+    ((openapi.info as Record<string, unknown>)?.["x-fal-metadata"] as Record<
+      string,
+      unknown
+    >) ?? {};
   let id = (metadata.endpointId as string) ?? "";
   if (!id) id = hint ?? "";
   if (!id) {
     const paths = openapi.paths as Record<string, unknown> | undefined;
     for (const p of Object.keys(paths ?? {})) {
-      if (p.startsWith("/")) { id = p.replace(/^\//, ""); break; }
+      if (p.startsWith("/")) {
+        id = p.replace(/^\//, "");
+        break;
+      }
     }
   }
   return id;
@@ -324,10 +364,14 @@ async function coerceInputValue(
       if (uri?.startsWith("https://") && !uri.includes("localhost")) return uri;
       const data = ref.data as string | undefined;
       if (data) {
-        const contentType = ref.type === "video" ? "video/mp4"
-          : ref.type === "audio" ? "audio/mp3"
-          : ref.type === "document" ? "application/pdf"
-          : "application/octet-stream";
+        const contentType =
+          ref.type === "video"
+            ? "video/mp4"
+            : ref.type === "audio"
+              ? "audio/mp3"
+              : ref.type === "document"
+                ? "application/pdf"
+                : "application/octet-stream";
         const bytes = Uint8Array.from(Buffer.from(data, "base64"));
         return falUpload(apiKey, bytes, contentType);
       }
@@ -353,9 +397,24 @@ async function coerceInputValue(
 function inferAssetType(name: string): string {
   const lower = name.toLowerCase();
   if (lower.includes("video") || lower.includes("gif")) return "video";
-  if (lower.includes("audio") || lower.includes("voice") || lower.includes("sound")) return "audio";
-  if (lower.includes("image") || lower.includes("mask") || lower.includes("frame")) return "image";
-  if (lower.includes("document") || lower.includes("pdf") || lower.includes("doc")) return "document";
+  if (
+    lower.includes("audio") ||
+    lower.includes("voice") ||
+    lower.includes("sound")
+  )
+    return "audio";
+  if (
+    lower.includes("image") ||
+    lower.includes("mask") ||
+    lower.includes("frame")
+  )
+    return "image";
+  if (
+    lower.includes("document") ||
+    lower.includes("pdf") ||
+    lower.includes("doc")
+  )
+    return "document";
   return "asset";
 }
 
@@ -370,7 +429,9 @@ function mapOutputValue(
 
   if (resolved.type === "array" && Array.isArray(value)) {
     const itemSchema = (resolved.items as Record<string, unknown>) ?? {};
-    return (value as unknown[]).map((item) => mapOutputValue(openapi, name, itemSchema, item));
+    return (value as unknown[]).map((item) =>
+      mapOutputValue(openapi, name, itemSchema, item)
+    );
   }
 
   // File schema (has "url" property) → return {uri, type}
@@ -396,7 +457,12 @@ function mapOutputValues(
   const out: Record<string, unknown> = {};
   for (const [name, schema] of Object.entries(properties)) {
     if (!(name in response)) continue;
-    out[name] = mapOutputValue(openapi, name, schema as Record<string, unknown>, response[name]);
+    out[name] = mapOutputValue(
+      openapi,
+      name,
+      schema as Record<string, unknown>,
+      response[name]
+    );
   }
   return out;
 }
@@ -422,7 +488,7 @@ export class FalRawNode extends BaseNode {
     default: "",
     title: "Endpoint ID",
     description:
-      'FAL endpoint ID, e.g. "fal-ai/flux/dev" or "fal-ai/mmaudio-v2/text-to-audio".',
+      'FAL endpoint ID, e.g. "fal-ai/flux/dev" or "fal-ai/mmaudio-v2/text-to-audio".'
   })
   declare endpoint_id: string;
 
@@ -430,7 +496,7 @@ export class FalRawNode extends BaseNode {
     type: "str",
     default: "{}",
     title: "Arguments",
-    description: "JSON object of arguments to pass to the endpoint.",
+    description: "JSON object of arguments to pass to the endpoint."
   })
   declare arguments: string;
 
@@ -491,7 +557,7 @@ export class FalDynamicNode extends BaseNode {
     default: "",
     title: "Model Info",
     description:
-      "Endpoint ID (e.g. 'fal-ai/flux/dev'), fal.ai model URL, llms.txt URL, or pasted llms.txt content.",
+      "Endpoint ID (e.g. 'fal-ai/flux/dev'), fal.ai model URL, llms.txt URL, or pasted llms.txt content."
   })
   declare model_info: string;
 
@@ -513,10 +579,18 @@ export class FalDynamicNode extends BaseNode {
     const outputSchema = extractOutputSchema(openapi);
 
     // Build arguments from dynamic properties (excluding known node meta keys)
-    const SKIP_KEYS = new Set(["model_info", "_secrets", "__node_id", "__node_name"]);
-    const schemaProps = (inputSchema.properties as Record<string, Record<string, unknown>>) ?? {};
+    const SKIP_KEYS = new Set([
+      "model_info",
+      "_secrets",
+      "__node_id",
+      "__node_name"
+    ]);
+    const schemaProps =
+      (inputSchema.properties as Record<string, Record<string, unknown>>) ?? {};
     const required = new Set<string>(
-      Array.isArray(inputSchema.required) ? (inputSchema.required as string[]) : []
+      Array.isArray(inputSchema.required)
+        ? (inputSchema.required as string[])
+        : []
     );
 
     const args: Record<string, unknown> = {};
@@ -540,7 +614,10 @@ export class FalDynamicNode extends BaseNode {
       if (value !== undefined && value !== null) args[key] = value;
     }
 
-    const result = await falSubmit(apiKey, endpointId, args) as Record<string, unknown>;
+    const result = (await falSubmit(apiKey, endpointId, args)) as Record<
+      string,
+      unknown
+    >;
 
     // Map output values
     const mapped = mapOutputValues(openapi, outputSchema, result);
@@ -551,7 +628,8 @@ export class FalDynamicNode extends BaseNode {
   private async _resolveSchema(
     modelInfo: string
   ): Promise<{ openapi: Record<string, unknown>; endpointId: string }> {
-    const [modelInfoText, modelInfoUrl, endpointHint] = normalizeModelInfo(modelInfo);
+    const [modelInfoText, modelInfoUrl, endpointHint] =
+      normalizeModelInfo(modelInfo);
 
     if (!modelInfoText && !modelInfoUrl) {
       throw new Error(
@@ -581,7 +659,9 @@ export class FalDynamicNode extends BaseNode {
     }
 
     if (!openApiUrl) {
-      throw new Error("Unable to resolve an OpenAPI schema URL from model_info");
+      throw new Error(
+        "Unable to resolve an OpenAPI schema URL from model_info"
+      );
     }
 
     const openapi = await fetchOpenApi(openApiUrl);

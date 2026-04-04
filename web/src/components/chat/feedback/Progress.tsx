@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { LinearProgress, Typography } from "@mui/material";
+import { ProgressBar } from "../../ui_primitives/ProgressBar";
 
 interface ProgressProps {
   progress: number;
@@ -23,16 +23,16 @@ export const Progress: React.FC<ProgressProps> = ({ progress, total }) => {
     setEta(etaSeconds);
   }, [progress, total]);
 
+  const percentValue = (progress * 100) / total;
+
   return (
     <div className="node-progress">
-      <div className="progress-bar">
-        <LinearProgress
-          variant="determinate"
-          value={(progress * 100) / total}
-          color="primary"
-        />
-      </div>
-      <Typography variant="caption">{eta && `ETA: ${eta}s`}</Typography>
+      <ProgressBar
+        value={percentValue}
+        showValue={true}
+        formatValue={() => (eta ? `ETA: ${eta}s` : `${Math.round(percentValue)}%`)}
+        color="primary"
+      />
     </div>
   );
 };

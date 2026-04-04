@@ -177,6 +177,7 @@ export const CopyButton = memo(
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
+          <span style={{ display: "inline-flex" }}>
           <IconButton
             ref={ref}
             tabIndex={tabIndex}
@@ -210,6 +211,7 @@ export const CopyButton = memo(
               <ContentCopyIcon sx={{ fontSize: iconSize }} />
             )}
           </IconButton>
+          </span>
         </Tooltip>
       );
     }

@@ -36,7 +36,8 @@ function envBool(name: string): boolean {
  */
 function hfHomeDir(): string {
   const hfHome = process.env["HF_HOME"];
-  if (hfHome) return hfHome.startsWith("~") ? hfHome.replace("~", os.homedir()) : hfHome;
+  if (hfHome)
+    return hfHome.startsWith("~") ? hfHome.replace("~", os.homedir()) : hfHome;
 
   const xdg = process.env["XDG_CACHE_HOME"];
   if (xdg) return path.join(xdg, "huggingface");
@@ -130,7 +131,7 @@ export function clearHfTokenCache(): void {
  *    `HF_HUB_DISABLE_IMPLICIT_TOKEN` is set.
  */
 export async function resolveHfToken(
-  token: string | boolean | null | undefined,
+  token: string | boolean | null | undefined
 ): Promise<string | null> {
   if (token === false) return null;
 
@@ -143,7 +144,7 @@ export async function resolveHfToken(
     if (cached == null) {
       throw new Error(
         "Token is required (token=true), but no Hugging Face token " +
-          "was found in env or token file. Run `hf auth login` or set HF_TOKEN.",
+          "was found in env or token file. Run `hf auth login` or set HF_TOKEN."
       );
     }
     return cached;

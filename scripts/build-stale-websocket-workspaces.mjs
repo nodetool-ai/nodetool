@@ -4,26 +4,11 @@ import { spawn } from "node:child_process";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { websocketWorkspaces } from "./websocket-workspaces.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "..");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-
-const workspaces = [
-  "@nodetool/protocol",
-  "@nodetool/config",
-  "@nodetool/runtime",
-  "@nodetool/auth",
-  "@nodetool/security",
-  "@nodetool/kernel",
-  "@nodetool/node-sdk",
-  "@nodetool/fal-nodes",
-  "@nodetool/replicate-nodes",
-  "@nodetool/base-nodes",
-  "@nodetool/models",
-  "@nodetool/agents",
-  "@nodetool/websocket",
-];
 
 function run(command, args) {
   return new Promise((resolveRun, rejectRun) => {
@@ -91,7 +76,7 @@ function isWorkspaceStale(workspaceName) {
   return sourceMtime > distMtime;
 }
 
-const staleWorkspaces = workspaces.filter(isWorkspaceStale);
+const staleWorkspaces = websocketWorkspaces.filter(isWorkspaceStale);
 
 if (staleWorkspaces.length === 0) {
   console.log("All websocket workspaces are up to date.");

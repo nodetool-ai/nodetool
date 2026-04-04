@@ -17,7 +17,7 @@ export abstract class Tool {
    */
   abstract process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown>;
 
   /**
@@ -27,7 +27,7 @@ export abstract class Tool {
     return {
       name: this.name,
       description: this.description,
-      inputSchema: this.inputSchema,
+      inputSchema: this.inputSchema
     };
   }
 

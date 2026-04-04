@@ -10,7 +10,7 @@ const WAV_BASE64 =
 
 const audioFromDataUri = {
   type: "audio",
-  data: `data:audio/wav;base64,${WAV_BASE64}`,
+  data: `data:audio/wav;base64,${WAV_BASE64}`
 };
 
 /** Helper: create a node, assign properties, then call process(). */
@@ -31,8 +31,8 @@ describe("SpeechToTextNode", () => {
         language_code: "en",
         language_probability: 0.99,
         words: [{ word: "Hello" }, { word: "world" }],
-        transcription_id: "tid-123",
-      }),
+        transcription_id: "tid-123"
+      })
     });
   });
 
@@ -53,16 +53,16 @@ describe("SpeechToTextNode", () => {
     const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.elevenlabs.io/v1/speech-to-text");
     expect(options.method).toBe("POST");
-    expect(
-      (options.headers as Record<string, string>)["xi-api-key"],
-    ).toBe("test-key");
+    expect((options.headers as Record<string, string>)["xi-api-key"]).toBe(
+      "test-key"
+    );
 
     expect(result).toMatchObject({
       text: "Hello world",
       language_code: "en",
       language_probability: 0.99,
       words: [{ word: "Hello" }, { word: "world" }],
-      transcription_id: "tid-123",
+      transcription_id: "tid-123"
     });
   });
 
@@ -73,31 +73,25 @@ describe("SpeechToTextNode", () => {
     await node.process();
 
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
-    expect(
-      (options.headers as Record<string, string>)["xi-api-key"],
-    ).toBe("from-secrets");
+    expect((options.headers as Record<string, string>)["xi-api-key"]).toBe(
+      "from-secrets"
+    );
   });
 
   it("throws when API key is missing", async () => {
     delete process.env.ELEVENLABS_API_KEY;
     const node = makeNode({ audio: audioFromDataUri });
-    await expect(
-      node.process(),
-    ).rejects.toThrow("ELEVENLABS_API_KEY");
+    await expect(node.process()).rejects.toThrow("ELEVENLABS_API_KEY");
   });
 
   it("throws when audio input is missing", async () => {
     const node = makeNode({ audio: {} });
-    await expect(node.process()).rejects.toThrow(
-      "Audio input is required",
-    );
+    await expect(node.process()).rejects.toThrow("Audio input is required");
   });
 
   it("throws on invalid audio data URI", async () => {
     const node = makeNode({ audio: { data: "not-a-data-uri" } });
-    await expect(
-      node.process(),
-    ).rejects.toThrow("Invalid audio data URI");
+    await expect(node.process()).rejects.toThrow("Invalid audio data URI");
   });
 
   it("fetches audio from a URI when data is absent", async () => {
@@ -109,8 +103,8 @@ describe("SpeechToTextNode", () => {
         arrayBuffer: async () =>
           fakeAudioBuf.buffer.slice(
             fakeAudioBuf.byteOffset,
-            fakeAudioBuf.byteOffset + fakeAudioBuf.byteLength,
-          ),
+            fakeAudioBuf.byteOffset + fakeAudioBuf.byteLength
+          )
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -119,8 +113,8 @@ describe("SpeechToTextNode", () => {
           language_code: "en",
           language_probability: 0.9,
           words: [],
-          transcription_id: "tid-456",
-        }),
+          transcription_id: "tid-456"
+        })
       });
 
     const node = makeNode({ audio: { uri: "https://example.com/audio.wav" } });
@@ -134,18 +128,16 @@ describe("SpeechToTextNode", () => {
   it("throws when ElevenLabs API returns an error", async () => {
     mockFetch.mockResolvedValue({
       ok: false,
-      text: async () => "Bad Request",
+      text: async () => "Bad Request"
     });
     const node = makeNode({ audio: audioFromDataUri });
-    await expect(
-      node.process(),
-    ).rejects.toThrow("ElevenLabs API error");
+    await expect(node.process()).rejects.toThrow("ElevenLabs API error");
   });
 
   it("includes language_code in form when specified", async () => {
     const node = makeNode({
       audio: audioFromDataUri,
-      language_code: "es",
+      language_code: "es"
     });
     await node.process();
 

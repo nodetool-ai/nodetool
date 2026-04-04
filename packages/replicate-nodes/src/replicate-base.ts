@@ -26,9 +26,7 @@ function getClient(apiKey: string): Replicate {
 
 export function getReplicateApiKey(secrets: Record<string, string>): string {
   const key =
-    secrets?.REPLICATE_API_TOKEN ||
-    process.env.REPLICATE_API_TOKEN ||
-    "";
+    secrets?.REPLICATE_API_TOKEN || process.env.REPLICATE_API_TOKEN || "";
   if (!key) throw new Error("REPLICATE_API_TOKEN is not configured");
   return key;
 }
@@ -42,10 +40,7 @@ export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
     if (obj[k] == null || obj[k] === "" || obj[k] === 0) {
       delete obj[k];
-    } else if (
-      typeof obj[k] === "object" &&
-      !Array.isArray(obj[k])
-    ) {
+    } else if (typeof obj[k] === "object" && !Array.isArray(obj[k])) {
       removeNulls(obj[k] as Record<string, unknown>);
     }
   }
@@ -72,7 +67,10 @@ export async function assetToUrl(
   const uri = ref.uri as string | undefined;
   if (uri) {
     // Replicate-hosted URLs can be used directly
-    if (uri.startsWith("https://replicate.delivery/") || uri.startsWith("https://api.replicate.com/")) {
+    if (
+      uri.startsWith("https://replicate.delivery/") ||
+      uri.startsWith("https://api.replicate.com/")
+    ) {
       return uri;
     }
     // Data URIs can be used directly
@@ -111,20 +109,26 @@ export async function assetToUrl(
  * Fetch a URL and upload the content to Replicate's files API.
  * Returns the Replicate-hosted URL that models can access.
  */
-async function uploadToReplicate(apiKey: string, sourceUrl: string): Promise<string> {
+async function uploadToReplicate(
+  apiKey: string,
+  sourceUrl: string
+): Promise<string> {
   const res = await fetch(sourceUrl);
   if (!res.ok) throw new Error(`Failed to fetch ${sourceUrl}: ${res.status}`);
 
   const bytes = new Uint8Array(await res.arrayBuffer());
-  const contentType = res.headers.get("content-type") || "application/octet-stream";
+  const contentType =
+    res.headers.get("content-type") || "application/octet-stream";
   const ext = contentType.split("/")[1]?.split(";")[0] || "bin";
 
   const client = getClient(apiKey);
   const file = await (client.files as any).create({
     content: new Blob([bytes], { type: contentType }),
-    filename: `upload.${ext}`,
+    filename: `upload.${ext}`
   });
-  const fileUrl = (file as unknown as Record<string, unknown>).urls as Record<string, string> | undefined;
+  const fileUrl = (file as unknown as Record<string, unknown>).urls as
+    | Record<string, string>
+    | undefined;
   if (fileUrl?.get) return fileUrl.get;
   throw new Error("No URL in upload response");
 }
@@ -149,10 +153,7 @@ export async function replicateSubmit(
   input: Record<string, unknown>
 ): Promise<ReplicateResult> {
   const client = getClient(apiKey);
-  const output = await client.run(
-    modelId as `${string}/${string}`,
-    { input }
-  );
+  const output = await client.run(modelId as `${string}/${string}`, { input });
   return { output };
 }
 

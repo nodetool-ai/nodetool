@@ -190,7 +190,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       color: theme.vars.palette.grey[100],
       padding: "6px",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)"
+        backgroundColor: theme.vars.palette.action.disabledBackground
       },
       "&.active": {
         backgroundColor: theme.vars.palette.primary.main,
@@ -198,7 +198,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       }
     },
     ".controls-toolbar .MuiToggleButtonGroup-root": {
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      backgroundColor: theme.vars.palette.action.disabledBackground,
       borderRadius: "4px"
     },
     ".controls-toolbar .MuiToggleButton-root": {
@@ -221,7 +221,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
         fontSize: "0.75rem"
       },
       "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: "rgba(255, 255, 255, 0.2)"
+        borderColor: theme.vars.palette.action.disabled
       },
       "& .MuiSvgIcon-root": {
         color: theme.vars.palette.grey[100]

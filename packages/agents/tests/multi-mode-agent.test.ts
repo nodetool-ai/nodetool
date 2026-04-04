@@ -14,7 +14,7 @@ function createMockProvider(
       | { type: "chunk"; content: string; done?: boolean }
       | { id: string; name: string; args: Record<string, unknown> }
     >
-  >,
+  >
 ) {
   let callIndex = 0;
   return {
@@ -27,8 +27,12 @@ function createMockProvider(
         yield item;
       }
     },
-    async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
-    async generateMessageTraced(...args: any[]) { return (this as any).generateMessage(...args); },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
     generateMessage: vi.fn(),
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
     getAvailableImageModels: vi.fn().mockResolvedValue([]),
@@ -44,23 +48,33 @@ function createMockProvider(
     textToVideo: vi.fn(),
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
-    isContextLengthError: () => false,
+    isContextLengthError: () => false
   } as any;
 }
 
 /**
  * Creates a mock provider that returns structured responses for generateMessageTraced.
  */
-function createTracedMockProvider(responses: Array<{
-  content?: string;
-  toolCalls?: Array<{ id: string; name: string; args: Record<string, unknown> }>;
-}>) {
+function createTracedMockProvider(
+  responses: Array<{
+    content?: string;
+    toolCalls?: Array<{
+      id: string;
+      name: string;
+      args: Record<string, unknown>;
+    }>;
+  }>
+) {
   let callIndex = 0;
   return {
     provider: "mock",
     hasToolSupport: async () => true,
-    generateMessages: async function* () { /* no-op */ },
-    async *generateMessagesTraced(..._args: any[]) { /* no-op */ },
+    generateMessages: async function* () {
+      /* no-op */
+    },
+    async *generateMessagesTraced(..._args: any[]) {
+      /* no-op */
+    },
     generateMessage: vi.fn().mockImplementation(() => {
       const resp = responses[callIndex] ?? { content: "" };
       callIndex++;
@@ -85,7 +99,7 @@ function createTracedMockProvider(responses: Array<{
     textToVideo: vi.fn(),
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
-    isContextLengthError: () => false,
+    isContextLengthError: () => false
   } as any;
 }
 
@@ -105,7 +119,7 @@ function createMockContext() {
     get: vi.fn((key: string) => {
       return store.get(key);
     }),
-    _store: store,
+    _store: store
   } as any;
 }
 
@@ -121,7 +135,7 @@ describe("MultiModeAgent", () => {
         name: "test",
         objective: "do something",
         provider,
-        model: "test-model",
+        model: "test-model"
       });
       expect(agent).toBeDefined();
     });
@@ -134,7 +148,7 @@ describe("MultiModeAgent", () => {
           objective: "do something",
           provider: createMockProvider([]),
           model: "test-model",
-          mode,
+          mode
         });
         expect(agent).toBeDefined();
       }
@@ -150,9 +164,9 @@ describe("MultiModeAgent", () => {
           {
             id: "tc1",
             name: "finish_step",
-            args: { result: "Hello world", metadata: { title: "Test" } },
-          },
-        ],
+            args: { result: "Hello world", metadata: { title: "Test" } }
+          }
+        ]
       ]);
 
       const agent = new MultiModeAgent({
@@ -160,7 +174,7 @@ describe("MultiModeAgent", () => {
         objective: "Say hello",
         provider,
         model: "test-model",
-        mode: "loop",
+        mode: "loop"
       });
 
       const messages: ProcessingMessage[] = [];
@@ -191,10 +205,10 @@ describe("MultiModeAgent", () => {
             args: {
               title: "Test Task",
               steps: [
-                { id: "s1", instructions: "Do the thing", depends_on: [] },
-              ],
-            },
-          },
+                { id: "s1", instructions: "Do the thing", depends_on: [] }
+              ]
+            }
+          }
         ],
         // Step s1 execution
         [
@@ -202,9 +216,9 @@ describe("MultiModeAgent", () => {
           {
             id: "tc_finish",
             name: "finish_step",
-            args: { result: "done", metadata: { title: "Result" } },
-          },
-        ],
+            args: { result: "done", metadata: { title: "Result" } }
+          }
+        ]
       ]);
 
       const agent = new MultiModeAgent({
@@ -212,7 +226,7 @@ describe("MultiModeAgent", () => {
         objective: "Plan and execute",
         provider,
         model: "test-model",
-        mode: "plan",
+        mode: "plan"
       });
 
       const messages: ProcessingMessage[] = [];
@@ -223,7 +237,9 @@ describe("MultiModeAgent", () => {
       // Should have planning updates + task update + execution messages
       expect(messages.length).toBeGreaterThan(0);
 
-      const planningUpdates = messages.filter((m) => m.type === "planning_update");
+      const planningUpdates = messages.filter(
+        (m) => m.type === "planning_update"
+      );
       expect(planningUpdates.length).toBeGreaterThan(0);
 
       // Task should have been set
@@ -239,17 +255,23 @@ describe("MultiModeAgent", () => {
           {
             id: "tc_finish",
             name: "finish_step",
-            args: { result: "completed", metadata: { title: "Done" } },
-          },
-        ],
+            args: { result: "completed", metadata: { title: "Done" } }
+          }
+        ]
       ]);
 
       const predefinedTask: Task = {
         id: "task_1",
         title: "Predefined",
         steps: [
-          { id: "s1", instructions: "Execute this", completed: false, dependsOn: [], logs: [] },
-        ],
+          {
+            id: "s1",
+            instructions: "Execute this",
+            completed: false,
+            dependsOn: [],
+            logs: []
+          }
+        ]
       };
 
       const agent = new MultiModeAgent({
@@ -258,7 +280,7 @@ describe("MultiModeAgent", () => {
         provider,
         model: "test-model",
         mode: "plan",
-        task: predefinedTask,
+        task: predefinedTask
       });
 
       const messages: ProcessingMessage[] = [];
@@ -267,7 +289,9 @@ describe("MultiModeAgent", () => {
       }
 
       // Should NOT have planning updates (task was predefined)
-      const planningUpdates = messages.filter((m) => m.type === "planning_update");
+      const planningUpdates = messages.filter(
+        (m) => m.type === "planning_update"
+      );
       expect(planningUpdates.length).toBe(0);
     });
   });
@@ -284,19 +308,27 @@ describe("SubAgentPlanner", () => {
             name: "create_team",
             args: {
               agents: [
-                { name: "coordinator", role: "Lead the team", skills: ["planning"] },
-                { name: "researcher", role: "Research information", skills: ["web_search"] },
-                { name: "writer", role: "Write content", skills: ["writing"] },
-              ],
-            },
-          },
-        ],
-      },
+                {
+                  name: "coordinator",
+                  role: "Lead the team",
+                  skills: ["planning"]
+                },
+                {
+                  name: "researcher",
+                  role: "Research information",
+                  skills: ["web_search"]
+                },
+                { name: "writer", role: "Write content", skills: ["writing"] }
+              ]
+            }
+          }
+        ]
+      }
     ]);
 
     const planner = new SubAgentPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -329,12 +361,12 @@ describe("SubAgentPlanner", () => {
     const provider = createTracedMockProvider([
       { content: "I don't understand" },
       { content: "Still confused" },
-      { content: "Cannot help" },
+      { content: "Cannot help" }
     ]);
 
     const planner = new SubAgentPlanner({
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];

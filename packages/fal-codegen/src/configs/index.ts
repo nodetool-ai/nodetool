@@ -51,5 +51,5 @@ export const allConfigs: Record<string, ModuleConfig> = {
   video_to_audio: videoToAudio,
   video_to_text: videoToText,
   video_to_video: videoToVideo,
-  vision,
+  vision
 };

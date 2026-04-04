@@ -21,7 +21,7 @@ export enum TaskUpdateEvent {
   EnteredConclusionStage = "entered_conclusion_stage",
   StepCompleted = "step_completed",
   StepFailed = "step_failed",
-  TaskCompleted = "task_completed",
+  TaskCompleted = "task_completed"
 }
 
 export type Severity = "info" | "warning" | "error";
@@ -38,7 +38,12 @@ export type JobStatus =
   | "cancelled"
   | "error";
 
-export type NodeStatus = "pending" | "running" | "completed" | "failed" | "error";
+export type NodeStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "error";
 
 export type EdgeStatus = "active" | "completed";
 
@@ -316,7 +321,7 @@ export type UnifiedCommandType =
 
 export interface WebSocketCommandEnvelope<
   C extends UnifiedCommandType = UnifiedCommandType,
-  D extends Record<string, unknown> = Record<string, unknown>,
+  D extends Record<string, unknown> = Record<string, unknown>
 > {
   command: C;
   data: D;
@@ -444,7 +449,7 @@ export function encodeBinaryUpdate(update: BinaryUpdate): Uint8Array {
   const header = JSON.stringify({
     type: update.type,
     node_id: update.node_id,
-    output_name: update.output_name,
+    output_name: update.output_name
   });
   const headerBytes = new TextEncoder().encode(header);
   const separator = new Uint8Array([0]); // null byte separator

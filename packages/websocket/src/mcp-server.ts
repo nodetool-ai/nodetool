@@ -10,7 +10,10 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
 import { Workflow, Job, Asset } from "@nodetool/models";
-import { loadPythonPackageMetadata, type NodeMetadata } from "@nodetool/node-sdk";
+import {
+  loadPythonPackageMetadata,
+  type NodeMetadata
+} from "@nodetool/node-sdk";
 
 export interface McpServerOptions {
   metadataRoots?: string[];
@@ -19,11 +22,13 @@ export interface McpServerOptions {
 
 let cachedMetadata: { nodesByType: Map<string, NodeMetadata> } | null = null;
 
-function getNodeMetadata(options?: McpServerOptions): Map<string, NodeMetadata> {
+function getNodeMetadata(
+  options?: McpServerOptions
+): Map<string, NodeMetadata> {
   if (!cachedMetadata) {
     cachedMetadata = loadPythonPackageMetadata({
       roots: options?.metadataRoots,
-      maxDepth: options?.metadataMaxDepth,
+      maxDepth: options?.metadataMaxDepth
     });
   }
   return cachedMetadata.nodesByType;
@@ -35,7 +40,7 @@ function getNodeMetadata(options?: McpServerOptions): Map<string, NodeMetadata> 
 export function createMcpServer(options?: McpServerOptions): McpServer {
   const server = new McpServer({
     name: "NodeTool API Server",
-    version: "1.0.0",
+    version: "1.0.0"
   });
 
   // ── Workflow tools ──────────────────────────────────────────────
@@ -44,22 +49,36 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     "list_workflows",
     "List workflows with flexible filtering.",
     {
-      limit: z.number().optional().default(100).describe("Maximum number of workflows to return"),
-      user_id: z.string().optional().default("1").describe("User ID"),
+      limit: z
+        .number()
+        .optional()
+        .default(100)
+        .describe("Maximum number of workflows to return"),
+      user_id: z.string().optional().default("1").describe("User ID")
     },
     async ({ limit, user_id }) => {
       try {
         const [workflows] = await Workflow.paginate(user_id, { limit });
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(workflows.map((w) => w.toDict())) }],
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(workflows.map((w) => w.toDict()))
+            }
+          ]
         };
       } catch (err: unknown) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -67,27 +86,39 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     "Get detailed information about a specific workflow.",
     {
       workflow_id: z.string().describe("The workflow ID"),
-      user_id: z.string().optional().default("1").describe("User ID"),
+      user_id: z.string().optional().default("1").describe("User ID")
     },
     async ({ workflow_id, user_id }) => {
       try {
         const workflow = await Workflow.find(user_id, workflow_id);
         if (!workflow) {
           return {
-            content: [{ type: "text" as const, text: JSON.stringify({ error: "Workflow not found" }) }],
-            isError: true,
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({ error: "Workflow not found" })
+              }
+            ],
+            isError: true
           };
         }
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(workflow.toDict()) }],
+          content: [
+            { type: "text" as const, text: JSON.stringify(workflow.toDict()) }
+          ]
         };
       } catch (err: unknown) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   // ── Asset tools ─────────────────────────────────────────────────
@@ -98,8 +129,12 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     {
       parent_id: z.string().optional().describe("Filter by parent asset ID"),
       content_type: z.string().optional().describe("Filter by content type"),
-      limit: z.number().optional().default(100).describe("Maximum number of assets to return"),
-      user_id: z.string().optional().default("1").describe("User ID"),
+      limit: z
+        .number()
+        .optional()
+        .default(100)
+        .describe("Maximum number of assets to return"),
+      user_id: z.string().optional().default("1").describe("User ID")
     },
     async ({ parent_id, content_type, limit, user_id }) => {
       try {
@@ -108,15 +143,25 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         if (content_type) opts.content_type = content_type;
         const [assets] = await Asset.paginate(user_id, opts);
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(assets.map((a) => a.toDict())) }],
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(assets.map((a) => a.toDict()))
+            }
+          ]
         };
       } catch (err: unknown) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -124,27 +169,39 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     "Get detailed information about a specific asset.",
     {
       asset_id: z.string().describe("The asset ID"),
-      user_id: z.string().optional().default("1").describe("User ID"),
+      user_id: z.string().optional().default("1").describe("User ID")
     },
     async ({ asset_id, user_id }) => {
       try {
         const asset = await Asset.find(user_id, asset_id);
         if (!asset) {
           return {
-            content: [{ type: "text" as const, text: JSON.stringify({ error: "Asset not found" }) }],
-            isError: true,
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({ error: "Asset not found" })
+              }
+            ],
+            isError: true
           };
         }
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(asset.toDict()) }],
+          content: [
+            { type: "text" as const, text: JSON.stringify(asset.toDict()) }
+          ]
         };
       } catch (err: unknown) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   // ── Node tools ──────────────────────────────────────────────────
@@ -154,7 +211,11 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     "List available nodes from installed packages.",
     {
       namespace: z.string().optional().describe("Filter by namespace prefix"),
-      limit: z.number().optional().default(200).describe("Maximum number of nodes to return"),
+      limit: z
+        .number()
+        .optional()
+        .default(200)
+        .describe("Maximum number of nodes to return")
     },
     async ({ namespace, limit }) => {
       try {
@@ -168,18 +229,23 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
           node_type: n.node_type,
           title: n.title,
           description: n.description,
-          namespace: n.namespace,
+          namespace: n.namespace
         }));
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(result) }],
+          content: [{ type: "text" as const, text: JSON.stringify(result) }]
         };
       } catch (err: unknown) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -187,7 +253,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     "Search for nodes by name, description, or tags.",
     {
       query: z.array(z.string()).describe("Search keywords"),
-      n_results: z.number().optional().default(10).describe("Maximum results"),
+      n_results: z.number().optional().default(10).describe("Maximum results")
     },
     async ({ query, n_results }) => {
       try {
@@ -197,7 +263,8 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
 
         const scored = nodes.map((n) => {
           let score = 0;
-          const searchable = `${n.title} ${n.description} ${n.node_type} ${n.namespace}`.toLowerCase();
+          const searchable =
+            `${n.title} ${n.description} ${n.node_type} ${n.namespace}`.toLowerCase();
           for (const q of lowerQuery) {
             if (searchable.includes(q)) score++;
           }
@@ -212,26 +279,31 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
             node_type: s.node.node_type,
             title: s.node.title,
             description: s.node.description,
-            namespace: s.node.namespace,
+            namespace: s.node.namespace
           }));
 
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(matches) }],
+          content: [{ type: "text" as const, text: JSON.stringify(matches) }]
         };
       } catch (err: unknown) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   server.tool(
     "get_node_info",
     "Get detailed metadata for a node type.",
     {
-      node_type: z.string().describe("The fully-qualified node type"),
+      node_type: z.string().describe("The fully-qualified node type")
     },
     async ({ node_type }) => {
       try {
@@ -239,20 +311,30 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         const node = nodesByType.get(node_type);
         if (!node) {
           return {
-            content: [{ type: "text" as const, text: JSON.stringify({ error: "Node type not found" }) }],
-            isError: true,
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({ error: "Node type not found" })
+              }
+            ],
+            isError: true
           };
         }
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(node) }],
+          content: [{ type: "text" as const, text: JSON.stringify(node) }]
         };
       } catch (err: unknown) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   // ── Job tools ───────────────────────────────────────────────────
@@ -262,8 +344,12 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     "List jobs for user, optionally filtered by workflow.",
     {
       workflow_id: z.string().optional().describe("Filter by workflow ID"),
-      limit: z.number().optional().default(100).describe("Maximum number of jobs to return"),
-      user_id: z.string().optional().default("1").describe("User ID"),
+      limit: z
+        .number()
+        .optional()
+        .default(100)
+        .describe("Maximum number of jobs to return"),
+      user_id: z.string().optional().default("1").describe("User ID")
     },
     async ({ workflow_id, limit, user_id }) => {
       try {
@@ -271,15 +357,25 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         if (workflow_id) opts.workflow_id = workflow_id;
         const [jobs] = await Job.paginate(user_id, opts);
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(jobs.map((j) => j.toDict())) }],
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(jobs.map((j) => j.toDict()))
+            }
+          ]
         };
       } catch (err: unknown) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -287,27 +383,39 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     "Get a job by ID for user.",
     {
       job_id: z.string().describe("The job ID"),
-      user_id: z.string().optional().default("1").describe("User ID"),
+      user_id: z.string().optional().default("1").describe("User ID")
     },
     async ({ job_id, user_id }) => {
       try {
         const job = await Job.find(user_id, job_id);
         if (!job) {
           return {
-            content: [{ type: "text" as const, text: JSON.stringify({ error: "Job not found" }) }],
-            isError: true,
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({ error: "Job not found" })
+              }
+            ],
+            isError: true
           };
         }
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(job.toDict()) }],
+          content: [
+            { type: "text" as const, text: JSON.stringify(job.toDict()) }
+          ]
         };
       } catch (err: unknown) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   // ── Collection tools (sqlite-vec) ───────────────────────────────
@@ -316,7 +424,11 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     "list_collections",
     "List all vector database collections.",
     {
-      limit: z.number().optional().default(50).describe("Maximum collections to return"),
+      limit: z
+        .number()
+        .optional()
+        .default(50)
+        .describe("Maximum collections to return")
     },
     async ({ limit }) => {
       try {
@@ -325,25 +437,35 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         const collections = await store.listCollections();
         const result = collections.slice(0, limit).map((c) => ({
           name: c.name,
-          metadata: c.metadata,
+          metadata: c.metadata
         }));
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ collections: result }) }],
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ collections: result })
+            }
+          ]
         };
       } catch {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "Vector store not available" }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: "Vector store not available" })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   server.tool(
     "get_collection",
     "Get details about a specific collection.",
     {
-      name: z.string().describe("Collection name"),
+      name: z.string().describe("Collection name")
     },
     async ({ name }) => {
       try {
@@ -352,15 +474,22 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         const collection = await store.getCollection({ name });
         const count = await collection.count();
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ name, count }) }],
+          content: [
+            { type: "text" as const, text: JSON.stringify({ name, count }) }
+          ]
         };
       } catch {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "Vector store not available" }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: "Vector store not available" })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -368,25 +497,35 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     "Query a collection for similar documents using semantic search.",
     {
       name: z.string().describe("Collection name"),
-      query_texts: z.array(z.string()).describe("Query texts for semantic search"),
-      n_results: z.number().optional().default(10).describe("Number of results"),
+      query_texts: z
+        .array(z.string())
+        .describe("Query texts for semantic search"),
+      n_results: z.number().optional().default(10).describe("Number of results")
     },
     async ({ name, query_texts, n_results }) => {
       try {
         const { getVecStore } = await import("@nodetool/vectorstore");
         const store = await getVecStore();
         const collection = await store.getCollection({ name });
-        const results = await collection.query({ queryTexts: query_texts, nResults: n_results });
+        const results = await collection.query({
+          queryTexts: query_texts,
+          nResults: n_results
+        });
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(results) }],
+          content: [{ type: "text" as const, text: JSON.stringify(results) }]
         };
       } catch {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "Vector store not available" }) }],
-          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: "Vector store not available" })
+            }
+          ],
+          isError: true
         };
       }
-    },
+    }
   );
 
   return server;
@@ -400,7 +539,10 @@ export function createMcpStdioTransport(): StdioServerTransport {
 }
 
 // Per-session transport map for stateful HTTP MCP
-const sessionTransports = new Map<string, WebStandardStreamableHTTPServerTransport>();
+const sessionTransports = new Map<
+  string,
+  WebStandardStreamableHTTPServerTransport
+>();
 
 /**
  * Handle an MCP HTTP request at the /mcp path.
@@ -408,7 +550,7 @@ const sessionTransports = new Map<string, WebStandardStreamableHTTPServerTranspo
  */
 export async function handleMcpHttpRequest(
   request: Request,
-  options?: McpServerOptions,
+  options?: McpServerOptions
 ): Promise<Response | null> {
   const url = new URL(request.url);
   if (!url.pathname.startsWith("/mcp")) return null;
@@ -428,7 +570,7 @@ export async function handleMcpHttpRequest(
       sessionIdGenerator: () => crypto.randomUUID(),
       onsessioninitialized: (id) => {
         sessionTransports.set(id, transport);
-      },
+      }
     });
 
     const server = createMcpServer(options);

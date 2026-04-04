@@ -6,7 +6,7 @@ vi.mock("node:child_process", () => ({
   execFileSync: vi.fn(() => ""),
   exec: vi.fn(),
   execFile: vi.fn(),
-  spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })),
+  spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" }))
 }));
 
 // Mock node:fs so we can control existsSync / readFileSync
@@ -15,7 +15,7 @@ vi.mock("node:fs", async (importOriginal) => {
   return {
     ...actual,
     existsSync: vi.fn(actual.existsSync),
-    readFileSync: vi.fn(actual.readFileSync),
+    readFileSync: vi.fn(actual.readFileSync)
   };
 });
 
@@ -31,7 +31,7 @@ import {
   formatImageName,
   generateImageTag,
   pushToRegistry,
-  getDockerUsernameFromConfig,
+  getDockerUsernameFromConfig
 } from "../src/docker.js";
 
 const mockedExecSync = vi.mocked(execSync);
@@ -99,7 +99,7 @@ describe("runCommand", () => {
     expect(mockedExecSync).toHaveBeenCalledWith("echo hello", {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
-      shell: "/bin/sh",
+      shell: "/bin/sh"
     });
   });
 
@@ -346,9 +346,7 @@ describe("pushToRegistry", () => {
     mockedExecSync.mockReturnValue("ok");
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     pushToRegistry("user/app", "v1", "ghcr.io");
-    expect(logSpy).toHaveBeenCalledWith(
-      expect.stringContaining("ghcr.io")
-    );
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("ghcr.io"));
   });
 });
 
@@ -372,9 +370,9 @@ describe("getDockerUsernameFromConfig", () => {
       JSON.stringify({
         auths: {
           "https://index.docker.io/v1/": {
-            username: "myuser",
-          },
-        },
+            username: "myuser"
+          }
+        }
       })
     );
     expect(getDockerUsernameFromConfig()).toBe("myuser");
@@ -387,9 +385,9 @@ describe("getDockerUsernameFromConfig", () => {
       JSON.stringify({
         auths: {
           "https://index.docker.io/v1/": {
-            auth: encoded,
-          },
-        },
+            auth: encoded
+          }
+        }
       })
     );
     expect(getDockerUsernameFromConfig()).toBe("myuser");
@@ -401,9 +399,9 @@ describe("getDockerUsernameFromConfig", () => {
       JSON.stringify({
         auths: {
           "docker.io": {
-            username: "direct-user",
-          },
-        },
+            username: "direct-user"
+          }
+        }
       })
     );
     expect(getDockerUsernameFromConfig()).toBe("direct-user");
@@ -411,9 +409,7 @@ describe("getDockerUsernameFromConfig", () => {
 
   it("should return null when auths is empty", () => {
     mockedExistsSync.mockReturnValue(true);
-    mockedReadFileSync.mockReturnValue(
-      JSON.stringify({ auths: {} })
-    );
+    mockedReadFileSync.mockReturnValue(JSON.stringify({ auths: {} }));
     expect(getDockerUsernameFromConfig()).toBeNull();
   });
 
@@ -422,8 +418,8 @@ describe("getDockerUsernameFromConfig", () => {
     mockedReadFileSync.mockReturnValue(
       JSON.stringify({
         auths: {
-          "ghcr.io": { username: "user" },
-        },
+          "ghcr.io": { username: "user" }
+        }
       })
     );
     expect(getDockerUsernameFromConfig()).toBeNull();
@@ -434,8 +430,8 @@ describe("getDockerUsernameFromConfig", () => {
     mockedReadFileSync.mockReturnValue(
       JSON.stringify({
         auths: {
-          "ghcr.io": { username: "ghuser" },
-        },
+          "ghcr.io": { username: "ghuser" }
+        }
       })
     );
     expect(getDockerUsernameFromConfig("ghcr.io")).toBe("ghuser");
@@ -462,9 +458,9 @@ describe("getDockerUsernameFromConfig", () => {
       JSON.stringify({
         auths: {
           "https://index.docker.io/v1/": {
-            auth: Buffer.from("justusername").toString("base64"),
-          },
-        },
+            auth: Buffer.from("justusername").toString("base64")
+          }
+        }
       })
     );
     expect(getDockerUsernameFromConfig()).toBe("justusername");
@@ -475,8 +471,8 @@ describe("getDockerUsernameFromConfig", () => {
     mockedReadFileSync.mockReturnValue(
       JSON.stringify({
         auths: {
-          "https://docker.io/v1/": { username: "v1user" },
-        },
+          "https://docker.io/v1/": { username: "v1user" }
+        }
       })
     );
     expect(getDockerUsernameFromConfig()).toBe("v1user");

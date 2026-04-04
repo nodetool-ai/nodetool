@@ -7,16 +7,13 @@ import { logMessage } from "./logger";
 // Add cache at the module level
 let settingsCache: Record<string, any> | null = null;
 
-const START_OLLAMA_ON_STARTUP_KEY = "START_OLLAMA_ON_STARTUP";
 const START_LLAMA_CPP_ON_STARTUP_KEY = "START_LLAMA_CPP_ON_STARTUP";
 
 export interface ModelServiceStartupSettings {
-  startOllamaOnStartup: boolean;
   startLlamaCppOnStartup: boolean;
 }
 
 export interface ModelServiceStartupSettingsUpdate {
-  startOllamaOnStartup?: boolean;
   startLlamaCppOnStartup?: boolean;
 }
 
@@ -25,18 +22,10 @@ export function getModelServiceStartupDefaults(
 ): ModelServiceStartupSettings {
   if (backend === "llama_cpp") {
     return {
-      startOllamaOnStartup: false,
       startLlamaCppOnStartup: true,
     };
   }
-  if (backend === "none") {
-    return {
-      startOllamaOnStartup: false,
-      startLlamaCppOnStartup: false,
-    };
-  }
   return {
-    startOllamaOnStartup: true,
     startLlamaCppOnStartup: false,
   };
 }
@@ -46,17 +35,12 @@ export function getModelServiceStartupSettings(
 ): ModelServiceStartupSettings {
   const source = settings ?? readSettings();
   const defaults = getModelServiceStartupDefaults(source["MODEL_BACKEND"]);
-  const startOllamaOnStartup =
-    typeof source[START_OLLAMA_ON_STARTUP_KEY] === "boolean"
-      ? source[START_OLLAMA_ON_STARTUP_KEY]
-      : defaults.startOllamaOnStartup;
   const startLlamaCppOnStartup =
     typeof source[START_LLAMA_CPP_ON_STARTUP_KEY] === "boolean"
       ? source[START_LLAMA_CPP_ON_STARTUP_KEY]
       : defaults.startLlamaCppOnStartup;
 
   return {
-    startOllamaOnStartup,
     startLlamaCppOnStartup,
   };
 }
@@ -71,7 +55,6 @@ export function updateModelServiceStartupSettings(
     ...update,
   };
   updateSettings({
-    [START_OLLAMA_ON_STARTUP_KEY]: next.startOllamaOnStartup,
     [START_LLAMA_CPP_ON_STARTUP_KEY]: next.startLlamaCppOnStartup,
   });
   return next;

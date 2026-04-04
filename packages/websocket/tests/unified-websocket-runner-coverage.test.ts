@@ -9,7 +9,7 @@ import { pack, unpack } from "msgpackr";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
-  type WebSocketReceiveFrame,
+  type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
 
 class MockWebSocket implements WebSocketConnection {
@@ -48,7 +48,7 @@ class MockWebSocket implements WebSocketConnection {
 const resolveExecutor = () => ({
   async process() {
     return {};
-  },
+  }
 });
 
 describe("UnifiedWebSocketRunner: cancelJob", () => {
@@ -73,14 +73,17 @@ describe("UnifiedWebSocketRunner: cancelJob", () => {
   it("cancelJob cancels an active job", async () => {
     await runner.connect(ws);
     const graph = {
-      nodes: [
-        { id: "n1", type: "test.LongRunning", name: "n1" },
-      ],
-      edges: [],
+      nodes: [{ id: "n1", type: "test.LongRunning", name: "n1" }],
+      edges: []
     };
 
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     expect(status.active_jobs.length).toBeGreaterThan(0);
     const jobId = status.active_jobs[0].job_id;
 
@@ -96,17 +99,22 @@ describe("UnifiedWebSocketRunner: cancelJob", () => {
     await runner.connect(ws);
     const graph = {
       nodes: [{ id: "n1", type: "test.Node", name: "n1" }],
-      edges: [],
+      edges: []
     };
 
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = status.active_jobs[0]?.job_id;
 
     if (jobId) {
       const result = await runner.handleCommand({
         command: "cancel_job",
-        data: { job_id: jobId },
+        data: { job_id: jobId }
       });
       expect(result.message || result.error).toBeDefined();
     }
@@ -118,7 +126,7 @@ describe("UnifiedWebSocketRunner: cancelJob", () => {
   it("cancel_job without job_id returns error", async () => {
     const result = await runner.handleCommand({
       command: "cancel_job",
-      data: {},
+      data: {}
     });
     expect(result.error).toContain("job_id is required");
   });
@@ -135,14 +143,16 @@ describe("UnifiedWebSocketRunner: reconnectJob and resumeJob", () => {
 
   it("reconnectJob throws for unknown job", async () => {
     await runner.connect(ws);
-    await expect(runner.reconnectJob("nonexistent")).rejects.toThrow("not found");
+    await expect(runner.reconnectJob("nonexistent")).rejects.toThrow(
+      "not found"
+    );
     await runner.disconnect();
   });
 
   it("reconnect_job command without job_id returns error", async () => {
     const result = await runner.handleCommand({
       command: "reconnect_job",
-      data: {},
+      data: {}
     });
     expect(result.error).toContain("job_id is required");
   });
@@ -151,16 +161,21 @@ describe("UnifiedWebSocketRunner: reconnectJob and resumeJob", () => {
     await runner.connect(ws);
     const graph = {
       nodes: [{ id: "n1", type: "test.Node", name: "n1" }],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = status.active_jobs[0]?.job_id;
 
     if (jobId) {
       const result = await runner.handleCommand({
         command: "reconnect_job",
-        data: { job_id: jobId },
+        data: { job_id: jobId }
       });
       expect(result.message).toContain("Reconnecting");
     }
@@ -172,7 +187,7 @@ describe("UnifiedWebSocketRunner: reconnectJob and resumeJob", () => {
   it("resume_job command without job_id returns error", async () => {
     const result = await runner.handleCommand({
       command: "resume_job",
-      data: {},
+      data: {}
     });
     expect(result.error).toContain("job_id is required");
   });
@@ -181,16 +196,21 @@ describe("UnifiedWebSocketRunner: reconnectJob and resumeJob", () => {
     await runner.connect(ws);
     const graph = {
       nodes: [{ id: "n1", type: "test.Node", name: "n1" }],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = status.active_jobs[0]?.job_id;
 
     if (jobId) {
       const result = await runner.handleCommand({
         command: "resume_job",
-        data: { job_id: jobId },
+        data: { job_id: jobId }
       });
       expect(result.message).toContain("Resumption initiated");
     }
@@ -233,7 +253,7 @@ describe("UnifiedWebSocketRunner: set_mode validation", () => {
     const runner = new UnifiedWebSocketRunner({ resolveExecutor });
     const result = await runner.handleCommand({
       command: "set_mode",
-      data: { mode: "invalid" },
+      data: { mode: "invalid" }
     });
     expect(result.error).toContain("mode must be binary or text");
   });
@@ -335,17 +355,15 @@ describe("UnifiedWebSocketRunner: receiveMessages loop", () => {
       text: JSON.stringify({
         type: "tool_result",
         tool_call_id: "tc-1",
-        result: "done",
-      }),
+        result: "done"
+      })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 
     await runner.receiveMessages();
     // No error should be sent
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    expect(
-      sent.some((m) => m.error === "invalid_message")
-    ).toBe(false);
+    expect(sent.some((m) => m.error === "invalid_message")).toBe(false);
     await runner.disconnect();
   });
 
@@ -355,7 +373,7 @@ describe("UnifiedWebSocketRunner: receiveMessages loop", () => {
     await runner.connect(ws);
     ws.queue.push({
       type: "websocket.message",
-      text: JSON.stringify({ type: "unknown_type" }),
+      text: JSON.stringify({ type: "unknown_type" })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 
@@ -372,7 +390,7 @@ describe("UnifiedWebSocketRunner: receiveMessages loop", () => {
     await runner.connect(ws);
     ws.queue.push({
       type: "websocket.message",
-      text: JSON.stringify({ command: "totally_unknown_command", data: {} }),
+      text: JSON.stringify({ command: "totally_unknown_command", data: {} })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 
@@ -392,7 +410,7 @@ describe("UnifiedWebSocketRunner: stop command", () => {
 
     const result = await runner.handleCommand({
       command: "stop",
-      data: { thread_id: "thread-123" },
+      data: { thread_id: "thread-123" }
     });
     expect(result.message).toContain("Stop command processed");
     expect(result.thread_id).toBe("thread-123");
@@ -407,16 +425,21 @@ describe("UnifiedWebSocketRunner: stop command", () => {
 
     const graph = {
       nodes: [{ id: "n1", type: "test.Node", name: "n1" }],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = status.active_jobs[0]?.job_id;
 
     if (jobId) {
       const result = await runner.handleCommand({
         command: "stop",
-        data: { job_id: jobId },
+        data: { job_id: jobId }
       });
       expect(result.message).toContain("Stop command processed");
     }
@@ -432,7 +455,7 @@ describe("UnifiedWebSocketRunner: stop command", () => {
 
     const result = await runner.handleCommand({
       command: "stop",
-      data: { job_id: "j1", thread_id: "t1" },
+      data: { job_id: "j1", thread_id: "t1" }
     });
     expect(result.message).toContain("Stop command processed");
     expect(result.job_id).toBe("j1");
@@ -454,7 +477,7 @@ describe("UnifiedWebSocketRunner: stream_input and end_input_stream edge cases",
   it("stream_input without job_id returns error", async () => {
     const result = await runner.handleCommand({
       command: "stream_input",
-      data: {},
+      data: {}
     });
     expect(result.error).toContain("job_id is required");
   });
@@ -462,7 +485,7 @@ describe("UnifiedWebSocketRunner: stream_input and end_input_stream edge cases",
   it("stream_input with nonexistent job returns error", async () => {
     const result = await runner.handleCommand({
       command: "stream_input",
-      data: { job_id: "fake" },
+      data: { job_id: "fake" }
     });
     expect(result.error).toContain("No active job");
   });
@@ -471,16 +494,21 @@ describe("UnifiedWebSocketRunner: stream_input and end_input_stream edge cases",
     await runner.connect(ws);
     const graph = {
       nodes: [{ id: "n1", type: "test.Node", name: "n1" }],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = status.active_jobs[0]?.job_id;
 
     if (jobId) {
       const result = await runner.handleCommand({
         command: "stream_input",
-        data: { job_id: jobId, input: "  " },
+        data: { job_id: jobId, input: "  " }
       });
       expect(result.error).toContain("Invalid input name");
     }
@@ -492,7 +520,7 @@ describe("UnifiedWebSocketRunner: stream_input and end_input_stream edge cases",
   it("end_input_stream without job_id returns error", async () => {
     const result = await runner.handleCommand({
       command: "end_input_stream",
-      data: {},
+      data: {}
     });
     expect(result.error).toContain("job_id is required");
   });
@@ -500,7 +528,7 @@ describe("UnifiedWebSocketRunner: stream_input and end_input_stream edge cases",
   it("end_input_stream with nonexistent job returns error", async () => {
     const result = await runner.handleCommand({
       command: "end_input_stream",
-      data: { job_id: "fake" },
+      data: { job_id: "fake" }
     });
     expect(result.error).toContain("No active job");
   });
@@ -509,16 +537,21 @@ describe("UnifiedWebSocketRunner: stream_input and end_input_stream edge cases",
     await runner.connect(ws);
     const graph = {
       nodes: [{ id: "n1", type: "test.Node", name: "n1" }],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = status.active_jobs[0]?.job_id;
 
     if (jobId) {
       const result = await runner.handleCommand({
         command: "end_input_stream",
-        data: { job_id: jobId, input: "" },
+        data: { job_id: jobId, input: "" }
       });
       expect(result.error).toContain("Invalid input name");
     }
@@ -573,7 +606,7 @@ describe("UnifiedWebSocketRunner: command error handling in receiveMessages", ()
     vi.spyOn(runner, "handleCommand").mockRejectedValueOnce(new Error("boom"));
     ws.queue.push({
       type: "websocket.message",
-      text: JSON.stringify({ command: "run_job", data: {} }),
+      text: JSON.stringify({ command: "run_job", data: {} })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 

@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer, IconButton, Tooltip } from "@mui/material";
+import { CloseButton } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo, useCallback } from "react";
@@ -13,7 +14,6 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // icons
-import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import TimelineIcon from "@mui/icons-material/Timeline";
 
@@ -42,7 +42,7 @@ const styles = (theme: Theme) =>
       border: 0,
       borderRadius: 0,
       cursor: "ns-resize",
-      transition: "background-color 0.3s ease",
+      transition: "all 0.2s ease",
       "&::before": {
         content: '""',
         position: "absolute",
@@ -53,12 +53,25 @@ const styles = (theme: Theme) =>
         height: "4px",
         borderRadius: "2px",
         backgroundColor: theme.vars.palette.grey[600],
-        opacity: 0.5
+        opacity: 0.5,
+        transition: "all 0.2s ease"
       },
       "&:hover": {
-        backgroundColor: `${theme.vars.palette.action.hover}55`,
+        backgroundColor: theme.vars.palette.primary.main,
+        boxShadow: `0 0 8px ${theme.vars.palette.primary.main}40`,
+        transform: "scaleY(1.5)",
         "&::before": {
-          opacity: 0.8
+          opacity: 1,
+          backgroundColor: theme.vars.palette.common.white
+        }
+      },
+      "&:active": {
+        backgroundColor: theme.vars.palette.primary.main,
+        boxShadow: `0 0 12px ${theme.vars.palette.primary.main}60`,
+        transform: "scaleY(2)",
+        "&::before": {
+          opacity: 1,
+          backgroundColor: theme.vars.palette.common.white
         }
       }
     },
@@ -202,34 +215,32 @@ const PanelBottom: React.FC = () => {
                 placement="top-start"
                 enterDelay={TOOLTIP_ENTER_DELAY}
               >
-                <IconButton
-                  size="small"
+                <CloseButton
                   onClick={handleTerminalToggle}
-                  aria-label="Hide panel"
-                >
-                  <CloseIcon />
-                </IconButton>
+                  buttonSize="small"
+                  tooltip=""
+                />
               </Tooltip>
             </div>
           )}
           <div
             className="terminal-wrapper"
             style={{
-              display: activeView === "terminal" && isVisible ? "flex" : "none"
+              display: activeView === "terminal" ? "flex" : "none"
             }}
           >
-            <Terminal />
+            {isVisible && <Terminal />}
           </div>
           <div
             className="trace-wrapper"
             style={{
-              display: activeView === "trace" && isVisible ? "flex" : "none",
+              display: activeView === "trace" ? "flex" : "none",
               flex: 1,
               minHeight: 0,
               overflow: "hidden",
             }}
           >
-            <TracePanel />
+            {isVisible && <TracePanel />}
           </div>
         </div>
       </Drawer>

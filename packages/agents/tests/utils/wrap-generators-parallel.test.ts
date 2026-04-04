@@ -68,10 +68,7 @@ describe("wrapGeneratorsParallel", () => {
 
   it("handles all empty generators", async () => {
     const result = await collect(
-      wrapGeneratorsParallel([
-        fromArray<string>([]),
-        fromArray<string>([]),
-      ]),
+      wrapGeneratorsParallel([fromArray<string>([]), fromArray<string>([])])
     );
     expect(result).toEqual([]);
   });
@@ -97,7 +94,10 @@ describe("wrapGeneratorsParallel", () => {
   });
 
   it("works with generators that yield promises-like timing", async () => {
-    async function* delayed(values: number[], ms: number): AsyncGenerator<number> {
+    async function* delayed(
+      values: number[],
+      ms: number
+    ): AsyncGenerator<number> {
       for (const v of values) {
         await new Promise((r) => setTimeout(r, ms));
         yield v;

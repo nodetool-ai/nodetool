@@ -1,0 +1,138 @@
+{
+  "id": "search-google-flights",
+  "access": "public",
+  "created_at": "2026-03-08T12:00:00.000000",
+  "updated_at": "2026-03-08T12:00:00.000000",
+  "name": "Search - Google Flights",
+  "tool_name": null,
+  "description": "Claude Agent uses Google Flights to search for airline tickets, compare prices and routes, and recommend the best flight options.",
+  "tags": [
+    "search",
+    "flights",
+    "travel",
+    "airline",
+    "booking",
+    "agent"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "e-control-flights",
+        "source": "claude-agent",
+        "sourceHandle": "__control__",
+        "target": "flights",
+        "targetHandle": "__control__",
+        "edge_type": "control",
+        "ui_properties": {}
+      },
+      {
+        "id": "e-agent-to-save",
+        "source": "claude-agent",
+        "sourceHandle": "text",
+        "target": "save-analysis",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "claude-agent",
+        "type": "anthropic.agents.ClaudeAgent",
+        "data": {
+          "prompt": "Find the best round-trip flights from New York (JFK) to London (LHR) departing 2026-05-01 and returning 2026-05-08. Compare economy options by price, duration, and number of stops. Recommend the best overall value.",
+          "model": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-4-6",
+            "name": "Claude Sonnet 4.6"
+          },
+          "system_prompt": "You are a travel planning assistant. Use Google Flights to search for flights and provide clear comparisons. Consider price, duration, stops, and airline reputation. Format results as a structured recommendation.",
+          "max_turns": 10,
+          "allowed_tools": [],
+          "permission_mode": "acceptEdits",
+          "use_claude_credentials": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 100,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 380,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "flights",
+        "type": "search.google_extra.GoogleFlights",
+        "data": {
+          "departure_id": "",
+          "arrival_id": "",
+          "outbound_date": "",
+          "return_date": "",
+          "trip_type": 1,
+          "adults": 1,
+          "travel_class": 1,
+          "currency": "USD",
+          "stops": 0,
+          "sort_by": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 100
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Google Flights"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "save-analysis",
+        "type": "nodetool.dictionary.SaveJSON",
+        "data": {
+          "name": "flight-comparison-%Y%m%d-%H%M%S.json"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "required_providers": null,
+  "required_models": null
+}

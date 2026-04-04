@@ -5,7 +5,6 @@ import {
   Popover,
   DialogTitle,
   DialogContent,
-  DialogActions,
   TextField
 } from "@mui/material";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -19,6 +18,7 @@ import { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
 import dialogStyles from "../../styles/DialogStyles";
 import isEqual from "lodash/isEqual";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
+import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 
 const FolderProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
@@ -171,14 +171,11 @@ const FolderProperty = (props: PropertyProps) => {
             onChange={handleFolderNameChange}
           />
         </DialogContent>
-        <DialogActions className="dialog-actions">
-          <Button className="button-cancel" onClick={handleCloseMenu}>
-            Cancel
-          </Button>
-          <Button className="button-confirm" onClick={handleCreateFolder}>
-            Create Folder
-          </Button>
-        </DialogActions>
+        <DialogActionButtons
+          onCancel={handleCloseMenu}
+          onConfirm={handleCreateFolder}
+          confirmText="Create Folder"
+        />
       </Popover>
     </>
   );

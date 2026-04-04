@@ -77,7 +77,12 @@ export type TeamEvent =
   | { type: "task_created"; task: BoardTask; timestamp: number }
   | { type: "task_claimed"; taskId: string; agentId: string; timestamp: number }
   | { type: "task_working"; taskId: string; agentId: string; timestamp: number }
-  | { type: "task_completed"; taskId: string; artifacts: unknown[]; timestamp: number }
+  | {
+      type: "task_completed";
+      taskId: string;
+      artifacts: unknown[];
+      timestamp: number;
+    }
   | { type: "task_failed"; taskId: string; reason: string; timestamp: number }
   | { type: "message_sent"; message: AgentMessage; timestamp: number }
   | { type: "chunk"; agentId: string; content: string; timestamp: number }
@@ -142,7 +147,10 @@ export interface ITaskBoard {
   startWork(taskId: string, agentId: string): boolean;
 
   /** Complete a task with optional result and artifacts. */
-  complete(taskId: string, opts?: { result?: unknown; artifacts?: unknown[] }): boolean;
+  complete(
+    taskId: string,
+    opts?: { result?: unknown; artifacts?: unknown[] }
+  ): boolean;
 
   /** Mark a task as failed. */
   fail(taskId: string, reason: string): boolean;

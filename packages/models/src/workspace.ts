@@ -53,11 +53,15 @@ export class Workspace extends DBModel {
   /** Find a workspace by user_id and workspace id. */
   static async find(
     userId: string,
-    workspaceId: string,
+    workspaceId: string
   ): Promise<Workspace | null> {
     const db = getDb();
-    const row = db.select().from(workspaces)
-      .where(and(eq(workspaces.user_id, userId), eq(workspaces.id, workspaceId)))
+    const row = db
+      .select()
+      .from(workspaces)
+      .where(
+        and(eq(workspaces.user_id, userId), eq(workspaces.id, workspaceId))
+      )
       .limit(1)
       .get();
     return row ? new Workspace(row as Record<string, unknown>) : null;
@@ -66,16 +70,18 @@ export class Workspace extends DBModel {
   /** Paginate workspaces for a user. */
   static async paginate(
     userId: string,
-    opts: { limit?: number; startKey?: string } = {},
+    opts: { limit?: number; startKey?: string } = {}
   ): Promise<[Workspace[], string]> {
     const { limit = 50 } = opts;
     const db = getDb();
-    const rows = db.select().from(workspaces)
+    const rows = db
+      .select()
+      .from(workspaces)
       .where(eq(workspaces.user_id, userId))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Workspace(r as Record<string, unknown>));
+    const items = rows.map((r) => new Workspace(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -85,8 +91,12 @@ export class Workspace extends DBModel {
   /** Get the default workspace for a user. */
   static async getDefault(userId: string): Promise<Workspace | null> {
     const db = getDb();
-    const row = db.select().from(workspaces)
-      .where(and(eq(workspaces.user_id, userId), eq(workspaces.is_default, true)))
+    const row = db
+      .select()
+      .from(workspaces)
+      .where(
+        and(eq(workspaces.user_id, userId), eq(workspaces.is_default, true))
+      )
       .limit(1)
       .get();
     return row ? new Workspace(row as Record<string, unknown>) : null;
@@ -95,7 +105,9 @@ export class Workspace extends DBModel {
   /** Check if any workflows are linked to a workspace. */
   static async hasLinkedWorkflows(workspaceId: string): Promise<boolean> {
     const db = getDb();
-    const row = db.select({ id: workflows.id }).from(workflows)
+    const row = db
+      .select({ id: workflows.id })
+      .from(workflows)
       .where(eq(workflows.workspace_id, workspaceId))
       .limit(1)
       .get();
@@ -105,7 +117,9 @@ export class Workspace extends DBModel {
   /** Unset is_default on all workspaces for a user. */
   static async unsetOtherDefaults(userId: string): Promise<void> {
     const db = getDb();
-    const rows = db.select().from(workspaces)
+    const rows = db
+      .select()
+      .from(workspaces)
       .where(eq(workspaces.user_id, userId))
       .all();
     for (const row of rows) {

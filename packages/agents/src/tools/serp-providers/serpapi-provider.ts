@@ -51,7 +51,10 @@ export class SerpApiProvider implements SerpProvider {
     this.hl = hl;
   }
 
-  async search(query: string, options?: SearchOptions): Promise<SearchResult[]> {
+  async search(
+    query: string,
+    options?: SearchOptions
+  ): Promise<SearchResult[]> {
     const numResults = options?.numResults ?? 10;
     const engine = options?.engine ?? "google";
 
@@ -61,7 +64,7 @@ export class SerpApiProvider implements SerpProvider {
       api_key: this.apiKey,
       num: numResults,
       gl: this.gl,
-      hl: options?.language ?? this.hl,
+      hl: options?.language ?? this.hl
     })) as Record<string, unknown>;
 
     const organicResults = (data.organic_results ?? []) as Array<
@@ -72,7 +75,7 @@ export class SerpApiProvider implements SerpProvider {
       title: String(r.title ?? ""),
       url: String(r.link ?? ""),
       snippet: String(r.snippet ?? ""),
-      position: (r.position as number) ?? i + 1,
+      position: (r.position as number) ?? i + 1
     }));
   }
 
@@ -86,7 +89,7 @@ export class SerpApiProvider implements SerpProvider {
       api_key: this.apiKey,
       num: numResults,
       gl: this.gl,
-      hl: options?.language ?? this.hl,
+      hl: options?.language ?? this.hl
     });
   }
 }

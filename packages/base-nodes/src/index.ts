@@ -5,7 +5,9 @@ export {
   ForEachNode,
   CollectNode,
   RerouteNode,
-  CONTROL_NODES,
+  SwitchNode,
+  TryCatchNode,
+  CONTROL_NODES
 } from "./nodes/control.js";
 export {
   SplitTextNode,
@@ -51,7 +53,14 @@ export {
   LoadTextAssetsNode,
   FilterStringNode,
   FilterRegexStringNode,
-  TEXT_EXTRA_NODES,
+  ConcatTextNode,
+  JoinTextNode,
+  CollectTextNode,
+  FormatTextNode,
+  TemplateTextNode,
+  ReplaceTextNode,
+  ToStringNode,
+  TEXT_EXTRA_NODES
 } from "./nodes/text-extra.js";
 export {
   ConstantBaseNode,
@@ -82,7 +91,7 @@ export {
   ConstantLanguageModelNode,
   ConstantTTSModelNode,
   ConstantVideoModelNode,
-  CONSTANT_NODES,
+  CONSTANT_NODES
 } from "./nodes/constant.js";
 export {
   FloatInputNode,
@@ -118,9 +127,10 @@ export {
   MessageInputNode,
   MessageListInputNode,
   MessageDeconstructorNode,
-  INPUT_NODES,
+  INPUT_NODES
 } from "./nodes/input.js";
 export { OutputNode, PreviewNode, OUTPUT_NODES } from "./nodes/output.js";
+export { WorkflowNode, WORKFLOW_NODES } from "./nodes/workflow.js";
 export {
   GetWorkspaceDirNode,
   ListWorkspaceFilesNode,
@@ -140,7 +150,7 @@ export {
   JoinWorkspacePathsNode,
   SaveImageFileNode,
   SaveVideoFileNode,
-  WORKSPACE_NODES,
+  WORKSPACE_NODES
 } from "./nodes/workspace.js";
 export { CompareImagesNode, COMPARE_NODES } from "./nodes/compare.js";
 export {
@@ -152,7 +162,7 @@ export {
   SplitJSONNode,
   SplitRecursivelyNode,
   SplitMarkdownNode,
-  DOCUMENT_NODES,
+  DOCUMENT_NODES
 } from "./nodes/document.js";
 export {
   SchemaNode,
@@ -184,7 +194,8 @@ export {
   FillNANode,
   SaveCSVDataframeFileNode,
   FilterNoneNode,
-  DATA_NODES,
+  DescribeNode,
+  DATA_NODES
 } from "./nodes/data.js";
 export {
   ExecutePythonNode,
@@ -205,7 +216,7 @@ export {
   RunBashCommandDockerNode,
   RunRubyCommandDockerNode,
   RunShellCommandDockerNode,
-  CODE_NODES,
+  CODE_NODES
 } from "./nodes/code.js";
 export { CodeNode } from "./nodes/code-node.js";
 export {
@@ -234,7 +245,8 @@ export {
   ConcatAudioListNode,
   TextToSpeechNode,
   ChunkToAudioNode,
-  AUDIO_NODES,
+  GetAudioInfoNode,
+  AUDIO_NODES
 } from "./nodes/audio.js";
 export {
   WaitNode,
@@ -242,7 +254,7 @@ export {
   IntervalTriggerNode,
   WebhookTriggerNode,
   FileWatchTriggerNode,
-  TRIGGER_NODES,
+  TRIGGER_NODES
 } from "./nodes/triggers.js";
 export {
   LoadImageFileNode,
@@ -258,9 +270,11 @@ export {
   ResizeNode,
   CropNode,
   FitNode,
+  RotateNode,
+  FlipNode,
   TextToImageNode,
   ImageToImageNode,
-  IMAGE_NODES,
+  IMAGE_NODES
 } from "./nodes/image.js";
 export {
   TextToVideoNode,
@@ -292,7 +306,7 @@ export {
   ExtractAudioVideoNode,
   ExtractFrameVideoNode,
   GetVideoInfoNode,
-  VIDEO_NODES,
+  VIDEO_NODES
 } from "./nodes/video.js";
 export {
   SummarizerNode,
@@ -301,7 +315,7 @@ export {
   ClassifierNode,
   AgentNode,
   ResearchAgentNode,
-  AGENT_NODES,
+  AGENT_NODES
 } from "./nodes/agents.js";
 export {
   StructuredOutputGeneratorNode,
@@ -309,7 +323,7 @@ export {
   ListGeneratorNode,
   ChartGeneratorNode,
   SVGGeneratorNode,
-  GENERATOR_NODES,
+  GENERATOR_NODES
 } from "./nodes/generators.js";
 export {
   LoadModel3DFileNode,
@@ -326,7 +340,7 @@ export {
   MergeMeshesNode,
   TextTo3DNode,
   ImageTo3DNode,
-  MODEL3D_NODES,
+  MODEL3D_NODES
 } from "./nodes/model3d.js";
 export { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
 export {
@@ -368,7 +382,7 @@ export {
   SaveArrayNode,
   BinaryOperationNode,
   PlotArrayNode,
-  LIB_NUMPY_NODES,
+  LIB_NUMPY_NODES
 } from "./nodes/lib-array-math.js";
 export {
   WorkspaceDirectoryLibNode,
@@ -400,7 +414,7 @@ export {
   RelativePathLibNode,
   PathToStringLibNode,
   ShowNotificationLibNode,
-  LIB_OS_NODES,
+  LIB_OS_NODES
 } from "./nodes/lib-os.js";
 export {
   ExtractLinksMarkdownLibNode,
@@ -409,19 +423,22 @@ export {
   ExtractNumberedListsMarkdownLibNode,
   ExtractCodeBlocksMarkdownLibNode,
   ExtractTablesMarkdownLibNode,
-  LIB_MARKDOWN_NODES,
+  LIB_MARKDOWN_NODES
 } from "./nodes/lib-markdown.js";
 export { GetSecretLibNode, LIB_SECRET_NODES } from "./nodes/lib-secret.js";
 export {
   ConvertFilePandocLibNode,
   ConvertTextPandocLibNode,
-  LIB_PANDOC_NODES,
+  LIB_PANDOC_NODES
 } from "./nodes/lib-doc-transform.js";
-export { YtDlpDownloadLibNode, LIB_YTDLP_NODES } from "./nodes/lib-video-download.js";
+export {
+  YtDlpDownloadLibNode,
+  LIB_YTDLP_NODES
+} from "./nodes/lib-video-download.js";
 export {
   SliceImageGridLibNode,
   CombineImageGridLibNode,
-  LIB_GRID_NODES,
+  LIB_GRID_NODES
 } from "./nodes/lib-grid.js";
 export {
   RectLibNode,
@@ -438,7 +455,7 @@ export {
   GradientLibNode,
   TransformLibNode,
   ClipPathLibNode,
-  LIB_SVG_NODES,
+  LIB_SVG_NODES
 } from "./nodes/lib-svg.js";
 export { LIB_IMAGE_ENHANCE_NODES } from "./nodes/lib-image-enhance.js";
 export { LIB_IMAGE_FILTER_NODES } from "./nodes/lib-image-filter.js";
@@ -453,7 +470,7 @@ export const LIB_PILLOW_NODES = [
   ..._LIB_IMAGE_ENHANCE_NODES,
   ..._LIB_IMAGE_FILTER_NODES,
   ..._LIB_IMAGE_DRAW_NODES,
-  ..._LIB_IMAGE_COLOR_GRADING_NODES,
+  ..._LIB_IMAGE_COLOR_GRADING_NODES
 ];
 export {
   WebFetchLibNode,
@@ -462,23 +479,20 @@ export {
   ScreenshotLibNode,
   BrowserNavigationLibNode,
   SpiderCrawlLibNode,
-  LIB_BROWSER_NODES,
+  LIB_BROWSER_NODES
 } from "./nodes/lib-browser.js";
 export {
   SendEmailLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
   MoveToArchiveLibNode,
-  LIB_MAIL_NODES,
+  LIB_MAIL_NODES
 } from "./nodes/lib-mail.js";
 export {
   ConvertToMarkdownLibNode,
-  LIB_MARKITDOWN_NODES,
+  LIB_MARKITDOWN_NODES
 } from "./nodes/lib-doc-convert.js";
-export {
-  ChartRendererLibNode,
-  LIB_SEABORN_NODES,
-} from "./nodes/lib-charts.js";
+export { ChartRendererLibNode, LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
 export {
   BaseUrlLibNode,
   ExtractLinksLibNode,
@@ -488,12 +502,12 @@ export {
   ExtractMetadataLibNode,
   HTMLToTextLibNode,
   WebsiteContentExtractorLibNode,
-  LIB_BEAUTIFULSOUP_NODES,
+  LIB_BEAUTIFULSOUP_NODES
 } from "./nodes/lib-html-parse.js";
 export {
   FetchRSSFeedLibNode,
   ExtractFeedMetadataLibNode,
-  LIB_RSS_NODES,
+  LIB_RSS_NODES
 } from "./nodes/lib-rss.js";
 export {
   OscillatorLibNode,
@@ -501,7 +515,7 @@ export {
   PinkNoiseLibNode,
   FM_SynthesisLibNode,
   EnvelopeLibNode,
-  LIB_SYNTHESIS_NODES,
+  LIB_SYNTHESIS_NODES
 } from "./nodes/lib-synthesis.js";
 export {
   GainNode_,
@@ -511,7 +525,7 @@ export {
   HighShelfFilterNode,
   LowShelfFilterNode,
   PeakFilterNode,
-  LIB_AUDIO_DSP_NODES,
+  LIB_AUDIO_DSP_NODES
 } from "./nodes/lib-audio-dsp.js";
 export {
   CreateTableLibNode,
@@ -521,7 +535,7 @@ export {
   DeleteLibNode as SqliteDeleteLibNode,
   ExecuteSQLLibNode,
   GetDatabasePathLibNode,
-  LIB_SQLITE_NODES,
+  LIB_SQLITE_NODES
 } from "./nodes/lib-sqlite.js";
 export {
   SelectLibNode,
@@ -530,7 +544,7 @@ export {
   DeleteLibNode as SupabaseDeleteLibNode,
   UpsertLibNode,
   RPCLibNode,
-  LIB_SUPABASE_NODES,
+  LIB_SUPABASE_NODES
 } from "./nodes/lib-supabase.js";
 export {
   CreateWorkbookLibNode,
@@ -539,7 +553,7 @@ export {
   FormatCellsLibNode,
   AutoFitColumnsLibNode,
   SaveWorkbookLibNode,
-  LIB_EXCEL_NODES,
+  LIB_EXCEL_NODES
 } from "./nodes/lib-excel.js";
 export {
   CreateDocumentLibNode,
@@ -551,7 +565,7 @@ export {
   AddPageBreakLibNode,
   SetDocumentPropertiesLibNode,
   SaveDocumentLibNode,
-  LIB_DOCX_NODES,
+  LIB_DOCX_NODES
 } from "./nodes/lib-docx.js";
 export {
   BitcrushNode,
@@ -563,7 +577,7 @@ export {
   TimeStretchNode,
   NoiseGateNode,
   PhaserNode,
-  LIB_PEDALBOARD_EXTRA_NODES,
+  LIB_PEDALBOARD_EXTRA_NODES
 } from "./nodes/lib-audio-effects.js";
 export {
   PdfPageCountNode,
@@ -573,7 +587,7 @@ export {
   PdfExtractTextBlocksNode,
   PdfExtractStyledTextNode,
   PdfPageMetadataNode,
-  LIB_PDF_NODES,
+  LIB_PDF_NODES
 } from "./nodes/lib-pdf.js";
 export {
   STFTNode,
@@ -586,7 +600,7 @@ export {
   DetectOnsetsNode,
   SegmentAudioByOnsetsNode,
   SaveAudioSegmentsNode,
-  LIB_LIBROSA_SPECTRAL_NODES,
+  LIB_LIBROSA_SPECTRAL_NODES
 } from "./nodes/lib-audio-spectral.js";
 export { KIE_IMAGE_NODES } from "./nodes/kie-image.js";
 export { KIE_VIDEO_NODES } from "./nodes/kie-video.js";
@@ -606,7 +620,7 @@ export {
   QueryTextNode,
   RemoveOverlapNode,
   HybridSearchNode,
-  VECTOR_NODES,
+  VECTOR_NODES
 } from "./nodes/vector.js";
 export {
   CreateIndexFlatL2Node,
@@ -616,7 +630,7 @@ export {
   AddVectorsNode,
   AddWithIdsNode,
   SearchNode as FaissSearchNode,
-  VECTOR_FAISS_NODES,
+  VECTOR_FAISS_NODES
 } from "./nodes/vector-faiss.js";
 export { GEMINI_NODES } from "./nodes/gemini.js";
 export { APIFY_NODES } from "./nodes/apify.js";
@@ -626,18 +640,14 @@ export { OPENAI_NODES } from "./nodes/openai.js";
 export { SEARCH_NODES } from "./nodes/search.js";
 export { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 export { ANTHROPIC_NODES } from "./nodes/anthropic.js";
-export {
-  TeamAgentNode,
-  TeamLeadNode,
-  TEAM_NODES,
-} from "./nodes/team.js";
-
+export { TeamAgentNode, TeamLeadNode, TEAM_NODES } from "./nodes/team.js";
 import { CONTROL_NODES } from "./nodes/control.js";
 import { TEXT_EXTRA_NODES } from "./nodes/text-extra.js";
 import { CONSTANT_NODES } from "./nodes/constant.js";
 import { EXTENDED_PLACEHOLDER_NODES } from "./nodes/extended-placeholders.js";
 import { INPUT_NODES } from "./nodes/input.js";
 import { OUTPUT_NODES } from "./nodes/output.js";
+import { WORKFLOW_NODES } from "./nodes/workflow.js";
 import { WORKSPACE_NODES } from "./nodes/workspace.js";
 import { COMPARE_NODES } from "./nodes/compare.js";
 import { DOCUMENT_NODES } from "./nodes/document.js";
@@ -702,6 +712,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...EXTENDED_PLACEHOLDER_NODES,
   ...INPUT_NODES,
   ...OUTPUT_NODES,
+  ...WORKFLOW_NODES,
   ...WORKSPACE_NODES,
   ...COMPARE_NODES,
   ...DOCUMENT_NODES,
@@ -757,7 +768,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
   ...ANTHROPIC_NODES,
-  ...TEAM_NODES,
+  ...TEAM_NODES
 ];
 
 export function registerBaseNodes(registry: NodeRegistry): void {
@@ -770,12 +781,44 @@ export function registerBaseNodes(registry: NodeRegistry): void {
           namespace: "nodetool.workflows.base_node",
           node_type: "nodetool.workflows.base_node.Preview",
           properties: [
-            { name: "value", type: { type: "any", type_args: [] }, default: null },
-            { name: "name", type: { type: "str", type_args: [] }, default: "" },
+            {
+              name: "value",
+              type: { type: "any", type_args: [] },
+              default: null
+            },
+            { name: "name", type: { type: "str", type_args: [] }, default: "" }
           ],
           outputs: [{ name: "output", type: { type: "any", type_args: [] } }],
-          basic_fields: ["value"],
-        },
+          basic_fields: ["value"]
+        }
+      });
+      continue;
+    }
+    if (nodeClass.nodeType === "nodetool.workflows.workflow_node.Workflow") {
+      registry.register(nodeClass, {
+        metadata: {
+          title: "Workflow",
+          description:
+            "Execute a sub-workflow. Select a workflow to populate its inputs and outputs dynamically.",
+          namespace: "nodetool.workflows.workflow_node",
+          node_type: "nodetool.workflows.workflow_node.Workflow",
+          is_dynamic: true,
+          is_streaming_output: true,
+          properties: [
+            {
+              name: "workflow_id",
+              type: { type: "str", type_args: [] },
+              default: ""
+            },
+            {
+              name: "workflow_json",
+              type: { type: "dict", type_args: [] },
+              default: {}
+            }
+          ],
+          outputs: [],
+          basic_fields: []
+        }
       });
       continue;
     }

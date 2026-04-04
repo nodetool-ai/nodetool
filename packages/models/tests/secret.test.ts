@@ -20,7 +20,7 @@ describe("Secret model", () => {
       userId: "user-1",
       key: "OPENAI_API_KEY",
       value: "sk-test-123",
-      description: "Test key",
+      description: "Test key"
     });
 
     expect(secret.id).toBeTruthy();
@@ -38,7 +38,7 @@ describe("Secret model", () => {
     await Secret.upsert({
       userId: "user-1",
       key: "MY_SECRET",
-      value: "secret-value",
+      value: "secret-value"
     });
 
     const found = await Secret.find("user-1", "MY_SECRET");
@@ -57,7 +57,7 @@ describe("Secret model", () => {
       userId: "user-1",
       key: "API_KEY",
       value: "original-value",
-      description: "Original",
+      description: "Original"
     });
     const createdId = created.id;
 
@@ -65,7 +65,7 @@ describe("Secret model", () => {
       userId: "user-1",
       key: "API_KEY",
       value: "updated-value",
-      description: "Updated",
+      description: "Updated"
     });
 
     expect(updated.id).toBe(createdId);
@@ -80,14 +80,14 @@ describe("Secret model", () => {
       userId: "user-1",
       key: "NULL_DESCRIPTION",
       value: "initial",
-      description: "before",
+      description: "before"
     });
 
     const updated = await Secret.upsert({
       userId: "user-1",
       key: "NULL_DESCRIPTION",
       value: "after",
-      description: null as unknown as string,
+      description: null as unknown as string
     });
 
     expect(updated.description).toBe("");
@@ -98,14 +98,14 @@ describe("Secret model", () => {
       userId: "user-1",
       key: "ENCRYPTED_KEY",
       encryptedValue: "ciphertext-1",
-      description: "Original",
+      description: "Original"
     });
 
     const updated = await Secret.upsertEncrypted({
       userId: "user-1",
       key: "ENCRYPTED_KEY",
       encryptedValue: "ciphertext-2",
-      description: "Updated",
+      description: "Updated"
     });
 
     expect(updated.id).toBe(created.id);
@@ -118,14 +118,14 @@ describe("Secret model", () => {
       userId: "user-1",
       key: "NULL_ENCRYPTED_DESCRIPTION",
       encryptedValue: "ciphertext-1",
-      description: "before",
+      description: "before"
     });
 
     const updated = await Secret.upsertEncrypted({
       userId: "user-1",
       key: "NULL_ENCRYPTED_DESCRIPTION",
       encryptedValue: "ciphertext-2",
-      description: null as unknown as string,
+      description: null as unknown as string
     });
 
     expect(updated.description).toBe("");
@@ -135,7 +135,7 @@ describe("Secret model", () => {
     await Secret.upsert({
       userId: "user-1",
       key: "TO_DELETE",
-      value: "delete-me",
+      value: "delete-me"
     });
 
     const deleted = await Secret.deleteSecret("user-1", "TO_DELETE");
@@ -154,7 +154,7 @@ describe("Secret model", () => {
     const secret = await Secret.upsert({
       userId: "user-1",
       key: "DECRYPT_TEST",
-      value: "my-secret-value-123",
+      value: "my-secret-value-123"
     });
 
     const decrypted = await secret.getDecryptedValue();
@@ -191,8 +191,16 @@ describe("Secret model", () => {
   });
 
   it("isolates secrets between users", async () => {
-    await Secret.upsert({ userId: "user-1", key: "SHARED_KEY", value: "user1-value" });
-    await Secret.upsert({ userId: "user-2", key: "SHARED_KEY", value: "user2-value" });
+    await Secret.upsert({
+      userId: "user-1",
+      key: "SHARED_KEY",
+      value: "user1-value"
+    });
+    await Secret.upsert({
+      userId: "user-2",
+      key: "SHARED_KEY",
+      value: "user2-value"
+    });
 
     const s1 = await Secret.find("user-1", "SHARED_KEY");
     const s2 = await Secret.find("user-2", "SHARED_KEY");
@@ -232,7 +240,7 @@ describe("Secret model", () => {
       userId: "user-1",
       key: "SAFE_TEST",
       value: "secret",
-      description: "safe test",
+      description: "safe test"
     });
 
     const safe = secret.toSafeObject();
@@ -246,7 +254,7 @@ describe("Secret model", () => {
     const secret = await Secret.upsertEncrypted({
       userId: "user-1",
       key: "BROKEN_SECRET",
-      encryptedValue: "not-a-valid-ciphertext",
+      encryptedValue: "not-a-valid-ciphertext"
     });
 
     await expect(secret.getDecryptedValue()).rejects.toBeTruthy();

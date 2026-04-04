@@ -14,16 +14,24 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>) {
     hasToolSupport: async () => true,
     generateMessages: async function* () {
       // Yield a text chunk
-      yield { type: "chunk" as const, content: "Working on it...", done: false };
+      yield {
+        type: "chunk" as const,
+        content: "Working on it...",
+        done: false
+      };
       // Yield a finish_step tool call
       yield {
         id: "tc_1",
         name: "finish_step",
-        args,
+        args
       };
     },
-    async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
-    async generateMessageTraced(...args: any[]) { return (this as any).generateMessage(...args); },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
     generateMessage: vi.fn(),
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
     getAvailableImageModels: vi.fn().mockResolvedValue([]),
@@ -39,7 +47,7 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>) {
     textToVideo: vi.fn(),
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
-    isContextLengthError: () => false,
+    isContextLengthError: () => false
   } as any;
 }
 
@@ -58,7 +66,7 @@ function createMockContext() {
     }),
     set: vi.fn(),
     get: vi.fn(),
-    _store: store,
+    _store: store
   } as any;
 }
 
@@ -72,15 +80,15 @@ describe("StepExecutor", () => {
       outputSchema: JSON.stringify({
         type: "object",
         properties: { answer: { type: "string" } },
-        required: ["answer"],
+        required: ["answer"]
       }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_1",
       title: "Test Task",
-      steps: [step],
+      steps: [step]
     };
 
     const provider = createMockProvider();
@@ -91,7 +99,7 @@ describe("StepExecutor", () => {
       step,
       context,
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -109,7 +117,9 @@ describe("StepExecutor", () => {
     expect(step.completed).toBe(true);
 
     // Result should be stored
-    expect(context.storeStepResult).toHaveBeenCalledWith("step_1", { answer: "42" });
+    expect(context.storeStepResult).toHaveBeenCalledWith("step_1", {
+      answer: "42"
+    });
     expect(executor.getResult()).toEqual({ answer: "42" });
   });
 
@@ -121,15 +131,15 @@ describe("StepExecutor", () => {
       dependsOn: [],
       outputSchema: JSON.stringify({
         type: "object",
-        properties: { greeting: { type: "string" } },
+        properties: { greeting: { type: "string" } }
       }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_2",
       title: "Test Task 2",
-      steps: [step],
+      steps: [step]
     };
 
     // Provider that returns text with embedded JSON but no tool call
@@ -139,9 +149,9 @@ describe("StepExecutor", () => {
         yield {
           type: "chunk" as const,
           content: 'Here is the result: {"result": {"greeting": "hello"}}',
-          done: false,
+          done: false
         };
-      },
+      }
     } as any;
 
     const context = createMockContext();
@@ -151,7 +161,7 @@ describe("StepExecutor", () => {
       step,
       context,
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -170,13 +180,13 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: [],
       outputSchema: "not valid json {{{",
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_invalid_schema",
       title: "Invalid Schema Test",
-      steps: [step],
+      steps: [step]
     };
 
     const provider = createMockProvider({ result: { ok: true } });
@@ -187,7 +197,7 @@ describe("StepExecutor", () => {
       step,
       context,
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -206,14 +216,17 @@ describe("StepExecutor", () => {
       instructions: "Use a tool then finish",
       completed: false,
       dependsOn: [],
-      outputSchema: JSON.stringify({ type: "object", properties: { v: { type: "string" } } }),
-      logs: [],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { v: { type: "string" } }
+      }),
+      logs: []
     };
 
     const task: Task = {
       id: "task_tools",
       title: "Tool Test",
-      steps: [step],
+      steps: [step]
     };
 
     let callCount = 0;
@@ -226,17 +239,17 @@ describe("StepExecutor", () => {
           yield {
             id: "tc_calc",
             name: "my_tool",
-            args: { input: "test" },
+            args: { input: "test" }
           };
         } else {
           // Second call: finish
           yield {
             id: "tc_finish",
             name: "finish_step",
-            args: { result: { v: "done" } },
+            args: { result: { v: "done" } }
           };
         }
-      },
+      }
     } as any;
 
     const mockTool = {
@@ -248,8 +261,8 @@ describe("StepExecutor", () => {
       toProviderTool: () => ({
         name: "my_tool",
         description: "A test tool",
-        inputSchema: { type: "object", properties: {}, required: [] },
-      }),
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
     };
 
     const context = createMockContext();
@@ -260,7 +273,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [mockTool as any],
+      tools: [mockTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -284,13 +297,13 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: [],
       outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_unknown_tool",
       title: "Unknown Tool Test",
-      steps: [step],
+      steps: [step]
     };
 
     let callCount = 0;
@@ -302,16 +315,16 @@ describe("StepExecutor", () => {
           yield {
             id: "tc_unknown",
             name: "nonexistent_tool",
-            args: {},
+            args: {}
           };
         } else {
           yield {
             id: "tc_finish",
             name: "finish_step",
-            args: { result: {} },
+            args: { result: {} }
           };
         }
-      },
+      }
     } as any;
 
     const context = createMockContext();
@@ -321,7 +334,7 @@ describe("StepExecutor", () => {
       step,
       context,
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -339,13 +352,13 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: [],
       outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_tool_error",
       title: "Tool Error Test",
-      steps: [step],
+      steps: [step]
     };
 
     let callCount = 0;
@@ -357,16 +370,16 @@ describe("StepExecutor", () => {
           yield {
             id: "tc_fail",
             name: "failing_tool",
-            args: {},
+            args: {}
           };
         } else {
           yield {
             id: "tc_finish",
             name: "finish_step",
-            args: { result: { recovered: true } },
+            args: { result: { recovered: true } }
           };
         }
-      },
+      }
     } as any;
 
     const failingTool = {
@@ -378,8 +391,8 @@ describe("StepExecutor", () => {
       toProviderTool: () => ({
         name: "failing_tool",
         description: "A tool that throws",
-        inputSchema: { type: "object", properties: {}, required: [] },
-      }),
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
     };
 
     const context = createMockContext();
@@ -390,7 +403,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [failingTool as any],
+      tools: [failingTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -409,13 +422,13 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: [],
       outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_truncate",
       title: "Truncate Test",
-      steps: [step],
+      steps: [step]
     };
 
     let callCount = 0;
@@ -427,16 +440,16 @@ describe("StepExecutor", () => {
           yield {
             id: "tc_long",
             name: "long_tool",
-            args: {},
+            args: {}
           };
         } else {
           yield {
             id: "tc_finish",
             name: "finish_step",
-            args: { result: { done: true } },
+            args: { result: { done: true } }
           };
         }
-      },
+      }
     } as any;
 
     const longTool = {
@@ -448,8 +461,8 @@ describe("StepExecutor", () => {
       toProviderTool: () => ({
         name: "long_tool",
         description: "Returns a very long result",
-        inputSchema: { type: "object", properties: {}, required: [] },
-      }),
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
     };
 
     const context = createMockContext();
@@ -460,7 +473,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [longTool as any],
+      tools: [longTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -479,15 +492,15 @@ describe("StepExecutor", () => {
       dependsOn: [],
       outputSchema: JSON.stringify({
         type: "object",
-        properties: { done: { type: "boolean" } },
+        properties: { done: { type: "boolean" } }
       }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_conclude",
       title: "Conclusion Test",
-      steps: [step],
+      steps: [step]
     };
 
     // Provider that first returns a regular tool call (to build up tokens),
@@ -499,7 +512,11 @@ describe("StepExecutor", () => {
         callCount++;
         if (callCount === 1) {
           // First call: return a long text chunk to inflate token count
-          yield { type: "chunk" as const, content: "A".repeat(300), done: false };
+          yield {
+            type: "chunk" as const,
+            content: "A".repeat(300),
+            done: false
+          };
           // No tool call, no finish_step — loop continues
         } else {
           // Second call (conclusion stage): finish_step
@@ -507,10 +524,10 @@ describe("StepExecutor", () => {
           yield {
             id: "tc_finish",
             name: "finish_step",
-            args: { result: { done: true } },
+            args: { result: { done: true } }
           };
         }
-      },
+      }
     } as any;
 
     const context = createMockContext();
@@ -521,7 +538,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      maxTokenLimit: 50, // Very low limit to trigger conclusion stage
+      maxTokenLimit: 50 // Very low limit to trigger conclusion stage
     });
 
     const messages: ProcessingMessage[] = [];
@@ -542,13 +559,13 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: ["dep_step"],
       outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_deps",
       title: "Dependency Test",
-      steps: [step],
+      steps: [step]
     };
 
     const provider = createMockProvider({ result: { v: "ok" } });
@@ -561,7 +578,7 @@ describe("StepExecutor", () => {
       step,
       context,
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -580,14 +597,17 @@ describe("StepExecutor", () => {
       instructions: "Finish without result key",
       completed: false,
       dependsOn: [],
-      outputSchema: JSON.stringify({ type: "object", properties: { answer: { type: "string" } } }),
-      logs: [],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { answer: { type: "string" } }
+      }),
+      logs: []
     };
 
     const task: Task = {
       id: "task_no_result_key",
       title: "No Result Key Test",
-      steps: [step],
+      steps: [step]
     };
 
     // finish_step args without a "result" key
@@ -597,9 +617,9 @@ describe("StepExecutor", () => {
         yield {
           id: "tc_finish",
           name: "finish_step",
-          args: { answer: "direct" },
+          args: { answer: "direct" }
         };
-      },
+      }
     } as any;
 
     const context = createMockContext();
@@ -608,7 +628,7 @@ describe("StepExecutor", () => {
       step,
       context,
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -627,13 +647,13 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: [],
       outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_no_wrapper",
       title: "No Wrapper Test",
-      steps: [step],
+      steps: [step]
     };
 
     // Provider returns text with JSON that has no "result" key
@@ -643,9 +663,9 @@ describe("StepExecutor", () => {
         yield {
           type: "chunk" as const,
           content: 'Here: {"answer": "plain"}',
-          done: false,
+          done: false
         };
-      },
+      }
     } as any;
 
     const context = createMockContext();
@@ -654,7 +674,7 @@ describe("StepExecutor", () => {
       step,
       context,
       provider,
-      model: "test-model",
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -674,13 +694,13 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: [],
       // No outputSchema = unstructured mode, text accepted as result
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_conclude_no_tool",
       title: "Conclusion Without FinishStep",
-      steps: [step],
+      steps: [step]
     };
 
     let callCount = 0;
@@ -690,7 +710,7 @@ describe("StepExecutor", () => {
         callCount++;
         // Return text (no tool calls) - in unstructured mode this completes on first iteration
         yield { type: "chunk" as const, content: "A".repeat(300), done: false };
-      },
+      }
     } as any;
 
     const context = createMockContext();
@@ -701,7 +721,7 @@ describe("StepExecutor", () => {
       provider,
       model: "test-model",
       maxTokenLimit: 50,
-      maxIterations: 3,
+      maxIterations: 3
     });
 
     const messages: ProcessingMessage[] = [];
@@ -720,11 +740,18 @@ describe("StepExecutor", () => {
       instructions: "Finish with null args",
       completed: false,
       dependsOn: [],
-      outputSchema: JSON.stringify({ type: "object", properties: { v: { type: "string" } } }),
-      logs: [],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { v: { type: "string" } }
+      }),
+      logs: []
     };
 
-    const task: Task = { id: "task_null_args", title: "Null Args Test", steps: [step] };
+    const task: Task = {
+      id: "task_null_args",
+      title: "Null Args Test",
+      steps: [step]
+    };
 
     let callCount = 0;
     const provider = {
@@ -736,15 +763,22 @@ describe("StepExecutor", () => {
           yield { id: "tc_finish", name: "finish_step", args: null };
         } else {
           // Second attempt: provide valid result
-          yield { id: "tc_finish2", name: "finish_step", args: { result: { v: "ok" } } };
+          yield {
+            id: "tc_finish2",
+            name: "finish_step",
+            args: { result: { v: "ok" } }
+          };
         }
-      },
+      }
     } as any;
 
     const context = createMockContext();
     const executor = new StepExecutor({
-      task, step, context, provider,
-      model: "test-model",
+      task,
+      step,
+      context,
+      provider,
+      model: "test-model"
     });
 
     const messages: ProcessingMessage[] = [];
@@ -763,13 +797,13 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: [],
       outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: "task_undef_args",
       title: "Undefined Args Test",
-      steps: [step],
+      steps: [step]
     };
 
     let callCount = 0;
@@ -781,16 +815,16 @@ describe("StepExecutor", () => {
           yield {
             id: "tc_no_args",
             name: "simple_tool",
-            args: undefined,
+            args: undefined
           };
         } else {
           yield {
             id: "tc_finish",
             name: "finish_step",
-            args: { result: { ok: true } },
+            args: { result: { ok: true } }
           };
         }
-      },
+      }
     } as any;
 
     const simpleTool = {
@@ -802,8 +836,8 @@ describe("StepExecutor", () => {
       toProviderTool: () => ({
         name: "simple_tool",
         description: "A tool",
-        inputSchema: { type: "object", properties: {}, required: [] },
-      }),
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
     };
 
     const context = createMockContext();
@@ -813,7 +847,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [simpleTool as any],
+      tools: [simpleTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -833,10 +867,14 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: [],
       outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: [],
+      logs: []
     };
 
-    const task: Task = { id: "task_browser", title: "Browser URL Test", steps: [step] };
+    const task: Task = {
+      id: "task_browser",
+      title: "Browser URL Test",
+      steps: [step]
+    };
 
     let callCount = 0;
     const provider = {
@@ -847,29 +885,33 @@ describe("StepExecutor", () => {
           yield {
             id: "tc_browser",
             name: "browser",
-            args: { url: "https://example.com" },
+            args: { url: "https://example.com" }
           };
         } else {
           yield {
             id: "tc_finish",
             name: "finish_step",
-            args: { result: { visited: true } },
+            args: { result: { visited: true } }
           };
         }
-      },
+      }
     } as any;
 
     const browserTool = {
       name: "browser",
       description: "Browse a URL",
-      inputSchema: { type: "object" as const, properties: { url: { type: "string" } }, required: ["url"] },
+      inputSchema: {
+        type: "object" as const,
+        properties: { url: { type: "string" } },
+        required: ["url"]
+      },
       process: vi.fn().mockResolvedValue({ content: "page content" }),
       userMessage: () => "Browsing URL",
       toProviderTool: () => ({
         name: "browser",
         description: "Browse a URL",
-        inputSchema: { type: "object", properties: {}, required: [] },
-      }),
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
     };
 
     const context = createMockContext();
@@ -879,7 +921,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [browserTool as any],
+      tools: [browserTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -898,10 +940,14 @@ describe("StepExecutor", () => {
       completed: false,
       dependsOn: [],
       outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: [],
+      logs: []
     };
 
-    const task: Task = { id: "task_browser_dedup", title: "Dedup Test", steps: [step] };
+    const task: Task = {
+      id: "task_browser_dedup",
+      title: "Dedup Test",
+      steps: [step]
+    };
 
     let callCount = 0;
     const provider = {
@@ -909,13 +955,21 @@ describe("StepExecutor", () => {
       generateMessages: async function* () {
         callCount++;
         if (callCount === 1) {
-          yield { id: "tc_b1", name: "browser", args: { url: "https://dup.com" } };
+          yield {
+            id: "tc_b1",
+            name: "browser",
+            args: { url: "https://dup.com" }
+          };
         } else if (callCount === 2) {
-          yield { id: "tc_b2", name: "browser", args: { url: "https://dup.com" } };
+          yield {
+            id: "tc_b2",
+            name: "browser",
+            args: { url: "https://dup.com" }
+          };
         } else {
           yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
         }
-      },
+      }
     } as any;
 
     const browserTool = {
@@ -924,21 +978,30 @@ describe("StepExecutor", () => {
       inputSchema: { type: "object" as const, properties: {}, required: [] },
       process: vi.fn().mockResolvedValue({ content: "ok" }),
       userMessage: () => "Browsing",
-      toProviderTool: () => ({ name: "browser", description: "Browse", inputSchema: { type: "object", properties: {}, required: [] } }),
+      toProviderTool: () => ({
+        name: "browser",
+        description: "Browse",
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
     };
 
     const context = createMockContext();
     const executor = new StepExecutor({
-      task, step, context, provider,
+      task,
+      step,
+      context,
+      provider,
       model: "test-model",
-      tools: [browserTool as any],
+      tools: [browserTool as any]
     });
 
-    for await (const _ of executor.execute()) { /* drain */ }
+    for await (const _ of executor.execute()) {
+      /* drain */
+    }
 
     const sources = executor.getSources();
     // Should only appear once
-    expect(sources.filter(s => s === "https://dup.com")).toHaveLength(1);
+    expect(sources.filter((s) => s === "https://dup.com")).toHaveLength(1);
   });
 
   it("getSources returns empty array initially", () => {
@@ -947,15 +1010,19 @@ describe("StepExecutor", () => {
       instructions: "Test sources",
       completed: false,
       dependsOn: [],
-      logs: [],
+      logs: []
     };
-    const task: Task = { id: "task_sources", title: "Sources Test", steps: [step] };
+    const task: Task = {
+      id: "task_sources",
+      title: "Sources Test",
+      steps: [step]
+    };
     const executor = new StepExecutor({
       task,
       step,
       context: createMockContext(),
       provider: createMockProvider(),
-      model: "test-model",
+      model: "test-model"
     });
     expect(executor.getSources()).toEqual([]);
   });
@@ -966,15 +1033,19 @@ describe("StepExecutor", () => {
       instructions: "Test tokens",
       completed: false,
       dependsOn: [],
-      logs: [],
+      logs: []
     };
-    const task: Task = { id: "task_tokens", title: "Tokens Test", steps: [step] };
+    const task: Task = {
+      id: "task_tokens",
+      title: "Tokens Test",
+      steps: [step]
+    };
     const executor = new StepExecutor({
       task,
       step,
       context: createMockContext(),
       provider: createMockProvider(),
-      model: "test-model",
+      model: "test-model"
     });
     const usage = executor.getTokenUsage();
     expect(usage.inputTokensTotal).toBe(0);
@@ -992,22 +1063,26 @@ describe("StepExecutor", () => {
       outputSchema: JSON.stringify({
         type: "object",
         properties: { answer: { type: "string" } },
-        required: ["answer"],
-      }),
+        required: ["answer"]
+      })
     };
 
     const task: Task = {
       id: "task_fail",
       title: "Fail Test",
-      steps: [step],
+      steps: [step]
     };
 
     // Provider that returns non-JSON text every time (no tool calls, no extractable JSON)
     const provider = {
       ...createMockProvider(),
       generateMessages: async function* () {
-        yield { type: "chunk" as const, content: "I cannot figure this out", done: false };
-      },
+        yield {
+          type: "chunk" as const,
+          content: "I cannot figure this out",
+          done: false
+        };
+      }
     } as any;
 
     const context = createMockContext();
@@ -1018,7 +1093,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      maxIterations: 2, // Low iteration limit
+      maxIterations: 2 // Low iteration limit
     });
 
     const messages: ProcessingMessage[] = [];
@@ -1031,7 +1106,7 @@ describe("StepExecutor", () => {
 
     // Should have a StepFailed task_update
     const failedUpdates = messages.filter(
-      (m) => m.type === "task_update" && (m as any).event === "step_failed",
+      (m) => m.type === "task_update" && (m as any).event === "step_failed"
     );
     expect(failedUpdates).toHaveLength(1);
   });

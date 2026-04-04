@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { SuspendableState, WorkflowSuspendedError } from "../src/suspendable.js";
+import {
+  SuspendableState,
+  WorkflowSuspendedError
+} from "../src/suspendable.js";
 
 describe("WorkflowSuspendedError", () => {
   it("stores fields from constructor", () => {
@@ -7,7 +10,7 @@ describe("WorkflowSuspendedError", () => {
       nodeId: "n1",
       reason: "waiting for approval",
       state: { step: 3 },
-      metadata: { priority: "high" },
+      metadata: { priority: "high" }
     });
     expect(err).toBeInstanceOf(Error);
     expect(err.name).toBe("WorkflowSuspendedError");
@@ -23,7 +26,7 @@ describe("WorkflowSuspendedError", () => {
     const err = new WorkflowSuspendedError({
       nodeId: "n2",
       reason: "test",
-      state: {},
+      state: {}
     });
     expect(err.metadata).toEqual({});
   });
@@ -33,13 +36,13 @@ describe("WorkflowSuspendedError", () => {
       nodeId: "n1",
       reason: "pause",
       state: { x: 1 },
-      metadata: { foo: "bar" },
+      metadata: { foo: "bar" }
     });
     expect(err.toDict()).toEqual({
       node_id: "n1",
       reason: "pause",
       state: { x: 1 },
-      metadata: { foo: "bar" },
+      metadata: { foo: "bar" }
     });
   });
 });

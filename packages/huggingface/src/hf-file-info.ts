@@ -39,11 +39,11 @@ export interface HFFileRequest {
  */
 export async function getHuggingfaceFileInfos(
   requests: HFFileRequest[],
-  token?: string,
+  token?: string
 ): Promise<HFFileInfo[]> {
   const headers: Record<string, string> = {
     // Ask for identity encoding so Content-Length reflects the true size.
-    "Accept-Encoding": "identity",
+    "Accept-Encoding": "identity"
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -56,13 +56,13 @@ export async function getHuggingfaceFileInfos(
       const resp = await fetch(url, {
         method: "HEAD",
         headers,
-        redirect: "follow",
+        redirect: "follow"
       });
 
       if (!resp.ok) {
         throw new Error(
           `Failed to fetch file info for ${req.repo_id}/${req.path}: ` +
-            `${resp.status} ${resp.statusText}`,
+            `${resp.status} ${resp.statusText}`
         );
       }
 
@@ -72,9 +72,9 @@ export async function getHuggingfaceFileInfos(
       return {
         size,
         repo_id: req.repo_id,
-        path: req.path,
+        path: req.path
       } satisfies HFFileInfo;
-    }),
+    })
   );
 
   return results;

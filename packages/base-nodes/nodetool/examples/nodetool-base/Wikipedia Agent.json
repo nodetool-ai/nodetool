@@ -1,0 +1,154 @@
+{
+  "id": "0b43765f-3ad4-47f4-bfdc-818100b458fd",
+  "access": "public",
+  "created_at": "2026-01-09T22:48:14.855627",
+  "updated_at": "2026-01-09T22:48:14.855627",
+  "name": "Wikipedia Agent",
+  "tool_name": null,
+  "description": "Wikipedia style research and documentation agent.",
+  "tags": [
+    "wikipedia",
+    "research",
+    "writing"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "wikipedia_style_article",
+          "value": null,
+          "description": ""
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.agents.ResearchAgent",
+        "data": {
+          "objective": "",
+          "model": {
+            "type": "language_model"
+          },
+          "system_prompt": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Write intermediate findings to the workspace for reference\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n- write_file: Save research findings to files\n- read_file: Read previously saved research files\n- list_directory: List files in the workspace\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Save important findings using write_file\n5. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
+          "tools": [
+            {
+              "type": "tool_name",
+              "name": "google_search"
+            },
+            {
+              "type": "tool_name",
+              "name": "browser"
+            }
+          ],
+          "max_tokens": 8192
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "article_markdown": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          }
+        },
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nYou are a Wikipedia style research and documentation agent.\n\nTask:\n1) Start from {{ url }}.\n2) Identify and crawl linked pages that are relevant to {{ label }}.\n3) Extract and organize information required to explain {{ label }} clearly to a technical audience.\n\nWriting requirements:\n- Produce a comprehensive markdown article suitable for a Wikipedia style page.\n- Include sections such as Overview, Background, Techniques, Practical considerations,\n  Limitations, and References.\n- Use neutral, precise language and avoid marketing tone.\n- Provide reference style bullet lists for key papers or standards.\n\nOutput format:\n- Return a JSON object with one key:\n  {\n    \"article_markdown\": \"<full markdown article>\"\n  }\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "url": null,
+          "label": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "seed_url",
+          "value": "https://en.wikipedia.org/wiki/Fine-tuning_(deep_learning)",
+          "description": "Starting Wikipedia page to crawl"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic_label",
+          "value": "LLM fine tuning",
+          "description": "Label used in the final article"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "url",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "label",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "objective",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "2",
+        "sourceHandle": "article_markdown",
+        "target": "1",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

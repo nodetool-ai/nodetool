@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Brightness"
-node_type: "lib.pillow.enhance.Brightness"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.Brightness"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.Brightness`
+**Type:** `lib.image.enhance.Brightness`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -36,5 +36,5 @@ Adjusts overall image brightness to lighten or darken.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

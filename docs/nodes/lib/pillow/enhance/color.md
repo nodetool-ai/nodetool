@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Color"
-node_type: "lib.pillow.enhance.Color"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.Color"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.Color`
+**Type:** `lib.image.enhance.Color`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -36,5 +36,5 @@ Adjusts color intensity of an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

@@ -21,8 +21,8 @@ function getOutputNodes(workflow: Workflow) {
 }
 
 /** Attempts to read an image from the clipboard and prepare it for workflow input */
-function tryReadClipboardImage(workflow: Workflow): Record<string, any> {
-  const params: Record<string, any> = {};
+function tryReadClipboardImage(workflow: Workflow): Record<string, unknown> {
+  const params: Record<string, unknown> = {};
   const image = clipboard.readImage();
 
   if (!image.isEmpty()) {
@@ -47,10 +47,10 @@ function tryReadClipboardImage(workflow: Workflow): Record<string, any> {
 /**
  * Attempts to read text from the clipboard and prepare it for workflow input
  * @param {Workflow} workflow - The workflow to process
- * @returns {Record<string, any>} Object containing text parameters if found, empty object otherwise
+ * @returns {Record<string, unknown>} Object containing text parameters if found, empty object otherwise
  */
-function tryReadClipboardText(workflow: Workflow): Record<string, any> {
-  const params: Record<string, any> = {};
+function tryReadClipboardText(workflow: Workflow): Record<string, unknown> {
+  const params: Record<string, unknown> = {};
   const clipboardText = clipboard.readText();
 
   if (clipboardText) {
@@ -69,20 +69,21 @@ function tryReadClipboardText(workflow: Workflow): Record<string, any> {
 /**
  * Writes the workflow results to the system clipboard
  * @param {Workflow} workflow - The workflow containing output configuration
- * @param {any[]} results - Array of workflow results
+ * @param {unknown[]} results - Array of workflow results
  */
-function writeResultToClipboard(workflow: Workflow, results: any[]) {
+function writeResultToClipboard(workflow: Workflow, results: unknown[]) {
   if (results.length > 0) {
     const outputNode = getOutputNodes(workflow)[0];
     if (outputNode) {
       const outputValue = results[results.length - 1];
-      if (outputNode.data?.type === "image" || outputValue?.type === "image") {
+      if (outputNode.data?.type === "image" || typeof outputValue === "object" && outputValue !== null && "type" in outputValue && outputValue.type === "image") {
+        const uri = typeof outputValue === "object" && outputValue !== null && "uri" in outputValue && typeof outputValue.uri === "string" ? outputValue.uri : "";
         const image = nativeImage.createFromBuffer(
-          Buffer.from(outputValue.uri, "base64")
+          Buffer.from(uri, "base64")
         );
         clipboard.writeImage(image);
       } else {
-        clipboard.writeText(outputValue);
+        clipboard.writeText(String(outputValue ?? ""));
       }
     }
   }
@@ -97,7 +98,7 @@ export async function runWorkflow(workflow: Workflow) {
   logMessage(
     `Starting workflow execution: ${workflow.name} (ID: ${workflow.id})`
   );
-  let params: Record<string, any> = {};
+  let params: Record<string, unknown> = {};
 
   if (workflow.settings?.run_mode === "headless") {
     logMessage(`Running headless workflow: ${workflow.name}`);
@@ -109,7 +110,7 @@ export async function runWorkflow(workflow: Workflow) {
 
     const workflowRunner = createWorkflowRunner();
     workflowRunner.setState({
-      onComplete: (results: any[]) => {
+      onComplete: (results: unknown[]) => {
         logMessage(`Results: ${results}`);
         if (workflow.settings?.run_mode === "headless") {
           writeResultToClipboard(workflow, results);

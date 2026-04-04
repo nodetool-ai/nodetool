@@ -18,8 +18,8 @@ import { vi, describe, it, expect } from "vitest";
 vi.mock("@fal-ai/client", () => ({
   createFalClient: vi.fn(() => ({
     subscribe: vi.fn(),
-    storage: { upload: vi.fn() },
-  })),
+    storage: { upload: vi.fn() }
+  }))
 }));
 import type { NodeClass } from "@nodetool/node-sdk";
 
@@ -69,21 +69,30 @@ function assertNodeArrayValid(name: string, nodes: readonly NodeClass[]): void {
 
     it("every node has a non-empty title string", () => {
       for (const NodeCls of nodes) {
-        expect(typeof (NodeCls as Record<string, unknown>).title).toBe("string");
-        expect(((NodeCls as Record<string, unknown>).title as string).length).toBeGreaterThan(0);
+        expect(typeof (NodeCls as Record<string, unknown>).title).toBe(
+          "string"
+        );
+        expect(
+          ((NodeCls as Record<string, unknown>).title as string).length
+        ).toBeGreaterThan(0);
       }
     });
 
     it("every node has a non-empty description string", () => {
       for (const NodeCls of nodes) {
-        expect(typeof (NodeCls as Record<string, unknown>).description).toBe("string");
-        expect(((NodeCls as Record<string, unknown>).description as string).length).toBeGreaterThan(0);
+        expect(typeof (NodeCls as Record<string, unknown>).description).toBe(
+          "string"
+        );
+        expect(
+          ((NodeCls as Record<string, unknown>).description as string).length
+        ).toBeGreaterThan(0);
       }
     });
 
     it("every node requires FAL_API_KEY", () => {
       for (const NodeCls of nodes) {
-        const settings = (NodeCls as Record<string, unknown>).requiredSettings as string[];
+        const settings = (NodeCls as Record<string, unknown>)
+          .requiredSettings as string[];
         expect(Array.isArray(settings)).toBe(true);
         expect(settings).toContain("FAL_API_KEY");
       }
@@ -91,7 +100,8 @@ function assertNodeArrayValid(name: string, nodes: readonly NodeClass[]): void {
 
     it("every node has a process() method on its prototype", () => {
       for (const NodeCls of nodes) {
-        const proto = (NodeCls as { prototype: Record<string, unknown> }).prototype;
+        const proto = (NodeCls as { prototype: Record<string, unknown> })
+          .prototype;
         expect(typeof proto.process).toBe("function");
       }
     });
@@ -168,7 +178,7 @@ describe("FAL_NODES combined export", () => {
       ...FAL_VIDEO_TO_AUDIO_NODES,
       ...FAL_VIDEO_TO_TEXT_NODES,
       ...FAL_VIDEO_TO_VIDEO_NODES,
-      ...FAL_VISION_NODES,
+      ...FAL_VISION_NODES
     ];
     expect(FAL_NODES.length).toBe(allCategoryNodes.length);
   });
@@ -211,7 +221,7 @@ describe("registerFalNodes", () => {
     const { registerFalNodes } = await import("../src/index.js");
     const registered: NodeClass[] = [];
     const registry = {
-      register: (nodeClass: NodeClass) => registered.push(nodeClass),
+      register: (nodeClass: NodeClass) => registered.push(nodeClass)
     };
     registerFalNodes(registry);
     expect(registered.length).toBe(FAL_NODES.length);

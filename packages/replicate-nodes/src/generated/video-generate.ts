@@ -9,7 +9,7 @@ import {
   outputToImageRef,
   outputToVideoRef,
   outputToAudioRef,
-  outputToString,
+  outputToString
 } from "../replicate-base.js";
 
 const ReplicateNode = BaseNode;
@@ -24,28 +24,93 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: 384, values: ["256", "320", "384", "448", "512", "576", "640", "672", "704", "768", "832", "896", "960", "1024"], description: "Height of the output" })
+  @prop({
+    type: "enum",
+    default: 384,
+    values: [
+      "256",
+      "320",
+      "384",
+      "448",
+      "512",
+      "576",
+      "640",
+      "672",
+      "704",
+      "768",
+      "832",
+      "896",
+      "960",
+      "1024"
+    ],
+    description: "Height of the output"
+  })
   declare height: any;
 
-  @prop({ type: "bool", default: false, description: "Save as mp4, False for GIF" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Save as mp4, False for GIF"
+  })
   declare mp4: any;
 
   @prop({ type: "str", default: "blurry", description: "Negative prompt" })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "a camel smoking a cigarette, hd, high quality", description: "Input prompt" })
+  @prop({
+    type: "str",
+    default: "a camel smoking a cigarette, hd, high quality",
+    description: "Input prompt"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "EulerAncestralDiscreteScheduler", values: ["DDIMScheduler", "DPMSolverMultistepScheduler", "HeunDiscreteScheduler", "KarrasDPM", "EulerAncestralDiscreteScheduler", "EulerDiscreteScheduler", "PNDMScheduler"], description: "Select a Scheduler" })
+  @prop({
+    type: "enum",
+    default: "EulerAncestralDiscreteScheduler",
+    values: [
+      "DDIMScheduler",
+      "DPMSolverMultistepScheduler",
+      "HeunDiscreteScheduler",
+      "KarrasDPM",
+      "EulerAncestralDiscreteScheduler",
+      "EulerDiscreteScheduler",
+      "PNDMScheduler"
+    ],
+    description: "Select a Scheduler"
+  })
   declare scheduler: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Leave blank to randomize the seed"
+  })
   declare seed: any;
 
   @prop({ type: "int", default: 30, description: "Number of denoising steps" })
   declare steps: any;
 
-  @prop({ type: "enum", default: 672, values: ["256", "320", "384", "448", "512", "576", "640", "672", "704", "768", "832", "896", "960", "1024"], description: "Width of the output" })
+  @prop({
+    type: "enum",
+    default: 672,
+    values: [
+      "256",
+      "320",
+      "384",
+      "448",
+      "512",
+      "576",
+      "640",
+      "672",
+      "704",
+      "768",
+      "832",
+      "896",
+      "960",
+      "1024"
+    ],
+    description: "Width of the output"
+  })
   declare width: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -53,25 +118,33 @@ replicate, ai`;
     const height = String(this.height ?? 384);
     const mp4 = Boolean(this.mp4 ?? false);
     const negativePrompt = String(this.negative_prompt ?? "blurry");
-    const prompt = String(this.prompt ?? "a camel smoking a cigarette, hd, high quality");
-    const scheduler = String(this.scheduler ?? "EulerAncestralDiscreteScheduler");
+    const prompt = String(
+      this.prompt ?? "a camel smoking a cigarette, hd, high quality"
+    );
+    const scheduler = String(
+      this.scheduler ?? "EulerAncestralDiscreteScheduler"
+    );
     const seed = Number(this.seed ?? -1);
     const steps = Number(this.steps ?? 30);
     const width = String(this.width ?? 672);
 
     const args: Record<string, unknown> = {
-      "height": height,
-      "mp4": mp4,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "scheduler": scheduler,
-      "seed": seed,
-      "steps": steps,
-      "width": width,
+      height: height,
+      mp4: mp4,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      scheduler: scheduler,
+      seed: seed,
+      steps: steps,
+      width: width
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "lucataco/hotshot-xl:78b3a6257e16e4b241245d65c8b2b81ea2e1ff7ed4c55306b511509ddbfd327a", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "lucataco/hotshot-xl:78b3a6257e16e4b241245d65c8b2b81ea2e1ff7ed4c55306b511509ddbfd327a",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -95,34 +168,59 @@ replicate, ai`;
   @prop({ type: "float", default: 7.5, description: "Guidance scale" })
   declare guidance_scale: any;
 
-  @prop({ type: "int", default: 320, description: "Height of the output video" })
+  @prop({
+    type: "int",
+    default: 320,
+    description: "Height of the output video"
+  })
   declare height: any;
 
-  @prop({ type: "video", default: "", description: "URL of the initial video (optional)" })
+  @prop({
+    type: "video",
+    default: "",
+    description: "URL of the initial video (optional)"
+  })
   declare init_video: any;
 
   @prop({ type: "float", default: 0.5, description: "Strength of init_video" })
   declare init_weight: any;
 
-  @prop({ type: "enum", default: "xl", values: ["xl", "576w", "potat1", "animov-512x"], description: "Model to use" })
+  @prop({
+    type: "enum",
+    default: "xl",
+    values: ["xl", "576w", "potat1", "animov-512x"],
+    description: "Model to use"
+  })
   declare model: any;
 
   @prop({ type: "str", default: "", description: "Negative prompt" })
   declare negative_prompt: any;
 
-  @prop({ type: "int", default: 24, description: "Number of frames for the output video" })
+  @prop({
+    type: "int",
+    default: 24,
+    description: "Number of frames for the output video"
+  })
   declare num_frames: any;
 
   @prop({ type: "int", default: 50, description: "Number of denoising steps" })
   declare num_inference_steps: any;
 
-  @prop({ type: "str", default: "An astronaut riding a horse", description: "Input prompt" })
+  @prop({
+    type: "str",
+    default: "An astronaut riding a horse",
+    description: "Input prompt"
+  })
   declare prompt: any;
 
   @prop({ type: "bool", default: false, description: "Remove watermark" })
   declare remove_watermark: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Leave blank to randomize the seed"
+  })
   declare seed: any;
 
   @prop({ type: "int", default: 576, description: "Width of the output video" })
@@ -145,19 +243,19 @@ replicate, ai`;
     const width = Number(this.width ?? 576);
 
     const args: Record<string, unknown> = {
-      "batch_size": batchSize,
-      "fps": fps,
-      "guidance_scale": guidanceScale,
-      "height": height,
-      "init_weight": initWeight,
-      "model": model,
-      "negative_prompt": negativePrompt,
-      "num_frames": numFrames,
-      "num_inference_steps": numInferenceSteps,
-      "prompt": prompt,
-      "remove_watermark": removeWatermark,
-      "seed": seed,
-      "width": width,
+      batch_size: batchSize,
+      fps: fps,
+      guidance_scale: guidanceScale,
+      height: height,
+      init_weight: initWeight,
+      model: model,
+      negative_prompt: negativePrompt,
+      num_frames: numFrames,
+      num_inference_steps: numInferenceSteps,
+      prompt: prompt,
+      remove_watermark: removeWatermark,
+      seed: seed,
+      width: width
     };
 
     const initVideoRef = this.init_video as Record<string, unknown> | undefined;
@@ -167,7 +265,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -185,7 +287,12 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Video to segment." })
   declare input_video: any;
 
-  @prop({ type: "enum", default: "green-screen", values: ["green-screen", "alpha-mask", "foreground-mask"], description: "An enumeration." })
+  @prop({
+    type: "enum",
+    default: "green-screen",
+    values: ["green-screen", "alpha-mask", "foreground-mask"],
+    description: "An enumeration."
+  })
   declare output_type: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -193,17 +300,23 @@ replicate, ai`;
     const outputType = String(this.output_type ?? "green-screen");
 
     const args: Record<string, unknown> = {
-      "output_type": outputType,
+      output_type: outputType
     };
 
-    const inputVideoRef = this.input_video as Record<string, unknown> | undefined;
+    const inputVideoRef = this.input_video as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(inputVideoRef)) {
       const inputVideoUrl = await assetToUrl(inputVideoRef!, apiKey);
       if (inputVideoUrl) args["input_video"] = inputVideoUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "arielreplicate/robust_video_matting:73d2128a371922d5d1abf0712a1d974be0e4e2358cc1218e4e34714767232bac", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "arielreplicate/robust_video_matting:73d2128a371922d5d1abf0712a1d974be0e4e2358cc1218e4e34714767232bac",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -218,25 +331,50 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "audio", default: "", description: "Audio file to create waveform from" })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "Audio file to create waveform from"
+  })
   declare audio: any;
 
-  @prop({ type: "int", default: 100, description: "Number of bars in waveform" })
+  @prop({
+    type: "int",
+    default: 100,
+    description: "Number of bars in waveform"
+  })
   declare bar_count: any;
 
-  @prop({ type: "float", default: 0.4, description: "Width of bars in waveform. 1 represents full width, 0.5 represents half width, etc." })
+  @prop({
+    type: "float",
+    default: 0.4,
+    description:
+      "Width of bars in waveform. 1 represents full width, 0.5 represents half width, etc."
+  })
   declare bar_width: any;
 
-  @prop({ type: "str", default: "#ffffff", description: "Color of waveform bars" })
+  @prop({
+    type: "str",
+    default: "#ffffff",
+    description: "Color of waveform bars"
+  })
   declare bars_color: any;
 
-  @prop({ type: "str", default: "#000000", description: "Background color of waveform" })
+  @prop({
+    type: "str",
+    default: "#000000",
+    description: "Background color of waveform"
+  })
   declare bg_color: any;
 
   @prop({ type: "str", default: "", description: "Caption text for the video" })
   declare caption_text: any;
 
-  @prop({ type: "float", default: 0.75, description: "Opacity of foreground waveform" })
+  @prop({
+    type: "float",
+    default: 0.75,
+    description: "Opacity of foreground waveform"
+  })
   declare fg_alpha: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -249,12 +387,12 @@ replicate, ai`;
     const fgAlpha = Number(this.fg_alpha ?? 0.75);
 
     const args: Record<string, unknown> = {
-      "bar_count": barCount,
-      "bar_width": barWidth,
-      "bars_color": barsColor,
-      "bg_color": bgColor,
-      "caption_text": captionText,
-      "fg_alpha": fgAlpha,
+      bar_count: barCount,
+      bar_width: barWidth,
+      bars_color: barsColor,
+      bg_color: bgColor,
+      caption_text: captionText,
+      fg_alpha: fgAlpha
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -264,7 +402,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "fofr/audio-to-waveform:116cf9b97d0a117cfe64310637bf99ae8542cc35d813744c6ab178a3e134ff5a", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "fofr/audio-to-waveform:116cf9b97d0a117cfe64310637bf99ae8542cc35d813744c6ab178a3e134ff5a",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -282,25 +424,49 @@ replicate, ai`;
   @prop({ type: "float", default: 6, description: "Guidance scale" })
   declare embedded_guidance_scale: any;
 
-  @prop({ type: "int", default: 24, description: "Frames per second of the output video" })
+  @prop({
+    type: "int",
+    default: 24,
+    description: "Frames per second of the output video"
+  })
   declare fps: any;
 
-  @prop({ type: "int", default: 480, description: "Height of the video in pixels (must be divisible by 16)" })
+  @prop({
+    type: "int",
+    default: 480,
+    description: "Height of the video in pixels (must be divisible by 16)"
+  })
   declare height: any;
 
   @prop({ type: "int", default: 50, description: "Number of denoising steps" })
   declare infer_steps: any;
 
-  @prop({ type: "str", default: "A cat walks on the grass, realistic style", description: "The prompt to guide the video generation" })
+  @prop({
+    type: "str",
+    default: "A cat walks on the grass, realistic style",
+    description: "The prompt to guide the video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed (leave empty for random)" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed (leave empty for random)"
+  })
   declare seed: any;
 
-  @prop({ type: "int", default: 129, description: "Number of frames to generate (must be 4k+1, ex: 49 or 129)" })
+  @prop({
+    type: "int",
+    default: 129,
+    description: "Number of frames to generate (must be 4k+1, ex: 49 or 129)"
+  })
   declare video_length: any;
 
-  @prop({ type: "int", default: 864, description: "Width of the video in pixels (must be divisible by 16)" })
+  @prop({
+    type: "int",
+    default: 864,
+    description: "Width of the video in pixels (must be divisible by 16)"
+  })
   declare width: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -309,24 +475,30 @@ replicate, ai`;
     const fps = Number(this.fps ?? 24);
     const height = Number(this.height ?? 480);
     const inferSteps = Number(this.infer_steps ?? 50);
-    const prompt = String(this.prompt ?? "A cat walks on the grass, realistic style");
+    const prompt = String(
+      this.prompt ?? "A cat walks on the grass, realistic style"
+    );
     const seed = Number(this.seed ?? -1);
     const videoLength = Number(this.video_length ?? 129);
     const width = Number(this.width ?? 864);
 
     const args: Record<string, unknown> = {
-      "embedded_guidance_scale": embeddedGuidanceScale,
-      "fps": fps,
-      "height": height,
-      "infer_steps": inferSteps,
-      "prompt": prompt,
-      "seed": seed,
-      "video_length": videoLength,
-      "width": width,
+      embedded_guidance_scale: embeddedGuidanceScale,
+      fps: fps,
+      height: height,
+      infer_steps: inferSteps,
+      prompt: prompt,
+      seed: seed,
+      video_length: videoLength,
+      width: width
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "tencent/hunyuan-video:6c9132aee14409cd6568d030453f1ba50f5f3412b844fe67f78a9eb62d55664f", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "tencent/hunyuan-video:6c9132aee14409cd6568d030453f1ba50f5f3412b844fe67f78a9eb62d55664f",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -341,7 +513,12 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "First frame image for video generation. The output video will have the same aspect ratio as this image."
+  })
   declare first_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -356,18 +533,24 @@ replicate, ai`;
     const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "prompt_optimizer": promptOptimizer,
+      prompt: prompt,
+      prompt_optimizer: promptOptimizer
     };
 
-    const firstFrameImageRef = this.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = this.first_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = await assetToUrl(firstFrameImageRef!, apiKey);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "minimax/video-01-live:7574e16b8f1ad52c6332ecb264c0f132e555f46c222255a738131ec1bb614092", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "minimax/video-01-live:7574e16b8f1ad52c6332ecb264c0f132e555f46c222255a738131ec1bb614092",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -382,7 +565,12 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "First frame image for video generation. The output video will have the same aspect ratio as this image."
+  })
   declare first_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -391,7 +579,12 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Use prompt optimizer" })
   declare prompt_optimizer: any;
 
-  @prop({ type: "image", default: "", description: "An optional character reference image to use as the subject in the generated video (this will use the S2V-01 model)" })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional character reference image to use as the subject in the generated video (this will use the S2V-01 model)"
+  })
   declare subject_reference: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -400,24 +593,35 @@ replicate, ai`;
     const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "prompt_optimizer": promptOptimizer,
+      prompt: prompt,
+      prompt_optimizer: promptOptimizer
     };
 
-    const firstFrameImageRef = this.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = this.first_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = await assetToUrl(firstFrameImageRef!, apiKey);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
     }
 
-    const subjectReferenceRef = this.subject_reference as Record<string, unknown> | undefined;
+    const subjectReferenceRef = this.subject_reference as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(subjectReferenceRef)) {
-      const subjectReferenceUrl = await assetToUrl(subjectReferenceRef!, apiKey);
+      const subjectReferenceUrl = await assetToUrl(
+        subjectReferenceRef!,
+        apiKey
+      );
       if (subjectReferenceUrl) args["subject_reference"] = subjectReferenceUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "minimax/video-01:5aa835260ff7f40f4069c41185f72036accf99e29957bb4a3b3a911f3b6c1912", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "minimax/video-01:5aa835260ff7f40f4069c41185f72036accf99e29957bb4a3b3a911f3b6c1912",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -432,28 +636,66 @@ replicate, ai`;
     output: "audio"
   };
 
-  @prop({ type: "enum", default: 256000, values: ["32000", "64000", "128000", "256000"], description: "Bitrate for the generated music" })
+  @prop({
+    type: "enum",
+    default: 256000,
+    values: ["32000", "64000", "128000", "256000"],
+    description: "Bitrate for the generated music"
+  })
   declare bitrate: any;
 
-  @prop({ type: "image", default: "", description: "Instrumental reference. Must be a .wav or .mp3 file longer than 15 seconds. If only an instrumental reference is given, a track without vocals will be generated." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Instrumental reference. Must be a .wav or .mp3 file longer than 15 seconds. If only an instrumental reference is given, a track without vocals will be generated."
+  })
   declare instrumental_file: any;
 
-  @prop({ type: "str", default: "", description: "Reuse a previously uploaded instrumental ID" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Reuse a previously uploaded instrumental ID"
+  })
   declare instrumental_id: any;
 
-  @prop({ type: "str", default: "", description: "Lyrics with optional formatting. You can use a newline to separate each line of lyrics. You can use two newlines to add a pause between lines. You can use double hash marks (##) at the beginning and end of the lyrics to add accompaniment. Maximum 350 to 400 characters." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Lyrics with optional formatting. You can use a newline to separate each line of lyrics. You can use two newlines to add a pause between lines. You can use double hash marks (##) at the beginning and end of the lyrics to add accompaniment. Maximum 350 to 400 characters."
+  })
   declare lyrics: any;
 
-  @prop({ type: "enum", default: 44100, values: ["16000", "24000", "32000", "44100"], description: "Sample rate for the generated music" })
+  @prop({
+    type: "enum",
+    default: 44100,
+    values: ["16000", "24000", "32000", "44100"],
+    description: "Sample rate for the generated music"
+  })
   declare sample_rate: any;
 
-  @prop({ type: "audio", default: "", description: "Reference song, should contain music and vocals. Must be a .wav or .mp3 file longer than 15 seconds." })
+  @prop({
+    type: "audio",
+    default: "",
+    description:
+      "Reference song, should contain music and vocals. Must be a .wav or .mp3 file longer than 15 seconds."
+  })
   declare song_file: any;
 
-  @prop({ type: "audio", default: "", description: "Voice reference. Must be a .wav or .mp3 file longer than 15 seconds. If only a voice reference is given, an a cappella vocal hum will be generated." })
+  @prop({
+    type: "audio",
+    default: "",
+    description:
+      "Voice reference. Must be a .wav or .mp3 file longer than 15 seconds. If only a voice reference is given, an a cappella vocal hum will be generated."
+  })
   declare voice_file: any;
 
-  @prop({ type: "str", default: "", description: "Reuse a previously uploaded voice ID" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Reuse a previously uploaded voice ID"
+  })
   declare voice_id: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -465,16 +707,21 @@ replicate, ai`;
     const voiceId = String(this.voice_id ?? "");
 
     const args: Record<string, unknown> = {
-      "bitrate": bitrate,
-      "instrumental_id": instrumentalId,
-      "lyrics": lyrics,
-      "sample_rate": sampleRate,
-      "voice_id": voiceId,
+      bitrate: bitrate,
+      instrumental_id: instrumentalId,
+      lyrics: lyrics,
+      sample_rate: sampleRate,
+      voice_id: voiceId
     };
 
-    const instrumentalFileRef = this.instrumental_file as Record<string, unknown> | undefined;
+    const instrumentalFileRef = this.instrumental_file as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(instrumentalFileRef)) {
-      const instrumentalFileUrl = await assetToUrl(instrumentalFileRef!, apiKey);
+      const instrumentalFileUrl = await assetToUrl(
+        instrumentalFileRef!,
+        apiKey
+      );
       if (instrumentalFileUrl) args["instrumental_file"] = instrumentalFileUrl;
     }
 
@@ -491,7 +738,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "minimax/music-01:0254c7e2f54315b667dbae03da7c155822ba29ffe0457be5bc246d564be486bd", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "minimax/music-01:0254c7e2f54315b667dbae03da7c155822ba29ffe0457be5bc246d564be486bd",
+      args
+    );
     return { output: outputToAudioRef(res.output) };
   }
 }
@@ -506,37 +757,97 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "3:2", values: ["1:1", "1:2", "2:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the output video. Ignored if an image is provided." })
+  @prop({
+    type: "enum",
+    default: "3:2",
+    values: [
+      "1:1",
+      "1:2",
+      "2:1",
+      "2:3",
+      "3:2",
+      "3:4",
+      "4:3",
+      "4:5",
+      "5:4",
+      "9:16",
+      "16:9",
+      "9:21",
+      "21:9"
+    ],
+    description:
+      "Aspect ratio of the output video. Ignored if an image is provided."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "float", default: 3, description: "How strongly the video follows the prompt" })
+  @prop({
+    type: "float",
+    default: 3,
+    description: "How strongly the video follows the prompt"
+  })
   declare cfg: any;
 
-  @prop({ type: "image", default: "", description: "Optional input image to use as the starting frame" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Optional input image to use as the starting frame"
+  })
   declare image: any;
 
-  @prop({ type: "float", default: 0.15, description: "Lower numbers stick more closely to the input image" })
+  @prop({
+    type: "float",
+    default: 0.15,
+    description: "Lower numbers stick more closely to the input image"
+  })
   declare image_noise_scale: any;
 
-  @prop({ type: "enum", default: 97, values: ["97", "129", "161", "193", "225", "257"], description: "Length of the output video in frames" })
+  @prop({
+    type: "enum",
+    default: 97,
+    values: ["97", "129", "161", "193", "225", "257"],
+    description: "Length of the output video in frames"
+  })
   declare length: any;
 
-  @prop({ type: "enum", default: "0.9.1", values: ["0.9.1", "0.9"], description: "Model version to use" })
+  @prop({
+    type: "enum",
+    default: "0.9.1",
+    values: ["0.9.1", "0.9"],
+    description: "Model version to use"
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "low quality, worst quality, deformed, distorted", description: "Things you do not want to see in your video" })
+  @prop({
+    type: "str",
+    default: "low quality, worst quality, deformed, distorted",
+    description: "Things you do not want to see in your video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "best quality, 4k, HDR, a tracking shot of a beautiful scene", description: "Text prompt for the video. This model needs long descriptive prompts, if the prompt is too short the quality won't be good." })
+  @prop({
+    type: "str",
+    default: "best quality, 4k, HDR, a tracking shot of a beautiful scene",
+    description:
+      "Text prompt for the video. This model needs long descriptive prompts, if the prompt is too short the quality won't be good."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: -1, description: "Set a seed for reproducibility. Random by default." })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Set a seed for reproducibility. Random by default."
+  })
   declare seed: any;
 
   @prop({ type: "int", default: 30, description: "Number of steps" })
   declare steps: any;
 
-  @prop({ type: "enum", default: 640, values: ["512", "576", "640", "704", "768", "832", "896", "960", "1024"], description: "Target size for the output video" })
+  @prop({
+    type: "enum",
+    default: 640,
+    values: ["512", "576", "640", "704", "768", "832", "896", "960", "1024"],
+    description: "Target size for the output video"
+  })
   declare target_size: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -546,23 +857,28 @@ replicate, ai`;
     const imageNoiseScale = Number(this.image_noise_scale ?? 0.15);
     const length = String(this.length ?? 97);
     const model = String(this.model ?? "0.9.1");
-    const negativePrompt = String(this.negative_prompt ?? "low quality, worst quality, deformed, distorted");
-    const prompt = String(this.prompt ?? "best quality, 4k, HDR, a tracking shot of a beautiful scene");
+    const negativePrompt = String(
+      this.negative_prompt ?? "low quality, worst quality, deformed, distorted"
+    );
+    const prompt = String(
+      this.prompt ??
+        "best quality, 4k, HDR, a tracking shot of a beautiful scene"
+    );
     const seed = Number(this.seed ?? -1);
     const steps = Number(this.steps ?? 30);
     const targetSize = String(this.target_size ?? 640);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "cfg": cfg,
-      "image_noise_scale": imageNoiseScale,
-      "length": length,
-      "model": model,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "seed": seed,
-      "steps": steps,
-      "target_size": targetSize,
+      aspect_ratio: aspectRatio,
+      cfg: cfg,
+      image_noise_scale: imageNoiseScale,
+      length: length,
+      model: model,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      seed: seed,
+      steps: steps,
+      target_size: targetSize
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -572,7 +888,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "lightricks/ltx-video:8c47da666861d081eeb4d1261853087de23923a268a69b63febdf5dc1dee08e4", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "lightricks/ltx-video:8c47da666861d081eeb4d1261853087de23923a268a69b63febdf5dc1dee08e4",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -587,40 +907,89 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Aspect ratio of the output video." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    description: "Aspect ratio of the output video."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: false, description: "Disable safety checker for generated videos" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Disable safety checker for generated videos"
+  })
   declare disable_safety_checker: any;
 
-  @prop({ type: "enum", default: "Balanced", values: ["Off", "Balanced", "Fast"], description: "Speed up generation with different levels of acceleration. Faster modes may degrade quality somewhat. The speedup is dependent on the content, so different videos may see different speedups." })
+  @prop({
+    type: "enum",
+    default: "Balanced",
+    values: ["Off", "Balanced", "Fast"],
+    description:
+      "Speed up generation with different levels of acceleration. Faster modes may degrade quality somewhat. The speedup is dependent on the content, so different videos may see different speedups."
+  })
   declare fast_mode: any;
 
-  @prop({ type: "image", default: "", description: "Image for use as the initial frame of the video." })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Image for use as the initial frame of the video."
+  })
   declare image: any;
 
-  @prop({ type: "float", default: 1, description: "Determines how strongly the main LoRA should be applied. Sane results between 0 and 1 for base inference. You may still need to experiment to find the best value for your particular lora." })
+  @prop({
+    type: "float",
+    default: 1,
+    description:
+      "Determines how strongly the main LoRA should be applied. Sane results between 0 and 1 for base inference. You may still need to experiment to find the best value for your particular lora."
+  })
   declare lora_scale: any;
 
-  @prop({ type: "str", default: "", description: "Load LoRA weights. Supports HuggingFace URLs in the format huggingface.co/<owner>/<model-name>, CivitAI URLs in the format civitai.com/models/<id>[/<model-name>], or arbitrary .safetensors URLs from the Internet." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Load LoRA weights. Supports HuggingFace URLs in the format huggingface.co/<owner>/<model-name>, CivitAI URLs in the format civitai.com/models/<id>[/<model-name>], or arbitrary .safetensors URLs from the Internet."
+  })
   declare lora_weights: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Negative prompt to avoid certain elements"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for image generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for image generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "float", default: 5, description: "Guidance scale for generation" })
+  @prop({
+    type: "float",
+    default: 5,
+    description: "Guidance scale for generation"
+  })
   declare sample_guide_scale: any;
 
-  @prop({ type: "int", default: 3, description: "Flow shift parameter for video generation" })
+  @prop({
+    type: "int",
+    default: 3,
+    description: "Flow shift parameter for video generation"
+  })
   declare sample_shift: any;
 
   @prop({ type: "int", default: 30, description: "Number of inference steps" })
   declare sample_steps: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -638,17 +1007,17 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "disable_safety_checker": disableSafetyChecker,
-      "fast_mode": fastMode,
-      "lora_scale": loraScale,
-      "lora_weights": loraWeights,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "sample_guide_scale": sampleGuideScale,
-      "sample_shift": sampleShift,
-      "sample_steps": sampleSteps,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      disable_safety_checker: disableSafetyChecker,
+      fast_mode: fastMode,
+      lora_scale: loraScale,
+      lora_weights: loraWeights,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      sample_guide_scale: sampleGuideScale,
+      sample_shift: sampleShift,
+      sample_steps: sampleSteps,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -658,7 +1027,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "wavespeedai/wan-2.1-i2v-480p:e2870aa4965fd9ddfd87c16a3c8ab952c18e745e63f3f3b123c2dc8b538ad2b5", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "wavespeedai/wan-2.1-i2v-480p:e2870aa4965fd9ddfd87c16a3c8ab952c18e745e63f3f3b123c2dc8b538ad2b5",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -673,28 +1046,65 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    description: "Video aspect ratio"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 81, values: ["17", "33", "49", "65", "81"], description: "Video duration in frames (based on standard 16fps playback)" })
+  @prop({
+    type: "enum",
+    default: 81,
+    values: ["17", "33", "49", "65", "81"],
+    description: "Video duration in frames (based on standard 16fps playback)"
+  })
   declare frame_num: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt describing what you want to generate" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt describing what you want to generate"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "480p", values: ["480p"], description: "Video resolution" })
+  @prop({
+    type: "enum",
+    default: "480p",
+    values: ["480p"],
+    description: "Video resolution"
+  })
   declare resolution: any;
 
-  @prop({ type: "float", default: 6, description: "Classifier free guidance scale (higher values strengthen prompt adherence)" })
+  @prop({
+    type: "float",
+    default: 6,
+    description:
+      "Classifier free guidance scale (higher values strengthen prompt adherence)"
+  })
   declare sample_guide_scale: any;
 
-  @prop({ type: "float", default: 8, description: "Sampling shift factor for flow matching (recommended range: 8-12)" })
+  @prop({
+    type: "float",
+    default: 8,
+    description:
+      "Sampling shift factor for flow matching (recommended range: 8-12)"
+  })
   declare sample_shift: any;
 
-  @prop({ type: "int", default: 30, description: "Number of sampling steps (higher = better quality but slower)" })
+  @prop({
+    type: "int",
+    default: 30,
+    description: "Number of sampling steps (higher = better quality but slower)"
+  })
   declare sample_steps: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed for reproducible results (leave blank for random)" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed for reproducible results (leave blank for random)"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -709,18 +1119,22 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "frame_num": frameNum,
-      "prompt": prompt,
-      "resolution": resolution,
-      "sample_guide_scale": sampleGuideScale,
-      "sample_shift": sampleShift,
-      "sample_steps": sampleSteps,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      frame_num: frameNum,
+      prompt: prompt,
+      resolution: resolution,
+      sample_guide_scale: sampleGuideScale,
+      sample_shift: sampleShift,
+      sample_steps: sampleSteps,
+      seed: seed
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "wan-video/wan-2.1-1.3b:121bbb762bf449889f090d36e3598c72c50c7a8cc2ce250433bc521a562aae61", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "wan-video/wan-2.1-1.3b:121bbb762bf449889f090d36e3598c72c50c7a8cc2ce250433bc521a562aae61",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -735,31 +1149,92 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    description: "Aspect ratio of the video"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "8"], description: "Duration of the video in seconds. 8 second videos cost twice as much as 5 second videos. V5 supports 1080p with 8 second duration." })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "8"],
+    description:
+      "Duration of the video in seconds. 8 second videos cost twice as much as 5 second videos. V5 supports 1080p with 8 second duration."
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "None", values: ["None", "Let's YMCA!", "Subject 3 Fever", "Ghibli Live!", "Suit Swagger", "Muscle Surge", "360° Microwave", "Warmth of Jesus", "Emergency Beat", "Anything, Robot", "Kungfu Club", "Mint in Box", "Retro Anime Pop", "Vogue Walk", "Mega Dive", "Evil Trigger"], description: "Special effect to apply to the video. V5 supports effects. Does not work with last_frame_image." })
+  @prop({
+    type: "enum",
+    default: "None",
+    values: [
+      "None",
+      "Let's YMCA!",
+      "Subject 3 Fever",
+      "Ghibli Live!",
+      "Suit Swagger",
+      "Muscle Surge",
+      "360° Microwave",
+      "Warmth of Jesus",
+      "Emergency Beat",
+      "Anything, Robot",
+      "Kungfu Club",
+      "Mint in Box",
+      "Retro Anime Pop",
+      "Vogue Walk",
+      "Mega Dive",
+      "Evil Trigger"
+    ],
+    description:
+      "Special effect to apply to the video. V5 supports effects. Does not work with last_frame_image."
+  })
   declare effect: any;
 
-  @prop({ type: "image", default: "", description: "Image to use for the first frame of the video" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Image to use for the first frame of the video"
+  })
   declare image: any;
 
-  @prop({ type: "image", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Use to generate a video that transitions from the first image to the last image. Must be used with image."
+  })
   declare last_frame_image: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements in the video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Negative prompt to avoid certain elements in the video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "540p", values: ["360p", "540p", "720p", "1080p"], description: "Resolution of the video. 360p and 540p cost the same, but 720p and 1080p cost more. V5 supports 1080p with 8 second duration." })
+  @prop({
+    type: "enum",
+    default: "540p",
+    values: ["360p", "540p", "720p", "1080p"],
+    description:
+      "Resolution of the video. 360p and 540p cost the same, but 720p and 1080p cost more. V5 supports 1080p with 8 second duration."
+  })
   declare quality: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -773,13 +1248,13 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "effect": effect,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "quality": quality,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      effect: effect,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      quality: quality,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -788,14 +1263,20 @@ replicate, ai`;
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = this.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = this.last_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = await assetToUrl(lastFrameImageRef!, apiKey);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "pixverse/pixverse-v5:450181c56fcbf920d8d5ba9d7c5653537a009b626652c1a0a909924a785e3389", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "pixverse/pixverse-v5:450181c56fcbf920d8d5ba9d7c5653537a009b626652c1a0a909924a785e3389",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -810,19 +1291,41 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], description: "Video aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
+    description: "Video aspect ratio"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the output video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "10"],
+    description: "Duration of the output video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "Initial image for video generation (first frame)" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Initial image for video generation (first frame)"
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -833,10 +1336,10 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "prompt": prompt,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      prompt: prompt,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -846,7 +1349,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "runwayml/gen4-turbo:6257a44f7b6390e47eb18a1c11f55d221fc90ec056d9acfe490ec9924739533c", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "runwayml/gen4-turbo:6257a44f7b6390e47eb18a1c11f55d221fc90ec056d9acfe490ec9924739533c",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -861,19 +1368,42 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], description: "Video aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
+    description: "Video aspect ratio"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: "", description: "Reference image to influence the style or content of the output." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Reference image to influence the style or content of the output."
+  })
   declare reference_image: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
-  @prop({ type: "video", default: "", description: "Input video to generate from. Videos must be less than 16MB. Only 5s of the input video will be used." })
+  @prop({
+    type: "video",
+    default: "",
+    description:
+      "Input video to generate from. Videos must be less than 16MB. Only 5s of the input video will be used."
+  })
   declare video: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -883,12 +1413,14 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "prompt": prompt,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      prompt: prompt,
+      seed: seed
     };
 
-    const referenceImageRef = this.reference_image as Record<string, unknown> | undefined;
+    const referenceImageRef = this.reference_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(referenceImageRef)) {
       const referenceImageUrl = await assetToUrl(referenceImageRef!, apiKey);
       if (referenceImageUrl) args["reference_image"] = referenceImageUrl;
@@ -901,7 +1433,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "runwayml/gen4-aleph:68cabc3b111f47bd881cffaca63ad0b1e7834c77737e042cec6eca18962ce1d2", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "runwayml/gen4-aleph:68cabc3b111f47bd881cffaca63ad0b1e7834c77737e042cec6eca18962ce1d2",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -916,22 +1452,51 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "10"],
+    description: "Duration of the video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "Last frame of the video (pro mode is required when this parameter is set)" })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Last frame of the video (pro mode is required when this parameter is set)"
+  })
   declare end_image: any;
 
-  @prop({ type: "enum", default: "standard", values: ["standard", "pro"], description: "Standard has a resolution of 720p, pro is 1080p. Both are 24fps." })
+  @prop({
+    type: "enum",
+    default: "standard",
+    values: ["standard", "pro"],
+    description:
+      "Standard has a resolution of 720p, pro is 1080p. Both are 24fps."
+  })
   declare mode: any;
 
-  @prop({ type: "str", default: "", description: "Things you do not want to see in the video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Things you do not want to see in the video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: "", description: "First frame of the video. You must use a start image with kling-v2.1." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "First frame of the video. You must use a start image with kling-v2.1."
+  })
   declare start_image: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -942,10 +1507,10 @@ replicate, ai`;
     const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "duration": duration,
-      "mode": mode,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
+      duration: duration,
+      mode: mode,
+      negative_prompt: negativePrompt,
+      prompt: prompt
     };
 
     const endImageRef = this.end_image as Record<string, unknown> | undefined;
@@ -954,14 +1519,20 @@ replicate, ai`;
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = await assetToUrl(startImageRef!, apiKey);
       if (startImageUrl) args["start_image"] = startImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "kwaivgi/kling-v2.1:daad218feb714b03e2a1ac445986aebb9d05243cd00da2af17be2e4049f48f69", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "kwaivgi/kling-v2.1:daad218feb714b03e2a1ac445986aebb9d05243cd00da2af17be2e4049f48f69",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -976,22 +1547,97 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "audio", default: "", description: "Audio file for lip sync. Must be .mp3, .wav, .m4a, or .aac and less than 5MB." })
+  @prop({
+    type: "audio",
+    default: "",
+    description:
+      "Audio file for lip sync. Must be .mp3, .wav, .m4a, or .aac and less than 5MB."
+  })
   declare audio_file: any;
 
-  @prop({ type: "str", default: "", description: "Text content for lip sync (if not using audio)" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text content for lip sync (if not using audio)"
+  })
   declare text: any;
 
-  @prop({ type: "str", default: "", description: "ID of a video generated by Kling. Cannot be used with video_url." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "ID of a video generated by Kling. Cannot be used with video_url."
+  })
   declare video_id: any;
 
-  @prop({ type: "str", default: "", description: "URL of a video for lip syncing. It can be an .mp4 or .mov file, should be less than 100MB, with a duration of 2-10 seconds, and a resolution of 720p-1080p (720-1920px dimensions). Cannot be used with video_id." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "URL of a video for lip syncing. It can be an .mp4 or .mov file, should be less than 100MB, with a duration of 2-10 seconds, and a resolution of 720p-1080p (720-1920px dimensions). Cannot be used with video_id."
+  })
   declare video_url: any;
 
-  @prop({ type: "enum", default: "en_AOT", values: ["en_AOT", "en_oversea_male1", "en_girlfriend_4_speech02", "en_chat_0407_5-1", "en_uk_boy1", "en_PeppaPig_platform", "en_ai_huangzhong_712", "en_calm_story1", "en_uk_man2", "en_reader_en_m-v1", "en_commercial_lady_en_f-v1", "zh_genshin_vindi2", "zh_zhinen_xuesheng", "zh_tiyuxi_xuedi", "zh_ai_shatang", "zh_genshin_klee2", "zh_genshin_kirara", "zh_ai_kaiya", "zh_tiexin_nanyou", "zh_ai_chenjiahao_712", "zh_girlfriend_1_speech02", "zh_chat1_female_new-3", "zh_girlfriend_2_speech02", "zh_cartoon-boy-07", "zh_cartoon-girl-01", "zh_ai_huangyaoshi_712", "zh_you_pingjing", "zh_ai_laoguowang_712", "zh_chengshu_jiejie", "zh_zhuxi_speech02", "zh_uk_oldman3", "zh_laopopo_speech02", "zh_heainainai_speech02", "zh_dongbeilaotie_speech02", "zh_chongqingxiaohuo_speech02", "zh_chuanmeizi_speech02", "zh_chaoshandashu_speech02", "zh_ai_taiwan_man2_speech02", "zh_xianzhanggui_speech02", "zh_tianjinjiejie_speech02", "zh_diyinnansang_DB_CN_M_04-v2", "zh_yizhipiannan-v1", "zh_guanxiaofang-v2", "zh_tianmeixuemei-v1", "zh_daopianyansang-v1", "zh_mengwa-v1"], description: "Voice ID for speech synthesis (if using text and not audio)" })
+  @prop({
+    type: "enum",
+    default: "en_AOT",
+    values: [
+      "en_AOT",
+      "en_oversea_male1",
+      "en_girlfriend_4_speech02",
+      "en_chat_0407_5-1",
+      "en_uk_boy1",
+      "en_PeppaPig_platform",
+      "en_ai_huangzhong_712",
+      "en_calm_story1",
+      "en_uk_man2",
+      "en_reader_en_m-v1",
+      "en_commercial_lady_en_f-v1",
+      "zh_genshin_vindi2",
+      "zh_zhinen_xuesheng",
+      "zh_tiyuxi_xuedi",
+      "zh_ai_shatang",
+      "zh_genshin_klee2",
+      "zh_genshin_kirara",
+      "zh_ai_kaiya",
+      "zh_tiexin_nanyou",
+      "zh_ai_chenjiahao_712",
+      "zh_girlfriend_1_speech02",
+      "zh_chat1_female_new-3",
+      "zh_girlfriend_2_speech02",
+      "zh_cartoon-boy-07",
+      "zh_cartoon-girl-01",
+      "zh_ai_huangyaoshi_712",
+      "zh_you_pingjing",
+      "zh_ai_laoguowang_712",
+      "zh_chengshu_jiejie",
+      "zh_zhuxi_speech02",
+      "zh_uk_oldman3",
+      "zh_laopopo_speech02",
+      "zh_heainainai_speech02",
+      "zh_dongbeilaotie_speech02",
+      "zh_chongqingxiaohuo_speech02",
+      "zh_chuanmeizi_speech02",
+      "zh_chaoshandashu_speech02",
+      "zh_ai_taiwan_man2_speech02",
+      "zh_xianzhanggui_speech02",
+      "zh_tianjinjiejie_speech02",
+      "zh_diyinnansang_DB_CN_M_04-v2",
+      "zh_yizhipiannan-v1",
+      "zh_guanxiaofang-v2",
+      "zh_tianmeixuemei-v1",
+      "zh_daopianyansang-v1",
+      "zh_mengwa-v1"
+    ],
+    description: "Voice ID for speech synthesis (if using text and not audio)"
+  })
   declare voice_id: any;
 
-  @prop({ type: "float", default: 1, description: "Speech rate (only used if using text and not audio)" })
+  @prop({
+    type: "float",
+    default: 1,
+    description: "Speech rate (only used if using text and not audio)"
+  })
   declare voice_speed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1003,11 +1649,11 @@ replicate, ai`;
     const voiceSpeed = Number(this.voice_speed ?? 1);
 
     const args: Record<string, unknown> = {
-      "text": text,
-      "video_id": videoId,
-      "video_url": videoUrl,
-      "voice_id": voiceId,
-      "voice_speed": voiceSpeed,
+      text: text,
+      video_id: videoId,
+      video_url: videoUrl,
+      voice_id: voiceId,
+      voice_speed: voiceSpeed
     };
 
     const audioFileRef = this.audio_file as Record<string, unknown> | undefined;
@@ -1017,7 +1663,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "kwaivgi/kling-lip-sync:8311467f07043d4b3feb44584d2586bfa2fc70203eca612ed26f84d0b55df3ce", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "kwaivgi/kling-lip-sync:8311467f07043d4b3feb44584d2586bfa2fc70203eca612ed26f84d0b55df3ce",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1032,13 +1682,29 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: 6, values: ["6", "10"], description: "Duration of the video in seconds. 10 seconds is only available for 768p resolution." })
+  @prop({
+    type: "enum",
+    default: 6,
+    values: ["6", "10"],
+    description:
+      "Duration of the video in seconds. 10 seconds is only available for 768p resolution."
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "First frame image for video generation. The output video will have the same aspect ratio as this image."
+  })
   declare first_frame_image: any;
 
-  @prop({ type: "image", default: "", description: "Last frame image for video generation. The final frame of the output video will match this image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Last frame image for video generation. The final frame of the output video will match this image."
+  })
   declare last_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -1047,7 +1713,13 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Use prompt optimizer" })
   declare prompt_optimizer: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["512p", "768p", "1080p"], description: "Pick between standard 512p, 768p, or pro 1080p resolution. The pro model is not just high resolution, it is also higher quality." })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["512p", "768p", "1080p"],
+    description:
+      "Pick between standard 512p, 768p, or pro 1080p resolution. The pro model is not just high resolution, it is also higher quality."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1058,26 +1730,34 @@ replicate, ai`;
     const resolution = String(this.resolution ?? "1080p");
 
     const args: Record<string, unknown> = {
-      "duration": duration,
-      "prompt": prompt,
-      "prompt_optimizer": promptOptimizer,
-      "resolution": resolution,
+      duration: duration,
+      prompt: prompt,
+      prompt_optimizer: promptOptimizer,
+      resolution: resolution
     };
 
-    const firstFrameImageRef = this.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = this.first_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = await assetToUrl(firstFrameImageRef!, apiKey);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
     }
 
-    const lastFrameImageRef = this.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = this.last_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = await assetToUrl(lastFrameImageRef!, apiKey);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "minimax/hailuo-02:baaadb886e09b1e711387e270d841930e8253f08775bc6cb176580658f0f2fd9", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "minimax/hailuo-02:baaadb886e09b1e711387e270d841930e8253f08775bc6cb176580658f0f2fd9",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1092,16 +1772,30 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "bool", default: false, description: "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)" })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)"
+  })
   declare active_speaker: any;
 
   @prop({ type: "audio", default: "", description: "Input audio file (.wav)" })
   declare audio: any;
 
-  @prop({ type: "enum", default: "loop", values: ["loop", "bounce", "cut_off", "silence", "remap"], description: "Lipsync mode when audio and video durations are out of sync" })
+  @prop({
+    type: "enum",
+    default: "loop",
+    values: ["loop", "bounce", "cut_off", "silence", "remap"],
+    description: "Lipsync mode when audio and video durations are out of sync"
+  })
   declare sync_mode: any;
 
-  @prop({ type: "float", default: 0.5, description: "How expressive lipsync can be (0-1)" })
+  @prop({
+    type: "float",
+    default: 0.5,
+    description: "How expressive lipsync can be (0-1)"
+  })
   declare temperature: any;
 
   @prop({ type: "video", default: "", description: "Input video file (.mp4)" })
@@ -1114,9 +1808,9 @@ replicate, ai`;
     const temperature = Number(this.temperature ?? 0.5);
 
     const args: Record<string, unknown> = {
-      "active_speaker": activeSpeaker,
-      "sync_mode": syncMode,
-      "temperature": temperature,
+      active_speaker: activeSpeaker,
+      sync_mode: syncMode,
+      temperature: temperature
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -1132,7 +1826,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "sync/lipsync-2:3190ef7dc0cbca29458d0032c032ef140a840087141cf10333e8d19a213f9194", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "sync/lipsync-2:3190ef7dc0cbca29458d0032c032ef140a840087141cf10333e8d19a213f9194",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1147,16 +1845,30 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "bool", default: false, description: "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)" })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)"
+  })
   declare active_speaker: any;
 
   @prop({ type: "audio", default: "", description: "Input audio file (.wav)" })
   declare audio: any;
 
-  @prop({ type: "enum", default: "loop", values: ["loop", "bounce", "cut_off", "silence", "remap"], description: "Lipsync mode when audio and video durations are out of sync" })
+  @prop({
+    type: "enum",
+    default: "loop",
+    values: ["loop", "bounce", "cut_off", "silence", "remap"],
+    description: "Lipsync mode when audio and video durations are out of sync"
+  })
   declare sync_mode: any;
 
-  @prop({ type: "float", default: 0.5, description: "How expressive lipsync can be (0-1)" })
+  @prop({
+    type: "float",
+    default: 0.5,
+    description: "How expressive lipsync can be (0-1)"
+  })
   declare temperature: any;
 
   @prop({ type: "video", default: "", description: "Input video file (.mp4)" })
@@ -1169,9 +1881,9 @@ replicate, ai`;
     const temperature = Number(this.temperature ?? 0.5);
 
     const args: Record<string, unknown> = {
-      "active_speaker": activeSpeaker,
-      "sync_mode": syncMode,
-      "temperature": temperature,
+      active_speaker: activeSpeaker,
+      sync_mode: syncMode,
+      temperature: temperature
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -1187,7 +1899,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "sync/lipsync-2-pro:eaad6bceea4938d05f5d984b22897e5a7d389d4fff9a70888af5718502b57d39", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "sync/lipsync-2-pro:eaad6bceea4938d05f5d984b22897e5a7d389d4fff9a70888af5718502b57d39",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1202,49 +1918,110 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Aspect ratio of video. 16:9 corresponds to 832x480px, and 9:16 is 480x832px" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    description:
+      "Aspect ratio of video. 16:9 corresponds to 832x480px, and 9:16 is 480x832px"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: false, description: "Disable safety checker for generated video." })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Disable safety checker for generated video."
+  })
   declare disable_safety_checker: any;
 
-  @prop({ type: "int", default: 16, description: "Frames per second. Note that the pricing of this model is based on the video duration at 16 fps" })
+  @prop({
+    type: "int",
+    default: 16,
+    description:
+      "Frames per second. Note that the pricing of this model is based on the video duration at 16 fps"
+  })
   declare frames_per_second: any;
 
   @prop({ type: "bool", default: true, description: "Go fast" })
   declare go_fast: any;
 
-  @prop({ type: "bool", default: true, description: "Interpolate the generated video to 30 FPS using ffmpeg" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Interpolate the generated video to 30 FPS using ffmpeg"
+  })
   declare interpolate_output: any;
 
-  @prop({ type: "float", default: 1, description: "Determines how strongly the transformer LoRA should be applied." })
+  @prop({
+    type: "float",
+    default: 1,
+    description:
+      "Determines how strongly the transformer LoRA should be applied."
+  })
   declare lora_scale_transformer: any;
 
-  @prop({ type: "float", default: 1, description: "Determines how strongly the transformer_2 LoRA should be applied." })
+  @prop({
+    type: "float",
+    default: 1,
+    description:
+      "Determines how strongly the transformer_2 LoRA should be applied."
+  })
   declare lora_scale_transformer_2: any;
 
-  @prop({ type: "str", default: "", description: "Load LoRA weights for transformer. Supports arbitrary .safetensors URLs from the Internet (for example, 'https://huggingface.co/Viktor1717/scandinavian-interior-style1/resolve/main/my_first_flux_lora_v1.safetensors')" })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Load LoRA weights for transformer. Supports arbitrary .safetensors URLs from the Internet (for example, 'https://huggingface.co/Viktor1717/scandinavian-interior-style1/resolve/main/my_first_flux_lora_v1.safetensors')"
+  })
   declare lora_weights_transformer: any;
 
-  @prop({ type: "str", default: "", description: "Load LoRA weights for transformer_2. Supports arbitrary .safetensors URLs from the Internet. Can be different from transformer LoRA." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Load LoRA weights for transformer_2. Supports arbitrary .safetensors URLs from the Internet. Can be different from transformer LoRA."
+  })
   declare lora_weights_transformer_2: any;
 
-  @prop({ type: "int", default: 81, description: "Number of video frames. 81 frames give the best results" })
+  @prop({
+    type: "int",
+    default: 81,
+    description: "Number of video frames. 81 frames give the best results"
+  })
   declare num_frames: any;
 
-  @prop({ type: "bool", default: false, description: "Translate prompt to Chinese before generation" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Translate prompt to Chinese before generation"
+  })
   declare optimize_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "480p", values: ["480p", "720p"], description: "Resolution of video. 16:9 corresponds to 832x480px, and 9:16 is 480x832px" })
+  @prop({
+    type: "enum",
+    default: "480p",
+    values: ["480p", "720p"],
+    description:
+      "Resolution of video. 16:9 corresponds to 832x480px, and 9:16 is 480x832px"
+  })
   declare resolution: any;
 
   @prop({ type: "float", default: 12, description: "Sample shift factor" })
   declare sample_shift: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Leave blank for random" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Leave blank for random"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1257,7 +2034,9 @@ replicate, ai`;
     const loraScaleTransformer = Number(this.lora_scale_transformer ?? 1);
     const loraScaleTransformer_2 = Number(this.lora_scale_transformer_2 ?? 1);
     const loraWeightsTransformer = String(this.lora_weights_transformer ?? "");
-    const loraWeightsTransformer_2 = String(this.lora_weights_transformer_2 ?? "");
+    const loraWeightsTransformer_2 = String(
+      this.lora_weights_transformer_2 ?? ""
+    );
     const numFrames = Number(this.num_frames ?? 81);
     const optimizePrompt = Boolean(this.optimize_prompt ?? false);
     const prompt = String(this.prompt ?? "");
@@ -1266,25 +2045,29 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "disable_safety_checker": disableSafetyChecker,
-      "frames_per_second": framesPerSecond,
-      "go_fast": goFast,
-      "interpolate_output": interpolateOutput,
-      "lora_scale_transformer": loraScaleTransformer,
-      "lora_scale_transformer_2": loraScaleTransformer_2,
-      "lora_weights_transformer": loraWeightsTransformer,
-      "lora_weights_transformer_2": loraWeightsTransformer_2,
-      "num_frames": numFrames,
-      "optimize_prompt": optimizePrompt,
-      "prompt": prompt,
-      "resolution": resolution,
-      "sample_shift": sampleShift,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      disable_safety_checker: disableSafetyChecker,
+      frames_per_second: framesPerSecond,
+      go_fast: goFast,
+      interpolate_output: interpolateOutput,
+      lora_scale_transformer: loraScaleTransformer,
+      lora_scale_transformer_2: loraScaleTransformer_2,
+      lora_weights_transformer: loraWeightsTransformer,
+      lora_weights_transformer_2: loraWeightsTransformer_2,
+      num_frames: numFrames,
+      optimize_prompt: optimizePrompt,
+      prompt: prompt,
+      resolution: resolution,
+      sample_shift: sampleShift,
+      seed: seed
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "wan-video/wan-2.2-t2v-fast:c483b1f7b892065bc58ebadb6381abf557f6b1f517d2ff0febb3fb635cf49b4d", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "wan-video/wan-2.2-t2v-fast:c483b1f7b892065bc58ebadb6381abf557f6b1f517d2ff0febb3fb635cf49b4d",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1299,49 +2082,109 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "bool", default: false, description: "Disable safety checker for generated video." })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Disable safety checker for generated video."
+  })
   declare disable_safety_checker: any;
 
-  @prop({ type: "int", default: 16, description: "Frames per second. Note that the pricing of this model is based on the video duration at 16 fps" })
+  @prop({
+    type: "int",
+    default: 16,
+    description:
+      "Frames per second. Note that the pricing of this model is based on the video duration at 16 fps"
+  })
   declare frames_per_second: any;
 
   @prop({ type: "bool", default: true, description: "Go fast" })
   declare go_fast: any;
 
-  @prop({ type: "image", default: "", description: "Input image to generate video from." })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Input image to generate video from."
+  })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "Interpolate the generated video to 30 FPS using ffmpeg" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Interpolate the generated video to 30 FPS using ffmpeg"
+  })
   declare interpolate_output: any;
 
-  @prop({ type: "image", default: "", description: "Optional last image to condition the video generation. If provided, creates smoother transitions between frames." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Optional last image to condition the video generation. If provided, creates smoother transitions between frames."
+  })
   declare last_image: any;
 
-  @prop({ type: "float", default: 1, description: "Determines how strongly the transformer LoRA should be applied." })
+  @prop({
+    type: "float",
+    default: 1,
+    description:
+      "Determines how strongly the transformer LoRA should be applied."
+  })
   declare lora_scale_transformer: any;
 
-  @prop({ type: "float", default: 1, description: "Determines how strongly the transformer_2 LoRA should be applied." })
+  @prop({
+    type: "float",
+    default: 1,
+    description:
+      "Determines how strongly the transformer_2 LoRA should be applied."
+  })
   declare lora_scale_transformer_2: any;
 
-  @prop({ type: "str", default: "", description: "Load LoRA weights for the HIGH transformer. Supports arbitrary .safetensors URLs from the Internet (for example, 'https://huggingface.co/TheRaf7/instagirl-v2/resolve/main/Instagirlv2.0_hinoise.safetensors')" })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Load LoRA weights for the HIGH transformer. Supports arbitrary .safetensors URLs from the Internet (for example, 'https://huggingface.co/TheRaf7/instagirl-v2/resolve/main/Instagirlv2.0_hinoise.safetensors')"
+  })
   declare lora_weights_transformer: any;
 
-  @prop({ type: "str", default: "", description: "Load LoRA weights for the LOW transformer_2. Supports arbitrary .safetensors URLs from the Internet. Can be different from transformer LoRA. (for example, 'https://huggingface.co/TheRaf7/instagirl-v2/resolve/main/Instagirlv2.0_lownoise.safetensors')" })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Load LoRA weights for the LOW transformer_2. Supports arbitrary .safetensors URLs from the Internet. Can be different from transformer LoRA. (for example, 'https://huggingface.co/TheRaf7/instagirl-v2/resolve/main/Instagirlv2.0_lownoise.safetensors')"
+  })
   declare lora_weights_transformer_2: any;
 
-  @prop({ type: "int", default: 81, description: "Number of video frames. 81 frames give the best results" })
+  @prop({
+    type: "int",
+    default: 81,
+    description: "Number of video frames. 81 frames give the best results"
+  })
   declare num_frames: any;
 
-  @prop({ type: "str", default: "", description: "Prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "480p", values: ["480p", "720p"], description: "Resolution of video. 16:9 corresponds to 832x480px, and 9:16 is 480x832px" })
+  @prop({
+    type: "enum",
+    default: "480p",
+    values: ["480p", "720p"],
+    description:
+      "Resolution of video. 16:9 corresponds to 832x480px, and 9:16 is 480x832px"
+  })
   declare resolution: any;
 
   @prop({ type: "float", default: 12, description: "Sample shift factor" })
   declare sample_shift: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Leave blank for random" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Leave blank for random"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1353,7 +2196,9 @@ replicate, ai`;
     const loraScaleTransformer = Number(this.lora_scale_transformer ?? 1);
     const loraScaleTransformer_2 = Number(this.lora_scale_transformer_2 ?? 1);
     const loraWeightsTransformer = String(this.lora_weights_transformer ?? "");
-    const loraWeightsTransformer_2 = String(this.lora_weights_transformer_2 ?? "");
+    const loraWeightsTransformer_2 = String(
+      this.lora_weights_transformer_2 ?? ""
+    );
     const numFrames = Number(this.num_frames ?? 81);
     const prompt = String(this.prompt ?? "");
     const resolution = String(this.resolution ?? "480p");
@@ -1361,19 +2206,19 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "disable_safety_checker": disableSafetyChecker,
-      "frames_per_second": framesPerSecond,
-      "go_fast": goFast,
-      "interpolate_output": interpolateOutput,
-      "lora_scale_transformer": loraScaleTransformer,
-      "lora_scale_transformer_2": loraScaleTransformer_2,
-      "lora_weights_transformer": loraWeightsTransformer,
-      "lora_weights_transformer_2": loraWeightsTransformer_2,
-      "num_frames": numFrames,
-      "prompt": prompt,
-      "resolution": resolution,
-      "sample_shift": sampleShift,
-      "seed": seed,
+      disable_safety_checker: disableSafetyChecker,
+      frames_per_second: framesPerSecond,
+      go_fast: goFast,
+      interpolate_output: interpolateOutput,
+      lora_scale_transformer: loraScaleTransformer,
+      lora_scale_transformer_2: loraScaleTransformer_2,
+      lora_weights_transformer: loraWeightsTransformer,
+      lora_weights_transformer_2: loraWeightsTransformer_2,
+      num_frames: numFrames,
+      prompt: prompt,
+      resolution: resolution,
+      sample_shift: sampleShift,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -1389,7 +2234,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "wan-video/wan-2.2-i2v-fast:4eaf2b01d3bf70d8a2e00b219efeb7cb415855ad18b7dacdc4cae664a73a6eea", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "wan-video/wan-2.2-i2v-fast:4eaf2b01d3bf70d8a2e00b219efeb7cb415855ad18b7dacdc4cae664a73a6eea",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1404,34 +2253,80 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    description: "Video aspect ratio"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 8, values: ["4", "6", "8"], description: "Video duration in seconds" })
+  @prop({
+    type: "enum",
+    default: 8,
+    values: ["4", "6", "8"],
+    description: "Video duration in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, description: "Generate audio with the video" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Generate audio with the video"
+  })
   declare generate_audio: any;
 
-  @prop({ type: "image", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose."
+  })
   declare image: any;
 
-  @prop({ type: "image", default: "", description: "Ending image for interpolation. When provided with an input image, creates a transition between the two images." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Ending image for interpolation. When provided with an input image, creates a transition between the two images."
+  })
   declare last_frame: any;
 
-  @prop({ type: "str", default: "", description: "Description of what to exclude from the generated video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Description of what to exclude from the generated video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], description: "1 to 3 reference images for subject-consistent generation (reference-to-video, or R2V). Reference images only work with 16:9 aspect ratio and 8-second duration. Last frame is ignored if reference images are provided." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    description:
+      "1 to 3 reference images for subject-consistent generation (reference-to-video, or R2V). Reference images only work with 16:9 aspect ratio and 8-second duration. Last frame is ignored if reference images are provided."
+  })
   declare reference_images: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["720p", "1080p"], description: "Resolution of the generated video" })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["720p", "1080p"],
+    description: "Resolution of the generated video"
+  })
   declare resolution: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Omit for random generations" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Omit for random generations"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1445,13 +2340,13 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "generate_audio": generateAudio,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "resolution": resolution,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      generate_audio: generateAudio,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      resolution: resolution,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -1466,14 +2361,20 @@ replicate, ai`;
       if (lastFrameUrl) args["last_frame"] = lastFrameUrl;
     }
 
-    const referenceImagesRef = this.reference_images as Record<string, unknown> | undefined;
+    const referenceImagesRef = this.reference_images as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(referenceImagesRef)) {
       const referenceImagesUrl = await assetToUrl(referenceImagesRef!, apiKey);
       if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "google/veo-3.1:ed5b1767b711dd15d954b162af1e890d27882680f463a85e94f02d604012b972", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "google/veo-3.1:ed5b1767b711dd15d954b162af1e890d27882680f463a85e94f02d604012b972",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1488,19 +2389,42 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], description: "Video aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
+    description: "Video aspect ratio"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the output video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "10"],
+    description: "Duration of the output video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "Optional initial image for video generation (first frame). If not provided, video will be generated from text only." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Optional initial image for video generation (first frame). If not provided, video will be generated from text only."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1511,10 +2435,10 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "prompt": prompt,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      prompt: prompt,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -1524,7 +2448,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "runwayml/gen-4.5:2e10d5ae08888b39ed31c828003f4a5ddc89a7cdec3bc7a9926661e0d22cb034", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "runwayml/gen-4.5:2e10d5ae08888b39ed31c828003f4a5ddc89a7cdec3bc7a9926661e0d22cb034",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1539,31 +2467,69 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio. Ignored when start_image is provided." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    description: "Aspect ratio. Ignored when start_image is provided."
+  })
   declare aspect_ratio: any;
 
   @prop({ type: "int", default: 5, description: "Video duration in seconds." })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "Last frame image. Requires start_image. Supports .jpg/.jpeg/.png, max 10MB, min 300px." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Last frame image. Requires start_image. Supports .jpg/.jpeg/.png, max 10MB, min 300px."
+  })
   declare end_image: any;
 
-  @prop({ type: "bool", default: false, description: "Generate native audio for the video." })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Generate native audio for the video."
+  })
   declare generate_audio: any;
 
-  @prop({ type: "enum", default: "pro", values: ["standard", "pro"], description: "'standard' generates 720p, 'pro' generates 1080p." })
+  @prop({
+    type: "enum",
+    default: "pro",
+    values: ["standard", "pro"],
+    description: "'standard' generates 720p, 'pro' generates 1080p."
+  })
   declare mode: any;
 
-  @prop({ type: "str", default: "", description: "JSON array of shot definitions for multi-shot mode. Each shot: {\"prompt\": \"...\", \"duration\": N}. Max 6 shots, min 1s per shot, total must equal duration." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      'JSON array of shot definitions for multi-shot mode. Each shot: {"prompt": "...", "duration": N}. Max 6 shots, min 1s per shot, total must equal duration.'
+  })
   declare multi_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Things you do not want to see in the video. Max 2500 characters." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Things you do not want to see in the video. Max 2500 characters."
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation. Max 2500 characters." })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation. Max 2500 characters."
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: "", description: "First frame image. Supports .jpg/.jpeg/.png, max 10MB, min 300px, aspect ratio 1:2.5 to 2.5:1." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "First frame image. Supports .jpg/.jpeg/.png, max 10MB, min 300px, aspect ratio 1:2.5 to 2.5:1."
+  })
   declare start_image: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1577,13 +2543,13 @@ replicate, ai`;
     const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "generate_audio": generateAudio,
-      "mode": mode,
-      "multi_prompt": multiPrompt,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      generate_audio: generateAudio,
+      mode: mode,
+      multi_prompt: multiPrompt,
+      negative_prompt: negativePrompt,
+      prompt: prompt
     };
 
     const endImageRef = this.end_image as Record<string, unknown> | undefined;
@@ -1592,14 +2558,20 @@ replicate, ai`;
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = await assetToUrl(startImageRef!, apiKey);
       if (startImageUrl) args["start_image"] = startImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "kwaivgi/kling-v3-video:4a8ba2743bd9dc2b487e0c4319988aacd658d33c2d064b8a420f4ee1732c30bd", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "kwaivgi/kling-v3-video:4a8ba2743bd9dc2b487e0c4319988aacd658d33c2d064b8a420f4ee1732c30bd",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1614,40 +2586,101 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio. Required when not using start frame or video editing." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    description:
+      "Aspect ratio. Required when not using start frame or video editing."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "int", default: 5, description: "Video duration in seconds (3-15). Ignored for video editing (base)." })
+  @prop({
+    type: "int",
+    default: 5,
+    description:
+      "Video duration in seconds (3-15). Ignored for video editing (base)."
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "Last frame image. Requires start_image. Supports .jpg/.jpeg/.png, max 10MB, min 300px." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Last frame image. Requires start_image. Supports .jpg/.jpeg/.png, max 10MB, min 300px."
+  })
   declare end_image: any;
 
-  @prop({ type: "bool", default: false, description: "Generate native audio. Mutually exclusive with reference video." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Generate native audio. Mutually exclusive with reference video."
+  })
   declare generate_audio: any;
 
-  @prop({ type: "bool", default: true, description: "Keep original sound from reference video." })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Keep original sound from reference video."
+  })
   declare keep_original_sound: any;
 
-  @prop({ type: "enum", default: "pro", values: ["standard", "pro"], description: "'standard' generates 720p, 'pro' generates 1080p." })
+  @prop({
+    type: "enum",
+    default: "pro",
+    values: ["standard", "pro"],
+    description: "'standard' generates 720p, 'pro' generates 1080p."
+  })
   declare mode: any;
 
-  @prop({ type: "str", default: "", description: "JSON array of shot definitions for multi-shot mode. Each shot: {\"prompt\": \"...\", \"duration\": N}. Max 6 shots, min duration 1s per shot, total must equal duration. Example: [{\"prompt\":\"A cat jumps\",\"duration\":3},{\"prompt\":\"It lands\",\"duration\":2}]" })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      'JSON array of shot definitions for multi-shot mode. Each shot: {"prompt": "...", "duration": N}. Max 6 shots, min duration 1s per shot, total must equal duration. Example: [{"prompt":"A cat jumps","duration":3},{"prompt":"It lands","duration":2}]'
+  })
   declare multi_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation. Supports <<<image_1>>>, <<<video_1>>> template references. Max 2500 characters." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Text prompt for video generation. Supports <<<image_1>>>, <<<video_1>>> template references. Max 2500 characters."
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], description: "Reference images for elements, scenes, or styles. Supports .jpg/.jpeg/.png. Max 7 without video, 4 with video." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    description:
+      "Reference images for elements, scenes, or styles. Supports .jpg/.jpeg/.png. Max 7 without video, 4 with video."
+  })
   declare reference_images: any;
 
-  @prop({ type: "video", default: "", description: "Reference video (.mp4/.mov). Duration 3-10s, resolution 720-2160px per side, max 200MB." })
+  @prop({
+    type: "video",
+    default: "",
+    description:
+      "Reference video (.mp4/.mov). Duration 3-10s, resolution 720-2160px per side, max 200MB."
+  })
   declare reference_video: any;
 
-  @prop({ type: "image", default: "", description: "First frame image. Supports .jpg/.jpeg/.png, max 10MB, min 300px, aspect ratio 1:2.5 to 2.5:1." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "First frame image. Supports .jpg/.jpeg/.png, max 10MB, min 300px, aspect ratio 1:2.5 to 2.5:1."
+  })
   declare start_image: any;
 
-  @prop({ type: "enum", default: "feature", values: ["feature", "base"], description: "How to use reference video: 'feature' for style/camera reference, 'base' for video editing." })
+  @prop({
+    type: "enum",
+    default: "feature",
+    values: ["feature", "base"],
+    description:
+      "How to use reference video: 'feature' for style/camera reference, 'base' for video editing."
+  })
   declare video_reference_type: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1662,14 +2695,14 @@ replicate, ai`;
     const videoReferenceType = String(this.video_reference_type ?? "feature");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "generate_audio": generateAudio,
-      "keep_original_sound": keepOriginalSound,
-      "mode": mode,
-      "multi_prompt": multiPrompt,
-      "prompt": prompt,
-      "video_reference_type": videoReferenceType,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      generate_audio: generateAudio,
+      keep_original_sound: keepOriginalSound,
+      mode: mode,
+      multi_prompt: multiPrompt,
+      prompt: prompt,
+      video_reference_type: videoReferenceType
     };
 
     const endImageRef = this.end_image as Record<string, unknown> | undefined;
@@ -1678,26 +2711,36 @@ replicate, ai`;
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const referenceImagesRef = this.reference_images as Record<string, unknown> | undefined;
+    const referenceImagesRef = this.reference_images as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(referenceImagesRef)) {
       const referenceImagesUrl = await assetToUrl(referenceImagesRef!, apiKey);
       if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
     }
 
-    const referenceVideoRef = this.reference_video as Record<string, unknown> | undefined;
+    const referenceVideoRef = this.reference_video as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(referenceVideoRef)) {
       const referenceVideoUrl = await assetToUrl(referenceVideoRef!, apiKey);
       if (referenceVideoUrl) args["reference_video"] = referenceVideoUrl;
     }
 
-    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = await assetToUrl(startImageRef!, apiKey);
       if (startImageUrl) args["start_image"] = startImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "kwaivgi/kling-v3-omni-video:1d449e255319a7c07feca688cf0596cb82cc8a96ceddff6c44fd0d090b4e830c", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "kwaivgi/kling-v3-omni-video:1d449e255319a7c07feca688cf0596cb82cc8a96ceddff6c44fd0d090b4e830c",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1712,22 +2755,45 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video. Ignored if start_image is provided." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    description:
+      "Aspect ratio of the video. Ignored if start_image is provided."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "10"],
+    description: "Duration of the video in seconds"
+  })
   declare duration: any;
 
   @prop({ type: "image", default: "", description: "Last frame of the video" })
   declare end_image: any;
 
-  @prop({ type: "image", default: "", description: "Deprecated: Use start_image instead." })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Deprecated: Use start_image instead."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Things you do not want to see in the video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Things you do not want to see in the video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
   @prop({ type: "image", default: "", description: "First frame of the video" })
@@ -1741,10 +2807,10 @@ replicate, ai`;
     const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      negative_prompt: negativePrompt,
+      prompt: prompt
     };
 
     const endImageRef = this.end_image as Record<string, unknown> | undefined;
@@ -1759,14 +2825,20 @@ replicate, ai`;
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = await assetToUrl(startImageRef!, apiKey);
       if (startImageUrl) args["start_image"] = startImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "kwaivgi/kling-v2.5-turbo-pro:18f41bfca7f1997ce37b04b407152c385c9159095681a6f5a4ff47718bc25a57", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "kwaivgi/kling-v2.5-turbo-pro:18f41bfca7f1997ce37b04b407152c385c9159095681a6f5a4ff47718bc25a57",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1781,19 +2853,43 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video. Ignored if start_image is provided." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    description:
+      "Aspect ratio of the video. Ignored if start_image is provided."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "10"],
+    description: "Duration of the video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, description: "Generate audio for the video. When enabled, the model will create synchronized audio based on the video content." })
+  @prop({
+    type: "bool",
+    default: true,
+    description:
+      "Generate audio for the video. When enabled, the model will create synchronized audio based on the video content."
+  })
   declare generate_audio: any;
 
-  @prop({ type: "str", default: "", description: "Things you do not want to see in the video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Things you do not want to see in the video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
   @prop({ type: "image", default: "", description: "First frame of the video" })
@@ -1808,21 +2904,27 @@ replicate, ai`;
     const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "generate_audio": generateAudio,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      generate_audio: generateAudio,
+      negative_prompt: negativePrompt,
+      prompt: prompt
     };
 
-    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = await assetToUrl(startImageRef!, apiKey);
       if (startImageUrl) args["start_image"] = startImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "kwaivgi/kling-v2.6:b13f36d030496dd78d2986ba8b2b22a44222b3f58c15fb63ef7d6b4aa3a53319", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "kwaivgi/kling-v2.6:b13f36d030496dd78d2986ba8b2b22a44222b3f58c15fb63ef7d6b4aa3a53319",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1837,28 +2939,64 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    description: "Video aspect ratio"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 8, values: ["4", "6", "8"], description: "Video duration in seconds" })
+  @prop({
+    type: "enum",
+    default: 8,
+    values: ["4", "6", "8"],
+    description: "Video duration in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, description: "Generate audio with the video" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Generate audio with the video"
+  })
   declare generate_audio: any;
 
-  @prop({ type: "image", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Description of what to exclude from the generated video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Description of what to exclude from the generated video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["720p", "1080p"], description: "Resolution of the generated video" })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["720p", "1080p"],
+    description: "Resolution of the generated video"
+  })
   declare resolution: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Omit for random generations" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Omit for random generations"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1872,13 +3010,13 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "generate_audio": generateAudio,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "resolution": resolution,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      generate_audio: generateAudio,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      resolution: resolution,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -1888,7 +3026,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "google/veo-3:5e80c73750ffc5dfbe5cee2d694c6ed3da7706660d9132613e6736443b365464", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "google/veo-3:5e80c73750ffc5dfbe5cee2d694c6ed3da7706660d9132613e6736443b365464",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1903,28 +3045,64 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    description: "Video aspect ratio"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 8, values: ["4", "6", "8"], description: "Video duration in seconds" })
+  @prop({
+    type: "enum",
+    default: 8,
+    values: ["4", "6", "8"],
+    description: "Video duration in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, description: "Generate audio with the video" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Generate audio with the video"
+  })
   declare generate_audio: any;
 
-  @prop({ type: "image", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Description of what to exclude from the generated video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Description of what to exclude from the generated video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["720p", "1080p"], description: "Resolution of the generated video" })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["720p", "1080p"],
+    description: "Resolution of the generated video"
+  })
   declare resolution: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Omit for random generations" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Omit for random generations"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1938,13 +3116,13 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "generate_audio": generateAudio,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "resolution": resolution,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      generate_audio: generateAudio,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      resolution: resolution,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -1954,7 +3132,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "google/veo-3-fast:368d4063e21ecf73746b8e6d27989837d97ba07b5eca43a4e5488c852e10c2ec", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "google/veo-3-fast:368d4063e21ecf73746b8e6d27989837d97ba07b5eca43a4e5488c852e10c2ec",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1969,19 +3151,42 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16"],
+    description: "Video aspect ratio"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "6", "7", "8"], description: "Video duration in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "6", "7", "8"],
+    description: "Video duration in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose."
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Omit for random generations" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Omit for random generations"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1992,10 +3197,10 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "prompt": prompt,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      prompt: prompt,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -2005,7 +3210,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "google/veo-2:af8ebddc406d877a89d631dbbcba24b31692e0f9819639299b1d5def12dd7c95", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "google/veo-2:af8ebddc406d877a89d631dbbcba24b31692e0f9819639299b1d5def12dd7c95",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2020,10 +3229,21 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: 6, values: ["6", "10"], description: "Duration of the video in seconds. 10 seconds is only available for 768p resolution." })
+  @prop({
+    type: "enum",
+    default: 6,
+    values: ["6", "10"],
+    description:
+      "Duration of the video in seconds. 10 seconds is only available for 768p resolution."
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "First frame image for video generation. The output video will have the same aspect ratio as this image."
+  })
   declare first_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -2032,7 +3252,13 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Use prompt optimizer" })
   declare prompt_optimizer: any;
 
-  @prop({ type: "enum", default: "768p", values: ["768p", "1080p"], description: "Pick between 768p or 1080p resolution. 1080p supports only 6-second duration." })
+  @prop({
+    type: "enum",
+    default: "768p",
+    values: ["768p", "1080p"],
+    description:
+      "Pick between 768p or 1080p resolution. 1080p supports only 6-second duration."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2043,20 +3269,26 @@ replicate, ai`;
     const resolution = String(this.resolution ?? "768p");
 
     const args: Record<string, unknown> = {
-      "duration": duration,
-      "prompt": prompt,
-      "prompt_optimizer": promptOptimizer,
-      "resolution": resolution,
+      duration: duration,
+      prompt: prompt,
+      prompt_optimizer: promptOptimizer,
+      resolution: resolution
     };
 
-    const firstFrameImageRef = this.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = this.first_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = await assetToUrl(firstFrameImageRef!, apiKey);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "minimax/hailuo-2.3:23a02633b5a44780345a59d4d43f8bd510efa239c56f08f29639ff24fa6615e1", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "minimax/hailuo-2.3:23a02633b5a44780345a59d4d43f8bd510efa239c56f08f29639ff24fa6615e1",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2071,10 +3303,21 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: 6, values: ["6", "10"], description: "Duration of the video in seconds. 10 seconds is only available for 768p resolution." })
+  @prop({
+    type: "enum",
+    default: 6,
+    values: ["6", "10"],
+    description:
+      "Duration of the video in seconds. 10 seconds is only available for 768p resolution."
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "First frame image for video generation. The output video will have the same aspect ratio as this image."
+  })
   declare first_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -2083,7 +3326,13 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Use prompt optimizer" })
   declare prompt_optimizer: any;
 
-  @prop({ type: "enum", default: "768p", values: ["768p", "1080p"], description: "Pick between 768p or 1080p resolution. 1080p supports only 6-second duration." })
+  @prop({
+    type: "enum",
+    default: "768p",
+    values: ["768p", "1080p"],
+    description:
+      "Pick between 768p or 1080p resolution. 1080p supports only 6-second duration."
+  })
   declare resolution: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2094,20 +3343,26 @@ replicate, ai`;
     const resolution = String(this.resolution ?? "768p");
 
     const args: Record<string, unknown> = {
-      "duration": duration,
-      "prompt": prompt,
-      "prompt_optimizer": promptOptimizer,
-      "resolution": resolution,
+      duration: duration,
+      prompt: prompt,
+      prompt_optimizer: promptOptimizer,
+      resolution: resolution
     };
 
-    const firstFrameImageRef = this.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = this.first_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = await assetToUrl(firstFrameImageRef!, apiKey);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "minimax/hailuo-2.3-fast:c92f075dfd04541f1c1913a9689f778ecf76bfec3dd9fdfe19903a86e07f2cdc", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "minimax/hailuo-2.3-fast:c92f075dfd04541f1c1913a9689f778ecf76bfec3dd9fdfe19903a86e07f2cdc",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2122,34 +3377,83 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    description: "Aspect ratio of the video"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "8", "10"], description: "Duration of the video in seconds. 10 second videos are only available for 360p, 540p, and 720p." })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "8", "10"],
+    description:
+      "Duration of the video in seconds. 10 second videos are only available for 360p, 540p, and 720p."
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: false, description: "Enable AI-generated audio including BGM, SFX, and character dialogues" })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Enable AI-generated audio including BGM, SFX, and character dialogues"
+  })
   declare generate_audio_switch: any;
 
-  @prop({ type: "image", default: "", description: "Image to use for the first frame of the video" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Image to use for the first frame of the video"
+  })
   declare image: any;
 
-  @prop({ type: "image", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Use to generate a video that transitions from the first image to the last image. Must be used with image."
+  })
   declare last_frame_image: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements in the video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Negative prompt to avoid certain elements in the video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "540p", values: ["360p", "540p", "720p", "1080p"], description: "Resolution of the video. Higher resolutions cost more. See pricing for details." })
+  @prop({
+    type: "enum",
+    default: "540p",
+    values: ["360p", "540p", "720p", "1080p"],
+    description:
+      "Resolution of the video. Higher resolutions cost more. See pricing for details."
+  })
   declare quality: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
-  @prop({ type: "enum", default: "auto", values: ["disabled", "enabled", "auto"], description: "Prompt reasoning enhancement. Controls whether the system enhances your prompt with internal reasoning and optimization." })
+  @prop({
+    type: "enum",
+    default: "auto",
+    values: ["disabled", "enabled", "auto"],
+    description:
+      "Prompt reasoning enhancement. Controls whether the system enhances your prompt with internal reasoning and optimization."
+  })
   declare thinking_type: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2164,14 +3468,14 @@ replicate, ai`;
     const thinkingType = String(this.thinking_type ?? "auto");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "generate_audio_switch": generateAudioSwitch,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "quality": quality,
-      "seed": seed,
-      "thinking_type": thinkingType,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      generate_audio_switch: generateAudioSwitch,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      quality: quality,
+      seed: seed,
+      thinking_type: thinkingType
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -2180,14 +3484,20 @@ replicate, ai`;
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = this.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = this.last_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = await assetToUrl(lastFrameImageRef!, apiKey);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "pixverse/pixverse-v5.6:716a21c01b88914165473824a15be03188a54c5830fac57d64de93919fcae0e9", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "pixverse/pixverse-v5.6:716a21c01b88914165473824a15be03188a54c5830fac57d64de93919fcae0e9",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2202,43 +3512,124 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    description: "Aspect ratio of the video"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "8"], description: "Duration of the video in seconds. 8 second videos cost twice as much as 5 second videos. (1080p does not support 8 second duration)" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "8"],
+    description:
+      "Duration of the video in seconds. 8 second videos cost twice as much as 5 second videos. (1080p does not support 8 second duration)"
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "None", values: ["None", "Let's YMCA!", "Subject 3 Fever", "Ghibli Live!", "Suit Swagger", "Muscle Surge", "360° Microwave", "Warmth of Jesus", "Emergency Beat", "Anything, Robot", "Kungfu Club", "Mint in Box", "Retro Anime Pop", "Vogue Walk", "Mega Dive", "Evil Trigger"], description: "Special effect to apply to the video. Does not work with last_frame_image." })
+  @prop({
+    type: "enum",
+    default: "None",
+    values: [
+      "None",
+      "Let's YMCA!",
+      "Subject 3 Fever",
+      "Ghibli Live!",
+      "Suit Swagger",
+      "Muscle Surge",
+      "360° Microwave",
+      "Warmth of Jesus",
+      "Emergency Beat",
+      "Anything, Robot",
+      "Kungfu Club",
+      "Mint in Box",
+      "Retro Anime Pop",
+      "Vogue Walk",
+      "Mega Dive",
+      "Evil Trigger"
+    ],
+    description:
+      "Special effect to apply to the video. Does not work with last_frame_image."
+  })
   declare effect: any;
 
-  @prop({ type: "image", default: "", description: "Image to use for the first frame of the video" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Image to use for the first frame of the video"
+  })
   declare image: any;
 
-  @prop({ type: "image", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Use to generate a video that transitions from the first image to the last image. Must be used with image."
+  })
   declare last_frame_image: any;
 
-  @prop({ type: "enum", default: "normal", values: ["normal", "smooth"], description: "Motion mode for the video. Smooth videos generate more frames, so they cost twice as much. (smooth is only available when using a 5 second duration, 1080p does not support smooth motion)" })
+  @prop({
+    type: "enum",
+    default: "normal",
+    values: ["normal", "smooth"],
+    description:
+      "Motion mode for the video. Smooth videos generate more frames, so they cost twice as much. (smooth is only available when using a 5 second duration, 1080p does not support smooth motion)"
+  })
   declare motion_mode: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements in the video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Negative prompt to avoid certain elements in the video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "540p", values: ["360p", "540p", "720p", "1080p"], description: "Resolution of the video. 360p and 540p cost the same, but 720p and 1080p cost more. See the README for details." })
+  @prop({
+    type: "enum",
+    default: "540p",
+    values: ["360p", "540p", "720p", "1080p"],
+    description:
+      "Resolution of the video. 360p and 540p cost the same, but 720p and 1080p cost more. See the README for details."
+  })
   declare quality: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
-  @prop({ type: "str", default: "", description: "Sound effect prompt. If not given, a random sound effect will be generated." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Sound effect prompt. If not given, a random sound effect will be generated."
+  })
   declare sound_effect_content: any;
 
-  @prop({ type: "bool", default: false, description: "Enable background music or sound effects" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Enable background music or sound effects"
+  })
   declare sound_effect_switch: any;
 
-  @prop({ type: "enum", default: "None", values: ["None", "anime", "3d_animation", "clay", "cyberpunk", "comic"], description: "Style of the video" })
+  @prop({
+    type: "enum",
+    default: "None",
+    values: ["None", "anime", "3d_animation", "clay", "cyberpunk", "comic"],
+    description: "Style of the video"
+  })
   declare style: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2256,17 +3647,17 @@ replicate, ai`;
     const style = String(this.style ?? "None");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "effect": effect,
-      "motion_mode": motionMode,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "quality": quality,
-      "seed": seed,
-      "sound_effect_content": soundEffectContent,
-      "sound_effect_switch": soundEffectSwitch,
-      "style": style,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      effect: effect,
+      motion_mode: motionMode,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      quality: quality,
+      seed: seed,
+      sound_effect_content: soundEffectContent,
+      sound_effect_switch: soundEffectSwitch,
+      style: style
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -2275,14 +3666,20 @@ replicate, ai`;
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = this.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = this.last_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = await assetToUrl(lastFrameImageRef!, apiKey);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "pixverse/pixverse-v4:5d3d7389baa4d420ce9aaa270a8b251b3923e778dee4c51e35f8e09d815c6b36", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "pixverse/pixverse-v4:5d3d7389baa4d420ce9aaa270a8b251b3923e778dee4c51e35f8e09d815c6b36",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2297,43 +3694,124 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "9:16", "1:1"],
+    description: "Aspect ratio of the video"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "8"], description: "Duration of the video in seconds. 8 second videos cost twice as much as 5 second videos. (1080p does not support 8 second duration)" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "8"],
+    description:
+      "Duration of the video in seconds. 8 second videos cost twice as much as 5 second videos. (1080p does not support 8 second duration)"
+  })
   declare duration: any;
 
-  @prop({ type: "enum", default: "None", values: ["None", "Let's YMCA!", "Subject 3 Fever", "Ghibli Live!", "Suit Swagger", "Muscle Surge", "360° Microwave", "Warmth of Jesus", "Emergency Beat", "Anything, Robot", "Kungfu Club", "Mint in Box", "Retro Anime Pop", "Vogue Walk", "Mega Dive", "Evil Trigger"], description: "Special effect to apply to the video. Does not work with last_frame_image." })
+  @prop({
+    type: "enum",
+    default: "None",
+    values: [
+      "None",
+      "Let's YMCA!",
+      "Subject 3 Fever",
+      "Ghibli Live!",
+      "Suit Swagger",
+      "Muscle Surge",
+      "360° Microwave",
+      "Warmth of Jesus",
+      "Emergency Beat",
+      "Anything, Robot",
+      "Kungfu Club",
+      "Mint in Box",
+      "Retro Anime Pop",
+      "Vogue Walk",
+      "Mega Dive",
+      "Evil Trigger"
+    ],
+    description:
+      "Special effect to apply to the video. Does not work with last_frame_image."
+  })
   declare effect: any;
 
-  @prop({ type: "image", default: "", description: "Image to use for the first frame of the video" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Image to use for the first frame of the video"
+  })
   declare image: any;
 
-  @prop({ type: "image", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Use to generate a video that transitions from the first image to the last image. Must be used with image."
+  })
   declare last_frame_image: any;
 
-  @prop({ type: "enum", default: "normal", values: ["normal", "smooth"], description: "Motion mode for the video. Smooth videos generate more frames, so they cost twice as much. (smooth is only available when using a 5 second duration, 1080p does not support smooth motion)" })
+  @prop({
+    type: "enum",
+    default: "normal",
+    values: ["normal", "smooth"],
+    description:
+      "Motion mode for the video. Smooth videos generate more frames, so they cost twice as much. (smooth is only available when using a 5 second duration, 1080p does not support smooth motion)"
+  })
   declare motion_mode: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements in the video" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Negative prompt to avoid certain elements in the video"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "540p", values: ["360p", "540p", "720p", "1080p"], description: "Resolution of the video. 360p and 540p cost the same, but 720p and 1080p cost more. See the README for details." })
+  @prop({
+    type: "enum",
+    default: "540p",
+    values: ["360p", "540p", "720p", "1080p"],
+    description:
+      "Resolution of the video. 360p and 540p cost the same, but 720p and 1080p cost more. See the README for details."
+  })
   declare quality: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
-  @prop({ type: "str", default: "", description: "Sound effect prompt. If not given, a random sound effect will be generated." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Sound effect prompt. If not given, a random sound effect will be generated."
+  })
   declare sound_effect_content: any;
 
-  @prop({ type: "bool", default: false, description: "Enable background music or sound effects" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Enable background music or sound effects"
+  })
   declare sound_effect_switch: any;
 
-  @prop({ type: "enum", default: "None", values: ["None", "anime", "3d_animation", "clay", "cyberpunk", "comic"], description: "Style of the video" })
+  @prop({
+    type: "enum",
+    default: "None",
+    values: ["None", "anime", "3d_animation", "clay", "cyberpunk", "comic"],
+    description: "Style of the video"
+  })
   declare style: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2351,17 +3829,17 @@ replicate, ai`;
     const style = String(this.style ?? "None");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "duration": duration,
-      "effect": effect,
-      "motion_mode": motionMode,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "quality": quality,
-      "seed": seed,
-      "sound_effect_content": soundEffectContent,
-      "sound_effect_switch": soundEffectSwitch,
-      "style": style,
+      aspect_ratio: aspectRatio,
+      duration: duration,
+      effect: effect,
+      motion_mode: motionMode,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      quality: quality,
+      seed: seed,
+      sound_effect_content: soundEffectContent,
+      sound_effect_switch: soundEffectSwitch,
+      style: style
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -2370,14 +3848,20 @@ replicate, ai`;
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = this.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = this.last_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = await assetToUrl(lastFrameImageRef!, apiKey);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "pixverse/pixverse-v4.5:5a31b090decb67bde4291ca5d2a69d7908720c0a1262a4b5d72022518a9b5a3c", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "pixverse/pixverse-v4.5:5a31b090decb67bde4291ca5d2a69d7908720c0a1262a4b5d72022518a9b5a3c",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2392,25 +3876,63 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "audio", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
+  @prop({
+    type: "audio",
+    default: "",
+    description:
+      "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization"
+  })
   declare audio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the generated video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "10"],
+    description: "Duration of the generated video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, description: "If set to true, the prompt optimizer will be enabled" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "If set to true, the prompt optimizer will be enabled"
+  })
   declare enable_prompt_expansion: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Negative prompt to avoid certain elements"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed for reproducible generation"
+  })
   declare seed: any;
 
-  @prop({ type: "enum", default: "1280*720", values: ["832*480", "480*832", "1280*720", "720*1280", "1920*1080", "1080*1920"], description: "Video resolution and aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "1280*720",
+    values: [
+      "832*480",
+      "480*832",
+      "1280*720",
+      "720*1280",
+      "1920*1080",
+      "1080*1920"
+    ],
+    description: "Video resolution and aspect ratio"
+  })
   declare size: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2423,12 +3945,12 @@ replicate, ai`;
     const size = String(this.size ?? "1280*720");
 
     const args: Record<string, unknown> = {
-      "duration": duration,
-      "enable_prompt_expansion": enablePromptExpansion,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "seed": seed,
-      "size": size,
+      duration: duration,
+      enable_prompt_expansion: enablePromptExpansion,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      seed: seed,
+      size: size
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -2438,7 +3960,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "wan-video/wan-2.5-t2v:4e22e64c604706aa4ac1929a7ae146ea033f39bb228e896da79d91b7a39e8d32", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "wan-video/wan-2.5-t2v:4e22e64c604706aa4ac1929a7ae146ea033f39bb228e896da79d91b7a39e8d32",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2453,25 +3979,56 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "audio", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
+  @prop({
+    type: "audio",
+    default: "",
+    description:
+      "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization"
+  })
   declare audio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the generated video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "10"],
+    description: "Duration of the generated video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, description: "If set to true, the prompt optimizer will be enabled" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "If set to true, the prompt optimizer will be enabled"
+  })
   declare enable_prompt_expansion: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Negative prompt to avoid certain elements"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed for reproducible generation"
+  })
   declare seed: any;
 
-  @prop({ type: "enum", default: "1280*720", values: ["1280*720", "720*1280", "1920*1080", "1080*1920"], description: "Video resolution and aspect ratio" })
+  @prop({
+    type: "enum",
+    default: "1280*720",
+    values: ["1280*720", "720*1280", "1920*1080", "1080*1920"],
+    description: "Video resolution and aspect ratio"
+  })
   declare size: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2484,12 +4041,12 @@ replicate, ai`;
     const size = String(this.size ?? "1280*720");
 
     const args: Record<string, unknown> = {
-      "duration": duration,
-      "enable_prompt_expansion": enablePromptExpansion,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "seed": seed,
-      "size": size,
+      duration: duration,
+      enable_prompt_expansion: enablePromptExpansion,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      seed: seed,
+      size: size
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -2499,7 +4056,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "wan-video/wan-2.5-t2v-fast:1ffaab95d8f67adf487548468b03e795ad0410089c655c560e492add1b7beaf0", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "wan-video/wan-2.5-t2v-fast:1ffaab95d8f67adf487548468b03e795ad0410089c655c560e492add1b7beaf0",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2514,28 +4075,63 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "audio", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
+  @prop({
+    type: "audio",
+    default: "",
+    description:
+      "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization"
+  })
   declare audio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the generated video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "10"],
+    description: "Duration of the generated video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, description: "If set to true, the prompt optimizer will be enabled" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "If set to true, the prompt optimizer will be enabled"
+  })
   declare enable_prompt_expansion: any;
 
-  @prop({ type: "image", default: "", description: "Input image for video generation" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Input image for video generation"
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Negative prompt to avoid certain elements"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "720p", values: ["480p", "720p", "1080p"], description: "Video resolution" })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["480p", "720p", "1080p"],
+    description: "Video resolution"
+  })
   declare resolution: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed for reproducible generation"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2548,12 +4144,12 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "duration": duration,
-      "enable_prompt_expansion": enablePromptExpansion,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "resolution": resolution,
-      "seed": seed,
+      duration: duration,
+      enable_prompt_expansion: enablePromptExpansion,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      resolution: resolution,
+      seed: seed
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -2569,7 +4165,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "wan-video/wan-2.5-i2v:1b29bbbbfdbc25bba2294de3acd2b58b82e5b623f183880cdb37d76133d80f00", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "wan-video/wan-2.5-i2v:1b29bbbbfdbc25bba2294de3acd2b58b82e5b623f183880cdb37d76133d80f00",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2584,28 +4184,63 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "audio", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
+  @prop({
+    type: "audio",
+    default: "",
+    description:
+      "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization"
+  })
   declare audio: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the generated video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "10"],
+    description: "Duration of the generated video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "bool", default: true, description: "If set to true, the prompt optimizer will be enabled" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "If set to true, the prompt optimizer will be enabled"
+  })
   declare enable_prompt_expansion: any;
 
-  @prop({ type: "image", default: "", description: "Input image for video generation" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Input image for video generation"
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Negative prompt to avoid certain elements"
+  })
   declare negative_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "720p", values: ["720p", "1080p"], description: "Video resolution" })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["720p", "1080p"],
+    description: "Video resolution"
+  })
   declare resolution: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed for reproducible generation"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2618,12 +4253,12 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "duration": duration,
-      "enable_prompt_expansion": enablePromptExpansion,
-      "negative_prompt": negativePrompt,
-      "prompt": prompt,
-      "resolution": resolution,
-      "seed": seed,
+      duration: duration,
+      enable_prompt_expansion: enablePromptExpansion,
+      negative_prompt: negativePrompt,
+      prompt: prompt,
+      resolution: resolution,
+      seed: seed
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -2639,7 +4274,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "wan-video/wan-2.5-i2v-fast:66226b38d223f8ac7a81aa33b8519759e300c2f9818a215e32900827ad6d2db5", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "wan-video/wan-2.5-i2v-fast:66226b38d223f8ac7a81aa33b8519759e300c2f9818a215e32900827ad6d2db5",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2654,31 +4293,67 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21"], description: "Video aspect ratio. Ignored if an image is used." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21"],
+    description: "Video aspect ratio. Ignored if an image is used."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to fix camera position" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Whether to fix camera position"
+  })
   declare camera_fixed: any;
 
   @prop({ type: "int", default: 5, description: "Video duration in seconds" })
   declare duration: any;
 
-  @prop({ type: "enum", default: 24, values: ["24"], description: "Frame rate (frames per second)" })
+  @prop({
+    type: "enum",
+    default: 24,
+    values: ["24"],
+    description: "Frame rate (frames per second)"
+  })
   declare fps: any;
 
-  @prop({ type: "image", default: "", description: "Input image for image-to-video generation" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Input image for image-to-video generation"
+  })
   declare image: any;
 
-  @prop({ type: "image", default: "", description: "Input image for last frame generation. This only works if an image start frame is given too." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Input image for last frame generation. This only works if an image start frame is given too."
+  })
   declare last_frame_image: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["480p", "720p", "1080p"], description: "Video resolution" })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["480p", "720p", "1080p"],
+    description: "Video resolution"
+  })
   declare resolution: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2692,13 +4367,13 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "camera_fixed": cameraFixed,
-      "duration": duration,
-      "fps": fps,
-      "prompt": prompt,
-      "resolution": resolution,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      camera_fixed: cameraFixed,
+      duration: duration,
+      fps: fps,
+      prompt: prompt,
+      resolution: resolution,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -2707,14 +4382,20 @@ replicate, ai`;
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = this.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = this.last_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = await assetToUrl(lastFrameImageRef!, apiKey);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "bytedance/seedance-1-pro:a5fd550893da3b6f67997812759065652454ddaca10e96b83b59cbae1814cb36", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "bytedance/seedance-1-pro:a5fd550893da3b6f67997812759065652454ddaca10e96b83b59cbae1814cb36",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2729,34 +4410,75 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21"], description: "Video aspect ratio. Ignored if an image is used." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21"],
+    description: "Video aspect ratio. Ignored if an image is used."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to fix camera position" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Whether to fix camera position"
+  })
   declare camera_fixed: any;
 
   @prop({ type: "int", default: 5, description: "Video duration in seconds" })
   declare duration: any;
 
-  @prop({ type: "enum", default: 24, values: ["24"], description: "Frame rate (frames per second)" })
+  @prop({
+    type: "enum",
+    default: 24,
+    values: ["24"],
+    description: "Frame rate (frames per second)"
+  })
   declare fps: any;
 
-  @prop({ type: "image", default: "", description: "Input image for image-to-video generation" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Input image for image-to-video generation"
+  })
   declare image: any;
 
-  @prop({ type: "image", default: "", description: "Input image for last frame generation. This only works if an image start frame is given too." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Input image for last frame generation. This only works if an image start frame is given too."
+  })
   declare last_frame_image: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "list[image]", default: [], description: "Reference images (1-4 images) to guide video generation for characters, avatars, clothing, environments, or multi-character interactions. Reference images cannot be used with 1080p resolution or first frame or last frame images." })
+  @prop({
+    type: "list[image]",
+    default: [],
+    description:
+      "Reference images (1-4 images) to guide video generation for characters, avatars, clothing, environments, or multi-character interactions. Reference images cannot be used with 1080p resolution or first frame or last frame images."
+  })
   declare reference_images: any;
 
-  @prop({ type: "enum", default: "720p", values: ["480p", "720p", "1080p"], description: "Video resolution" })
+  @prop({
+    type: "enum",
+    default: "720p",
+    values: ["480p", "720p", "1080p"],
+    description: "Video resolution"
+  })
   declare resolution: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2770,13 +4492,13 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "camera_fixed": cameraFixed,
-      "duration": duration,
-      "fps": fps,
-      "prompt": prompt,
-      "resolution": resolution,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      camera_fixed: cameraFixed,
+      duration: duration,
+      fps: fps,
+      prompt: prompt,
+      resolution: resolution,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -2785,20 +4507,28 @@ replicate, ai`;
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = this.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = this.last_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = await assetToUrl(lastFrameImageRef!, apiKey);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
     }
 
-    const referenceImagesRef = this.reference_images as Record<string, unknown> | undefined;
+    const referenceImagesRef = this.reference_images as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(referenceImagesRef)) {
       const referenceImagesUrl = await assetToUrl(referenceImagesRef!, apiKey);
       if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "bytedance/seedance-1-lite:78c9c4b0a7056c911b0483f58349b9931aff30d6465e7ab665e6c852949ce6d5", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "bytedance/seedance-1-lite:78c9c4b0a7056c911b0483f58349b9931aff30d6465e7ab665e6c852949ce6d5",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2813,28 +4543,59 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21"], description: "Video aspect ratio. Ignored if an image is used." })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21"],
+    description: "Video aspect ratio. Ignored if an image is used."
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to fix camera position" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Whether to fix camera position"
+  })
   declare camera_fixed: any;
 
   @prop({ type: "int", default: 5, description: "Video duration in seconds" })
   declare duration: any;
 
-  @prop({ type: "enum", default: 24, values: ["24"], description: "Frame rate (frames per second)" })
+  @prop({
+    type: "enum",
+    default: 24,
+    values: ["24"],
+    description: "Frame rate (frames per second)"
+  })
   declare fps: any;
 
-  @prop({ type: "image", default: "", description: "Input image for image-to-video generation" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Input image for image-to-video generation"
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["480p", "720p", "1080p"], description: "Video resolution" })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["480p", "720p", "1080p"],
+    description: "Video resolution"
+  })
   declare resolution: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Set for reproducible generation"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2848,13 +4609,13 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "camera_fixed": cameraFixed,
-      "duration": duration,
-      "fps": fps,
-      "prompt": prompt,
-      "resolution": resolution,
-      "seed": seed,
+      aspect_ratio: aspectRatio,
+      camera_fixed: cameraFixed,
+      duration: duration,
+      fps: fps,
+      prompt: prompt,
+      resolution: resolution,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -2864,7 +4625,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "bytedance/seedance-1-pro-fast:155d6d446da5e7cd4a2ef72725461ba8687bdf63a2a1fb7bb574f25af24dc7b5", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "bytedance/seedance-1-pro-fast:155d6d446da5e7cd4a2ef72725461ba8687bdf63a2a1fb7bb574f25af24dc7b5",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2879,31 +4644,73 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated video" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"],
+    description: "Aspect ratio of the generated video"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of camera concepts to apply to the video generation. Concepts include: truck_left, pan_right, pedestal_down, low_angle, pedestal_up, selfie, pan_left, roll_right, zoom_in, over_the_shoulder, orbit_right, orbit_left, static, tiny_planet, high_angle, bolt_cam, dolly_zoom, overhead, zoom_out, handheld, roll_left, pov, aerial_drone, push_in, crane_down, truck_right, tilt_down, elevator_doors, tilt_up, ground_level, pull_out, aerial, crane_up, eye_level" })
+  @prop({
+    type: "list[str]",
+    default: [],
+    description:
+      "List of camera concepts to apply to the video generation. Concepts include: truck_left, pan_right, pedestal_down, low_angle, pedestal_up, selfie, pan_left, roll_right, zoom_in, over_the_shoulder, orbit_right, orbit_left, static, tiny_planet, high_angle, bolt_cam, dolly_zoom, overhead, zoom_out, handheld, roll_left, pov, aerial_drone, push_in, crane_down, truck_right, tilt_down, elevator_doors, tilt_up, ground_level, pull_out, aerial, crane_up, eye_level"
+  })
   declare concepts: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "9"], description: "Duration of the video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "9"],
+    description: "Duration of the video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "An optional last frame of the video to use as the ending frame." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional last frame of the video to use as the ending frame."
+  })
   declare end_image: any;
 
-  @prop({ type: "str", default: "", description: "Deprecated: Use end_image instead" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Deprecated: Use end_image instead"
+  })
   declare end_image_url: any;
 
-  @prop({ type: "bool", default: false, description: "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback."
+  })
   declare loop: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: "", description: "An optional first frame of the video to use as the starting frame." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional first frame of the video to use as the starting frame."
+  })
   declare start_image: any;
 
-  @prop({ type: "str", default: "", description: "Deprecated: Use start_image instead" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Deprecated: Use start_image instead"
+  })
   declare start_image_url: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2917,13 +4724,13 @@ replicate, ai`;
     const startImageUrl = String(this.start_image_url ?? "");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "concepts": concepts,
-      "duration": duration,
-      "end_image_url": endImageUrl,
-      "loop": loop,
-      "prompt": prompt,
-      "start_image_url": startImageUrl,
+      aspect_ratio: aspectRatio,
+      concepts: concepts,
+      duration: duration,
+      end_image_url: endImageUrl,
+      loop: loop,
+      prompt: prompt,
+      start_image_url: startImageUrl
     };
 
     const endImageRef = this.end_image as Record<string, unknown> | undefined;
@@ -2932,14 +4739,20 @@ replicate, ai`;
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = await assetToUrl(startImageRef!, apiKey);
       if (startImageUrl) args["start_image"] = startImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "luma/ray-2-540p:838565ddabd524ed2b1ab8011d811956b954b8f3716c7a15853fd326e826b6c7", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "luma/ray-2-540p:838565ddabd524ed2b1ab8011d811956b954b8f3716c7a15853fd326e826b6c7",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -2954,31 +4767,73 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated video" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"],
+    description: "Aspect ratio of the generated video"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of camera concepts to apply to the video generation. Concepts include: truck_left, pan_right, pedestal_down, low_angle, pedestal_up, selfie, pan_left, roll_right, zoom_in, over_the_shoulder, orbit_right, orbit_left, static, tiny_planet, high_angle, bolt_cam, dolly_zoom, overhead, zoom_out, handheld, roll_left, pov, aerial_drone, push_in, crane_down, truck_right, tilt_down, elevator_doors, tilt_up, ground_level, pull_out, aerial, crane_up, eye_level" })
+  @prop({
+    type: "list[str]",
+    default: [],
+    description:
+      "List of camera concepts to apply to the video generation. Concepts include: truck_left, pan_right, pedestal_down, low_angle, pedestal_up, selfie, pan_left, roll_right, zoom_in, over_the_shoulder, orbit_right, orbit_left, static, tiny_planet, high_angle, bolt_cam, dolly_zoom, overhead, zoom_out, handheld, roll_left, pov, aerial_drone, push_in, crane_down, truck_right, tilt_down, elevator_doors, tilt_up, ground_level, pull_out, aerial, crane_up, eye_level"
+  })
   declare concepts: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "9"], description: "Duration of the video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "9"],
+    description: "Duration of the video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "An optional last frame of the video to use as the ending frame." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional last frame of the video to use as the ending frame."
+  })
   declare end_image: any;
 
-  @prop({ type: "str", default: "", description: "Deprecated: Use end_image instead" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Deprecated: Use end_image instead"
+  })
   declare end_image_url: any;
 
-  @prop({ type: "bool", default: false, description: "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback."
+  })
   declare loop: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: "", description: "An optional first frame of the video to use as the starting frame." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional first frame of the video to use as the starting frame."
+  })
   declare start_image: any;
 
-  @prop({ type: "str", default: "", description: "Deprecated: Use start_image instead" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Deprecated: Use start_image instead"
+  })
   declare start_image_url: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -2992,13 +4847,13 @@ replicate, ai`;
     const startImageUrl = String(this.start_image_url ?? "");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "concepts": concepts,
-      "duration": duration,
-      "end_image_url": endImageUrl,
-      "loop": loop,
-      "prompt": prompt,
-      "start_image_url": startImageUrl,
+      aspect_ratio: aspectRatio,
+      concepts: concepts,
+      duration: duration,
+      end_image_url: endImageUrl,
+      loop: loop,
+      prompt: prompt,
+      start_image_url: startImageUrl
     };
 
     const endImageRef = this.end_image as Record<string, unknown> | undefined;
@@ -3007,14 +4862,20 @@ replicate, ai`;
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = await assetToUrl(startImageRef!, apiKey);
       if (startImageUrl) args["start_image"] = startImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "luma/ray-2-720p:3ca2bc3597e124149bcae1f9c239790a58ba0f1aa72e1c8747192d2b44284dc4", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "luma/ray-2-720p:3ca2bc3597e124149bcae1f9c239790a58ba0f1aa72e1c8747192d2b44284dc4",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -3029,31 +4890,73 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated video" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"],
+    description: "Aspect ratio of the generated video"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of camera concepts to apply to the video generation. Concepts include: truck_left, pan_right, pedestal_down, low_angle, pedestal_up, selfie, pan_left, roll_right, zoom_in, over_the_shoulder, orbit_right, orbit_left, static, tiny_planet, high_angle, bolt_cam, dolly_zoom, overhead, zoom_out, handheld, roll_left, pov, aerial_drone, push_in, crane_down, truck_right, tilt_down, elevator_doors, tilt_up, ground_level, pull_out, aerial, crane_up, eye_level" })
+  @prop({
+    type: "list[str]",
+    default: [],
+    description:
+      "List of camera concepts to apply to the video generation. Concepts include: truck_left, pan_right, pedestal_down, low_angle, pedestal_up, selfie, pan_left, roll_right, zoom_in, over_the_shoulder, orbit_right, orbit_left, static, tiny_planet, high_angle, bolt_cam, dolly_zoom, overhead, zoom_out, handheld, roll_left, pov, aerial_drone, push_in, crane_down, truck_right, tilt_down, elevator_doors, tilt_up, ground_level, pull_out, aerial, crane_up, eye_level"
+  })
   declare concepts: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "9"], description: "Duration of the video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "9"],
+    description: "Duration of the video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "An optional last frame of the video to use as the ending frame." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional last frame of the video to use as the ending frame."
+  })
   declare end_image: any;
 
-  @prop({ type: "str", default: "", description: "Deprecated: Use end_image instead" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Deprecated: Use end_image instead"
+  })
   declare end_image_url: any;
 
-  @prop({ type: "bool", default: false, description: "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback."
+  })
   declare loop: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: "", description: "An optional first frame of the video to use as the starting frame." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional first frame of the video to use as the starting frame."
+  })
   declare start_image: any;
 
-  @prop({ type: "str", default: "", description: "Deprecated: Use start_image instead" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Deprecated: Use start_image instead"
+  })
   declare start_image_url: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -3067,13 +4970,13 @@ replicate, ai`;
     const startImageUrl = String(this.start_image_url ?? "");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "concepts": concepts,
-      "duration": duration,
-      "end_image_url": endImageUrl,
-      "loop": loop,
-      "prompt": prompt,
-      "start_image_url": startImageUrl,
+      aspect_ratio: aspectRatio,
+      concepts: concepts,
+      duration: duration,
+      end_image_url: endImageUrl,
+      loop: loop,
+      prompt: prompt,
+      start_image_url: startImageUrl
     };
 
     const endImageRef = this.end_image as Record<string, unknown> | undefined;
@@ -3082,14 +4985,20 @@ replicate, ai`;
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = await assetToUrl(startImageRef!, apiKey);
       if (startImageUrl) args["start_image"] = startImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "luma/ray-flash-2-720p:4de59b4688ad158409be13c0c0c37ddfcf21824b2acf326505b03bcf679acab5", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "luma/ray-flash-2-720p:4de59b4688ad158409be13c0c0c37ddfcf21824b2acf326505b03bcf679acab5",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -3104,31 +5013,73 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated video" })
+  @prop({
+    type: "enum",
+    default: "16:9",
+    values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"],
+    description: "Aspect ratio of the generated video"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of camera concepts to apply to the video generation. Concepts include: truck_left, pan_right, pedestal_down, low_angle, pedestal_up, selfie, pan_left, roll_right, zoom_in, over_the_shoulder, orbit_right, orbit_left, static, tiny_planet, high_angle, bolt_cam, dolly_zoom, overhead, zoom_out, handheld, roll_left, pov, aerial_drone, push_in, crane_down, truck_right, tilt_down, elevator_doors, tilt_up, ground_level, pull_out, aerial, crane_up, eye_level" })
+  @prop({
+    type: "list[str]",
+    default: [],
+    description:
+      "List of camera concepts to apply to the video generation. Concepts include: truck_left, pan_right, pedestal_down, low_angle, pedestal_up, selfie, pan_left, roll_right, zoom_in, over_the_shoulder, orbit_right, orbit_left, static, tiny_planet, high_angle, bolt_cam, dolly_zoom, overhead, zoom_out, handheld, roll_left, pov, aerial_drone, push_in, crane_down, truck_right, tilt_down, elevator_doors, tilt_up, ground_level, pull_out, aerial, crane_up, eye_level"
+  })
   declare concepts: any;
 
-  @prop({ type: "enum", default: 5, values: ["5", "9"], description: "Duration of the video in seconds" })
+  @prop({
+    type: "enum",
+    default: 5,
+    values: ["5", "9"],
+    description: "Duration of the video in seconds"
+  })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "An optional last frame of the video to use as the ending frame." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional last frame of the video to use as the ending frame."
+  })
   declare end_image: any;
 
-  @prop({ type: "str", default: "", description: "Deprecated: Use end_image instead" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Deprecated: Use end_image instead"
+  })
   declare end_image_url: any;
 
-  @prop({ type: "bool", default: false, description: "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback."
+  })
   declare loop: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Text prompt for video generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: "", description: "An optional first frame of the video to use as the starting frame." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional first frame of the video to use as the starting frame."
+  })
   declare start_image: any;
 
-  @prop({ type: "str", default: "", description: "Deprecated: Use start_image instead" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Deprecated: Use start_image instead"
+  })
   declare start_image_url: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -3142,13 +5093,13 @@ replicate, ai`;
     const startImageUrl = String(this.start_image_url ?? "");
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "concepts": concepts,
-      "duration": duration,
-      "end_image_url": endImageUrl,
-      "loop": loop,
-      "prompt": prompt,
-      "start_image_url": startImageUrl,
+      aspect_ratio: aspectRatio,
+      concepts: concepts,
+      duration: duration,
+      end_image_url: endImageUrl,
+      loop: loop,
+      prompt: prompt,
+      start_image_url: startImageUrl
     };
 
     const endImageRef = this.end_image as Record<string, unknown> | undefined;
@@ -3157,14 +5108,20 @@ replicate, ai`;
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = await assetToUrl(startImageRef!, apiKey);
       if (startImageUrl) args["start_image"] = startImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "luma/ray-flash-2-540p:ab7a8dbfe56fe6712c7a64f684930372677a31a3470d260f4786928395c1c5cc", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "luma/ray-flash-2-540p:ab7a8dbfe56fe6712c7a64f684930372677a31a3470d260f4786928395c1c5cc",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -3179,19 +5136,44 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "portrait", values: ["portrait", "landscape"], description: "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720" })
+  @prop({
+    type: "enum",
+    default: "portrait",
+    values: ["portrait", "landscape"],
+    description:
+      "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "image", default: "", description: "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video."
+  })
   declare input_reference: any;
 
-  @prop({ type: "str", default: "", description: "Optional: Your OpenAI API key. If you use your own OpenAI API key, you will be charged directly by OpenAI." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Optional: Your OpenAI API key. If you use your own OpenAI API key, you will be charged directly by OpenAI."
+  })
   declare openai_api_key: any;
 
-  @prop({ type: "str", default: "", description: "A text description of the video to generate" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "A text description of the video to generate"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: 4, values: ["4", "8", "12"], description: "Duration of the video in seconds" })
+  @prop({
+    type: "enum",
+    default: 4,
+    values: ["4", "8", "12"],
+    description: "Duration of the video in seconds"
+  })
   declare seconds: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -3202,20 +5184,26 @@ replicate, ai`;
     const seconds = String(this.seconds ?? 4);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "openai_api_key": openaiApiKey,
-      "prompt": prompt,
-      "seconds": seconds,
+      aspect_ratio: aspectRatio,
+      openai_api_key: openaiApiKey,
+      prompt: prompt,
+      seconds: seconds
     };
 
-    const inputReferenceRef = this.input_reference as Record<string, unknown> | undefined;
+    const inputReferenceRef = this.input_reference as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(inputReferenceRef)) {
       const inputReferenceUrl = await assetToUrl(inputReferenceRef!, apiKey);
       if (inputReferenceUrl) args["input_reference"] = inputReferenceUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "openai/sora-2:763a9321f615f4867b1d7a2d53666200da21f71da358b12c9b25e0127edae014", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "openai/sora-2:763a9321f615f4867b1d7a2d53666200da21f71da358b12c9b25e0127edae014",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -3230,22 +5218,52 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "enum", default: "portrait", values: ["portrait", "landscape"], description: "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720" })
+  @prop({
+    type: "enum",
+    default: "portrait",
+    values: ["portrait", "landscape"],
+    description:
+      "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720"
+  })
   declare aspect_ratio: any;
 
-  @prop({ type: "image", default: "", description: "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video."
+  })
   declare input_reference: any;
 
-  @prop({ type: "str", default: "", description: "Optional: Your OpenAI API key. If you use your own OpenAI API key, you will be charged directly by OpenAI." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Optional: Your OpenAI API key. If you use your own OpenAI API key, you will be charged directly by OpenAI."
+  })
   declare openai_api_key: any;
 
-  @prop({ type: "str", default: "", description: "A text description of the video to generate" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "A text description of the video to generate"
+  })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "standard", values: ["standard", "high"], description: "Resolution quality. Standard is 720p, high is 1024p" })
+  @prop({
+    type: "enum",
+    default: "standard",
+    values: ["standard", "high"],
+    description: "Resolution quality. Standard is 720p, high is 1024p"
+  })
   declare resolution: any;
 
-  @prop({ type: "enum", default: 4, values: ["4", "8", "12"], description: "Duration of the video in seconds" })
+  @prop({
+    type: "enum",
+    default: 4,
+    values: ["4", "8", "12"],
+    description: "Duration of the video in seconds"
+  })
   declare seconds: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -3257,21 +5275,27 @@ replicate, ai`;
     const seconds = String(this.seconds ?? 4);
 
     const args: Record<string, unknown> = {
-      "aspect_ratio": aspectRatio,
-      "openai_api_key": openaiApiKey,
-      "prompt": prompt,
-      "resolution": resolution,
-      "seconds": seconds,
+      aspect_ratio: aspectRatio,
+      openai_api_key: openaiApiKey,
+      prompt: prompt,
+      resolution: resolution,
+      seconds: seconds
     };
 
-    const inputReferenceRef = this.input_reference as Record<string, unknown> | undefined;
+    const inputReferenceRef = this.input_reference as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(inputReferenceRef)) {
       const inputReferenceUrl = await assetToUrl(inputReferenceRef!, apiKey);
       if (inputReferenceUrl) args["input_reference"] = inputReferenceUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "openai/sora-2-pro:ccf1a58e3ec72e86d01ab19ef240009409f26a9a0470cc246a1728e54b0a6b8f", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "openai/sora-2-pro:ccf1a58e3ec72e86d01ab19ef240009409f26a9a0470cc246a1728e54b0a6b8f",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -3286,10 +5310,20 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "First frame image for video generation. The output video will have the same aspect ratio as this image."
+  })
   declare first_frame_image: any;
 
-  @prop({ type: "str", default: "", description: "Text prompt for video generation. Camera movement instructions can be added using square brackets (e.g. [Pan left] or [Zoom in]). You can use up to 3 combined movements per prompt. Supported movements: Truck left/right, Pan left/right, Push in/Pull out, Pedestal up/down, Tilt up/down, Zoom in/out, Shake, Tracking shot, Static shot. For example: [Truck left, Pan right, Zoom in]" })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Text prompt for video generation. Camera movement instructions can be added using square brackets (e.g. [Pan left] or [Zoom in]). You can use up to 3 combined movements per prompt. Supported movements: Truck left/right, Pan left/right, Push in/Pull out, Pedestal up/down, Tilt up/down, Zoom in/out, Shake, Tracking shot, Static shot. For example: [Truck left, Pan right, Zoom in]"
+  })
   declare prompt: any;
 
   @prop({ type: "bool", default: true, description: "Use prompt optimizer" })
@@ -3301,18 +5335,24 @@ replicate, ai`;
     const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "prompt_optimizer": promptOptimizer,
+      prompt: prompt,
+      prompt_optimizer: promptOptimizer
     };
 
-    const firstFrameImageRef = this.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = this.first_frame_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = await assetToUrl(firstFrameImageRef!, apiKey);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "minimax/video-01-director:377cde553c72d2a8a034a2824a43b63b9472247d670dbb14d8c917abb2d39b64", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "minimax/video-01-director:377cde553c72d2a8a034a2824a43b63b9472247d670dbb14d8c917abb2d39b64",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -3366,5 +5406,5 @@ export const REPLICATE_VIDEO_GENERATE_NODES: readonly NodeClass[] = [
   Ray_Flash_2_540p,
   Sora_2,
   Sora_2_Pro,
-  Video_01_Director,
+  Video_01_Director
 ] as const;

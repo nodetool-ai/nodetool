@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Convert To Audio"
-node_type: "lib.numpy.conversion.ConvertToAudio"
-namespace: "lib.numpy.conversion"
+node_type: "lib.array.conversion.ConvertToAudio"
+namespace: "lib.array.conversion"
 ---
 
-**Type:** `lib.numpy.conversion.ConvertToAudio`
+**Type:** `lib.array.conversion.ConvertToAudio`
 
-**Namespace:** `lib.numpy.conversion`
+**Namespace:** `lib.array.conversion`
 
 ## Description
 
@@ -36,5 +36,5 @@ Converts a array object back to an audio file.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](../) namespace.
 

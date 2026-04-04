@@ -4,14 +4,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   DialogContent,
-  DialogTitle,
-  IconButton
+  DialogTitle
 } from "@mui/material";
 import React, { memo } from "react";
-import CloseIcon from "@mui/icons-material/Close";
 import CollectionList from "./CollectionList";
 import PanelHeadline from "../ui/PanelHeadline";
-import { Dialog } from "../ui_primitives";
+import { Dialog, CloseButton } from "../ui_primitives";
 
 const fadeIn = keyframes`
   from {
@@ -62,14 +60,7 @@ const CollectionsManager: React.FC<CollectionsManagerProps> = ({
         <PanelHeadline
           title="Collections"
           actions={
-            <IconButton
-              className="close-button"
-              onClick={onClose}
-              size="small"
-              aria-label="close"
-            >
-              <CloseIcon />
-            </IconButton>
+            <CloseButton onClick={onClose} nodrag={false} />
           }
         />
       </DialogTitle>

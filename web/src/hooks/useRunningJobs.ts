@@ -28,9 +28,7 @@ const fetchRunningJobs = async (): Promise<Job[]> => {
  * Only runs when user is authenticated
  */
 export const useRunningJobs = () => {
-  const { state } = useAuth((auth) => ({
-    state: auth.state
-  }));
+  const state = useAuth((auth) => auth.state);
   const isAuthenticated = state === "logged_in";
 
   return useQuery({

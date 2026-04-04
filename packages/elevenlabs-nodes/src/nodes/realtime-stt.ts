@@ -2,7 +2,7 @@ import { BaseNode, prop } from "@nodetool/node-sdk";
 import type {
   NodeClass,
   StreamingInputs,
-  StreamingOutputs,
+  StreamingOutputs
 } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 
@@ -27,7 +27,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     type: "chunk",
     default: "",
     title: "Chunk",
-    description: "Audio chunk input stream (base64-encoded PCM16 audio).",
+    description: "Audio chunk input stream (base64-encoded PCM16 audio)."
   })
   declare chunk: any;
 
@@ -35,7 +35,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     type: "str",
     default: "scribe_v2_realtime",
     title: "Model",
-    description: "The realtime transcription model to use.",
+    description: "The realtime transcription model to use."
   })
   declare model_id: any;
 
@@ -43,7 +43,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     type: "str",
     default: "",
     title: "Language Code",
-    description: "ISO 639-1/3 language code. Leave empty for auto-detection.",
+    description: "ISO 639-1/3 language code. Leave empty for auto-detection."
   })
   declare language_code: any;
 
@@ -51,8 +51,9 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     type: "enum",
     default: "vad",
     title: "Commit Strategy",
-    description: "Strategy for committing transcriptions: manual or voice activity detection.",
-    values: ["manual", "vad"],
+    description:
+      "Strategy for committing transcriptions: manual or voice activity detection.",
+    values: ["manual", "vad"]
   })
   declare commit_strategy: any;
 
@@ -60,7 +61,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     type: "bool",
     default: false,
     title: "Include Timestamps",
-    description: "Include word-level timestamps in the transcription.",
+    description: "Include word-level timestamps in the transcription."
   })
   declare include_timestamps: any;
 
@@ -68,7 +69,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     type: "bool",
     default: false,
     title: "Include Language Detection",
-    description: "Include language detection in the transcription.",
+    description: "Include language detection in the transcription."
   })
   declare include_language_detection: any;
 
@@ -78,7 +79,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     title: "VAD Silence Threshold",
     description: "Silence threshold in seconds for VAD mode.",
     min: 0.1,
-    max: 10.0,
+    max: 10.0
   })
   declare vad_silence_threshold_secs: any;
 
@@ -88,7 +89,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     title: "VAD Threshold",
     description: "Threshold for voice activity detection.",
     min: 0.0,
-    max: 1.0,
+    max: 1.0
   })
   declare vad_threshold: any;
 
@@ -98,7 +99,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     title: "Min Speech Duration",
     description: "Minimum speech duration in milliseconds.",
     min: 0,
-    max: 5000,
+    max: 5000
   })
   declare min_speech_duration_ms: any;
 
@@ -108,7 +109,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     title: "Min Silence Duration",
     description: "Minimum silence duration in milliseconds.",
     min: 0,
-    max: 5000,
+    max: 5000
   })
   declare min_silence_duration_ms: any;
 
@@ -133,8 +134,12 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     const modelId = String(this.model_id ?? "scribe_v2_realtime");
     const languageCode = String(this.language_code ?? "");
     const commitStrategy = String(this.commit_strategy ?? "vad");
-    const includeTimestamps = String(this.include_timestamps ?? false).toLowerCase();
-    const includeLanguageDetection = String(this.include_language_detection ?? false).toLowerCase();
+    const includeTimestamps = String(
+      this.include_timestamps ?? false
+    ).toLowerCase();
+    const includeLanguageDetection = String(
+      this.include_language_detection ?? false
+    ).toLowerCase();
     const vadSilenceThreshold = String(this.vad_silence_threshold_secs ?? 1.5);
     const vadThreshold = String(this.vad_threshold ?? 0.4);
     const minSpeechDuration = String(this.min_speech_duration_ms ?? 100);
@@ -153,7 +158,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
       vad_silence_threshold_secs: vadSilenceThreshold,
       vad_threshold: vadThreshold,
       min_speech_duration_ms: minSpeechDuration,
-      min_silence_duration_ms: minSilenceDuration,
+      min_silence_duration_ms: minSilenceDuration
     });
     if (languageCode) {
       params.set("language_code", languageCode);
@@ -198,14 +203,17 @@ export class RealtimeSpeechToTextNode extends BaseNode {
           const msg = JSON.parse(data.toString()) as Record<string, unknown>;
           const msgType = String(msg.message_type ?? "");
 
-          if (msgType === "partial_transcript" || msgType === "committed_transcript") {
+          if (
+            msgType === "partial_transcript" ||
+            msgType === "committed_transcript"
+          ) {
             const text = String(msg.text ?? "");
             if (text) {
               await outputs.emit("chunk", {
                 type: "chunk",
                 content: text,
                 done: false,
-                content_type: "text",
+                content_type: "text"
               });
               if (finalizeRequested && msgType === "committed_transcript") {
                 resolveFinalTranscript();
@@ -222,7 +230,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
                 content: text,
                 done: false,
                 content_type: "text",
-                content_metadata: metadata,
+                content_metadata: metadata
               });
               if (finalizeRequested) {
                 resolveFinalTranscript();
@@ -284,23 +292,27 @@ export class RealtimeSpeechToTextNode extends BaseNode {
         continue;
       }
 
-      ws.send(JSON.stringify({
-        message_type: "input_audio_chunk",
-        audio_base_64: audioB64,
-        commit: false,
-        sample_rate: detectedSampleRate,
-      }));
+      ws.send(
+        JSON.stringify({
+          message_type: "input_audio_chunk",
+          audio_base_64: audioB64,
+          commit: false,
+          sample_rate: detectedSampleRate
+        })
+      );
     }
 
     // Flush the final segment before closing so the last transcript is delivered.
     finalizeRequested = true;
     if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        message_type: "input_audio_chunk",
-        audio_base_64: "",
-        commit: true,
-        sample_rate: detectedSampleRate,
-      }));
+      ws.send(
+        JSON.stringify({
+          message_type: "input_audio_chunk",
+          audio_base_64: "",
+          commit: true,
+          sample_rate: detectedSampleRate
+        })
+      );
     }
 
     // Wait briefly for the final committed transcript, then close cleanly.
@@ -309,7 +321,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
       finalTranscriptPromise,
       new Promise<void>((resolve) => {
         setTimeout(resolve, 1000);
-      }),
+      })
     ]);
 
     if (ws.readyState === WebSocket.OPEN) {
@@ -323,9 +335,11 @@ export class RealtimeSpeechToTextNode extends BaseNode {
       type: "chunk",
       content: "",
       done: true,
-      content_type: "text",
+      content_type: "text"
     });
   }
 }
 
-export const REALTIME_STT_NODES: readonly NodeClass[] = [RealtimeSpeechToTextNode];
+export const REALTIME_STT_NODES: readonly NodeClass[] = [
+  RealtimeSpeechToTextNode
+];

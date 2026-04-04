@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef, useEffect, useMemo } from "react";
-import { Box, Typography, CircularProgress, Alert, Divider } from "@mui/material";
+import { Box, Typography, CircularProgress, Divider } from "@mui/material";
+import { AlertBanner } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { useWorkflowAssets } from "../../../serverState/useWorkflowAssets";
@@ -176,9 +177,9 @@ const WorkflowAssetPanel: React.FC = () => {
           backgroundColor: theme.vars.palette.c_editor_bg_color
         }}
       >
-        <Alert severity="error">
+        <AlertBanner severity="error">
           Failed to load workflow assets: {error.message}
-        </Alert>
+        </AlertBanner>
       </Box>
     );
   }

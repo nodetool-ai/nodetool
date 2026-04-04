@@ -13,7 +13,7 @@ import {
   inp,
   nd,
   de,
-  Passthrough,
+  Passthrough
 } from "./helpers.js";
 
 // ---------------------------------------------------------------------------
@@ -25,7 +25,7 @@ describe("LEGACY-002: Any node can be a controller (graph validation succeeds)",
     const nodes: NodeDescriptor[] = [
       nd("src", "test.Source"),
       nd("ctrl", "test.Passthrough"),
-      nd("tgt", "test.Target"),
+      nd("tgt", "test.Target")
     ];
     // Control edge from ctrl to tgt
     const edges: Edge[] = [
@@ -34,8 +34,8 @@ describe("LEGACY-002: Any node can be a controller (graph validation succeeds)",
         sourceHandle: "__control__",
         target: "tgt",
         targetHandle: "__control__",
-        edge_type: "control",
-      },
+        edge_type: "control"
+      }
     ];
 
     // Should NOT throw – any node can have outgoing control edges
@@ -54,11 +54,16 @@ describe("LEGACY-003: Edge without edge_type treated as data edge", () => {
 
     const nodes: NodeDescriptor[] = [
       inp("src", "val"),
-      nd("sink", Passthrough.nodeType, { name: "result" }),
+      nd("sink", Passthrough.nodeType, { name: "result" })
     ];
     // No edge_type field → defaults to data edge
     const edges: Edge[] = [
-      { source: "src", sourceHandle: "value", target: "sink", targetHandle: "value" },
+      {
+        source: "src",
+        sourceHandle: "value",
+        target: "sink",
+        targetHandle: "value"
+      }
     ];
 
     const result = await runner.run(
@@ -79,7 +84,7 @@ describe("LEGACY-004: Graph with only control edges is structurally valid", () =
   it("graph with one control edge passes validation", () => {
     const nodes: NodeDescriptor[] = [
       nd("src", "test.Source"),
-      nd("tgt", "test.Target"),
+      nd("tgt", "test.Target")
     ];
     const edges: Edge[] = [
       {
@@ -87,8 +92,8 @@ describe("LEGACY-004: Graph with only control edges is structurally valid", () =
         sourceHandle: "__control__",
         target: "tgt",
         targetHandle: "__control__",
-        edge_type: "control",
-      },
+        edge_type: "control"
+      }
     ];
 
     expect(() => new Graph({ nodes, edges }).validate()).not.toThrow();
@@ -103,7 +108,7 @@ describe("LEGACY-005: Control edge with wrong targetHandle is rejected", () => {
   it("control edge with targetHandle != '__control__' throws GraphValidationError", () => {
     const nodes: NodeDescriptor[] = [
       nd("src", "test.Source"),
-      nd("tgt", "test.Target"),
+      nd("tgt", "test.Target")
     ];
     const edges: Edge[] = [
       {
@@ -111,11 +116,13 @@ describe("LEGACY-005: Control edge with wrong targetHandle is rejected", () => {
         sourceHandle: "__control__",
         target: "tgt",
         targetHandle: "wrong_handle", // invalid
-        edge_type: "control",
-      },
+        edge_type: "control"
+      }
     ];
 
-    expect(() => new Graph({ nodes, edges }).validate()).toThrow(GraphValidationError);
+    expect(() => new Graph({ nodes, edges }).validate()).toThrow(
+      GraphValidationError
+    );
     expect(() => new Graph({ nodes, edges }).validate()).toThrow(/__control__/);
   });
 });

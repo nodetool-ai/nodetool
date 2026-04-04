@@ -13,6 +13,12 @@ export interface EmbeddingOutputs {
   output: unknown;
 }
 
-export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "output"> {
-  return createNode("mistral.embeddings.Embedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function embedding(
+  inputs: EmbeddingInputs
+): DslNode<EmbeddingOutputs, "output"> {
+  return createNode(
+    "mistral.embeddings.Embedding",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

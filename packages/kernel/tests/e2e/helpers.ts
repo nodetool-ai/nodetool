@@ -5,10 +5,7 @@
 import { WorkflowRunner } from "../../src/runner.js";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import type { NodeDescriptor, Edge } from "@nodetool/protocol";
-import {
-  ALL_TEST_NODES,
-  ALL_CONTROLLER_NODES,
-} from "@nodetool/node-sdk";
+import { ALL_TEST_NODES, ALL_CONTROLLER_NODES } from "@nodetool/node-sdk";
 
 // Re-export commonly used node classes so test files don't need a long import list
 export {
@@ -33,14 +30,16 @@ export {
   SilentNode,
   IntInput,
   FloatInput,
-  StringInput,
+  StringInput
 } from "@nodetool/node-sdk";
 
 // ---------------------------------------------------------------------------
 // Registry + runner factories
 // ---------------------------------------------------------------------------
 
-type NodeClass = (typeof ALL_TEST_NODES)[number] | (typeof ALL_CONTROLLER_NODES)[number];
+type NodeClass =
+  | (typeof ALL_TEST_NODES)[number]
+  | (typeof ALL_CONTROLLER_NODES)[number];
 
 export function makeRegistry(extra: NodeClass[] = []): NodeRegistry {
   const registry = new NodeRegistry();
@@ -58,10 +57,14 @@ export function makeRunner(registry: NodeRegistry): WorkflowRunner {
     resolveExecutor: (node) => {
       if (!registry.has(node.type)) {
         // Fallback: identity executor for unregistered types (e.g. test.Input)
-        return { async process(inputs) { return inputs; } };
+        return {
+          async process(inputs) {
+            return inputs;
+          }
+        };
       }
       return registry.resolve(node);
-    },
+    }
   });
 }
 
@@ -71,7 +74,12 @@ export function makeRunner(registry: NodeRegistry): WorkflowRunner {
 
 /** External input node (dispatched via params). */
 export function inp(id: string, name: string, props?: object): NodeDescriptor {
-  return { id, type: "test.Input", name, properties: props as Record<string, unknown> | undefined };
+  return {
+    id,
+    type: "test.Input",
+    name,
+    properties: props as Record<string, unknown> | undefined
+  };
 }
 
 /** Generic node descriptor with optional flags and properties. */
@@ -85,7 +93,7 @@ export function nd(
     id,
     type,
     ...flags,
-    properties: props as Record<string, unknown> | undefined,
+    properties: props as Record<string, unknown> | undefined
   };
 }
 
@@ -112,6 +120,6 @@ export function ce(source: string, target: string, id?: string): Edge {
     sourceHandle: "__control__",
     target,
     targetHandle: "__control__",
-    edge_type: "control",
+    edge_type: "control"
   };
 }

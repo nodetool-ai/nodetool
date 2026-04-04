@@ -3,10 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
-import { Box, IconButton, Tooltip, Typography, Chip } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import { Box, Typography, Chip } from "@mui/material";
+import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -18,7 +16,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import useTraceStore from "../../stores/TraceStore";
 import type { TraceEvent, TraceEventType } from "../../stores/TraceStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+
 
 const EVENT_ICONS: Record<TraceEventType, React.ReactNode> = {
   node_start: <PlayArrowIcon sx={{ fontSize: 14, color: "info.main" }} />,
@@ -47,7 +45,6 @@ const styles = (theme: Theme) =>
     },
     ".trace-list": {
       flex: 1,
-      overflow: "auto",
       fontFamily: "monospace",
       fontSize: "0.8rem",
     },
@@ -218,15 +215,6 @@ const TracePanel: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [exportJSON]);
 
-  const handleCopy = useCallback(async () => {
-    try {
-      const json = exportJSON();
-      await navigator.clipboard.writeText(json);
-    } catch (error) {
-      console.error("Failed to copy to clipboard:", error);
-    }
-  }, [exportJSON]);
-
   return (
     <div css={styles(theme)}>
       <div className="trace-toolbar">
@@ -237,31 +225,34 @@ const TracePanel: React.FC = () => {
           <Chip label={events.length} size="small" variant="outlined" />
         </Box>
         <Box sx={{ display: "flex", gap: 0.5 }}>
-          <Tooltip title="Copy to clipboard" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton size="small" onClick={handleCopy} disabled={events.length === 0}>
-              <ContentCopyIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Export as JSON" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton size="small" onClick={handleExport} disabled={events.length === 0}>
-              <FileDownloadIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Clear trace" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton size="small" onClick={clear}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <CopyButton
+            value={events.length > 0 ? exportJSON() : ""}
+            tooltip="Copy to clipboard"
+            disabled={events.length === 0}
+            nodrag={false}
+          />
+          <DownloadButton
+            onClick={handleExport}
+            tooltip="Export as JSON"
+            disabled={events.length === 0}
+            nodrag={false}
+          />
+          <DeleteButton
+            onClick={clear}
+            tooltip="Clear trace"
+            iconVariant="clear"
+            nodrag={false}
+          />
         </Box>
       </div>
-      <div className="trace-list">
+      <ScrollArea className="trace-list" direction="both">
         {events.length === 0 ? (
-          <Typography
-            variant="body2"
-            sx={{ textAlign: "center", color: "text.disabled", py: 4 }}
-          >
-            Run a workflow to see the execution trace
-          </Typography>
+          <EmptyState
+            variant="empty"
+            title="No trace data"
+            description="Run a workflow to see the execution trace"
+            size="small"
+          />
         ) : (
           events.map((event) => (
             <TraceRow
@@ -272,7 +263,7 @@ const TracePanel: React.FC = () => {
             />
           ))
         )}
-      </div>
+      </ScrollArea>
     </div>
   );
 };

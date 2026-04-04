@@ -23,4 +23,6 @@ export function makePlaceholderNode(nodeType: string): NodeClass {
 export const EXTENDED_PLACEHOLDER_NODE_TYPES = [] as const;
 
 export const EXTENDED_PLACEHOLDER_NODES: NodeClass[] =
-  EXTENDED_PLACEHOLDER_NODE_TYPES.map((nodeType) => makePlaceholderNode(nodeType));
+  EXTENDED_PLACEHOLDER_NODE_TYPES.map((nodeType) =>
+    makePlaceholderNode(nodeType)
+  );

@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.pillow.enhance Nodes"
+title: "lib.image.enhance Nodes"
 ---
 
 

@@ -31,7 +31,7 @@ function truncate(text: string, max: number): string {
 function runSubprocess(
   command: string,
   args: string[],
-  timeoutMs: number,
+  timeoutMs: number
 ): Promise<RunCodeResult> {
   return new Promise((resolve) => {
     const child = execFile(
@@ -40,15 +40,16 @@ function runSubprocess(
       {
         timeout: timeoutMs,
         maxBuffer: MAX_OUTPUT_CHARS * 2,
-        encoding: "utf-8",
+        encoding: "utf-8"
       },
       (error, stdout, stderr) => {
         let exitCode: number | null = 0;
         if (error) {
           // Node sets `killed` when the timeout fires
-          exitCode = (error as any).code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER"
-            ? 1
-            : child.exitCode ?? 1;
+          exitCode =
+            (error as any).code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER"
+              ? 1
+              : (child.exitCode ?? 1);
           if ((error as any).killed) {
             stderr = (stderr || "") + "\n[process killed: timeout exceeded]";
           }
@@ -56,9 +57,9 @@ function runSubprocess(
         resolve({
           stdout: truncate(stdout ?? "", MAX_OUTPUT_CHARS),
           stderr: truncate(stderr ?? "", MAX_OUTPUT_CHARS),
-          exitCode,
+          exitCode
         });
-      },
+      }
     );
   });
 }
@@ -73,14 +74,14 @@ export class RunCodeTool extends Tool {
       language: {
         type: "string",
         enum: ["javascript", "typescript", "python", "bash"],
-        description: "The language / runtime to use.",
+        description: "The language / runtime to use."
       },
       code: {
         type: "string",
-        description: "Source code to execute.",
-      },
+        description: "Source code to execute."
+      }
     },
-    required: ["language", "code"],
+    required: ["language", "code"]
   };
 
   private readonly timeoutMs: number;
@@ -92,7 +93,7 @@ export class RunCodeTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<RunCodeResult> {
     const language = params.language as Language;
     const code = params.code as string;
@@ -105,13 +106,13 @@ export class RunCodeTool extends Tool {
       "javascript",
       "typescript",
       "python",
-      "bash",
+      "bash"
     ];
     if (!validLanguages.includes(language)) {
       return {
         stdout: "",
         stderr: `Unsupported language: ${language}`,
-        exitCode: 1,
+        exitCode: 1
       };
     }
 
@@ -130,7 +131,7 @@ export class RunCodeTool extends Tool {
 
   private buildCommand(
     language: Language,
-    code: string,
+    code: string
   ): { command: string; args: string[] } {
     switch (language) {
       case "javascript":

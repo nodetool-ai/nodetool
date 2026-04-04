@@ -42,7 +42,7 @@ export const REPLICATE_NODES: readonly NodeClass[] = [
   ...REPLICATE_VIDEO_FACE_NODES,
   ...REPLICATE_VIDEO_GENERATE_NODES,
   ...REPLICATE_VIDEO_PROCESS_NODES,
-  ...REPLICATE_EMBEDDING_NODES,
+  ...REPLICATE_EMBEDDING_NODES
 ];
 
 export function registerReplicateNodes(registry: NodeRegistry): void {

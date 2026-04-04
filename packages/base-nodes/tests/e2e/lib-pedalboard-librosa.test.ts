@@ -15,7 +15,7 @@ import {
   SpectralContrastNode,
   GriffinLimNode,
   DetectOnsetsNode,
-  SegmentAudioByOnsetsNode,
+  SegmentAudioByOnsetsNode
 } from "../../src/index.js";
 
 // ── Test audio helper ─────────────────────────────────────────────
@@ -40,7 +40,7 @@ function makeTestAudio(durationSec = 0.5, freq = 440): Record<string, unknown> {
   buffer.writeUInt32LE(numSamples * 2, 40);
   // Generate sine wave
   for (let i = 0; i < numSamples; i++) {
-    const sample = Math.sin(2 * Math.PI * freq * i / sampleRate);
+    const sample = Math.sin((2 * Math.PI * freq * i) / sampleRate);
     buffer.writeInt16LE(Math.round(sample * 32767 * 0.5), 44 + i * 2);
   }
   return { type: "audio", uri: "", data: buffer.toString("base64") };
@@ -56,7 +56,7 @@ describe("lib.pedalboard audio effects", () => {
     node.assign({
       audio,
       bit_depth: 8,
-      sample_rate_reduction: 2,
+      sample_rate_reduction: 2
     });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
@@ -69,7 +69,7 @@ describe("lib.pedalboard audio effects", () => {
     const node = new DistortionNode();
     node.assign({
       audio,
-      drive_db: 20,
+      drive_db: 20
     });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
@@ -83,7 +83,7 @@ describe("lib.pedalboard audio effects", () => {
     node.assign({
       audio,
       threshold_db: -6,
-      release_ms: 100,
+      release_ms: 100
     });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
@@ -98,7 +98,7 @@ describe("lib.pedalboard audio effects", () => {
       threshold: -10,
       ratio: 4,
       attack: 5,
-      release: 50,
+      release: 50
     });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
@@ -113,7 +113,7 @@ describe("lib.pedalboard audio effects", () => {
       room_scale: 0.5,
       damping: 0.5,
       wet_level: 0.3,
-      dry_level: 0.7,
+      dry_level: 0.7
     });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
@@ -151,7 +151,7 @@ describe("lib.librosa spectral analysis", () => {
     node.assign({
       audio,
       n_fft: 2048,
-      hop_length: 512,
+      hop_length: 512
     });
     const result = await node.process();
     const output = result.output as { data: number[][] };
@@ -172,7 +172,7 @@ describe("lib.librosa spectral analysis", () => {
       hop_length: 512,
       n_mels: nMels,
       fmin: 0,
-      fmax: 8000,
+      fmax: 8000
     });
     const result = await node.process();
     const output = result.output as { data: number[][] };
@@ -186,7 +186,7 @@ describe("lib.librosa spectral analysis", () => {
       audio,
       n_mfcc: nMfcc,
       n_fft: 2048,
-      hop_length: 512,
+      hop_length: 512
     });
     const result = await node.process();
     const output = result.output as { data: number[][] };
@@ -198,7 +198,7 @@ describe("lib.librosa spectral analysis", () => {
     node.assign({
       audio,
       n_fft: 2048,
-      hop_length: 512,
+      hop_length: 512
     });
     const result = await node.process();
     const output = result.output as { data: number[][] };
@@ -210,7 +210,7 @@ describe("lib.librosa spectral analysis", () => {
     node.assign({
       audio,
       n_fft: 2048,
-      hop_length: 512,
+      hop_length: 512
     });
     const result = await node.process();
     const output = result.output as { data: number[] };
@@ -225,7 +225,7 @@ describe("lib.librosa spectral analysis", () => {
     node.assign({
       audio,
       n_fft: 2048,
-      hop_length: 512,
+      hop_length: 512
     });
     const result = await node.process();
     const output = result.output as { data: number[][] };
@@ -235,7 +235,12 @@ describe("lib.librosa spectral analysis", () => {
   it("GriffinLim produces output with data", async () => {
     const node = new GriffinLimNode();
     node.assign({
-      magnitude_spectrogram: { data: [[1, 2], [3, 4]] },
+      magnitude_spectrogram: {
+        data: [
+          [1, 2],
+          [3, 4]
+        ]
+      }
     });
     const result = await node.process();
     const output = result.output as { data: unknown[] };
@@ -266,16 +271,20 @@ describe("lib.librosa spectral analysis", () => {
       let sample = 0;
       // Create bursts at 0.2s and 0.6s
       if ((t > 0.2 && t < 0.3) || (t > 0.6 && t < 0.7)) {
-        sample = Math.sin(2 * Math.PI * 1000 * i / sampleRate) * 0.8;
+        sample = Math.sin((2 * Math.PI * 1000 * i) / sampleRate) * 0.8;
       }
       buffer.writeInt16LE(Math.round(sample * 32767), 44 + i * 2);
     }
-    const burstAudio = { type: "audio", uri: "", data: buffer.toString("base64") };
+    const burstAudio = {
+      type: "audio",
+      uri: "",
+      data: buffer.toString("base64")
+    };
 
     const node = new DetectOnsetsNode();
     node.assign({
       audio: burstAudio,
-      hop_length: 512,
+      hop_length: 512
     });
     const result = await node.process();
     const output = result.output as { data: number[] };
@@ -293,7 +302,7 @@ describe("lib.librosa spectral analysis", () => {
     node.assign({
       audio,
       onsets: { data: [0.0, 0.2] },
-      min_segment_length: 0.05,
+      min_segment_length: 0.05
     });
     const result = await node.process();
     const output = result.output as Record<string, unknown>[];
@@ -309,7 +318,7 @@ describe("lib.librosa spectral analysis", () => {
   it("STFT returns empty data for audio without data", async () => {
     const node = new STFTNode();
     node.assign({
-      audio: {},
+      audio: {}
     });
     const result = await node.process();
     const output = result.output as { data: unknown[] };
@@ -319,7 +328,7 @@ describe("lib.librosa spectral analysis", () => {
   it("SpectralCentroid returns empty data for audio without data", async () => {
     const node = new SpectralCentroidNode();
     node.assign({
-      audio: {},
+      audio: {}
     });
     const result = await node.process();
     const output = result.output as { data: unknown[] };

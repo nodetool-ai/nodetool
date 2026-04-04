@@ -17,9 +17,17 @@ describe("registerElevenLabsNodes", () => {
   });
 
   it("declares chunk outputs for realtime nodes", () => {
-    expect(RealtimeTextToSpeechNode.metadataOutputTypes).toEqual({ chunk: "chunk" });
-    expect(RealtimeSpeechToTextNode.metadataOutputTypes).toEqual({ chunk: "chunk" });
-    expect(RealtimeSpeechToTextNode.toDescriptor().propertyTypes?.chunk).toBe("chunk");
-    expect(RealtimeSpeechToTextNode.toDescriptor().propertyTypes?.model_id).toBe("str");
+    expect(RealtimeTextToSpeechNode.metadataOutputTypes).toEqual({
+      chunk: "chunk"
+    });
+    expect(RealtimeSpeechToTextNode.metadataOutputTypes).toEqual({
+      chunk: "chunk"
+    });
+    expect(RealtimeSpeechToTextNode.toDescriptor().propertyTypes?.chunk).toBe(
+      "chunk"
+    );
+    expect(
+      RealtimeSpeechToTextNode.toDescriptor().propertyTypes?.model_id
+    ).toBe("str");
   });
 });

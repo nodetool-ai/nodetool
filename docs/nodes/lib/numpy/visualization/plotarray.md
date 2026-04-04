@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Plot Array"
-node_type: "lib.numpy.visualization.PlotArray"
-namespace: "lib.numpy.visualization"
+node_type: "lib.array.visualization.PlotArray"
+namespace: "lib.array.visualization"
 ---
 
-**Type:** `lib.numpy.visualization.PlotArray`
+**Type:** `lib.array.visualization.PlotArray`
 
-**Namespace:** `lib.numpy.visualization`
+**Namespace:** `lib.array.visualization`
 
 ## Description
 
@@ -36,5 +36,5 @@ Create a plot visualization of array data.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.visualization](../) namespace.
+Browse other nodes in the [lib.array.visualization](../) namespace.
 

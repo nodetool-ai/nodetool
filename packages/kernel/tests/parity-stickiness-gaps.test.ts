@@ -32,19 +32,25 @@ function makeNode(overrides: Partial<NodeDescriptor> = {}): NodeDescriptor {
 function simpleExecutor(
   fn: (inputs: Record<string, unknown>) => Record<string, unknown>
 ): NodeExecutor {
-  return { async process(inputs) { return fn(inputs); } };
+  return {
+    async process(inputs) {
+      return fn(inputs);
+    }
+  };
 }
 
 function streamingExecutor(
   items: Array<Record<string, unknown>>
 ): NodeExecutor {
   return {
-    async process() { return {}; },
+    async process() {
+      return {};
+    },
     async *genProcess() {
       for (const item of items) {
         yield item;
       }
-    },
+    }
   };
 }
 
@@ -67,20 +73,18 @@ function createActor(
     sendOutputs: async (nodeId, outputs) => {
       sentOutputs.push({ nodeId, outputs: { ...outputs } });
     },
-    emitMessage: (msg) => messages.push(msg),
+    emitMessage: (msg) => messages.push(msg)
   });
   return { actor, sentOutputs, messages };
 }
 
-function makeRunner(
-  executorMap: Record<string, NodeExecutor>
-): WorkflowRunner {
+function makeRunner(executorMap: Record<string, NodeExecutor>): WorkflowRunner {
   return new WorkflowRunner("test-job", {
     resolveExecutor: (node) => {
       const exec = executorMap[node.id] ?? executorMap[node.type];
       if (!exec) return simpleExecutor(() => ({}));
       return exec;
-    },
+    }
   });
 }
 
@@ -119,9 +123,9 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
           async process(inputs: Record<string, unknown>) {
             calls.push({ ...inputs });
             return { sum: (inputs.a as number) + (inputs.b as number) };
-          },
+          }
         } as NodeExecutor,
-        calls,
+        calls
       };
     })();
 
@@ -168,7 +172,7 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
       async process(inputs) {
         calls.push({ ...inputs });
         return { result: `${inputs.a}-${inputs.b}` };
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -197,23 +201,43 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
     //   B (streaming)     --> C
     const nodes: NodeDescriptor[] = [
       { id: "A", type: "test.Source", name: "a_input" },
-      { id: "B", type: "test.StreamSource", name: "b_input", is_streaming_output: true },
-      { id: "C", type: "test.Sink", sync_mode: "zip_all" },
+      {
+        id: "B",
+        type: "test.StreamSource",
+        name: "b_input",
+        is_streaming_output: true
+      },
+      { id: "C", type: "test.Sink", sync_mode: "zip_all" }
     ];
     const edges: Edge[] = [
-      { id: "e_ac", source: "A", sourceHandle: "value", target: "C", targetHandle: "a" },
-      { id: "e_bc", source: "B", sourceHandle: "value", target: "C", targetHandle: "b" },
+      {
+        id: "e_ac",
+        source: "A",
+        sourceHandle: "value",
+        target: "C",
+        targetHandle: "a"
+      },
+      {
+        id: "e_bc",
+        source: "B",
+        sourceHandle: "value",
+        target: "C",
+        targetHandle: "b"
+      }
     ];
 
     const runner = makeRunner({
-      "A": simpleExecutor(() => ({ value: 10 })),
-      "B": streamingExecutor([{ value: 1 }, { value: 2 }, { value: 3 }]),
-      "C": simpleExecutor((inputs) => ({ result: inputs })),
+      A: simpleExecutor(() => ({ value: 10 })),
+      B: streamingExecutor([{ value: 1 }, { value: 2 }, { value: 3 }]),
+      C: simpleExecutor((inputs) => ({ result: inputs }))
     });
 
     // We need to call run() to trigger _analyzeStreaming, but we can inspect
     // edgeStreams after the run.
-    await runner.run({ job_id: "j1", params: { a_input: 10, b_input: 0 } }, { nodes, edges });
+    await runner.run(
+      { job_id: "j1", params: { a_input: 10, b_input: 0 } },
+      { nodes, edges }
+    );
 
     // Edge A->C should NOT be on a streaming path
     expect(runner.edgeStreams(edges[0])).toBe(false);
@@ -226,22 +250,42 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
     // B (streaming) --> D --> E
     // All edges downstream of B should be streaming.
     const nodes: NodeDescriptor[] = [
-      { id: "B", type: "test.StreamSource", name: "b_input", is_streaming_output: true },
+      {
+        id: "B",
+        type: "test.StreamSource",
+        name: "b_input",
+        is_streaming_output: true
+      },
       { id: "D", type: "test.Pass" },
-      { id: "E", type: "test.Sink" },
+      { id: "E", type: "test.Sink" }
     ];
     const edges: Edge[] = [
-      { id: "e_bd", source: "B", sourceHandle: "value", target: "D", targetHandle: "x" },
-      { id: "e_de", source: "D", sourceHandle: "out", target: "E", targetHandle: "y" },
+      {
+        id: "e_bd",
+        source: "B",
+        sourceHandle: "value",
+        target: "D",
+        targetHandle: "x"
+      },
+      {
+        id: "e_de",
+        source: "D",
+        sourceHandle: "out",
+        target: "E",
+        targetHandle: "y"
+      }
     ];
 
     const runner = makeRunner({
-      "B": streamingExecutor([{ value: 1 }]),
-      "D": simpleExecutor((inputs) => ({ out: inputs.x })),
-      "E": simpleExecutor((inputs) => ({ result: inputs.y })),
+      B: streamingExecutor([{ value: 1 }]),
+      D: simpleExecutor((inputs) => ({ out: inputs.x })),
+      E: simpleExecutor((inputs) => ({ result: inputs.y }))
     });
 
-    await runner.run({ job_id: "j1", params: { b_input: 0 } }, { nodes, edges });
+    await runner.run(
+      { job_id: "j1", params: { b_input: 0 } },
+      { nodes, edges }
+    );
 
     expect(runner.edgeStreams(edges[0])).toBe(true);
     // Transitive: D is reachable from B, so D->E is also streaming
@@ -269,9 +313,9 @@ describe("Gap #5 — stickyHandles wired from runner streaming analysis", () => 
         id: "B",
         type: "test.StreamSource",
         name: "b_input",
-        is_streaming_output: true,
+        is_streaming_output: true
       },
-      { id: "C", type: "test.Combiner", sync_mode: "zip_all" },
+      { id: "C", type: "test.Combiner", sync_mode: "zip_all" }
     ];
     const edges: Edge[] = [
       {
@@ -279,15 +323,15 @@ describe("Gap #5 — stickyHandles wired from runner streaming analysis", () => 
         source: "A",
         sourceHandle: "value",
         target: "C",
-        targetHandle: "a",
+        targetHandle: "a"
       },
       {
         id: "e_bc",
         source: "B",
         sourceHandle: "value",
         target: "C",
-        targetHandle: "b",
-      },
+        targetHandle: "b"
+      }
     ];
 
     const cCalls: Array<Record<string, unknown>> = [];
@@ -299,8 +343,8 @@ describe("Gap #5 — stickyHandles wired from runner streaming analysis", () => 
         async process(inputs) {
           cCalls.push({ ...inputs });
           return { result: `${inputs.a}-${inputs.b}` };
-        },
-      },
+        }
+      }
     });
 
     await runner.run(
@@ -341,21 +385,33 @@ describe("Gap #10 — multi-edge list type validation", () => {
     const nodes: NodeDescriptor[] = [
       { id: "A", type: "test.Input", name: "a" },
       { id: "B", type: "test.Input", name: "b" },
-      { id: "C", type: "test.Adder" },
+      { id: "C", type: "test.Adder" }
     ];
     const edges: Edge[] = [
-      { id: "e1", source: "A", sourceHandle: "value", target: "C", targetHandle: "x" },
-      { id: "e2", source: "B", sourceHandle: "value", target: "C", targetHandle: "x" },
+      {
+        id: "e1",
+        source: "A",
+        sourceHandle: "value",
+        target: "C",
+        targetHandle: "x"
+      },
+      {
+        id: "e2",
+        source: "B",
+        sourceHandle: "value",
+        target: "C",
+        targetHandle: "x"
+      }
     ];
 
     const receivedInputs: Array<Record<string, unknown>> = [];
     const runner = makeRunner({
-      "C": {
+      C: {
         async process(inputs) {
           receivedInputs.push({ ...inputs });
           return { result: inputs.x };
-        },
-      },
+        }
+      }
     });
 
     await runner.run(
@@ -387,19 +443,37 @@ describe("Gap #10 — multi-edge list type validation", () => {
       { id: "A", type: "test.Input", name: "a" },
       { id: "B", type: "test.Input", name: "b" },
       { id: "C", type: "test.Proc" },
-      { id: "D", type: "test.Proc" },
+      { id: "D", type: "test.Proc" }
     ];
     const edges: Edge[] = [
       // Two edges to C.x — should be marked as multi-edge
-      { id: "e1", source: "A", sourceHandle: "value", target: "C", targetHandle: "x" },
-      { id: "e2", source: "B", sourceHandle: "value", target: "C", targetHandle: "x" },
+      {
+        id: "e1",
+        source: "A",
+        sourceHandle: "value",
+        target: "C",
+        targetHandle: "x"
+      },
+      {
+        id: "e2",
+        source: "B",
+        sourceHandle: "value",
+        target: "C",
+        targetHandle: "x"
+      },
       // One edge to D.y — should NOT be marked
-      { id: "e3", source: "A", sourceHandle: "value", target: "D", targetHandle: "y" },
+      {
+        id: "e3",
+        source: "A",
+        sourceHandle: "value",
+        target: "D",
+        targetHandle: "y"
+      }
     ];
 
     const runner = makeRunner({
-      "C": simpleExecutor((inputs) => ({ out: inputs.x })),
-      "D": simpleExecutor((inputs) => ({ out: inputs.y })),
+      C: simpleExecutor((inputs) => ({ out: inputs.x })),
+      D: simpleExecutor((inputs) => ({ out: inputs.y }))
     });
 
     await runner.run(
@@ -410,7 +484,9 @@ describe("Gap #10 — multi-edge list type validation", () => {
     // Access private _multiEdgeListInputs to verify detection
     // GAP #10: TypeScript marks C.x as multi-edge list without checking
     // if property "x" is actually a list type. Python would check.
-    const multiEdge = (runner as unknown as { _multiEdgeListInputs: Map<string, Set<string>> })._multiEdgeListInputs;
+    const multiEdge = (
+      runner as unknown as { _multiEdgeListInputs: Map<string, Set<string>> }
+    )._multiEdgeListInputs;
     expect(multiEdge.has("C")).toBe(true);
     expect(multiEdge.get("C")!.has("x")).toBe(true);
 
@@ -421,22 +497,27 @@ describe("Gap #10 — multi-edge list type validation", () => {
   it("single edge to a handle does not trigger list aggregation", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "A", type: "test.Input", name: "a" },
-      { id: "C", type: "test.Proc" },
+      { id: "C", type: "test.Proc" }
     ];
     const edges: Edge[] = [
-      { id: "e1", source: "A", sourceHandle: "value", target: "C", targetHandle: "x" },
+      {
+        id: "e1",
+        source: "A",
+        sourceHandle: "value",
+        target: "C",
+        targetHandle: "x"
+      }
     ];
 
     const runner = makeRunner({
-      "C": simpleExecutor((inputs) => ({ out: inputs.x })),
+      C: simpleExecutor((inputs) => ({ out: inputs.x }))
     });
 
-    await runner.run(
-      { job_id: "j1", params: { a: 42 } },
-      { nodes, edges }
-    );
+    await runner.run({ job_id: "j1", params: { a: 42 } }, { nodes, edges });
 
-    const multiEdge = (runner as unknown as { _multiEdgeListInputs: Map<string, Set<string>> })._multiEdgeListInputs;
+    const multiEdge = (
+      runner as unknown as { _multiEdgeListInputs: Map<string, Set<string>> }
+    )._multiEdgeListInputs;
     expect(multiEdge.has("C")).toBe(false);
   });
 });

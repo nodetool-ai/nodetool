@@ -40,10 +40,18 @@ describe("RunNodeState model", () => {
   });
 
   it("coerces numeric boolean for retryable", () => {
-    const state = new RunNodeState({ run_id: "r1", node_id: "n1", retryable: 1 });
+    const state = new RunNodeState({
+      run_id: "r1",
+      node_id: "n1",
+      retryable: 1
+    });
     expect(state.retryable).toBe(true);
 
-    const state2 = new RunNodeState({ run_id: "r1", node_id: "n1", retryable: 0 });
+    const state2 = new RunNodeState({
+      run_id: "r1",
+      node_id: "n1",
+      retryable: 0
+    });
     expect(state2.retryable).toBe(false);
   });
 
@@ -52,7 +60,7 @@ describe("RunNodeState model", () => {
   it("generates composite id on save", async () => {
     const state = await RunNodeState.create<RunNodeState>({
       run_id: "r1",
-      node_id: "n1",
+      node_id: "n1"
     });
     expect(state.id).toBe("r1::n1");
   });
@@ -60,7 +68,7 @@ describe("RunNodeState model", () => {
   it("updates updated_at on save", async () => {
     const state = await RunNodeState.create<RunNodeState>({
       run_id: "r1",
-      node_id: "n1",
+      node_id: "n1"
     });
     const original = state.updated_at;
     await new Promise((r) => setTimeout(r, 5));
@@ -76,7 +84,7 @@ describe("RunNodeState model", () => {
     await RunNodeState.create<RunNodeState>({
       run_id: "r1",
       node_id: "n1",
-      status: "running",
+      status: "running"
     });
 
     const state = await RunNodeState.getNodeState("r1", "n1");
@@ -103,7 +111,7 @@ describe("RunNodeState model", () => {
     const created = await RunNodeState.create<RunNodeState>({
       run_id: "r1",
       node_id: "n1",
-      status: "completed",
+      status: "completed"
     });
 
     const existing = await RunNodeState.getOrCreate("r1", "n1");
@@ -115,13 +123,19 @@ describe("RunNodeState model", () => {
 
   it("returns scheduled and running nodes", async () => {
     await RunNodeState.create<RunNodeState>({
-      run_id: "r1", node_id: "n1", status: "scheduled",
+      run_id: "r1",
+      node_id: "n1",
+      status: "scheduled"
     });
     await RunNodeState.create<RunNodeState>({
-      run_id: "r1", node_id: "n2", status: "running",
+      run_id: "r1",
+      node_id: "n2",
+      status: "running"
     });
     await RunNodeState.create<RunNodeState>({
-      run_id: "r1", node_id: "n3", status: "completed",
+      run_id: "r1",
+      node_id: "n3",
+      status: "completed"
     });
 
     const incomplete = await RunNodeState.getIncompleteNodes("r1");
@@ -132,7 +146,9 @@ describe("RunNodeState model", () => {
 
   it("returns empty array when no incomplete nodes", async () => {
     await RunNodeState.create<RunNodeState>({
-      run_id: "r1", node_id: "n1", status: "completed",
+      run_id: "r1",
+      node_id: "n1",
+      status: "completed"
     });
 
     const incomplete = await RunNodeState.getIncompleteNodes("r1");
@@ -143,10 +159,14 @@ describe("RunNodeState model", () => {
 
   it("returns only suspended nodes", async () => {
     await RunNodeState.create<RunNodeState>({
-      run_id: "r1", node_id: "n1", status: "suspended",
+      run_id: "r1",
+      node_id: "n1",
+      status: "suspended"
     });
     await RunNodeState.create<RunNodeState>({
-      run_id: "r1", node_id: "n2", status: "running",
+      run_id: "r1",
+      node_id: "n2",
+      status: "running"
     });
 
     const suspended = await RunNodeState.getSuspendedNodes("r1");
@@ -259,58 +279,94 @@ describe("RunNodeState model", () => {
 
   describe("status checks", () => {
     it("isIncomplete returns true for scheduled", () => {
-      const state = new RunNodeState({ run_id: "r1", node_id: "n1", status: "scheduled" });
+      const state = new RunNodeState({
+        run_id: "r1",
+        node_id: "n1",
+        status: "scheduled"
+      });
       expect(state.isIncomplete()).toBe(true);
     });
 
     it("isIncomplete returns true for running", () => {
-      const state = new RunNodeState({ run_id: "r1", node_id: "n1", status: "running" });
+      const state = new RunNodeState({
+        run_id: "r1",
+        node_id: "n1",
+        status: "running"
+      });
       expect(state.isIncomplete()).toBe(true);
     });
 
     it("isIncomplete returns false for completed", () => {
-      const state = new RunNodeState({ run_id: "r1", node_id: "n1", status: "completed" });
+      const state = new RunNodeState({
+        run_id: "r1",
+        node_id: "n1",
+        status: "completed"
+      });
       expect(state.isIncomplete()).toBe(false);
     });
 
     it("isSuspended returns true for suspended", () => {
-      const state = new RunNodeState({ run_id: "r1", node_id: "n1", status: "suspended" });
+      const state = new RunNodeState({
+        run_id: "r1",
+        node_id: "n1",
+        status: "suspended"
+      });
       expect(state.isSuspended()).toBe(true);
     });
 
     it("isSuspended returns false for running", () => {
-      const state = new RunNodeState({ run_id: "r1", node_id: "n1", status: "running" });
+      const state = new RunNodeState({
+        run_id: "r1",
+        node_id: "n1",
+        status: "running"
+      });
       expect(state.isSuspended()).toBe(false);
     });
 
     it("isRetryableFailure returns true for retryable failed", () => {
       const state = new RunNodeState({
-        run_id: "r1", node_id: "n1", status: "failed", retryable: true,
+        run_id: "r1",
+        node_id: "n1",
+        status: "failed",
+        retryable: true
       });
       expect(state.isRetryableFailure()).toBe(true);
     });
 
     it("isRetryableFailure returns false for non-retryable failed", () => {
       const state = new RunNodeState({
-        run_id: "r1", node_id: "n1", status: "failed", retryable: false,
+        run_id: "r1",
+        node_id: "n1",
+        status: "failed",
+        retryable: false
       });
       expect(state.isRetryableFailure()).toBe(false);
     });
 
     it("isRetryableFailure returns false for completed", () => {
       const state = new RunNodeState({
-        run_id: "r1", node_id: "n1", status: "completed",
+        run_id: "r1",
+        node_id: "n1",
+        status: "completed"
       });
       expect(state.isRetryableFailure()).toBe(false);
     });
 
     it("isPaused returns true for paused", () => {
-      const state = new RunNodeState({ run_id: "r1", node_id: "n1", status: "paused" });
+      const state = new RunNodeState({
+        run_id: "r1",
+        node_id: "n1",
+        status: "paused"
+      });
       expect(state.isPaused()).toBe(true);
     });
 
     it("isPaused returns false for running", () => {
-      const state = new RunNodeState({ run_id: "r1", node_id: "n1", status: "running" });
+      const state = new RunNodeState({
+        run_id: "r1",
+        node_id: "n1",
+        status: "running"
+      });
       expect(state.isPaused()).toBe(false);
     });
   });

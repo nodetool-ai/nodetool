@@ -48,11 +48,13 @@ function parseSlashCommand(line: string): SlashCommand | null {
   }
   return {
     name: line.slice(1, spaceIdx).toLowerCase(),
-    args: line.slice(spaceIdx + 1).trim(),
+    args: line.slice(spaceIdx + 1).trim()
   };
 }
 
-async function displayJobEvents(events: AsyncGenerator<JobEvent>): Promise<void> {
+async function displayJobEvents(
+  events: AsyncGenerator<JobEvent>
+): Promise<void> {
   for await (const event of events) {
     if (event.type === "job_update") {
       process.stderr.write(`[job] ${event.status}\n`);
@@ -69,7 +71,9 @@ async function displayJobEvents(events: AsyncGenerator<JobEvent>): Promise<void>
       process.stdout.write(JSON.stringify(event.value, null, 2));
       process.stdout.write("\n");
     } else if (event.type === "node_progress") {
-      const pct = event.total ? `${event.progress}/${event.total}` : `${event.progress}`;
+      const pct = event.total
+        ? `${event.progress}/${event.total}`
+        : `${event.progress}`;
       process.stderr.write(`[progress ${event.node_id}] ${pct}\n`);
     } else if (event.type === "error") {
       process.stderr.write(`Error: ${event.message}\n`);
@@ -82,7 +86,7 @@ async function displayJobEvents(events: AsyncGenerator<JobEvent>): Promise<void>
 
 async function handleSlashCommand(
   cmd: SlashCommand,
-  wsClient: WebSocketChatClient,
+  wsClient: WebSocketChatClient
 ): Promise<void> {
   switch (cmd.name) {
     case "run": {
@@ -151,28 +155,36 @@ async function handleSlashCommand(
     case "status": {
       const jobId = cmd.args.trim() || undefined;
       wsClient.getStatus(jobId);
-      process.stderr.write(jobId ? `Status requested for job ${jobId}\n` : "Status requested for all jobs\n");
+      process.stderr.write(
+        jobId
+          ? `Status requested for job ${jobId}\n`
+          : "Status requested for all jobs\n"
+      );
       return;
     }
 
     case "help":
-      process.stdout.write([
-        "Available commands:",
-        "  /run <workflow_id> [json_params]  — Run a workflow",
-        "  /stop                             — Stop in-progress generation",
-        "  /reconnect <job_id>               — Reconnect to a running job",
-        "  /resume <job_id>                  — Resume a paused job",
-        "  /cancel <job_id>                  — Cancel a running job",
-        "  /status [job_id]                  — Get job status",
-        "  /help                             — Show this help",
-        "",
-        "Any other input is sent as a chat message.",
-        "",
-      ].join("\n"));
+      process.stdout.write(
+        [
+          "Available commands:",
+          "  /run <workflow_id> [json_params]  — Run a workflow",
+          "  /stop                             — Stop in-progress generation",
+          "  /reconnect <job_id>               — Reconnect to a running job",
+          "  /resume <job_id>                  — Resume a paused job",
+          "  /cancel <job_id>                  — Cancel a running job",
+          "  /status [job_id]                  — Get job status",
+          "  /help                             — Show this help",
+          "",
+          "Any other input is sent as a chat message.",
+          ""
+        ].join("\n")
+      );
       return;
 
     default:
-      process.stderr.write(`Unknown command: /${cmd.name}. Type /help for available commands.\n`);
+      process.stderr.write(
+        `Unknown command: /${cmd.name}. Type /help for available commands.\n`
+      );
   }
 }
 
@@ -188,7 +200,10 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   const threadId = crypto.randomUUID();
   const chatHistory: Message[] = [];
 
-  const rl = readline.createInterface({ input: process.stdin, terminal: false });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    terminal: false
+  });
 
   for await (const line of rl) {
     const trimmed = line.trim();
@@ -200,7 +215,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       if (wsClient) {
         await handleSlashCommand(cmd, wsClient);
       } else {
-        process.stderr.write("Slash commands require --url (WebSocket mode).\n");
+        process.stderr.write(
+          "Slash commands require --url (WebSocket mode).\n"
+        );
       }
       continue;
     }
@@ -216,10 +233,15 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         objective: trimmed,
         provider: prov,
         model: opts.model,
-        tools: [],
+        tools: []
       });
 
-      const ctx = new ProcessingContext({ jobId: crypto.randomUUID(), userId: "1", workspaceDir: opts.workspaceDir, secretResolver: getSecret });
+      const ctx = new ProcessingContext({
+        jobId: crypto.randomUUID(),
+        userId: "1",
+        workspaceDir: opts.workspaceDir,
+        secretResolver: getSecret
+      });
       let taskResult: string | null = null;
 
       for await (const msg of agent.execute(ctx)) {
@@ -230,10 +252,15 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         } else if (msg.type === "step_result") {
           const sr = msg as { result: unknown; is_task_result: boolean };
           if (sr.is_task_result) {
-            taskResult = typeof sr.result === "string" ? sr.result : JSON.stringify(sr.result, null, 2);
+            taskResult =
+              typeof sr.result === "string"
+                ? sr.result
+                : JSON.stringify(sr.result, null, 2);
           }
         } else if (msg.type === "planning_update") {
-          process.stderr.write(`[planning] ${(msg as { content: string }).content.slice(0, 80)}\n`);
+          process.stderr.write(
+            `[planning] ${(msg as { content: string }).content.slice(0, 80)}\n`
+          );
         } else if (msg.type === "task_update") {
           process.stderr.write(`[task] ${(msg as { event: string }).event}\n`);
         } else if (msg.type === "tool_call_update") {
@@ -244,18 +271,30 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       if (taskResult !== null) {
         process.stdout.write(taskResult);
       }
-
     } else if (wsClient) {
       // --- Regular chat via WebSocket ---
-      for await (const event of wsClient.chat(trimmed, threadId, opts.model, opts.provider)) {
+      for await (const event of wsClient.chat(
+        trimmed,
+        threadId,
+        opts.model,
+        opts.provider
+      )) {
         if (event.type === "chunk") {
           process.stdout.write(event.content);
         } else if (event.type === "tool_call") {
-          const argsStr = Object.keys(event.args).length > 0 ? JSON.stringify(event.args) : "";
-          process.stderr.write(`[tool] ${event.name}${argsStr ? `(${argsStr})` : ""}\n`);
+          const argsStr =
+            Object.keys(event.args).length > 0
+              ? JSON.stringify(event.args)
+              : "";
+          process.stderr.write(
+            `[tool] ${event.name}${argsStr ? `(${argsStr})` : ""}\n`
+          );
         } else if (event.type === "tool_result") {
           // Truncate long results for display
-          const preview = event.content.length > 200 ? event.content.slice(0, 200) + "..." : event.content;
+          const preview =
+            event.content.length > 200
+              ? event.content.slice(0, 200) + "..."
+              : event.content;
           process.stderr.write(`[result] ${event.name}: ${preview}\n`);
         } else if (event.type === "output_update") {
           process.stdout.write(JSON.stringify(event.value, null, 2));
@@ -267,7 +306,6 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           break;
         }
       }
-
     } else {
       // --- Regular chat via direct provider ---
       await processChat({
@@ -275,11 +313,18 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         messages: chatHistory,
         model: opts.model,
         provider: directProvider!,
-        context: new ProcessingContext({ jobId: crypto.randomUUID(), userId: "1", workspaceDir: opts.workspaceDir, secretResolver: getSecret }),
+        context: new ProcessingContext({
+          jobId: crypto.randomUUID(),
+          userId: "1",
+          workspaceDir: opts.workspaceDir,
+          secretResolver: getSecret
+        }),
         tools: [],
         callbacks: {
-          onChunk: (text) => { process.stdout.write(text); },
-        },
+          onChunk: (text) => {
+            process.stdout.write(text);
+          }
+        }
       });
     }
 

@@ -18,7 +18,7 @@ import {
   ListAssetsTool,
   GetAssetTool,
   ListModelsTool,
-  getAllMcpTools,
+  getAllMcpTools
 } from "../src/tools/mcp-tools.js";
 
 const API_URL = "http://test-api:7777";
@@ -26,7 +26,7 @@ const API_URL = "http://test-api:7777";
 function makeMockContext(): ProcessingContext {
   return {
     userId: "user-1",
-    environment: { NODETOOL_API_URL: API_URL },
+    environment: { NODETOOL_API_URL: API_URL }
   } as unknown as ProcessingContext;
 }
 
@@ -39,7 +39,7 @@ beforeEach(() => {
   fetchSpy = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => ({ success: true }),
-    text: async () => "",
+    text: async () => ""
   });
   globalThis.fetch = fetchSpy as unknown as typeof fetch;
 });
@@ -104,7 +104,7 @@ describe("CreateWorkflowTool", () => {
   it("calls POST /api/workflows/ with body", async () => {
     await tool.process(ctx, {
       name: "Test WF",
-      graph: { nodes: [], edges: [] },
+      graph: { nodes: [], edges: [] }
     });
     expect(lastFetchUrl()).toContain("/api/workflows/");
     expect(lastFetchOpts().method).toBe("POST");
@@ -143,7 +143,7 @@ describe("GetExampleWorkflowTool", () => {
   it("calls GET /api/workflows/examples/:pkg/:name", async () => {
     await tool.process(ctx, {
       package_name: "base",
-      example_name: "hello",
+      example_name: "hello"
     });
     expect(lastFetchUrl()).toContain("/api/workflows/examples/base/hello");
   });
@@ -334,12 +334,12 @@ describe("API error handling", () => {
     fetchSpy.mockResolvedValueOnce({
       ok: false,
       status: 404,
-      text: async () => "Not Found",
+      text: async () => "Not Found"
     });
 
     const tool = new GetWorkflowTool();
     const result = (await tool.process(ctx, {
-      workflow_id: "nope",
+      workflow_id: "nope"
     })) as Record<string, unknown>;
     expect(result.error).toContain("404");
     expect(result.error).toContain("Not Found");

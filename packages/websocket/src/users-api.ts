@@ -14,7 +14,7 @@ type JsonObject = Record<string, unknown>;
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json" }
   });
 }
 
@@ -23,7 +23,9 @@ function errorResponse(status: number, detail: string): Response {
 }
 
 function getUserId(request: Request, headerName = "x-user-id"): string {
-  return request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1";
+  return (
+    request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1"
+  );
 }
 
 async function parseJsonBody<T>(request: Request): Promise<T | null> {
@@ -46,18 +48,24 @@ function isAdmin(userId: string): boolean {
   if (userId === "1") return true;
   const adminIds = process.env.ADMIN_USER_IDS;
   if (adminIds) {
-    return adminIds.split(",").map((s) => s.trim()).includes(userId);
+    return adminIds
+      .split(",")
+      .map((s) => s.trim())
+      .includes(userId);
   }
   return false;
 }
 
-function toUserResponse(username: string, record: { id: string; role: string; tokenHash: string; createdAt: string }): JsonObject {
+function toUserResponse(
+  username: string,
+  record: { id: string; role: string; tokenHash: string; createdAt: string }
+): JsonObject {
   return {
     username,
     user_id: record.id,
     role: record.role,
     token_hash: record.tokenHash.slice(0, 16) + "...",
-    created_at: record.createdAt,
+    created_at: record.createdAt
   };
 }
 
@@ -76,7 +84,8 @@ export async function handleUsersRequest(
 
   // POST /api/users/reset-token
   if (pathname === "/api/users/reset-token") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+    if (request.method !== "POST")
+      return errorResponse(405, "Method not allowed");
     const body = await parseJsonBody<{ username: string }>(request);
     if (!body?.username) return errorResponse(400, "username is required");
     try {
@@ -86,7 +95,7 @@ export async function handleUsersRequest(
         user_id: result.userId,
         role: result.role,
         token: result.token,
-        created_at: result.createdAt,
+        created_at: result.createdAt
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Not found";
@@ -99,20 +108,27 @@ export async function handleUsersRequest(
     if (request.method === "GET") {
       const users = await manager.listUsers();
       return jsonResponse({
-        users: Object.entries(users).map(([username, rec]) => toUserResponse(username, rec)),
+        users: Object.entries(users).map(([username, rec]) =>
+          toUserResponse(username, rec)
+        )
       });
     }
     if (request.method === "POST") {
-      const body = await parseJsonBody<{ username: string; role?: string }>(request);
+      const body = await parseJsonBody<{ username: string; role?: string }>(
+        request
+      );
       if (!body?.username) return errorResponse(400, "username is required");
       try {
-        const result = await manager.addUser(body.username, body.role ?? "user");
+        const result = await manager.addUser(
+          body.username,
+          body.role ?? "user"
+        );
         return jsonResponse({
           username: result.username,
           user_id: result.userId,
           role: result.role,
           token: result.token,
-          created_at: result.createdAt,
+          created_at: result.createdAt
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Bad request";
@@ -136,7 +152,9 @@ export async function handleUsersRequest(
     if (request.method === "DELETE") {
       try {
         await manager.removeUser(username);
-        return jsonResponse({ message: `User '${username}' removed successfully` });
+        return jsonResponse({
+          message: `User '${username}' removed successfully`
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Not found";
         return errorResponse(404, msg);

@@ -7,7 +7,7 @@ import {
   GoogleJobsNode,
   GoogleLensNode,
   GoogleMapsNode,
-  GoogleShoppingNode,
+  GoogleShoppingNode
 } from "../src/nodes/search.js";
 
 const originalFetch = globalThis.fetch;
@@ -30,7 +30,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     statusText: status === 200 ? "OK" : "Error",
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   } as unknown as Response;
 }
 
@@ -44,7 +44,7 @@ describe("GoogleSearchNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         organic_results: [{ title: "Result 1" }, { title: "Result 2" }],
-        search_metadata: { status: "Success" },
+        search_metadata: { status: "Success" }
       })
     );
 
@@ -56,7 +56,7 @@ describe("GoogleSearchNode", () => {
     const result = await node.process();
     expect(result.output).toEqual([
       { title: "Result 1" },
-      { title: "Result 2" },
+      { title: "Result 2" }
     ]);
   });
 
@@ -83,9 +83,7 @@ describe("GoogleSearchNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Keyword is required");
+    await expect(node.process()).rejects.toThrow("Keyword is required");
   });
 
   it("throws when API key missing", async () => {
@@ -95,9 +93,7 @@ describe("GoogleSearchNode", () => {
       keyword: "test"
     });
 
-    await expect(node.process()).rejects.toThrow(
-      "SERPAPI_API_KEY is required"
-    );
+    await expect(node.process()).rejects.toThrow("SERPAPI_API_KEY is required");
   });
 
   it("throws on HTTP error", async () => {
@@ -109,32 +105,26 @@ describe("GoogleSearchNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("SerpAPI HTTP error: 429");
+    await expect(node.process()).rejects.toThrow("SerpAPI HTTP error: 429");
   });
 
   it("throws on SerpAPI error in response", async () => {
     const node = new GoogleSearchNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ error: "Invalid API key" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ error: "Invalid API key" }));
 
     node.assign({
       keyword: "test"
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Invalid API key");
+    await expect(node.process()).rejects.toThrow("Invalid API key");
   });
 
   it("throws on SerpAPI metadata error status", async () => {
     const node = new GoogleSearchNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        search_metadata: { status: "Error" },
+        search_metadata: { status: "Error" }
       })
     );
 
@@ -143,17 +133,13 @@ describe("GoogleSearchNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("SerpAPI returned an error");
+    await expect(node.process()).rejects.toThrow("SerpAPI returned an error");
   });
 
   it("uses env var API key", async () => {
     process.env.SERPAPI_API_KEY = "env-key";
     const node = new GoogleSearchNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ organic_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ organic_results: [] }));
 
     node.assign({
       keyword: "test"
@@ -203,9 +189,7 @@ describe("GoogleNewsNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Keyword is required");
+    await expect(node.process()).rejects.toThrow("Keyword is required");
   });
 });
 
@@ -218,8 +202,8 @@ describe("GoogleImagesNode", () => {
       jsonResponse({
         images_results: [
           { original: "https://example.com/img1.jpg" },
-          { original: "https://example.com/img2.jpg" },
-        ],
+          { original: "https://example.com/img2.jpg" }
+        ]
       })
     );
 
@@ -231,14 +215,16 @@ describe("GoogleImagesNode", () => {
     const result = await node.process();
     expect(result.output).toEqual([
       { uri: "https://example.com/img1.jpg" },
-      { uri: "https://example.com/img2.jpg" },
+      { uri: "https://example.com/img2.jpg" }
     ]);
   });
 
   it("uses reverse image search with image_url", async () => {
     const node = new GoogleImagesNode();
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ images_results: [{ original: "https://match.com/img.jpg" }] })
+      jsonResponse({
+        images_results: [{ original: "https://match.com/img.jpg" }]
+      })
     );
 
     node.assign({
@@ -272,9 +258,9 @@ describe("GoogleImagesNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("One of 'keyword' or 'image_url' is required");
+    await expect(node.process()).rejects.toThrow(
+      "One of 'keyword' or 'image_url' is required"
+    );
   });
 });
 
@@ -295,7 +281,7 @@ describe("GoogleFinanceNode", () => {
     const result = await node.process();
     expect(result.output).toEqual({
       success: true,
-      results: { price: "$150", change: "+2%" },
+      results: { price: "$150", change: "+2%" }
     });
   });
 
@@ -309,7 +295,7 @@ describe("GoogleFinanceNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual({
-      error: "Query is required for Google Finance search.",
+      error: "Query is required for Google Finance search."
     });
   });
 
@@ -368,9 +354,9 @@ describe("GoogleJobsNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Query is required for Google Jobs search");
+    await expect(node.process()).rejects.toThrow(
+      "Query is required for Google Jobs search"
+    );
   });
 
   it("passes location parameter", async () => {
@@ -397,8 +383,8 @@ describe("GoogleLensNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         visual_matches: [
-          { image: "https://example.com/match.jpg", title: "Match" },
-        ],
+          { image: "https://example.com/match.jpg", title: "Match" }
+        ]
       })
     );
 
@@ -410,18 +396,16 @@ describe("GoogleLensNode", () => {
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output.results).toEqual([
-      { image: "https://example.com/match.jpg", title: "Match" },
+      { image: "https://example.com/match.jpg", title: "Match" }
     ]);
-    expect(output.images).toEqual([
-      { uri: "https://example.com/match.jpg" },
-    ]);
+    expect(output.images).toEqual([{ uri: "https://example.com/match.jpg" }]);
   });
 
   it("falls back to thumbnail when image missing", async () => {
     const node = new GoogleLensNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        visual_matches: [{ thumbnail: "https://example.com/thumb.jpg" }],
+        visual_matches: [{ thumbnail: "https://example.com/thumb.jpg" }]
       })
     );
 
@@ -445,9 +429,9 @@ describe("GoogleLensNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Image URL is required for Google Lens search");
+    await expect(node.process()).rejects.toThrow(
+      "Image URL is required for Google Lens search"
+    );
   });
 });
 
@@ -458,9 +442,7 @@ describe("GoogleMapsNode", () => {
     const node = new GoogleMapsNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        local_results: [
-          { title: "Coffee Shop", type: "cafe", rating: 4.5 },
-        ],
+        local_results: [{ title: "Coffee Shop", type: "cafe", rating: 4.5 }]
       })
     );
 
@@ -471,7 +453,7 @@ describe("GoogleMapsNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual([
-      { title: "Coffee Shop", place_type: "cafe", rating: 4.5 },
+      { title: "Coffee Shop", place_type: "cafe", rating: 4.5 }
     ]);
   });
 
@@ -496,9 +478,9 @@ describe("GoogleMapsNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Query is required for map search");
+    await expect(node.process()).rejects.toThrow(
+      "Query is required for map search"
+    );
   });
 });
 
@@ -509,7 +491,7 @@ describe("GoogleShoppingNode", () => {
     const node = new GoogleShoppingNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        shopping_results: [{ title: "Laptop", price: "$999" }],
+        shopping_results: [{ title: "Laptop", price: "$999" }]
       })
     );
 
@@ -543,16 +525,14 @@ describe("GoogleShoppingNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Query is required for Google Shopping search");
+    await expect(node.process()).rejects.toThrow(
+      "Query is required for Google Shopping search"
+    );
   });
 
   it("builds tbs filter with price range", async () => {
     const node = new GoogleShoppingNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ shopping_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ shopping_results: [] }));
 
     node.assign({
       query: "laptop",
@@ -569,9 +549,7 @@ describe("GoogleShoppingNode", () => {
 
   it("builds tbs filter with condition=new", async () => {
     const node = new GoogleShoppingNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ shopping_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ shopping_results: [] }));
 
     node.assign({
       query: "phone",
@@ -586,9 +564,7 @@ describe("GoogleShoppingNode", () => {
 
   it("builds tbs filter with condition=used", async () => {
     const node = new GoogleShoppingNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ shopping_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ shopping_results: [] }));
 
     node.assign({
       query: "phone",
@@ -603,9 +579,7 @@ describe("GoogleShoppingNode", () => {
 
   it("builds tbs filter with sort_by", async () => {
     const node = new GoogleShoppingNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ shopping_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ shopping_results: [] }));
 
     node.assign({
       query: "phone",
@@ -687,9 +661,7 @@ describe("Node defaults coverage", () => {
 
   it("GoogleShoppingNode with only min_price", async () => {
     const node = new GoogleShoppingNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ shopping_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ shopping_results: [] }));
 
     node.assign({
       query: "laptop",
@@ -704,9 +676,7 @@ describe("Node defaults coverage", () => {
 
   it("GoogleShoppingNode with only max_price", async () => {
     const node = new GoogleShoppingNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ shopping_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ shopping_results: [] }));
 
     node.assign({
       query: "laptop",
@@ -721,9 +691,7 @@ describe("Node defaults coverage", () => {
 
   it("GoogleShoppingNode with refurbished condition", async () => {
     const node = new GoogleShoppingNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ shopping_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ shopping_results: [] }));
 
     node.assign({
       query: "phone",

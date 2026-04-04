@@ -1,0 +1,153 @@
+{
+  "id": "data_generator",
+  "access": "public",
+  "created_at": "2025-07-06T19:05:16.956562",
+  "updated_at": "2025-07-06T19:05:16.956574",
+  "name": "Data Generator",
+  "description": "Generate structured data using AI agents",
+  "tags": [
+    "agents"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": "/examples/data_generator.png",
+  "graph": {
+    "nodes": [
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dataframe_output_2024-12-01"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 410,
+            "y": 55
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 378,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "2ed27bde-9299-4088-a169-156b1ea5552f",
+        "parent_id": null,
+        "type": "nodetool.generators.DataGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "prompt": "Generate a table of veggies",
+          "input_text": "",
+          "max_tokens": 4096,
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "name",
+                "data_type": "string",
+                "description": ""
+              },
+              {
+                "name": "color",
+                "data_type": "string",
+                "description": ""
+              }
+            ]
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 54,
+            "y": 71
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "b313851f-3dc9-4372-92ba-acd96654dfd5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Data Generator",
+                  "bold": true,
+                  "size": "+"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Generate synthetic data"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Use prompt to describe the data"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Add columns to specify the shape of data"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 45,
+            "y": -164
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 135,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "6046a17f-2fe2-4884-bedc-b995b6e8ffbe",
+        "source": "2ed27bde-9299-4088-a169-156b1ea5552f",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

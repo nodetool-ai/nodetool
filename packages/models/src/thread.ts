@@ -32,10 +32,7 @@ export class Thread extends DBModel {
   }
 
   /** Find a thread by id, scoped to the user. */
-  static async find(
-    userId: string,
-    threadId: string,
-  ): Promise<Thread | null> {
+  static async find(userId: string, threadId: string): Promise<Thread | null> {
     const thread = await Thread.get<Thread>(threadId);
     if (!thread) return null;
     if (thread.user_id === userId) return thread;
@@ -45,17 +42,19 @@ export class Thread extends DBModel {
   /** Paginate threads for a user. */
   static async paginate(
     userId: string,
-    opts: { limit?: number; startKey?: string; reverse?: boolean } = {},
+    opts: { limit?: number; startKey?: string; reverse?: boolean } = {}
   ): Promise<[Thread[], string]> {
     const { limit = 50, reverse = true } = opts;
     const db = getDb();
-    const rows = db.select().from(threads)
+    const rows = db
+      .select()
+      .from(threads)
       .where(eq(threads.user_id, userId))
       .orderBy(reverse ? desc(threads.updated_at) : asc(threads.updated_at))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Thread(r as Record<string, unknown>));
+    const items = rows.map((r) => new Thread(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";

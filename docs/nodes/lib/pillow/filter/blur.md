@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Blur"
-node_type: "lib.pillow.filter.Blur"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.Blur"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.Blur`
+**Type:** `lib.image.filter.Blur`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -35,5 +35,5 @@ Apply a Gaussian blur effect to an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

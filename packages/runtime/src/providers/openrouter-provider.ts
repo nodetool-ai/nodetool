@@ -7,7 +7,7 @@ import type {
   Message,
   ProviderStreamItem,
   ProviderTool,
-  TextToImageParams,
+  TextToImageParams
 } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.openrouter");
@@ -24,20 +24,20 @@ const OPENROUTER_IMAGE_MODELS: ImageModel[] = [
     id: "openai/dall-e-3",
     name: "DALL-E 3",
     provider: "openrouter",
-    supportedTasks: ["text_to_image"],
+    supportedTasks: ["text_to_image"]
   },
   {
     id: "openai/dall-e-2",
     name: "DALL-E 2",
     provider: "openrouter",
-    supportedTasks: ["text_to_image"],
+    supportedTasks: ["text_to_image"]
   },
   {
     id: "stabilityai/stable-diffusion-xl",
     name: "Stable Diffusion XL",
     provider: "openrouter",
-    supportedTasks: ["text_to_image"],
-  },
+    supportedTasks: ["text_to_image"]
+  }
 ];
 
 export class OpenRouterProvider extends OpenAIProvider {
@@ -70,10 +70,10 @@ export class OpenRouterProvider extends OpenAIProvider {
               baseURL: "https://openrouter.ai/api/v1",
               defaultHeaders: {
                 "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
-                "X-Title": "NodeTool",
-              },
+                "X-Title": "NodeTool"
+              }
             })),
-        fetchFn,
+        fetchFn
       }
     );
 
@@ -110,7 +110,7 @@ export class OpenRouterProvider extends OpenAIProvider {
         ? {
             ...msg,
             role: "user" as const,
-            content: `Instructions: ${typeof msg.content === "string" ? msg.content : ""}`,
+            content: `Instructions: ${typeof msg.content === "string" ? msg.content : ""}`
           }
         : msg
     );
@@ -167,7 +167,7 @@ export class OpenRouterProvider extends OpenAIProvider {
 
     const request: Record<string, unknown> = {
       model: params.model.id,
-      prompt,
+      prompt
     };
 
     const size = this.resolveImageSize(
@@ -214,8 +214,8 @@ export class OpenRouterProvider extends OpenAIProvider {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
-          "X-Title": "NodeTool",
-        },
+          "X-Title": "NodeTool"
+        }
       }
     );
 
@@ -235,7 +235,7 @@ export class OpenRouterProvider extends OpenAIProvider {
       .map((row) => ({
         id: row.id,
         name: row.name ?? row.id,
-        provider: "openrouter",
+        provider: "openrouter"
       }));
   }
 }

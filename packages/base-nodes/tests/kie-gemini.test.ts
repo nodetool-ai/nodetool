@@ -6,7 +6,7 @@ import {
   TextToVideoGeminiNode,
   ImageToVideoGeminiNode,
   TextToSpeechGeminiNode,
-  TranscribeGeminiNode,
+  TranscribeGeminiNode
 } from "../src/nodes/gemini.js";
 
 const originalFetch = globalThis.fetch;
@@ -28,7 +28,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   } as unknown as Response;
 }
 
@@ -46,11 +46,11 @@ describe("GroundedSearchNode", () => {
             content: { parts: [{ text: "Search result text" }] },
             groundingMetadata: {
               groundingChunks: [
-                { web: { title: "Source 1", uri: "https://example.com" } },
-              ],
-            },
-          },
-        ],
+                { web: { title: "Source 1", uri: "https://example.com" } }
+              ]
+            }
+          }
+        ]
       })
     );
 
@@ -62,7 +62,7 @@ describe("GroundedSearchNode", () => {
     const result = await node.process();
     expect(result.results).toEqual(["Search result text"]);
     expect(result.sources).toEqual([
-      { title: "Source 1", url: "https://example.com" },
+      { title: "Source 1", url: "https://example.com" }
     ]);
   });
 
@@ -77,11 +77,11 @@ describe("GroundedSearchNode", () => {
               groundingChunks: [
                 { web: { title: "A", uri: "https://a.com" } },
                 { web: { title: "A dup", uri: "https://a.com" } },
-                { web: { title: "B", uri: "https://b.com" } },
-              ],
-            },
-          },
-        ],
+                { web: { title: "B", uri: "https://b.com" } }
+              ]
+            }
+          }
+        ]
       })
     );
 
@@ -98,7 +98,7 @@ describe("GroundedSearchNode", () => {
     const node = new GroundedSearchNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ content: { parts: [{ text: "result" }] } }],
+        candidates: [{ content: { parts: [{ text: "result" }] } }]
       })
     );
 
@@ -120,9 +120,7 @@ describe("GroundedSearchNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Search query is required");
+    await expect(node.process()).rejects.toThrow("Search query is required");
   });
 
   it("throws when API key missing", async () => {
@@ -146,9 +144,7 @@ describe("GroundedSearchNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Gemini API error 500");
+    await expect(node.process()).rejects.toThrow("Gemini API error 500");
   });
 
   it("throws on no candidates", async () => {
@@ -160,25 +156,23 @@ describe("GroundedSearchNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No response received from Gemini API");
+    await expect(node.process()).rejects.toThrow(
+      "No response received from Gemini API"
+    );
   });
 
   it("throws on invalid content format", async () => {
     const node = new GroundedSearchNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ candidates: [{}] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ candidates: [{}] }));
 
     node.assign({
       query: "test"
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Invalid response format from Gemini API");
+    await expect(node.process()).rejects.toThrow(
+      "Invalid response format from Gemini API"
+    );
   });
 });
 
@@ -189,7 +183,7 @@ describe("EmbeddingNode (Gemini)", () => {
     const node = new EmbeddingNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        embedding: { values: [0.1, 0.2, 0.3] },
+        embedding: { values: [0.1, 0.2, 0.3] }
       })
     );
 
@@ -210,9 +204,9 @@ describe("EmbeddingNode (Gemini)", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Input text is required for embedding generation");
+    await expect(node.process()).rejects.toThrow(
+      "Input text is required for embedding generation"
+    );
   });
 
   it("throws when no embedding in response", async () => {
@@ -224,9 +218,9 @@ describe("EmbeddingNode (Gemini)", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No embedding generated from the input text");
+    await expect(node.process()).rejects.toThrow(
+      "No embedding generated from the input text"
+    );
   });
 
   it("throws on API error", async () => {
@@ -238,9 +232,7 @@ describe("EmbeddingNode (Gemini)", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Gemini API error 400");
+    await expect(node.process()).rejects.toThrow("Gemini API error 400");
   });
 });
 
@@ -251,7 +243,7 @@ describe("ImageGenerationNode", () => {
     const node = new ImageGenerationNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        predictions: [{ bytesBase64Encoded: "base64imagedata" }],
+        predictions: [{ bytesBase64Encoded: "base64imagedata" }]
       })
     );
 
@@ -264,7 +256,7 @@ describe("ImageGenerationNode", () => {
     const result = await node.process();
     expect(result.output).toEqual({
       type: "image",
-      data: "base64imagedata",
+      data: "base64imagedata"
     });
   });
 
@@ -276,11 +268,11 @@ describe("ImageGenerationNode", () => {
           {
             content: {
               parts: [
-                { inlineData: { data: "geminiimgdata", mimeType: "image/png" } },
-              ],
-            },
-          },
-        ],
+                { inlineData: { data: "geminiimgdata", mimeType: "image/png" } }
+              ]
+            }
+          }
+        ]
       })
     );
 
@@ -293,7 +285,7 @@ describe("ImageGenerationNode", () => {
     const result = await node.process();
     expect(result.output).toEqual({
       type: "image",
-      data: "geminiimgdata",
+      data: "geminiimgdata"
     });
   });
 
@@ -304,12 +296,10 @@ describe("ImageGenerationNode", () => {
         candidates: [
           {
             content: {
-              parts: [
-                { inline_data: { data: "snakedata" } },
-              ],
-            },
-          },
-        ],
+              parts: [{ inline_data: { data: "snakedata" } }]
+            }
+          }
+        ]
       })
     );
 
@@ -331,10 +321,10 @@ describe("ImageGenerationNode", () => {
         candidates: [
           {
             content: {
-              parts: [{ inlineData: { data: "edited" } }],
-            },
-          },
-        ],
+              parts: [{ inlineData: { data: "edited" } }]
+            }
+          }
+        ]
       })
     );
 
@@ -357,10 +347,10 @@ describe("ImageGenerationNode", () => {
         candidates: [
           {
             content: {
-              parts: [{ inlineData: { data: "uint8img" } }],
-            },
-          },
-        ],
+              parts: [{ inlineData: { data: "uint8img" } }]
+            }
+          }
+        ]
       })
     );
 
@@ -380,7 +370,9 @@ describe("ImageGenerationNode", () => {
     const node = new ImageGenerationNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ finishReason: "PROHIBITED_CONTENT", content: { parts: [] } }],
+        candidates: [
+          { finishReason: "PROHIBITED_CONTENT", content: { parts: [] } }
+        ]
       })
     );
 
@@ -390,18 +382,14 @@ describe("ImageGenerationNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Prohibited content");
+    await expect(node.process()).rejects.toThrow("Prohibited content");
   });
 
   it("throws when no image bytes in Gemini response", async () => {
     const node = new ImageGenerationNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [
-          { content: { parts: [{ text: "no image here" }] } },
-        ],
+        candidates: [{ content: { parts: [{ text: "no image here" }] } }]
       })
     );
 
@@ -411,9 +399,9 @@ describe("ImageGenerationNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No image bytes returned in response");
+    await expect(node.process()).rejects.toThrow(
+      "No image bytes returned in response"
+    );
   });
 
   it("throws on empty prompt", async () => {
@@ -424,9 +412,9 @@ describe("ImageGenerationNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("The input prompt cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The input prompt cannot be empty"
+    );
   });
 
   it("throws when no predictions from Imagen", async () => {
@@ -439,16 +427,12 @@ describe("ImageGenerationNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No images generated");
+    await expect(node.process()).rejects.toThrow("No images generated");
   });
 
   it("throws when no bytesBase64 in predictions", async () => {
     const node = new ImageGenerationNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ predictions: [{}] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ predictions: [{}] }));
 
     node.assign({
       prompt: "cat",
@@ -456,9 +440,7 @@ describe("ImageGenerationNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No image bytes in response");
+    await expect(node.process()).rejects.toThrow("No image bytes in response");
   });
 
   it("throws on API error for Imagen", async () => {
@@ -471,9 +453,7 @@ describe("ImageGenerationNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Gemini API error 500");
+    await expect(node.process()).rejects.toThrow("Gemini API error 500");
   });
 
   it("throws on no candidates for Gemini model", async () => {
@@ -486,9 +466,9 @@ describe("ImageGenerationNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No response received from Gemini API");
+    await expect(node.process()).rejects.toThrow(
+      "No response received from Gemini API"
+    );
   });
 });
 
@@ -501,10 +481,8 @@ describe("TextToVideoGeminiNode", () => {
       jsonResponse({
         done: true,
         response: {
-          generatedVideos: [
-            { video: { videoBytes: "base64videodata" } },
-          ],
-        },
+          generatedVideos: [{ video: { videoBytes: "base64videodata" } }]
+        }
       })
     );
 
@@ -528,10 +506,8 @@ describe("TextToVideoGeminiNode", () => {
       jsonResponse({
         done: true,
         response: {
-          generatedVideos: [
-            { video: { videoBytes: "polledvideo" } },
-          ],
-        },
+          generatedVideos: [{ video: { videoBytes: "polledvideo" } }]
+        }
       })
     );
 
@@ -552,9 +528,9 @@ describe("TextToVideoGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Video generation prompt is required");
+    await expect(node.process()).rejects.toThrow(
+      "Video generation prompt is required"
+    );
   });
 
   it("throws on API error", async () => {
@@ -566,9 +542,7 @@ describe("TextToVideoGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Gemini API error 500");
+    await expect(node.process()).rejects.toThrow("Gemini API error 500");
   });
 
   it("throws when no operation name and not done", async () => {
@@ -580,9 +554,9 @@ describe("TextToVideoGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No operation name in response");
+    await expect(node.process()).rejects.toThrow(
+      "No operation name in response"
+    );
   });
 
   it("throws when no video in response", async () => {
@@ -596,9 +570,7 @@ describe("TextToVideoGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No video generated");
+    await expect(node.process()).rejects.toThrow("No video generated");
   });
 
   it("throws on poll error", async () => {
@@ -616,9 +588,7 @@ describe("TextToVideoGeminiNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Gemini poll error 500");
+    await expect(node.process()).rejects.toThrow("Gemini poll error 500");
   }, 15000);
 
   it("throws when no video object in generatedVideos", async () => {
@@ -632,15 +602,16 @@ describe("TextToVideoGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No video in response");
+    await expect(node.process()).rejects.toThrow("No video in response");
   });
 
   it("throws when no videoBytes in video", async () => {
     const node = new TextToVideoGeminiNode();
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ done: true, response: { generatedVideos: [{ video: {} }] } })
+      jsonResponse({
+        done: true,
+        response: { generatedVideos: [{ video: {} }] }
+      })
     );
 
     node.assign({
@@ -648,9 +619,7 @@ describe("TextToVideoGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No video bytes in response");
+    await expect(node.process()).rejects.toThrow("No video bytes in response");
   });
 
   it("extractVideoFromResponse uses data.response", async () => {
@@ -659,7 +628,7 @@ describe("TextToVideoGeminiNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         done: true,
-        generatedVideos: [{ video: { videoBytes: "directvideo" } }],
+        generatedVideos: [{ video: { videoBytes: "directvideo" } }]
       })
     );
 
@@ -675,7 +644,8 @@ describe("TextToVideoGeminiNode", () => {
   it("throws timeout when poll never completes", async () => {
     // Replace setTimeout with immediate resolution to skip 5s delays
     const origSetTimeout = globalThis.setTimeout;
-    globalThis.setTimeout = ((fn: () => void) => origSetTimeout(fn, 0)) as typeof setTimeout;
+    globalThis.setTimeout = ((fn: () => void) =>
+      origSetTimeout(fn, 0)) as typeof setTimeout;
     try {
       const node = new TextToVideoGeminiNode();
       // Initial response: not done, has operation name
@@ -691,9 +661,9 @@ describe("TextToVideoGeminiNode", () => {
 
       node.setDynamic("_secrets", secrets._secrets);
 
-      await expect(
-        node.process()
-      ).rejects.toThrow("Video generation timed out");
+      await expect(node.process()).rejects.toThrow(
+        "Video generation timed out"
+      );
     } finally {
       globalThis.setTimeout = origSetTimeout;
     }
@@ -710,10 +680,8 @@ describe("ImageToVideoGeminiNode", () => {
       jsonResponse({
         done: true,
         response: {
-          generatedVideos: [
-            { video: { videoBytes: "videofromimage" } },
-          ],
-        },
+          generatedVideos: [{ video: { videoBytes: "videofromimage" } }]
+        }
       })
     );
 
@@ -736,9 +704,7 @@ describe("ImageToVideoGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Input image is required");
+    await expect(node.process()).rejects.toThrow("Input image is required");
   });
 
   it("throws when image has no data bytes", async () => {
@@ -750,9 +716,7 @@ describe("ImageToVideoGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow();
+    await expect(node.process()).rejects.toThrow();
   });
 
   it("throws on API error", async () => {
@@ -766,9 +730,7 @@ describe("ImageToVideoGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Gemini API error 400");
+    await expect(node.process()).rejects.toThrow("Gemini API error 400");
   });
 });
 
@@ -783,10 +745,10 @@ describe("TextToSpeechGeminiNode", () => {
         candidates: [
           {
             content: {
-              parts: [{ inlineData: { data: pcmBase64 } }],
-            },
-          },
-        ],
+              parts: [{ inlineData: { data: pcmBase64 } }]
+            }
+          }
+        ]
       })
     );
 
@@ -811,10 +773,10 @@ describe("TextToSpeechGeminiNode", () => {
         candidates: [
           {
             content: {
-              parts: [{ inline_data: { data: pcmBase64 } }],
-            },
-          },
-        ],
+              parts: [{ inline_data: { data: pcmBase64 } }]
+            }
+          }
+        ]
       })
     );
 
@@ -835,10 +797,10 @@ describe("TextToSpeechGeminiNode", () => {
         candidates: [
           {
             content: {
-              parts: [{ inlineData: { data: pcmBase64 } }],
-            },
-          },
-        ],
+              parts: [{ inlineData: { data: pcmBase64 } }]
+            }
+          }
+        ]
       })
     );
 
@@ -861,9 +823,9 @@ describe("TextToSpeechGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("The input text cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The input text cannot be empty"
+    );
   });
 
   it("throws on no candidates", async () => {
@@ -875,18 +837,14 @@ describe("TextToSpeechGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No audio generated");
+    await expect(node.process()).rejects.toThrow("No audio generated");
   });
 
   it("throws on no audio data in parts", async () => {
     const node = new TextToSpeechGeminiNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [
-          { content: { parts: [{ text: "no audio here" }] } },
-        ],
+        candidates: [{ content: { parts: [{ text: "no audio here" }] } }]
       })
     );
 
@@ -895,9 +853,9 @@ describe("TextToSpeechGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No audio data found in the response");
+    await expect(node.process()).rejects.toThrow(
+      "No audio data found in the response"
+    );
   });
 
   it("throws on API error", async () => {
@@ -909,9 +867,7 @@ describe("TextToSpeechGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Gemini API error 500");
+    await expect(node.process()).rejects.toThrow("Gemini API error 500");
   });
 });
 
@@ -920,14 +876,16 @@ describe("TextToSpeechGeminiNode", () => {
 describe("TranscribeGeminiNode", () => {
   it("returns transcription text", async () => {
     const node = new TranscribeGeminiNode();
-    const audioB64 = Buffer.from(new Uint8Array([0xff, 0xfb, 0x90, 0x00])).toString("base64");
+    const audioB64 = Buffer.from(
+      new Uint8Array([0xff, 0xfb, 0x90, 0x00])
+    ).toString("base64");
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         candidates: [
           {
-            content: { parts: [{ text: "Hello world" }] },
-          },
-        ],
+            content: { parts: [{ text: "Hello world" }] }
+          }
+        ]
       })
     );
 
@@ -942,16 +900,18 @@ describe("TranscribeGeminiNode", () => {
 
   it("concatenates multiple text parts", async () => {
     const node = new TranscribeGeminiNode();
-    const audioB64 = Buffer.from(new Uint8Array([0x52, 0x49, 0x46, 0x46])).toString("base64");
+    const audioB64 = Buffer.from(
+      new Uint8Array([0x52, 0x49, 0x46, 0x46])
+    ).toString("base64");
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         candidates: [
           {
             content: {
-              parts: [{ text: "Hello " }, { text: "world" }],
-            },
-          },
-        ],
+              parts: [{ text: "Hello " }, { text: "world" }]
+            }
+          }
+        ]
       })
     );
 
@@ -971,7 +931,7 @@ describe("TranscribeGeminiNode", () => {
     const audioB64 = Buffer.from(wavBytes).toString("base64");
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ content: { parts: [{ text: "wav audio" }] } }],
+        candidates: [{ content: { parts: [{ text: "wav audio" }] } }]
       })
     );
 
@@ -991,7 +951,7 @@ describe("TranscribeGeminiNode", () => {
     const audioB64 = Buffer.from(flacBytes).toString("base64");
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ content: { parts: [{ text: "flac" }] } }],
+        candidates: [{ content: { parts: [{ text: "flac" }] } }]
       })
     );
 
@@ -1011,7 +971,7 @@ describe("TranscribeGeminiNode", () => {
     const audioB64 = Buffer.from(oggBytes).toString("base64");
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ content: { parts: [{ text: "ogg" }] } }],
+        candidates: [{ content: { parts: [{ text: "ogg" }] } }]
       })
     );
 
@@ -1031,7 +991,7 @@ describe("TranscribeGeminiNode", () => {
     const audioB64 = Buffer.from(id3Bytes).toString("base64");
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ content: { parts: [{ text: "mp3" }] } }],
+        candidates: [{ content: { parts: [{ text: "mp3" }] } }]
       })
     );
 
@@ -1051,7 +1011,7 @@ describe("TranscribeGeminiNode", () => {
     const audioB64 = Buffer.from(shortBytes).toString("base64");
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ content: { parts: [{ text: "short" }] } }],
+        candidates: [{ content: { parts: [{ text: "short" }] } }]
       })
     );
 
@@ -1073,9 +1033,9 @@ describe("TranscribeGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Audio file is required for transcription");
+    await expect(node.process()).rejects.toThrow(
+      "Audio file is required for transcription"
+    );
   });
 
   it("throws when audio has no data", async () => {
@@ -1086,16 +1046,14 @@ describe("TranscribeGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Audio data is required");
+    await expect(node.process()).rejects.toThrow("Audio data is required");
   });
 
   it("handles Uint8Array audio data", async () => {
     const node = new TranscribeGeminiNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ content: { parts: [{ text: "from uint8" }] } }],
+        candidates: [{ content: { parts: [{ text: "from uint8" }] } }]
       })
     );
 
@@ -1110,7 +1068,9 @@ describe("TranscribeGeminiNode", () => {
 
   it("throws on no candidates", async () => {
     const node = new TranscribeGeminiNode();
-    const audioB64 = Buffer.from(new Uint8Array([0xff, 0xfb])).toString("base64");
+    const audioB64 = Buffer.from(new Uint8Array([0xff, 0xfb])).toString(
+      "base64"
+    );
     mockFetch.mockResolvedValueOnce(jsonResponse({ candidates: [] }));
 
     node.assign({
@@ -1118,14 +1078,16 @@ describe("TranscribeGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No transcription generated from the audio");
+    await expect(node.process()).rejects.toThrow(
+      "No transcription generated from the audio"
+    );
   });
 
   it("throws on API error", async () => {
     const node = new TranscribeGeminiNode();
-    const audioB64 = Buffer.from(new Uint8Array([0xff, 0xfb])).toString("base64");
+    const audioB64 = Buffer.from(new Uint8Array([0xff, 0xfb])).toString(
+      "base64"
+    );
     mockFetch.mockResolvedValueOnce(jsonResponse("err", 500));
 
     node.assign({
@@ -1133,14 +1095,14 @@ describe("TranscribeGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Gemini API error 500");
+    await expect(node.process()).rejects.toThrow("Gemini API error 500");
   });
 
   it("throws when no parts in transcription", async () => {
     const node = new TranscribeGeminiNode();
-    const audioB64 = Buffer.from(new Uint8Array([0xff, 0xfb])).toString("base64");
+    const audioB64 = Buffer.from(new Uint8Array([0xff, 0xfb])).toString(
+      "base64"
+    );
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ candidates: [{ content: {} }] })
     );
@@ -1150,9 +1112,9 @@ describe("TranscribeGeminiNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No transcription generated from the audio");
+    await expect(node.process()).rejects.toThrow(
+      "No transcription generated from the audio"
+    );
   });
 
   it("defaults to audio/mpeg for unknown magic bytes", async () => {
@@ -1161,7 +1123,7 @@ describe("TranscribeGeminiNode", () => {
     const audioB64 = Buffer.from(unknownBytes).toString("base64");
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ content: { parts: [{ text: "unknown" }] } }],
+        candidates: [{ content: { parts: [{ text: "unknown" }] } }]
       })
     );
 
@@ -1242,16 +1204,14 @@ describe("Node defaults coverage", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("No audio generated");
+    await expect(node.process()).rejects.toThrow("No audio generated");
   });
 
   it("ImageGenerationNode throws when no parts in gemini response", async () => {
     const node = new ImageGenerationNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        candidates: [{ content: {} }],
+        candidates: [{ content: {} }]
       })
     );
 
@@ -1261,9 +1221,9 @@ describe("Node defaults coverage", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Invalid response format from Gemini API");
+    await expect(node.process()).rejects.toThrow(
+      "Invalid response format from Gemini API"
+    );
   });
 
   it("ImageGenerationNode Gemini API error", async () => {
@@ -1276,9 +1236,7 @@ describe("Node defaults coverage", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Gemini API error 400");
+    await expect(node.process()).rejects.toThrow("Gemini API error 400");
   });
 
   it("getImageBytes returns Uint8Array for Uint8Array input", () => {

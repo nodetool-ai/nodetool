@@ -15,7 +15,7 @@ type JsonObject = Record<string, unknown>;
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json" }
   });
 }
 
@@ -24,7 +24,9 @@ function errorResponse(status: number, detail: string): Response {
 }
 
 function getUserId(request: Request, headerName = "x-user-id"): string {
-  return request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1";
+  return (
+    request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1"
+  );
 }
 
 async function parseJsonBody<T>(request: Request): Promise<T | null> {
@@ -46,7 +48,7 @@ function toWorkspaceResponse(ws: Workspace): JsonObject {
     is_default: ws.is_default,
     is_accessible: ws.isAccessible(),
     created_at: ws.created_at,
-    updated_at: ws.updated_at,
+    updated_at: ws.updated_at
   };
 }
 
@@ -81,11 +83,10 @@ function guessContentType(filename: string): string {
     xml: "application/xml",
     md: "text/markdown",
     py: "text/x-python",
-    ts: "text/typescript",
+    ts: "text/typescript"
   };
   return map[ext] ?? "application/octet-stream";
 }
-
 
 interface WorkspaceCreateBody {
   name: string;
@@ -101,7 +102,7 @@ interface WorkspaceUpdateBody {
 
 export async function handleWorkspaceRequest(
   request: Request,
-  options: HttpApiOptions,
+  options: HttpApiOptions
 ): Promise<Response | null> {
   // Workspaces browse the local filesystem — disabled in production
   if (process.env["NODETOOL_ENV"] === "production") {
@@ -117,10 +118,11 @@ export async function handleWorkspaceRequest(
 
   // GET /api/workspaces/workflow/{workflowId}/files?path=.
   const workflowFilesMatch = pathname.match(
-    /^\/api\/workspaces\/workflow\/([^/]+)\/files$/,
+    /^\/api\/workspaces\/workflow\/([^/]+)\/files$/
   );
   if (workflowFilesMatch) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     const workflowId = decodeURIComponent(workflowFilesMatch[1]);
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow || !workflow.workspace_id) {
@@ -150,7 +152,7 @@ export async function handleWorkspaceRequest(
             path: fullPath,
             size: s.size,
             is_dir: s.isDirectory(),
-            modified_at: s.mtime.toISOString(),
+            modified_at: s.mtime.toISOString()
           });
         } catch {
           // skip inaccessible entries
@@ -164,10 +166,11 @@ export async function handleWorkspaceRequest(
 
   // GET /api/workspaces/workflow/{workflowId}/download/...
   const workflowDownloadMatch = pathname.match(
-    /^\/api\/workspaces\/workflow\/([^/]+)\/download\/(.+)$/,
+    /^\/api\/workspaces\/workflow\/([^/]+)\/download\/(.+)$/
   );
   if (workflowDownloadMatch) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     const workflowId = decodeURIComponent(workflowDownloadMatch[1]);
     const filePath = decodeURIComponent(workflowDownloadMatch[2]);
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
@@ -192,8 +195,8 @@ export async function handleWorkspaceRequest(
         status: 200,
         headers: {
           "content-type": contentType,
-          "content-disposition": `attachment; filename="${basename(resolvedFile)}"`,
-        },
+          "content-disposition": `attachment; filename="${basename(resolvedFile)}"`
+        }
       });
     } catch {
       return errorResponse(404, "File not found");
@@ -202,7 +205,8 @@ export async function handleWorkspaceRequest(
 
   // GET /api/workspaces/default
   if (pathname === "/api/workspaces/default") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
     const ws = await Workspace.getDefault(userId);
     return jsonResponse(ws ? toWorkspaceResponse(ws) : null);
   }
@@ -212,19 +216,26 @@ export async function handleWorkspaceRequest(
     if (request.method === "GET") {
       const limit = Math.min(
         Number.parseInt(url.searchParams.get("limit") ?? "50", 10) || 50,
-        500,
+        500
       );
       const [workspaces] = await Workspace.paginate(userId, { limit });
       return jsonResponse({
         workspaces: workspaces.map(toWorkspaceResponse),
-        next: null,
+        next: null
       });
     }
 
     if (request.method === "POST") {
       const body = await parseJsonBody<WorkspaceCreateBody>(request);
-      if (!body || typeof body.name !== "string" || typeof body.path !== "string") {
-        return errorResponse(400, "Invalid JSON body: name and path are required");
+      if (
+        !body ||
+        typeof body.name !== "string" ||
+        typeof body.path !== "string"
+      ) {
+        return errorResponse(
+          400,
+          "Invalid JSON body: name and path are required"
+        );
       }
 
       // Validate path
@@ -256,7 +267,7 @@ export async function handleWorkspaceRequest(
         user_id: userId,
         name: body.name,
         path: body.path,
-        is_default: body.is_default ?? false,
+        is_default: body.is_default ?? false
       })) as Workspace;
 
       return jsonResponse(toWorkspaceResponse(ws));
@@ -306,7 +317,7 @@ export async function handleWorkspaceRequest(
     if (hasWorkflows) {
       return errorResponse(
         400,
-        "Cannot delete workspace with linked workflows",
+        "Cannot delete workspace with linked workflows"
       );
     }
 

@@ -7,24 +7,58 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 vi.mock("@nodetool/security", () => ({
-  getSecret: vi.fn(async (key: string) => process.env[key] ?? null),
+  getSecret: vi.fn(async (key: string) => process.env[key] ?? null)
 }));
 
 vi.mock("@nodetool/runtime", () => {
   class FakeProvider {
     constructor(public readonly id: string) {}
-    async generateMessage() { return { role: "assistant", content: "" }; }
-    async *generateMessages() { yield { type: "chunk", content: "hello" }; }
+    async generateMessage() {
+      return { role: "assistant", content: "" };
+    }
+    async *generateMessages() {
+      yield { type: "chunk", content: "hello" };
+    }
   }
 
   return {
-    AnthropicProvider: class extends FakeProvider { constructor(cfg: Record<string, unknown>) { super("anthropic"); void cfg; } },
-    OpenAIProvider:    class extends FakeProvider { constructor(cfg: Record<string, unknown>) { super("openai");    void cfg; } },
-    OllamaProvider:    class extends FakeProvider { constructor(cfg: Record<string, unknown>) { super("ollama");    void cfg; } },
-    GeminiProvider:    class extends FakeProvider { constructor(cfg: Record<string, unknown>) { super("gemini");    void cfg; } },
-    MistralProvider:   class extends FakeProvider { constructor(cfg: Record<string, unknown>) { super("mistral");   void cfg; } },
-    GroqProvider:      class extends FakeProvider { constructor(cfg: Record<string, unknown>) { super("groq");      void cfg; } },
-    BaseProvider:      FakeProvider,
+    AnthropicProvider: class extends FakeProvider {
+      constructor(cfg: Record<string, unknown>) {
+        super("anthropic");
+        void cfg;
+      }
+    },
+    OpenAIProvider: class extends FakeProvider {
+      constructor(cfg: Record<string, unknown>) {
+        super("openai");
+        void cfg;
+      }
+    },
+    OllamaProvider: class extends FakeProvider {
+      constructor(cfg: Record<string, unknown>) {
+        super("ollama");
+        void cfg;
+      }
+    },
+    GeminiProvider: class extends FakeProvider {
+      constructor(cfg: Record<string, unknown>) {
+        super("gemini");
+        void cfg;
+      }
+    },
+    MistralProvider: class extends FakeProvider {
+      constructor(cfg: Record<string, unknown>) {
+        super("mistral");
+        void cfg;
+      }
+    },
+    GroqProvider: class extends FakeProvider {
+      constructor(cfg: Record<string, unknown>) {
+        super("groq");
+        void cfg;
+      }
+    },
+    BaseProvider: FakeProvider
   };
 });
 
@@ -113,7 +147,14 @@ describe("KNOWN_PROVIDERS", () => {
   it("includes all expected provider names", async () => {
     vi.resetModules();
     const { KNOWN_PROVIDERS } = await import("../src/providers.js");
-    const expected = ["anthropic", "openai", "ollama", "gemini", "mistral", "groq"];
+    const expected = [
+      "anthropic",
+      "openai",
+      "ollama",
+      "gemini",
+      "mistral",
+      "groq"
+    ];
     for (const p of expected) {
       expect(KNOWN_PROVIDERS).toContain(p);
     }
@@ -125,7 +166,8 @@ describe("KNOWN_PROVIDERS", () => {
 describe("DEFAULT_MODELS", () => {
   it("maps each known provider to a model string", async () => {
     vi.resetModules();
-    const { DEFAULT_MODELS, KNOWN_PROVIDERS } = await import("../src/providers.js");
+    const { DEFAULT_MODELS, KNOWN_PROVIDERS } =
+      await import("../src/providers.js");
     for (const p of KNOWN_PROVIDERS) {
       expect(typeof DEFAULT_MODELS[p]).toBe("string");
       expect(DEFAULT_MODELS[p]!.length).toBeGreaterThan(0);
@@ -221,11 +263,18 @@ describe("WebSocketProvider", () => {
         yield { type: "chunk", content: "Hello" };
         yield { type: "chunk", content: ", world" };
         yield { type: "done" };
-      }),
+      })
     };
 
-    const provider = new WebSocketProvider(fakeClient as never, "gpt-4o", "openai");
-    const msg = await provider.generateMessage({ messages: [], model: "gpt-4o" });
+    const provider = new WebSocketProvider(
+      fakeClient as never,
+      "gpt-4o",
+      "openai"
+    );
+    const msg = await provider.generateMessage({
+      messages: [],
+      model: "gpt-4o"
+    });
     expect(msg.role).toBe("assistant");
     expect(msg.content).toBe("Hello, world");
   });
@@ -237,11 +286,18 @@ describe("WebSocketProvider", () => {
     const fakeClient = {
       inference: vi.fn(async function* () {
         yield { type: "done" };
-      }),
+      })
     };
 
-    const provider = new WebSocketProvider(fakeClient as never, "gpt-4o", "openai");
-    const msg = await provider.generateMessage({ messages: [], model: "gpt-4o" });
+    const provider = new WebSocketProvider(
+      fakeClient as never,
+      "gpt-4o",
+      "openai"
+    );
+    const msg = await provider.generateMessage({
+      messages: [],
+      model: "gpt-4o"
+    });
     expect(msg.content).toBe("");
   });
 
@@ -252,13 +308,19 @@ describe("WebSocketProvider", () => {
     const fakeClient = {
       inference: vi.fn(async function* () {
         yield { type: "error", message: "server error" };
-      }),
+      })
     };
 
-    const provider = new WebSocketProvider(fakeClient as never, "gpt-4o", "openai");
+    const provider = new WebSocketProvider(
+      fakeClient as never,
+      "gpt-4o",
+      "openai"
+    );
     const gen = provider.generateMessages({ messages: [], model: "gpt-4o" });
     await expect(async () => {
-      for await (const _ of gen) { /* consume */ }
+      for await (const _ of gen) {
+        /* consume */
+      }
     }).rejects.toThrow("server error");
   });
 
@@ -266,17 +328,29 @@ describe("WebSocketProvider", () => {
     vi.resetModules();
     const { WebSocketProvider } = await import("../src/providers.js");
 
-    const toolCall = { type: "tool_call", id: "tc1", name: "read_file", args: { path: "a.txt" } };
+    const toolCall = {
+      type: "tool_call",
+      id: "tc1",
+      name: "read_file",
+      args: { path: "a.txt" }
+    };
     const fakeClient = {
       inference: vi.fn(async function* () {
         yield toolCall;
         yield { type: "done" };
-      }),
+      })
     };
 
-    const provider = new WebSocketProvider(fakeClient as never, "gpt-4o", "openai");
+    const provider = new WebSocketProvider(
+      fakeClient as never,
+      "gpt-4o",
+      "openai"
+    );
     const items: unknown[] = [];
-    for await (const item of provider.generateMessages({ messages: [], model: "gpt-4o" })) {
+    for await (const item of provider.generateMessages({
+      messages: [],
+      model: "gpt-4o"
+    })) {
       items.push(item);
     }
     expect(items).toHaveLength(1);
@@ -292,10 +366,14 @@ describe("WebSocketProvider", () => {
       inference: vi.fn(async function* (_msgs: unknown, model: string) {
         capturedModel = model;
         yield { type: "done" };
-      }),
+      })
     };
 
-    const provider = new WebSocketProvider(fakeClient as never, "my-default-model", "openai");
+    const provider = new WebSocketProvider(
+      fakeClient as never,
+      "my-default-model",
+      "openai"
+    );
     await provider.generateMessage({ messages: [], model: "" });
     expect(capturedModel).toBe("my-default-model");
   });

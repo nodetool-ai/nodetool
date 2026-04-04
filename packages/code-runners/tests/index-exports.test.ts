@@ -17,7 +17,7 @@ import {
   LuaSubprocessRunner,
   CommandDockerRunner,
   ServerDockerRunner,
-  ServerSubprocessRunner,
+  ServerSubprocessRunner
 } from "../src/index.js";
 
 describe("index.ts barrel exports", () => {

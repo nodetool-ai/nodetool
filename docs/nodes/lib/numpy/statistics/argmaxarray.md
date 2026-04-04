@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Arg Max Array"
-node_type: "lib.numpy.statistics.ArgMaxArray"
-namespace: "lib.numpy.statistics"
+node_type: "lib.array.statistics.ArgMaxArray"
+namespace: "lib.array.statistics"
 ---
 
-**Type:** `lib.numpy.statistics.ArgMaxArray`
+**Type:** `lib.array.statistics.ArgMaxArray`
 
-**Namespace:** `lib.numpy.statistics`
+**Namespace:** `lib.array.statistics`
 
 ## Description
 
@@ -36,5 +36,5 @@ Find indices of maximum values along a specified axis of a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.statistics](../) namespace.
+Browse other nodes in the [lib.array.statistics](../) namespace.
 

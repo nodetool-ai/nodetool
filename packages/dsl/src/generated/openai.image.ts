@@ -16,8 +16,14 @@ export interface CreateImageOutputs {
   output: ImageRef;
 }
 
-export function createImage(inputs: CreateImageInputs): DslNode<CreateImageOutputs, "output"> {
-  return createNode("openai.image.CreateImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function createImage(
+  inputs: CreateImageInputs
+): DslNode<CreateImageOutputs, "output"> {
+  return createNode(
+    "openai.image.CreateImage",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Edit Image — openai.image.EditImage
@@ -34,6 +40,12 @@ export interface EditImageOutputs {
   output: ImageRef;
 }
 
-export function editImage(inputs: EditImageInputs): DslNode<EditImageOutputs, "output"> {
-  return createNode("openai.image.EditImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function editImage(
+  inputs: EditImageInputs
+): DslNode<EditImageOutputs, "output"> {
+  return createNode(
+    "openai.image.EditImage",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

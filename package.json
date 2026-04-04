@@ -60,7 +60,11 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
+    "@openai/codex-sdk": "^0.118.0",
     "keytar": "^7.9.0",
     "msgpackr": "^1.11.9"
+  },
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
   }
 }

@@ -11,8 +11,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/z-image-turbo-trainer-v2": {
       className: "ZImageTurboTrainerV2",
@@ -23,8 +23,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/flux-2-klein-9b-base-trainer/edit": {
       className: "Flux2Klein9BBaseTrainerEdit",
@@ -35,8 +35,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/flux-2-klein-9b-base-trainer": {
       className: "Flux2Klein9BBaseTrainer",
@@ -47,8 +47,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/flux-2-klein-4b-base-trainer": {
       className: "Flux2Klein4BBaseTrainer",
@@ -59,8 +59,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/flux-2-klein-4b-base-trainer/edit": {
       className: "Flux2Klein4BBaseTrainerEdit",
@@ -71,8 +71,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/qwen-image-2512-trainer-v2": {
       className: "QwenImage2512TrainerV2",
@@ -83,8 +83,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/flux-2-trainer-v2/edit": {
       className: "Flux2TrainerV2Edit",
@@ -95,8 +95,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/flux-2-trainer-v2": {
       className: "Flux2TrainerV2",
@@ -107,8 +107,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/ltx2-v2v-trainer": {
       className: "Ltx2V2VTrainer",
@@ -119,8 +119,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/ltx2-video-trainer": {
       className: "Ltx2VideoTrainer",
@@ -131,8 +131,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/qwen-image-2512-trainer": {
       className: "QwenImage2512Trainer",
@@ -143,8 +143,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/qwen-image-edit-2511-trainer": {
       className: "QwenImageEdit2511Trainer",
@@ -155,8 +155,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/qwen-image-layered-trainer": {
       className: "QwenImageLayeredTrainer",
@@ -167,8 +167,8 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/qwen-image-edit-2509-trainer": {
       className: "QwenImageEdit2509Trainer",
@@ -179,44 +179,47 @@ export const config: ModuleConfig = {
         "Creative workflows",
         "Batch processing",
         "Professional applications",
-        "Rapid prototyping",
-      ],
+        "Rapid prototyping"
+      ]
     },
     "fal-ai/z-image-trainer": {
       className: "ZImageTrainer",
-      docstring: "Train LoRAs on Z-Image Turbo, a super fast text-to-image model of 6B parameters developed by Tongyi-MAI.",
+      docstring:
+        "Train LoRAs on Z-Image Turbo, a super fast text-to-image model of 6B parameters developed by Tongyi-MAI.",
       tags: ["training", "fine-tuning", "lora", "model-training"],
       useCases: [
         "Custom model fine-tuning",
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/flux-2-trainer/edit": {
       className: "Flux2TrainerEdit",
-      docstring: "Fine-tune FLUX.2 [dev] from Black Forest Labs with custom datasets. Create specialized LoRA adaptations for specific editing tasks.",
+      docstring:
+        "Fine-tune FLUX.2 [dev] from Black Forest Labs with custom datasets. Create specialized LoRA adaptations for specific editing tasks.",
       tags: ["flux", "training", "fine-tuning", "lora", "model-training"],
       useCases: [
         "Custom model fine-tuning",
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/flux-2-trainer": {
       className: "Flux2Trainer",
-      docstring: "Fine-tune FLUX.2 [dev] from Black Forest Labs with custom datasets. Create specialized LoRA adaptations for specific styles and domains.",
+      docstring:
+        "Fine-tune FLUX.2 [dev] from Black Forest Labs with custom datasets. Create specialized LoRA adaptations for specific styles and domains.",
       tags: ["flux", "training", "fine-tuning", "lora", "model-training"],
       useCases: [
         "Custom model fine-tuning",
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/qwen-image-edit-plus-trainer": {
       className: "QwenImageEditPlusTrainer",
@@ -227,8 +230,8 @@ export const config: ModuleConfig = {
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/qwen-image-edit-trainer": {
       className: "QwenImageEditTrainer",
@@ -239,8 +242,8 @@ export const config: ModuleConfig = {
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/qwen-image-trainer": {
       className: "QwenImageTrainer",
@@ -251,20 +254,21 @@ export const config: ModuleConfig = {
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/wan-22-image-trainer": {
       className: "Wan22ImageTrainer",
-      docstring: "Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles with unprecedented detail.",
+      docstring:
+        "Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles with unprecedented detail.",
       tags: ["training", "fine-tuning", "lora", "model-training"],
       useCases: [
         "Custom model fine-tuning",
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/wan-trainer/t2v": {
       className: "WanTrainerT2v",
@@ -275,8 +279,8 @@ export const config: ModuleConfig = {
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/wan-trainer/t2v-14b": {
       className: "WanTrainerT2v14b",
@@ -287,8 +291,8 @@ export const config: ModuleConfig = {
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/wan-trainer/i2v-720p": {
       className: "WanTrainerI2v720p",
@@ -299,8 +303,8 @@ export const config: ModuleConfig = {
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/wan-trainer/flf2v-720p": {
       className: "WanTrainerFlf2v720p",
@@ -311,8 +315,8 @@ export const config: ModuleConfig = {
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/ltx-video-trainer": {
       className: "LtxVideoTrainer",
@@ -323,32 +327,41 @@ export const config: ModuleConfig = {
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/recraft/v3/create-style": {
       className: "RecraftV3CreateStyle",
-      docstring: "Recraft V3 Create Style is capable of creating unique styles for Recraft V3 based on your images.",
+      docstring:
+        "Recraft V3 Create Style is capable of creating unique styles for Recraft V3 based on your images.",
       tags: ["training", "fine-tuning", "lora", "model-training"],
       useCases: [
         "Custom model fine-tuning",
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/turbo-flux-trainer": {
       className: "TurboFluxTrainer",
-      docstring: "A blazing fast FLUX dev LoRA trainer for subjects and styles.",
-      tags: ["flux", "training", "fine-tuning", "lora", "model-training", "fast"],
+      docstring:
+        "A blazing fast FLUX dev LoRA trainer for subjects and styles.",
+      tags: [
+        "flux",
+        "training",
+        "fine-tuning",
+        "lora",
+        "model-training",
+        "fast"
+      ],
       useCases: [
         "Custom model fine-tuning",
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/wan-trainer": {
       className: "WanTrainer",
@@ -359,20 +372,21 @@ export const config: ModuleConfig = {
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
+        "Specialized domain adaptation"
+      ]
     },
     "fal-ai/hunyuan-video-lora-training": {
       className: "HunyuanVideoLoraTraining",
-      docstring: "Train Hunyuan Video lora on people, objects, characters and more!",
+      docstring:
+        "Train Hunyuan Video lora on people, objects, characters and more!",
       tags: ["training", "fine-tuning", "lora", "model-training"],
       useCases: [
         "Custom model fine-tuning",
         "LoRA training for personalization",
         "Style-specific model training",
         "Brand-specific image generation",
-        "Specialized domain adaptation",
-      ],
-    },
-  },
+        "Specialized domain adaptation"
+      ]
+    }
+  }
 };

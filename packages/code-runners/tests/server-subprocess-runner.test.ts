@@ -9,7 +9,7 @@ describe("ServerSubprocessRunner constructor", () => {
 
   it("stores http binaryUrl", () => {
     const runner = new ServerSubprocessRunner({
-      binaryUrl: "https://example.com/server",
+      binaryUrl: "https://example.com/server"
     });
     expect(runner.binaryUrl).toBe("https://example.com/server");
   });
@@ -22,7 +22,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("accepts custom scheme http", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      scheme: "http",
+      scheme: "http"
     });
     expect(runner.scheme).toBe("http");
   });
@@ -30,7 +30,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("accepts custom scheme wss", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      scheme: "wss",
+      scheme: "wss"
     });
     expect(runner.scheme).toBe("wss");
   });
@@ -43,7 +43,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("accepts custom hostIp", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      hostIp: "0.0.0.0",
+      hostIp: "0.0.0.0"
     });
     expect(runner.hostIp).toBe("0.0.0.0");
   });
@@ -56,7 +56,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("accepts custom readyTimeoutSeconds", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      readyTimeoutSeconds: 30,
+      readyTimeoutSeconds: 30
     });
     expect(runner.readyTimeoutSeconds).toBe(30);
   });
@@ -69,7 +69,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("accepts custom timeoutSeconds", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      timeoutSeconds: 120,
+      timeoutSeconds: 120
     });
     expect(runner.timeoutSeconds).toBe(120);
   });
@@ -82,7 +82,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("accepts custom portEnvVar", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      portEnvVar: "SERVER_PORT",
+      portEnvVar: "SERVER_PORT"
     });
     expect(runner.portEnvVar).toBe("SERVER_PORT");
   });
@@ -90,7 +90,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("accepts null portEnvVar (disables env injection)", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      portEnvVar: null,
+      portEnvVar: null
     });
     expect(runner.portEnvVar).toBeNull();
   });
@@ -103,13 +103,13 @@ describe("ServerSubprocessRunner constructor", () => {
   it("stores argsTemplate", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      argsTemplate: ["--port", "{port}", "--host", "0.0.0.0"],
+      argsTemplate: ["--port", "{port}", "--host", "0.0.0.0"]
     });
     expect(runner.argsTemplate).toEqual([
       "--port",
       "{port}",
       "--host",
-      "0.0.0.0",
+      "0.0.0.0"
     ]);
   });
 
@@ -117,7 +117,7 @@ describe("ServerSubprocessRunner constructor", () => {
     const template = ["--port", "{port}"];
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      argsTemplate: template,
+      argsTemplate: template
     });
     template.push("--extra");
     expect(runner.argsTemplate).toEqual(["--port", "{port}"]);
@@ -126,7 +126,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("normalizes endpointPath by adding leading slash", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      endpointPath: "ws",
+      endpointPath: "ws"
     });
     expect(runner.endpointPath).toBe("/ws");
   });
@@ -134,7 +134,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("preserves endpointPath that already has leading slash", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "/bin/server",
-      endpointPath: "/api/socket",
+      endpointPath: "/api/socket"
     });
     expect(runner.endpointPath).toBe("/api/socket");
   });
@@ -152,7 +152,7 @@ describe("ServerSubprocessRunner constructor", () => {
   it("accepts archiveExecutablePath", () => {
     const runner = new ServerSubprocessRunner({
       binaryUrl: "https://example.com/server.zip",
-      archiveExecutablePath: "bin/server",
+      archiveExecutablePath: "bin/server"
     });
     expect(runner.archiveExecutablePath).toBe("bin/server");
   });

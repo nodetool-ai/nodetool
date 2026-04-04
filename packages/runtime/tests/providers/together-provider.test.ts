@@ -11,7 +11,7 @@ function makeAsyncIterable(items: unknown[]) {
     },
     async close() {
       return;
-    },
+    }
   };
 }
 
@@ -31,9 +31,7 @@ describe("TogetherProvider", () => {
   });
 
   it("returns required secrets", () => {
-    expect(TogetherProvider.requiredSecrets()).toEqual([
-      "TOGETHER_API_KEY",
-    ]);
+    expect(TogetherProvider.requiredSecrets()).toEqual(["TOGETHER_API_KEY"]);
   });
 
   it("returns container env with TOGETHER_API_KEY", () => {
@@ -42,7 +40,7 @@ describe("TogetherProvider", () => {
       { client: {} as any }
     );
     expect(provider.getContainerEnv()).toEqual({
-      TOGETHER_API_KEY: "test-key",
+      TOGETHER_API_KEY: "test-key"
     });
   });
 
@@ -62,12 +60,12 @@ describe("TogetherProvider", () => {
           {
             id: "meta-llama/Llama-3-70b",
             display_name: "Llama 3 70B",
-            type: "chat",
+            type: "chat"
           },
           { id: "mistralai/Mixtral-8x7B", type: "language" },
-          { id: "stabilityai/sdxl", type: "image" },
-        ],
-      }),
+          { id: "stabilityai/sdxl", type: "image" }
+        ]
+      })
     });
 
     const provider = new TogetherProvider(
@@ -80,19 +78,19 @@ describe("TogetherProvider", () => {
       {
         id: "meta-llama/Llama-3-70b",
         name: "Llama 3 70B",
-        provider: "together",
+        provider: "together"
       },
       {
         id: "mistralai/Mixtral-8x7B",
         name: "mistralai/Mixtral-8x7B",
-        provider: "together",
-      },
+        provider: "together"
+      }
     ]);
 
     expect(mockFetch).toHaveBeenCalledWith(
       "https://api.together.xyz/v1/models",
       expect.objectContaining({
-        headers: { Authorization: "Bearer k" },
+        headers: { Authorization: "Bearer k" }
       })
     );
   });
@@ -114,25 +112,25 @@ describe("TogetherProvider", () => {
         {
           message: {
             content: "together response",
-            tool_calls: null,
-          },
-        },
-      ],
+            tool_calls: null
+          }
+        }
+      ]
     });
 
     const provider = new TogetherProvider(
       { TOGETHER_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
     const result = await provider.generateMessage({
       messages,
-      model: "meta-llama/Llama-3-70b",
+      model: "meta-llama/Llama-3-70b"
     });
 
     expect(result.role).toBe("assistant");
@@ -143,15 +141,11 @@ describe("TogetherProvider", () => {
   it("streams messages via inherited OpenAI logic", async () => {
     const chunks = [
       {
-        choices: [
-          { delta: { content: "hello" }, finish_reason: null },
-        ],
+        choices: [{ delta: { content: "hello" }, finish_reason: null }]
       },
       {
-        choices: [
-          { delta: { content: "" }, finish_reason: "stop" },
-        ],
-      },
+        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
+      }
     ];
 
     const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
@@ -160,8 +154,8 @@ describe("TogetherProvider", () => {
       { TOGETHER_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
@@ -169,7 +163,7 @@ describe("TogetherProvider", () => {
     const items: unknown[] = [];
     for await (const item of provider.generateMessages({
       messages,
-      model: "meta-llama/Llama-3-70b",
+      model: "meta-llama/Llama-3-70b"
     })) {
       items.push(item);
     }

@@ -13,7 +13,9 @@ import { AuthProvider, AuthResult, TokenType } from "../auth-provider.js";
 /** Minimal Supabase client interface (subset we actually use). */
 interface SupabaseClient {
   auth: {
-    getUser(jwt?: string): Promise<{ data: { user: { id: string } | null }; error: unknown }>;
+    getUser(
+      jwt?: string
+    ): Promise<{ data: { user: { id: string } | null }; error: unknown }>;
   };
 }
 
@@ -66,7 +68,9 @@ export class SupabaseAuthProvider extends AuthProvider {
     this._clientPromise = (async () => {
       // Dynamic import — @supabase/supabase-js is an optional dependency.
       const moduleName = "@supabase/supabase-js";
-      const mod: SupabaseModule = await import(/* webpackIgnore: true */ moduleName);
+      const mod: SupabaseModule = await import(
+        /* webpackIgnore: true */ moduleName
+      );
       const client = mod.createClient(this.supabaseUrl, this.supabaseKey);
       this._client = client;
       return client;
@@ -138,16 +142,20 @@ export class SupabaseAuthProvider extends AuthProvider {
       client = await this._getClient();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return { ok: false, error: `Failed to initialise Supabase client: ${message}` };
+      return {
+        ok: false,
+        error: `Failed to initialise Supabase client: ${message}`
+      };
     }
 
     try {
       const { data, error } = await client.auth.getUser(token);
 
       if (error) {
-        const errMsg = typeof error === "object" && error !== null && "message" in error
-          ? String((error as { message: string }).message)
-          : String(error);
+        const errMsg =
+          typeof error === "object" && error !== null && "message" in error
+            ? String((error as { message: string }).message)
+            : String(error);
         return { ok: false, error: errMsg };
       }
 

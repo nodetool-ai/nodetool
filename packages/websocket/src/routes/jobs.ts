@@ -8,11 +8,13 @@ import {
   handleTriggersRunning,
   handleTriggerStart,
   handleTriggerStop,
-  getUserId,
+  getUserId
 } from "../http-api.js";
 import { Job } from "@nodetool/models";
 
-interface RouteOptions { apiOptions: HttpApiOptions }
+interface RouteOptions {
+  apiOptions: HttpApiOptions;
+}
 
 function toBackgroundJobResponse(job: Job) {
   return {
@@ -21,7 +23,10 @@ function toBackgroundJobResponse(job: Job) {
     workflow_id: job.workflow_id,
     created_at: job.started_at ?? null,
     is_running: job.status === "running" || job.status === "scheduled",
-    is_completed: job.status === "completed" || job.status === "failed" || job.status === "cancelled",
+    is_completed:
+      job.status === "completed" ||
+      job.status === "failed" ||
+      job.status === "cancelled"
   };
 }
 
@@ -32,10 +37,15 @@ const jobsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     await bridge(req, reply, async (request) => {
       const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
       const [jobs] = await Job.paginate(userId, { limit: 500 });
-      const running = jobs.filter((j) => j.status === "running" || j.status === "scheduled");
-      return new Response(JSON.stringify(running.map(toBackgroundJobResponse)), {
-        headers: { "content-type": "application/json" },
-      });
+      const running = jobs.filter(
+        (j) => j.status === "running" || j.status === "scheduled"
+      );
+      return new Response(
+        JSON.stringify(running.map(toBackgroundJobResponse)),
+        {
+          headers: { "content-type": "application/json" }
+        }
+      );
     });
   });
 
@@ -55,7 +65,9 @@ const jobsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
 
   app.post("/api/jobs/:id/cancel", async (req, reply) => {
     const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) => handleJobCancel(request, id, apiOptions));
+    await bridge(req, reply, (request) =>
+      handleJobCancel(request, id, apiOptions)
+    );
   });
 
   app.get("/api/jobs", async (req, reply) => {
@@ -64,12 +76,16 @@ const jobsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
 
   app.get("/api/jobs/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) => handleJobById(request, id, apiOptions));
+    await bridge(req, reply, (request) =>
+      handleJobById(request, id, apiOptions)
+    );
   });
 
   app.delete("/api/jobs/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) => handleJobById(request, id, apiOptions));
+    await bridge(req, reply, (request) =>
+      handleJobById(request, id, apiOptions)
+    );
   });
 };
 

@@ -26,7 +26,7 @@ afterEach(async () => {
 function makeHandler() {
   return createStorageHandler({
     storagePath: tmpDir,
-    tempStoragePath: path.join(tmpDir, "temp"),
+    tempStoragePath: path.join(tmpDir, "temp")
   });
 }
 
@@ -34,12 +34,12 @@ function makeRequest(
   urlPath: string,
   method = "GET",
   headers?: Record<string, string>,
-  body?: BodyInit,
+  body?: BodyInit
 ): Request {
   return new Request(`http://localhost${urlPath}`, {
     method,
     headers,
-    body,
+    body
   });
 }
 
@@ -66,7 +66,9 @@ describe("storage key validation", () => {
 
   it("rejects path traversal", async () => {
     const handler = makeHandler();
-    const res = await handler(makeRequest("/api/storage/foo%2F..%2F..%2Fetc%2Fpasswd"));
+    const res = await handler(
+      makeRequest("/api/storage/foo%2F..%2F..%2Fetc%2Fpasswd")
+    );
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.detail).toContain("path traversal");
@@ -121,12 +123,12 @@ describe("range requests", () => {
     const handler = makeHandler();
     const res = await handler(
       makeRequest("/api/storage/range-test.txt", "GET", {
-        Range: "bytes=0-4",
-      }),
+        Range: "bytes=0-4"
+      })
     );
     expect(res.status).toBe(206);
     expect(res.headers.get("Content-Range")).toBe(
-      `bytes 0-4/${content.length}`,
+      `bytes 0-4/${content.length}`
     );
     expect(res.headers.get("Content-Length")).toBe("5");
   });
@@ -135,13 +137,13 @@ describe("range requests", () => {
     const handler = makeHandler();
     const res = await handler(
       makeRequest("/api/storage/range-test.txt", "GET", {
-        Range: "bytes=-5",
-      }),
+        Range: "bytes=-5"
+      })
     );
     expect(res.status).toBe(206);
     const expectedStart = content.length - 5;
     expect(res.headers.get("Content-Range")).toBe(
-      `bytes ${expectedStart}-${content.length - 1}/${content.length}`,
+      `bytes ${expectedStart}-${content.length - 1}/${content.length}`
     );
   });
 
@@ -149,12 +151,12 @@ describe("range requests", () => {
     const handler = makeHandler();
     const res = await handler(
       makeRequest("/api/storage/range-test.txt", "GET", {
-        Range: "bytes=10-",
-      }),
+        Range: "bytes=10-"
+      })
     );
     expect(res.status).toBe(206);
     expect(res.headers.get("Content-Range")).toBe(
-      `bytes 10-${content.length - 1}/${content.length}`,
+      `bytes 10-${content.length - 1}/${content.length}`
     );
   });
 
@@ -162,8 +164,8 @@ describe("range requests", () => {
     const handler = makeHandler();
     const res = await handler(
       makeRequest("/api/storage/range-test.txt", "GET", {
-        Range: "bytes=999-1000",
-      }),
+        Range: "bytes=999-1000"
+      })
     );
     expect(res.status).toBe(416);
   });
@@ -172,8 +174,8 @@ describe("range requests", () => {
     const handler = makeHandler();
     const res = await handler(
       makeRequest("/api/storage/range-test.txt", "GET", {
-        Range: "invalid-range",
-      }),
+        Range: "invalid-range"
+      })
     );
     expect(res.status).toBe(416);
   });
@@ -190,13 +192,13 @@ describe("PUT / GET / DELETE lifecycle", () => {
 
     // PUT
     const putRes = await handler(
-      makeRequest("/api/storage/lifecycle/test.txt", "PUT", {}, data),
+      makeRequest("/api/storage/lifecycle/test.txt", "PUT", {}, data)
     );
     expect(putRes.status).toBe(200);
 
     // GET
     const getRes = await handler(
-      makeRequest("/api/storage/lifecycle/test.txt"),
+      makeRequest("/api/storage/lifecycle/test.txt")
     );
     expect(getRes.status).toBe(200);
     expect(getRes.headers.get("Content-Type")).toBe("text/plain");
@@ -205,13 +207,13 @@ describe("PUT / GET / DELETE lifecycle", () => {
 
     // DELETE
     const delRes = await handler(
-      makeRequest("/api/storage/lifecycle/test.txt", "DELETE"),
+      makeRequest("/api/storage/lifecycle/test.txt", "DELETE")
     );
     expect(delRes.status).toBe(200);
 
     // GET after delete -> 404
     const getRes2 = await handler(
-      makeRequest("/api/storage/lifecycle/test.txt"),
+      makeRequest("/api/storage/lifecycle/test.txt")
     );
     expect(getRes2.status).toBe(404);
   });
@@ -219,7 +221,7 @@ describe("PUT / GET / DELETE lifecycle", () => {
   it("DELETE returns 404 for non-existent file", async () => {
     const handler = makeHandler();
     const res = await handler(
-      makeRequest("/api/storage/nonexistent.txt", "DELETE"),
+      makeRequest("/api/storage/nonexistent.txt", "DELETE")
     );
     expect(res.status).toBe(404);
   });
@@ -236,7 +238,7 @@ describe("HEAD request", () => {
     await fs.writeFile(path.join(tmpDir, "head-test.txt"), content);
 
     const res = await handler(
-      makeRequest("/api/storage/head-test.txt", "HEAD"),
+      makeRequest("/api/storage/head-test.txt", "HEAD")
     );
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Length")).toBe(String(content.length));
@@ -246,9 +248,7 @@ describe("HEAD request", () => {
 
   it("returns 404 for missing file", async () => {
     const handler = makeHandler();
-    const res = await handler(
-      makeRequest("/api/storage/missing.txt", "HEAD"),
-    );
+    const res = await handler(makeRequest("/api/storage/missing.txt", "HEAD"));
     expect(res.status).toBe(404);
   });
 });
@@ -271,8 +271,8 @@ describe("If-Modified-Since", () => {
     const futureDate = new Date(Date.now() + 60000).toUTCString();
     const res2 = await handler(
       makeRequest("/api/storage/cache-test.txt", "GET", {
-        "If-Modified-Since": futureDate,
-      }),
+        "If-Modified-Since": futureDate
+      })
     );
     expect(res2.status).toBe(304);
   });
@@ -288,13 +288,16 @@ describe("temp storage routing", () => {
     const data = "temp data";
 
     const putRes = await handler(
-      makeRequest("/api/storage/temp/tmp-file.txt", "PUT", {}, data),
+      makeRequest("/api/storage/temp/tmp-file.txt", "PUT", {}, data)
     );
     expect(putRes.status).toBe(200);
 
     // Verify file exists in temp dir
     const filePath = path.join(tmpDir, "temp", "tmp-file.txt");
-    const exists = await fs.stat(filePath).then(() => true).catch(() => false);
+    const exists = await fs
+      .stat(filePath)
+      .then(() => true)
+      .catch(() => false);
     expect(exists).toBe(true);
   });
 });
@@ -308,7 +311,7 @@ describe("method not allowed", () => {
     const handler = makeHandler();
     await fs.writeFile(path.join(tmpDir, "patch-test.txt"), "data");
     const res = await handler(
-      makeRequest("/api/storage/patch-test.txt", "PATCH"),
+      makeRequest("/api/storage/patch-test.txt", "PATCH")
     );
     expect(res.status).toBe(405);
   });

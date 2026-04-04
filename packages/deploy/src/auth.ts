@@ -27,8 +27,7 @@ export const AUTH_DEPLOYMENT_CONFIG_FILE = join(
  * @returns A URL-safe base64-encoded token (32 bytes).
  */
 export function generateSecureToken(): string {
-  return randomBytes(32)
-    .toString("base64url");
+  return randomBytes(32).toString("base64url");
 }
 
 /**
@@ -60,7 +59,10 @@ export function saveAuthConfig(config: Record<string, unknown>): void {
   mkdirSync(dir, { recursive: true });
 
   const content = yaml.dump(config, { flowLevel: -1 });
-  writeFileSync(AUTH_DEPLOYMENT_CONFIG_FILE, content, { encoding: "utf-8", mode: 0o600 });
+  writeFileSync(AUTH_DEPLOYMENT_CONFIG_FILE, content, {
+    encoding: "utf-8",
+    mode: 0o600
+  });
 }
 
 /**

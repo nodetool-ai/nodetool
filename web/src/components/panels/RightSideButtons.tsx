@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
-import { Box, Button, Tooltip, Typography } from "@mui/material";
-import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
+import { useCombo } from "../../stores/KeyPressedStore";
+import { Box } from "@mui/material";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import Help from "../content/Help/Help";
 import SettingsMenu from "../menus/SettingsMenu";
@@ -12,8 +12,8 @@ import SystemStatsDisplay from "./SystemStats";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 import { isProduction } from "../../stores/ApiClient";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { ThemeToggleButton } from "../ui_primitives/ThemeToggleButton";
+import { HelpButton } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -42,10 +42,20 @@ const RightSideButtons: React.FC = () => {
   const handleCloseHelp = useAppHeaderStore((state) => state.handleCloseHelp);
   const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
 
-  const handleHelpClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
+  const setHelpIndex = useAppHeaderStore((state) => state.setHelpIndex);
+
+  const handleHelpClick = useCallback(() => {
     handleOpenHelp();
   }, [handleOpenHelp]);
+
+  const handleShowKeyboardShortcuts = useCallback(() => {
+    setHelpIndex(1);
+    handleOpenHelp();
+  }, [setHelpIndex, handleOpenHelp]);
+
+  // Cmd+/ (Mac) or Ctrl+/ (Win/Linux) opens Help at Keyboard Shortcuts tab
+  useCombo(["Meta", "/"], handleShowKeyboardShortcuts);
+  useCombo(["Control", "/"], handleShowKeyboardShortcuts);
 
   return (
     <Box className="buttons-right" css={styles(theme)}>
@@ -58,22 +68,12 @@ const RightSideButtons: React.FC = () => {
       <ThemeToggleButton />
       <NotificationButton />
       <Help open={helpOpen} handleClose={handleCloseHelp} />
-      <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
-        title={
-          <div style={{ textAlign: "center" }}>
-            <Typography variant="inherit">Help</Typography>
-          </div>
-        }
-      >
-        <Button
-          className="command-icon"
-          onClick={handleHelpClick}
-          tabIndex={-1}
-        >
-          <QuestionMarkIcon />
-        </Button>
-      </Tooltip>
+      <HelpButton
+        onClick={handleHelpClick}
+        iconVariant="question"
+        tooltip="Help"
+        className="command-icon"
+      />
       <SettingsMenu />
     </Box>
   );

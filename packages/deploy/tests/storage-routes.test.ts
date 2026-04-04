@@ -6,29 +6,35 @@ import {
   putFile,
   deleteFile,
   type StorageBackend,
-  type HandlerRequest,
+  type HandlerRequest
 } from "../src/storage-routes.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeMockStorage(overrides: Partial<StorageBackend> = {}): StorageBackend {
+function makeMockStorage(
+  overrides: Partial<StorageBackend> = {}
+): StorageBackend {
   return {
     fileExists: vi.fn(async () => true),
     getMtime: vi.fn(async () => new Date("2025-01-15T12:00:00Z")),
     getSize: vi.fn(async () => 1024),
-    download: vi.fn(async () => new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])),
+    download: vi.fn(
+      async () => new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    ),
     downloadStream: vi.fn(async function* () {
       yield new Uint8Array([1, 2, 3]);
     }),
     upload: vi.fn(async () => {}),
     delete: vi.fn(async () => {}),
-    ...overrides,
+    ...overrides
   };
 }
 
-function makeRequest(headers: Record<string, string | undefined> = {}): HandlerRequest {
+function makeRequest(
+  headers: Record<string, string | undefined> = {}
+): HandlerRequest {
   return { headers };
 }
 
@@ -124,7 +130,7 @@ describe("headFile", () => {
 
   it("returns 404 when file does not exist", async () => {
     const storage = makeMockStorage({
-      fileExists: vi.fn(async () => false),
+      fileExists: vi.fn(async () => false)
     });
     const result = await headFile(storage, "missing.txt");
     expect(result.status).toBe(404);
@@ -132,7 +138,7 @@ describe("headFile", () => {
 
   it("returns 404 when getMtime returns null", async () => {
     const storage = makeMockStorage({
-      getMtime: vi.fn(async () => null),
+      getMtime: vi.fn(async () => null)
     });
     const result = await headFile(storage, "file.txt");
     expect(result.status).toBe(404);
@@ -169,7 +175,7 @@ describe("getFile", () => {
 
   it("returns 404 when file does not exist", async () => {
     const storage = makeMockStorage({
-      fileExists: vi.fn(async () => false),
+      fileExists: vi.fn(async () => false)
     });
     const result = await getFile(storage, "missing.txt", makeRequest());
     expect(result.status).toBe(404);
@@ -177,7 +183,7 @@ describe("getFile", () => {
 
   it("returns 404 when getMtime returns null", async () => {
     const storage = makeMockStorage({
-      getMtime: vi.fn(async () => null),
+      getMtime: vi.fn(async () => null)
     });
     const result = await getFile(storage, "file.txt", makeRequest());
     expect(result.status).toBe(404);
@@ -185,10 +191,10 @@ describe("getFile", () => {
 
   it("returns 304 when If-Modified-Since is >= last modified", async () => {
     const storage = makeMockStorage({
-      getMtime: vi.fn(async () => new Date("2025-01-15T12:00:00Z")),
+      getMtime: vi.fn(async () => new Date("2025-01-15T12:00:00Z"))
     });
     const req = makeRequest({
-      "if-modified-since": new Date("2025-01-16T00:00:00Z").toUTCString(),
+      "if-modified-since": new Date("2025-01-16T00:00:00Z").toUTCString()
     });
     const result = await getFile(storage, "file.txt", req);
     expect(result.status).toBe(304);
@@ -196,10 +202,10 @@ describe("getFile", () => {
 
   it("returns 200 when If-Modified-Since is before last modified", async () => {
     const storage = makeMockStorage({
-      getMtime: vi.fn(async () => new Date("2025-01-15T12:00:00Z")),
+      getMtime: vi.fn(async () => new Date("2025-01-15T12:00:00Z"))
     });
     const req = makeRequest({
-      "if-modified-since": new Date("2025-01-14T00:00:00Z").toUTCString(),
+      "if-modified-since": new Date("2025-01-14T00:00:00Z").toUTCString()
     });
     const result = await getFile(storage, "file.txt", req);
     expect(result.status).toBe(200);
@@ -215,7 +221,7 @@ describe("getFile", () => {
   it("returns 206 for valid range request", async () => {
     const data = new Uint8Array([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
     const storage = makeMockStorage({
-      download: vi.fn(async () => data),
+      download: vi.fn(async () => data)
     });
     const req = makeRequest({ range: "bytes=2-5" });
     const result = await getFile(storage, "file.bin", req);
@@ -229,7 +235,7 @@ describe("getFile", () => {
   it("handles range request without end", async () => {
     const data = new Uint8Array([1, 2, 3, 4, 5]);
     const storage = makeMockStorage({
-      download: vi.fn(async () => data),
+      download: vi.fn(async () => data)
     });
     const req = makeRequest({ range: "bytes=3-" });
     const result = await getFile(storage, "file.bin", req);
@@ -256,7 +262,7 @@ describe("getFile", () => {
       "page.html": "text/html",
       "style.css": "text/css",
       "archive.zip": "application/zip",
-      "doc.pdf": "application/pdf",
+      "doc.pdf": "application/pdf"
     };
     for (const [key, expectedType] of Object.entries(cases)) {
       const result = await getFile(storage, key, makeRequest());
@@ -350,7 +356,7 @@ describe("deleteFile", () => {
 
   it("returns 404 when file does not exist", async () => {
     const storage = makeMockStorage({
-      fileExists: vi.fn(async () => false),
+      fileExists: vi.fn(async () => false)
     });
     const result = await deleteFile(storage, "missing.txt");
     expect(result.status).toBe(404);

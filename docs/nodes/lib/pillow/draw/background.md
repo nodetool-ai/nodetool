@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Background"
-node_type: "lib.pillow.draw.Background"
-namespace: "lib.pillow.draw"
+node_type: "lib.image.draw.Background"
+namespace: "lib.image.draw"
 ---
 
-**Type:** `lib.pillow.draw.Background`
+**Type:** `lib.image.draw.Background`
 
-**Namespace:** `lib.pillow.draw`
+**Namespace:** `lib.image.draw`
 
 ## Description
 
@@ -38,5 +38,5 @@ The Background Node creates a blank background.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.draw](../) namespace.
+Browse other nodes in the [lib.image.draw](../) namespace.
 

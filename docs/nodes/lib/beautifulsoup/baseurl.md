@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Base Url"
-node_type: "lib.beautifulsoup.BaseUrl"
-namespace: "lib.beautifulsoup"
+node_type: "lib.html.BaseUrl"
+namespace: "lib.html"
 ---
 
-**Type:** `lib.beautifulsoup.BaseUrl`
+**Type:** `lib.html.BaseUrl`
 
-**Namespace:** `lib.beautifulsoup`
+**Namespace:** `lib.html`
 
 ## Description
 
@@ -36,5 +36,5 @@ Extract the base URL from a given URL.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.beautifulsoup](../) namespace.
+Browse other nodes in the [lib.html](../) namespace.
 

@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  initTestDb,
-  Asset,
-} from "@nodetool/models";
+import { initTestDb, Asset } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
 
 async function jsonBody(response: Response): Promise<unknown> {
@@ -24,7 +21,7 @@ function makeRequest(
   return new Request(`http://localhost${url}`, {
     method,
     headers,
-    body: requestBody,
+    body: requestBody
   });
 }
 
@@ -41,8 +38,8 @@ describe("HTTP API: assets", () => {
           name: "photo.png",
           content_type: "image/png",
           parent_id: "user-1",
-          metadata: { width: 800 },
-        },
+          metadata: { width: 800 }
+        }
       })
     );
     expect(res.status).toBe(200);
@@ -62,8 +59,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "doc.txt",
           content_type: "text/plain",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -105,8 +102,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "secret.txt",
           content_type: "text/plain",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -127,8 +124,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "home-file.txt",
           content_type: "text/plain",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
 
@@ -139,15 +136,13 @@ describe("HTTP API: assets", () => {
         body: {
           name: "sub-file.txt",
           content_type: "text/plain",
-          parent_id: "some-folder-id",
-        },
+          parent_id: "some-folder-id"
+        }
       })
     );
 
     // List with no filters => defaults to parent_id = user_id
-    const listRes = await handleApiRequest(
-      makeRequest("/api/assets")
-    );
+    const listRes = await handleApiRequest(makeRequest("/api/assets"));
     expect(listRes.status).toBe(200);
     const data = (await jsonBody(listRes)) as {
       assets: Array<Record<string, unknown>>;
@@ -165,8 +160,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "photo.png",
           content_type: "image/png",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
     await handleApiRequest(
@@ -175,8 +170,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "doc.txt",
           content_type: "text/plain",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
 
@@ -199,8 +194,8 @@ describe("HTTP API: assets", () => {
           name: "wf-asset.txt",
           content_type: "text/plain",
           parent_id: "user-1",
-          workflow_id: "wf-123",
-        },
+          workflow_id: "wf-123"
+        }
       })
     );
     await handleApiRequest(
@@ -209,8 +204,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "other.txt",
           content_type: "text/plain",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
 
@@ -232,8 +227,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "original.txt",
           content_type: "text/plain",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -244,8 +239,8 @@ describe("HTTP API: assets", () => {
         method: "PUT",
         body: {
           name: "renamed.txt",
-          metadata: { key: "value" },
-        },
+          metadata: { key: "value" }
+        }
       })
     );
     expect(updateRes.status).toBe(200);
@@ -260,7 +255,7 @@ describe("HTTP API: assets", () => {
     const res = await handleApiRequest(
       makeRequest("/api/assets/nonexistent", {
         method: "PUT",
-        body: { name: "new-name" },
+        body: { name: "new-name" }
       })
     );
     expect(res.status).toBe(404);
@@ -273,8 +268,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "to-delete.txt",
           content_type: "text/plain",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
     const created = (await jsonBody(createRes)) as Record<string, unknown>;
@@ -304,8 +299,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "My Folder",
           content_type: "folder",
-          parent_id: "user-1",
-        },
+          parent_id: "user-1"
+        }
       })
     );
     const folder = (await jsonBody(folderRes)) as Record<string, unknown>;
@@ -318,8 +313,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "file1.txt",
           content_type: "text/plain",
-          parent_id: folderId,
-        },
+          parent_id: folderId
+        }
       })
     );
     const file1 = (await jsonBody(file1Res)) as Record<string, unknown>;
@@ -330,8 +325,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "file2.txt",
           content_type: "text/plain",
-          parent_id: folderId,
-        },
+          parent_id: folderId
+        }
       })
     );
     const file2 = (await jsonBody(file2Res)) as Record<string, unknown>;
@@ -343,8 +338,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "Subfolder",
           content_type: "folder",
-          parent_id: folderId,
-        },
+          parent_id: folderId
+        }
       })
     );
     const subfolder = (await jsonBody(subfolderRes)) as Record<string, unknown>;
@@ -356,8 +351,8 @@ describe("HTTP API: assets", () => {
         body: {
           name: "subfile.txt",
           content_type: "text/plain",
-          parent_id: subfolderId,
-        },
+          parent_id: subfolderId
+        }
       })
     );
     const subfile = (await jsonBody(subfileRes)) as Record<string, unknown>;
@@ -380,9 +375,13 @@ describe("HTTP API: assets", () => {
     expect(deleteData.deleted_asset_ids.length).toBe(5);
 
     // Verify everything is gone
-    const getFolder = await handleApiRequest(makeRequest(`/api/assets/${folderId}`));
+    const getFolder = await handleApiRequest(
+      makeRequest(`/api/assets/${folderId}`)
+    );
     expect(getFolder.status).toBe(404);
-    const getFile = await handleApiRequest(makeRequest(`/api/assets/${String(file1.id)}`));
+    const getFile = await handleApiRequest(
+      makeRequest(`/api/assets/${String(file1.id)}`)
+    );
     expect(getFile.status).toBe(404);
   });
 
@@ -403,8 +402,8 @@ describe("HTTP API: assets", () => {
           parent_id: "user-1",
           workflow_id: "wf-1",
           node_id: "node-1",
-          job_id: "job-1",
-        },
+          job_id: "job-1"
+        }
       })
     );
     expect(res.status).toBe(200);
@@ -418,7 +417,7 @@ describe("HTTP API: assets", () => {
     const res = await handleApiRequest(
       makeRequest("/api/assets", {
         method: "POST",
-        body: { name: "incomplete" },
+        body: { name: "incomplete" }
       })
     );
     expect(res.status).toBe(400);
@@ -433,8 +432,8 @@ describe("HTTP API: assets", () => {
           body: {
             name: `file-${i}.txt`,
             content_type: "text/plain",
-            parent_id: "user-1",
-          },
+            parent_id: "user-1"
+          }
         })
       );
     }

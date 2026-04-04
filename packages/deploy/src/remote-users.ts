@@ -13,9 +13,7 @@ import * as yaml from "js-yaml";
 function shellQuote(s: string): string {
   return `'${s.replace(/'/g, "'\\''")}'`;
 }
-import type {
-  DockerDeployment,
-} from "./deployment-config.js";
+import type { DockerDeployment } from "./deployment-config.js";
 
 // ============================================================================
 // UserInfo type (mirrors Python's multi_user.UserInfo)
@@ -61,7 +59,10 @@ export class SimpleSSHConnection implements SSHConnectionHandle {
   private readonly client: {
     exec(
       command: string,
-      callback: (err: Error | undefined, stream: NodeJS.EventEmitter & { stderr: NodeJS.EventEmitter }) => void
+      callback: (
+        err: Error | undefined,
+        stream: NodeJS.EventEmitter & { stderr: NodeJS.EventEmitter }
+      ) => void
     ): void;
   };
 
@@ -76,33 +77,39 @@ export class SimpleSSHConnection implements SSHConnectionHandle {
     const check = options?.check ?? true;
 
     return new Promise<[number, string, string]>((resolve, reject) => {
-      this.client.exec(command, (err: Error | undefined, stream: NodeJS.EventEmitter & { stderr: NodeJS.EventEmitter }) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        let stdout = "";
-        let stderr = "";
-
-        stream.on("data", (data: Buffer) => {
-          stdout += data.toString("utf-8");
-        });
-        stream.stderr.on("data", (data: Buffer) => {
-          stderr += data.toString("utf-8");
-        });
-        stream.on("close", (code: number) => {
-          if (check && code !== 0) {
-            reject(
-              new Error(
-                `Command failed (exit ${code}): ${command}\nSTDERR: ${stderr}`
-              )
-            );
+      this.client.exec(
+        command,
+        (
+          err: Error | undefined,
+          stream: NodeJS.EventEmitter & { stderr: NodeJS.EventEmitter }
+        ) => {
+          if (err) {
+            reject(err);
             return;
           }
-          resolve([code, stdout, stderr]);
-        });
-      });
+
+          let stdout = "";
+          let stderr = "";
+
+          stream.on("data", (data: Buffer) => {
+            stdout += data.toString("utf-8");
+          });
+          stream.stderr.on("data", (data: Buffer) => {
+            stderr += data.toString("utf-8");
+          });
+          stream.on("close", (code: number) => {
+            if (check && code !== 0) {
+              reject(
+                new Error(
+                  `Command failed (exit ${code}): ${command}\nSTDERR: ${stderr}`
+                )
+              );
+              return;
+            }
+            resolve([code, stdout, stderr]);
+          });
+        }
+      );
     });
   }
 }
@@ -152,7 +159,9 @@ export class RemoteUserManager {
         return {};
       }
 
-      const data = yaml.load(stdout, { schema: yaml.JSON_SCHEMA }) as Partial<UsersFileData> | null;
+      const data = yaml.load(stdout, {
+        schema: yaml.JSON_SCHEMA
+      }) as Partial<UsersFileData> | null;
       return (data?.users as Record<string, UserInfo>) ?? {};
     } catch (e) {
       console.warn(`Warning: Could not load remote users: ${e}`);
@@ -213,7 +222,7 @@ export class RemoteUserManager {
       username,
       role,
       token_hash: this.hashToken(token),
-      created_at: createdAt,
+      created_at: createdAt
     };
 
     await this.saveRemoteUsers(users);
@@ -254,7 +263,7 @@ export class RemoteUserManager {
       username,
       role: existingUser.role,
       token_hash: this.hashToken(newToken),
-      created_at: createdAt,
+      created_at: createdAt
     };
 
     await this.saveRemoteUsers(users);

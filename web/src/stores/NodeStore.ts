@@ -34,7 +34,11 @@ import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
-import { graphEdgeToReactFlowEdge, CONTROL_HANDLE_ID, isAgentNodeType } from "./graphEdgeToReactFlowEdge";
+import {
+  graphEdgeToReactFlowEdge,
+  CONTROL_HANDLE_ID,
+  isAgentNodeType
+} from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -42,11 +46,7 @@ import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
-import {
-  getComfyUIService,
-  normalizeComfyBaseUrl
-} from "../services/ComfyUIService";
-import { comfyObjectInfoToMetadataMap } from "../utils/comfySchemaConverter";
+import { applyDefaultModels } from "../utils/applyDefaultModels";
 
 /**
  * Generates a default name for input nodes based on their type.
@@ -146,7 +146,10 @@ export interface NodeStoreState {
   findNode: (id: string) => Node<NodeData> | undefined;
   updateNode: (id: string, node: Partial<Node<NodeData>>) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
-  updateNodeProperties: (id: string, properties: Record<string, unknown>) => void;
+  updateNodeProperties: (
+    id: string,
+    properties: Record<string, unknown>
+  ) => void;
   deleteNode: (id: string) => void;
   deleteNodes: (ids: string[]) => void;
   findEdge: (id: string) => Edge | undefined;
@@ -169,6 +172,7 @@ export interface NodeStoreState {
   getWorkflow: () => Workflow;
   isComfyWorkflow: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
+  updateWorkflowSetting: (key: string, value: unknown) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -178,7 +182,7 @@ export interface NodeStoreState {
   createNode: (
     metadata: NodeMetadata,
     position: XYPosition,
-    properties?: Record<string, any>
+    properties?: Record<string, unknown>
   ) => Node<NodeData>;
   autoLayout: () => Promise<void>;
   clearMissingModels: () => void;
@@ -224,45 +228,28 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
   if (!comfyMetadataHydrationPromise) {
     comfyMetadataHydrationPromise = (async () => {
       try {
-        const service = getComfyUIService();
-        const configuredComfyUrl = localStorage.getItem("comfyui_base_url");
-        if (configuredComfyUrl) {
-          service.setBaseUrl(normalizeComfyBaseUrl(configuredComfyUrl));
+        // Use ComfyUIStore.connect() which goes through the backend proxy
+        const { useComfyUIStore } = await import("./ComfyUIStore");
+        const comfyStore = useComfyUIStore.getState();
+        if (!comfyStore.isConnected && !comfyStore.isConnecting) {
+          await comfyStore.connect();
         }
-        log.info("[NodeStore] Hydrating missing ComfyUI metadata", {
-          missingComfyTypes,
-          baseUrl: configuredComfyUrl || service.getBaseUrl()
-        });
-        const objectInfo = await service.fetchObjectInfo();
-        const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
-        if (Object.keys(comfyMetadata).length === 0) {
-          return;
-        }
-
-        const currentMetadata = useMetadataStore.getState().metadata;
-        useMetadataStore.getState().setMetadata({
-          ...currentMetadata,
-          ...comfyMetadata
-        });
-
-        const registeredNodeTypes = useMetadataStore.getState().nodeTypes;
-        const baseNodeComponent =
-          registeredNodeTypes["nodetool.workflows.base_node.Preview"] ||
-          Object.values(registeredNodeTypes)[0] ||
-          PlaceholderNode;
-
-        Object.keys(comfyMetadata).forEach((nodeType) => {
-          useMetadataStore.getState().addNodeType(nodeType, baseNodeComponent);
-        });
-
-        log.info(
-          `[NodeStore] Hydrated ${Object.keys(comfyMetadata).length} ComfyUI node metadata entries from ComfyUI service`
-        );
+        // connect() registers metadata in MetadataStore, so we're done
+        log.info("[NodeStore] Hydrated ComfyUI metadata via backend proxy");
       } catch (error) {
         log.warn(
-          "[NodeStore] Failed to hydrate missing ComfyUI metadata from ComfyUI service",
+          "[NodeStore] Failed to hydrate missing ComfyUI metadata",
           error
         );
+        const { useNotificationStore } = await import("./NotificationStore");
+        useNotificationStore.getState().addNotification({
+          type: "warning",
+          content:
+            "Could not connect to ComfyUI. Configure the host in ComfyUI Settings.",
+          alert: true,
+          timeout: 10000,
+          dedupeKey: "comfyui-not-running"
+        });
       } finally {
         comfyMetadataHydrationPromise = null;
       }
@@ -279,7 +266,6 @@ export const createNodeStore = (
   state?: Partial<NodeStoreState>
 ): NodeStore =>
   create<NodeStoreState>()(
-    // @ts-expect-error zundo temporal middleware type augmentation not recognized by zustand 4.x
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
@@ -585,7 +571,9 @@ export const createNodeStore = (
               return;
             }
 
-            const isControlEdge = connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID;
+            const isControlEdge =
+              connection.targetHandle === CONTROL_HANDLE_ID ||
+              connection.sourceHandle === CONTROL_HANDLE_ID;
 
             const isDynamicProperty =
               targetNode?.data.dynamic_properties[connection.targetHandle] !==
@@ -655,7 +643,9 @@ export const createNodeStore = (
               id: get().generateEdgeId(),
               sourceHandle: connection.sourceHandle || null,
               targetHandle: connection.targetHandle || null,
-              ...(isControlEdge ? { type: "control", data: { edge_type: "control" } } : {})
+              ...(isControlEdge
+                ? { type: "control", data: { edge_type: "control" } }
+                : {})
             } as Edge;
 
             // Normalize handles to null if undefined for consistency
@@ -750,7 +740,10 @@ export const createNodeStore = (
               return { ...state, nodes };
             });
           },
-          updateNodeProperties: (id: string, properties: Record<string, unknown>): void => {
+          updateNodeProperties: (
+            id: string,
+            properties: Record<string, unknown>
+          ): void => {
             const workflow_id = get().workflow.id;
             set((state) => {
               const index = state.nodes.findIndex((n) => n.id === id);
@@ -899,7 +892,12 @@ export const createNodeStore = (
             const models: UnifiedModel[] = [];
             for (const node of nodes) {
               for (const key in node.data.properties) {
-                if (Object.prototype.hasOwnProperty.call(node.data.properties, key)) {
+                if (
+                  Object.prototype.hasOwnProperty.call(
+                    node.data.properties,
+                    key
+                  )
+                ) {
                   const property = node.data.properties[key];
                   if (
                     property &&
@@ -932,7 +930,7 @@ export const createNodeStore = (
             };
 
             const unconnectedProperties = (node: Node<NodeData>) => {
-              const properties: Record<string, any> = {};
+              const properties: Record<string, unknown> = {};
               for (const name in node.data.properties) {
                 if (!isHandleConnected(node.id, name)) {
                   properties[name] = node.data.properties[name];
@@ -981,6 +979,14 @@ export const createNodeStore = (
           },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
+          },
+          updateWorkflowSetting: (key: string, value: unknown): void => {
+            const current = get().workflow;
+            const settings = {
+              ...(current.settings ?? {}),
+              [key]: value as string | number | boolean | null
+            };
+            set({ workflow: { ...current, settings } });
           },
           autoLayout: async (): Promise<void> => {
             const allNodes = get().nodes;
@@ -1116,7 +1122,10 @@ export const createNodeStore = (
             }
 
             // Control edge validation: only Agent nodes can create control edges
-            if (connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID) {
+            if (
+              connection.targetHandle === CONTROL_HANDLE_ID ||
+              connection.sourceHandle === CONTROL_HANDLE_ID
+            ) {
               if (!isAgentNodeType(srcNode.type)) {
                 return false;
               }
@@ -1204,9 +1213,9 @@ export const createNodeStore = (
           createNode: (
             metadata: NodeMetadata,
             position: XYPosition,
-            properties?: Record<string, any>
+            properties?: Record<string, unknown>
           ): Node<NodeData> => {
-            const defaults: Record<string, any> = {};
+            const defaults: Record<string, unknown> = {};
             if (metadata.properties) {
               for (const property of metadata.properties) {
                 if (property.name) {
@@ -1219,6 +1228,13 @@ export const createNodeStore = (
                 defaults[key] = properties[key];
               }
             }
+
+            // Apply user's default models for empty model properties
+            const withModelDefaults = applyDefaultModels(
+              defaults,
+              metadata.properties
+            );
+            Object.assign(defaults, withModelDefaults);
 
             // Generate default name for input nodes if name property exists but is empty
             const isInputNode =

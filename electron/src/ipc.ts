@@ -954,6 +954,18 @@ export function initializeIpcHandlers(): void {
     },
   );
 
+  createIpcMainHandler(
+    IpcChannels.RUNTIME_PACKAGE_UNINSTALL,
+    async (_event, data: { packageId: string }) => {
+      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
+        return { success: false, message: `Unknown package ID: ${data.packageId}` };
+      }
+      logMessage(`Uninstalling runtime package: ${data.packageId}`);
+      const { uninstallRuntimePackage } = await import("./packageManager");
+      return await uninstallRuntimePackage(data.packageId as RuntimePackageId);
+    },
+  );
+
   createIpcMainHandler(IpcChannels.RUNTIME_GET_INSTALL_LOCATION, async () => {
     return getCondaInstallLocation();
   });
@@ -987,12 +999,6 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.FRONTEND_LOG, async (_event, data) => {
     const source = data.source?.trim() ? `[${data.source.trim()}] ` : "";
     logMessage(`${source}${data.message}`, data.level);
-  });
-
-  createIpcMainHandler(IpcChannels.CHECK_OLLAMA_INSTALLED, async () => {
-    // Lazy import to avoid circular deps if any
-    const { isOllamaInstalled } = await import("./python");
-    return await isOllamaInstalled();
   });
 
   createIpcMainHandler(
@@ -1405,6 +1411,30 @@ export function initializeIpcHandlers(): void {
     async (_event, sessionId) => {
       const { closeAgentSession } = await import("./agent");
       closeAgentSession(sessionId);
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.AGENT_LIST_SESSIONS,
+    async (_event, options) => {
+      const { listAgentSessions } = await import("./agent");
+      return await listAgentSessions(options ?? {});
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.AGENT_GET_SESSION_MESSAGES,
+    async (_event, options) => {
+      const { getAgentSessionMessages } = await import("./agent");
+      return await getAgentSessionMessages(options);
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.AGENT_START_MCP_SERVER,
+    async (event) => {
+      const { startMcpToolServer } = await import("./mcpToolServer");
+      return await startMcpToolServer(event.sender);
     },
   );
 

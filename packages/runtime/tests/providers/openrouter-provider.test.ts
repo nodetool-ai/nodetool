@@ -11,7 +11,7 @@ function makeAsyncIterable(items: unknown[]) {
     },
     async close() {
       return;
-    },
+    }
   };
 }
 
@@ -32,7 +32,7 @@ describe("OpenRouterProvider", () => {
 
   it("returns required secrets", () => {
     expect(OpenRouterProvider.requiredSecrets()).toEqual([
-      "OPENROUTER_API_KEY",
+      "OPENROUTER_API_KEY"
     ]);
   });
 
@@ -42,7 +42,7 @@ describe("OpenRouterProvider", () => {
       { client: {} as any }
     );
     expect(provider.getContainerEnv()).toEqual({
-      OPENROUTER_API_KEY: "test-key",
+      OPENROUTER_API_KEY: "test-key"
     });
   });
 
@@ -63,9 +63,9 @@ describe("OpenRouterProvider", () => {
       json: async () => ({
         data: [
           { id: "openai/gpt-4o", name: "GPT-4o" },
-          { id: "anthropic/claude-3-opus" },
-        ],
-      }),
+          { id: "anthropic/claude-3-opus" }
+        ]
+      })
     });
 
     const provider = new OpenRouterProvider(
@@ -79,8 +79,8 @@ describe("OpenRouterProvider", () => {
       {
         id: "anthropic/claude-3-opus",
         name: "anthropic/claude-3-opus",
-        provider: "openrouter",
-      },
+        provider: "openrouter"
+      }
     ]);
 
     expect(mockFetch).toHaveBeenCalledWith(
@@ -89,8 +89,8 @@ describe("OpenRouterProvider", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer k",
           "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
-          "X-Title": "NodeTool",
-        }),
+          "X-Title": "NodeTool"
+        })
       })
     );
   });
@@ -112,25 +112,25 @@ describe("OpenRouterProvider", () => {
         {
           message: {
             content: "routed response",
-            tool_calls: null,
-          },
-        },
-      ],
+            tool_calls: null
+          }
+        }
+      ]
     });
 
     const provider = new OpenRouterProvider(
       { OPENROUTER_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
     const result = await provider.generateMessage({
       messages,
-      model: "openai/gpt-4o",
+      model: "openai/gpt-4o"
     });
 
     expect(result.role).toBe("assistant");
@@ -143,18 +143,18 @@ describe("OpenRouterProvider", () => {
         choices: [
           {
             delta: { content: "streamed" },
-            finish_reason: null,
-          },
-        ],
+            finish_reason: null
+          }
+        ]
       },
       {
         choices: [
           {
             delta: { content: "" },
-            finish_reason: "stop",
-          },
-        ],
-      },
+            finish_reason: "stop"
+          }
+        ]
+      }
     ];
 
     const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
@@ -163,8 +163,8 @@ describe("OpenRouterProvider", () => {
       { OPENROUTER_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
@@ -172,7 +172,7 @@ describe("OpenRouterProvider", () => {
     const items: unknown[] = [];
     for await (const item of provider.generateMessages({
       messages,
-      model: "openai/gpt-4o",
+      model: "openai/gpt-4o"
     })) {
       items.push(item);
     }
@@ -185,28 +185,28 @@ describe("OpenRouterProvider", () => {
       const create = vi.fn().mockResolvedValue({
         choices: [
           {
-            message: { content: "ok", tool_calls: null },
-          },
-        ],
+            message: { content: "ok", tool_calls: null }
+          }
+        ]
       });
 
       const provider = new OpenRouterProvider(
         { OPENROUTER_API_KEY: "k" },
         {
           client: {
-            chat: { completions: { create } },
-          } as any,
+            chat: { completions: { create } }
+          } as any
         }
       );
 
       const messages: Message[] = [
         { role: "system", content: "You are helpful." },
-        { role: "user", content: "hello" },
+        { role: "user", content: "hello" }
       ];
 
       await provider.generateMessage({
         messages,
-        model: "openai/o1-preview",
+        model: "openai/o1-preview"
       });
 
       // The first message should have been converted from system to user
@@ -221,10 +221,10 @@ describe("OpenRouterProvider", () => {
           choices: [
             {
               delta: { content: "ok" },
-              finish_reason: "stop",
-            },
-          ],
-        },
+              finish_reason: "stop"
+            }
+          ]
+        }
       ];
 
       const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
@@ -233,20 +233,20 @@ describe("OpenRouterProvider", () => {
         { OPENROUTER_API_KEY: "k" },
         {
           client: {
-            chat: { completions: { create } },
-          } as any,
+            chat: { completions: { create } }
+          } as any
         }
       );
 
       const messages: Message[] = [
         { role: "system", content: "Be concise." },
-        { role: "user", content: "hi" },
+        { role: "user", content: "hi" }
       ];
 
       const items: unknown[] = [];
       for await (const item of provider.generateMessages({
         messages,
-        model: "openai/o3-mini",
+        model: "openai/o3-mini"
       })) {
         items.push(item);
       }
@@ -260,28 +260,28 @@ describe("OpenRouterProvider", () => {
       const create = vi.fn().mockResolvedValue({
         choices: [
           {
-            message: { content: "ok", tool_calls: null },
-          },
-        ],
+            message: { content: "ok", tool_calls: null }
+          }
+        ]
       });
 
       const provider = new OpenRouterProvider(
         { OPENROUTER_API_KEY: "k" },
         {
           client: {
-            chat: { completions: { create } },
-          } as any,
+            chat: { completions: { create } }
+          } as any
         }
       );
 
       const messages: Message[] = [
         { role: "system", content: "You are helpful." },
-        { role: "user", content: "hello" },
+        { role: "user", content: "hello" }
       ];
 
       await provider.generateMessage({
         messages,
-        model: "anthropic/claude-3-opus",
+        model: "anthropic/claude-3-opus"
       });
 
       const sentMessages = create.mock.calls[0][0].messages;
@@ -294,9 +294,9 @@ describe("OpenRouterProvider", () => {
       const imageGenerate = vi.fn().mockResolvedValue({
         data: [
           {
-            b64_json: Buffer.from("fake-image-data").toString("base64"),
-          },
-        ],
+            b64_json: Buffer.from("fake-image-data").toString("base64")
+          }
+        ]
       });
 
       const provider = new OpenRouterProvider(
@@ -304,8 +304,8 @@ describe("OpenRouterProvider", () => {
         {
           client: {
             chat: { completions: { create: vi.fn() } },
-            images: { generate: imageGenerate },
-          } as any,
+            images: { generate: imageGenerate }
+          } as any
         }
       );
 
@@ -313,9 +313,9 @@ describe("OpenRouterProvider", () => {
         model: {
           id: "openai/dall-e-3",
           name: "DALL-E 3",
-          provider: "openrouter",
+          provider: "openrouter"
         },
-        prompt: "A cat in a hat",
+        prompt: "A cat in a hat"
       };
 
       const result = await provider.textToImage(params);
@@ -324,7 +324,7 @@ describe("OpenRouterProvider", () => {
       expect(imageGenerate).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "openai/dall-e-3",
-          prompt: "A cat in a hat",
+          prompt: "A cat in a hat"
         })
       );
     });
@@ -332,11 +332,11 @@ describe("OpenRouterProvider", () => {
     it("fetches image from URL when b64_json is not available", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
-        arrayBuffer: async () => new ArrayBuffer(8),
+        arrayBuffer: async () => new ArrayBuffer(8)
       });
 
       const imageGenerate = vi.fn().mockResolvedValue({
-        data: [{ url: "https://example.com/image.png" }],
+        data: [{ url: "https://example.com/image.png" }]
       });
 
       const provider = new OpenRouterProvider(
@@ -344,9 +344,9 @@ describe("OpenRouterProvider", () => {
         {
           client: {
             chat: { completions: { create: vi.fn() } },
-            images: { generate: imageGenerate },
+            images: { generate: imageGenerate }
           } as any,
-          fetchFn: mockFetch as any,
+          fetchFn: mockFetch as any
         }
       );
 
@@ -354,9 +354,9 @@ describe("OpenRouterProvider", () => {
         model: {
           id: "openai/dall-e-3",
           name: "DALL-E 3",
-          provider: "openrouter",
+          provider: "openrouter"
         },
-        prompt: "A cat",
+        prompt: "A cat"
       });
 
       expect(result).toBeInstanceOf(Uint8Array);
@@ -369,8 +369,8 @@ describe("OpenRouterProvider", () => {
         {
           client: {
             chat: { completions: { create: vi.fn() } },
-            images: { generate: vi.fn() },
-          } as any,
+            images: { generate: vi.fn() }
+          } as any
         }
       );
 
@@ -379,9 +379,9 @@ describe("OpenRouterProvider", () => {
           model: {
             id: "openai/dall-e-3",
             name: "DALL-E 3",
-            provider: "openrouter",
+            provider: "openrouter"
           },
-          prompt: "",
+          prompt: ""
         })
       ).rejects.toThrow("The input prompt cannot be empty.");
     });
@@ -390,9 +390,9 @@ describe("OpenRouterProvider", () => {
       const imageGenerate = vi.fn().mockResolvedValue({
         data: [
           {
-            b64_json: Buffer.from("fake").toString("base64"),
-          },
-        ],
+            b64_json: Buffer.from("fake").toString("base64")
+          }
+        ]
       });
 
       const provider = new OpenRouterProvider(
@@ -400,8 +400,8 @@ describe("OpenRouterProvider", () => {
         {
           client: {
             chat: { completions: { create: vi.fn() } },
-            images: { generate: imageGenerate },
-          } as any,
+            images: { generate: imageGenerate }
+          } as any
         }
       );
 
@@ -409,10 +409,10 @@ describe("OpenRouterProvider", () => {
         model: {
           id: "openai/dall-e-3",
           name: "DALL-E 3",
-          provider: "openrouter",
+          provider: "openrouter"
         },
         prompt: "A landscape",
-        negativePrompt: "blurry",
+        negativePrompt: "blurry"
       });
 
       const call = imageGenerate.mock.calls[0][0];

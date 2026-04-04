@@ -39,16 +39,18 @@ describe("extractModels()", () => {
               data: {
                 model: {
                   type: "hf.diffusers",
-                  repo_id: "stabilityai/stable-diffusion-xl-base-1.0",
-                },
-              },
-            },
-          ],
-        },
+                  repo_id: "stabilityai/stable-diffusion-xl-base-1.0"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe("hf.diffusers");
-      expect(result[0].repo_id).toBe("stabilityai/stable-diffusion-xl-base-1.0");
+      expect(result[0].repo_id).toBe(
+        "stabilityai/stable-diffusion-xl-base-1.0"
+      );
     });
 
     it("should extract HF model with path and variant", () => {
@@ -61,12 +63,12 @@ describe("extractModels()", () => {
                   type: "hf.model",
                   repo_id: "org/model",
                   path: "model.safetensors",
-                  variant: "fp16",
-                },
-              },
-            },
-          ],
-        },
+                  variant: "fp16"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(1);
       expect(result[0].path).toBe("model.safetensors");
@@ -83,12 +85,12 @@ describe("extractModels()", () => {
                   type: "hf.checkpoint",
                   repo_id: "org/model",
                   allow_patterns: ["*.safetensors"],
-                  ignore_patterns: ["*.bin"],
-                },
-              },
-            },
-          ],
-        },
+                  ignore_patterns: ["*.bin"]
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(1);
       expect(result[0].allow_patterns).toEqual(["*.safetensors"]);
@@ -103,12 +105,12 @@ describe("extractModels()", () => {
               data: {
                 model: {
                   type: "hf.model",
-                  repo_id: "org/model",
-                },
-              },
-            },
-          ],
-        },
+                  repo_id: "org/model"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result[0].path).toBeNull();
       expect(result[0].variant).toBeNull();
@@ -123,12 +125,12 @@ describe("extractModels()", () => {
             {
               data: {
                 model: {
-                  type: "hf.model",
-                },
-              },
-            },
-          ],
-        },
+                  type: "hf.model"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -141,12 +143,12 @@ describe("extractModels()", () => {
               data: {
                 model: {
                   type: "hf.model",
-                  repo_id: "",
-                },
-              },
-            },
-          ],
-        },
+                  repo_id: ""
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -156,12 +158,12 @@ describe("extractModels()", () => {
         data: {
           model: {
             type: "hf.model",
-            repo_id: "org/model",
-          },
-        },
+            repo_id: "org/model"
+          }
+        }
       };
       const result = extractModels({
-        graph: { nodes: [node, node, node] },
+        graph: { nodes: [node, node, node] }
       });
       expect(result).toHaveLength(1);
     });
@@ -172,16 +174,16 @@ describe("extractModels()", () => {
           nodes: [
             {
               data: {
-                model: { type: "hf.model", repo_id: "org/model", path: "a.bin" },
-              },
+                model: { type: "hf.model", repo_id: "org/model", path: "a.bin" }
+              }
             },
             {
               data: {
-                model: { type: "hf.model", repo_id: "org/model", path: "b.bin" },
-              },
-            },
-          ],
-        },
+                model: { type: "hf.model", repo_id: "org/model", path: "b.bin" }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(2);
     });
@@ -192,16 +194,16 @@ describe("extractModels()", () => {
           nodes: [
             {
               data: {
-                model: { type: "hf.diffusers", repo_id: "org/model-a" },
-              },
+                model: { type: "hf.diffusers", repo_id: "org/model-a" }
+              }
             },
             {
               data: {
-                model: { type: "hf.checkpoint", repo_id: "org/model-b" },
-              },
-            },
-          ],
-        },
+                model: { type: "hf.checkpoint", repo_id: "org/model-b" }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(2);
     });
@@ -217,12 +219,12 @@ describe("extractModels()", () => {
                 model: {
                   type: "language_model",
                   provider: "ollama",
-                  id: "llama3:8b",
-                },
-              },
-            },
-          ],
-        },
+                  id: "llama3:8b"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe("language_model");
@@ -238,11 +240,11 @@ describe("extractModels()", () => {
               data: {
                 type: "language_model",
                 provider: "ollama",
-                id: "mistral:latest",
-              },
-            },
-          ],
-        },
+                id: "mistral:latest"
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("mistral:latest");
@@ -256,12 +258,12 @@ describe("extractModels()", () => {
               data: {
                 model: {
                   type: "language_model",
-                  provider: "ollama",
-                },
-              },
-            },
-          ],
-        },
+                  provider: "ollama"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -272,12 +274,12 @@ describe("extractModels()", () => {
           model: {
             type: "language_model",
             provider: "ollama",
-            id: "llama3:8b",
-          },
-        },
+            id: "llama3:8b"
+          }
+        }
       };
       const result = extractModels({
-        graph: { nodes: [node, node] },
+        graph: { nodes: [node, node] }
       });
       expect(result).toHaveLength(1);
     });
@@ -291,15 +293,15 @@ describe("extractModels()", () => {
                 model: {
                   type: "language_model",
                   provider: "ollama",
-                  id: "llama3:8b",
+                  id: "llama3:8b"
                 },
                 type: "language_model",
                 provider: "ollama",
-                id: "llama3:8b",
-              },
-            },
-          ],
-        },
+                id: "llama3:8b"
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(1);
     });
@@ -315,12 +317,12 @@ describe("extractModels()", () => {
                 model: {
                   type: "language_model",
                   provider: "llama_cpp",
-                  id: "TheBloke/Llama-2-7B-GGUF:llama-2-7b.Q4_K_M.gguf",
-                },
-              },
-            },
-          ],
-        },
+                  id: "TheBloke/Llama-2-7B-GGUF:llama-2-7b.Q4_K_M.gguf"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe("hf.gguf");
@@ -337,12 +339,12 @@ describe("extractModels()", () => {
                 model: {
                   type: "language_model",
                   provider: "llama_cpp",
-                  id: "org/model:file.gguf",
-                },
-              },
-            },
-          ],
-        },
+                  id: "org/model:file.gguf"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result[0].variant).toBeNull();
       expect(result[0].allow_patterns).toBeNull();
@@ -358,12 +360,12 @@ describe("extractModels()", () => {
                 model: {
                   type: "language_model",
                   provider: "llama_cpp",
-                  id: "some-model-no-colon",
-                },
-              },
-            },
-          ],
-        },
+                  id: "some-model-no-colon"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -376,12 +378,12 @@ describe("extractModels()", () => {
               data: {
                 model: {
                   type: "language_model",
-                  provider: "llama_cpp",
-                },
-              },
-            },
-          ],
-        },
+                  provider: "llama_cpp"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -392,12 +394,12 @@ describe("extractModels()", () => {
           model: {
             type: "language_model",
             provider: "llama_cpp",
-            id: "org/model:file.gguf",
-          },
-        },
+            id: "org/model:file.gguf"
+          }
+        }
       };
       const result = extractModels({
-        graph: { nodes: [node, node] },
+        graph: { nodes: [node, node] }
       });
       expect(result).toHaveLength(1);
     });
@@ -413,17 +415,17 @@ describe("extractModels()", () => {
                 loras: [
                   {
                     type: "hf.lora",
-                    repo_id: "org/lora-model-a",
+                    repo_id: "org/lora-model-a"
                   },
                   {
                     type: "hf.lora",
-                    repo_id: "org/lora-model-b",
-                  },
-                ],
-              },
-            },
-          ],
-        },
+                    repo_id: "org/lora-model-b"
+                  }
+                ]
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(2);
       expect(result[0].repo_id).toBe("org/lora-model-a");
@@ -438,12 +440,12 @@ describe("extractModels()", () => {
               data: {
                 loras: [
                   { type: "hf.lora", repo_id: "org/lora" },
-                  { type: "hf.lora", repo_id: "org/lora" },
-                ],
-              },
-            },
-          ],
-        },
+                  { type: "hf.lora", repo_id: "org/lora" }
+                ]
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(1);
     });
@@ -458,12 +460,12 @@ describe("extractModels()", () => {
                   { type: "other", repo_id: "org/x" },
                   "a string",
                   42,
-                  null,
-                ],
-              },
-            },
-          ],
-        },
+                  null
+                ]
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -474,11 +476,11 @@ describe("extractModels()", () => {
           nodes: [
             {
               data: {
-                items: [null, undefined],
-              },
-            },
-          ],
-        },
+                items: [null, undefined]
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -491,35 +493,35 @@ describe("extractModels()", () => {
           nodes: [
             {
               data: {
-                model: { type: "hf.diffusers", repo_id: "org/diffusion-model" },
-              },
+                model: { type: "hf.diffusers", repo_id: "org/diffusion-model" }
+              }
             },
             {
               data: {
                 model: {
                   type: "language_model",
                   provider: "ollama",
-                  id: "llama3:8b",
-                },
-              },
+                  id: "llama3:8b"
+                }
+              }
             },
             {
               data: {
                 model: {
                   type: "language_model",
                   provider: "llama_cpp",
-                  id: "org/gguf:model.gguf",
-                },
-              },
-            },
-          ],
-        },
+                  id: "org/gguf:model.gguf"
+                }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(3);
       expect(result.map((m) => m.type)).toEqual([
         "hf.diffusers",
         "language_model",
-        "hf.gguf",
+        "hf.gguf"
       ]);
     });
 
@@ -532,11 +534,11 @@ describe("extractModels()", () => {
                 model: { type: "hf.model", repo_id: "org/m" },
                 prompt: "hello",
                 steps: 20,
-                enabled: true,
-              },
-            },
-          ],
-        },
+                enabled: true
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(1);
     });
@@ -546,8 +548,8 @@ describe("extractModels()", () => {
     it("should ignore model field that is an array", () => {
       const result = extractModels({
         graph: {
-          nodes: [{ data: { model: ["not", "an", "object"] } }],
-        },
+          nodes: [{ data: { model: ["not", "an", "object"] } }]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -555,8 +557,8 @@ describe("extractModels()", () => {
     it("should ignore model field that is a string", () => {
       const result = extractModels({
         graph: {
-          nodes: [{ data: { model: "just-a-string" } }],
-        },
+          nodes: [{ data: { model: "just-a-string" } }]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -564,8 +566,8 @@ describe("extractModels()", () => {
     it("should ignore model field that is a number", () => {
       const result = extractModels({
         graph: {
-          nodes: [{ data: { model: 42 } }],
-        },
+          nodes: [{ data: { model: 42 } }]
+        }
       });
       expect(result).toHaveLength(0);
     });
@@ -576,11 +578,11 @@ describe("extractModels()", () => {
           nodes: [
             {
               data: {
-                model: { type: "openai", id: "gpt-4" },
-              },
-            },
-          ],
-        },
+                model: { type: "openai", id: "gpt-4" }
+              }
+            }
+          ]
+        }
       });
       expect(result).toHaveLength(0);
     });

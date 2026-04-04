@@ -1,5 +1,8 @@
+import { useShallow } from "zustand/react/shallow";
 import { useCallback, useEffect, useMemo } from "react";
-import { useStore } from "zustand";
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 
 import {
   JobUpdate,
@@ -30,7 +33,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
   }, [workflowKey]);
 
   // Combine multiple store subscriptions into one for better performance
-  const { run: runWorkflowFromStore, cancel: cancelWorkflowFromStore, state: runnerState, statusMessage, notifications } = useStore(
+  const { run: runWorkflowFromStore, cancel: cancelWorkflowFromStore, state: runnerState, statusMessage, notifications } = useStoreWithEqualityFn(
     runnerStore,
     (state) => ({
       run: state.run,
@@ -38,7 +41,8 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       state: state.state,
       statusMessage: state.statusMessage,
       notifications: state.notifications
-    })
+    }),
+    shallow
   );
   const workflowId = selectedWorkflow?.id;
 

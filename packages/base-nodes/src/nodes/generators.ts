@@ -5,15 +5,23 @@ type Row = Record<string, unknown>;
 type ColumnSpec = { name: string; data_type?: string };
 type LanguageModelLike = { provider?: string; id?: string; name?: string };
 type ProviderStreamItem = { type?: string; content?: unknown; delta?: unknown };
-type BinaryRef = { uri?: string; data?: Uint8Array | string; mimeType?: string };
+type BinaryRef = {
+  uri?: string;
+  data?: Uint8Array | string;
+  mimeType?: string;
+};
 type MessageTextContent = { type: "text"; text: string };
 type MessageImageContent = { type: "image"; image: BinaryRef };
 type MessageAudioContent = { type: "audio"; audio: BinaryRef };
-type MessageContent = MessageTextContent | MessageImageContent | MessageAudioContent;
+type MessageContent =
+  | MessageTextContent
+  | MessageImageContent
+  | MessageAudioContent;
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
   if (!value) return "";
   return JSON.stringify(value);
 }
@@ -35,8 +43,15 @@ function parseColumnSpecs(input: unknown): ColumnSpec[] {
     return input
       .map((c) => {
         if (c && typeof c === "object") {
-          const record = c as { name?: unknown; data_type?: unknown; type?: unknown };
-          const name = typeof record.name === "string" ? record.name : String(record.name ?? "");
+          const record = c as {
+            name?: unknown;
+            data_type?: unknown;
+            type?: unknown;
+          };
+          const name =
+            typeof record.name === "string"
+              ? record.name
+              : String(record.name ?? "");
           const dataType =
             typeof record.data_type === "string"
               ? record.data_type
@@ -64,9 +79,15 @@ function makeRows(columns: string[], count: number, seedText: string): Row[] {
     for (const col of names) {
       const lower = col.toLowerCase();
       if (lower.includes("id")) row[col] = i + 1;
-      else if (lower.includes("name")) row[col] = `${seedText || "item"}_${i + 1}`;
-      else if (lower.includes("date")) row[col] = new Date(Date.now() + i * 86_400_000).toISOString();
-      else if (lower.includes("price") || lower.includes("amount") || lower.includes("score")) {
+      else if (lower.includes("name"))
+        row[col] = `${seedText || "item"}_${i + 1}`;
+      else if (lower.includes("date"))
+        row[col] = new Date(Date.now() + i * 86_400_000).toISOString();
+      else if (
+        lower.includes("price") ||
+        lower.includes("amount") ||
+        lower.includes("score")
+      ) {
         row[col] = Number((10 + i * 1.5).toFixed(2));
       } else if (lower.includes("active") || lower.startsWith("is_")) {
         row[col] = i % 2 === 0;
@@ -77,14 +98,21 @@ function makeRows(columns: string[], count: number, seedText: string): Row[] {
   return rows;
 }
 
-function buildSchemaFromDynamicOutputs(outputs: unknown): Record<string, unknown> | null {
-  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return null;
+function buildSchemaFromDynamicOutputs(
+  outputs: unknown
+): Record<string, unknown> | null {
+  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs))
+    return null;
   const properties: Record<string, unknown> = {};
   const required: string[] = [];
-  for (const [name, spec] of Object.entries(outputs as Record<string, unknown>)) {
+  for (const [name, spec] of Object.entries(
+    outputs as Record<string, unknown>
+  )) {
     required.push(name);
-    const value = spec && typeof spec === "object" ? (spec as Record<string, unknown>) : {};
-    const declared = typeof value.type === "string" ? value.type.toLowerCase() : "str";
+    const value =
+      spec && typeof spec === "object" ? (spec as Record<string, unknown>) : {};
+    const declared =
+      typeof value.type === "string" ? value.type.toLowerCase() : "str";
     let type = "string";
     if (["int", "integer"].includes(declared)) type = "integer";
     else if (["float", "number"].includes(declared)) type = "number";
@@ -102,9 +130,12 @@ function normalizeBinaryRef(value: unknown): BinaryRef | null {
   const record = value as Record<string, unknown>;
   const out: BinaryRef = {};
   if (typeof record.uri === "string" && record.uri) out.uri = record.uri;
-  if (record.data instanceof Uint8Array || typeof record.data === "string") out.data = record.data;
-  if (typeof record.mimeType === "string" && record.mimeType) out.mimeType = record.mimeType;
-  if (typeof record.mime_type === "string" && record.mime_type) out.mimeType = record.mime_type;
+  if (record.data instanceof Uint8Array || typeof record.data === "string")
+    out.data = record.data;
+  if (typeof record.mimeType === "string" && record.mimeType)
+    out.mimeType = record.mimeType;
+  if (typeof record.mime_type === "string" && record.mime_type)
+    out.mimeType = record.mime_type;
   return out.uri || out.data ? out : null;
 }
 
@@ -122,13 +153,14 @@ function buildMessageContent(
   return parts;
 }
 
-function getModelConfig(
-  props: Record<string, unknown>
-): { providerId: string; modelId: string } {
+function getModelConfig(props: Record<string, unknown>): {
+  providerId: string;
+  modelId: string;
+} {
   const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : "",
+    modelId: typeof model.id === "string" ? model.id : ""
   };
 }
 
@@ -138,7 +170,9 @@ function hasProviderSupport(
   modelId: string
 ): context is ProcessingContext & {
   runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
-  streamProviderPrediction: (req: Record<string, unknown>) => AsyncGenerator<unknown>;
+  streamProviderPrediction: (
+    req: Record<string, unknown>
+  ) => AsyncGenerator<unknown>;
 } {
   return (
     !!context &&
@@ -160,18 +194,26 @@ function normalizeWhitespace(text: string): string {
 }
 
 function parseListItems(text: string): string[] {
-  const matches = Array.from(text.matchAll(/<LIST_ITEM>([\s\S]*?)<\/LIST_ITEM>/gi));
-  return matches.map((match) => normalizeWhitespace(match[1] ?? "")).filter((item) => item.length > 0);
+  const matches = Array.from(
+    text.matchAll(/<LIST_ITEM>([\s\S]*?)<\/LIST_ITEM>/gi)
+  );
+  return matches
+    .map((match) => normalizeWhitespace(match[1] ?? ""))
+    .filter((item) => item.length > 0);
 }
 
-
-
-function dataframeFromRows(rows: Row[], columnsInput: unknown): Record<string, unknown> {
-  const names = rows.length > 0 ? Object.keys(rows[0]) : parseColumnSpecs(columnsInput).map((s) => s.name);
+function dataframeFromRows(
+  rows: Row[],
+  columnsInput: unknown
+): Record<string, unknown> {
+  const names =
+    rows.length > 0
+      ? Object.keys(rows[0])
+      : parseColumnSpecs(columnsInput).map((s) => s.name);
   return {
     rows,
     columns: names.map((name) => ({ name })),
-    data: rows.map((row) => names.map((name) => row[name] ?? null)),
+    data: rows.map((row) => names.map((name) => row[name] ?? null))
   };
 }
 
@@ -184,7 +226,9 @@ function parseCsv(text: string, specs: ColumnSpec[]): Row[] {
 
   const header = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
   return lines.slice(1).map((line) => {
-    const cells = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? line.split(",");
+    const cells =
+      line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ??
+      line.split(",");
     const row: Row = {};
     header.forEach((name, i) => {
       const raw = (cells[i] ?? "").trim().replace(/^"|"$/g, "");
@@ -216,9 +260,10 @@ async function generateDataframeFromCsv(
   maxTokens: number
 ): Promise<Row[]> {
   const specs = parseColumnSpecs(columnsInput);
-  const columnHint = specs.length > 0
-    ? `Use exactly these columns: ${specs.map((s) => s.name).join(", ")}.`
-    : "Choose appropriate columns for the data.";
+  const columnHint =
+    specs.length > 0
+      ? `Use exactly these columns: ${specs.map((s) => s.name).join(", ")}.`
+      : "Choose appropriate columns for the data.";
   const systemPrompt = `You are a data generator. Return ONLY a CSV with a header row and exactly ${count} data rows. No explanation, no markdown fences, no extra text. ${columnHint}`;
   const result = await context.runProviderPrediction({
     provider: providerId,
@@ -228,10 +273,10 @@ async function generateDataframeFromCsv(
       model: modelId,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: prompt },
+        { role: "user", content: prompt }
       ],
-      max_tokens: maxTokens,
-    },
+      max_tokens: maxTokens
+    }
   });
   const content = asText((result as { content?: unknown }).content ?? result);
   return parseCsv(content, specs);
@@ -253,10 +298,14 @@ async function generateProviderText(
     params: {
       model: modelId,
       messages: [{ role: "user", content: prompt }],
-      max_tokens: maxTokens,
-    },
+      max_tokens: maxTokens
+    }
   });
-  if (result && typeof result === "object" && "content" in (result as Record<string, unknown>)) {
+  if (
+    result &&
+    typeof result === "object" &&
+    "content" in (result as Record<string, unknown>)
+  ) {
     return asText((result as { content?: unknown }).content ?? "");
   }
   return asText(result);
@@ -264,7 +313,9 @@ async function generateProviderText(
 
 async function streamProviderText(
   context: ProcessingContext & {
-    streamProviderPrediction: (req: Record<string, unknown>) => AsyncGenerator<unknown>;
+    streamProviderPrediction: (
+      req: Record<string, unknown>
+    ) => AsyncGenerator<unknown>;
   },
   providerId: string,
   modelId: string,
@@ -279,8 +330,8 @@ async function streamProviderText(
     params: {
       model: modelId,
       messages: [{ role: "user", content: prompt }],
-      maxTokens,
-    },
+      maxTokens
+    }
   })) {
     text += chunkText(item);
   }
@@ -289,73 +340,110 @@ async function streamProviderText(
 
 export class StructuredOutputGeneratorNode extends BaseNode {
   static readonly nodeType = "nodetool.generators.StructuredOutputGenerator";
-            static readonly title = "Structured Output Generator";
-            static readonly description = "Generate structured JSON objects from instructions using LLM providers.\n    data-generation, structured-data, json, synthesis\n\n    Specialized for creating structured information:\n    - Generating JSON that follows dynamic schemas\n    - Fabricating records from requirements and guidance\n    - Simulating sample data for downstream workflows\n    - Producing consistent structured outputs for testing";
-          static readonly basicFields = [
-  "instructions",
-  "context",
-  "model"
-];
-          static readonly supportsDynamicOutputs = true;
-  
-  @prop({ type: "str", default: "\nYou are a structured data generator focused on JSON outputs.\n\nGoal\n- Produce a high-quality JSON object that matches <JSON_SCHEMA> using the guidance in <INSTRUCTIONS> and any supplemental <CONTEXT>.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n\n- No additional prose before or after the block.\n\nGeneration rules\n- Invent plausible, internally consistent values when not explicitly provided.\n- Honor all constraints from <JSON_SCHEMA> (types, enums, ranges, formats).\n- Prefer ISO 8601 for dates/times when applicable.\n- Ensure numbers respect reasonable magnitudes and relationships described in <INSTRUCTIONS>.\n- Avoid referencing external sources; rely solely on the provided guidance.\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.\n", title: "System Prompt", description: "The system prompt guiding JSON generation." })
+  static readonly title = "Structured Output Generator";
+  static readonly description =
+    "Generate structured JSON objects from instructions using LLM providers.\n    data-generation, structured-data, json, synthesis\n\n    Specialized for creating structured information:\n    - Generating JSON that follows dynamic schemas\n    - Fabricating records from requirements and guidance\n    - Simulating sample data for downstream workflows\n    - Producing consistent structured outputs for testing";
+  static readonly basicFields = ["instructions", "context", "model"];
+  static readonly supportsDynamicOutputs = true;
+
+  @prop({
+    type: "str",
+    default:
+      "\nYou are a structured data generator focused on JSON outputs.\n\nGoal\n- Produce a high-quality JSON object that matches <JSON_SCHEMA> using the guidance in <INSTRUCTIONS> and any supplemental <CONTEXT>.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n\n- No additional prose before or after the block.\n\nGeneration rules\n- Invent plausible, internally consistent values when not explicitly provided.\n- Honor all constraints from <JSON_SCHEMA> (types, enums, ranges, formats).\n- Prefer ISO 8601 for dates/times when applicable.\n- Ensure numbers respect reasonable magnitudes and relationships described in <INSTRUCTIONS>.\n- Avoid referencing external sources; rely solely on the provided guidance.\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.\n",
+    title: "System Prompt",
+    description: "The system prompt guiding JSON generation."
+  })
   declare system_prompt: any;
 
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model to use for structured generation." })
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model to use for structured generation."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Instructions", description: "Detailed instructions for the structured output." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Instructions",
+    description: "Detailed instructions for the structured output."
+  })
   declare instructions: any;
 
-  @prop({ type: "str", default: "", title: "Context", description: "Optional context to ground the generation." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Context",
+    description: "Optional context to ground the generation."
+  })
   declare context: any;
 
-  @prop({ type: "int", default: 4096, title: "Max Tokens", description: "The maximum number of tokens to generate.", min: 1, max: 16384 })
+  @prop({
+    type: "int",
+    default: 4096,
+    title: "Max Tokens",
+    description: "The maximum number of tokens to generate.",
+    min: 1,
+    max: 16384
+  })
   declare max_tokens: any;
 
-  @prop({ type: "image", default: {
-  "type": "image",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Image", description: "Optional image to include in the generation request." })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Optional image to include in the generation request."
+  })
   declare image: any;
 
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "Optional audio to include in the generation request." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Optional audio to include in the generation request."
+  })
   declare audio: any;
 
-
-
-
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const { providerId, modelId } = getModelConfig(this.serialize());
-    const schema = buildSchemaFromDynamicOutputs((this as any)._dynamic_outputs);
+    const schema = buildSchemaFromDynamicOutputs(
+      (this as any)._dynamic_outputs
+    );
     if (schema && hasProviderSupport(context, providerId, modelId)) {
       const instructions = asText(this.instructions ?? this.instructions ?? "");
       const extraContext = asText(this.context ?? this.context ?? "");
       const systemPrompt = asText(this.system_prompt ?? "");
-      const userText = [instructions, extraContext].filter(Boolean).join("\n\n");
+      const userText = [instructions, extraContext]
+        .filter(Boolean)
+        .join("\n\n");
       const messages: Array<{ role: string; content: unknown }> = [];
       if (systemPrompt) {
         messages.push({ role: "system", content: systemPrompt });
       }
-      messages.push({ role: "user", content: buildMessageContent(userText, this.image, this.audio) });
+      messages.push({
+        role: "user",
+        content: buildMessageContent(userText, this.image, this.audio)
+      });
       const result = await context.runProviderPrediction({
         provider: providerId,
         capability: "generate_message",
@@ -367,12 +455,16 @@ export class StructuredOutputGeneratorNode extends BaseNode {
             type: "json_schema",
             json_schema: {
               name: "structured_output",
-              schema,
-            },
-          },
-        },
+              schema
+            }
+          }
+        }
       });
-      if (result && typeof result === "object" && "content" in (result as Record<string, unknown>)) {
+      if (
+        result &&
+        typeof result === "object" &&
+        "content" in (result as Record<string, unknown>)
+      ) {
         const content = asText((result as { content?: unknown }).content ?? "");
         try {
           return JSON.parse(content) as Record<string, unknown>;
@@ -382,7 +474,8 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       }
     }
     if (schema && typeof schema === "object" && !Array.isArray(schema)) {
-      const props = (schema as { properties?: Record<string, unknown> }).properties ?? {};
+      const props =
+        (schema as { properties?: Record<string, unknown> }).properties ?? {};
       const out: Record<string, unknown> = {};
       for (const key of Object.keys(props)) {
         const spec = props[key] as { type?: string };
@@ -400,59 +493,78 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     return {
       output: {
         instructions,
-        context: contextText,
-      },
+        context: contextText
+      }
     };
   }
 }
 
 export class DataGeneratorNode extends BaseNode {
   static readonly nodeType = "nodetool.generators.DataGenerator";
-            static readonly title = "Data Generator";
-            static readonly description = "LLM Agent to create a dataframe based on a user prompt.\n    llm, dataframe creation, data structuring\n\n    Use cases:\n    - Generating structured data from natural language descriptions\n    - Creating sample datasets for testing or demonstration\n    - Converting unstructured text into tabular format";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Data Generator";
+  static readonly description =
+    "LLM Agent to create a dataframe based on a user prompt.\n    llm, dataframe creation, data structuring\n\n    Use cases:\n    - Generating structured data from natural language descriptions\n    - Creating sample datasets for testing or demonstration\n    - Converting unstructured text into tabular format";
+  static readonly metadataOutputTypes = {
     record: "dict",
     dataframe: "dataframe",
     index: "int"
   };
-          static readonly basicFields = [
-  "prompt",
-  "model",
-  "columns"
-];
-  
-            static readonly isStreamingOutput = true;
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "The model to use for data generation." })
+  static readonly basicFields = ["prompt", "model", "columns"];
+
+  static readonly isStreamingOutput = true;
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The model to use for data generation."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The user prompt" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The user prompt"
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Input Text", description: "The input text to be analyzed by the agent." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Input Text",
+    description: "The input text to be analyzed by the agent."
+  })
   declare input_text: any;
 
-  @prop({ type: "int", default: 4096, title: "Max Tokens", description: "The maximum number of tokens to generate.", min: 1, max: 100000 })
+  @prop({
+    type: "int",
+    default: 4096,
+    title: "Max Tokens",
+    description: "The maximum number of tokens to generate.",
+    min: 1,
+    max: 100000
+  })
   declare max_tokens: any;
 
-  @prop({ type: "record_type", default: {
-  "type": "record_type",
-  "columns": []
-}, title: "Columns", description: "The columns to use in the dataframe." })
+  @prop({
+    type: "record_type",
+    default: {
+      type: "record_type",
+      columns: []
+    },
+    title: "Columns",
+    description: "The columns to use in the dataframe."
+  })
   declare columns: any;
 
-
-
-
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? this.prompt ?? "");
     const inputText = asText(this.input_text ?? this.input_text ?? "");
     const columnsInput = this.columns ?? this.columns;
@@ -477,7 +589,9 @@ export class DataGeneratorNode extends BaseNode {
     return { output: dataframeFromRows(rows, columnsInput) };
   }
 
-  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
     const full = await this.process(context);
     const rows = ((full.output as { rows?: unknown }).rows ?? []) as Row[];
     for (let i = 0; i < rows.length; i += 1) {
@@ -489,43 +603,58 @@ export class DataGeneratorNode extends BaseNode {
 
 export class ListGeneratorNode extends BaseNode {
   static readonly nodeType = "nodetool.generators.ListGenerator";
-            static readonly title = "List Generator";
-            static readonly description = "LLM Agent to create a stream of strings based on a user prompt.\n    llm, text streaming\n\n    Use cases:\n    - Generating text from natural language descriptions\n    - Streaming responses from an LLM";
-        static readonly metadataOutputTypes = {
+  static readonly title = "List Generator";
+  static readonly description =
+    "LLM Agent to create a stream of strings based on a user prompt.\n    llm, text streaming\n\n    Use cases:\n    - Generating text from natural language descriptions\n    - Streaming responses from an LLM";
+  static readonly metadataOutputTypes = {
     item: "str",
     index: "int"
   };
-          static readonly basicFields = [
-  "prompt",
-  "model"
-];
-  
-            static readonly isStreamingOutput = true;
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "The model to use for string generation." })
+  static readonly basicFields = ["prompt", "model"];
+
+  static readonly isStreamingOutput = true;
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The model to use for string generation."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The user prompt" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The user prompt"
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", title: "Input Text", description: "The input text to be analyzed by the agent." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Input Text",
+    description: "The input text to be analyzed by the agent."
+  })
   declare input_text: any;
 
-  @prop({ type: "int", default: 4096, title: "Max Tokens", description: "The maximum number of tokens to generate.", min: 1, max: 100000 })
+  @prop({
+    type: "int",
+    default: 4096,
+    title: "Max Tokens",
+    description: "The maximum number of tokens to generate.",
+    min: 1,
+    max: 100000
+  })
   declare max_tokens: any;
 
-
-
-
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? this.prompt ?? "");
     const inputText = asText(this.input_text ?? this.input_text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
@@ -549,7 +678,9 @@ export class ListGeneratorNode extends BaseNode {
     return { output: items };
   }
 
-  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const prompt = asText(this.prompt ?? this.prompt ?? "");
@@ -581,45 +712,61 @@ export class ListGeneratorNode extends BaseNode {
 
 export class ChartGeneratorNode extends BaseNode {
   static readonly nodeType = "nodetool.generators.ChartGenerator";
-            static readonly title = "Chart Generator";
-            static readonly description = "LLM Agent to create Plotly Express charts based on natural language descriptions.\n    llm, data visualization, charts\n\n    Use cases:\n    - Generating interactive charts from natural language descriptions\n    - Creating data visualizations with minimal configuration\n    - Converting data analysis requirements into visual representations";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Chart Generator";
+  static readonly description =
+    "LLM Agent to create Plotly Express charts based on natural language descriptions.\n    llm, data visualization, charts\n\n    Use cases:\n    - Generating interactive charts from natural language descriptions\n    - Creating data visualizations with minimal configuration\n    - Converting data analysis requirements into visual representations";
+  static readonly metadataOutputTypes = {
     output: "chart_config"
   };
-          static readonly basicFields = [
-  "prompt",
-  "data",
-  "model"
-];
-  
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "The model to use for chart generation." })
+  static readonly basicFields = ["prompt", "data", "model"];
+
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The model to use for chart generation."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Natural language description of the desired chart" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Natural language description of the desired chart"
+  })
   declare prompt: any;
 
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Data", description: "The data to visualize" })
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Data",
+    description: "The data to visualize"
+  })
   declare data: any;
 
-  @prop({ type: "int", default: 4096, title: "Max Tokens", description: "The maximum number of tokens to generate.", min: 1, max: 100000 })
+  @prop({
+    type: "int",
+    default: 4096,
+    title: "Max Tokens",
+    description: "The maximum number of tokens to generate.",
+    min: 1,
+    max: 100000
+  })
   declare max_tokens: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? this.prompt ?? "");
@@ -644,12 +791,12 @@ export class ChartGeneratorNode extends BaseNode {
               type: "bar",
               x_column: xKey,
               y_column: yKey,
-              label: prompt || "series",
-            },
+              label: prompt || "series"
+            }
           ],
           row: null,
           col: null,
-          col_wrap: null,
+          col_wrap: null
         },
         height: null,
         aspect: null,
@@ -674,69 +821,92 @@ export class ChartGeneratorNode extends BaseNode {
         cmap: null,
         annot: false,
         fmt: ".2g",
-        square: false,
-      },
+        square: false
+      }
     };
   }
 }
 
 export class SVGGeneratorNode extends BaseNode {
   static readonly nodeType = "nodetool.generators.SVGGenerator";
-            static readonly title = "SVGGenerator";
-            static readonly description = "LLM Agent to create SVG elements based on user prompts.\n    svg, generator, vector, graphics\n\n    Use cases:\n    - Creating vector graphics from text descriptions\n    - Generating scalable illustrations\n    - Creating custom icons and diagrams";
-        static readonly metadataOutputTypes = {
+  static readonly title = "SVGGenerator";
+  static readonly description =
+    "LLM Agent to create SVG elements based on user prompts.\n    svg, generator, vector, graphics\n\n    Use cases:\n    - Creating vector graphics from text descriptions\n    - Generating scalable illustrations\n    - Creating custom icons and diagrams";
+  static readonly metadataOutputTypes = {
     output: "list[svg_element]"
   };
-          static readonly basicFields = [
-  "prompt",
-  "image",
-  "audio",
-  "model"
-];
-  
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "The language model to use for SVG generation." })
+  static readonly basicFields = ["prompt", "image", "audio", "model"];
+
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The language model to use for SVG generation."
+  })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "The user prompt for SVG generation" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The user prompt for SVG generation"
+  })
   declare prompt: any;
 
-  @prop({ type: "image", default: {
-  "type": "image",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Image", description: "Image to use for generation" })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Image to use for generation"
+  })
   declare image: any;
 
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "Audio to use for generation" })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "Audio to use for generation"
+  })
   declare audio: any;
 
-  @prop({ type: "int", default: 8192, title: "Max Tokens", description: "The maximum number of tokens to generate.", min: 1, max: 100000 })
+  @prop({
+    type: "int",
+    default: 8192,
+    title: "Max Tokens",
+    description: "The maximum number of tokens to generate.",
+    min: 1,
+    max: 100000
+  })
   declare max_tokens: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? this.prompt ?? "");
     const width = Number((this as any).width ?? 512) || 512;
     const height = Number((this as any).height ?? 512) || 512;
     const text = prompt || "SVG";
-    const safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const safeText = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
     const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f2f2f2"/><text x="16" y="32" font-size="20" fill="#111">${safeText}</text></svg>`;
     return { output: [{ content: svg }] };
   }
@@ -747,5 +917,5 @@ export const GENERATOR_NODES = [
   DataGeneratorNode,
   ListGeneratorNode,
   ChartGeneratorNode,
-  SVGGeneratorNode,
+  SVGGeneratorNode
 ] as const;

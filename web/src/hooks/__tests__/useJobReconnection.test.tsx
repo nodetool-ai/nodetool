@@ -4,17 +4,24 @@ import { useJobReconnection } from "../useJobReconnection";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
-import useAuth from "../../stores/useAuth";
 
 jest.mock("../../stores/ApiClient");
 jest.mock("../../stores/WorkflowRunner");
-jest.mock("../../stores/useAuth");
+
+// Mock useAuth as a Zustand-like store that applies selectors
+let mockAuthState: Record<string, unknown> = {};
+const mockUseAuthImpl = (selector?: (state: Record<string, unknown>) => unknown) =>
+  selector ? selector(mockAuthState) : mockAuthState;
+jest.mock("../../stores/useAuth", () => ({
+  __esModule: true,
+  default: (...args: unknown[]) => mockUseAuthImpl(args[0] as (state: Record<string, unknown>) => unknown),
+  useAuth: (...args: unknown[]) => mockUseAuthImpl(args[0] as (state: Record<string, unknown>) => unknown),
+}));
 
 const mockClient = client as jest.Mocked<typeof client>;
 const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.MockedFunction<
   typeof getWorkflowRunnerStore
 >;
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
@@ -52,10 +59,10 @@ describe("useJobReconnection", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    mockUseAuth.mockReturnValue({
+    mockAuthState = {
       user: { id: "test-user" },
       state: "logged_in",
-    } as any);
+    };
     mockGetWorkflowRunnerStore.mockReturnValue({
       getState: jest.fn().mockReturnValue({
         reconnectWithWorkflow: jest.fn().mockResolvedValue(undefined),
@@ -272,10 +279,10 @@ describe("useJobReconnection", () => {
   });
 
   it("does not reconnect when not authenticated", () => {
-    mockUseAuth.mockReturnValue({
+    mockAuthState = {
       user: null,
       state: "logged_out",
-    } as any);
+    };
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),

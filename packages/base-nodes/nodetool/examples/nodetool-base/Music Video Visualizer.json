@@ -1,0 +1,323 @@
+{
+  "id": "music_video_visualizer_001",
+  "access": "public",
+  "created_at": "2026-01-09T00:00:00Z",
+  "updated_at": "2026-01-09T00:00:00Z",
+  "name": "Music Video Visualizer",
+  "tool_name": null,
+  "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
+  "tags": [
+    "video",
+    "audio",
+    "music",
+    "visualization"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "audio_track",
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "value": {
+            "type": "audio",
+            "uri": ""
+          },
+          "name": "audio_track"
+        }
+      },
+      {
+        "id": "genre_hint",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "electronic ambient",
+          "name": "genre_hint"
+        }
+      },
+      {
+        "id": "visual_style",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "abstract geometric patterns, neon colors, flowing energy",
+          "name": "visual_style"
+        }
+      },
+      {
+        "id": "num_frames",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "8",
+          "name": "num_frames"
+        }
+      },
+      {
+        "id": "transcription",
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "data": {
+          "model": {
+            "type": "asr_model"
+          }
+        }
+      },
+      {
+        "id": "mood_analyzer",
+        "type": "nodetool.text.FormatText",
+        "data": {},
+        "dynamic_properties": {
+          "transcription": "",
+          "genre": "",
+          "style": ""
+        }
+      },
+      {
+        "id": "mood_analysis",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a creative director specializing in music visualization."
+        }
+      },
+      {
+        "id": "frame_prompt_generator",
+        "type": "nodetool.text.FormatText",
+        "data": {},
+        "dynamic_properties": {
+          "count": "",
+          "analysis": "",
+          "genre": "",
+          "style": ""
+        }
+      },
+      {
+        "id": "frame_prompts",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "max_tokens": 2048
+        }
+      },
+      {
+        "id": "prompt_iterator",
+        "type": "nodetool.control.ForEach",
+        "data": {
+          "input_list": []
+        }
+      },
+      {
+        "id": "visual_frame",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model"
+          },
+          "width": 1920,
+          "height": 1080,
+          "guidance_scale": 7.5,
+          "num_inference_steps": 30
+        }
+      },
+      {
+        "id": "collected_frames",
+        "type": "nodetool.control.Collect",
+        "data": {
+          "input_item": []
+        }
+      },
+      {
+        "id": "video_output",
+        "type": "nodetool.video.FrameToVideo",
+        "data": {
+          "fps": 24.0
+        }
+      },
+      {
+        "id": "final_video",
+        "type": "nodetool.video.AddAudio",
+        "data": {
+          "volume": 1.0,
+          "mix": false
+        }
+      },
+      {
+        "id": "video_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "music_video",
+          "description": "Generated music video with reactive visuals"
+        }
+      },
+      {
+        "id": "frames_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "visual_frames",
+          "description": "Individual visual frames for further editing"
+        }
+      },
+      {
+        "id": "mood_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mood_analysis",
+          "description": "Mood and energy analysis of the audio"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "audio_track",
+        "sourceHandle": "output",
+        "target": "transcription",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e2",
+        "source": "transcription",
+        "sourceHandle": "text",
+        "target": "mood_analyzer",
+        "targetHandle": "transcription"
+      },
+      {
+        "id": "e3",
+        "source": "genre_hint",
+        "sourceHandle": "output",
+        "target": "mood_analyzer",
+        "targetHandle": "genre"
+      },
+      {
+        "id": "e4",
+        "source": "visual_style",
+        "sourceHandle": "output",
+        "target": "mood_analyzer",
+        "targetHandle": "style"
+      },
+      {
+        "id": "e5",
+        "source": "mood_analyzer",
+        "sourceHandle": "output",
+        "target": "mood_analysis",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e6",
+        "source": "mood_analysis",
+        "sourceHandle": "text",
+        "target": "frame_prompt_generator",
+        "targetHandle": "analysis"
+      },
+      {
+        "id": "e7",
+        "source": "num_frames",
+        "sourceHandle": "output",
+        "target": "frame_prompt_generator",
+        "targetHandle": "count"
+      },
+      {
+        "id": "e8",
+        "source": "genre_hint",
+        "sourceHandle": "output",
+        "target": "frame_prompt_generator",
+        "targetHandle": "genre"
+      },
+      {
+        "id": "e9",
+        "source": "visual_style",
+        "sourceHandle": "output",
+        "target": "frame_prompt_generator",
+        "targetHandle": "style"
+      },
+      {
+        "id": "e10",
+        "source": "frame_prompt_generator",
+        "sourceHandle": "output",
+        "target": "frame_prompts",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e11",
+        "source": "frame_prompts",
+        "sourceHandle": "item",
+        "target": "prompt_iterator",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "e12",
+        "source": "prompt_iterator",
+        "sourceHandle": "output",
+        "target": "visual_frame",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e13",
+        "source": "visual_frame",
+        "sourceHandle": "output",
+        "target": "collected_frames",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e14",
+        "source": "visual_frame",
+        "sourceHandle": "output",
+        "target": "video_output",
+        "targetHandle": "frame"
+      },
+      {
+        "id": "e15",
+        "source": "video_output",
+        "sourceHandle": "output",
+        "target": "final_video",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e16",
+        "source": "audio_track",
+        "sourceHandle": "output",
+        "target": "final_video",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e17",
+        "source": "final_video",
+        "sourceHandle": "output",
+        "target": "video_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e18",
+        "source": "collected_frames",
+        "sourceHandle": "output",
+        "target": "frames_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e19",
+        "source": "mood_analysis",
+        "sourceHandle": "text",
+        "target": "mood_out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": [
+    "openai",
+    "falai",
+    "huggingface-falai"
+  ],
+  "required_models": [
+    "gpt-4o-mini",
+    "openai/whisper-large-v3",
+    "fal-ai/flux/schnell"
+  ]
+}

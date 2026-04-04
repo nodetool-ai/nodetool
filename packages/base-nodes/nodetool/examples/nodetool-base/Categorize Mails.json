@@ -1,0 +1,226 @@
+{
+  "id": "1302ffe8a2f911f0b74c000014916b9c",
+  "access": "public",
+  "created_at": "2025-10-06T23:30:29.580375",
+  "updated_at": "2025-12-21T14:03:00.000000",
+  "name": "Categorize Mails",
+  "tool_name": null,
+  "description": "Automatically categorize and organize emails using AI, showing the reasoning.",
+  "tags": [
+    "email",
+    "start",
+    "agent"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "30",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Categorize Emails\n\nThis workflow classifies emails into predefined categories (e.g., Newsletter, Work, Family, Friends) using a large language model and applies the matching Gmail labels.\n\n## Workflow Steps:\n\n1. **Gmail Search** - Fetches up to 10 recent emails using the specified filters (e.g., date, subject, sender).\n2. **Template** - Formats each email into a structured prompt including subject, sender, and a truncated body snippet.\n3. **Agent** - Uses an LLM to classify the email. It outputs the reasoning as text and triggers 'apply_label' to set the label.\n4. **Add Label** - Applies the determined label(s) to each email message in Gmail."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -633,
+            "y": -3
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 804,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "29a39ff1-2304-4861-a648-d536916c72e2",
+        "parent_id": null,
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "subject: {{subject}}\nsender: {{sender}}\ncontent: {{body|truncate(100)}}"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 355,
+            "y": 74
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "a6df088f-3515-49c7-9a86-fb158ae223cc",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "system": "You are a precise text classifier. Your task is to analyze the input text and assign one of the following categories: newsletter, work, family, friends.\n\nInstructions:\n1. Analyze the email content and briefly explain your reasoning.\n2. Select the most appropriate category.\n3. Use the 'apply_label' tool (dynamic output) to apply the category as a label.\n",
+          "prompt": "",
+          "model": {
+            "type": "language_model"
+          },
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 8192
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 665,
+            "y": 49
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "apply_label": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "preview_reasoning",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1043,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6633542c-e07a-4847-845d-49c5d079647e",
+        "parent_id": null,
+        "type": "lib.mail.AddLabel",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1123,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "b776a8c2-1aea-42be-8961-bff617538ad2",
+        "parent_id": null,
+        "type": "lib.mail.GmailSearch",
+        "data": {
+          "from_address": "",
+          "to_address": "",
+          "subject": "",
+          "body": "",
+          "date_filter": "SINCE_ONE_DAY",
+          "keywords": "",
+          "folder": "INBOX",
+          "text": "",
+          "max_results": 10
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 45,
+            "y": 63
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "8ad27bd5-ea7b-4cf4-bfd2-8a4ff400a596",
+        "source": "29a39ff1-2304-4861-a648-d536916c72e2",
+        "sourceHandle": "output",
+        "target": "a6df088f-3515-49c7-9a86-fb158ae223cc",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-reasoning",
+        "source": "a6df088f-3515-49c7-9a86-fb158ae223cc",
+        "sourceHandle": "chunk",
+        "target": "preview_reasoning",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "d8b39826-9631-465d-9b61-1af5f1761e0a",
+        "source": "a6df088f-3515-49c7-9a86-fb158ae223cc",
+        "sourceHandle": "apply_label",
+        "target": "6633542c-e07a-4847-845d-49c5d079647e",
+        "targetHandle": "label",
+        "ui_properties": null
+      },
+      {
+        "id": "a5e27519-d0e2-4951-96d9-c0773b3ba7c2",
+        "source": "b776a8c2-1aea-42be-8961-bff617538ad2",
+        "sourceHandle": "message_id",
+        "target": "6633542c-e07a-4847-845d-49c5d079647e",
+        "targetHandle": "message_id",
+        "ui_properties": null
+      },
+      {
+        "id": "31d49fe0-fee4-4379-8d11-074488c307c9",
+        "source": "b776a8c2-1aea-42be-8961-bff617538ad2",
+        "sourceHandle": "email",
+        "target": "29a39ff1-2304-4861-a648-d536916c72e2",
+        "targetHandle": "values",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

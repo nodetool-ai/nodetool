@@ -73,9 +73,7 @@ interface SSH2Client {
     command: string,
     callback: (err: Error | undefined, channel: SSH2Channel) => void
   ): void;
-  sftp(
-    callback: (err: Error | undefined, sftp: SSH2SFTPWrapper) => void
-  ): void;
+  sftp(callback: (err: Error | undefined, sftp: SSH2SFTPWrapper) => void): void;
   end(): void;
 }
 
@@ -117,7 +115,12 @@ export class SSHCommandError extends Error {
   public readonly stdout: string;
   public readonly stderr: string;
 
-  constructor(message: string, exitCode: number, stdout: string, stderr: string) {
+  constructor(
+    message: string,
+    exitCode: number,
+    stdout: string,
+    stderr: string
+  ) {
     super(message);
     this.name = "SSHCommandError";
     this.exitCode = exitCode;
@@ -191,7 +194,7 @@ export class SSHConnection {
             host: this.host,
             port: this.port,
             username: this.user,
-            readyTimeout: this.timeout * 1000,
+            readyTimeout: this.timeout * 1000
           };
 
           if (this.keyPath) {
@@ -200,7 +203,9 @@ export class SSHConnection {
               : this.keyPath;
 
             if (!fs.existsSync(expandedPath)) {
-              reject(new SSHConnectionError(`SSH key not found at ${expandedPath}`));
+              reject(
+                new SSHConnectionError(`SSH key not found at ${expandedPath}`)
+              );
               return;
             }
             connectConfig.privateKey = fs.readFileSync(expandedPath);
@@ -287,51 +292,56 @@ export class SSHConnection {
     }
 
     return new Promise<[number, string, string]>((resolve, reject) => {
-      this.client!.exec(command, (err: Error | undefined, channel: SSH2Channel) => {
-        if (err) {
-          reject(new SSHConnectionError(`exec error: ${err.message}`));
-          return;
-        }
-
-        let stdoutData = "";
-        let stderrData = "";
-        let timer: ReturnType<typeof setTimeout> | undefined;
-
-        if (timeout > 0) {
-          timer = setTimeout(() => {
-            channel.close();
-            reject(
-              new SSHCommandError(
-                `Command timed out after ${timeout}s: ${command}`,
-                -1,
-                stdoutData,
-                stderrData
-              )
-            );
-          }, timeout * 1000);
-        }
-
-        channel.on("data", (data: Buffer) => {
-          stdoutData += data.toString("utf-8");
-        });
-
-        channel.stderr.on("data", (data: Buffer) => {
-          stderrData += data.toString("utf-8");
-        });
-
-        channel.on("close", (exitCode: number) => {
-          if (timer) clearTimeout(timer);
-          const code = exitCode ?? -1;
-
-          if (check && code !== 0) {
-            const errorMsg = `Command failed with exit code ${code}: ${command}\nSTDERR:\n${stderrData}`;
-            reject(new SSHCommandError(errorMsg, code, stdoutData, stderrData));
+      this.client!.exec(
+        command,
+        (err: Error | undefined, channel: SSH2Channel) => {
+          if (err) {
+            reject(new SSHConnectionError(`exec error: ${err.message}`));
             return;
           }
 
-          resolve([code, stdoutData, stderrData]);
-        });
-      });
+          let stdoutData = "";
+          let stderrData = "";
+          let timer: ReturnType<typeof setTimeout> | undefined;
+
+          if (timeout > 0) {
+            timer = setTimeout(() => {
+              channel.close();
+              reject(
+                new SSHCommandError(
+                  `Command timed out after ${timeout}s: ${command}`,
+                  -1,
+                  stdoutData,
+                  stderrData
+                )
+              );
+            }, timeout * 1000);
+          }
+
+          channel.on("data", (data: Buffer) => {
+            stdoutData += data.toString("utf-8");
+          });
+
+          channel.stderr.on("data", (data: Buffer) => {
+            stderrData += data.toString("utf-8");
+          });
+
+          channel.on("close", (exitCode: number) => {
+            if (timer) clearTimeout(timer);
+            const code = exitCode ?? -1;
+
+            if (check && code !== 0) {
+              const errorMsg = `Command failed with exit code ${code}: ${command}\nSTDERR:\n${stderrData}`;
+              reject(
+                new SSHCommandError(errorMsg, code, stdoutData, stderrData)
+              );
+              return;
+            }
+
+            resolve([code, stdoutData, stderrData]);
+          });
+        }
+      );
     });
   }
 
@@ -376,7 +386,11 @@ export class SSHConnection {
   /**
    * Upload a file to the remote host.
    */
-  async uploadFile(localPath: string, remotePath: string, mode?: number): Promise<void> {
+  async uploadFile(
+    localPath: string,
+    remotePath: string,
+    mode?: number
+  ): Promise<void> {
     if (!fs.existsSync(localPath)) {
       throw new Error(`Local file not found: ${localPath}`);
     }
@@ -403,7 +417,11 @@ export class SSHConnection {
   /**
    * Upload string content as a file to the remote host.
    */
-  async uploadString(content: string, remotePath: string, mode?: number): Promise<void> {
+  async uploadString(
+    content: string,
+    remotePath: string,
+    mode?: number
+  ): Promise<void> {
     const sftp = await this.getSftp();
 
     await new Promise<void>((resolve, reject) => {
@@ -462,7 +480,11 @@ export class SSHConnection {
   /**
    * Create a directory on the remote host.
    */
-  async mkdir(remotePath: string, mode: number = 0o755, parents: boolean = true): Promise<void> {
+  async mkdir(
+    remotePath: string,
+    mode: number = 0o755,
+    parents: boolean = true
+  ): Promise<void> {
     if (parents) {
       const parts = remotePath.split("/").filter(Boolean);
       let current = remotePath.startsWith("/") ? "/" : "";

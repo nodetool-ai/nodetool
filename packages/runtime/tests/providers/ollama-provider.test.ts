@@ -7,7 +7,7 @@ function jsonResponse(payload: unknown, ok = true, status = 200): Response {
     ok,
     status,
     json: async () => payload,
-    body: null,
+    body: null
   } as unknown as Response;
 }
 
@@ -19,14 +19,14 @@ function streamResponse(lines: unknown[]): Response {
         controller.enqueue(encoder.encode(`${JSON.stringify(line)}\n`));
       }
       controller.close();
-    },
+    }
   });
 
   return {
     ok: true,
     status: 200,
     body,
-    json: async () => ({}),
+    json: async () => ({})
   } as unknown as Response;
 }
 
@@ -40,14 +40,14 @@ describe("OllamaProvider", () => {
       { fetchFn: vi.fn() as unknown as typeof fetch }
     );
     expect(provider.getContainerEnv()).toEqual({
-      OLLAMA_API_URL: "http://localhost:11434",
+      OLLAMA_API_URL: "http://localhost:11434"
     });
   });
 
   it("fetches available models from /api/tags", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       jsonResponse({
-        models: [{ model: "llama3.1:8b" }, { name: "qwen2.5:7b" }, {}],
+        models: [{ model: "llama3.1:8b" }, { name: "qwen2.5:7b" }, {}]
       })
     );
 
@@ -58,7 +58,7 @@ describe("OllamaProvider", () => {
 
     await expect(provider.getAvailableLanguageModels()).resolves.toEqual([
       { id: "llama3.1:8b", name: "llama3.1:8b", provider: "ollama" },
-      { id: "qwen2.5:7b", name: "qwen2.5:7b", provider: "ollama" },
+      { id: "qwen2.5:7b", name: "qwen2.5:7b", provider: "ollama" }
     ]);
   });
 
@@ -72,14 +72,14 @@ describe("OllamaProvider", () => {
       role: "user",
       content: [
         { type: "text", text: "Describe this image" },
-        { type: "image", image: { data: Uint8Array.from([1, 2, 3]) } },
-      ],
+        { type: "image", image: { data: Uint8Array.from([1, 2, 3]) } }
+      ]
     };
 
     await expect(provider.convertMessage(message)).resolves.toEqual({
       role: "user",
       content: "Describe this image",
-      images: ["AQID"],
+      images: ["AQID"]
     });
   });
 
@@ -88,10 +88,8 @@ describe("OllamaProvider", () => {
       jsonResponse({
         message: {
           content: "done",
-          tool_calls: [
-            { function: { name: "sum", arguments: { a: 1, b: 2 } } },
-          ],
-        },
+          tool_calls: [{ function: { name: "sum", arguments: { a: 1, b: 2 } } }]
+        }
       })
     );
 
@@ -103,13 +101,13 @@ describe("OllamaProvider", () => {
     const result = await provider.generateMessage({
       model: "llama3.1:8b",
       messages: [{ role: "user", content: "hi" }],
-      tools: [{ name: "sum", inputSchema: { type: "object", properties: {} } }],
+      tools: [{ name: "sum", inputSchema: { type: "object", properties: {} } }]
     });
 
     expect(result).toEqual({
       role: "assistant",
       content: "done",
-      toolCalls: [{ id: "tool_1", name: "sum", args: { a: 1, b: 2 } }],
+      toolCalls: [{ id: "tool_1", name: "sum", args: { a: 1, b: 2 } }]
     });
   });
 
@@ -120,11 +118,13 @@ describe("OllamaProvider", () => {
         {
           message: {
             content: "lo",
-            tool_calls: [{ function: { name: "lookup", arguments: { q: "x" } } }],
+            tool_calls: [
+              { function: { name: "lookup", arguments: { q: "x" } } }
+            ]
           },
-          done: false,
+          done: false
         },
-        { message: { content: "" }, done: true },
+        { message: { content: "" }, done: true }
       ])
     );
 
@@ -136,7 +136,7 @@ describe("OllamaProvider", () => {
     const out: Array<unknown> = [];
     for await (const item of provider.generateMessages({
       model: "llama3.1:8b",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     })) {
       out.push(item);
     }
@@ -145,7 +145,7 @@ describe("OllamaProvider", () => {
       { type: "chunk", content: "Hel", done: false },
       { id: "tool_1", name: "lookup", args: { q: "x" } },
       { type: "chunk", content: "lo", done: false },
-      { type: "chunk", content: "", done: true },
+      { type: "chunk", content: "", done: true }
     ]);
   });
 
@@ -154,8 +154,8 @@ describe("OllamaProvider", () => {
       jsonResponse({
         embeddings: [
           [0.1, 0.2, 0.3],
-          [0.4, 0.5, 0.6],
-        ],
+          [0.4, 0.5, 0.6]
+        ]
       })
     );
 
@@ -167,11 +167,11 @@ describe("OllamaProvider", () => {
     await expect(
       provider.generateEmbedding({
         model: "nomic-embed-text",
-        text: ["hello", "world"],
+        text: ["hello", "world"]
       })
     ).resolves.toEqual([
       [0.1, 0.2, 0.3],
-      [0.4, 0.5, 0.6],
+      [0.4, 0.5, 0.6]
     ]);
   });
 
@@ -180,8 +180,11 @@ describe("OllamaProvider", () => {
       { OLLAMA_API_URL: "http://localhost:11434" },
       { fetchFn: vi.fn() as unknown as typeof fetch }
     );
-    expect(provider.isContextLengthError(new Error("context window exceeded"))).toBe(true);
-    expect(provider.isContextLengthError(new Error("other failure"))).toBe(false);
+    expect(
+      provider.isContextLengthError(new Error("context window exceeded"))
+    ).toBe(true);
+    expect(provider.isContextLengthError(new Error("other failure"))).toBe(
+      false
+    );
   });
 });
-

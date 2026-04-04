@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Convert HTML to Text"
-node_type: "lib.beautifulsoup.HTMLToText"
-namespace: "lib.beautifulsoup"
+node_type: "lib.html.HTMLToText"
+namespace: "lib.html"
 ---
 
-**Type:** `lib.beautifulsoup.HTMLToText`
+**Type:** `lib.html.HTMLToText`
 
-**Namespace:** `lib.beautifulsoup`
+**Namespace:** `lib.html`
 
 ## Description
 
@@ -36,5 +36,5 @@ Converts HTML to plain text by removing tags and decoding entities using Beautif
 
 ## Related Nodes
 
-Browse other nodes in the [lib.beautifulsoup](../) namespace.
+Browse other nodes in the [lib.html](../) namespace.
 

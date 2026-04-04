@@ -18,7 +18,7 @@ export enum SafetensorLayoutHint {
   SINGLE = "single",
   SHARDED_BUNDLE = "sharded_bundle",
   DISJOINT = "disjoint",
-  MIXED = "mixed",
+  MIXED = "mixed"
 }
 
 export interface SafetensorSummary {
@@ -93,7 +93,7 @@ export function summarizeSafetensor(
   return {
     path: filePath,
     keyCount: allKeys.length,
-    sampledShapes: sampled,
+    sampledShapes: sampled
   };
 }
 
@@ -119,7 +119,9 @@ export function classifySafetensorSet(
   if (paths.length === 1) return SafetensorLayoutHint.SINGLE;
 
   const summaries = paths.map((p) => summarizeSafetensor(p, sampleLimit));
-  const sampledKeySets = summaries.map((s) => new Set(Object.keys(s.sampledShapes)));
+  const sampledKeySets = summaries.map(
+    (s) => new Set(Object.keys(s.sampledShapes))
+  );
   const intersection = intersectSets(sampledKeySets);
 
   if (intersection.size > 0 && shapesAlign(summaries, intersection)) {
@@ -150,7 +152,10 @@ function intersectSets(sets: Set<string>[]): Set<string> {
   return result;
 }
 
-function shapesAlign(summaries: SafetensorSummary[], keys: Set<string>): boolean {
+function shapesAlign(
+  summaries: SafetensorSummary[],
+  keys: Set<string>
+): boolean {
   for (const key of keys) {
     const shapes = summaries.map((s) => s.sampledShapes[key]);
     if (shapes.some((s) => s === undefined)) return false;

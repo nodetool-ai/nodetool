@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Gaussian Noise"
-node_type: "lib.pillow.draw.GaussianNoise"
-namespace: "lib.pillow.draw"
+node_type: "lib.image.draw.GaussianNoise"
+namespace: "lib.image.draw"
 ---
 
-**Type:** `lib.pillow.draw.GaussianNoise`
+**Type:** `lib.image.draw.GaussianNoise`
 
-**Namespace:** `lib.pillow.draw`
+**Namespace:** `lib.image.draw`
 
 ## Description
 
@@ -40,5 +40,5 @@ This node creates and adds Gaussian noise to an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.draw](../) namespace.
+Browse other nodes in the [lib.image.draw](../) namespace.
 

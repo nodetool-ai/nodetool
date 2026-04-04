@@ -607,6 +607,17 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   })),
 
+  // ---------- HELP ----------------------------------------------------------
+  {
+    title: "Show Keyboard Shortcuts",
+    slug: "showKeyboardShortcuts",
+    keyCombo: ["Control", "/"],
+    keyComboMac: ["Meta", "/"],
+    category: "editor",
+    description: "Open keyboard shortcuts panel",
+    registerCombo: true
+  },
+
   // ---------- FIND IN WORKFLOW ---------------------------------------------
   {
     title: "Find in Workflow",

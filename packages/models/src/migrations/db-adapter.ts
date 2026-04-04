@@ -8,10 +8,8 @@
 
 import type Database from "better-sqlite3";
 
- 
 export type SqlParams = any[];
 
- 
 export type Row = Record<string, any>;
 
 /**
@@ -88,30 +86,27 @@ export class SQLiteMigrationAdapter implements MigrationDBAdapter {
   async tableExists(tableName: string): Promise<boolean> {
     const row = await this.fetchone(
       "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-      [tableName],
+      [tableName]
     );
     return row !== null;
   }
 
-  async columnExists(
-    tableName: string,
-    columnName: string,
-  ): Promise<boolean> {
+  async columnExists(tableName: string, columnName: string): Promise<boolean> {
     const columns = await this.getColumns(tableName);
     return columns.includes(columnName);
   }
 
   async getColumns(tableName: string): Promise<string[]> {
-    const rows = this.db.pragma(
-      `table_info(${tableName})`,
-    ) as Array<{ name: string }>;
+    const rows = this.db.pragma(`table_info(${tableName})`) as Array<{
+      name: string;
+    }>;
     return rows.map((r) => r.name);
   }
 
   async indexExists(indexName: string): Promise<boolean> {
     const row = await this.fetchone(
       "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
-      [indexName],
+      [indexName]
     );
     return row !== null;
   }
@@ -134,16 +129,15 @@ export class SQLiteMigrationAdapter implements MigrationDBAdapter {
  * for PostgreSQL compatibility with the SQLite-style migrations.
  */
 export class PostgresMigrationAdapter implements MigrationDBAdapter {
-   
   private pool: any;
-   
+
   private client: any = null;
   private lastRowCount = 0;
 
   /**
    * @param pool - A `pg.Pool` instance.
    */
-   
+
   constructor(pool: any) {
     this.pool = pool;
   }
@@ -203,21 +197,18 @@ export class PostgresMigrationAdapter implements MigrationDBAdapter {
   async tableExists(tableName: string): Promise<boolean> {
     const row = await this.fetchone(
       "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = ?) AS exists",
-      [tableName],
+      [tableName]
     );
     return row?.exists ?? false;
   }
 
-  async columnExists(
-    tableName: string,
-    columnName: string,
-  ): Promise<boolean> {
+  async columnExists(tableName: string, columnName: string): Promise<boolean> {
     const row = await this.fetchone(
       `SELECT EXISTS (
         SELECT FROM information_schema.columns
         WHERE table_name = ? AND column_name = ?
       ) AS exists`,
-      [tableName, columnName],
+      [tableName, columnName]
     );
     return row?.exists ?? false;
   }
@@ -228,7 +219,7 @@ export class PostgresMigrationAdapter implements MigrationDBAdapter {
        FROM information_schema.columns
        WHERE table_name = ?
        ORDER BY ordinal_position`,
-      [tableName],
+      [tableName]
     );
     return rows.map((r) => r.column_name);
   }
@@ -236,7 +227,7 @@ export class PostgresMigrationAdapter implements MigrationDBAdapter {
   async indexExists(indexName: string): Promise<boolean> {
     const row = await this.fetchone(
       "SELECT EXISTS (SELECT FROM pg_indexes WHERE indexname = ?) AS exists",
-      [indexName],
+      [indexName]
     );
     return row?.exists ?? false;
   }

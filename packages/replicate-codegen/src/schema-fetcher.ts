@@ -38,8 +38,7 @@ export class SchemaFetcher {
    * @param cacheDir - Directory for caching schemas. Defaults to `.schema-cache/replicate/` relative to cwd.
    */
   constructor(apiToken?: string, cacheDir?: string) {
-    this.apiToken =
-      apiToken ?? process.env.REPLICATE_API_TOKEN ?? "";
+    this.apiToken = apiToken ?? process.env.REPLICATE_API_TOKEN ?? "";
     this.cacheDir =
       cacheDir ?? join(process.cwd(), ".schema-cache", "replicate");
   }
@@ -63,7 +62,7 @@ export class SchemaFetcher {
     }
     return {
       Authorization: `Bearer ${this.apiToken}`,
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     };
   }
 
@@ -75,7 +74,7 @@ export class SchemaFetcher {
    */
   async fetchSchema(
     modelId: string,
-    useCache: boolean = true,
+    useCache: boolean = true
   ): Promise<ReplicateSchema> {
     const path = this.cachePath(modelId);
 
@@ -100,9 +99,7 @@ export class SchemaFetcher {
   /**
    * Return the cached schema for a model, or `null` if not cached.
    */
-  async getCachedSchema(
-    modelId: string,
-  ): Promise<ReplicateSchema | null> {
+  async getCachedSchema(modelId: string): Promise<ReplicateSchema | null> {
     try {
       const raw = await readFile(this.cachePath(modelId), "utf-8");
       return JSON.parse(raw) as ReplicateSchema;
@@ -117,9 +114,7 @@ export class SchemaFetcher {
   private async _fetchFromApi(modelId: string): Promise<ReplicateSchema> {
     const [owner, name] = modelId.split("/");
     if (!owner || !name) {
-      throw new Error(
-        `Invalid model ID "${modelId}": expected "owner/name"`
-      );
+      throw new Error(`Invalid model ID "${modelId}": expected "owner/name"`);
     }
 
     // Step 1: Get model info (includes latest_version)
@@ -131,14 +126,11 @@ export class SchemaFetcher {
       | Record<string, unknown>
       | undefined;
     if (!latestVersion?.id) {
-      throw new Error(
-        `Model "${modelId}" has no latest version`
-      );
+      throw new Error(`Model "${modelId}" has no latest version`);
     }
 
     const versionId = latestVersion.id as string;
-    const description =
-      (modelData.description as string | undefined) ?? "";
+    const description = (modelData.description as string | undefined) ?? "";
 
     // Step 2: Get version details (contains openapi_schema)
     const versionUrl = `${REPLICATE_API_BASE}/models/${owner}/${name}/versions/${versionId}`;
@@ -151,12 +143,9 @@ export class SchemaFetcher {
       (versionData.openapi_schema as Record<string, unknown>) ?? {};
     const components =
       (openapiSchema.components as Record<string, unknown>) ?? {};
-    const schemas =
-      (components.schemas as Record<string, unknown>) ?? {};
-    const inputSchema =
-      (schemas.Input as Record<string, unknown>) ?? {};
-    const outputSchema =
-      (schemas.Output as Record<string, unknown>) ?? {};
+    const schemas = (components.schemas as Record<string, unknown>) ?? {};
+    const inputSchema = (schemas.Input as Record<string, unknown>) ?? {};
+    const outputSchema = (schemas.Output as Record<string, unknown>) ?? {};
 
     return {
       modelId,
@@ -165,7 +154,7 @@ export class SchemaFetcher {
       version: versionId,
       description,
       inputSchema,
-      outputSchema,
+      outputSchema
     };
   }
 
@@ -176,7 +165,7 @@ export class SchemaFetcher {
     try {
       response = await fetch(url, {
         headers: this.authHeaders(),
-        signal: controller.signal,
+        signal: controller.signal
       });
     } finally {
       clearTimeout(timeoutId);

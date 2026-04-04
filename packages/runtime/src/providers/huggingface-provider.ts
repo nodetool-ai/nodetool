@@ -11,7 +11,7 @@ import type {
   ProviderTool,
   StreamingAudioChunk,
   TextToImageParams,
-  TTSModel,
+  TTSModel
 } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.huggingface");
@@ -23,8 +23,10 @@ async function getHfInference(apiKey: string): Promise<any> {
   if (!_hfModule) {
     try {
       // Dynamic import — @huggingface/inference is an optional dependency
-       
-      _hfModule = await (Function('return import("@huggingface/inference")')() as Promise<any>);
+
+      _hfModule = await (Function(
+        'return import("@huggingface/inference")'
+      )() as Promise<any>);
     } catch {
       throw new Error(
         "@huggingface/inference is required for HuggingFaceProvider. " +
@@ -34,20 +36,46 @@ async function getHfInference(apiKey: string): Promise<any> {
   }
   const HfInference = _hfModule.HfInference ?? _hfModule.default?.HfInference;
   if (!HfInference) {
-    throw new Error("Could not find HfInference class in @huggingface/inference");
+    throw new Error(
+      "Could not find HfInference class in @huggingface/inference"
+    );
   }
   return new HfInference(apiKey);
 }
 
 /** Curated list of popular HuggingFace language models. */
 const HF_LANGUAGE_MODELS: LanguageModel[] = [
-  { id: "meta-llama/Llama-3.1-70B-Instruct", name: "Llama 3.1 70B Instruct", provider: "huggingface" },
-  { id: "meta-llama/Llama-3.1-8B-Instruct", name: "Llama 3.1 8B Instruct", provider: "huggingface" },
-  { id: "mistralai/Mixtral-8x7B-Instruct-v0.1", name: "Mixtral 8x7B Instruct", provider: "huggingface" },
-  { id: "mistralai/Mistral-7B-Instruct-v0.3", name: "Mistral 7B Instruct v0.3", provider: "huggingface" },
-  { id: "microsoft/Phi-3-mini-4k-instruct", name: "Phi 3 Mini 4K Instruct", provider: "huggingface" },
-  { id: "HuggingFaceH4/zephyr-7b-beta", name: "Zephyr 7B Beta", provider: "huggingface" },
-  { id: "google/gemma-2-9b-it", name: "Gemma 2 9B IT", provider: "huggingface" },
+  {
+    id: "meta-llama/Llama-3.1-70B-Instruct",
+    name: "Llama 3.1 70B Instruct",
+    provider: "huggingface"
+  },
+  {
+    id: "meta-llama/Llama-3.1-8B-Instruct",
+    name: "Llama 3.1 8B Instruct",
+    provider: "huggingface"
+  },
+  {
+    id: "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    name: "Mixtral 8x7B Instruct",
+    provider: "huggingface"
+  },
+  {
+    id: "mistralai/Mistral-7B-Instruct-v0.3",
+    name: "Mistral 7B Instruct v0.3",
+    provider: "huggingface"
+  },
+  {
+    id: "microsoft/Phi-3-mini-4k-instruct",
+    name: "Phi 3 Mini 4K Instruct",
+    provider: "huggingface"
+  },
+  {
+    id: "HuggingFaceH4/zephyr-7b-beta",
+    name: "Zephyr 7B Beta",
+    provider: "huggingface"
+  },
+  { id: "google/gemma-2-9b-it", name: "Gemma 2 9B IT", provider: "huggingface" }
 ];
 
 /** Curated list of popular HuggingFace image models. */
@@ -56,20 +84,20 @@ const HF_IMAGE_MODELS: ImageModel[] = [
     id: "stabilityai/stable-diffusion-xl-base-1.0",
     name: "Stable Diffusion XL Base 1.0",
     provider: "huggingface",
-    supportedTasks: ["text_to_image"],
+    supportedTasks: ["text_to_image"]
   },
   {
     id: "runwayml/stable-diffusion-v1-5",
     name: "Stable Diffusion v1.5",
     provider: "huggingface",
-    supportedTasks: ["text_to_image"],
+    supportedTasks: ["text_to_image"]
   },
   {
     id: "black-forest-labs/FLUX.1-schnell",
     name: "FLUX.1 Schnell",
     provider: "huggingface",
-    supportedTasks: ["text_to_image"],
-  },
+    supportedTasks: ["text_to_image"]
+  }
 ];
 
 /** Curated list of popular HuggingFace TTS models. */
@@ -77,13 +105,13 @@ const HF_TTS_MODELS: TTSModel[] = [
   {
     id: "facebook/mms-tts-eng",
     name: "MMS TTS English",
-    provider: "huggingface",
+    provider: "huggingface"
   },
   {
     id: "espnet/kan-bayashi_ljspeech_vits",
     name: "VITS LJSpeech",
-    provider: "huggingface",
-  },
+    provider: "huggingface"
+  }
 ];
 
 interface HuggingFaceProviderOptions {
@@ -91,7 +119,9 @@ interface HuggingFaceProviderOptions {
   hfClient?: any;
 }
 
-function extractTextContent(content: string | MessageContent[] | null | undefined): string {
+function extractTextContent(
+  content: string | MessageContent[] | null | undefined
+): string {
   if (typeof content === "string") return content;
   if (!content) return "";
   return content
@@ -158,7 +188,7 @@ export class HuggingFaceProvider extends BaseProvider {
 
     const hfMessages = args.messages.map((m) => ({
       role: m.role === "tool" ? "user" : m.role,
-      content: extractTextContent(m.content),
+      content: extractTextContent(m.content)
     }));
 
     log.debug("HuggingFace chatCompletion", { model: args.model });
@@ -168,7 +198,7 @@ export class HuggingFaceProvider extends BaseProvider {
       messages: hfMessages,
       max_tokens: args.maxTokens ?? 4096,
       ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {}),
+      ...(args.topP != null ? { top_p: args.topP } : {})
     });
 
     const choice = response?.choices?.[0];
@@ -180,13 +210,13 @@ export class HuggingFaceProvider extends BaseProvider {
     if (usage) {
       this.trackUsage(args.model, {
         inputTokens: usage.prompt_tokens ?? 0,
-        outputTokens: usage.completion_tokens ?? 0,
+        outputTokens: usage.completion_tokens ?? 0
       });
     }
 
     return {
       role: "assistant",
-      content: choice.message?.content ?? null,
+      content: choice.message?.content ?? null
     };
   }
 
@@ -208,7 +238,7 @@ export class HuggingFaceProvider extends BaseProvider {
 
     const hfMessages = args.messages.map((m) => ({
       role: m.role === "tool" ? "user" : m.role,
-      content: extractTextContent(m.content),
+      content: extractTextContent(m.content)
     }));
 
     log.debug("HuggingFace chatCompletionStream", { model: args.model });
@@ -218,7 +248,7 @@ export class HuggingFaceProvider extends BaseProvider {
       messages: hfMessages,
       max_tokens: args.maxTokens ?? 4096,
       ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {}),
+      ...(args.topP != null ? { top_p: args.topP } : {})
     });
 
     for await (const chunk of stream) {
@@ -231,7 +261,7 @@ export class HuggingFaceProvider extends BaseProvider {
         const item: Chunk = {
           type: "chunk",
           content: String(delta?.content ?? ""),
-          done: choice.finish_reason === "stop",
+          done: choice.finish_reason === "stop"
         };
         yield item;
       }
@@ -249,37 +279,37 @@ export class HuggingFaceProvider extends BaseProvider {
 
     const request: Record<string, unknown> = {
       model: params.model.id,
-      inputs: params.prompt,
+      inputs: params.prompt
     };
 
     if (params.negativePrompt) {
       request.parameters = {
-        ...(request.parameters as Record<string, unknown> ?? {}),
-        negative_prompt: params.negativePrompt,
+        ...((request.parameters as Record<string, unknown>) ?? {}),
+        negative_prompt: params.negativePrompt
       };
     }
     if (params.guidanceScale != null) {
       request.parameters = {
-        ...(request.parameters as Record<string, unknown> ?? {}),
-        guidance_scale: params.guidanceScale,
+        ...((request.parameters as Record<string, unknown>) ?? {}),
+        guidance_scale: params.guidanceScale
       };
     }
     if (params.numInferenceSteps != null) {
       request.parameters = {
-        ...(request.parameters as Record<string, unknown> ?? {}),
-        num_inference_steps: params.numInferenceSteps,
+        ...((request.parameters as Record<string, unknown>) ?? {}),
+        num_inference_steps: params.numInferenceSteps
       };
     }
     if (params.width) {
       request.parameters = {
-        ...(request.parameters as Record<string, unknown> ?? {}),
-        width: params.width,
+        ...((request.parameters as Record<string, unknown>) ?? {}),
+        width: params.width
       };
     }
     if (params.height) {
       request.parameters = {
-        ...(request.parameters as Record<string, unknown> ?? {}),
-        height: params.height,
+        ...((request.parameters as Record<string, unknown>) ?? {}),
+        height: params.height
       };
     }
 
@@ -315,7 +345,7 @@ export class HuggingFaceProvider extends BaseProvider {
 
     const result = await client.textToSpeech({
       model: args.model,
-      inputs: args.text,
+      inputs: args.text
     });
 
     let bytes: Uint8Array;
@@ -326,12 +356,19 @@ export class HuggingFaceProvider extends BaseProvider {
     } else if (typeof result?.arrayBuffer === "function") {
       bytes = new Uint8Array(await result.arrayBuffer());
     } else {
-      throw new Error("HuggingFace textToSpeech returned unexpected result type");
+      throw new Error(
+        "HuggingFace textToSpeech returned unexpected result type"
+      );
     }
 
     // Assume 16-bit PCM samples
-    const aligned = bytes.length % 2 === 0 ? bytes : bytes.slice(0, bytes.length - 1);
-    const samples = new Int16Array(aligned.buffer, aligned.byteOffset, aligned.byteLength / 2);
+    const aligned =
+      bytes.length % 2 === 0 ? bytes : bytes.slice(0, bytes.length - 1);
+    const samples = new Int16Array(
+      aligned.buffer,
+      aligned.byteOffset,
+      aligned.byteLength / 2
+    );
     yield { samples };
   }
 

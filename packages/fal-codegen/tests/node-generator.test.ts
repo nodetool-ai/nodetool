@@ -14,7 +14,7 @@ function makeField(overrides: Partial<FieldDef> & { name: string }): FieldDef {
     description: "",
     fieldType: "input",
     required: false,
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -25,13 +25,11 @@ function makeSpec(overrides: Partial<NodeSpec> = {}): NodeSpec {
     docstring: "FLUX.1 dev model.",
     tags: ["image", "generation", "flux"],
     useCases: [],
-    inputFields: [
-      makeField({ name: "prompt", propType: "str", default: "" }),
-    ],
+    inputFields: [makeField({ name: "prompt", propType: "str", default: "" })],
     outputType: "image",
     outputFields: [],
     enums: [],
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -46,14 +44,16 @@ describe("NodeGenerator.generate()", () => {
     const spec = makeSpec();
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(
-      `static readonly nodeType = "fal.text_to_image.FluxDev"`,
+      `static readonly nodeType = "fal.text_to_image.FluxDev"`
     );
   });
 
   it("uses underscores in nodeType when module has dashes", () => {
     const spec = makeSpec();
     const code = gen.generate(spec, "text-to-image");
-    expect(code).toContain(`static readonly nodeType = "fal.text_to_image.FluxDev"`);
+    expect(code).toContain(
+      `static readonly nodeType = "fal.text_to_image.FluxDev"`
+    );
   });
 
   it("generates correct title from class name", () => {
@@ -78,7 +78,9 @@ describe("NodeGenerator.generate()", () => {
   it("generates requiredSettings with FAL_API_KEY", () => {
     const spec = makeSpec();
     const code = gen.generate(spec, "text_to_image");
-    expect(code).toContain(`static readonly requiredSettings = ["FAL_API_KEY"]`);
+    expect(code).toContain(
+      `static readonly requiredSettings = ["FAL_API_KEY"]`
+    );
   });
 
   it("generates extends FalNode", () => {
@@ -96,12 +98,14 @@ describe("NodeGenerator.generate()", () => {
           name: "prompt",
           propType: "str",
           default: "",
-          description: "The prompt",
-        }),
-      ],
+          description: "The prompt"
+        })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
-    expect(code).toContain(`@prop({ type: "str", default: "", description: "The prompt" })`);
+    expect(code).toContain(
+      `@prop({ type: "str", default: "", description: "The prompt" })`
+    );
     expect(code).toContain(`declare prompt: any;`);
   });
 
@@ -112,12 +116,14 @@ describe("NodeGenerator.generate()", () => {
           name: "num_inference_steps",
           propType: "int",
           default: 28,
-          description: "Steps",
-        }),
-      ],
+          description: "Steps"
+        })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
-    expect(code).toContain(`@prop({ type: "int", default: 28, description: "Steps" })`);
+    expect(code).toContain(
+      `@prop({ type: "int", default: 28, description: "Steps" })`
+    );
   });
 
   it("generates @prop decorator for float field", () => {
@@ -127,9 +133,9 @@ describe("NodeGenerator.generate()", () => {
           name: "guidance_scale",
           propType: "float",
           default: 7.5,
-          description: "Guidance scale",
-        }),
-      ],
+          description: "Guidance scale"
+        })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(`@prop({ type: "float", default: 7.5`);
@@ -142,9 +148,9 @@ describe("NodeGenerator.generate()", () => {
           name: "enable_safety_checker",
           propType: "bool",
           default: true,
-          description: "Safety checker",
-        }),
-      ],
+          description: "Safety checker"
+        })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(`@prop({ type: "bool", default: true`);
@@ -161,9 +167,9 @@ describe("NodeGenerator.generate()", () => {
           default: "landscape_4_3",
           description: "Size",
           enumRef: "ImageSize",
-          enumValues: ["square_hd", "square", "landscape_4_3"],
-        }),
-      ],
+          enumValues: ["square_hd", "square", "landscape_4_3"]
+        })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(`type: "enum"`);
@@ -176,37 +182,31 @@ describe("NodeGenerator.generate()", () => {
 
   it("generates String() cast for str fields", () => {
     const spec = makeSpec({
-      inputFields: [
-        makeField({ name: "prompt", propType: "str", default: "" }),
-      ],
+      inputFields: [makeField({ name: "prompt", propType: "str", default: "" })]
     });
     const code = gen.generate(spec, "text_to_image");
-    expect(code).toContain(
-      `const prompt = String(this.prompt ?? "");`,
-    );
+    expect(code).toContain(`const prompt = String(this.prompt ?? "");`);
   });
 
   it("generates Number() cast for int fields", () => {
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "num_steps", propType: "int", default: 28 }),
-      ],
+        makeField({ name: "num_steps", propType: "int", default: 28 })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
-    expect(code).toContain(
-      `const numSteps = Number(this.num_steps ?? 28);`,
-    );
+    expect(code).toContain(`const numSteps = Number(this.num_steps ?? 28);`);
   });
 
   it("generates Number() cast for float fields", () => {
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "guidance_scale", propType: "float", default: 7.5 }),
-      ],
+        makeField({ name: "guidance_scale", propType: "float", default: 7.5 })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(
-      `const guidanceScale = Number(this.guidance_scale ?? 7.5);`,
+      `const guidanceScale = Number(this.guidance_scale ?? 7.5);`
     );
   });
 
@@ -217,13 +217,13 @@ describe("NodeGenerator.generate()", () => {
           name: "image_size",
           propType: "enum",
           default: "landscape_4_3",
-          enumValues: ["square_hd", "landscape_4_3"],
-        }),
-      ],
+          enumValues: ["square_hd", "landscape_4_3"]
+        })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(
-      `const imageSize = String(this.image_size ?? "landscape_4_3");`,
+      `const imageSize = String(this.image_size ?? "landscape_4_3");`
     );
   });
 
@@ -231,8 +231,8 @@ describe("NodeGenerator.generate()", () => {
     const spec = makeSpec({
       inputFields: [
         makeField({ name: "prompt", propType: "str", default: "" }),
-        makeField({ name: "num_steps", propType: "int", default: 4 }),
-      ],
+        makeField({ name: "num_steps", propType: "int", default: 4 })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(`"prompt": prompt,`);
@@ -246,9 +246,9 @@ describe("NodeGenerator.generate()", () => {
           name: "image",
           apiParamName: "image_url",
           propType: "str",
-          default: "",
-        }),
-      ],
+          default: ""
+        })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(`"image_url"`);
@@ -263,9 +263,9 @@ describe("NodeGenerator.generate()", () => {
           name: "image",
           propType: "image",
           tsType: "image",
-          default: null,
-        }),
-      ],
+          default: null
+        })
+      ]
     });
     const code = gen.generate(spec, "image_to_image");
     expect(code).toContain(`isRefSet(imageRef)`);
@@ -282,10 +282,10 @@ describe("NodeGenerator.generate()", () => {
           name: "video",
           propType: "video",
           tsType: "video",
-          default: null,
-        }),
+          default: null
+        })
       ],
-      outputType: "video",
+      outputType: "video"
     });
     const code = gen.generate(spec, "video_to_video");
     expect(code).toContain(`isRefSet(videoRef)`);
@@ -346,16 +346,16 @@ describe("NodeGenerator.generate()", () => {
           propType: "video",
           tsType: "video",
           default: null,
-          nestedAssetKey: "video_url",
+          nestedAssetKey: "video_url"
         }),
         makeField({
           name: "start_frame_num",
           propType: "int",
           default: 0,
-          parentField: "video_conditioning",
-        }),
+          parentField: "video_conditioning"
+        })
       ],
-      outputType: "video",
+      outputType: "video"
     });
     const code = gen.generate(spec, "image_to_video");
     expect(code).toContain(`"video_url": videoConditioningUrl`);
@@ -374,7 +374,9 @@ describe("NodeGenerator.generateModule()", () => {
 
   it("includes BaseNode and prop imports", () => {
     const code = gen.generateModule("text_to_image", [makeSpec()]);
-    expect(code).toContain(`import { BaseNode, prop } from "@nodetool/node-sdk"`);
+    expect(code).toContain(
+      `import { BaseNode, prop } from "@nodetool/node-sdk"`
+    );
   });
 
   it("includes fal-base imports", () => {
@@ -397,19 +399,28 @@ describe("NodeGenerator.generateModule()", () => {
   });
 
   it("includes all class names in export array", () => {
-    const spec1 = makeSpec({ className: "FluxDev", endpointId: "fal-ai/flux/dev" });
-    const spec2 = makeSpec({ className: "FluxPro", endpointId: "fal-ai/flux/pro" });
+    const spec1 = makeSpec({
+      className: "FluxDev",
+      endpointId: "fal-ai/flux/dev"
+    });
+    const spec2 = makeSpec({
+      className: "FluxPro",
+      endpointId: "fal-ai/flux/pro"
+    });
     const code = gen.generateModule("text_to_image", [spec1, spec2]);
     expect(code).toContain(`FluxDev,`);
     expect(code).toContain(`FluxPro,`);
   });
 
   it("applies module config overrides", () => {
-    const spec = makeSpec({ className: "OldName", endpointId: "fal-ai/flux/dev" });
+    const spec = makeSpec({
+      className: "OldName",
+      endpointId: "fal-ai/flux/dev"
+    });
     const moduleConfig = {
       configs: {
-        "fal-ai/flux/dev": { className: "NewName" } as NodeConfig,
-      },
+        "fal-ai/flux/dev": { className: "NewName" } as NodeConfig
+      }
     };
     const code = gen.generateModule("text_to_image", [spec], moduleConfig);
     expect(code).toContain(`class NewName`);
@@ -444,23 +455,26 @@ describe("NodeGenerator.applyConfig()", () => {
   it("applies field overrides — description", () => {
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "seed", propType: "int", default: 0, description: "Old" }),
-      ],
+        makeField({
+          name: "seed",
+          propType: "int",
+          default: 0,
+          description: "Old"
+        })
+      ]
     });
     const result = gen.applyConfig(spec, {
-      fieldOverrides: { seed: { description: "New description" } },
+      fieldOverrides: { seed: { description: "New description" } }
     });
     expect(result.inputFields[0].description).toBe("New description");
   });
 
   it("applies field overrides — default value", () => {
     const spec = makeSpec({
-      inputFields: [
-        makeField({ name: "seed", propType: "int", default: 0 }),
-      ],
+      inputFields: [makeField({ name: "seed", propType: "int", default: 0 })]
     });
     const result = gen.applyConfig(spec, {
-      fieldOverrides: { seed: { default: -1 } },
+      fieldOverrides: { seed: { default: -1 } }
     });
     expect(result.inputFields[0].default).toBe(-1);
   });
@@ -468,16 +482,24 @@ describe("NodeGenerator.applyConfig()", () => {
   it("renames enum via enumOverrides", () => {
     const enumDef: EnumDef = {
       name: "ImageSize",
-      values: [["SQUARE_HD", "square_hd"], ["LANDSCAPE_4_3", "landscape_4_3"]],
+      values: [
+        ["SQUARE_HD", "square_hd"],
+        ["LANDSCAPE_4_3", "landscape_4_3"]
+      ]
     };
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "image_size", propType: "enum", enumRef: "ImageSize", enumValues: ["square_hd"] }),
+        makeField({
+          name: "image_size",
+          propType: "enum",
+          enumRef: "ImageSize",
+          enumValues: ["square_hd"]
+        })
       ],
-      enums: [enumDef],
+      enums: [enumDef]
     });
     const result = gen.applyConfig(spec, {
-      enumOverrides: { ImageSize: "ImageSizePreset" },
+      enumOverrides: { ImageSize: "ImageSizePreset" }
     });
     expect(result.enums[0].name).toBe("ImageSizePreset");
     expect(result.inputFields[0].enumRef).toBe("ImageSizePreset");
@@ -501,9 +523,14 @@ describe("NodeGenerator.selectBasicFields()", () => {
     const spec = makeSpec({
       inputFields: [
         makeField({ name: "seed", propType: "int", default: 0 }),
-        makeField({ name: "image", propType: "image", tsType: "image", default: null }),
-        makeField({ name: "prompt", propType: "str", default: "" }),
-      ],
+        makeField({
+          name: "image",
+          propType: "image",
+          tsType: "image",
+          default: null
+        }),
+        makeField({ name: "prompt", propType: "str", default: "" })
+      ]
     });
     const fields = gen.selectBasicFields(spec);
     expect(fields[0]).toBe("image");
@@ -514,8 +541,8 @@ describe("NodeGenerator.selectBasicFields()", () => {
       inputFields: [
         makeField({ name: "width", propType: "int", default: 512 }),
         makeField({ name: "prompt", propType: "str", default: "" }),
-        makeField({ name: "height", propType: "int", default: 512 }),
-      ],
+        makeField({ name: "height", propType: "int", default: 512 })
+      ]
     });
     const fields = gen.selectBasicFields(spec);
     expect(fields.indexOf("prompt")).toBeLessThan(fields.indexOf("width"));
@@ -524,8 +551,8 @@ describe("NodeGenerator.selectBasicFields()", () => {
   it("returns at most 5 fields", () => {
     const spec = makeSpec({
       inputFields: Array.from({ length: 10 }, (_, i) =>
-        makeField({ name: `field_${i}`, propType: "int", default: i }),
-      ),
+        makeField({ name: `field_${i}`, propType: "int", default: i })
+      )
     });
     const fields = gen.selectBasicFields(spec);
     expect(fields.length).toBeLessThanOrEqual(5);
@@ -535,8 +562,8 @@ describe("NodeGenerator.selectBasicFields()", () => {
     const spec = makeSpec({
       inputFields: [
         makeField({ name: "seed", propType: "int", default: -1 }),
-        makeField({ name: "prompt", propType: "str", default: "" }),
-      ],
+        makeField({ name: "prompt", propType: "str", default: "" })
+      ]
     });
     const fields = gen.selectBasicFields(spec);
     expect(fields).not.toContain("seed");
@@ -553,20 +580,24 @@ describe("NodeGenerator.generate() — bool field in process()", () => {
   it("generates Boolean() cast for bool fields", () => {
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "enable_safety_checker", propType: "bool", default: true }),
-      ],
+        makeField({
+          name: "enable_safety_checker",
+          propType: "bool",
+          default: true
+        })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(
-      `const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);`,
+      `const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);`
     );
   });
 
   it("includes bool var in args object", () => {
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "safe_mode", propType: "bool", default: false }),
-      ],
+        makeField({ name: "safe_mode", propType: "bool", default: false })
+      ]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(`"safe_mode": safeMode,`);
@@ -582,7 +613,7 @@ describe("NodeGenerator.generate() — reserved variable names", () => {
 
   it("prefixes 'inputs' field name with field_ to avoid collision", () => {
     const spec = makeSpec({
-      inputFields: [makeField({ name: "inputs", propType: "str", default: "" })],
+      inputFields: [makeField({ name: "inputs", propType: "str", default: "" })]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(`const field_inputs =`);
@@ -591,7 +622,7 @@ describe("NodeGenerator.generate() — reserved variable names", () => {
 
   it("prefixes 'output' field name with field_ to avoid collision", () => {
     const spec = makeSpec({
-      inputFields: [makeField({ name: "output", propType: "str", default: "" })],
+      inputFields: [makeField({ name: "output", propType: "str", default: "" })]
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(`const field_output =`);
@@ -614,10 +645,10 @@ describe("NodeGenerator.generate() — list asset fields", () => {
           propType: "list[image]",
           tsType: "image[]",
           default: [],
-          apiParamName: "image_urls",
-        }),
+          apiParamName: "image_urls"
+        })
       ],
-      outputType: "image",
+      outputType: "image"
     });
     const code = gen.generate(spec, "image_to_image");
     expect(code).toContain(`imagesList`);
@@ -633,10 +664,10 @@ describe("NodeGenerator.generate() — list asset fields", () => {
           name: "videos",
           propType: "list[video]",
           tsType: "video[]",
-          default: [],
-        }),
+          default: []
+        })
       ],
-      outputType: "video",
+      outputType: "video"
     });
     const code = gen.generate(spec, "video_to_video");
     expect(code).toContain(`videosList`);
@@ -651,10 +682,10 @@ describe("NodeGenerator.generate() — list asset fields", () => {
           name: "audio_files",
           propType: "list[audio]",
           tsType: "audio[]",
-          default: [],
-        }),
+          default: []
+        })
       ],
-      outputType: "audio",
+      outputType: "audio"
     });
     const code = gen.generate(spec, "audio_to_audio");
     expect(code).toContain(`audioFilesList`);
@@ -668,15 +699,15 @@ describe("NodeGenerator.generate() — list asset fields", () => {
           name: "images",
           propType: "list[image]",
           tsType: "image[]",
-          default: [],
+          default: []
         }),
         makeField({
           name: "sub_option",
           propType: "str",
           default: "",
-          parentField: "images",
-        }),
-      ],
+          parentField: "images"
+        })
+      ]
     });
     const code = gen.generate(spec, "image_to_image");
     // List asset field IS declared as a prop

@@ -15,7 +15,7 @@ export interface FileApiOptions {
 function jsonResponse(data: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(data), {
     status: init?.status ?? 200,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+    headers: { "content-type": "application/json", ...(init?.headers ?? {}) }
   });
 }
 
@@ -29,10 +29,16 @@ function errorResponse(status: number, detail: string): Response {
  */
 function resolveSandboxed(rootDir: string, userPath: string): string | null {
   // Normalize the user path — join with root and resolve
-  const resolved = path.resolve(rootDir, userPath.startsWith("/") ? "." + userPath : userPath);
+  const resolved = path.resolve(
+    rootDir,
+    userPath.startsWith("/") ? "." + userPath : userPath
+  );
   // Ensure the resolved path is within or equal to rootDir
   const normalizedRoot = path.resolve(rootDir);
-  if (!resolved.startsWith(normalizedRoot + path.sep) && resolved !== normalizedRoot) {
+  if (
+    !resolved.startsWith(normalizedRoot + path.sep) &&
+    resolved !== normalizedRoot
+  ) {
     return null;
   }
   return resolved;
@@ -63,7 +69,7 @@ async function handleList(url: URL, rootDir: string): Promise<Response> {
           name: entry.name,
           size,
           is_dir: entry.isDirectory(),
-          modified_at: modifiedAt,
+          modified_at: modifiedAt
         };
       })
     );
@@ -86,7 +92,7 @@ async function handleInfo(url: URL, rootDir: string): Promise<Response> {
       name: path.basename(resolved),
       size: stat.size,
       is_dir: stat.isDirectory(),
-      modified_at: stat.mtime.toISOString(),
+      modified_at: stat.mtime.toISOString()
     });
   } catch {
     return errorResponse(404, "File not found");
@@ -110,8 +116,8 @@ async function handleDownload(url: URL, rootDir: string): Promise<Response> {
       status: 200,
       headers: {
         "content-type": "application/octet-stream",
-        "content-length": String(content.byteLength),
-      },
+        "content-length": String(content.byteLength)
+      }
     });
   } catch {
     return errorResponse(404, "File not found");

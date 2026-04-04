@@ -1,0 +1,163 @@
+{
+  "id": "agent-google-search-example",
+  "access": "public",
+  "created_at": "2025-12-21T10:36:12.038240",
+  "updated_at": "2025-12-21T10:37:59.106310",
+  "name": "Agent Google Search",
+  "tool_name": null,
+  "description": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
+  "tags": [
+    "agent",
+    "google",
+    "search",
+    "dynamic-outputs"
+  ],
+  "thumbnail": "Agent Google Search.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "d511b097-2af9-4cc4-a497-ec2452c8a609",
+        "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
+        "sourceHandle": "search",
+        "target": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
+        "targetHandle": "keyword",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "8df1db3c-8a72-4666-8b2b-0abbca21b40e",
+        "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
+        "sourceHandle": "chunk",
+        "target": "a5dc6d30-6902-4c1a-966e-c38e46125b50",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "chunk"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "comment-1",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Agent Google Search",
+          "comment": "This workflow demonstrates how an Agent can use dynamic outputs to trigger external actions.\n\n1. The Agent receives a prompt to search for something\n2. It generates a 'search' dynamic output with the search query\n3. The GoogleSearch node receives the query and performs the search\n4. Results are displayed in the Preview node via the Agent's 'chunk' output\n\nDynamic outputs allow agents to interface with other nodes in the workflow."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6ababfd3-5743-4d7c-accd-97242130a8d8",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a an AI agent. \n\nBehavior\n- Understand the user's intent and the context of the task.\n- Break down the task into smaller steps.\n- Be precise, concise, and actionable.\n- Use tools to accomplish your goal. \n\nTool preambles\n- Outline the next step(s) you will perform.\n- After acting, summarize the outcome.\n\nRendering\n- Use Markdown to display media assets.\n- Display images, audio, and video assets using the appropriate Markdown.\n\nFile handling\n- Inputs and outputs are files in the /workspace directory.\n- Write outputs of code execution to the /workspace directory.\n",
+          "prompt": "search for agent libs",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 8192
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 283,
+            "y": 182
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "search": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
+        "type": "search.google.GoogleSearch",
+        "data": {
+          "num_results": 10
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 623,
+            "y": 285
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "a5dc6d30-6902-4c1a-966e-c38e46125b50",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 703,
+            "y": 519
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 669,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "required_providers": null,
+  "required_models": null
+}

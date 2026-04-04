@@ -3,18 +3,22 @@ import sharp from "sharp";
 import {
   CombineImageGridLibNode,
   LIB_GRID_NODES,
-  registerBaseNodes,
+  registerBaseNodes
 } from "../../src/index.js";
 import { NodeRegistry } from "@nodetool/node-sdk";
 
-async function solid(width: number, height: number, color: string): Promise<Record<string, unknown>> {
+async function solid(
+  width: number,
+  height: number,
+  color: string
+): Promise<Record<string, unknown>> {
   const buf = await sharp({
     create: {
       width,
       height,
       channels: 4,
-      background: color,
-    },
+      background: color
+    }
   })
     .png()
     .toBuffer();
@@ -31,7 +35,9 @@ describe("native lib.grid nodes", () => {
   });
 
   it("slices image into expected number of tiles", async () => {
-    const cls = LIB_GRID_NODES.find((n) => n.nodeType === "lib.grid.SliceImageGrid");
+    const cls = LIB_GRID_NODES.find(
+      (n) => n.nodeType === "lib.grid.SliceImageGrid"
+    );
     if (!cls) throw new Error("missing SliceImageGrid node");
 
     const node = new cls();
@@ -50,7 +56,9 @@ describe("native lib.grid nodes", () => {
   });
 
   it("combines tiles into one output image", async () => {
-    const cls = LIB_GRID_NODES.find((n) => n.nodeType === "lib.grid.CombineImageGrid");
+    const cls = LIB_GRID_NODES.find(
+      (n) => n.nodeType === "lib.grid.CombineImageGrid"
+    );
     if (!cls) throw new Error("missing CombineImageGrid node");
 
     const node = new cls();
@@ -58,12 +66,15 @@ describe("native lib.grid nodes", () => {
       await solid(10, 10, "#ff0000"),
       await solid(10, 10, "#00ff00"),
       await solid(10, 10, "#0000ff"),
-      await solid(10, 10, "#ffffff"),
+      await solid(10, 10, "#ffffff")
     ];
 
     node.assign({ tiles, columns: 2 });
     const out = await node.process();
-    const bytes = Buffer.from(String((out.output as { data: string }).data), "base64");
+    const bytes = Buffer.from(
+      String((out.output as { data: string }).data),
+      "base64"
+    );
     const meta = await sharp(bytes).metadata();
     expect(meta.width).toBe(20);
     expect(meta.height).toBe(20);
@@ -75,19 +86,24 @@ describe("native lib.grid nodes", () => {
       await solid(8, 8, "#ff0000"),
       await solid(8, 8, "#00ff00"),
       await solid(8, 8, "#0000ff"),
-      await solid(8, 8, "#ffffff"),
+      await solid(8, 8, "#ffffff")
     ];
 
     node.assign({ tiles, columns: 2 });
     const out = await node.process();
-    const bytes = Buffer.from(String((out.output as { data: string }).data), "base64");
+    const bytes = Buffer.from(
+      String((out.output as { data: string }).data),
+      "base64"
+    );
     const meta = await sharp(bytes).metadata();
     expect(meta.width).toBe(16);
     expect(meta.height).toBe(16);
   });
 
   it("errors when combine receives no tiles", async () => {
-    const cls = LIB_GRID_NODES.find((n) => n.nodeType === "lib.grid.CombineImageGrid");
+    const cls = LIB_GRID_NODES.find(
+      (n) => n.nodeType === "lib.grid.CombineImageGrid"
+    );
     if (!cls) throw new Error("missing CombineImageGrid node");
 
     const node = new cls();

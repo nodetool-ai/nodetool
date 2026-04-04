@@ -25,7 +25,7 @@ const FORCE_ENV_PRIORITY = new Set([
   "SUPABASE_URL",
   "SUPABASE_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
-  "SERVER_AUTH_TOKEN",
+  "SERVER_AUTH_TOKEN"
 ]);
 
 /**
@@ -36,7 +36,10 @@ const FORCE_ENV_PRIORITY = new Set([
  * database lookups are silently skipped.
  */
 type SecretModel = {
-  find(userId: string, key: string): Promise<{ getDecryptedValue(): Promise<string> } | null>;
+  find(
+    userId: string,
+    key: string
+  ): Promise<{ getDecryptedValue(): Promise<string> } | null>;
 };
 
 let _secretModelPromise: Promise<SecretModel | null> | null = null;
@@ -67,7 +70,9 @@ export function resetSecretModelLoader(): void {
 /**
  * Set a custom Secret model loader (for testing / dependency injection).
  */
-export function setSecretModelLoader(loader: Promise<SecretModel | null>): void {
+export function setSecretModelLoader(
+  loader: Promise<SecretModel | null>
+): void {
   _secretModelPromise = loader;
 }
 
@@ -139,7 +144,11 @@ export async function getSecret(
         }
       }
     } catch (err) {
-      log.error("Secret DB lookup/decryption failed", { key, userId, error: String(err) });
+      log.error("Secret DB lookup/decryption failed", {
+        key,
+        userId,
+        error: String(err)
+      });
     }
   }
 

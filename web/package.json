@@ -53,7 +53,7 @@
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
-    "@xyflow/react": "^12.10.0",
+    "@xyflow/react": "^12.10.2",
     "axios": "^1.13.5",
     "browserslist-to-esbuild": "^2.1.1",
     "chroma-js": "^3.1.2",
@@ -135,7 +135,10 @@
     "openapi": "openapi-typescript http://127.0.0.1:7777/openapi.json -o ./src/api.ts",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
-    "upload-stock-images": "node scripts/upload-stock-images.js"
+    "fetch-comfy-schema": "node ../scripts/fetch-comfy-object-info.mjs",
+    "upload-stock-images": "node scripts/upload-stock-images.js",
+    "screenshots": "playwright test tests/benchmarks/screenshots.spec.ts --project=chromium",
+    "screenshots:force": "FORCE_SCREENSHOTS=true playwright test tests/benchmarks/screenshots.spec.ts --project=chromium"
   },
   "browserslist": {
     "production": [
@@ -151,7 +154,13 @@
   },
   "overrides": {
     "react-is": "18.2.0",
-    "rollup": "^4.59.0"
+    "rollup": "^4.59.0",
+    "axios": ">=1.13.5",
+    "minimatch": ">=3.1.4",
+    "undici": ">=6.24.0",
+    "flatted": ">=3.4.2",
+    "lodash": ">=4.17.23",
+    "ajv": ">=6.14.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",

@@ -64,15 +64,19 @@ describe("db", () => {
     initDb(dbPath);
 
     const sqlite = getRawDb();
-    const workflowCols = (sqlite.pragma('table_info("nodetool_workflows")') as Array<{ name: string }>)
-      .map((row) => row.name);
+    const workflowCols = (
+      sqlite.pragma('table_info("nodetool_workflows")') as Array<{
+        name: string;
+      }>
+    ).map((row) => row.name);
     expect(workflowCols).toContain("html_app");
     expect(workflowCols).toContain("receive_clipboard");
     expect(workflowCols).toContain("workspace_id");
     expect(workflowCols).toContain("tool_name");
 
-    const jobCols = (sqlite.pragma('table_info("nodetool_jobs")') as Array<{ name: string }>)
-      .map((row) => row.name);
+    const jobCols = (
+      sqlite.pragma('table_info("nodetool_jobs")') as Array<{ name: string }>
+    ).map((row) => row.name);
     expect(jobCols).toContain("execution_strategy");
     expect(jobCols).toContain("execution_id");
     expect(jobCols).toContain("metadata_json");
@@ -101,7 +105,8 @@ describe("db", () => {
     try {
       expect(() => initTestDb()).not.toThrow();
     } finally {
-      (rawDb as Database.Database & { close: () => void }).close = originalClose;
+      (rawDb as Database.Database & { close: () => void }).close =
+        originalClose;
       originalClose();
     }
   });
@@ -119,7 +124,8 @@ describe("db", () => {
       expect(() => getDb()).toThrow(/Database not initialized/);
       expect(() => getRawDb()).toThrow(/Database not initialized/);
     } finally {
-      (rawDb as Database.Database & { close: () => void }).close = originalClose;
+      (rawDb as Database.Database & { close: () => void }).close =
+        originalClose;
       originalClose();
     }
   });

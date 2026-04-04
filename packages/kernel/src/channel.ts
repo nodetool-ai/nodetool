@@ -147,7 +147,7 @@ export class Channel<T = unknown> {
       name: this.name,
       subscriberCount: this._subscribers.size,
       isClosed: this._closed,
-      messageType: this._messageType,
+      messageType: this._messageType
     };
   }
 }

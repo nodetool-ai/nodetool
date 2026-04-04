@@ -215,7 +215,6 @@ Total: 30+ tests, all passing
 
 - **README.md**: Complete usage guide with examples
 - **EXAMPLES.md**: Practical examples for each primitive
-- **UIPrimitivesDemo.tsx**: Live demo component showcasing all primitives
 - **Inline JSDoc**: Comprehensive documentation in each component
 
 ## Next Steps
@@ -249,7 +248,6 @@ Total: 30+ tests, all passing
 ### Documentation
 - Updated `README.md`
 - Updated `EXAMPLES.md`
-- `UIPrimitivesDemo.tsx` - Demo page
 
 ### Updated
 - `index.ts` - Exports all new primitives

@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Arg Min Array"
-node_type: "lib.numpy.statistics.ArgMinArray"
-namespace: "lib.numpy.statistics"
+node_type: "lib.array.statistics.ArgMinArray"
+namespace: "lib.array.statistics"
 ---
 
-**Type:** `lib.numpy.statistics.ArgMinArray`
+**Type:** `lib.array.statistics.ArgMinArray`
 
-**Namespace:** `lib.numpy.statistics`
+**Namespace:** `lib.array.statistics`
 
 ## Description
 
@@ -36,5 +36,5 @@ Find indices of minimum values along a specified axis of a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.statistics](../) namespace.
+Browse other nodes in the [lib.array.statistics](../) namespace.
 

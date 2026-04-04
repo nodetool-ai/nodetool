@@ -8,7 +8,13 @@ import { eq, and } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { secrets } from "./schema/secrets.js";
-import { encryptFernet, decrypt, decryptFernet, getMasterKey, initMasterKey } from "@nodetool/security";
+import {
+  encryptFernet,
+  decrypt,
+  decryptFernet,
+  getMasterKey,
+  initMasterKey
+} from "@nodetool/security";
 import { createLogger } from "@nodetool/config";
 
 const log = createLogger("nodetool.models.secret");
@@ -40,7 +46,9 @@ export class Secret extends DBModel {
   /** Find a secret by user_id and key. */
   static async find(userId: string, key: string): Promise<Secret | null> {
     const db = getDb();
-    const row = db.select().from(secrets)
+    const row = db
+      .select()
+      .from(secrets)
       .where(and(eq(secrets.user_id, userId), eq(secrets.key, key)))
       .limit(1)
       .get();
@@ -77,7 +85,7 @@ export class Secret extends DBModel {
       encrypted_value: encryptedValue,
       description: opts.description ?? "",
       created_at: now,
-      updated_at: now,
+      updated_at: now
     });
   }
 
@@ -108,7 +116,7 @@ export class Secret extends DBModel {
       encrypted_value: opts.encryptedValue,
       description: opts.description ?? "",
       created_at: now,
-      updated_at: now,
+      updated_at: now
     });
   }
 
@@ -125,15 +133,17 @@ export class Secret extends DBModel {
   /** List all secrets for a user. */
   static async listForUser(
     userId: string,
-    limit = 100,
+    limit = 100
   ): Promise<[Secret[], string]> {
     const db = getDb();
-    const rows = db.select().from(secrets)
+    const rows = db
+      .select()
+      .from(secrets)
       .where(eq(secrets.user_id, userId))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Secret(r as Record<string, unknown>));
+    const items = rows.map((r) => new Secret(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -143,10 +153,8 @@ export class Secret extends DBModel {
   /** List all secrets across all users (admin only). */
   static async listAll(limit = 1000): Promise<Secret[]> {
     const db = getDb();
-    const rows = db.select().from(secrets)
-      .limit(limit)
-      .all();
-    return rows.map(r => new Secret(r as Record<string, unknown>));
+    const rows = db.select().from(secrets).limit(limit).all();
+    return rows.map((r) => new Secret(r as Record<string, unknown>));
   }
 
   /** Get the decrypted plaintext value. */
@@ -161,7 +169,7 @@ export class Secret extends DBModel {
         log.error("Both AES-GCM and Fernet decryption failed", {
           key: this.key,
           userId: this.user_id,
-          fernetError: String(fernetErr),
+          fernetError: String(fernetErr)
         });
         throw fernetErr;
       }
@@ -176,7 +184,7 @@ export class Secret extends DBModel {
       key: this.key,
       description: this.description,
       created_at: this.created_at,
-      updated_at: this.updated_at,
+      updated_at: this.updated_at
     };
   }
 }

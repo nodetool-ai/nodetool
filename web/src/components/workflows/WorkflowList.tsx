@@ -92,12 +92,8 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
-    (state) => ({
-      shiftKeyPressed: state.isKeyPressed("Shift"),
-      controlKeyPressed: state.isKeyPressed("Control")
-    })
-  );
+  const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
+  const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 1000;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
@@ -189,12 +185,10 @@ const WorkflowList = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { copyWorkflow, createWorkflow, updateWorkflow, getWorkflow } = useWorkflowManager((state) => ({
-    copyWorkflow: state.copy,
-    createWorkflow: state.create,
-    updateWorkflow: state.updateWorkflow,
-    getWorkflow: state.getWorkflow
-  }));
+  const copyWorkflow = useWorkflowManager((state) => state.copy);
+  const createWorkflow = useWorkflowManager((state) => state.create);
+  const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
+  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
 
 
   const handleOpenWorkflow = useCallback(

@@ -10,12 +10,12 @@ import { join } from "node:path";
 import type {
   DockerDeployment,
   RunPodDeployment,
-  GCPDeployment,
+  GCPDeployment
 } from "./deployment-config.js";
 import {
   DockerDeploymentSchema,
   RunPodDeploymentSchema,
-  GCPDeploymentSchema,
+  GCPDeploymentSchema
 } from "./deployment-config.js";
 
 // ============================================================================
@@ -87,7 +87,7 @@ export function configureDocker(
       ? {
           user: params.sshUser,
           key_path: params.sshKeyPath ?? "~/.ssh/id_rsa",
-          port: 22,
+          port: 22
         }
       : undefined;
 
@@ -97,19 +97,18 @@ export function configureDocker(
     ssh: sshConfig,
     image: {
       name: params.imageName ?? "ghcr.io/nodetool-ai/nodetool",
-      tag: params.imageTag ?? "latest",
+      tag: params.imageTag ?? "latest"
     },
     container: {
       name: params.containerName ?? `nodetool-${name}`,
       port: params.containerPort ?? 8000,
       gpu: params.gpu,
-      workflows: params.workflows,
+      workflows: params.workflows
     },
     paths: {
-      workspace:
-        params.workspacePath ?? join(homedir(), ".nodetool-workspace"),
-      hf_cache: params.hfCachePath ?? detectHfCacheDefault(),
-    },
+      workspace: params.workspacePath ?? join(homedir(), ".nodetool-workspace"),
+      hf_cache: params.hfCachePath ?? detectHfCacheDefault()
+    }
   });
 }
 
@@ -142,8 +141,8 @@ export function configureRunPod(
     image: {
       name: params.imageName,
       tag: params.imageTag ?? "latest",
-      registry: params.registry ?? "docker.io",
-    },
+      registry: params.registry ?? "docker.io"
+    }
   });
 }
 
@@ -186,11 +185,11 @@ export function configureGCP(
     service_name: params.serviceName ?? name,
     image: {
       repository: params.imageRepository,
-      tag: params.imageTag ?? "latest",
+      tag: params.imageTag ?? "latest"
     },
     resources: {
       cpu: params.cpu ?? "4",
-      memory: params.memory ?? "16Gi",
-    },
+      memory: params.memory ?? "16Gi"
+    }
   });
 }

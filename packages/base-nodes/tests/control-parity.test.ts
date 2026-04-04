@@ -8,7 +8,7 @@ import {
   ForEachNode,
   IfNode,
   OutputNode,
-  RerouteNode,
+  RerouteNode
 } from "../src/index.js";
 
 function makeRegistry(): NodeRegistry {
@@ -24,22 +24,22 @@ function makeRunner(registry: NodeRegistry): WorkflowRunner {
         return {
           async process() {
             return {};
-          },
+          }
         };
       }
       return registry.resolve(node);
-    },
+    }
   });
 }
 
 async function runWorkflow(
   nodes: NodeDescriptor[],
   edges: Edge[],
-  params: Record<string, unknown> = {},
+  params: Record<string, unknown> = {}
 ) {
   return makeRunner(makeRegistry()).run(
     { job_id: `control-parity-${Date.now()}`, params },
-    { nodes, edges },
+    { nodes, edges }
   );
 }
 
@@ -47,20 +47,23 @@ async function runWithRunner(
   runner: WorkflowRunner,
   nodes: NodeDescriptor[],
   edges: Edge[],
-  params: Record<string, unknown> = {},
+  params: Record<string, unknown> = {}
 ) {
   return runner.run(
     { job_id: `control-parity-${Date.now()}`, params },
-    { nodes, edges },
+    { nodes, edges }
   );
 }
 
 function outputUpdatesForNode(
   result: Awaited<ReturnType<typeof runWorkflow>>,
-  nodeId: string,
+  nodeId: string
 ): unknown[] {
   return result.messages
-    .filter((message) => message.type === "output_update" && message.node_id === nodeId)
+    .filter(
+      (message) =>
+        message.type === "output_update" && message.node_id === nodeId
+    )
     .map((message) => message.value);
 }
 
@@ -71,14 +74,29 @@ describe("control parity: If node", () => {
         { id: "src", type: "test.Input", name: "value" },
         { id: "if", type: IfNode.nodeType, properties: { condition: true } },
         { id: "true", type: OutputNode.nodeType, name: "true_sink" },
-        { id: "false", type: OutputNode.nodeType, name: "false_sink" },
+        { id: "false", type: OutputNode.nodeType, name: "false_sink" }
       ],
       [
-        { source: "src", sourceHandle: "value", target: "if", targetHandle: "value" },
-        { source: "if", sourceHandle: "if_true", target: "true", targetHandle: "value" },
-        { source: "if", sourceHandle: "if_false", target: "false", targetHandle: "value" },
+        {
+          source: "src",
+          sourceHandle: "value",
+          target: "if",
+          targetHandle: "value"
+        },
+        {
+          source: "if",
+          sourceHandle: "if_true",
+          target: "true",
+          targetHandle: "value"
+        },
+        {
+          source: "if",
+          sourceHandle: "if_false",
+          target: "false",
+          targetHandle: "value"
+        }
       ],
-      { value: "hello" },
+      { value: "hello" }
     );
 
     expect(result.status).toBe("completed");
@@ -92,14 +110,29 @@ describe("control parity: If node", () => {
         { id: "src", type: "test.Input", name: "value" },
         { id: "if", type: IfNode.nodeType, properties: { condition: false } },
         { id: "true", type: OutputNode.nodeType, name: "true_sink" },
-        { id: "false", type: OutputNode.nodeType, name: "false_sink" },
+        { id: "false", type: OutputNode.nodeType, name: "false_sink" }
       ],
       [
-        { source: "src", sourceHandle: "value", target: "if", targetHandle: "value" },
-        { source: "if", sourceHandle: "if_true", target: "true", targetHandle: "value" },
-        { source: "if", sourceHandle: "if_false", target: "false", targetHandle: "value" },
+        {
+          source: "src",
+          sourceHandle: "value",
+          target: "if",
+          targetHandle: "value"
+        },
+        {
+          source: "if",
+          sourceHandle: "if_true",
+          target: "true",
+          targetHandle: "value"
+        },
+        {
+          source: "if",
+          sourceHandle: "if_false",
+          target: "false",
+          targetHandle: "value"
+        }
       ],
-      { value: "hello" },
+      { value: "hello" }
     );
 
     expect(result.status).toBe("completed");
@@ -114,17 +147,32 @@ describe("control parity: If node", () => {
           id: "src",
           type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { input_list: [0, 1, 2] },
+          properties: { input_list: [0, 1, 2] }
         },
         { id: "if", type: IfNode.nodeType, properties: { condition: true } },
         { id: "collect", type: CollectNode.nodeType },
-        { id: "out", type: OutputNode.nodeType, name: "passed" },
+        { id: "out", type: OutputNode.nodeType, name: "passed" }
       ],
       [
-        { source: "src", sourceHandle: "output", target: "if", targetHandle: "value" },
-        { source: "if", sourceHandle: "if_true", target: "collect", targetHandle: "input_item" },
-        { source: "collect", sourceHandle: "output", target: "out", targetHandle: "value" },
-      ],
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "if",
+          targetHandle: "value"
+        },
+        {
+          source: "if",
+          sourceHandle: "if_true",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
     );
 
     expect(result.status).toBe("completed");
@@ -138,24 +186,44 @@ describe("control parity: If node", () => {
           id: "cond",
           type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { input_list: [true, true, false] },
+          properties: { input_list: [true, true, false] }
         },
         {
           id: "val",
           type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { input_list: ["A", "B", "C"] },
+          properties: { input_list: ["A", "B", "C"] }
         },
         { id: "if", type: IfNode.nodeType, sync_mode: "zip_all" },
         { id: "true_out", type: OutputNode.nodeType, name: "true_sink" },
-        { id: "false_out", type: OutputNode.nodeType, name: "false_sink" },
+        { id: "false_out", type: OutputNode.nodeType, name: "false_sink" }
       ],
       [
-        { source: "cond", sourceHandle: "output", target: "if", targetHandle: "condition" },
-        { source: "val", sourceHandle: "output", target: "if", targetHandle: "value" },
-        { source: "if", sourceHandle: "if_true", target: "true_out", targetHandle: "value" },
-        { source: "if", sourceHandle: "if_false", target: "false_out", targetHandle: "value" },
-      ],
+        {
+          source: "cond",
+          sourceHandle: "output",
+          target: "if",
+          targetHandle: "condition"
+        },
+        {
+          source: "val",
+          sourceHandle: "output",
+          target: "if",
+          targetHandle: "value"
+        },
+        {
+          source: "if",
+          sourceHandle: "if_true",
+          target: "true_out",
+          targetHandle: "value"
+        },
+        {
+          source: "if",
+          sourceHandle: "if_false",
+          target: "false_out",
+          targetHandle: "value"
+        }
+      ]
     );
 
     const trueValues = outputUpdatesForNode(result, "true_out");
@@ -173,24 +241,44 @@ describe("control parity: If node", () => {
           id: "cond",
           type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { input_list: [true, false] },
+          properties: { input_list: [true, false] }
         },
         {
           id: "val",
           type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { input_list: ["A", "B", "C"] },
+          properties: { input_list: ["A", "B", "C"] }
         },
         { id: "if", type: IfNode.nodeType, sync_mode: "zip_all" },
         { id: "true_out", type: OutputNode.nodeType, name: "true_sink" },
-        { id: "false_out", type: OutputNode.nodeType, name: "false_sink" },
+        { id: "false_out", type: OutputNode.nodeType, name: "false_sink" }
       ],
       [
-        { source: "cond", sourceHandle: "output", target: "if", targetHandle: "condition" },
-        { source: "val", sourceHandle: "output", target: "if", targetHandle: "value" },
-        { source: "if", sourceHandle: "if_true", target: "true_out", targetHandle: "value" },
-        { source: "if", sourceHandle: "if_false", target: "false_out", targetHandle: "value" },
-      ],
+        {
+          source: "cond",
+          sourceHandle: "output",
+          target: "if",
+          targetHandle: "condition"
+        },
+        {
+          source: "val",
+          sourceHandle: "output",
+          target: "if",
+          targetHandle: "value"
+        },
+        {
+          source: "if",
+          sourceHandle: "if_true",
+          target: "true_out",
+          targetHandle: "value"
+        },
+        {
+          source: "if",
+          sourceHandle: "if_false",
+          target: "false_out",
+          targetHandle: "value"
+        }
+      ]
     );
 
     expect(result.status).toBe("completed");
@@ -207,15 +295,25 @@ describe("control parity: Collect node", () => {
           id: "src",
           type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { input_list: [0, 1, 2] },
+          properties: { input_list: [0, 1, 2] }
         },
         { id: "collect", type: CollectNode.nodeType },
-        { id: "out", type: OutputNode.nodeType, name: "items" },
+        { id: "out", type: OutputNode.nodeType, name: "items" }
       ],
       [
-        { source: "src", sourceHandle: "output", target: "collect", targetHandle: "input_item" },
-        { source: "collect", sourceHandle: "output", target: "out", targetHandle: "value" },
-      ],
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
     );
 
     expect(result.status).toBe("completed");
@@ -226,11 +324,16 @@ describe("control parity: Collect node", () => {
     const result = await runWorkflow(
       [
         { id: "collect", type: CollectNode.nodeType },
-        { id: "out", type: OutputNode.nodeType, name: "items" },
+        { id: "out", type: OutputNode.nodeType, name: "items" }
       ],
       [
-        { source: "collect", sourceHandle: "output", target: "out", targetHandle: "value" },
-      ],
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
     );
 
     expect(result.status).toBe("completed");
@@ -244,14 +347,24 @@ describe("control parity: Collect node", () => {
         id: "src",
         type: ForEachNode.nodeType,
         is_streaming_output: true,
-        properties: { input_list: [0, 1] },
+        properties: { input_list: [0, 1] }
       },
       { id: "collect", type: CollectNode.nodeType },
-      { id: "out", type: OutputNode.nodeType, name: "items" },
+      { id: "out", type: OutputNode.nodeType, name: "items" }
     ];
     const edges: Edge[] = [
-      { source: "src", sourceHandle: "output", target: "collect", targetHandle: "input_item" },
-      { source: "collect", sourceHandle: "output", target: "out", targetHandle: "value" },
+      {
+        source: "src",
+        sourceHandle: "output",
+        target: "collect",
+        targetHandle: "input_item"
+      },
+      {
+        source: "collect",
+        sourceHandle: "output",
+        target: "out",
+        targetHandle: "value"
+      }
     ];
 
     const first = await runWithRunner(runner, nodes, edges);
@@ -261,12 +374,12 @@ describe("control parity: Collect node", () => {
       [
         {
           ...nodes[0],
-          properties: { input_list: [3, 4] },
+          properties: { input_list: [3, 4] }
         },
         nodes[1],
-        nodes[2],
+        nodes[2]
       ],
-      edges,
+      edges
     );
 
     expect(first.status).toBe("completed");
@@ -285,17 +398,32 @@ describe("control parity: Reroute node", () => {
           id: "src",
           type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { input_list: [0, 1, 2] },
+          properties: { input_list: [0, 1, 2] }
         },
         { id: "reroute", type: RerouteNode.nodeType },
         { id: "collect", type: CollectNode.nodeType },
-        { id: "out", type: OutputNode.nodeType, name: "items" },
+        { id: "out", type: OutputNode.nodeType, name: "items" }
       ],
       [
-        { source: "src", sourceHandle: "output", target: "reroute", targetHandle: "input_value" },
-        { source: "reroute", sourceHandle: "output", target: "collect", targetHandle: "input_item" },
-        { source: "collect", sourceHandle: "output", target: "out", targetHandle: "value" },
-      ],
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "reroute",
+          targetHandle: "input_value"
+        },
+        {
+          source: "reroute",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
     );
 
     expect(result.status).toBe("completed");

@@ -8,7 +8,7 @@ import type {
   ImageTo3DParams,
   Model3D,
   TextToVideoParams,
-  ImageToVideoParams,
+  ImageToVideoParams
 } from "../../src/providers/types.js";
 
 function makeAsyncIterable(items: unknown[]) {
@@ -20,7 +20,7 @@ function makeAsyncIterable(items: unknown[]) {
     },
     async close() {
       return;
-    },
+    }
   };
 }
 
@@ -45,7 +45,9 @@ describe("OpenAIProvider", () => {
     expect(provider.resolveImageSize(1024, 1024)).toBe("1024x1024");
     expect(OpenAIProvider.resolveVideoSize("16:9", "720p")).toBe("1280x720");
     expect(OpenAIProvider.secondsFromParams({ numFrames: 12 })).toBe(4);
-    expect(OpenAIProvider.snapToValidVideoDimensions(1920, 1080)).toBe("1280x720");
+    expect(OpenAIProvider.snapToValidVideoDimensions(1920, 1080)).toBe(
+      "1280x720"
+    );
   });
 
   it("converts messages into OpenAI format", async () => {
@@ -58,12 +60,12 @@ describe("OpenAIProvider", () => {
     const assistant: Message = {
       role: "assistant",
       content: "ok",
-      toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }],
+      toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }]
     };
 
     await expect(provider.convertMessage(user)).resolves.toEqual({
       role: "user",
-      content: "hello",
+      content: "hello"
     });
 
     await expect(provider.convertMessage(assistant)).resolves.toEqual({
@@ -75,10 +77,10 @@ describe("OpenAIProvider", () => {
           id: "tc1",
           function: {
             name: "sum",
-            arguments: "{\"a\":1}",
-          },
-        },
-      ],
+            arguments: '{"a":1}'
+          }
+        }
+      ]
     });
   });
 
@@ -91,40 +93,40 @@ describe("OpenAIProvider", () => {
             tool_calls: [
               {
                 id: "tc1",
-                function: { name: "sum", arguments: "{\"a\":1}" },
-              },
-            ],
-          },
-        },
-      ],
+                function: { name: "sum", arguments: '{"a":1}' }
+              }
+            ]
+          }
+        }
+      ]
     });
 
     const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const result = await provider.generateMessage({
       model: "gpt-4o",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     });
 
     expect(create).toHaveBeenCalledTimes(1);
     expect(result).toEqual({
       role: "assistant",
       content: "done",
-      toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }],
+      toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }]
     });
   });
 
   it("streams chunks and tool calls", async () => {
     const stream = makeAsyncIterable([
       {
-        choices: [{ delta: { content: "Hello" }, finish_reason: null }],
+        choices: [{ delta: { content: "Hello" }, finish_reason: null }]
       },
       {
         choices: [
@@ -134,13 +136,13 @@ describe("OpenAIProvider", () => {
                 {
                   index: 0,
                   id: "tc1",
-                  function: { name: "lookup", arguments: "{\"q\":" },
-                },
-              ],
+                  function: { name: "lookup", arguments: '{"q":' }
+                }
+              ]
             },
-            finish_reason: null,
-          },
-        ],
+            finish_reason: null
+          }
+        ]
       },
       {
         choices: [
@@ -149,17 +151,17 @@ describe("OpenAIProvider", () => {
               tool_calls: [
                 {
                   index: 0,
-                  function: { arguments: "\"x\"}" },
-                },
-              ],
+                  function: { arguments: '"x"}' }
+                }
+              ]
             },
-            finish_reason: "tool_calls",
-          },
-        ],
+            finish_reason: "tool_calls"
+          }
+        ]
       },
       {
-        choices: [{ delta: { content: "" }, finish_reason: "stop" }],
-      },
+        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
+      }
     ]);
 
     const create = vi.fn().mockResolvedValue(stream);
@@ -168,15 +170,15 @@ describe("OpenAIProvider", () => {
       { OPENAI_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const out: Array<unknown> = [];
     for await (const item of provider.generateMessages({
       model: "gpt-4o",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     })) {
       out.push(item);
     }
@@ -184,7 +186,7 @@ describe("OpenAIProvider", () => {
     expect(out).toEqual([
       { type: "chunk", content: "Hello", done: false },
       { id: "tc1", name: "lookup", args: { q: "x" } },
-      { type: "chunk", content: "", done: true },
+      { type: "chunk", content: "", done: true }
     ]);
   });
 
@@ -198,17 +200,16 @@ describe("OpenAIProvider", () => {
     await expect(provider.getAvailableTTSModels()).resolves.toHaveLength(2);
     await expect(provider.getAvailableImageModels()).resolves.toHaveLength(3);
     await expect(provider.getAvailableVideoModels()).resolves.toHaveLength(2);
-    await expect(provider.getAvailableEmbeddingModels()).resolves.toHaveLength(3);
+    await expect(provider.getAvailableEmbeddingModels()).resolves.toHaveLength(
+      3
+    );
   });
 
   // ─── defaultSerializer tests (exercised through convertMessage) ───
 
   describe("defaultSerializer (via convertMessage)", () => {
     function makeProvider() {
-      return new OpenAIProvider(
-        { OPENAI_API_KEY: "k" },
-        { client: {} as any }
-      );
+      return new OpenAIProvider({ OPENAI_API_KEY: "k" }, { client: {} as any });
     }
 
     it("serializes BigInt values as numbers in tool message content", async () => {
@@ -216,7 +217,7 @@ describe("OpenAIProvider", () => {
       const msg: Message = {
         role: "tool",
         toolCallId: "tc1",
-        content: { value: BigInt(9007199254740991) } as any,
+        content: { value: BigInt(9007199254740991) } as any
       };
       const result = await provider.convertMessage(msg);
       expect(result.content).toBe('{"value":9007199254740991}');
@@ -228,7 +229,7 @@ describe("OpenAIProvider", () => {
       const msg: Message = {
         role: "tool",
         toolCallId: "tc1",
-        content: { timestamp: date } as any,
+        content: { timestamp: date } as any
       };
       const result = await provider.convertMessage(msg);
       expect(result.content).toBe('{"timestamp":"2025-06-15T12:00:00.000Z"}');
@@ -238,12 +239,12 @@ describe("OpenAIProvider", () => {
       const provider = makeProvider();
       const map = new Map<string, number>([
         ["a", 1],
-        ["b", 2],
+        ["b", 2]
       ]);
       const msg: Message = {
         role: "tool",
         toolCallId: "tc1",
-        content: { data: map } as any,
+        content: { data: map } as any
       };
       const result = await provider.convertMessage(msg);
       expect(result.content).toBe('{"data":{"a":1,"b":2}}');
@@ -255,7 +256,7 @@ describe("OpenAIProvider", () => {
       const msg: Message = {
         role: "tool",
         toolCallId: "tc1",
-        content: { items: set } as any,
+        content: { items: set } as any
       };
       const result = await provider.convertMessage(msg);
       expect(result.content).toBe('{"items":[10,20,30]}');
@@ -267,12 +268,12 @@ describe("OpenAIProvider", () => {
         internal: "secret",
         toJSON() {
           return { exposed: true };
-        },
+        }
       };
       const msg: Message = {
         role: "tool",
         toolCallId: "tc1",
-        content: { obj: custom } as any,
+        content: { obj: custom } as any
       };
       const result = await provider.convertMessage(msg);
       expect(result.content).toBe('{"obj":{"exposed":true}}');
@@ -283,7 +284,7 @@ describe("OpenAIProvider", () => {
       const msg: Message = {
         role: "tool",
         toolCallId: "tc1",
-        content: { num: 42, str: "hello", flag: true, nothing: null } as any,
+        content: { num: 42, str: "hello", flag: true, nothing: null } as any
       };
       const result = await provider.convertMessage(msg);
       expect(result.content).toBe(
@@ -299,12 +300,12 @@ describe("OpenAIProvider", () => {
         mapping: new Map([["key", "val"]]),
         unique: new Set(["x", "y"]),
         custom: { toJSON: () => "custom-json" },
-        plain: { a: 1 },
+        plain: { a: 1 }
       };
       const msg: Message = {
         role: "tool",
         toolCallId: "tc1",
-        content: nested as any,
+        content: nested as any
       };
       const result = await provider.convertMessage(msg);
       const parsed = JSON.parse(result.content as string);
@@ -314,7 +315,7 @@ describe("OpenAIProvider", () => {
         mapping: { key: "val" },
         unique: ["x", "y"],
         custom: "custom-json",
-        plain: { a: 1 },
+        plain: { a: 1 }
       });
     });
 
@@ -323,17 +324,15 @@ describe("OpenAIProvider", () => {
       const msg: Message = {
         role: "assistant",
         content: "ok",
-        toolCalls: [
-          { id: "tc1", name: "calc", args: { n: BigInt(42) } as any },
-        ],
+        toolCalls: [{ id: "tc1", name: "calc", args: { n: BigInt(42) } as any }]
       };
       const result = await provider.convertMessage(msg);
       expect(result.tool_calls).toEqual([
         {
           type: "function",
           id: "tc1",
-          function: { name: "calc", arguments: '{"n":42}' },
-        },
+          function: { name: "calc", arguments: '{"n":42}' }
+        }
       ]);
     });
 
@@ -342,7 +341,7 @@ describe("OpenAIProvider", () => {
       const msg: Message = {
         role: "tool",
         toolCallId: "tc1",
-        content: { a: null, b: undefined } as any,
+        content: { a: null, b: undefined } as any
       };
       const result = await provider.convertMessage(msg);
       // JSON.stringify omits undefined values by default
@@ -354,7 +353,7 @@ describe("OpenAIProvider", () => {
       const msg: Message = {
         role: "tool",
         toolCallId: "tc1",
-        content: "plain string result",
+        content: "plain string result"
       };
       const result = await provider.convertMessage(msg);
       expect(result.content).toBe("plain string result");
@@ -372,7 +371,7 @@ describe("OpenAIProvider", () => {
         numInferenceSteps: 30,
         seed: 42,
         scheduler: "euler",
-        safetyCheck: false,
+        safetyCheck: false
       };
       expect(params.guidanceScale).toBe(7.5);
       expect(params.numInferenceSteps).toBe(30);
@@ -389,7 +388,7 @@ describe("OpenAIProvider", () => {
         numInferenceSteps: null,
         seed: null,
         scheduler: null,
-        safetyCheck: null,
+        safetyCheck: null
       };
       expect(params.guidanceScale).toBeNull();
     });
@@ -402,7 +401,7 @@ describe("OpenAIProvider", () => {
         guidanceScale: 7.0,
         numInferenceSteps: 20,
         seed: 123,
-        scheduler: "ddim",
+        scheduler: "ddim"
       };
       expect(params.strength).toBe(0.8);
       expect(params.guidanceScale).toBe(7.0);
@@ -416,7 +415,7 @@ describe("OpenAIProvider", () => {
         id: "mesh-gen-1",
         name: "Mesh Generator",
         provider: "openai",
-        supportedTasks: ["text_to_3d", "image_to_3d"],
+        supportedTasks: ["text_to_3d", "image_to_3d"]
       };
       expect(model.id).toBe("mesh-gen-1");
       expect(model.supportedTasks).toContain("text_to_3d");
@@ -429,7 +428,7 @@ describe("OpenAIProvider", () => {
         negativePrompt: "broken",
         artStyle: "realistic",
         outputFormat: "glb",
-        seed: 99,
+        seed: 99
       };
       expect(params.prompt).toBe("a chair");
       expect(params.artStyle).toBe("realistic");
@@ -441,7 +440,7 @@ describe("OpenAIProvider", () => {
         model: { id: "m2", name: "M2", provider: "test" },
         prompt: "convert to 3d",
         outputFormat: "obj",
-        seed: 7,
+        seed: 7
       };
       expect(params.prompt).toBe("convert to 3d");
       expect(params.outputFormat).toBe("obj");
@@ -454,7 +453,7 @@ describe("OpenAIProvider", () => {
         prompt: "a sunset",
         guidanceScale: 5.0,
         numInferenceSteps: 50,
-        seed: 1234,
+        seed: 1234
       };
       expect(textToVideo.guidanceScale).toBe(5.0);
 
@@ -462,7 +461,7 @@ describe("OpenAIProvider", () => {
         model: { id: "v2", name: "V2", provider: "openai" },
         guidanceScale: 3.0,
         numInferenceSteps: 25,
-        seed: 5678,
+        seed: 5678
       };
       expect(imageToVideo.seed).toBe(5678);
     });

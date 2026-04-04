@@ -35,7 +35,7 @@ async function loadPdfDocument(pdf: DocumentRefLike) {
   }
   const loadingTask = pdfjsLib.getDocument({
     data: pdfData,
-    useSystemFonts: true,
+    useSystemFonts: true
   });
   return await loadingTask.promise;
 }
@@ -54,9 +54,15 @@ function resolvePageRange(
 /** Standard page-range props shared by most nodes. */
 const PDF_INPUT = {
   type: "document" as const,
-  default: { type: "document", uri: "", asset_id: null, data: null, metadata: null },
+  default: {
+    type: "document",
+    uri: "",
+    asset_id: null,
+    data: null,
+    metadata: null
+  },
   title: "PDF",
-  description: "The PDF document to process",
+  description: "The PDF document to process"
 };
 
 // ---------------------------------------------------------------------------
@@ -96,10 +102,20 @@ export class PdfExtractTextNode extends BaseNode {
   @prop(PDF_INPUT)
   declare pdf: any;
 
-  @prop({ type: "int", default: 0, title: "Start Page", description: "First page (0-based)" })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page (0-based)"
+  })
   declare start_page: any;
 
-  @prop({ type: "int", default: -1, title: "End Page", description: "Last page (-1 for all)" })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page (-1 for all)"
+  })
   declare end_page: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -144,10 +160,20 @@ export class PdfExtractMarkdownNode extends BaseNode {
   @prop(PDF_INPUT)
   declare pdf: any;
 
-  @prop({ type: "int", default: 0, title: "Start Page", description: "First page (0-based)" })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page (0-based)"
+  })
   declare start_page: any;
 
-  @prop({ type: "int", default: -1, title: "End Page", description: "Last page (-1 for all)" })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page (-1 for all)"
+  })
   declare end_page: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -226,13 +252,30 @@ export class PdfExtractTablesNode extends BaseNode {
   @prop(PDF_INPUT)
   declare pdf: any;
 
-  @prop({ type: "int", default: 0, title: "Start Page", description: "First page (0-based)" })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page (0-based)"
+  })
   declare start_page: any;
 
-  @prop({ type: "int", default: -1, title: "End Page", description: "Last page (-1 for all)" })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page (-1 for all)"
+  })
   declare end_page: any;
 
-  @prop({ type: "int", default: 3, title: "Y Tolerance", description: "Pixel tolerance for grouping text into rows", min: 1, max: 20 })
+  @prop({
+    type: "int",
+    default: 3,
+    title: "Y Tolerance",
+    description: "Pixel tolerance for grouping text into rows",
+    min: 1,
+    max: 20
+  })
   declare y_tolerance: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -267,11 +310,15 @@ export class PdfExtractTablesNode extends BaseNode {
 
       // Find most common column count
       const freq = new Map<number, number>();
-      for (const r of sortedRows) freq.set(r.length, (freq.get(r.length) ?? 0) + 1);
+      for (const r of sortedRows)
+        freq.set(r.length, (freq.get(r.length) ?? 0) + 1);
       let mostCommon = 0;
       let maxFreq = 0;
       for (const [cols, count] of freq) {
-        if (cols >= 2 && count > maxFreq) { mostCommon = cols; maxFreq = count; }
+        if (cols >= 2 && count > maxFreq) {
+          mostCommon = cols;
+          maxFreq = count;
+        }
       }
       if (mostCommon < 2) continue;
 
@@ -283,7 +330,7 @@ export class PdfExtractTablesNode extends BaseNode {
         header: tableRows[0],
         rows: tableRows.slice(1),
         columns: mostCommon,
-        total_rows: tableRows.length,
+        total_rows: tableRows.length
       });
     }
 
@@ -307,10 +354,20 @@ export class PdfExtractTextBlocksNode extends BaseNode {
   @prop(PDF_INPUT)
   declare pdf: any;
 
-  @prop({ type: "int", default: 0, title: "Start Page", description: "First page (0-based)" })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page (0-based)"
+  })
   declare start_page: any;
 
-  @prop({ type: "int", default: -1, title: "End Page", description: "Last page (-1 for all)" })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page (-1 for all)"
+  })
   declare end_page: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -327,7 +384,13 @@ export class PdfExtractTextBlocksNode extends BaseNode {
       const content = await page.getTextContent();
       const viewport = page.getViewport({ scale: 1.0 });
 
-      let block: { text: string; x0: number; y0: number; x1: number; y1: number } | null = null;
+      let block: {
+        text: string;
+        x0: number;
+        y0: number;
+        x1: number;
+        y1: number;
+      } | null = null;
       let lastY: number | null = null;
 
       const flushBlock = () => {
@@ -339,8 +402,8 @@ export class PdfExtractTextBlocksNode extends BaseNode {
               x0: block.x0,
               y0: viewport.height - block.y1,
               x1: block.x1,
-              y1: viewport.height - block.y0,
-            },
+              y1: viewport.height - block.y0
+            }
           });
         }
         block = null;
@@ -385,10 +448,20 @@ export class PdfExtractStyledTextNode extends BaseNode {
   @prop(PDF_INPUT)
   declare pdf: any;
 
-  @prop({ type: "int", default: 0, title: "Start Page", description: "First page (0-based)" })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page (0-based)"
+  })
   declare start_page: any;
 
-  @prop({ type: "int", default: -1, title: "End Page", description: "Last page (-1 for all)" })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page (-1 for all)"
+  })
   declare end_page: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -414,7 +487,7 @@ export class PdfExtractStyledTextNode extends BaseNode {
           text: item.str,
           font: item.fontName || "unknown",
           size: h,
-          bbox: { x0: x, y0: y, x1: x + w, y1: y + h },
+          bbox: { x0: x, y0: y, x1: x + w, y1: y + h }
         });
       }
     }
@@ -438,10 +511,20 @@ export class PdfPageMetadataNode extends BaseNode {
   @prop(PDF_INPUT)
   declare pdf: any;
 
-  @prop({ type: "int", default: 0, title: "Start Page", description: "First page (0-based)" })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page (0-based)"
+  })
   declare start_page: any;
 
-  @prop({ type: "int", default: -1, title: "End Page", description: "Last page (-1 for all)" })
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page (-1 for all)"
+  })
   declare end_page: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -460,7 +543,7 @@ export class PdfPageMetadataNode extends BaseNode {
         page: i,
         width: viewport.width,
         height: viewport.height,
-        rotation: page.rotate,
+        rotation: page.rotate
       });
     }
 
@@ -480,5 +563,5 @@ export const LIB_PDF_NODES = [
   PdfExtractTablesNode,
   PdfExtractTextBlocksNode,
   PdfExtractStyledTextNode,
-  PdfPageMetadataNode,
+  PdfPageMetadataNode
 ] as const;

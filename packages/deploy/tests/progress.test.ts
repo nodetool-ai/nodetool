@@ -4,7 +4,7 @@ import {
   ProgressManager,
   type Logger,
   type ProgressUpdate,
-  type TaskInfo,
+  type TaskInfo
 } from "../src/progress.js";
 
 // ============================================================================
@@ -18,7 +18,7 @@ function createTestLogger(): Logger & { logs: string[]; errors: string[] } {
     logs,
     errors,
     log: (msg: string) => logs.push(msg),
-    error: (msg: string) => errors.push(msg),
+    error: (msg: string) => errors.push(msg)
   };
 }
 
@@ -250,7 +250,7 @@ describe("ProgressManager", () => {
         status: "progress",
         current_file: "model.bin",
         file_progress: 1,
-        total_files: 5,
+        total_files: 5
       });
       // Should have logged progress
       expect(logger.logs.length).toBeGreaterThan(0);
@@ -260,7 +260,7 @@ describe("ProgressManager", () => {
     it("logs file without progress numbers", () => {
       pm.displayProgressUpdate({
         status: "progress",
-        current_file: "data.json",
+        current_file: "data.json"
       });
       expect(logger.logs[0]).toContain("File: data.json");
     });
@@ -276,7 +276,7 @@ describe("ProgressManager", () => {
         status: "progress",
         downloaded_size: 5 * 1024 * 1024,
         total_size: 100 * 1024 * 1024,
-        operation_id: "download_model",
+        operation_id: "download_model"
       });
       expect(logger.logs.some((l) => l.includes("5.0"))).toBe(true);
       expect(logger.logs.some((l) => l.includes("100.0"))).toBe(true);
@@ -287,7 +287,7 @@ describe("ProgressManager", () => {
       pm.displayProgressUpdate({
         status: "progress",
         downloaded_size: 1024,
-        total_size: 2048,
+        total_size: 2048
       });
       expect(logger.logs.length).toBeGreaterThan(0);
     });
@@ -297,7 +297,7 @@ describe("ProgressManager", () => {
         status: "progress",
         downloaded_size: 1024 * 1024,
         total_size: 10 * 1024 * 1024,
-        current_file: "weights.bin",
+        current_file: "weights.bin"
       });
       expect(logger.logs.some((l) => l.includes("weights.bin"))).toBe(true);
     });
@@ -306,7 +306,7 @@ describe("ProgressManager", () => {
       pm.displayProgressUpdate({
         status: "progress",
         downloaded_size: 0,
-        total_size: 0,
+        total_size: 0
       });
       // No download task created — but might log general message
       // Since there's no message and current_file is undefined, nothing logged
@@ -322,7 +322,7 @@ describe("ProgressManager", () => {
     it("logs message when no file or size info", () => {
       pm.displayProgressUpdate({
         status: "progress",
-        message: "Processing step 3 of 10",
+        message: "Processing step 3 of 10"
       });
       expect(logger.logs[0]).toBe("  Processing step 3 of 10");
     });
@@ -341,7 +341,7 @@ describe("ProgressManager", () => {
     it("logs completed message", () => {
       pm.displayProgressUpdate({
         status: "completed",
-        message: "Download finished",
+        message: "Download finished"
       });
       expect(logger.logs[0]).toBe("[completed] Download finished");
     });
@@ -350,7 +350,7 @@ describe("ProgressManager", () => {
       pm.displayProgressUpdate({
         status: "completed",
         message: "Done",
-        downloaded_files: 42,
+        downloaded_files: 42
       });
       expect(logger.logs[1]).toBe("  Downloaded 42 files");
     });
@@ -363,12 +363,14 @@ describe("ProgressManager", () => {
       logger.logs.length = 0;
       pm.displayProgressUpdate({
         status: "completed",
-        message: "All done",
+        message: "All done"
       });
       // download and files_ tasks should be completed
       // other_task should remain
       pm.updateTask("download_main", 50);
-      expect(logger.logs.filter((l) => l.includes("download_main"))).toHaveLength(0);
+      expect(
+        logger.logs.filter((l) => l.includes("download_main"))
+      ).toHaveLength(0);
     });
   });
 
@@ -381,7 +383,7 @@ describe("ProgressManager", () => {
       pm.displayProgressUpdate({
         status: "pulling layer1",
         total: 10 * 1024 * 1024,
-        completed: 5 * 1024 * 1024,
+        completed: 5 * 1024 * 1024
       });
       expect(logger.logs.some((l) => l.includes("layer1"))).toBe(true);
       expect(logger.logs.some((l) => l.includes("MB"))).toBe(true);
@@ -392,29 +394,31 @@ describe("ProgressManager", () => {
         status: "pulling layer2",
         digest: "sha256:abcdef123456789",
         total: 20 * 1024 * 1024,
-        completed: 10 * 1024 * 1024,
+        completed: 10 * 1024 * 1024
       });
-      expect(logger.logs.some((l) => l.includes("sha256:abcdef123456"))).toBe(true);
+      expect(logger.logs.some((l) => l.includes("sha256:abcdef123456"))).toBe(
+        true
+      );
     });
 
     it("logs total without completed", () => {
       pm.displayProgressUpdate({
         status: "pulling layer3",
-        total: 50 * 1024 * 1024,
+        total: 50 * 1024 * 1024
       });
       expect(logger.logs.some((l) => l.includes("50.0"))).toBe(true);
     });
 
     it("logs without total", () => {
       pm.displayProgressUpdate({
-        status: "pulling layer4",
+        status: "pulling layer4"
       });
       expect(logger.logs.some((l) => l.includes("layer4"))).toBe(true);
     });
 
     it("uses 'unknown' layer when status has no space", () => {
       pm.displayProgressUpdate({
-        status: "pulling",
+        status: "pulling"
       });
       expect(logger.logs.some((l) => l.includes("unknown"))).toBe(true);
     });
@@ -429,7 +433,7 @@ describe("ProgressManager", () => {
       expect(() => {
         pm.displayProgressUpdate({
           status: "error",
-          error: "Connection failed",
+          error: "Connection failed"
         });
       }).toThrow("Deployment failed");
       expect(logger.errors[0]).toBe("[error] Connection failed");
@@ -453,7 +457,7 @@ describe("ProgressManager", () => {
         status: "healthy",
         platform: "linux",
         python_version: "3.11.5",
-        hostname: "prod-server",
+        hostname: "prod-server"
       });
       expect(logger.logs).toContain("[healthy] System is healthy");
       expect(logger.logs.some((l) => l.includes("linux"))).toBe(true);
@@ -467,8 +471,8 @@ describe("ProgressManager", () => {
         memory: {
           available_gb: 16.5,
           total_gb: 32.0,
-          used_percent: 48,
-        },
+          used_percent: 48
+        }
       });
       expect(logger.logs.some((l) => l.includes("16.5"))).toBe(true);
       expect(logger.logs.some((l) => l.includes("32.0"))).toBe(true);
@@ -481,8 +485,8 @@ describe("ProgressManager", () => {
         disk: {
           free_gb: 100.2,
           total_gb: 500.0,
-          used_percent: 80,
-        },
+          used_percent: 80
+        }
       });
       expect(logger.logs.some((l) => l.includes("100.2"))).toBe(true);
       expect(logger.logs.some((l) => l.includes("500.0"))).toBe(true);
@@ -493,8 +497,8 @@ describe("ProgressManager", () => {
         status: "healthy",
         gpus: [
           { name: "NVIDIA A100", memory_used_mb: 1024, memory_total_mb: 40960 },
-          { name: "NVIDIA A100", memory_used_mb: 2048, memory_total_mb: 40960 },
-        ],
+          { name: "NVIDIA A100", memory_used_mb: 2048, memory_total_mb: 40960 }
+        ]
       });
       expect(logger.logs.some((l) => l.includes("NVIDIA A100"))).toBe(true);
       expect(logger.logs.some((l) => l.includes("GPU 0"))).toBe(true);
@@ -504,7 +508,7 @@ describe("ProgressManager", () => {
     it("logs GPU unavailable", () => {
       pm.displayProgressUpdate({
         status: "healthy",
-        gpus: "unavailable",
+        gpus: "unavailable"
       });
       expect(logger.logs.some((l) => l.includes("Not available"))).toBe(true);
     });
@@ -517,7 +521,7 @@ describe("ProgressManager", () => {
     it("handles GPU with zero total memory", () => {
       pm.displayProgressUpdate({
         status: "healthy",
-        gpus: [{ name: "GPU", memory_used_mb: 0, memory_total_mb: 0 }],
+        gpus: [{ name: "GPU", memory_used_mb: 0, memory_total_mb: 0 }]
       });
       expect(logger.logs.some((l) => l.includes("0.0%"))).toBe(true);
     });
@@ -525,7 +529,7 @@ describe("ProgressManager", () => {
     it("handles partial memory info", () => {
       pm.displayProgressUpdate({
         status: "healthy",
-        memory: {},
+        memory: {}
       });
       expect(logger.logs.some((l) => l.includes("?"))).toBe(true);
     });
@@ -533,7 +537,7 @@ describe("ProgressManager", () => {
     it("handles partial disk info", () => {
       pm.displayProgressUpdate({
         status: "healthy",
-        disk: {},
+        disk: {}
       });
       expect(logger.logs.some((l) => l.includes("?"))).toBe(true);
     });
@@ -547,7 +551,7 @@ describe("ProgressManager", () => {
     it("logs unknown status with message", () => {
       pm.displayProgressUpdate({
         status: "custom_status",
-        message: "Something happened",
+        message: "Something happened"
       });
       expect(logger.logs[0]).toBe("[custom_status] Something happened");
     });
@@ -570,14 +574,14 @@ describe("ProgressManager", () => {
       const defaultPm = new ProgressManager();
       defaultPm.displayProgressUpdate({
         status: "starting",
-        message: "Hello",
+        message: "Hello"
       });
       expect(logSpy).toHaveBeenCalledWith("[starting] Hello");
 
       expect(() => {
         defaultPm.displayProgressUpdate({
           status: "error",
-          error: "Oops",
+          error: "Oops"
         });
       }).toThrow("Deployment failed");
       expect(errorSpy).toHaveBeenCalledWith("[error] Oops");
@@ -664,7 +668,7 @@ describe("ProgressManager", () => {
       for (let i = 0; i < 100; i++) {
         pm.displayProgressUpdate({
           status: "progress",
-          message: `Step ${i}`,
+          message: `Step ${i}`
         });
       }
       expect(logger.logs).toHaveLength(100);

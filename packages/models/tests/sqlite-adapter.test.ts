@@ -1,7 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import Database from "better-sqlite3";
 import { SQLiteAdapter, SQLiteAdapterFactory } from "../src/sqlite-adapter.js";
-import { Condition, ConditionBuilder, ConditionGroup, LogicalOperator, Operator, Variable, field } from "../src/condition-builder.js";
+import {
+  Condition,
+  ConditionBuilder,
+  ConditionGroup,
+  LogicalOperator,
+  Operator,
+  Variable,
+  field
+} from "../src/condition-builder.js";
 import type { TableSchema } from "../src/database-adapter.js";
 
 // ── Test Schema ───────────────────────────────────────────────────────
@@ -15,8 +23,8 @@ const testSchema: TableSchema = {
     age: { type: "number" },
     active: { type: "boolean" },
     metadata: { type: "json" },
-    created_at: { type: "datetime" },
-  },
+    created_at: { type: "datetime" }
+  }
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -48,7 +56,7 @@ describe("SQLiteAdapter", () => {
     // Table was already created in beforeEach; verify it exists
     const row = db
       .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='test_items'",
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='test_items'"
       )
       .get() as { name: string } | undefined;
     expect(row).toBeDefined();
@@ -59,7 +67,7 @@ describe("SQLiteAdapter", () => {
     await adapter.dropTable();
     const row = db
       .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='test_items'",
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='test_items'"
       )
       .get();
     expect(row).toBeUndefined();
@@ -74,7 +82,7 @@ describe("SQLiteAdapter", () => {
       age: 30,
       active: true,
       metadata: { role: "admin" },
-      created_at: "2024-01-01T00:00:00Z",
+      created_at: "2024-01-01T00:00:00Z"
     });
 
     const item = await adapter.get("1");
@@ -90,16 +98,30 @@ describe("SQLiteAdapter", () => {
   });
 
   it("should throw on missing primary key", async () => {
-    await expect(
-      adapter.save({ name: "No ID" }),
-    ).rejects.toThrow('Missing primary key "id"');
+    await expect(adapter.save({ name: "No ID" })).rejects.toThrow(
+      'Missing primary key "id"'
+    );
   });
 
   // ── Upsert ────────────────────────────────────────────────────────
 
   it("should upsert (save same key twice)", async () => {
-    await adapter.save({ id: "1", name: "Alice", age: 30, active: true, metadata: {}, created_at: "" });
-    await adapter.save({ id: "1", name: "Alice Updated", age: 31, active: false, metadata: {}, created_at: "" });
+    await adapter.save({
+      id: "1",
+      name: "Alice",
+      age: 30,
+      active: true,
+      metadata: {},
+      created_at: ""
+    });
+    await adapter.save({
+      id: "1",
+      name: "Alice Updated",
+      age: 31,
+      active: false,
+      metadata: {},
+      created_at: ""
+    });
 
     const item = await adapter.get("1");
     expect(item!.name).toBe("Alice Updated");
@@ -109,7 +131,14 @@ describe("SQLiteAdapter", () => {
   // ── Delete ────────────────────────────────────────────────────────
 
   it("should delete an item", async () => {
-    await adapter.save({ id: "1", name: "Alice", age: 30, active: true, metadata: {}, created_at: "" });
+    await adapter.save({
+      id: "1",
+      name: "Alice",
+      age: 30,
+      active: true,
+      metadata: {},
+      created_at: ""
+    });
     await adapter.delete("1");
     const item = await adapter.get("1");
     expect(item).toBeNull();
@@ -122,13 +151,27 @@ describe("SQLiteAdapter", () => {
   // ── Boolean handling ──────────────────────────────────────────────
 
   it("should round-trip boolean true", async () => {
-    await adapter.save({ id: "1", name: "A", age: 0, active: true, metadata: {}, created_at: "" });
+    await adapter.save({
+      id: "1",
+      name: "A",
+      age: 0,
+      active: true,
+      metadata: {},
+      created_at: ""
+    });
     const item = await adapter.get("1");
     expect(item!.active).toBe(true);
   });
 
   it("should round-trip boolean false", async () => {
-    await adapter.save({ id: "2", name: "B", age: 0, active: false, metadata: {}, created_at: "" });
+    await adapter.save({
+      id: "2",
+      name: "B",
+      age: 0,
+      active: false,
+      metadata: {},
+      created_at: ""
+    });
     const item = await adapter.get("2");
     expect(item!.active).toBe(false);
   });
@@ -137,14 +180,28 @@ describe("SQLiteAdapter", () => {
 
   it("should round-trip JSON objects", async () => {
     const meta = { tags: ["a", "b"], nested: { x: 1 } };
-    await adapter.save({ id: "1", name: "A", age: 0, active: true, metadata: meta, created_at: "" });
+    await adapter.save({
+      id: "1",
+      name: "A",
+      age: 0,
+      active: true,
+      metadata: meta,
+      created_at: ""
+    });
     const item = await adapter.get("1");
     expect(item!.metadata).toEqual(meta);
   });
 
   it("should round-trip JSON arrays", async () => {
     const meta = [1, 2, 3];
-    await adapter.save({ id: "1", name: "A", age: 0, active: true, metadata: meta, created_at: "" });
+    await adapter.save({
+      id: "1",
+      name: "A",
+      age: 0,
+      active: true,
+      metadata: meta,
+      created_at: ""
+    });
     const item = await adapter.get("1");
     expect(item!.metadata).toEqual(meta);
   });
@@ -153,10 +210,38 @@ describe("SQLiteAdapter", () => {
 
   describe("query", () => {
     beforeEach(async () => {
-      await adapter.save({ id: "1", name: "Alice", age: 30, active: true, metadata: {}, created_at: "2024-01-01" });
-      await adapter.save({ id: "2", name: "Bob", age: 25, active: false, metadata: {}, created_at: "2024-01-02" });
-      await adapter.save({ id: "3", name: "Charlie", age: 35, active: true, metadata: {}, created_at: "2024-01-03" });
-      await adapter.save({ id: "4", name: "Diana", age: 28, active: false, metadata: {}, created_at: "2024-01-04" });
+      await adapter.save({
+        id: "1",
+        name: "Alice",
+        age: 30,
+        active: true,
+        metadata: {},
+        created_at: "2024-01-01"
+      });
+      await adapter.save({
+        id: "2",
+        name: "Bob",
+        age: 25,
+        active: false,
+        metadata: {},
+        created_at: "2024-01-02"
+      });
+      await adapter.save({
+        id: "3",
+        name: "Charlie",
+        age: 35,
+        active: true,
+        metadata: {},
+        created_at: "2024-01-03"
+      });
+      await adapter.save({
+        id: "4",
+        name: "Diana",
+        age: 28,
+        active: false,
+        metadata: {},
+        created_at: "2024-01-04"
+      });
     });
 
     it("should return all rows without conditions", async () => {
@@ -167,7 +252,7 @@ describe("SQLiteAdapter", () => {
 
     it("should filter with EQ", async () => {
       const [rows] = await adapter.query({
-        condition: field("name").equals("Alice"),
+        condition: field("name").equals("Alice")
       });
       expect(rows).toHaveLength(1);
       expect(rows[0].name).toBe("Alice");
@@ -175,7 +260,7 @@ describe("SQLiteAdapter", () => {
 
     it("should filter with NE", async () => {
       const [rows] = await adapter.query({
-        condition: field("name").notEquals("Alice"),
+        condition: field("name").notEquals("Alice")
       });
       expect(rows).toHaveLength(3);
       expect(rows.every((r) => r.name !== "Alice")).toBe(true);
@@ -183,7 +268,7 @@ describe("SQLiteAdapter", () => {
 
     it("should filter with GT", async () => {
       const [rows] = await adapter.query({
-        condition: field("age").greaterThan(30),
+        condition: field("age").greaterThan(30)
       });
       expect(rows).toHaveLength(1);
       expect(rows[0].name).toBe("Charlie");
@@ -191,7 +276,7 @@ describe("SQLiteAdapter", () => {
 
     it("should filter with LT", async () => {
       const [rows] = await adapter.query({
-        condition: field("age").lessThan(28),
+        condition: field("age").lessThan(28)
       });
       expect(rows).toHaveLength(1);
       expect(rows[0].name).toBe("Bob");
@@ -199,28 +284,28 @@ describe("SQLiteAdapter", () => {
 
     it("should filter with GTE", async () => {
       const [rows] = await adapter.query({
-        condition: field("age").greaterThanOrEqual(30),
+        condition: field("age").greaterThanOrEqual(30)
       });
       expect(rows).toHaveLength(2);
     });
 
     it("should filter with LTE", async () => {
       const [rows] = await adapter.query({
-        condition: field("age").lessThanOrEqual(28),
+        condition: field("age").lessThanOrEqual(28)
       });
       expect(rows).toHaveLength(2);
     });
 
     it("should filter with IN", async () => {
       const [rows] = await adapter.query({
-        condition: field("name").inList(["Alice", "Charlie"]),
+        condition: field("name").inList(["Alice", "Charlie"])
       });
       expect(rows).toHaveLength(2);
     });
 
     it("should filter with LIKE", async () => {
       const [rows] = await adapter.query({
-        condition: field("name").like("A%"),
+        condition: field("name").like("A%")
       });
       expect(rows).toHaveLength(1);
       expect(rows[0].name).toBe("Alice");
@@ -228,7 +313,7 @@ describe("SQLiteAdapter", () => {
 
     it("should combine with AND", async () => {
       const [rows] = await adapter.query({
-        condition: field("age").greaterThan(25).and(field("active").equals(1)),
+        condition: field("age").greaterThan(25).and(field("active").equals(1))
       });
       // active is stored as INTEGER; Alice (30, true→1) and Charlie (35, true→1)
       expect(rows).toHaveLength(2);
@@ -236,7 +321,7 @@ describe("SQLiteAdapter", () => {
 
     it("should combine with OR", async () => {
       const [rows] = await adapter.query({
-        condition: field("name").equals("Alice").or(field("name").equals("Bob")),
+        condition: field("name").equals("Alice").or(field("name").equals("Bob"))
       });
       expect(rows).toHaveLength(2);
     });
@@ -313,7 +398,7 @@ describe("SQLiteAdapter", () => {
   it("should reject invalid column names", () => {
     expect(() => {
       adapter._buildCondition(
-        new Condition("robert'; DROP TABLE students;--", Operator.EQ, "x"),
+        new Condition("robert'; DROP TABLE students;--", Operator.EQ, "x")
       );
     }).toThrow("Invalid column name");
   });
@@ -321,11 +406,25 @@ describe("SQLiteAdapter", () => {
   // ── Variable condition ──────────────────────────────────────────────
 
   it("should return 1=1 for Variable value in condition", async () => {
-    await adapter.save({ id: "1", name: "Alice", age: 30, active: true, metadata: {}, created_at: "2024-01-01" });
-    await adapter.save({ id: "2", name: "Bob", age: 25, active: false, metadata: {}, created_at: "2024-01-02" });
+    await adapter.save({
+      id: "1",
+      name: "Alice",
+      age: 30,
+      active: true,
+      metadata: {},
+      created_at: "2024-01-01"
+    });
+    await adapter.save({
+      id: "2",
+      name: "Bob",
+      age: 25,
+      active: false,
+      metadata: {},
+      created_at: "2024-01-02"
+    });
 
     const cond = new ConditionBuilder(
-      new Condition("name", Operator.EQ, new Variable("some_var")),
+      new Condition("name", Operator.EQ, new Variable("some_var"))
     );
     const [rows] = await adapter.query({ condition: cond });
     // Variable conditions resolve to "1=1", so all rows match
@@ -354,11 +453,25 @@ describe("SQLiteAdapter", () => {
   // ── CONTAINS operator in SQL ─────────────────────────────────────────
 
   it("should handle CONTAINS operator as IN", async () => {
-    await adapter.save({ id: "1", name: "Alice", age: 30, active: true, metadata: {}, created_at: "2024-01-01" });
-    await adapter.save({ id: "2", name: "Bob", age: 25, active: false, metadata: {}, created_at: "2024-01-02" });
+    await adapter.save({
+      id: "1",
+      name: "Alice",
+      age: 30,
+      active: true,
+      metadata: {},
+      created_at: "2024-01-01"
+    });
+    await adapter.save({
+      id: "2",
+      name: "Bob",
+      age: 25,
+      active: false,
+      metadata: {},
+      created_at: "2024-01-02"
+    });
 
     const cond = new ConditionBuilder(
-      new Condition("name", Operator.CONTAINS, ["Alice"]),
+      new Condition("name", Operator.CONTAINS, ["Alice"])
     );
     const [rows] = await adapter.query({ condition: cond });
     expect(rows).toHaveLength(1);
@@ -368,11 +481,25 @@ describe("SQLiteAdapter", () => {
   // ── IN/CONTAINS with non-array value ─────────────────────────────────
 
   it("should handle IN operator with non-array value (wraps in array)", async () => {
-    await adapter.save({ id: "1", name: "Alice", age: 30, active: true, metadata: {}, created_at: "2024-01-01" });
-    await adapter.save({ id: "2", name: "Bob", age: 25, active: false, metadata: {}, created_at: "2024-01-02" });
+    await adapter.save({
+      id: "1",
+      name: "Alice",
+      age: 30,
+      active: true,
+      metadata: {},
+      created_at: "2024-01-01"
+    });
+    await adapter.save({
+      id: "2",
+      name: "Bob",
+      age: 25,
+      active: false,
+      metadata: {},
+      created_at: "2024-01-02"
+    });
 
     const cond = new ConditionBuilder(
-      new Condition("name", Operator.IN, "Alice"),
+      new Condition("name", Operator.IN, "Alice")
     );
     const [rows] = await adapter.query({ condition: cond });
     expect(rows).toHaveLength(1);
@@ -382,7 +509,14 @@ describe("SQLiteAdapter", () => {
   // ── Column wildcard * in query ───────────────────────────────────────
 
   it("should handle * in column projection", async () => {
-    await adapter.save({ id: "1", name: "Alice", age: 30, active: true, metadata: {}, created_at: "2024-01-01" });
+    await adapter.save({
+      id: "1",
+      name: "Alice",
+      age: 30,
+      active: true,
+      metadata: {},
+      created_at: "2024-01-01"
+    });
 
     const [rows] = await adapter.query({ columns: ["*"] });
     expect(rows).toHaveLength(1);
@@ -394,7 +528,7 @@ describe("SQLiteAdapter", () => {
   it("should handle malformed JSON by returning raw string", async () => {
     // Insert a row with invalid JSON directly via raw SQL
     db.prepare(
-      'INSERT INTO "test_items" (id, name, age, active, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO "test_items" (id, name, age, active, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)'
     ).run("bad_json", "Test", 0, 1, "not{valid}json", "2024-01-01");
 
     const item = await adapter.get("bad_json");
@@ -406,7 +540,7 @@ describe("SQLiteAdapter", () => {
   it("should handle non-string JSON value (already parsed)", async () => {
     // Insert a row where metadata is a number (not a string) in raw SQL
     db.prepare(
-      'INSERT INTO "test_items" (id, name, age, active, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO "test_items" (id, name, age, active, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)'
     ).run("num_json", "Test", 0, 1, 42, "2024-01-01");
 
     const item = await adapter.get("num_json");
@@ -419,8 +553,8 @@ describe("SQLiteAdapter", () => {
     // Insert a row with an extra column via raw SQL
     db.exec('ALTER TABLE "test_items" ADD COLUMN extra_col TEXT');
     db.prepare(
-      'INSERT INTO "test_items" (id, name, age, active, metadata, created_at, extra_col) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    ).run("extra", "Test", 0, 1, '{}', "2024-01-01", "extra_value");
+      'INSERT INTO "test_items" (id, name, age, active, metadata, created_at, extra_col) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run("extra", "Test", 0, 1, "{}", "2024-01-01", "extra_value");
 
     const item = await adapter.get("extra");
     expect(item).not.toBeNull();
@@ -431,8 +565,8 @@ describe("SQLiteAdapter", () => {
   it("should handle number field with string value (Number conversion)", async () => {
     // Insert a row where age is a string via raw SQL
     db.prepare(
-      'INSERT INTO "test_items" (id, name, age, active, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-    ).run("str_num", "Test", "42", 1, '{}', "2024-01-01");
+      'INSERT INTO "test_items" (id, name, age, active, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run("str_num", "Test", "42", 1, "{}", "2024-01-01");
 
     const item = await adapter.get("str_num");
     expect(item).not.toBeNull();
@@ -448,8 +582,8 @@ describe("SQLiteAdapter", () => {
       primary_key: "id",
       columns: {
         id: { type: "string" },
-        data: { type: "custom_type" as any },
-      },
+        data: { type: "custom_type" as any }
+      }
     };
     const customAdapter = new SQLiteAdapter(db, customSchema);
     await customAdapter.createTable();
@@ -467,8 +601,8 @@ describe("SQLiteAdapter", () => {
       table_name: "no_pk_items",
       columns: {
         id: { type: "string" },
-        name: { type: "string" },
-      },
+        name: { type: "string" }
+      }
     } as any;
     const noPkAdapter = new SQLiteAdapter(db, schemaNoKey);
     expect(noPkAdapter.getPrimaryKey()).toBe("id");
@@ -497,7 +631,7 @@ describe("SQLiteAdapterFactory", () => {
     const schema2: TableSchema = {
       table_name: "other_table",
       primary_key: "id",
-      columns: { id: { type: "string" } },
+      columns: { id: { type: "string" } }
     };
     const a1 = factory.getAdapter(testSchema);
     const a2 = factory.getAdapter(schema2);
@@ -528,7 +662,7 @@ describe("SQLiteAdapter – castValue for json column with non-string value", ()
       age: 25,
       active: true,
       metadata: null,
-      created_at: new Date().toISOString(),
+      created_at: new Date().toISOString()
     });
 
     const row = await adapter.get("1");

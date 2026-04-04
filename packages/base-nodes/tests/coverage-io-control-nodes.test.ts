@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, writeFile, readFile, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -100,7 +100,7 @@ import {
   ManualTriggerNode,
   IntervalTriggerNode,
   WebhookTriggerNode,
-  FileWatchTriggerNode,
+  FileWatchTriggerNode
 } from "../src/index.js";
 
 // Import extended-placeholders directly to cover internal functions
@@ -108,7 +108,7 @@ import {
   EXTENDED_PLACEHOLDER_NODE_TYPES,
   EXTENDED_PLACEHOLDER_NODES,
   titleFromNodeType,
-  makePlaceholderNode,
+  makePlaceholderNode
 } from "../src/nodes/extended-placeholders.js";
 
 // ============================================================
@@ -164,6 +164,34 @@ describe("control nodes — full coverage", () => {
     const d = node.serialize();
     expect(d).toEqual({ condition: false, value: [] });
   });
+
+  it("IfNode process with condition=true passes value to if_true", async () => {
+    const node = new IfNode();
+    node.assign({ condition: true, value: "hello" });
+    const result = await node.process();
+    expect(result).toEqual({ if_true: "hello", if_false: null });
+  });
+
+  it("IfNode process with condition=false passes value to if_false", async () => {
+    const node = new IfNode();
+    node.assign({ condition: false, value: "hello" });
+    const result = await node.process();
+    expect(result).toEqual({ if_true: null, if_false: "hello" });
+  });
+
+  it("IfNode process with truthy non-boolean condition routes to if_true", async () => {
+    const node = new IfNode();
+    node.assign({ condition: 1, value: 42 });
+    const result = await node.process();
+    expect(result).toEqual({ if_true: 42, if_false: null });
+  });
+
+  it("IfNode process with falsy non-boolean condition routes to if_false", async () => {
+    const node = new IfNode();
+    node.assign({ condition: 0, value: 42 });
+    const result = await node.process();
+    expect(result).toEqual({ if_true: null, if_false: 42 });
+  });
 });
 
 // ============================================================
@@ -177,29 +205,123 @@ describe("input nodes — full coverage", () => {
     { Cls: SelectInputNode, expected: "" },
     { Cls: StringListInputNode, expected: [] },
     { Cls: FolderPathInputNode, expected: "" },
-    { Cls: HuggingFaceModelInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "hf.model", repo_id: "" }) },
-    { Cls: ColorInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "color", value: null }) },
+    {
+      Cls: HuggingFaceModelInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({ type: "hf.model", repo_id: "" })
+    },
+    {
+      Cls: ColorInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({ type: "color", value: null })
+    },
     { Cls: ImageSizeInputNode, expected: {} },
-    { Cls: LanguageModelInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "language_model", provider: "empty", id: "" }) },
-    { Cls: ImageModelInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "image_model", provider: "empty", id: "" }) },
-    { Cls: VideoModelInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "video_model", provider: "empty", id: "" }) },
-    { Cls: TTSModelInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "tts_model", provider: "empty", id: "", selected_voice: "" }) },
-    { Cls: ASRModelInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "asr_model", provider: "empty", id: "" }) },
-    { Cls: EmbeddingModelInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "embedding_model", provider: "empty", id: "", dimensions: 0 }) },
-    { Cls: DataframeInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "dataframe", uri: "" }) },
-    { Cls: DocumentInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "document", uri: "" }) },
-    { Cls: ImageInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "image", uri: "" }) },
+    {
+      Cls: LanguageModelInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({
+          type: "language_model",
+          provider: "empty",
+          id: ""
+        })
+    },
+    {
+      Cls: ImageModelInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({
+          type: "image_model",
+          provider: "empty",
+          id: ""
+        })
+    },
+    {
+      Cls: VideoModelInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({
+          type: "video_model",
+          provider: "empty",
+          id: ""
+        })
+    },
+    {
+      Cls: TTSModelInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({
+          type: "tts_model",
+          provider: "empty",
+          id: "",
+          selected_voice: ""
+        })
+    },
+    {
+      Cls: ASRModelInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({
+          type: "asr_model",
+          provider: "empty",
+          id: ""
+        })
+    },
+    {
+      Cls: EmbeddingModelInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({
+          type: "embedding_model",
+          provider: "empty",
+          id: "",
+          dimensions: 0
+        })
+    },
+    {
+      Cls: DataframeInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({ type: "dataframe", uri: "" })
+    },
+    {
+      Cls: DocumentInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({ type: "document", uri: "" })
+    },
+    {
+      Cls: ImageInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({ type: "image", uri: "" })
+    },
     { Cls: ImageListInputNode, expected: [] },
     { Cls: VideoListInputNode, expected: [] },
     { Cls: AudioListInputNode, expected: [] },
     { Cls: TextListInputNode, expected: [] },
-    { Cls: VideoInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "video", uri: "" }) },
-    { Cls: AudioInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "audio", uri: "" }) },
-    { Cls: Model3DInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "model_3d", uri: "", texture_files: [] }) },
-    { Cls: AssetFolderInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "folder", uri: "" }) },
+    {
+      Cls: VideoInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({ type: "video", uri: "" })
+    },
+    {
+      Cls: AudioInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({ type: "audio", uri: "" })
+    },
+    {
+      Cls: Model3DInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({
+          type: "model_3d",
+          uri: "",
+          texture_files: []
+        })
+    },
+    {
+      Cls: AssetFolderInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({ type: "folder", uri: "" })
+    },
     { Cls: FilePathInputNode, expected: "" },
-    { Cls: MessageInputNode, verify: (value: any) => expect(value).toMatchObject({ type: "message", role: "" }) },
-    { Cls: MessageListInputNode, expected: [] },
+    {
+      Cls: MessageInputNode,
+      verify: (value: any) =>
+        expect(value).toMatchObject({ type: "message", role: "" })
+    },
+    { Cls: MessageListInputNode, expected: [] }
   ];
 
   for (const { Cls, expected, verify } of simpleInputNodes) {
@@ -233,7 +355,7 @@ describe("input nodes — full coverage", () => {
       value: "",
       description: "",
       max_length: 0,
-      line_mode: "single_line",
+      line_mode: "single_line"
     });
   });
 
@@ -254,7 +376,10 @@ describe("input nodes — full coverage", () => {
     const node = new DocumentFileInputNode();
     node.assign({ value: "/some/doc.pdf" });
     const result = await node.process();
-    expect(result).toEqual({ document: { uri: "file:///some/doc.pdf" }, path: "/some/doc.pdf" });
+    expect(result).toEqual({
+      document: { uri: "file:///some/doc.pdf" },
+      path: "/some/doc.pdf"
+    });
   });
 
   it("DocumentFileInputNode handles empty path", async () => {
@@ -291,9 +416,9 @@ describe("input nodes — full coverage", () => {
           { type: "audio", audio: { uri: "clip.mp3" } },
           { type: "text", text: "hello" },
           null, // non-object item
-          42, // non-object item
-        ],
-      },
+          42 // non-object item
+        ]
+      }
     });
     const result = await node.process();
     expect(result.image).toEqual({ uri: "img.png" });
@@ -353,7 +478,7 @@ describe("output nodes — full coverage", () => {
     const node = new OutputNode();
     const emitted: Array<Record<string, unknown>> = [];
     const context = {
-      emit: (msg: Record<string, unknown>) => emitted.push(msg),
+      emit: (msg: Record<string, unknown>) => emitted.push(msg)
     } as unknown as ProcessingContext;
     node.assign({ value: "raw" });
     const result = await node.process(context);
@@ -364,7 +489,7 @@ describe("output nodes — full coverage", () => {
     const node = new OutputNode();
     const emitted: Array<Record<string, unknown>> = [];
     const context = {
-      emit: (msg: Record<string, unknown>) => emitted.push(msg),
+      emit: (msg: Record<string, unknown>) => emitted.push(msg)
     } as unknown as ProcessingContext;
 
     // null
@@ -426,7 +551,7 @@ describe("output nodes — full coverage", () => {
     node.assign({ __node_id: "n1", name: "" });
     const emitted: Array<Record<string, unknown>> = [];
     const context = {
-      emit: (msg: Record<string, unknown>) => emitted.push(msg),
+      emit: (msg: Record<string, unknown>) => emitted.push(msg)
     } as unknown as ProcessingContext;
     node.assign({ value: 1 });
     await node.process(context);
@@ -459,7 +584,7 @@ describe("output nodes — full coverage", () => {
     const node = new PreviewNode();
     const emitted: Array<Record<string, unknown>> = [];
     const context = {
-      emit: (msg: Record<string, unknown>) => emitted.push(msg),
+      emit: (msg: Record<string, unknown>) => emitted.push(msg)
     } as unknown as ProcessingContext;
     node.assign({ value: "raw" });
     const result = await node.process(context);
@@ -588,7 +713,7 @@ describe("constant nodes — full coverage", () => {
       second: 45,
       millisecond: 123,
       tzinfo: "UTC",
-      utc_offset: "+00:00",
+      utc_offset: "+00:00"
     });
     const result = await node.process();
     expect(result.output).toEqual({
@@ -600,7 +725,7 @@ describe("constant nodes — full coverage", () => {
       second: 45,
       millisecond: 123,
       tzinfo: "UTC",
-      utc_offset: "+00:00",
+      utc_offset: "+00:00"
     });
   });
 
@@ -616,7 +741,7 @@ describe("constant nodes — full coverage", () => {
       second: 0,
       millisecond: 0,
       tzinfo: "UTC",
-      utc_offset: "0",
+      utc_offset: "0"
     });
   });
 
@@ -665,7 +790,7 @@ describe("constant nodes — full coverage", () => {
       output: { width: 1024, height: 1024 },
       image_size: { width: 1024, height: 1024 },
       width: 1024,
-      height: 1024,
+      height: 1024
     });
   });
 
@@ -679,7 +804,11 @@ describe("constant nodes — full coverage", () => {
 
   it("ConstantSelectNode defaults and prop defaults", async () => {
     const node = new ConstantSelectNode();
-    expect(node.serialize()).toEqual({ value: "", options: [], enum_type_name: "" });
+    expect(node.serialize()).toEqual({
+      value: "",
+      options: [],
+      enum_type_name: ""
+    });
     const result = await node.process();
     expect(result).toEqual({ output: "" });
   });
@@ -717,7 +846,9 @@ describe("workspace nodes — full coverage", () => {
   }
 
   /** Patch a node so that workspace_dir appears in serialize() output */
-  function withWorkspace<T extends { serialize: () => Record<string, unknown> }>(node: T, workspace: string): T {
+  function withWorkspace<
+    T extends { serialize: () => Record<string, unknown> }
+  >(node: T, workspace: string): T {
     const origSerialize = node.serialize.bind(node);
     node.serialize = () => ({ ...origSerialize(), workspace_dir: workspace });
     return node;
@@ -742,7 +873,11 @@ describe("workspace nodes — full coverage", () => {
     tmpDir = await freshDir();
     const write = new WriteTextFileNode();
     const read = new ReadTextFileNode();
-    write.assign({ workspace_dir: tmpDir, path: "test.txt", content: "data123" });
+    write.assign({
+      workspace_dir: tmpDir,
+      path: "test.txt",
+      content: "data123"
+    });
     await write.process();
     read.assign({ workspace_dir: tmpDir, path: "test.txt" });
     const result = await read.process();
@@ -752,9 +887,18 @@ describe("workspace nodes — full coverage", () => {
   it("WriteTextFileNode appends when append is true", async () => {
     tmpDir = await freshDir();
     const write = new WriteTextFileNode();
-    write.assign({ workspace_dir: tmpDir, path: "log.txt", content: "line1\n" });
+    write.assign({
+      workspace_dir: tmpDir,
+      path: "log.txt",
+      content: "line1\n"
+    });
     await write.process();
-    write.assign({ workspace_dir: tmpDir, path: "log.txt", content: "line2\n", append: true });
+    write.assign({
+      workspace_dir: tmpDir,
+      path: "log.txt",
+      content: "line2\n",
+      append: true
+    });
     await write.process();
     const read = new ReadTextFileNode();
     read.assign({ workspace_dir: tmpDir, path: "log.txt" });
@@ -807,9 +951,7 @@ describe("workspace nodes — full coverage", () => {
     await __n247.process();
     const __n248 = new DeleteWorkspaceFileNode();
     __n248.assign({ workspace_dir: tmpDir, path: "mydir" });
-    await expect(
-      __n248.process()
-    ).rejects.toThrow("recursive");
+    await expect(__n248.process()).rejects.toThrow("recursive");
   });
 
   it("DeleteWorkspaceFileNode deletes directory recursively", async () => {
@@ -828,7 +970,11 @@ describe("workspace nodes — full coverage", () => {
   it("GetWorkspaceFileInfoNode returns file metadata", async () => {
     tmpDir = await freshDir();
     const __n252 = new WriteTextFileNode();
-    __n252.assign({ workspace_dir: tmpDir, path: "info.txt", content: "hello" });
+    __n252.assign({
+      workspace_dir: tmpDir,
+      path: "info.txt",
+      content: "hello"
+    });
     await __n252.process();
     const __n253 = new GetWorkspaceFileInfoNode();
     __n253.assign({ workspace_dir: tmpDir, path: "info.txt" });
@@ -846,10 +992,18 @@ describe("workspace nodes — full coverage", () => {
   it("CopyWorkspaceFileNode copies a file", async () => {
     tmpDir = await freshDir();
     const __n254 = new WriteTextFileNode();
-    __n254.assign({ workspace_dir: tmpDir, path: "src.txt", content: "copy-me" });
+    __n254.assign({
+      workspace_dir: tmpDir,
+      path: "src.txt",
+      content: "copy-me"
+    });
     await __n254.process();
     const __n255 = new CopyWorkspaceFileNode();
-    __n255.assign({ workspace_dir: tmpDir, source: "src.txt", destination: "dst.txt" });
+    __n255.assign({
+      workspace_dir: tmpDir,
+      source: "src.txt",
+      destination: "dst.txt"
+    });
     const result = await __n255.process();
     expect(result).toEqual({ output: "dst.txt" });
     const __n256 = new ReadTextFileNode();
@@ -861,10 +1015,18 @@ describe("workspace nodes — full coverage", () => {
   it("MoveWorkspaceFileNode renames a file", async () => {
     tmpDir = await freshDir();
     const __n257 = new WriteTextFileNode();
-    __n257.assign({ workspace_dir: tmpDir, path: "old.txt", content: "move-me" });
+    __n257.assign({
+      workspace_dir: tmpDir,
+      path: "old.txt",
+      content: "move-me"
+    });
     await __n257.process();
     const __n258 = new MoveWorkspaceFileNode();
-    __n258.assign({ workspace_dir: tmpDir, source: "old.txt", destination: "new.txt" });
+    __n258.assign({
+      workspace_dir: tmpDir,
+      source: "old.txt",
+      destination: "new.txt"
+    });
     const result = await __n258.process();
     expect(result).toEqual({ output: "new.txt" });
     const __n259 = new WorkspaceFileExistsNode();
@@ -876,16 +1038,38 @@ describe("workspace nodes — full coverage", () => {
   });
 
   it("workspace node defaults are accessible", () => {
-    expect(new ReadTextFileNode().serialize()).toEqual({ path: "", encoding: "utf-8" });
-    expect(new WriteTextFileNode().serialize()).toEqual({ path: "", content: "", encoding: "utf-8", append: false });
+    expect(new ReadTextFileNode().serialize()).toEqual({
+      path: "",
+      encoding: "utf-8"
+    });
+    expect(new WriteTextFileNode().serialize()).toEqual({
+      path: "",
+      content: "",
+      encoding: "utf-8",
+      append: false
+    });
     expect(new ReadBinaryFileNode().serialize()).toEqual({ path: "" });
-    expect(new WriteBinaryFileNode().serialize()).toEqual({ path: "", content: "" });
-    expect(new DeleteWorkspaceFileNode().serialize()).toEqual({ path: "", recursive: false });
-    expect(new CreateWorkspaceDirectoryNode().serialize()).toEqual({ path: "" });
+    expect(new WriteBinaryFileNode().serialize()).toEqual({
+      path: "",
+      content: ""
+    });
+    expect(new DeleteWorkspaceFileNode().serialize()).toEqual({
+      path: "",
+      recursive: false
+    });
+    expect(new CreateWorkspaceDirectoryNode().serialize()).toEqual({
+      path: ""
+    });
     expect(new WorkspaceFileExistsNode().serialize()).toEqual({ path: "" });
     expect(new GetWorkspaceFileInfoNode().serialize()).toEqual({ path: "" });
-    expect(new CopyWorkspaceFileNode().serialize()).toEqual({ source: "", destination: "" });
-    expect(new MoveWorkspaceFileNode().serialize()).toEqual({ source: "", destination: "" });
+    expect(new CopyWorkspaceFileNode().serialize()).toEqual({
+      source: "",
+      destination: ""
+    });
+    expect(new MoveWorkspaceFileNode().serialize()).toEqual({
+      source: "",
+      destination: ""
+    });
     expect(new GetWorkspaceFileSizeNode().serialize()).toEqual({ path: "" });
     expect(new IsWorkspaceFileNode().serialize()).toEqual({ path: "" });
   });
@@ -893,7 +1077,11 @@ describe("workspace nodes — full coverage", () => {
   it("GetWorkspaceFileSizeNode returns file size", async () => {
     tmpDir = await freshDir();
     const __n261 = new WriteTextFileNode();
-    __n261.assign({ workspace_dir: tmpDir, path: "sized.txt", content: "12345" });
+    __n261.assign({
+      workspace_dir: tmpDir,
+      path: "sized.txt",
+      content: "12345"
+    });
     await __n261.process();
     const __n262 = new GetWorkspaceFileSizeNode();
     __n262.assign({ workspace_dir: tmpDir, path: "sized.txt" });
@@ -908,9 +1096,7 @@ describe("workspace nodes — full coverage", () => {
     await __n263.process();
     const __n264 = new GetWorkspaceFileSizeNode();
     __n264.assign({ workspace_dir: tmpDir, path: "adir" });
-    await expect(
-      __n264.process()
-    ).rejects.toThrow("not a file");
+    await expect(__n264.process()).rejects.toThrow("not a file");
   });
 
   it("IsWorkspaceFileNode checks if path is file", async () => {
@@ -963,9 +1149,7 @@ describe("workspace nodes — full coverage", () => {
     tmpDir = await freshDir();
     const __n275 = new JoinWorkspacePathsNode();
     __n275.assign({ workspace_dir: tmpDir, paths: "not-array" });
-    await expect(
-      __n275.process()
-    ).rejects.toThrow("empty");
+    await expect(__n275.process()).rejects.toThrow("empty");
   });
 
   it("JoinWorkspacePathsNode joins path parts", async () => {
@@ -980,9 +1164,7 @@ describe("workspace nodes — full coverage", () => {
     tmpDir = await freshDir();
     const __n277 = new JoinWorkspacePathsNode();
     __n277.assign({ workspace_dir: tmpDir, paths: [] });
-    await expect(
-      __n277.process()
-    ).rejects.toThrow("empty");
+    await expect(__n277.process()).rejects.toThrow("empty");
   });
 
   it("ListWorkspaceFilesNode lists files", async () => {
@@ -1008,11 +1190,20 @@ describe("workspace nodes — full coverage", () => {
     __n280.assign({ workspace_dir: tmpDir, path: "top/a.txt", content: "a" });
     await __n280.process();
     const __n281 = new WriteTextFileNode();
-    __n281.assign({ workspace_dir: tmpDir, path: "top/nested/b.txt", content: "b" });
+    __n281.assign({
+      workspace_dir: tmpDir,
+      path: "top/nested/b.txt",
+      content: "b"
+    });
     await __n281.process();
     const node = new ListWorkspaceFilesNode();
     const results: string[] = [];
-    node.assign({ workspace_dir: tmpDir, path: "top", pattern: "*.txt", recursive: true });
+    node.assign({
+      workspace_dir: tmpDir,
+      path: "top",
+      pattern: "*.txt",
+      recursive: true
+    });
     for await (const item of node.genProcess()) {
       results.push(String(item.file));
     }
@@ -1021,7 +1212,11 @@ describe("workspace nodes — full coverage", () => {
 
   it("ListWorkspaceFilesNode defaults and process", async () => {
     const node = new ListWorkspaceFilesNode();
-    expect(node.serialize()).toEqual({ path: ".", pattern: "*", recursive: false });
+    expect(node.serialize()).toEqual({
+      path: ".",
+      pattern: "*",
+      recursive: false
+    });
     expect(await node.process()).toEqual({});
   });
 
@@ -1031,7 +1226,7 @@ describe("workspace nodes — full coverage", () => {
       image: { type: "image", uri: "" },
       folder: ".",
       filename: "image.png",
-      overwrite: false,
+      overwrite: false
     });
   });
 
@@ -1041,7 +1236,7 @@ describe("workspace nodes — full coverage", () => {
       video: { type: "video", uri: "" },
       folder: ".",
       filename: "video.mp4",
-      overwrite: false,
+      overwrite: false
     });
   });
 
@@ -1050,12 +1245,22 @@ describe("workspace nodes — full coverage", () => {
     const data = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
     const node = withWorkspace(new SaveImageFileNode(), tmpDir);
     // First save
-    node.assign({ image: { data }, folder: ".", filename: "img.png", overwrite: false });
+    node.assign({
+      image: { data },
+      folder: ".",
+      filename: "img.png",
+      overwrite: false
+    });
     const r1 = await node.process();
     const output1 = r1.output as Record<string, unknown>;
     expect(output1.uri).toContain("img.png");
     // Second save with same name — should get img_1.png
-    node.assign({ image: { data }, folder: ".", filename: "img.png", overwrite: false });
+    node.assign({
+      image: { data },
+      folder: ".",
+      filename: "img.png",
+      overwrite: false
+    });
     const r2 = await node.process();
     const output2 = r2.output as Record<string, unknown>;
     expect(output2.uri).toContain("img_1.png");
@@ -1065,9 +1270,21 @@ describe("workspace nodes — full coverage", () => {
     tmpDir = await freshDir();
     const data = Buffer.from([1, 2, 3]).toString("base64");
     const node = new SaveImageFileNode();
-    node.assign({ workspace_dir: tmpDir, image: { data }, folder: ".", filename: "over.png", overwrite: true });
+    node.assign({
+      workspace_dir: tmpDir,
+      image: { data },
+      folder: ".",
+      filename: "over.png",
+      overwrite: true
+    });
     await node.process();
-    node.assign({ workspace_dir: tmpDir, image: { data }, folder: ".", filename: "over.png", overwrite: true });
+    node.assign({
+      workspace_dir: tmpDir,
+      image: { data },
+      folder: ".",
+      filename: "over.png",
+      overwrite: true
+    });
     const r2 = await node.process();
     const output = r2.output as Record<string, unknown>;
     expect(output.uri).toContain("over.png");
@@ -1078,7 +1295,13 @@ describe("workspace nodes — full coverage", () => {
     tmpDir = await freshDir();
     const data = new Uint8Array([10, 20, 30]);
     const node = new SaveImageFileNode();
-    node.assign({ workspace_dir: tmpDir, image: { data }, folder: ".", filename: "u8.png", overwrite: true });
+    node.assign({
+      workspace_dir: tmpDir,
+      image: { data },
+      folder: ".",
+      filename: "u8.png",
+      overwrite: true
+    });
     const result = await node.process();
     const output = result.output as Record<string, string>;
     expect(output.uri).toContain("u8.png");
@@ -1088,7 +1311,13 @@ describe("workspace nodes — full coverage", () => {
     tmpDir = await freshDir();
     const data = [10, 20, 30];
     const node = new SaveImageFileNode();
-    node.assign({ workspace_dir: tmpDir, image: { data }, folder: ".", filename: "arr.png", overwrite: true });
+    node.assign({
+      workspace_dir: tmpDir,
+      image: { data },
+      folder: ".",
+      filename: "arr.png",
+      overwrite: true
+    });
     const result = await node.process();
     const output = result.output as Record<string, string>;
     expect(output.uri).toContain("arr.png");
@@ -1097,7 +1326,13 @@ describe("workspace nodes — full coverage", () => {
   it("SaveImageFileNode with no data produces empty file", async () => {
     tmpDir = await freshDir();
     const node = new SaveImageFileNode();
-    node.assign({ workspace_dir: tmpDir, image: {}, folder: ".", filename: "empty.png", overwrite: true });
+    node.assign({
+      workspace_dir: tmpDir,
+      image: {},
+      folder: ".",
+      filename: "empty.png",
+      overwrite: true
+    });
     const result = await node.process();
     const output = result.output as Record<string, string>;
     expect(output.uri).toContain("empty.png");
@@ -1107,12 +1342,22 @@ describe("workspace nodes — full coverage", () => {
     tmpDir = await freshDir();
     const data = Buffer.from([0, 0, 0, 0x1c]).toString("base64");
     const node = withWorkspace(new SaveVideoFileNode(), tmpDir);
-    node.assign({ video: { data }, folder: ".", filename: "vid.mp4", overwrite: false });
+    node.assign({
+      video: { data },
+      folder: ".",
+      filename: "vid.mp4",
+      overwrite: false
+    });
     const r1 = await node.process();
     const output1 = r1.output as Record<string, unknown>;
     expect(output1.uri).toContain("vid.mp4");
     // Second save should increment
-    node.assign({ video: { data }, folder: ".", filename: "vid.mp4", overwrite: false });
+    node.assign({
+      video: { data },
+      folder: ".",
+      filename: "vid.mp4",
+      overwrite: false
+    });
     const r2 = await node.process();
     const output2 = r2.output as Record<string, unknown>;
     expect(output2.uri).toContain("vid_1.mp4");
@@ -1122,9 +1367,21 @@ describe("workspace nodes — full coverage", () => {
     tmpDir = await freshDir();
     const data = Buffer.from([1, 2]).toString("base64");
     const node = new SaveVideoFileNode();
-    node.assign({ workspace_dir: tmpDir, video: { data }, folder: ".", filename: "over.mp4", overwrite: true });
+    node.assign({
+      workspace_dir: tmpDir,
+      video: { data },
+      folder: ".",
+      filename: "over.mp4",
+      overwrite: true
+    });
     await node.process();
-    node.assign({ workspace_dir: tmpDir, video: { data }, folder: ".", filename: "over.mp4", overwrite: true });
+    node.assign({
+      workspace_dir: tmpDir,
+      video: { data },
+      folder: ".",
+      filename: "over.mp4",
+      overwrite: true
+    });
     const r2 = await node.process();
     const output = r2.output as Record<string, unknown>;
     expect(String(output.uri)).toContain("over.mp4");
@@ -1135,27 +1392,21 @@ describe("workspace nodes — full coverage", () => {
     tmpDir = await freshDir();
     const __n282 = new ReadTextFileNode();
     __n282.assign({ workspace_dir: tmpDir, path: "/etc/passwd" });
-    await expect(
-      __n282.process()
-    ).rejects.toThrow("Absolute");
+    await expect(__n282.process()).rejects.toThrow("Absolute");
   });
 
   it("workspace path validation rejects parent traversal", async () => {
     tmpDir = await freshDir();
     const __n283 = new ReadTextFileNode();
     __n283.assign({ workspace_dir: tmpDir, path: "../etc/passwd" });
-    await expect(
-      __n283.process()
-    ).rejects.toThrow("Parent directory");
+    await expect(__n283.process()).rejects.toThrow("Parent directory");
   });
 
   it("workspace path validation rejects empty path", async () => {
     tmpDir = await freshDir();
     const __n284 = new ReadTextFileNode();
     __n284.assign({ workspace_dir: tmpDir, path: "" });
-    await expect(
-      __n284.process()
-    ).rejects.toThrow("empty");
+    await expect(__n284.process()).rejects.toThrow("empty");
   });
 
   it("WorkspaceFileExistsNode returns true for existing file", async () => {
@@ -1181,7 +1432,10 @@ describe("workspace nodes — full coverage", () => {
 // ============================================================
 describe("trigger nodes — full coverage", () => {
   it("WaitNode defaults", () => {
-    expect(new WaitNode().serialize()).toEqual({ timeout_seconds: 0, input: "" });
+    expect(new WaitNode().serialize()).toEqual({
+      timeout_seconds: 0,
+      input: ""
+    });
   });
 
   it("WaitNode with zero timeout", async () => {
@@ -1204,7 +1458,7 @@ describe("trigger nodes — full coverage", () => {
     expect(new ManualTriggerNode().serialize()).toEqual({
       max_events: 0,
       name: "manual_trigger",
-      timeout_seconds: null,
+      timeout_seconds: null
     });
   });
 
@@ -1228,7 +1482,7 @@ describe("trigger nodes — full coverage", () => {
       interval_seconds: 60,
       initial_delay_seconds: 0,
       emit_on_start: true,
-      include_drift_compensation: true,
+      include_drift_compensation: true
     });
   });
 
@@ -1249,7 +1503,7 @@ describe("trigger nodes — full coverage", () => {
   it("WebhookTriggerNode emits webhook request data", async () => {
     const node = new WebhookTriggerNode();
     node.assign({
-      path: "/api/hook",
+      path: "/api/hook"
     });
     // process() returns {} for streaming trigger nodes; logic is in genProcess()
     const result = await node.process();
@@ -1265,7 +1519,7 @@ describe("trigger nodes — full coverage", () => {
       path: "/webhook",
       host: "127.0.0.1",
       methods: ["POST"],
-      secret: "",
+      secret: ""
     });
     const result = await node.process();
     expect(result).toEqual({});
@@ -1281,7 +1535,7 @@ describe("trigger nodes — full coverage", () => {
       patterns: ["*"],
       ignore_patterns: [],
       events: ["created", "modified", "deleted", "moved"],
-      debounce_seconds: 0.5,
+      debounce_seconds: 0.5
     });
     // process() returns {} for streaming trigger nodes; logic is in genProcess()
     const result = await node.process();
@@ -1292,6 +1546,461 @@ describe("trigger nodes — full coverage", () => {
     const node = new FileWatchTriggerNode();
     const result = await node.process();
     expect(result).toEqual({});
+  });
+});
+
+// ============================================================
+// TRIGGER genProcess() / run() TESTS
+// ============================================================
+describe("IntervalTriggerNode genProcess()", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("yields events with correct fields when emit_on_start is true", async () => {
+    vi.useFakeTimers();
+    const node = new IntervalTriggerNode();
+    node.assign({
+      interval_seconds: 10,
+      max_events: 3,
+      emit_on_start: true,
+      initial_delay_seconds: 0,
+      include_drift_compensation: false
+    });
+
+    const gen = node.genProcess();
+    const results: Record<string, unknown>[] = [];
+
+    // First event emitted immediately (emit_on_start)
+    const p1 = gen.next();
+    await vi.advanceTimersByTimeAsync(0);
+    const r1 = await p1;
+    results.push(r1.value as Record<string, unknown>);
+
+    // Second event after interval
+    const p2 = gen.next();
+    await vi.advanceTimersByTimeAsync(10_000);
+    const r2 = await p2;
+    results.push(r2.value as Record<string, unknown>);
+
+    // Third event after another interval
+    const p3 = gen.next();
+    await vi.advanceTimersByTimeAsync(10_000);
+    const r3 = await p3;
+    results.push(r3.value as Record<string, unknown>);
+
+    // Should be done after max_events=3
+    const p4 = gen.next();
+    await vi.advanceTimersByTimeAsync(10_000);
+    const r4 = await p4;
+    expect(r4.done).toBe(true);
+
+    expect(results).toHaveLength(3);
+    for (const ev of results) {
+      expect(typeof ev.tick).toBe("number");
+      expect(typeof ev.elapsed_seconds).toBe("number");
+      expect(typeof ev.interval_seconds).toBe("number");
+      expect(typeof ev.timestamp).toBe("string");
+      expect(typeof ev.source).toBe("string");
+      expect(typeof ev.event_type).toBe("string");
+      expect(ev.interval_seconds).toBe(10);
+      expect(ev.source).toBe("interval");
+      expect(ev.event_type).toBe("tick");
+    }
+    expect(results[0]!.tick).toBe(1);
+    expect(results[1]!.tick).toBe(2);
+    expect(results[2]!.tick).toBe(3);
+  });
+
+  it("respects initial_delay_seconds", async () => {
+    vi.useFakeTimers();
+    const node = new IntervalTriggerNode();
+    node.assign({
+      interval_seconds: 5,
+      max_events: 1,
+      emit_on_start: true,
+      initial_delay_seconds: 2,
+      include_drift_compensation: false
+    });
+
+    const gen = node.genProcess();
+    const p1 = gen.next();
+    // Advance past initial delay
+    await vi.advanceTimersByTimeAsync(2_000);
+    const r1 = await p1;
+    expect(r1.done).toBe(false);
+    const ev = r1.value as Record<string, unknown>;
+    expect(ev.tick).toBe(1);
+  });
+
+  it("skips first event when emit_on_start is false", async () => {
+    vi.useFakeTimers();
+    const node = new IntervalTriggerNode();
+    node.assign({
+      interval_seconds: 5,
+      max_events: 1,
+      emit_on_start: false,
+      initial_delay_seconds: 0,
+      include_drift_compensation: false
+    });
+
+    const gen = node.genProcess();
+    const p1 = gen.next();
+    // Need to wait for the interval since emit_on_start is false
+    await vi.advanceTimersByTimeAsync(5_000);
+    const r1 = await p1;
+    expect(r1.done).toBe(false);
+    const ev = r1.value as Record<string, unknown>;
+    expect(ev.tick).toBe(1);
+    expect(ev.event_type).toBe("tick");
+  });
+});
+
+describe("ManualTriggerNode run()", () => {
+  it("emits events from streaming inputs with correct fields", async () => {
+    const node = new ManualTriggerNode();
+    node.assign({ max_events: 2, name: "my_trigger" });
+
+    const inputData = [{ hello: "world" }, "plain text"];
+
+    // Mock StreamingInputs: yields from a simple array
+    const inputs = {
+      any: async function* () {
+        for (const item of inputData) {
+          yield ["data", item] as [string, unknown];
+        }
+      },
+      stream: async function* () {
+        /* unused */
+      },
+      first: async () => undefined
+    };
+
+    const emitted: Array<[string, unknown]> = [];
+    const outputs = {
+      emit: async (slot: string, value: unknown) => {
+        emitted.push([slot, value]);
+      },
+      complete: () => {}
+    };
+
+    await node.run(inputs as any, outputs as any);
+
+    // 2 events x 4 fields = 8 emits
+    expect(emitted).toHaveLength(8);
+
+    // First event
+    expect(emitted[0]).toEqual(["data", { hello: "world" }]);
+    expect(emitted[1]![0]).toBe("timestamp");
+    expect(typeof emitted[1]![1]).toBe("string");
+    expect(emitted[2]).toEqual(["source", "my_trigger"]);
+    expect(emitted[3]).toEqual(["event_type", "manual"]);
+
+    // Second event
+    expect(emitted[4]).toEqual(["data", "plain text"]);
+    expect(emitted[5]![0]).toBe("timestamp");
+    expect(emitted[6]).toEqual(["source", "my_trigger"]);
+    expect(emitted[7]).toEqual(["event_type", "manual"]);
+  });
+
+  it("respects max_events limit", async () => {
+    const node = new ManualTriggerNode();
+    node.assign({ max_events: 1, name: "limited" });
+
+    const inputs = {
+      any: async function* () {
+        yield ["data", "first"] as [string, unknown];
+        yield ["data", "second"] as [string, unknown];
+        yield ["data", "third"] as [string, unknown];
+      },
+      stream: async function* () {},
+      first: async () => undefined
+    };
+
+    const emitted: Array<[string, unknown]> = [];
+    const outputs = {
+      emit: async (slot: string, value: unknown) => {
+        emitted.push([slot, value]);
+      },
+      complete: () => {}
+    };
+
+    await node.run(inputs as any, outputs as any);
+    // Only 1 event x 4 fields = 4 emits
+    expect(emitted).toHaveLength(4);
+    expect(emitted[0]).toEqual(["data", "first"]);
+  });
+
+  it("skips __control__ handle items", async () => {
+    const node = new ManualTriggerNode();
+    node.assign({ max_events: 0, name: "test" });
+
+    const inputs = {
+      any: async function* () {
+        yield ["__control__", "ignored"] as [string, unknown];
+        yield ["data", "kept"] as [string, unknown];
+      },
+      stream: async function* () {},
+      first: async () => undefined
+    };
+
+    const emitted: Array<[string, unknown]> = [];
+    const outputs = {
+      emit: async (slot: string, value: unknown) => {
+        emitted.push([slot, value]);
+      },
+      complete: () => {}
+    };
+
+    await node.run(inputs as any, outputs as any);
+    // Only 1 real event: 4 emits
+    expect(emitted).toHaveLength(4);
+    expect(emitted[0]).toEqual(["data", "kept"]);
+  });
+});
+
+describe("WebhookTriggerNode genProcess()", () => {
+  it("yields webhook event when HTTP request is received", async () => {
+    const http = await import("node:http");
+    const port = 30000 + Math.floor(Math.random() * 10000);
+    const node = new WebhookTriggerNode();
+    node.assign({
+      port,
+      path: "/hook",
+      host: "127.0.0.1",
+      methods: ["POST"],
+      secret: "",
+      max_events: 1
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+
+    // Wait for server to be ready
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Send HTTP request
+    await new Promise<void>((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/hook?foo=bar",
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve());
+        }
+      );
+      req.on("error", reject);
+      req.write(JSON.stringify({ hello: "world" }));
+      req.end();
+    });
+
+    const result = await p;
+    expect(result.done).toBe(false);
+    const ev = result.value as Record<string, unknown>;
+
+    expect(ev.body).toEqual({ hello: "world" });
+    expect(typeof ev.headers).toBe("object");
+    expect((ev.query as Record<string, string>).foo).toBe("bar");
+    expect(ev.method).toBe("POST");
+    expect(ev.path).toBe("/hook");
+    expect(typeof ev.timestamp).toBe("string");
+    expect(typeof ev.source).toBe("string");
+    expect(ev.event_type).toBe("webhook");
+
+    // Generator should be done after max_events=1
+    const next = await gen.next();
+    expect(next.done).toBe(true);
+  }, 10_000);
+
+  it("rejects requests with wrong path (404)", async () => {
+    const http = await import("node:http");
+    const port = 30000 + Math.floor(Math.random() * 10000);
+    const node = new WebhookTriggerNode();
+    node.assign({
+      port,
+      path: "/hook",
+      host: "127.0.0.1",
+      methods: ["POST"],
+      secret: "",
+      max_events: 1
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+    await new Promise((r) => setTimeout(r, 200));
+
+    const statusCode = await new Promise<number>((resolve, reject) => {
+      const req = http.request(
+        { hostname: "127.0.0.1", port, path: "/wrong", method: "POST" },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve(res.statusCode ?? 0));
+        }
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    expect(statusCode).toBe(404);
+
+    // Clean up: send a valid request so the generator can finish
+    await new Promise<void>((resolve, reject) => {
+      const req = http.request(
+        { hostname: "127.0.0.1", port, path: "/hook", method: "POST" },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve());
+        }
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    await p;
+    await gen.next(); // drain
+  }, 10_000);
+
+  it("validates secret header (401)", async () => {
+    const http = await import("node:http");
+    const port = 30000 + Math.floor(Math.random() * 10000);
+    const node = new WebhookTriggerNode();
+    node.assign({
+      port,
+      path: "/hook",
+      host: "127.0.0.1",
+      methods: ["POST"],
+      secret: "mysecret",
+      max_events: 1
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Request without secret -> 401
+    const statusCode = await new Promise<number>((resolve, reject) => {
+      const req = http.request(
+        { hostname: "127.0.0.1", port, path: "/hook", method: "POST" },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve(res.statusCode ?? 0));
+        }
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    expect(statusCode).toBe(401);
+
+    // Request with correct secret -> 200
+    await new Promise<void>((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/hook",
+          method: "POST",
+          headers: { "x-webhook-secret": "mysecret" }
+        },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve());
+        }
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    await p;
+    await gen.next();
+  }, 10_000);
+});
+
+describe("FileWatchTriggerNode genProcess()", () => {
+  it("yields file events when files are created", async () => {
+    const tmpDir = await mkdtemp(path.join(tmpdir(), "fw-test-"));
+
+    const node = new FileWatchTriggerNode();
+    node.assign({
+      path: tmpDir,
+      recursive: false,
+      patterns: ["*.txt"],
+      ignore_patterns: [],
+      events: ["created", "modified", "deleted"],
+      debounce_seconds: 0,
+      max_events: 1
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+
+    // Wait for watcher to be ready
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Create a file to trigger the watcher
+    const filePath = path.join(tmpDir, "test.txt");
+    await writeFile(filePath, "hello");
+
+    const result = await p;
+    expect(result.done).toBe(false);
+    const ev = result.value as Record<string, unknown>;
+
+    expect(typeof ev.event).toBe("string");
+    expect(["created", "modified"]).toContain(ev.event);
+    expect(typeof ev.path).toBe("string");
+    expect((ev.path as string).endsWith("test.txt")).toBe(true);
+    expect(typeof ev.dest_path).toBe("string");
+    expect(typeof ev.is_directory).toBe("boolean");
+    expect(typeof ev.timestamp).toBe("string");
+
+    // Clean up
+    const next = await gen.return(undefined);
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("throws when watch path does not exist", async () => {
+    const node = new FileWatchTriggerNode();
+    node.assign({
+      path: "/nonexistent/path/that/does/not/exist",
+      max_events: 1
+    });
+
+    const gen = node.genProcess();
+    await expect(gen.next()).rejects.toThrow("Watch path does not exist");
+  });
+
+  it("respects ignore_patterns", async () => {
+    const tmpDir = await mkdtemp(path.join(tmpdir(), "fw-ignore-"));
+
+    const node = new FileWatchTriggerNode();
+    node.assign({
+      path: tmpDir,
+      recursive: false,
+      patterns: ["*"],
+      ignore_patterns: ["*.log"],
+      events: ["created"],
+      debounce_seconds: 0,
+      max_events: 1
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Create ignored file first
+    await writeFile(path.join(tmpDir, "ignored.log"), "log data");
+    // Small delay then create a matching file
+    await new Promise((r) => setTimeout(r, 100));
+    await writeFile(path.join(tmpDir, "wanted.txt"), "data");
+
+    const result = await p;
+    expect(result.done).toBe(false);
+    const ev = result.value as Record<string, unknown>;
+    expect((ev.path as string).endsWith("wanted.txt")).toBe(true);
+
+    await gen.return(undefined);
+    await rm(tmpDir, { recursive: true, force: true });
   });
 });
 
@@ -1317,7 +2026,9 @@ describe("extended-placeholders — full coverage", () => {
     const NodeCls = makePlaceholderNode("test.placeholder.MyNode");
     expect((NodeCls as any).nodeType).toBe("test.placeholder.MyNode");
     expect((NodeCls as any).title).toBe("MyNode");
-    expect((NodeCls as any).description).toBe("Placeholder node for test.placeholder.MyNode");
+    expect((NodeCls as any).description).toBe(
+      "Placeholder node for test.placeholder.MyNode"
+    );
 
     const node = new (NodeCls as any)();
 

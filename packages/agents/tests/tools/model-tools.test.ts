@@ -14,7 +14,7 @@ const mockContext = {} as ProcessingContext;
 
 function makeProvider(models: string[]) {
   return {
-    getAvailableLanguageModels: vi.fn().mockResolvedValue(models),
+    getAvailableLanguageModels: vi.fn().mockResolvedValue(models)
   };
 }
 
@@ -57,7 +57,7 @@ describe("ListProviderModelsTool process — happy path", () => {
     const tool = new ListProviderModelsTool({ openai: provider as any });
 
     const result = (await tool.process(mockContext, {
-      provider: "openai",
+      provider: "openai"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -83,7 +83,7 @@ describe("ListProviderModelsTool process — errors", () => {
   it("returns error when provider param is not a string", async () => {
     const tool = new ListProviderModelsTool({});
     const result = (await tool.process(mockContext, {
-      provider: 42,
+      provider: 42
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -93,7 +93,7 @@ describe("ListProviderModelsTool process — errors", () => {
   it("returns error for unknown provider ID", async () => {
     const tool = new ListProviderModelsTool({});
     const result = (await tool.process(mockContext, {
-      provider: "unknown_xyz",
+      provider: "unknown_xyz"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -103,11 +103,11 @@ describe("ListProviderModelsTool process — errors", () => {
   it("returns error when provider lacks getAvailableLanguageModels", async () => {
     const providerWithoutMethod = { someOtherMethod: vi.fn() };
     const tool = new ListProviderModelsTool({
-      broken: providerWithoutMethod as any,
+      broken: providerWithoutMethod as any
     });
 
     const result = (await tool.process(mockContext, {
-      provider: "broken",
+      provider: "broken"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -118,12 +118,12 @@ describe("ListProviderModelsTool process — errors", () => {
     const provider = {
       getAvailableLanguageModels: vi
         .fn()
-        .mockRejectedValue(new Error("API unavailable")),
+        .mockRejectedValue(new Error("API unavailable"))
     };
     const tool = new ListProviderModelsTool({ failing: provider as any });
 
     const result = (await tool.process(mockContext, {
-      provider: "failing",
+      provider: "failing"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -132,12 +132,12 @@ describe("ListProviderModelsTool process — errors", () => {
 
   it("handles non-Error thrown values", async () => {
     const provider = {
-      getAvailableLanguageModels: vi.fn().mockRejectedValue("string error"),
+      getAvailableLanguageModels: vi.fn().mockRejectedValue("string error")
     };
     const tool = new ListProviderModelsTool({ failing: provider as any });
 
     const result = (await tool.process(mockContext, {
-      provider: "failing",
+      provider: "failing"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);

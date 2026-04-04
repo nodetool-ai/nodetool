@@ -43,7 +43,7 @@ describe("runDslFile", () => {
 
   test("throws when the file exports no Workflow objects", async () => {
     await expect(runDslFile(fixture("no-workflow.ts"))).rejects.toThrow(
-      "No Workflow exports found",
+      "No Workflow exports found"
     );
   });
 
@@ -52,51 +52,70 @@ describe("runDslFile", () => {
   });
 });
 
-describe.skipIf(Boolean(process.env.CI))("nodetool run <dsl-file> — CLI integration", () => {
-  // Resolve paths relative to the workspace root so the CLI can find them.
-  const workspaceRoot = resolve(__dirname, "../../..");
-  const cliEntry = join(workspaceRoot, "packages/cli/dist/nodetool.js");
-  const baseFixture = join(workspaceRoot, "packages/cli/tests/fixtures/base-node-workflow.ts");
+describe.skipIf(Boolean(process.env.CI))(
+  "nodetool run <dsl-file> — CLI integration",
+  () => {
+    // Resolve paths relative to the workspace root so the CLI can find them.
+    const workspaceRoot = resolve(__dirname, "../../..");
+    const cliEntry = join(workspaceRoot, "packages/cli/dist/nodetool.js");
+    const baseFixture = join(
+      workspaceRoot,
+      "packages/cli/tests/fixtures/base-node-workflow.ts"
+    );
 
-  test("exits 0 and prints workflow results for a base-node DSL fixture", () => {
-    const result = spawnSync("node", [cliEntry, "run", baseFixture], {
-      encoding: "utf8",
-      cwd: workspaceRoot,
+    test("exits 0 and prints workflow results for a base-node DSL fixture", () => {
+      const result = spawnSync("node", [cliEntry, "run", baseFixture], {
+        encoding: "utf8",
+        cwd: workspaceRoot
+      });
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("baseNodeWorkflow:");
+      // The output value should be 99 (from constant.integer({ value: 99 }))
+      expect(result.stdout).toContain("99");
     });
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("baseNodeWorkflow:");
-    // The output value should be 99 (from constant.integer({ value: 99 }))
-    expect(result.stdout).toContain("99");
-  });
 
-  test("--json flag outputs valid JSON with workflow results", () => {
-    const result = spawnSync("node", [cliEntry, "run", "--json", baseFixture], {
-      encoding: "utf8",
-      cwd: workspaceRoot,
+    test("--json flag outputs valid JSON with workflow results", () => {
+      const result = spawnSync(
+        "node",
+        [cliEntry, "run", "--json", baseFixture],
+        {
+          encoding: "utf8",
+          cwd: workspaceRoot
+        }
+      );
+      expect(result.status).toBe(0);
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed).toHaveProperty("baseNodeWorkflow");
+      const outputs = Object.values(
+        parsed.baseNodeWorkflow as Record<string, unknown>
+      );
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toBe(99);
     });
-    expect(result.status).toBe(0);
-    const parsed = JSON.parse(result.stdout);
-    expect(parsed).toHaveProperty("baseNodeWorkflow");
-    const outputs = Object.values(parsed.baseNodeWorkflow as Record<string, unknown>);
-    expect(outputs).toHaveLength(1);
-    expect(outputs[0]).toBe(99);
-  });
 
-  test("exits 1 and prints error for a file with no Workflow exports", () => {
-    const noWfFixture = join(workspaceRoot, "packages/cli/tests/fixtures/no-workflow.ts");
-    const result = spawnSync("node", [cliEntry, "run", noWfFixture], {
-      encoding: "utf8",
-      cwd: workspaceRoot,
+    test("exits 1 and prints error for a file with no Workflow exports", () => {
+      const noWfFixture = join(
+        workspaceRoot,
+        "packages/cli/tests/fixtures/no-workflow.ts"
+      );
+      const result = spawnSync("node", [cliEntry, "run", noWfFixture], {
+        encoding: "utf8",
+        cwd: workspaceRoot
+      });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("No Workflow exports found");
     });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("No Workflow exports found");
-  });
 
-  test("exits 1 for a nonexistent file", () => {
-    const result = spawnSync("node", [cliEntry, "run", "/nonexistent/path.ts"], {
-      encoding: "utf8",
-      cwd: workspaceRoot,
+    test("exits 1 for a nonexistent file", () => {
+      const result = spawnSync(
+        "node",
+        [cliEntry, "run", "/nonexistent/path.ts"],
+        {
+          encoding: "utf8",
+          cwd: workspaceRoot
+        }
+      );
+      expect(result.status).toBe(1);
     });
-    expect(result.status).toBe(1);
-  });
-});
+  }
+);

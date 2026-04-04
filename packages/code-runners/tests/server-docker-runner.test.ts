@@ -5,7 +5,7 @@ describe("ServerDockerRunner constructor", () => {
   it("stores the image", () => {
     const runner = new ServerDockerRunner({
       image: "myimage:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.image).toBe("myimage:latest");
   });
@@ -13,7 +13,7 @@ describe("ServerDockerRunner constructor", () => {
   it("stores containerPort", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.containerPort).toBe(8080);
   });
@@ -21,7 +21,7 @@ describe("ServerDockerRunner constructor", () => {
   it("stores containerPort 3000", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 3000,
+      containerPort: 3000
     });
     expect(runner.containerPort).toBe(3000);
   });
@@ -29,7 +29,7 @@ describe("ServerDockerRunner constructor", () => {
   it("defaults scheme to ws", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.scheme).toBe("ws");
   });
@@ -38,7 +38,7 @@ describe("ServerDockerRunner constructor", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
       containerPort: 3000,
-      scheme: "http",
+      scheme: "http"
     });
     expect(runner.scheme).toBe("http");
   });
@@ -47,7 +47,7 @@ describe("ServerDockerRunner constructor", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
       containerPort: 8080,
-      scheme: "wss",
+      scheme: "wss"
     });
     expect(runner.scheme).toBe("wss");
   });
@@ -55,7 +55,7 @@ describe("ServerDockerRunner constructor", () => {
   it("defaults hostIp to 127.0.0.1", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.hostIp).toBe("127.0.0.1");
   });
@@ -64,7 +64,7 @@ describe("ServerDockerRunner constructor", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
       containerPort: 8080,
-      hostIp: "0.0.0.0",
+      hostIp: "0.0.0.0"
     });
     expect(runner.hostIp).toBe("0.0.0.0");
   });
@@ -72,7 +72,7 @@ describe("ServerDockerRunner constructor", () => {
   it("defaults readyTimeoutSeconds to 15", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.readyTimeoutSeconds).toBe(15);
   });
@@ -81,7 +81,7 @@ describe("ServerDockerRunner constructor", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
       containerPort: 8080,
-      readyTimeoutSeconds: 30,
+      readyTimeoutSeconds: 30
     });
     expect(runner.readyTimeoutSeconds).toBe(30);
   });
@@ -89,7 +89,7 @@ describe("ServerDockerRunner constructor", () => {
   it("defaults timeoutSeconds to 60", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.timeoutSeconds).toBe(60);
   });
@@ -98,7 +98,7 @@ describe("ServerDockerRunner constructor", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
       containerPort: 8080,
-      timeoutSeconds: 120,
+      timeoutSeconds: 120
     });
     expect(runner.timeoutSeconds).toBe(120);
   });
@@ -106,7 +106,7 @@ describe("ServerDockerRunner constructor", () => {
   it("defaults memLimit to 256m", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.memLimit).toBe("256m");
   });
@@ -115,7 +115,7 @@ describe("ServerDockerRunner constructor", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
       containerPort: 8080,
-      memLimit: "512m",
+      memLimit: "512m"
     });
     expect(runner.memLimit).toBe("512m");
   });
@@ -123,7 +123,7 @@ describe("ServerDockerRunner constructor", () => {
   it("defaults nanoCpus to 1_000_000_000", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.nanoCpus).toBe(1_000_000_000);
   });
@@ -132,7 +132,7 @@ describe("ServerDockerRunner constructor", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
       containerPort: 8080,
-      endpointPath: "ws",
+      endpointPath: "ws"
     });
     expect(runner.endpointPath).toBe("/ws");
   });
@@ -141,7 +141,7 @@ describe("ServerDockerRunner constructor", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
       containerPort: 8080,
-      endpointPath: "/api/v1",
+      endpointPath: "/api/v1"
     });
     expect(runner.endpointPath).toBe("/api/v1");
   });
@@ -149,7 +149,7 @@ describe("ServerDockerRunner constructor", () => {
   it("leaves endpointPath empty when not provided", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.endpointPath).toBe("");
   });
@@ -157,7 +157,7 @@ describe("ServerDockerRunner constructor", () => {
   it("networkDisabled is false (networking enabled for servers)", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     expect(runner.networkDisabled).toBe(false);
   });
@@ -171,7 +171,7 @@ describe("ServerDockerRunner.buildContainerCommand", () => {
   it("wraps user code in bash -lc", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     const cmd = runner.buildContainerCommand("python server.py", {});
     expect(cmd).toEqual(["bash", "-lc", "python server.py"]);
@@ -180,7 +180,7 @@ describe("ServerDockerRunner.buildContainerCommand", () => {
   it("uses sleep infinity when user code is empty", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     const cmd = runner.buildContainerCommand("", {});
     expect(cmd).toEqual(["bash", "-lc", "sleep infinity"]);
@@ -189,7 +189,7 @@ describe("ServerDockerRunner.buildContainerCommand", () => {
   it("uses sleep infinity when user code is only whitespace", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     const cmd = runner.buildContainerCommand("   \t  ", {});
     expect(cmd).toEqual(["bash", "-lc", "sleep infinity"]);
@@ -198,7 +198,7 @@ describe("ServerDockerRunner.buildContainerCommand", () => {
   it("trims whitespace from user code", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     const cmd = runner.buildContainerCommand("  node server.js  ", {});
     expect(cmd).toEqual(["bash", "-lc", "node server.js"]);
@@ -207,11 +207,11 @@ describe("ServerDockerRunner.buildContainerCommand", () => {
   it("ignores envLocals", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     const cmd = runner.buildContainerCommand("node app.js", {
       PORT: 3000,
-      DEBUG: true,
+      DEBUG: true
     });
     expect(cmd).toEqual(["bash", "-lc", "node app.js"]);
   });
@@ -219,7 +219,7 @@ describe("ServerDockerRunner.buildContainerCommand", () => {
   it("returns an array of length 3", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
-      containerPort: 8080,
+      containerPort: 8080
     });
     const cmd = runner.buildContainerCommand("echo hi", {});
     expect(cmd).toHaveLength(3);

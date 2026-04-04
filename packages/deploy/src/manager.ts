@@ -18,7 +18,7 @@ import type {
   RailwayDeployment,
   HuggingFaceDeployment,
   SSHConfig,
-  AnyDeployment,
+  AnyDeployment
 } from "./deployment-config.js";
 import type { StateManager } from "./state.js";
 
@@ -108,12 +108,10 @@ export class DeploymentManager {
       const info: DeploymentInfo = {
         name,
         type: deployment.type,
-        status: state?.["status"]
-          ? String(state["status"])
-          : "unknown",
+        status: state?.["status"] ? String(state["status"]) : "unknown",
         last_deployed: state?.["last_deployed"]
           ? String(state["last_deployed"])
-          : null,
+          : null
       };
 
       // Add type-specific info
@@ -122,9 +120,7 @@ export class DeploymentManager {
         info.host = d.host;
         info.container = d.container.name;
       } else if (deployment.type === "runpod") {
-        info.pod_id = state?.["pod_id"]
-          ? String(state["pod_id"])
-          : null;
+        info.pod_id = state?.["pod_id"] ? String(state["pod_id"]) : null;
       } else if (deployment.type === "gcp") {
         const d = deployment as GCPDeployment;
         info.project = d.project_id;
@@ -179,9 +175,7 @@ export class DeploymentManager {
     opts: { dryRun?: boolean; force?: boolean } = {}
   ): Promise<Record<string, unknown>> {
     const deployment = this.getDeployment(name);
-    console.log(
-      `Applying deployment '${name}' (type: ${deployment.type})`
-    );
+    console.log(`Applying deployment '${name}' (type: ${deployment.type})`);
     const deployer = this.getDeployer(name);
     return await deployer.apply({ dryRun: opts.dryRun });
   }
@@ -205,7 +199,7 @@ export class DeploymentManager {
     return await deployer.logs({
       service: opts.service,
       follow: opts.follow,
-      tail: opts.tail ?? 100,
+      tail: opts.tail ?? 100
     });
   }
 
@@ -217,9 +211,7 @@ export class DeploymentManager {
     _opts: { force?: boolean } = {}
   ): Promise<Record<string, unknown>> {
     const deployment = this.getDeployment(name);
-    console.warn(
-      `Destroying deployment '${name}' (type: ${deployment.type})`
-    );
+    console.warn(`Destroying deployment '${name}' (type: ${deployment.type})`);
     const deployer = this.getDeployer(name);
     return await deployer.destroy();
   }
@@ -231,7 +223,7 @@ export class DeploymentManager {
     const results: ValidationResult = {
       valid: true,
       errors: [],
-      warnings: [],
+      warnings: []
     };
 
     const deploymentsToValidate: string[] = name
@@ -253,9 +245,7 @@ export class DeploymentManager {
           }
 
           if (!d.container) {
-            results.errors.push(
-              `${deploymentName}: No container configured`
-            );
+            results.errors.push(`${deploymentName}: No container configured`);
             results.valid = false;
           }
         } else if (deployment.type === "fly") {
@@ -267,7 +257,9 @@ export class DeploymentManager {
         } else if (deployment.type === "railway") {
           const d = deployment as RailwayDeployment;
           if (!d.project || !d.service) {
-            results.errors.push(`${deploymentName}: Project and service are required`);
+            results.errors.push(
+              `${deploymentName}: Project and service are required`
+            );
             results.valid = false;
           }
         } else if (deployment.type === "huggingface") {

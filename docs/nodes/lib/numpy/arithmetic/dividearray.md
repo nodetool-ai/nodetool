@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Divide Array"
-node_type: "lib.numpy.arithmetic.DivideArray"
-namespace: "lib.numpy.arithmetic"
+node_type: "lib.array.arithmetic.DivideArray"
+namespace: "lib.array.arithmetic"
 ---
 
-**Type:** `lib.numpy.arithmetic.DivideArray`
+**Type:** `lib.array.arithmetic.DivideArray`
 
-**Namespace:** `lib.numpy.arithmetic`
+**Namespace:** `lib.array.arithmetic`
 
 ## Description
 
@@ -31,5 +31,5 @@ Divides the first array by the second.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.arithmetic](../) namespace.
+Browse other nodes in the [lib.array.arithmetic](../) namespace.
 

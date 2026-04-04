@@ -5,16 +5,14 @@ import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { DeleteButton, RefreshButton, DownloadButton } from "../../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import type {
   DictTableRow,
   DataframeCellValue,
@@ -467,15 +465,13 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Delete selected rows">
-            <IconButton
-              className={selectedRows.length === 0 ? "disabled" : ""}
-              onClick={handleDeleteRowsClick}
-              aria-label="Delete selected rows"
-            >
-              <DeleteIcon sx={{ fontSize: 12 }} />
-            </IconButton>
-          </Tooltip>
+          <DeleteButton
+            onClick={handleDeleteRowsClick}
+            tooltip="Delete selected rows"
+            disabled={selectedRows.length === 0}
+            iconVariant="clear"
+            nodrag={false}
+          />
 
           {isModalMode && (
             <Tooltip title="Duplicate selected rows">
@@ -492,11 +488,12 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       )}
 
       {showSortingButton && (
-        <Tooltip title="Reset table sorting">
-          <IconButton onClick={handleResetSorting} aria-label="Reset table sorting">
-            <RestartAltIcon sx={{ fontSize: 12 }} />
-          </IconButton>
-        </Tooltip>
+        <RefreshButton
+          onClick={handleResetSorting}
+          tooltip="Reset table sorting"
+          iconVariant="reset"
+          nodrag={false}
+        />
       )}
 
       {isModalMode && editable && (
@@ -538,11 +535,11 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       {isModalMode && (
         <>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-          <Tooltip title="Export as CSV">
-            <IconButton onClick={handleExportCSV} aria-label="Export as CSV">
-              <FileDownloadIcon sx={{ fontSize: 12 }} />
-            </IconButton>
-          </Tooltip>
+          <DownloadButton
+            onClick={handleExportCSV}
+            tooltip="Export as CSV"
+            nodrag={false}
+          />
         </>
       )}
 

@@ -4,7 +4,7 @@ import {
   getDockerUsername,
   printDeploymentSummary,
   type RunCommandFn,
-  type GetDockerUsernameFromConfigFn,
+  type GetDockerUsernameFromConfigFn
 } from "../src/deploy.js";
 
 describe("runLocalDocker", () => {
@@ -29,9 +29,7 @@ describe("runLocalDocker", () => {
   it("logs startup message", () => {
     const runCommand: RunCommandFn = vi.fn();
     runLocalDocker("img", "latest", runCommand);
-    expect(logSpy).toHaveBeenCalledWith(
-      "Starting local Docker container..."
-    );
+    expect(logSpy).toHaveBeenCalledWith("Starting local Docker container...");
   });
 
   it("logs success message", () => {
@@ -95,7 +93,7 @@ describe("getDockerUsername", () => {
   it("returns explicit dockerUsername when provided", () => {
     const result = getDockerUsername({
       dockerUsername: "myuser",
-      getDockerUsernameFromConfig: () => null,
+      getDockerUsernameFromConfig: () => null
     });
     expect(result).toBe("myuser");
   });
@@ -103,7 +101,7 @@ describe("getDockerUsername", () => {
   it("falls back to DOCKER_USERNAME env var", () => {
     process.env["DOCKER_USERNAME"] = "envuser";
     const result = getDockerUsername({
-      getDockerUsernameFromConfig: () => null,
+      getDockerUsernameFromConfig: () => null
     });
     expect(result).toBe("envuser");
   });
@@ -111,7 +109,7 @@ describe("getDockerUsername", () => {
   it("falls back to config fn when no explicit or env username", () => {
     const configFn: GetDockerUsernameFromConfigFn = vi.fn(() => "configuser");
     const result = getDockerUsername({
-      getDockerUsernameFromConfig: configFn,
+      getDockerUsernameFromConfig: configFn
     });
     expect(result).toBe("configuser");
     expect(configFn).toHaveBeenCalledWith("docker.io");
@@ -121,7 +119,7 @@ describe("getDockerUsername", () => {
     const configFn: GetDockerUsernameFromConfigFn = vi.fn(() => "user");
     getDockerUsername({
       dockerRegistry: "ghcr.io",
-      getDockerUsernameFromConfig: configFn,
+      getDockerUsernameFromConfig: configFn
     });
     expect(configFn).toHaveBeenCalledWith("ghcr.io");
   });
@@ -129,7 +127,7 @@ describe("getDockerUsername", () => {
   it("throws when no username found and build/push not skipped", () => {
     expect(() =>
       getDockerUsername({
-        getDockerUsernameFromConfig: () => null,
+        getDockerUsernameFromConfig: () => null
       })
     ).toThrow("Docker username is required");
   });
@@ -138,7 +136,7 @@ describe("getDockerUsername", () => {
     const result = getDockerUsername({
       skipBuild: true,
       skipPush: true,
-      getDockerUsernameFromConfig: () => null,
+      getDockerUsernameFromConfig: () => null
     });
     expect(result).toBeNull();
   });
@@ -148,7 +146,7 @@ describe("getDockerUsername", () => {
       getDockerUsername({
         skipBuild: true,
         skipPush: false,
-        getDockerUsernameFromConfig: () => null,
+        getDockerUsernameFromConfig: () => null
       })
     ).toThrow("Docker username is required");
   });
@@ -158,7 +156,7 @@ describe("getDockerUsername", () => {
       getDockerUsername({
         skipBuild: false,
         skipPush: true,
-        getDockerUsernameFromConfig: () => null,
+        getDockerUsernameFromConfig: () => null
       })
     ).toThrow("Docker username is required");
   });
@@ -167,7 +165,7 @@ describe("getDockerUsername", () => {
     process.env["DOCKER_USERNAME"] = "envuser";
     const result = getDockerUsername({
       dockerUsername: "explicit",
-      getDockerUsernameFromConfig: () => "config",
+      getDockerUsernameFromConfig: () => "config"
     });
     expect(result).toBe("explicit");
   });
@@ -176,7 +174,7 @@ describe("getDockerUsername", () => {
     process.env["DOCKER_USERNAME"] = "envuser";
     const configFn = vi.fn(() => "config");
     const result = getDockerUsername({
-      getDockerUsernameFromConfig: configFn,
+      getDockerUsernameFromConfig: configFn
     });
     expect(result).toBe("envuser");
   });
@@ -185,7 +183,7 @@ describe("getDockerUsername", () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     getDockerUsername({
       dockerUsername: "logtest",
-      getDockerUsernameFromConfig: () => null,
+      getDockerUsernameFromConfig: () => null
     });
     expect(logSpy).toHaveBeenCalledWith("Using Docker username: logtest");
   });
@@ -195,7 +193,7 @@ describe("getDockerUsername", () => {
     getDockerUsername({
       skipBuild: true,
       skipPush: true,
-      getDockerUsernameFromConfig: () => null,
+      getDockerUsernameFromConfig: () => null
     });
     // Only the mock setup call, no "Using Docker username" logged
     const calls = logSpy.mock.calls.flat().join(" ");
@@ -205,7 +203,7 @@ describe("getDockerUsername", () => {
   it("error message mentions all three methods", () => {
     try {
       getDockerUsername({
-        getDockerUsernameFromConfig: () => null,
+        getDockerUsernameFromConfig: () => null
       });
     } catch (e) {
       const msg = (e as Error).message;
@@ -231,7 +229,7 @@ describe("printDeploymentSummary", () => {
     printDeploymentSummary({
       fullImageName: "myregistry/myimage",
       imageTag: "v1.0",
-      platform: "linux/amd64",
+      platform: "linux/amd64"
     });
     expect(logSpy).toHaveBeenCalledWith("Image: myregistry/myimage:v1.0");
   });
@@ -240,7 +238,7 @@ describe("printDeploymentSummary", () => {
     printDeploymentSummary({
       fullImageName: "img",
       imageTag: "latest",
-      platform: "linux/arm64",
+      platform: "linux/arm64"
     });
     expect(logSpy).toHaveBeenCalledWith("Platform: linux/arm64");
   });
@@ -249,7 +247,7 @@ describe("printDeploymentSummary", () => {
     printDeploymentSummary({
       fullImageName: "img",
       imageTag: "latest",
-      platform: "linux/amd64",
+      platform: "linux/amd64"
     });
     expect(logSpy).toHaveBeenCalledWith(
       expect.stringContaining("RunPod Deployment completed successfully")
@@ -261,7 +259,7 @@ describe("printDeploymentSummary", () => {
       fullImageName: "img",
       imageTag: "latest",
       platform: "linux/amd64",
-      deploymentPlatform: "GCP",
+      deploymentPlatform: "GCP"
     });
     expect(logSpy).toHaveBeenCalledWith(
       expect.stringContaining("GCP Deployment completed successfully")
@@ -273,7 +271,7 @@ describe("printDeploymentSummary", () => {
       fullImageName: "img",
       imageTag: "v1",
       platform: "linux/amd64",
-      templateId: "tmpl-123",
+      templateId: "tmpl-123"
     });
     expect(logSpy).toHaveBeenCalledWith("Template ID: tmpl-123");
   });
@@ -282,7 +280,7 @@ describe("printDeploymentSummary", () => {
     printDeploymentSummary({
       fullImageName: "img",
       imageTag: "v1",
-      platform: "linux/amd64",
+      platform: "linux/amd64"
     });
     const allArgs = logSpy.mock.calls.flat().join(" ");
     expect(allArgs).not.toContain("Template ID");
@@ -293,7 +291,7 @@ describe("printDeploymentSummary", () => {
       fullImageName: "img",
       imageTag: "v1",
       platform: "linux/amd64",
-      endpointId: "ep-456",
+      endpointId: "ep-456"
     });
     expect(logSpy).toHaveBeenCalledWith("Endpoint ID: ep-456");
   });
@@ -302,7 +300,7 @@ describe("printDeploymentSummary", () => {
     printDeploymentSummary({
       fullImageName: "img",
       imageTag: "v1",
-      platform: "linux/amd64",
+      platform: "linux/amd64"
     });
     const allArgs = logSpy.mock.calls.flat().join(" ");
     expect(allArgs).not.toContain("Endpoint ID");
@@ -314,7 +312,7 @@ describe("printDeploymentSummary", () => {
       imageTag: "v1",
       platform: "linux/amd64",
       templateId: "t1",
-      endpointId: "e1",
+      endpointId: "e1"
     });
     expect(logSpy).toHaveBeenCalledWith("Template ID: t1");
     expect(logSpy).toHaveBeenCalledWith("Endpoint ID: e1");

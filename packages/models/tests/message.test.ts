@@ -14,14 +14,14 @@ import { Message } from "../src/message.js";
 async function createMessage(
   userId: string,
   threadId: string,
-  overrides: Record<string, unknown> = {},
+  overrides: Record<string, unknown> = {}
 ): Promise<Message> {
   return Message.create<Message>({
     user_id: userId,
     thread_id: threadId,
     role: "user",
     content: "Hello",
-    ...overrides,
+    ...overrides
   });
 }
 
@@ -77,7 +77,11 @@ describe("Message model", () => {
   });
 
   it("preserves boolean agent_mode", () => {
-    const msg = new Message({ user_id: "u1", thread_id: "t1", agent_mode: true });
+    const msg = new Message({
+      user_id: "u1",
+      thread_id: "t1",
+      agent_mode: true
+    });
     expect(msg.agent_mode).toBe(true);
   });
 
@@ -153,7 +157,7 @@ describe("Message model", () => {
       provider: "anthropic",
       model: "claude-3",
       cost: 0.01,
-      agent_mode: true,
+      agent_mode: true
     });
 
     const loaded = await Message.get<Message>(msg.id);

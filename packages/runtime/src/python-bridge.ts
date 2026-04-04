@@ -90,6 +90,7 @@ export class PythonBridge extends EventEmitter {
   private _pendingStream = new Map<string, PendingStreamRequest>();
   private _options: PythonBridgeOptions;
   private _connected = false;
+  private _connectPromise: Promise<void> | null = null;
 
   constructor(options: PythonBridgeOptions = {}) {
     super();
@@ -106,6 +107,26 @@ export class PythonBridge extends EventEmitter {
     await this._discover();
   }
 
+  /**
+   * Lazily connect to the Python worker. Returns a cached promise so
+   * multiple callers share the same connection attempt.
+   */
+  ensureConnected(): Promise<void> {
+    if (this._connected) return Promise.resolve();
+    if (!this._connectPromise) {
+      this._connectPromise = this.connect().then(
+        () => {
+          this._connectPromise = null;
+        },
+        (err) => {
+          this._connectPromise = null;
+          throw err;
+        }
+      );
+    }
+    return this._connectPromise;
+  }
+
   /** Spawn Python child process and connect to its WebSocket. */
   private async _spawnAndConnect(): Promise<void> {
     const candidates = this._getPythonLaunchCandidates();
@@ -120,15 +141,19 @@ export class PythonBridge extends EventEmitter {
       }
     }
 
-    throw lastError ?? new Error(
-      candidates.length === 0
-        ? "No Python interpreter found — Python nodes will not be available"
-        : "Failed to start Python worker"
+    throw (
+      lastError ??
+      new Error(
+        candidates.length === 0
+          ? "No Python interpreter found — Python nodes will not be available"
+          : "Failed to start Python worker"
+      )
     );
   }
 
   private _getPythonLaunchCandidates(): PythonLaunchCandidate[] {
-    const explicitPythonPath = this._options.pythonPath ?? process.env.NODETOOL_PYTHON;
+    const explicitPythonPath =
+      this._options.pythonPath ?? process.env.NODETOOL_PYTHON;
     if (explicitPythonPath) {
       return [{ command: explicitPythonPath, source: "NODETOOL_PYTHON" }];
     }
@@ -146,7 +171,7 @@ export class PythonBridge extends EventEmitter {
 
     const candidates = this._getManagedPythonPaths().map((command) => ({
       command,
-      source: "NodeTool-managed env",
+      source: "NodeTool-managed env"
     }));
 
     return candidates;
@@ -155,7 +180,11 @@ export class PythonBridge extends EventEmitter {
   private _looksLikeNodeToolEnv(envPath: string): boolean {
     const normalized = envPath.replaceAll("\\", "/").toLowerCase();
     const envName = basename(envPath).toLowerCase();
-    return envName === "nodetool" || envName === "conda_env" || normalized.includes("/nodetool/conda_env");
+    return (
+      envName === "nodetool" ||
+      envName === "conda_env" ||
+      normalized.includes("/nodetool/conda_env")
+    );
   }
 
   private _getManagedPythonPaths(): string[] {
@@ -164,49 +193,64 @@ export class PythonBridge extends EventEmitter {
     if (process.platform === "win32") {
       return [
         process.env.ALLUSERSPROFILE
-          ? join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env", "python.exe")
-          : join(
-              process.env.APPDATA ??
-                join(home, "AppData", "Roaming"),
+          ? join(
+              process.env.ALLUSERSPROFILE,
               "nodetool",
               "conda_env",
-              "python.exe",
+              "python.exe"
+            )
+          : join(
+              process.env.APPDATA ?? join(home, "AppData", "Roaming"),
+              "nodetool",
+              "conda_env",
+              "python.exe"
             ),
         join(home, "Miniconda3", "envs", "nodetool", "python.exe"),
         join(home, "miniconda3", "envs", "nodetool", "python.exe"),
         join(home, "Anaconda3", "envs", "nodetool", "python.exe"),
         join(home, "anaconda3", "envs", "nodetool", "python.exe"),
-        String.raw`C:\ProgramData\nodetool\conda_env\python.exe`,
-      ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) === index);
+        String.raw`C:\ProgramData\nodetool\conda_env\python.exe`
+      ].filter(
+        (candidate, index, arr) =>
+          existsSync(candidate) && arr.indexOf(candidate) === index
+      );
     }
 
     if (process.platform === "darwin") {
       return [
         join(home, "nodetool_env", "bin", "python"),
         join(home, "miniconda3", "envs", "nodetool", "bin", "python"),
-        join(home, "anaconda3", "envs", "nodetool", "bin", "python"),
-      ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) === index);
+        join(home, "anaconda3", "envs", "nodetool", "bin", "python")
+      ].filter(
+        (candidate, index, arr) =>
+          existsSync(candidate) && arr.indexOf(candidate) === index
+      );
     }
 
     return [
       join(home, ".local", "share", "nodetool", "conda_env", "bin", "python"),
       "/opt/nodetool/conda_env/bin/python",
       join(home, "miniconda3", "envs", "nodetool", "bin", "python"),
-      join(home, "anaconda3", "envs", "nodetool", "bin", "python"),
-    ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) === index);
+      join(home, "anaconda3", "envs", "nodetool", "bin", "python")
+    ].filter(
+      (candidate, index, arr) =>
+        existsSync(candidate) && arr.indexOf(candidate) === index
+    );
   }
 
-  private async _spawnCandidate(candidate: PythonLaunchCandidate): Promise<void> {
+  private async _spawnCandidate(
+    candidate: PythonLaunchCandidate
+  ): Promise<void> {
     const args = [
       ...(candidate.argsPrefix ?? []),
       "-m",
       "nodetool.worker",
-      ...(this._options.workerArgs ?? []),
+      ...(this._options.workerArgs ?? [])
     ];
 
     return new Promise<void>((resolve, reject) => {
       const proc = spawn(candidate.command, args, {
-        stdio: ["pipe", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"]
       });
       this._process = proc;
 
@@ -238,7 +282,7 @@ export class PythonBridge extends EventEmitter {
               .then(settleSuccess)
               .catch((error) => {
                 settleError(
-                  error instanceof Error ? error : new Error(String(error)),
+                  error instanceof Error ? error : new Error(String(error))
                 );
               });
             return;
@@ -266,8 +310,8 @@ export class PythonBridge extends EventEmitter {
           settleError(
             new Error(
               detail ||
-                `Python worker (${candidate.source}: ${candidate.command}) exited before startup with code ${code}`,
-            ),
+                `Python worker (${candidate.source}: ${candidate.command}) exited before startup with code ${code}`
+            )
           );
           return;
         }
@@ -314,8 +358,7 @@ export class PythonBridge extends EventEmitter {
       });
 
       ws.on("message", (data: ArrayBuffer | Buffer) => {
-        const buf =
-          data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+        const buf = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
         const msg = msgpack.decode(buf) as Record<string, unknown>;
         this._handleMessage(msg);
       });
@@ -395,12 +438,12 @@ export class PythonBridge extends EventEmitter {
         reject: (err) => {
           this._pending.delete(requestId);
           reject(err);
-        },
+        }
       });
       this._send({
         type: "discover",
         request_id: requestId,
-        data: {},
+        data: {}
       });
     });
   }
@@ -418,7 +461,7 @@ export class PythonBridge extends EventEmitter {
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void,
+    onProgress?: (event: ProgressEvent) => void
   ): Promise<ExecuteResult> {
     const requestId = randomUUID();
     return new Promise<ExecuteResult>((resolve, reject) => {
@@ -430,8 +473,8 @@ export class PythonBridge extends EventEmitter {
           node_type: nodeType,
           fields,
           secrets,
-          blobs,
-        },
+          blobs
+        }
       });
     });
   }
@@ -441,7 +484,7 @@ export class PythonBridge extends EventEmitter {
     this._send({
       type: "cancel",
       request_id: requestId,
-      data: {},
+      data: {}
     });
   }
 
@@ -471,12 +514,12 @@ export class PythonBridge extends EventEmitter {
   async getProviderModels(
     providerId: string,
     modelType: string,
-    secrets?: Record<string, string>,
+    secrets?: Record<string, string>
   ): Promise<Record<string, unknown>[]> {
     const result = await this._providerCall("provider.models", {
       provider: providerId,
       model_type: modelType,
-      secrets: secrets ?? {},
+      secrets: secrets ?? {}
     });
     return (result as { models: Record<string, unknown>[] }).models;
   }
@@ -486,13 +529,13 @@ export class PythonBridge extends EventEmitter {
     providerId: string,
     messages: Record<string, unknown>[],
     model: string,
-    options?: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const result = await this._providerCall("provider.generate", {
       provider: providerId,
       messages,
       model,
-      ...options,
+      ...options
     });
     return (result as { message: Record<string, unknown> }).message;
   }
@@ -505,7 +548,7 @@ export class PythonBridge extends EventEmitter {
     providerId: string,
     messages: Record<string, unknown>[],
     model: string,
-    options?: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): AsyncGenerator<Record<string, unknown>> {
     const requestId = randomUUID();
     const chunks: Record<string, unknown>[] = [];
@@ -524,7 +567,7 @@ export class PythonBridge extends EventEmitter {
     const streamPromise = new Promise<Record<string, unknown>>(
       (resolve, reject) => {
         this._pendingStream.set(requestId, { resolve, reject, onChunk });
-      },
+      }
     );
 
     streamPromise
@@ -551,8 +594,8 @@ export class PythonBridge extends EventEmitter {
         provider: providerId,
         messages,
         model,
-        ...options,
-      },
+        ...options
+      }
     });
 
     while (true) {
@@ -572,12 +615,12 @@ export class PythonBridge extends EventEmitter {
   async providerTextToImage(
     providerId: string,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>,
+    secrets?: Record<string, string>
   ): Promise<Uint8Array> {
     const result = await this._providerCall("provider.text_to_image", {
       provider: providerId,
       params,
-      secrets: secrets ?? {},
+      secrets: secrets ?? {}
     });
     const blobs = (result as { blobs: Record<string, Uint8Array> }).blobs;
     return blobs.image;
@@ -588,13 +631,13 @@ export class PythonBridge extends EventEmitter {
     providerId: string,
     image: Uint8Array,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>,
+    secrets?: Record<string, string>
   ): Promise<Uint8Array> {
     const result = await this._providerCall("provider.image_to_image", {
       provider: providerId,
       image,
       params,
-      secrets: secrets ?? {},
+      secrets: secrets ?? {}
     });
     const blobs = (result as { blobs: Record<string, Uint8Array> }).blobs;
     return blobs.image;
@@ -608,7 +651,7 @@ export class PythonBridge extends EventEmitter {
     providerId: string,
     text: string,
     model: string,
-    options?: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): AsyncGenerator<Uint8Array> {
     const requestId = randomUUID();
     const chunks: Uint8Array[] = [];
@@ -630,7 +673,7 @@ export class PythonBridge extends EventEmitter {
     const streamPromise = new Promise<Record<string, unknown>>(
       (resolve, reject) => {
         this._pendingStream.set(requestId, { resolve, reject, onChunk });
-      },
+      }
     );
 
     streamPromise
@@ -657,8 +700,8 @@ export class PythonBridge extends EventEmitter {
         provider: providerId,
         text,
         model,
-        ...options,
-      },
+        ...options
+      }
     });
 
     while (true) {
@@ -679,15 +722,19 @@ export class PythonBridge extends EventEmitter {
     providerId: string,
     audio: Uint8Array,
     model: string,
-    options?: Record<string, unknown>,
-  ): Promise<string> {
+    options?: Record<string, unknown>
+  ): Promise<import("./providers/types.js").ASRResult> {
     const result = await this._providerCall("provider.asr", {
       provider: providerId,
       audio,
       model,
-      ...options,
+      ...options
     });
-    return (result as { text: string }).text;
+    const r = result as {
+      text: string;
+      chunks?: Array<{ timestamp: [number, number]; text: string }>;
+    };
+    return { text: r.text, chunks: r.chunks };
   }
 
   /** Generate embeddings via Python provider. */
@@ -695,13 +742,13 @@ export class PythonBridge extends EventEmitter {
     providerId: string,
     text: string | string[],
     model: string,
-    dimensions?: number,
+    dimensions?: number
   ): Promise<number[][]> {
     const result = await this._providerCall("provider.embedding", {
       provider: providerId,
       text,
       model,
-      dimensions,
+      dimensions
     });
     return (result as { embeddings: number[][] }).embeddings;
   }
@@ -709,14 +756,14 @@ export class PythonBridge extends EventEmitter {
   /** Send a non-streaming provider request and wait for the result. */
   private async _providerCall(
     type: string,
-    data: Record<string, unknown>,
+    data: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const requestId = randomUUID();
     return new Promise<Record<string, unknown>>((resolve, reject) => {
       this._pendingStream.set(requestId, {
         resolve,
         reject,
-        onChunk: () => {},
+        onChunk: () => {}
       });
       this._send({ type, request_id: requestId, data });
     });

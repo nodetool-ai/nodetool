@@ -4,9 +4,17 @@
  * Port of src/nodetool/agents/task_planner.py (simplified)
  */
 
-import type { BaseProvider, ProcessingContext, Message } from "@nodetool/runtime";
+import type {
+  BaseProvider,
+  ProcessingContext,
+  Message
+} from "@nodetool/runtime";
 import { createLogger } from "@nodetool/config";
-import type { ProcessingMessage, Chunk, PlanningUpdate } from "@nodetool/protocol";
+import type {
+  ProcessingMessage,
+  Chunk,
+  PlanningUpdate
+} from "@nodetool/protocol";
 
 const log = createLogger("nodetool.agents.planner");
 import type { Step, Task } from "./types.js";
@@ -59,13 +67,13 @@ const CREATE_TASK_SCHEMA = {
           instructions: { type: "string" },
           depends_on: { type: "array", items: { type: "string" } },
           output_schema: { type: "string" },
-          tools: { type: "array", items: { type: "string" } },
+          tools: { type: "array", items: { type: "string" } }
         },
-        required: ["id", "instructions", "depends_on"],
-      },
-    },
+        required: ["id", "instructions", "depends_on"]
+      }
+    }
   },
-  required: ["title", "steps"],
+  required: ["title", "steps"]
 };
 
 export interface TaskPlannerOptions {
@@ -111,32 +119,39 @@ export class TaskPlanner {
    */
   async *plan(
     objective: string,
-    _context: ProcessingContext,
+    _context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, Task | null> {
     const toolsInfo = this.formatToolsInfo();
 
-    const userPrompt = PLAN_CREATION_PROMPT_TEMPLATE
-      .replace("{{objective}}", objective)
+    const userPrompt = PLAN_CREATION_PROMPT_TEMPLATE.replace(
+      "{{objective}}",
+      objective
+    )
       .replace("{{toolsInfo}}", toolsInfo)
       .replace(
         "{{outputSchema}}",
-        this.outputSchema ? JSON.stringify(this.outputSchema, null, 2) : "None specified",
+        this.outputSchema
+          ? JSON.stringify(this.outputSchema, null, 2)
+          : "None specified"
       );
 
     const messages: Message[] = [
       { role: "system", content: this.systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "user", content: userPrompt }
     ];
 
     yield {
       type: "planning_update",
       phase: "initialization",
       status: "started",
-      content: "Starting task planning...",
+      content: "Starting task planning..."
     } satisfies PlanningUpdate;
 
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
-      log.debug("Generating plan", { objective: objective.slice(0, 60), attempt: attempt + 1 });
+      log.debug("Generating plan", {
+        objective: objective.slice(0, 60),
+        attempt: attempt + 1
+      });
 
       // Call LLM with the create_task tool
       let content = "";
@@ -146,13 +161,19 @@ export class TaskPlanner {
         type: "planning_update",
         phase: "generation",
         status: "running",
-        content: attempt > 0 ? `Retry attempt ${attempt + 1}/${this.maxRetries}...` : "Generating plan...",
+        content:
+          attempt > 0
+            ? `Retry attempt ${attempt + 1}/${this.maxRetries}...`
+            : "Generating plan..."
       } satisfies PlanningUpdate;
 
       // Provide onToolCall so providers with native MCP tool support
       // (e.g. ClaudeAgentProvider) can register create_task as a real tool.
       // The handler is a no-op — we capture the args from the yielded ToolCall.
-      const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
+      const onToolCall = async (
+        name: string,
+        args: Record<string, unknown>
+      ): Promise<string> => {
         if (name === "create_task") {
           taskData = args;
           return JSON.stringify({ status: "task_created" });
@@ -167,23 +188,26 @@ export class TaskPlanner {
           {
             name: "create_task",
             description: "Create an executable task with steps.",
-            inputSchema: CREATE_TASK_SCHEMA,
-          },
+            inputSchema: CREATE_TASK_SCHEMA
+          }
         ],
         toolChoice: "create_task",
         threadId: this.threadId,
-        onToolCall,
+        onToolCall
       });
 
       for await (const item of stream) {
-        if ("type" in item && (item as unknown as Record<string, unknown>)["type"] === "chunk") {
+        if (
+          "type" in item &&
+          (item as unknown as Record<string, unknown>)["type"] === "chunk"
+        ) {
           const chunk = item as { content?: string };
           if (typeof chunk.content === "string") {
             content += chunk.content;
             yield {
               type: "chunk",
               content: chunk.content,
-              done: false,
+              done: false
             } satisfies Chunk;
           }
         }
@@ -202,23 +226,29 @@ export class TaskPlanner {
 
       if (!taskData) {
         const errorMsg = `LLM did not call create_task tool on attempt ${attempt + 1}/${this.maxRetries}`;
-        log.warn("Plan generation retry", { attempt: attempt + 1, reason: errorMsg });
+        log.warn("Plan generation retry", {
+          attempt: attempt + 1,
+          reason: errorMsg
+        });
         if (attempt < this.maxRetries - 1) {
           messages.push({ role: "assistant", content });
-          messages.push({ role: "user", content: `Error: ${errorMsg}. Please call the create_task tool with your task plan.` });
+          messages.push({
+            role: "user",
+            content: `Error: ${errorMsg}. Please call the create_task tool with your task plan.`
+          });
           continue;
         }
         log.error("Plan generation failed", { attempts: this.maxRetries });
         yield {
           type: "chunk",
           content: `\nFailed to generate a task plan after ${this.maxRetries} attempts.\n`,
-          done: true,
+          done: true
         } satisfies Chunk;
         yield {
           type: "planning_update",
           phase: "complete",
           status: "failed",
-          content: errorMsg,
+          content: errorMsg
         } satisfies PlanningUpdate;
         return null;
       }
@@ -231,7 +261,7 @@ export class TaskPlanner {
         type: "planning_update",
         phase: "validation",
         status: "running",
-        content: "Validating plan...",
+        content: "Validating plan..."
       } satisfies PlanningUpdate;
 
       const errors = this.validatePlan(task);
@@ -243,7 +273,7 @@ export class TaskPlanner {
           type: "planning_update",
           phase: "validation",
           status: "failed",
-          content: errorMsg,
+          content: errorMsg
         } satisfies PlanningUpdate;
 
         if (attempt < this.maxRetries - 1) {
@@ -251,7 +281,7 @@ export class TaskPlanner {
           messages.push({ role: "assistant", content });
           messages.push({
             role: "user",
-            content: `Error: The task plan has validation errors:\n${errors.map((e) => `- ${e}`).join("\n")}\n\nPlease fix these issues and call create_task again with the corrected plan.`,
+            content: `Error: The task plan has validation errors:\n${errors.map((e) => `- ${e}`).join("\n")}\n\nPlease fix these issues and call create_task again with the corrected plan.`
           });
           continue;
         }
@@ -259,13 +289,13 @@ export class TaskPlanner {
         yield {
           type: "chunk",
           content: `\nFailed to generate a valid task plan after ${this.maxRetries} attempts.\n`,
-          done: true,
+          done: true
         } satisfies Chunk;
         yield {
           type: "planning_update",
           phase: "complete",
           status: "failed",
-          content: errorMsg,
+          content: errorMsg
         } satisfies PlanningUpdate;
         return null;
       }
@@ -279,7 +309,7 @@ export class TaskPlanner {
         type: "planning_update",
         phase: "complete",
         status: "success",
-        content: `Plan created: ${task.title} (${task.steps.length} steps)`,
+        content: `Plan created: ${task.title} (${task.steps.length} steps)`
       } satisfies PlanningUpdate;
 
       return task;
@@ -315,7 +345,7 @@ export class TaskPlanner {
       for (const dep of step.dependsOn) {
         if (!stepIds.has(dep) && !inputKeys.has(dep)) {
           errors.push(
-            `Step '${step.id}' depends on '${dep}' which does not exist as a step ID or input key.`,
+            `Step '${step.id}' depends on '${dep}' which does not exist as a step ID or input key.`
           );
         }
       }
@@ -344,7 +374,11 @@ export class TaskPlanner {
     for (const step of steps) {
       for (const dep of step.dependsOn) {
         // If dependency is not a step ID, it must be an input key
-        if (!stepIds.has(dep) && !(dep in this.inputs) && !Object.keys(this.inputs).includes(dep)) {
+        if (
+          !stepIds.has(dep) &&
+          !(dep in this.inputs) &&
+          !Object.keys(this.inputs).includes(dep)
+        ) {
           // Already caught by validateDependencies, skip duplicate
         }
       }
@@ -364,11 +398,18 @@ export class TaskPlanner {
       "for every",
       "iterate over",
       "loop over",
-      "for all",
+      "for all"
     ];
 
     // Identify aggregator steps
-    const aggregatorPatterns = ["aggregate", "compile", "combine", "merge", "final", "report"];
+    const aggregatorPatterns = [
+      "aggregate",
+      "compile",
+      "combine",
+      "merge",
+      "final",
+      "report"
+    ];
     const aggregatorIds = new Set<string>();
 
     for (const step of steps) {
@@ -385,7 +426,7 @@ export class TaskPlanner {
       for (const phrase of loopingPhrases) {
         if (content.includes(phrase)) {
           errors.push(
-            `Step '${step.id}' contains looping phrase '${phrase}'. Emit one step per item (fan-out) instead.`,
+            `Step '${step.id}' contains looping phrase '${phrase}'. Emit one step per item (fan-out) instead.`
           );
           break;
         }
@@ -393,7 +434,14 @@ export class TaskPlanner {
     }
 
     // Check aggregator wiring: aggregators should depend on all extractor-like steps
-    const extractorPatterns = ["extract", "fetch", "scrape", "crawl", "parse", "process"];
+    const extractorPatterns = [
+      "extract",
+      "fetch",
+      "scrape",
+      "crawl",
+      "parse",
+      "process"
+    ];
     const extractorIds: string[] = [];
     for (const step of steps) {
       const sid = step.id.toLowerCase();
@@ -410,7 +458,7 @@ export class TaskPlanner {
         const missing = extractorIds.filter((eid) => !declaredDeps.has(eid));
         if (missing.length > 0) {
           errors.push(
-            `Aggregator '${aggId}' must depend on all extractor steps. Missing: ${missing.join(", ")}`,
+            `Aggregator '${aggId}' must depend on all extractor steps. Missing: ${missing.join(", ")}`
           );
         }
       }
@@ -467,7 +515,9 @@ export class TaskPlanner {
       const schema = tool.inputSchema;
       if (schema && typeof schema === "object" && "properties" in schema) {
         const props = Object.keys(schema.properties as Record<string, unknown>);
-        const required = Array.isArray(schema.required) ? (schema.required as string[]) : [];
+        const required = Array.isArray(schema.required)
+          ? (schema.required as string[])
+          : [];
         const propDetails = props.map((p) => {
           const isReq = required.includes(p) ? " (required)" : "";
           return `${p}${isReq}`;
@@ -489,9 +539,10 @@ export class TaskPlanner {
     for (const step of steps) {
       if (!step.outputSchema) continue;
       try {
-        const parsed = typeof step.outputSchema === "string"
-          ? JSON.parse(step.outputSchema)
-          : step.outputSchema;
+        const parsed =
+          typeof step.outputSchema === "string"
+            ? JSON.parse(step.outputSchema)
+            : step.outputSchema;
         if (typeof parsed === "object" && parsed !== null) {
           if (!("type" in parsed)) {
             (parsed as Record<string, unknown>)["type"] = "object";
@@ -510,34 +561,39 @@ export class TaskPlanner {
    * Build a Task object from raw LLM output data.
    */
   private buildTask(data: Record<string, unknown>): Task {
-    const title = typeof data["title"] === "string" ? data["title"] : "Untitled Task";
+    const title =
+      typeof data["title"] === "string" ? data["title"] : "Untitled Task";
     const rawSteps = Array.isArray(data["steps"]) ? data["steps"] : [];
 
     const steps: Step[] = rawSteps.map((s: unknown) => {
       const raw = s as Record<string, unknown>;
       return {
         id: typeof raw["id"] === "string" ? raw["id"] : randomUUID(),
-        instructions: typeof raw["instructions"] === "string" ? raw["instructions"] : "",
+        instructions:
+          typeof raw["instructions"] === "string" ? raw["instructions"] : "",
         completed: false,
         dependsOn: Array.isArray(raw["depends_on"])
           ? (raw["depends_on"] as string[])
           : Array.isArray(raw["dependsOn"])
             ? (raw["dependsOn"] as string[])
             : [],
-        outputSchema: typeof raw["output_schema"] === "string"
-          ? raw["output_schema"]
-          : typeof raw["outputSchema"] === "string"
-            ? raw["outputSchema"]
-            : undefined,
-        tools: Array.isArray(raw["tools"]) ? (raw["tools"] as string[]) : undefined,
-        logs: [],
+        outputSchema:
+          typeof raw["output_schema"] === "string"
+            ? raw["output_schema"]
+            : typeof raw["outputSchema"] === "string"
+              ? raw["outputSchema"]
+              : undefined,
+        tools: Array.isArray(raw["tools"])
+          ? (raw["tools"] as string[])
+          : undefined,
+        logs: []
       };
     });
 
     return {
       id: randomUUID(),
       title,
-      steps,
+      steps
     };
   }
 

@@ -8,7 +8,7 @@ import {
   LuaRunner,
   LuaSubprocessRunner,
   luaEscapeString,
-  luaLiteral,
+  luaLiteral
 } from "../src/lua-runner.js";
 
 // ============================================================================

@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Save Array"
-node_type: "lib.numpy.io.SaveArray"
-namespace: "lib.numpy.io"
+node_type: "lib.array.io.SaveArray"
+namespace: "lib.array.io"
 ---
 
-**Type:** `lib.numpy.io.SaveArray`
+**Type:** `lib.array.io.SaveArray`
 
-**Namespace:** `lib.numpy.io`
+**Namespace:** `lib.array.io`
 
 ## Description
 
@@ -46,5 +46,5 @@ Save a numpy array to a file in the specified folder.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.io](../) namespace.
+Browse other nodes in the [lib.array.io](../) namespace.
 

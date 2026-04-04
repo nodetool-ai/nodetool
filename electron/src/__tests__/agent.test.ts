@@ -40,6 +40,8 @@ jest.mock("@anthropic-ai/claude-agent-sdk", () => ({
   query: jest.fn(),
   tool: jest.fn(),
   createSdkMcpServer: jest.fn(),
+  listSessions: jest.fn().mockResolvedValue([]),
+  getSessionMessages: jest.fn().mockResolvedValue([]),
 }));
 
 jest.mock("@nodetool/protocol", () => ({
@@ -51,6 +53,14 @@ jest.mock("../codexAgent", () => ({
   listCodexModels: jest.fn().mockResolvedValue([]),
 }));
 
+jest.mock("../opencodeAgent", () => ({
+  OpenCodeQuerySession: jest.fn(),
+  listOpenCodeModels: jest.fn().mockResolvedValue([]),
+  listOpenCodeSessions: jest.fn().mockResolvedValue([]),
+  getOpenCodeSessionMessages: jest.fn().mockResolvedValue([]),
+  closeOpenCodeServer: jest.fn(),
+}));
+
 // Force CLI session path for existing tests that test the CLI-pipe behavior
 process.env.NODETOOL_AGENT_USE_CLI = "1";
 
@@ -60,6 +70,9 @@ import {
   sendAgentMessageStreaming,
   closeAgentSession,
   closeAllAgentSessions,
+  listAgentModels,
+  listAgentSessions,
+  getAgentSessionMessages,
 } from "../agent";
 import { IpcChannels } from "../types.d";
 import { ipcMain } from "electron";
@@ -777,5 +790,176 @@ describe("agent session alias handling", () => {
       (call) => call[0] === IpcChannels.FRONTEND_TOOLS_CALL_REQUEST,
     );
     expect(frontendCallRequests).toHaveLength(1);
+  });
+});
+
+describe("provider interface", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    closeAllAgentSessions();
+  });
+
+  describe("listAgentModels", () => {
+    it("returns claude models by default", async () => {
+      const models = await listAgentModels({});
+      expect(models.length).toBeGreaterThan(0);
+      expect(models.some((m) => m.id.includes("claude"))).toBe(true);
+    });
+
+    it("returns claude models for provider=claude", async () => {
+      const models = await listAgentModels({ provider: "claude" });
+      expect(models.every((m) => m.supportsMaxTurns === true)).toBe(true);
+    });
+
+    it("returns codex models for provider=codex", async () => {
+      const models = await listAgentModels({ provider: "codex" });
+      // Codex mock returns empty, that's fine - just ensures it calls the right provider
+      expect(models).toEqual([]);
+    });
+
+    it("returns opencode models for provider=opencode", async () => {
+      const models = await listAgentModels({ provider: "opencode" });
+      expect(models).toEqual([]);
+    });
+  });
+
+  describe("listAgentSessions", () => {
+    it("returns sessions from all providers", async () => {
+      const sessions = await listAgentSessions({});
+      // All mocks return empty, so result is empty
+      expect(sessions).toEqual([]);
+    });
+
+    it("passes dir option through to providers", async () => {
+      const { listSessions } = require("@anthropic-ai/claude-agent-sdk") as {
+        listSessions: jest.Mock;
+      };
+      listSessions.mockResolvedValueOnce([
+        {
+          sessionId: "test-session-1",
+          summary: "Test session",
+          lastModified: Date.now(),
+          cwd: "/tmp/test",
+        },
+      ]);
+
+      const sessions = await listAgentSessions({ dir: "/tmp/test" });
+      expect(sessions.length).toBeGreaterThanOrEqual(1);
+      expect(sessions[0].sessionId).toBe("test-session-1");
+    });
+  });
+
+  describe("getAgentSessionMessages", () => {
+    it("returns empty array when no provider has messages", async () => {
+      const messages = await getAgentSessionMessages({ sessionId: "nonexistent" });
+      expect(messages).toEqual([]);
+    });
+
+    it("returns messages from claude provider", async () => {
+      const { getSessionMessages } = require("@anthropic-ai/claude-agent-sdk") as {
+        getSessionMessages: jest.Mock;
+      };
+      getSessionMessages.mockResolvedValueOnce([
+        {
+          type: "user",
+          uuid: "msg-1",
+          session_id: "sess-1",
+          message: { content: "hello" },
+          parent_tool_use_id: null,
+        },
+        {
+          type: "assistant",
+          uuid: "msg-2",
+          session_id: "sess-1",
+          message: { content: [{ type: "text", text: "Hi there!" }] },
+          parent_tool_use_id: null,
+        },
+      ]);
+
+      const messages = await getAgentSessionMessages({ sessionId: "sess-1" });
+      expect(messages.length).toBe(2);
+      expect(messages[0].type).toBe("user");
+      expect(messages[0].text).toBe("hello");
+      expect(messages[1].type).toBe("assistant");
+      expect(messages[1].text).toBe("Hi there!");
+    });
+  });
+
+  describe("createAgentSession", () => {
+    it("throws when workspacePath is missing", async () => {
+      await expect(
+        createAgentSession({ model: "test-model" }),
+      ).rejects.toThrow("workspacePath is required");
+    });
+
+    it("creates a claude session by default", async () => {
+      mockSpawn.mockReturnValue(
+        makeMockClaudeProcess([
+          { type: "system", subtype: "init", session_id: "s1" },
+          { type: "result", subtype: "success", result: "ok" },
+        ]),
+      );
+
+      const id = await createAgentSession({
+        model: "claude-sonnet-4-6",
+        workspacePath: "/tmp/test",
+      });
+      expect(id).toMatch(/^claude-session-/);
+    });
+
+    it("creates a codex session when provider=codex", async () => {
+      const { CodexQuerySession } = require("../codexAgent") as {
+        CodexQuerySession: jest.Mock;
+      };
+      CodexQuerySession.mockImplementation(() => ({
+        send: jest.fn().mockResolvedValue([]),
+        interrupt: jest.fn(),
+        close: jest.fn(),
+      }));
+
+      const id = await createAgentSession({
+        provider: "codex",
+        model: "o3",
+        workspacePath: "/tmp/test",
+      });
+      expect(id).toMatch(/^codex-session-/);
+    });
+
+    it("creates an opencode session when provider=opencode", async () => {
+      const { OpenCodeQuerySession } = require("../opencodeAgent") as {
+        OpenCodeQuerySession: jest.Mock;
+      };
+      OpenCodeQuerySession.mockImplementation(() => ({
+        send: jest.fn().mockResolvedValue([]),
+        interrupt: jest.fn(),
+        close: jest.fn(),
+      }));
+
+      const id = await createAgentSession({
+        provider: "opencode",
+        model: "anthropic/claude-sonnet-4",
+        workspacePath: "/tmp/test",
+      });
+      expect(id).toMatch(/^opencode-session-/);
+    });
+
+    it("passes modelParams through to claude session", async () => {
+      mockSpawn.mockReturnValue(
+        makeMockClaudeProcess([
+          { type: "system", subtype: "init", session_id: "s-params" },
+          { type: "result", subtype: "success", result: "ok" },
+        ]),
+      );
+
+      const id = await createAgentSession({
+        model: "claude-sonnet-4-6",
+        workspacePath: "/tmp/test",
+        modelParams: { maxTurns: 10 },
+      });
+      expect(id).toBeDefined();
+    });
   });
 });

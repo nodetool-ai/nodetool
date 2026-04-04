@@ -15,7 +15,7 @@ export interface TypeMetadata {
 export function normalizeTypeMetadata(t: TypeMetadata): TypeMetadata {
   return {
     ...t,
-    type_args: (t.type_args ?? []).map(normalizeTypeMetadata),
+    type_args: (t.type_args ?? []).map(normalizeTypeMetadata)
   };
 }
 
@@ -130,7 +130,11 @@ function walkForMetadataFiles(
   for (const entry of entries) {
     const fullPath = path.join(root, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "dist") {
+      if (
+        entry.name === ".git" ||
+        entry.name === "node_modules" ||
+        entry.name === "dist"
+      ) {
         continue;
       }
       const normalized = fullPath.split(path.sep).join("/");
@@ -145,7 +149,9 @@ function walkForMetadataFiles(
             .map((f) => path.join(fullPath, f.name));
           files.push(...metadataFiles);
         } catch (error) {
-          warnings.push(`Failed to scan metadata dir ${fullPath}: ${String(error)}`);
+          warnings.push(
+            `Failed to scan metadata dir ${fullPath}: ${String(error)}`
+          );
         }
         continue;
       }
@@ -188,29 +194,41 @@ function buildFingerprint(files: string[]): string {
 }
 
 function getCachePath(roots: string[]): string {
-  const key = crypto.createHash("sha256").update(roots.join(":")).digest("hex").slice(0, 16);
+  const key = crypto
+    .createHash("sha256")
+    .update(roots.join(":"))
+    .digest("hex")
+    .slice(0, 16);
   return path.join(CACHE_DIR, `metadata-${key}.json`);
 }
 
-function tryReadCache(cachePath: string, fingerprint: string): PythonMetadataLoadResult | null {
+function tryReadCache(
+  cachePath: string,
+  fingerprint: string
+): PythonMetadataLoadResult | null {
   try {
     if (!fs.existsSync(cachePath)) return null;
     const raw = fs.readFileSync(cachePath, "utf8");
     const entry: SerializedCacheEntry = JSON.parse(raw);
-    if (entry.version !== CACHE_VERSION || entry.fingerprint !== fingerprint) return null;
+    if (entry.version !== CACHE_VERSION || entry.fingerprint !== fingerprint)
+      return null;
     return {
       files: entry.files,
       packages: entry.packages,
       nodesByType: new Map(entry.nodesByType),
       duplicates: entry.duplicates,
-      warnings: entry.warnings,
+      warnings: entry.warnings
     };
   } catch {
     return null;
   }
 }
 
-function writeCache(cachePath: string, fingerprint: string, result: PythonMetadataLoadResult): void {
+function writeCache(
+  cachePath: string,
+  fingerprint: string,
+  result: PythonMetadataLoadResult
+): void {
   try {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
     const entry: SerializedCacheEntry = {
@@ -220,7 +238,7 @@ function writeCache(cachePath: string, fingerprint: string, result: PythonMetada
       packages: result.packages,
       nodesByType: [...result.nodesByType.entries()],
       duplicates: result.duplicates,
-      warnings: result.warnings,
+      warnings: result.warnings
     };
     fs.writeFileSync(cachePath, JSON.stringify(entry));
   } catch {
@@ -238,7 +256,9 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
     let parsed: unknown;
     try {
       // Python's json module allows NaN/Infinity which are not valid JSON; replace them with null.
-      const raw = fs.readFileSync(file, "utf8").replace(/\bNaN\b|-?Infinity\b/g, "null");
+      const raw = fs
+        .readFileSync(file, "utf8")
+        .replace(/\bNaN\b|-?Infinity\b/g, "null");
       parsed = JSON.parse(raw);
     } catch (error) {
       warnings.push(`Failed to parse JSON ${file}: ${String(error)}`);
@@ -255,20 +275,32 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
     const sourceFolder = path.dirname(path.dirname(metaDir)); // strip /nodetool/package_metadata
 
     const pkg: PackageMetadata = {
-      name: typeof parsed.name === "string" ? parsed.name : path.basename(file, ".json"),
-      description: typeof parsed.description === "string" ? parsed.description : undefined,
+      name:
+        typeof parsed.name === "string"
+          ? parsed.name
+          : path.basename(file, ".json"),
+      description:
+        typeof parsed.description === "string" ? parsed.description : undefined,
       version: typeof parsed.version === "string" ? parsed.version : undefined,
-      authors: Array.isArray(parsed.authors) ? (parsed.authors as string[]) : undefined,
+      authors: Array.isArray(parsed.authors)
+        ? (parsed.authors as string[])
+        : undefined,
       repo_id: typeof parsed.repo_id === "string" ? parsed.repo_id : undefined,
-      nodes: Array.isArray(parsed.nodes) ? (parsed.nodes as NodeMetadata[]) : undefined,
+      nodes: Array.isArray(parsed.nodes)
+        ? (parsed.nodes as NodeMetadata[])
+        : undefined,
       examples: Array.isArray(parsed.examples) ? parsed.examples : undefined,
       assets: Array.isArray(parsed.assets) ? parsed.assets : undefined,
-      sourceFolder,
+      sourceFolder
     };
     packages.push(pkg);
 
     for (const node of pkg.nodes ?? []) {
-      if (!node || typeof node !== "object" || typeof node.node_type !== "string") {
+      if (
+        !node ||
+        typeof node !== "object" ||
+        typeof node.node_type !== "string"
+      ) {
         continue;
       }
       if (nodesByType.has(node.node_type)) {
@@ -277,8 +309,14 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
       // Normalize type_args to always be an array (some JSON files omit it)
       const normalized: NodeMetadata = {
         ...node,
-        properties: (node.properties ?? []).map((p) => ({ ...p, type: normalizeTypeMetadata(p.type) })),
-        outputs: (node.outputs ?? []).map((o) => ({ ...o, type: normalizeTypeMetadata(o.type) })),
+        properties: (node.properties ?? []).map((p) => ({
+          ...p,
+          type: normalizeTypeMetadata(p.type)
+        })),
+        outputs: (node.outputs ?? []).map((o) => ({
+          ...o,
+          type: normalizeTypeMetadata(o.type)
+        }))
       };
       nodesByType.set(node.node_type, normalized);
     }
@@ -289,16 +327,16 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
     packages,
     nodesByType,
     duplicates: [...duplicates].sort(),
-    warnings,
+    warnings
   };
 }
 
 export function loadPythonPackageMetadata(
   options: PythonMetadataLoadOptions = {}
 ): PythonMetadataLoadResult {
-  const roots = (options.roots && options.roots.length > 0 ? options.roots : [process.cwd()]).map((p) =>
-    path.resolve(p)
-  );
+  const roots = (
+    options.roots && options.roots.length > 0 ? options.roots : [process.cwd()]
+  ).map((p) => path.resolve(p));
   const maxDepth = options.maxDepth ?? 8;
 
   const warnings: string[] = [];

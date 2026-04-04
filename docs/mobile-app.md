@@ -14,6 +14,8 @@ Use NodeTool on your mobile device. The mobile app lets you run Mini Apps and ch
 
 The NodeTool mobile app brings AI workflows to your phone and tablet:
 
+![Mobile Dashboard](assets/screenshots/dashboard-mobile.png)
+
 | Feature | Description |
 |---------|-------------|
 | **AI Chat** | Real-time chat with AI models, streaming responses |
@@ -82,6 +84,8 @@ The mobile app requires a running NodeTool server.
 ## AI Chat
 
 Chat with AI models from your mobile device.
+
+![Mobile Chat](assets/screenshots/chat-mobile.png)
 
 ### Features
 

@@ -10,7 +10,7 @@ import { ProcessingContext } from "@nodetool/runtime";
 import type {
   NodeDescriptor as GraphNodeDescriptor,
   Edge,
-  NodeUpdate,
+  NodeUpdate
 } from "@nodetool/protocol";
 
 // ---------------------------------------------------------------------------
@@ -46,8 +46,10 @@ export type SingleOutput<T, TSlot extends string = "output"> = {
   readonly [K in TSlot]: T;
 };
 
-export type OutputSlot<TOutputs extends object> =
-  Extract<keyof TOutputs, string>;
+export type OutputSlot<TOutputs extends object> = Extract<
+  keyof TOutputs,
+  string
+>;
 
 export interface OutputAccessor<
   TOutputs extends object,
@@ -116,7 +118,7 @@ function createOutputHandle<T>(nodeId: string, slot: string): OutputHandle<T> {
   return Object.freeze({
     __brand: "OutputHandle" as const,
     nodeId,
-    slot,
+    slot
   });
 }
 
@@ -152,10 +154,18 @@ export function createNode<
     : opts?.multiOutput
       ? []
       : [opts?.defaultOutput ?? "output"];
-  const defaultOutput = opts?.defaultOutput
-    ?? (outputNames.length === 1 && !opts?.multiOutput ? outputNames[0] : undefined);
+  const defaultOutput =
+    opts?.defaultOutput ??
+    (outputNames.length === 1 && !opts?.multiOutput
+      ? outputNames[0]
+      : undefined);
 
-  const descriptor: RegisteredNodeDescriptor = { nodeId, nodeType, inputs, streaming };
+  const descriptor: RegisteredNodeDescriptor = {
+    nodeId,
+    nodeType,
+    inputs,
+    streaming
+  };
   nodeRegistry.set(nodeId, descriptor);
 
   const knownOutputs = new Set<string>(outputNames);
@@ -165,7 +175,9 @@ export function createNode<
       throw new Error(`Node ${nodeType} requires an explicit output slot`);
     }
     if (knownOutputs.size > 0 && !knownOutputs.has(resolvedSlot)) {
-      throw new Error(`Unknown output slot '${resolvedSlot}' for node type ${nodeType}`);
+      throw new Error(
+        `Unknown output slot '${resolvedSlot}' for node type ${nodeType}`
+      );
     }
     return createOutputHandle(nodeId, resolvedSlot);
   }) as OutputAccessor<TOutputs, TDefault>);
@@ -174,7 +186,7 @@ export function createNode<
     nodeId,
     nodeType,
     inputs,
-    output,
+    output
   }) as DslNode<TOutputs, TDefault>;
 
   return node;
@@ -219,7 +231,7 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
           source: value.nodeId,
           sourceHandle: value.slot,
           target: currentId,
-          targetHandle: inputName,
+          targetHandle: inputName
         });
 
         // Enqueue source if not visited
@@ -276,7 +288,12 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
         data[key] = val;
       }
     }
-    return { id: desc.nodeId, type: desc.nodeType, data, streaming: desc.streaming };
+    return {
+      id: desc.nodeId,
+      type: desc.nodeType,
+      data,
+      streaming: desc.streaming
+    };
   });
 
   // Clear registry
@@ -307,26 +324,27 @@ export async function run(
     id: n.id,
     type: n.type,
     properties: n.data,
-    is_streaming_output: n.streaming,
+    is_streaming_output: n.streaming
   }));
 
   const edges = wf.edges.map((e) => ({
     source: e.source,
     sourceHandle: e.sourceHandle,
     target: e.target,
-    targetHandle: e.targetHandle,
+    targetHandle: e.targetHandle
   })) as Edge[];
 
   const context = new ProcessingContext({
     jobId,
-    userId: opts?.userId,
+    userId: opts?.userId
   });
 
   const builtinRegistry = new NodeRegistry();
   const { registerBaseNodes } = await import("@nodetool/base-nodes");
   registerBaseNodes(builtinRegistry);
   try {
-    const { registerElevenLabsNodes } = await import("@nodetool/elevenlabs-nodes");
+    const { registerElevenLabsNodes } =
+      await import("@nodetool/elevenlabs-nodes");
     registerElevenLabsNodes(builtinRegistry);
   } catch {
     // Some environments do not have the ElevenLabs node package in a runnable state.
@@ -347,7 +365,7 @@ export async function run(
 
   const runner = new WorkflowRunner(jobId, {
     resolveExecutor,
-    executionContext: context,
+    executionContext: context
   });
 
   const result = await runner.run({ job_id: jobId }, { nodes, edges });
@@ -359,7 +377,8 @@ export async function run(
   // Surface node-level errors: actors catch exceptions and return them as
   // node_update messages with status "error" without failing the whole run.
   const nodeErrors = (result.messages ?? []).filter(
-    (m): m is NodeUpdate => m.type === "node_update" && (m as NodeUpdate).status === "error"
+    (m): m is NodeUpdate =>
+      m.type === "node_update" && (m as NodeUpdate).status === "error"
   );
   if (nodeErrors.length > 0) {
     throw new Error(nodeErrors[0].error ?? "A node failed during execution");

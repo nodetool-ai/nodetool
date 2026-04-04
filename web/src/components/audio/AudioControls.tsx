@@ -6,12 +6,12 @@ import React, { useCallback, ReactElement } from "react";
 import { Typography, Button, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
-import PlayIcon from "@mui/icons-material/PlayArrow";
-import PauseIcon from "@mui/icons-material/Pause";
 import LoopIcon from "@mui/icons-material/Loop";
+import { PlaybackButton } from "../ui_primitives/PlaybackButton";
 import OffIcon from "@mui/icons-material/VolumeOff";
 import UpIcon from "@mui/icons-material/VolumeUp";
 import DownloadIcon from "@mui/icons-material/Download";
+import { ActionButtonGroup } from "../ui_primitives/ActionButtonGroup";
 import log from "loglevel";
 import type { Theme } from "@mui/material/styles";
 
@@ -207,17 +207,20 @@ const AudioControls: React.FC<AudioControlsProps> = ({
             fontSize={fontSize}
             onSliderChange={handleSliderChange}
           />
-          <div className="buttons">
-            <Tooltip title="Play | Pause" enterDelay={TOOLTIP_ENTER_DELAY}>
-              <Button
-                className="play-button"
-                size="small"
-                color="primary"
-                onClick={onPlayPause}
-              >
-                {isPlaying ? <PauseIcon /> : <PlayIcon />}
-              </Button>
-            </Tooltip>
+          <ActionButtonGroup
+            className="buttons"
+            spacing={0}
+            aria-label="Playback controls"
+          >
+            <PlaybackButton
+              state={isPlaying ? "playing" : "stopped"}
+              onPlay={onPlayPause}
+              onPause={onPlayPause}
+              playbackAction="toggle"
+              buttonSize="small"
+              nodrag
+              className="play-button"
+            />
             <Tooltip title="Loop" enterDelay={TOOLTIP_ENTER_DELAY}>
               <Button
                 className={`loop-button${loop ? "" : " disabled"}`}
@@ -250,7 +253,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 <DownloadIcon />
               </Button>
             </Tooltip>
-          </div>
+          </ActionButtonGroup>
         </div>
       )}
     </div>

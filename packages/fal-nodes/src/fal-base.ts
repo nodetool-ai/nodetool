@@ -10,10 +10,7 @@ import { createFalClient, type FalClient } from "@fal-ai/client";
 // ---------------------------------------------------------------------------
 
 export function getFalApiKey(secrets: Record<string, string>): string {
-  const key =
-    secrets?.FAL_API_KEY ||
-    process.env.FAL_API_KEY ||
-    "";
+  const key = secrets?.FAL_API_KEY || process.env.FAL_API_KEY || "";
   if (!key) throw new Error("FAL_API_KEY is not configured");
   return key;
 }
@@ -40,12 +37,12 @@ function getClient(apiKey: string): FalClient {
 export async function falSubmit(
   apiKey: string,
   endpoint: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const client = getClient(apiKey);
   const result = await client.subscribe(endpoint, {
     input: args,
-    logs: true,
+    logs: true
   });
   return (result.data ?? result) as Record<string, unknown>;
 }
@@ -60,7 +57,9 @@ export async function falUpload(
   contentType: string
 ): Promise<string> {
   const client = getClient(apiKey);
-  const blob = new Blob([data.slice().buffer as ArrayBuffer], { type: contentType });
+  const blob = new Blob([data.slice().buffer as ArrayBuffer], {
+    type: contentType
+  });
   return client.storage.upload(blob);
 }
 
@@ -91,7 +90,9 @@ export async function assetToFalUrl(
       const res = await fetch(fetchUrl);
       if (res.ok) {
         const bytes = new Uint8Array(await res.arrayBuffer());
-        const contentType = res.headers.get("content-type") ?? inferContentType(ref.type as string);
+        const contentType =
+          res.headers.get("content-type") ??
+          inferContentType(ref.type as string);
         return falUpload(apiKey, bytes, contentType);
       }
     } catch {
@@ -127,9 +128,13 @@ function inferMimeFromRef(ref: Record<string, unknown>): string | null {
   if (uri) {
     const ext = uri.split("?")[0].split(".").pop()?.toLowerCase();
     const map: Record<string, string> = {
-      jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
-      gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
-      bmp: "image/bmp",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      webp: "image/webp",
+      svg: "image/svg+xml",
+      bmp: "image/bmp"
     };
     if (ext && map[ext]) return map[ext];
   }
@@ -163,10 +168,7 @@ export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
     if (obj[k] == null || obj[k] === "") {
       delete obj[k];
-    } else if (
-      typeof obj[k] === "object" &&
-      !Array.isArray(obj[k])
-    ) {
+    } else if (typeof obj[k] === "object" && !Array.isArray(obj[k])) {
       removeNulls(obj[k] as Record<string, unknown>);
     }
   }

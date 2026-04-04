@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Extract Audio"
-node_type: "lib.beautifulsoup.ExtractAudio"
-namespace: "lib.beautifulsoup"
+node_type: "lib.html.ExtractAudio"
+namespace: "lib.html"
 ---
 
-**Type:** `lib.beautifulsoup.ExtractAudio`
+**Type:** `lib.html.ExtractAudio`
 
-**Namespace:** `lib.beautifulsoup`
+**Namespace:** `lib.html`
 
 ## Description
 
@@ -36,5 +36,5 @@ Extract audio elements from HTML content.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.beautifulsoup](../) namespace.
+Browse other nodes in the [lib.html](../) namespace.
 

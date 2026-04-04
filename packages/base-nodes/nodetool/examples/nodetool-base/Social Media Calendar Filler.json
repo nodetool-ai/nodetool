@@ -1,0 +1,631 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-01-10T00:56:56.508849",
+  "updated_at": "2026-01-10T00:57:01.020716",
+  "name": "Social Media Calendar Filler",
+  "tool_name": null,
+  "description": "Generate a month's worth of social media content with images, captions, and hashtags. Plans content based on monthly themes and brand guidelines.",
+  "tags": [
+    "content",
+    "social media",
+    "marketing",
+    "planning",
+    "example"
+  ],
+  "thumbnail": "Social Media Calendar Filler.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "brand_name",
+        "sourceHandle": "output",
+        "target": "calendar_prompt",
+        "targetHandle": "brand"
+      },
+      {
+        "id": "e2",
+        "source": "monthly_theme",
+        "sourceHandle": "output",
+        "target": "calendar_prompt",
+        "targetHandle": "theme"
+      },
+      {
+        "id": "e3",
+        "source": "target_audience",
+        "sourceHandle": "output",
+        "target": "calendar_prompt",
+        "targetHandle": "audience"
+      },
+      {
+        "id": "e4",
+        "source": "brand_voice",
+        "sourceHandle": "output",
+        "target": "calendar_prompt",
+        "targetHandle": "voice"
+      },
+      {
+        "id": "e5",
+        "source": "posts_per_week",
+        "sourceHandle": "output",
+        "target": "calendar_prompt",
+        "targetHandle": "frequency"
+      },
+      {
+        "id": "e6",
+        "source": "calendar_prompt",
+        "sourceHandle": "output",
+        "target": "content_plan",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e7",
+        "source": "content_plan",
+        "sourceHandle": "text",
+        "target": "content_generator",
+        "targetHandle": "plan"
+      },
+      {
+        "id": "e8",
+        "source": "brand_voice",
+        "sourceHandle": "output",
+        "target": "content_generator",
+        "targetHandle": "voice"
+      },
+      {
+        "id": "e9",
+        "source": "monthly_theme",
+        "sourceHandle": "output",
+        "target": "content_generator",
+        "targetHandle": "theme"
+      },
+      {
+        "id": "e10",
+        "source": "content_generator",
+        "sourceHandle": "output",
+        "target": "post_prompts",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e11",
+        "source": "post_prompts",
+        "sourceHandle": "item",
+        "target": "prompt_iterator",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "e12",
+        "source": "prompt_iterator",
+        "sourceHandle": "output",
+        "target": "post_image",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e13",
+        "source": "post_image",
+        "sourceHandle": "output",
+        "target": "collected_images",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e14",
+        "source": "content_plan",
+        "sourceHandle": "text",
+        "target": "caption_generator",
+        "targetHandle": "plan"
+      },
+      {
+        "id": "e15",
+        "source": "brand_name",
+        "sourceHandle": "output",
+        "target": "caption_generator",
+        "targetHandle": "brand"
+      },
+      {
+        "id": "e16",
+        "source": "brand_voice",
+        "sourceHandle": "output",
+        "target": "caption_generator",
+        "targetHandle": "voice"
+      },
+      {
+        "id": "e17",
+        "source": "caption_generator",
+        "sourceHandle": "output",
+        "target": "captions",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e18",
+        "source": "captions",
+        "sourceHandle": "item",
+        "target": "collected_captions",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e19",
+        "source": "collected_images",
+        "sourceHandle": "output",
+        "target": "images_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e20",
+        "source": "collected_captions",
+        "sourceHandle": "output",
+        "target": "captions_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e21",
+        "source": "content_plan",
+        "sourceHandle": "text",
+        "target": "plan_out",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "brand_name",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "TechStartup Pro",
+          "name": "brand_name"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "monthly_theme",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "AI productivity tools and workflow automation",
+          "name": "monthly_theme"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 941
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "target_audience",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
+          "name": "target_audience"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 697
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "brand_voice",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "Professional yet approachable, educational, inspiring, data-driven",
+          "name": "brand_voice"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 453
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "posts_per_week",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "value": 4,
+          "name": "posts_per_week",
+          "min": 1,
+          "max": 7
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 237
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "calendar_prompt",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 360,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "brand": "",
+          "theme": "",
+          "audience": "",
+          "voice": "",
+          "frequency": ""
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "content_plan",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a social media strategist."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 670,
+            "y": 312
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "content_generator",
+        "type": "nodetool.text.FormatText",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1010,
+            "y": 679
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "plan": "",
+          "voice": "",
+          "theme": ""
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "post_prompts",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "max_tokens": 3000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 720
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "prompt_iterator",
+        "type": "nodetool.control.ForEach",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1630,
+            "y": 764
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "post_image",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model"
+          },
+          "width": 1080,
+          "height": 1080,
+          "guidance_scale": 7,
+          "num_inference_steps": 25
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1940,
+            "y": 678
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "collected_images",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2250,
+            "y": 792
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "caption_generator",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": ""
+        },
+        "ui_properties": {
+          "selected": true,
+          "position": {
+            "x": 1010,
+            "y": 85
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "plan": "",
+          "brand": "",
+          "voice": ""
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "captions",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "max_tokens": 2000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 126
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "collected_captions",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1630,
+            "y": 198
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "images_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "post_images",
+          "description": "Generated images for each social media post"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2560,
+            "y": 767
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "captions_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "captions_and_hashtags",
+          "description": "Captions and hashtags for each post"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1940,
+            "y": 173
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "plan_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "content_calendar",
+          "description": "Full content calendar plan for the month"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1010,
+            "y": 470
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "brand_name": {
+        "type": "string",
+        "default": "TechStartup Pro",
+        "label": ""
+      },
+      "monthly_theme": {
+        "type": "string",
+        "default": "AI productivity tools and workflow automation",
+        "label": ""
+      },
+      "target_audience": {
+        "type": "string",
+        "default": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
+        "label": ""
+      },
+      "brand_voice": {
+        "type": "string",
+        "default": "Professional yet approachable, educational, inspiring, data-driven",
+        "label": ""
+      },
+      "posts_per_week": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 7,
+        "default": 4,
+        "label": ""
+      }
+    },
+    "required": [
+      "brand_name",
+      "monthly_theme",
+      "target_audience",
+      "brand_voice",
+      "posts_per_week"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "post_images": {
+        "type": "any",
+        "label": ""
+      },
+      "captions_and_hashtags": {
+        "type": "any",
+        "label": ""
+      },
+      "content_calendar": {
+        "type": "any",
+        "label": ""
+      }
+    },
+    "required": [
+      "post_images",
+      "captions_and_hashtags",
+      "content_calendar"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

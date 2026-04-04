@@ -21,7 +21,9 @@ export class TriggerInactivityTimeout extends Error {
   readonly timeoutSeconds: number;
 
   constructor(timeoutSeconds: number) {
-    super(`No trigger activity for ${timeoutSeconds} seconds, suspending workflow`);
+    super(
+      `No trigger activity for ${timeoutSeconds} seconds, suspending workflow`
+    );
     this.name = "TriggerInactivityTimeout";
     this.timeoutSeconds = timeoutSeconds;
   }
@@ -44,7 +46,8 @@ export class TriggerState extends SuspendableState {
 
   constructor(nodeId: string, inactivityTimeout?: number) {
     super(nodeId);
-    this._inactivityTimeoutSeconds = inactivityTimeout ?? DEFAULT_INACTIVITY_TIMEOUT;
+    this._inactivityTimeoutSeconds =
+      inactivityTimeout ?? DEFAULT_INACTIVITY_TIMEOUT;
   }
 
   get inactivityTimeout(): number {
@@ -79,7 +82,9 @@ export class TriggerState extends SuspendableState {
    * Resolves with event data when an event arrives.
    * Rejects with TriggerInactivityTimeout if timeout elapses.
    */
-  async waitForTriggerEvent(timeoutSeconds?: number): Promise<Record<string, unknown>> {
+  async waitForTriggerEvent(
+    timeoutSeconds?: number
+  ): Promise<Record<string, unknown>> {
     const timeout = timeoutSeconds ?? this._inactivityTimeoutSeconds;
     this._updateActivityTime();
 
@@ -108,7 +113,7 @@ export class TriggerState extends SuspendableState {
         reject: (err) => {
           clearTimeout(timer);
           reject(err);
-        },
+        }
       });
     });
   }
@@ -128,7 +133,7 @@ export class TriggerState extends SuspendableState {
     }
 
     log.info("Trigger node received external event", {
-      keys: Object.keys(eventData),
+      keys: Object.keys(eventData)
     });
   }
 
@@ -150,7 +155,7 @@ export class TriggerState extends SuspendableState {
       last_activity: this._lastActivityTime
         ? new Date(this._lastActivityTime).toISOString()
         : null,
-      inactivity_timeout_seconds: this._inactivityTimeoutSeconds,
+      inactivity_timeout_seconds: this._inactivityTimeoutSeconds
     };
 
     if (additionalState) {
@@ -162,8 +167,8 @@ export class TriggerState extends SuspendableState {
       state,
       {
         trigger_node: true,
-        inactivity_suspension: true,
-      },
+        inactivity_suspension: true
+      }
     );
   }
 }

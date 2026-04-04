@@ -7,7 +7,7 @@ import {
   ConditionGroup,
   ConditionBuilder,
   Field,
-  field,
+  field
 } from "../src/condition-builder.js";
 
 describe("ConditionBuilder", () => {
@@ -35,12 +35,14 @@ describe("ConditionBuilder", () => {
     });
 
     it("creates a notEquals condition", () => {
-      const c = field("role").notEquals("admin").build().conditions[0] as Condition;
+      const c = field("role").notEquals("admin").build()
+        .conditions[0] as Condition;
       expect(c.operator).toBe(Operator.NE);
     });
 
     it("creates greaterThan / lessThan", () => {
-      const gt = field("age").greaterThan(18).build().conditions[0] as Condition;
+      const gt = field("age").greaterThan(18).build()
+        .conditions[0] as Condition;
       expect(gt.operator).toBe(Operator.GT);
       expect(gt.value).toBe(18);
 
@@ -49,10 +51,12 @@ describe("ConditionBuilder", () => {
     });
 
     it("creates gte / lte", () => {
-      const gte = field("age").greaterThanOrEqual(21).build().conditions[0] as Condition;
+      const gte = field("age").greaterThanOrEqual(21).build()
+        .conditions[0] as Condition;
       expect(gte.operator).toBe(Operator.GTE);
 
-      const lte = field("age").lessThanOrEqual(65).build().conditions[0] as Condition;
+      const lte = field("age").lessThanOrEqual(65).build()
+        .conditions[0] as Condition;
       expect(lte.operator).toBe(Operator.LTE);
     });
 
@@ -70,11 +74,13 @@ describe("ConditionBuilder", () => {
     });
 
     it("creates null-check conditions", () => {
-      const isNull = field("deleted_at").isNull().build().conditions[0] as Condition;
+      const isNull = field("deleted_at").isNull().build()
+        .conditions[0] as Condition;
       expect(isNull.operator).toBe(Operator.IS_NULL);
       expect(isNull.value).toBeNull();
 
-      const isNotNull = field("deleted_at").isNotNull().build().conditions[0] as Condition;
+      const isNotNull = field("deleted_at").isNotNull().build()
+        .conditions[0] as Condition;
       expect(isNotNull.operator).toBe(Operator.IS_NOT_NULL);
       expect(isNotNull.value).toBeNull();
     });
@@ -119,7 +125,9 @@ describe("ConditionBuilder", () => {
       const cond = field("age")
         .greaterThan(new Variable("min_age"))
         .and(field("status").equals("active"))
-        .or(field("priority").inList([new Variable("high_priority"), "critical"]));
+        .or(
+          field("priority").inList([new Variable("high_priority"), "critical"])
+        );
       const vars = cond.getVariables();
       expect(Object.keys(vars)).toContain("min_age");
       expect(Object.keys(vars)).toContain("high_priority");
@@ -148,7 +156,7 @@ describe("ConditionBuilder", () => {
     it("accepts a ConditionGroup directly", () => {
       const group = new ConditionGroup(
         [new Condition("x", Operator.EQ, 1)],
-        LogicalOperator.OR,
+        LogicalOperator.OR
       );
       const builder = new ConditionBuilder(group);
       expect(builder.root).toBe(group);

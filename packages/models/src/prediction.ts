@@ -109,7 +109,7 @@ export class Prediction extends DBModel {
       model?: string | null;
       limit?: number;
       startKey?: string;
-    } = {},
+    } = {}
   ): Promise<[Prediction[], string]> {
     const { limit = 50, provider, model } = opts;
     const db = getDb();
@@ -118,13 +118,15 @@ export class Prediction extends DBModel {
     if (provider) conditions.push(eq(predictions.provider, provider));
     if (model) conditions.push(eq(predictions.model, model));
 
-    const rows = db.select().from(predictions)
+    const rows = db
+      .select()
+      .from(predictions)
       .where(and(...conditions))
       .orderBy(desc(predictions.created_at))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Prediction(r as Record<string, unknown>));
+    const items = rows.map((r) => new Prediction(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -133,14 +135,17 @@ export class Prediction extends DBModel {
 
   static async aggregateByUser(
     userId: string,
-    opts?: { provider?: string | null; model?: string | null },
+    opts?: { provider?: string | null; model?: string | null }
   ): Promise<AggregateResult> {
     const db = getDb();
     const conditions = [eq(predictions.user_id, userId)];
-    if (opts?.provider) conditions.push(eq(predictions.provider, opts.provider));
+    if (opts?.provider)
+      conditions.push(eq(predictions.provider, opts.provider));
     if (opts?.model) conditions.push(eq(predictions.model, opts.model));
 
-    const rows = db.select().from(predictions)
+    const rows = db
+      .select()
+      .from(predictions)
       .where(and(...conditions))
       .limit(10000)
       .all();
@@ -165,15 +170,17 @@ export class Prediction extends DBModel {
       total_input_tokens,
       total_output_tokens,
       total_tokens,
-      call_count: rows.length,
+      call_count: rows.length
     };
   }
 
   static async aggregateByProvider(
-    userId: string,
+    userId: string
   ): Promise<ProviderAggregateResult[]> {
     const db = getDb();
-    const rows = db.select().from(predictions)
+    const rows = db
+      .select()
+      .from(predictions)
       .where(eq(predictions.user_id, userId))
       .limit(10000)
       .all();
@@ -183,7 +190,14 @@ export class Prediction extends DBModel {
       const prov = p.provider as string;
       let entry = groups.get(prov);
       if (!entry) {
-        entry = { provider: prov, total_cost: 0, total_input_tokens: 0, total_output_tokens: 0, total_tokens: 0, call_count: 0 };
+        entry = {
+          provider: prov,
+          total_cost: 0,
+          total_input_tokens: 0,
+          total_output_tokens: 0,
+          total_tokens: 0,
+          call_count: 0
+        };
         groups.set(prov, entry);
       }
       entry.total_cost += (p.cost as number) ?? 0;
@@ -198,13 +212,16 @@ export class Prediction extends DBModel {
 
   static async aggregateByModel(
     userId: string,
-    opts?: { provider?: string | null },
+    opts?: { provider?: string | null }
   ): Promise<ModelAggregateResult[]> {
     const db = getDb();
     const conditions = [eq(predictions.user_id, userId)];
-    if (opts?.provider) conditions.push(eq(predictions.provider, opts.provider));
+    if (opts?.provider)
+      conditions.push(eq(predictions.provider, opts.provider));
 
-    const rows = db.select().from(predictions)
+    const rows = db
+      .select()
+      .from(predictions)
       .where(and(...conditions))
       .limit(10000)
       .all();
@@ -216,7 +233,15 @@ export class Prediction extends DBModel {
       const key = `${prov}::${mod}`;
       let entry = groups.get(key);
       if (!entry) {
-        entry = { provider: prov, model: mod, total_cost: 0, total_input_tokens: 0, total_output_tokens: 0, total_tokens: 0, call_count: 0 };
+        entry = {
+          provider: prov,
+          model: mod,
+          total_cost: 0,
+          total_input_tokens: 0,
+          total_output_tokens: 0,
+          total_tokens: 0,
+          call_count: 0
+        };
         groups.set(key, entry);
       }
       entry.total_cost += (p.cost as number) ?? 0;

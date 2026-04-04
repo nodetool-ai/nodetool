@@ -150,7 +150,7 @@ describe("DockerHijackMultiplexDemuxer", () => {
       write: vi.fn(),
       end: vi.fn().mockImplementation(() => {
         throw new Error("socket already closed");
-      }),
+      })
     } as unknown as Socket;
     const demuxer = new DockerHijackMultiplexDemuxer(sock);
     expect(() => demuxer.closeStdin()).not.toThrow();

@@ -46,12 +46,15 @@ export function shellEscape(value: string): string {
  * @param captureOutput If true, capture and return output. If false, stream output.
  * @returns Captured output if captureOutput=true, empty string otherwise.
  */
-export function runCommand(command: string, captureOutput: boolean = false): string {
+export function runCommand(
+  command: string,
+  captureOutput: boolean = false
+): string {
   try {
     const result = execSync(command, {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
-      shell: "/bin/sh",
+      shell: "/bin/sh"
     });
     const output = (result ?? "").trim();
     if (captureOutput) {
@@ -93,7 +96,7 @@ export function runCommandArgs(
   try {
     const result = execFileSync(program, args, {
       encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe"]
     });
     const output = (result ?? "").trim();
     if (captureOutput) {
@@ -124,16 +127,16 @@ export function runCommandArgs(
  */
 export function checkDockerAuth(_registry: string = "docker.io"): boolean {
   try {
-    execSync(
-      "docker system info --format '{{.RegistryConfig.IndexConfigs}}'",
-      { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
-    );
+    execSync("docker system info --format '{{.RegistryConfig.IndexConfigs}}'", {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
     return true;
   } catch {
     try {
       execSync("docker login --get-login", {
         encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"]
       });
       return true;
     } catch {
@@ -192,11 +195,15 @@ export function generateImageTag(): string {
     "-",
     pad(now.getHours()),
     pad(now.getMinutes()),
-    pad(now.getSeconds()),
+    pad(now.getSeconds())
   ].join("");
 
   const randomData = `${Date.now()}${process.pid}${crypto.randomBytes(8).toString("hex")}`;
-  const shortHash = crypto.createHash("md5").update(randomData).digest("hex").slice(0, 6);
+  const shortHash = crypto
+    .createHash("md5")
+    .update(randomData)
+    .digest("hex")
+    .slice(0, 6);
 
   return `${timestamp}-${shortHash}`;
 }
@@ -224,7 +231,7 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
     tag,
     platform = "linux/amd64",
     useCache = true,
-    autoPush = true,
+    autoPush = true
   } = options;
 
   console.log("Building Docker image");
@@ -258,9 +265,13 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
         // Ensure docker buildx builder exists
         try {
           runCommandArgs("docker", [
-            "buildx", "create", "--use",
-            "--name", "nodetool-builder",
-            "--driver", "docker-container",
+            "buildx",
+            "create",
+            "--use",
+            "--name",
+            "nodetool-builder",
+            "--driver",
+            "docker-container"
           ]);
         } catch {
           console.log(
@@ -273,14 +284,18 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
         const pushFlag = autoPush ? "--push" : "--load";
 
         const buildxArgs = [
-          "buildx", "build",
-          "-f", dockerfileForBuild,
-          "--platform", platform,
-          "-t", `${imageName}:${tag}`,
+          "buildx",
+          "build",
+          "-f",
+          dockerfileForBuild,
+          "--platform",
+          platform,
+          "-t",
+          `${imageName}:${tag}`,
           `--cache-from=${cacheFrom}`,
           `--cache-to=${cacheTo}`,
           pushFlag,
-          buildContext,
+          buildContext
         ];
 
         console.log(`Cache image: ${imageName}:buildcache`);
@@ -289,13 +304,18 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
           runCommandArgs("docker", buildxArgs);
           imagePushed = autoPush;
         } catch {
-          console.log("Cache/buildx build failed, falling back to standard docker build...");
+          console.log(
+            "Cache/buildx build failed, falling back to standard docker build..."
+          );
           runCommandArgs("docker", [
             "build",
-            "-f", dockerfileForBuild,
-            "--platform", platform,
-            "-t", `${imageName}:${tag}`,
-            buildContext,
+            "-f",
+            dockerfileForBuild,
+            "--platform",
+            platform,
+            "-t",
+            `${imageName}:${tag}`,
+            buildContext
           ]);
           imagePushed = false;
         }
@@ -303,10 +323,13 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
         console.log("Building without cache optimization...");
         runCommandArgs("docker", [
           "build",
-          "-f", dockerfileForBuild,
-          "--platform", platform,
-          "-t", `${imageName}:${tag}`,
-          buildContext,
+          "-f",
+          dockerfileForBuild,
+          "--platform",
+          platform,
+          "-t",
+          `${imageName}:${tag}`,
+          buildContext
         ]);
         imagePushed = false;
       }
@@ -334,7 +357,9 @@ export function pushToRegistry(
   tag: string,
   registry: string = "docker.io"
 ): void {
-  console.log(`Pushing Docker image ${imageName}:${tag} to registry ${registry}...`);
+  console.log(
+    `Pushing Docker image ${imageName}:${tag} to registry ${registry}...`
+  );
 
   ensureDockerAuth(registry);
 
@@ -344,9 +369,9 @@ export function pushToRegistry(
   } catch {
     throw new Error(
       `Failed to push image ${imageName}:${tag}. Common issues: ` +
-      `1. Check your Docker registry authentication: docker login. ` +
-      `2. Verify the image name includes your username: username/image-name. ` +
-      `3. Ensure you have push permissions to the repository.`
+        `1. Check your Docker registry authentication: docker login. ` +
+        `2. Verify the image name includes your username: username/image-name. ` +
+        `3. Ensure you have push permissions to the repository.`
     );
   }
 }
@@ -358,7 +383,9 @@ export function pushToRegistry(
 /**
  * Get Docker username from Docker's configuration file.
  */
-export function getDockerUsernameFromConfig(registry: string = "docker.io"): string | null {
+export function getDockerUsernameFromConfig(
+  registry: string = "docker.io"
+): string | null {
   try {
     const dockerConfigPath = path.join(os.homedir(), ".docker", "config.json");
 
@@ -376,8 +403,10 @@ export function getDockerUsernameFromConfig(registry: string = "docker.io"): str
     const possibleRegistryKeys = [
       registry,
       `https://${registry}/v1/`,
-      registry === "docker.io" ? "https://index.docker.io/v1/" : `https://${registry}/v1/`,
-      registry === "docker.io" ? "index.docker.io" : registry,
+      registry === "docker.io"
+        ? "https://index.docker.io/v1/"
+        : `https://${registry}/v1/`,
+      registry === "docker.io" ? "index.docker.io" : registry
     ];
 
     for (const regKey of possibleRegistryKeys) {
@@ -390,7 +419,9 @@ export function getDockerUsernameFromConfig(registry: string = "docker.io"): str
 
       if (authData.auth) {
         try {
-          const decoded = Buffer.from(authData.auth, "base64").toString("utf-8");
+          const decoded = Buffer.from(authData.auth, "base64").toString(
+            "utf-8"
+          );
           const [username] = decoded.split(":", 2);
           return username;
         } catch {
@@ -439,7 +470,7 @@ export function runDockerImage(options: RunDockerImageOptions): void {
     detach = true,
     gpus,
     remove = true,
-    extraArgs,
+    extraArgs
   } = options;
 
   const args: string[] = ["run"];

@@ -6,7 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
-  imageToDataUrl,
+  imageToDataUrl
 } from "../fal-base.js";
 
 // Re-export alias
@@ -18,12 +18,25 @@ export class BagelUnderstand extends FalNode {
   static readonly description = `Bagel is a 7B parameter multimodal model from Bytedance-Seed that can generate both text and images.
 vision, analysis, json, image-understanding`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "prompt": "str", "text": "str", "timings": "dict[str, any]", "seed": "int" };
+  static readonly outputTypes = {
+    prompt: "str",
+    text: "str",
+    timings: "dict[str, any]",
+    seed: "int"
+  };
 
-  @prop({ type: "str", default: "", description: "The prompt to query the image with." })
+  @prop({
+    type: "str",
+    default: "",
+    description: "The prompt to query the image with."
+  })
   declare prompt: any;
 
-  @prop({ type: "int", default: -1, description: "The seed to use for the generation." })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "The seed to use for the generation."
+  })
   declare seed: any;
 
   @prop({ type: "image", default: "", description: "The image for the query." })
@@ -35,13 +48,15 @@ vision, analysis, json, image-understanding`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "seed": seed,
+      prompt: prompt,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl =
+        (await imageToDataUrl(imageRef!)) ??
+        (await assetToFalUrl(apiKey, imageRef!));
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -52,5 +67,5 @@ vision, analysis, json, image-understanding`;
 }
 
 export const FAL_IMAGE_TO_JSON_NODES: readonly NodeClass[] = [
-  BagelUnderstand,
+  BagelUnderstand
 ] as const;

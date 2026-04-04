@@ -19,7 +19,7 @@ function makeNode(overrides: Partial<NodeDescriptor> = {}): NodeDescriptor {
 }
 
 function trackingExecutor(
-  processFn: (inputs: Record<string, unknown>) => Record<string, unknown>,
+  processFn: (inputs: Record<string, unknown>) => Record<string, unknown>
 ): { executor: NodeExecutor; calls: Array<Record<string, unknown>> } {
   const calls: Array<Record<string, unknown>> = [];
   return {
@@ -27,9 +27,9 @@ function trackingExecutor(
       async process(inputs) {
         calls.push({ ...inputs });
         return processFn(inputs);
-      },
+      }
     },
-    calls,
+    calls
   };
 }
 
@@ -40,15 +40,15 @@ describe("Python parity — Graph.fromDict normalization", () => {
         {
           id: "n1",
           type: "test.Node",
-          data: { threshold: 0.75, label: "primary" },
-        },
+          data: { threshold: 0.75, label: "primary" }
+        }
       ],
-      edges: [],
+      edges: []
     });
 
     expect(graph.findNode("n1")?.properties).toEqual({
       threshold: 0.75,
-      label: "primary",
+      label: "primary"
     });
   });
 
@@ -56,16 +56,16 @@ describe("Python parity — Graph.fromDict normalization", () => {
     const graph = Graph.fromDict({
       nodes: [
         { id: "source", type: "test.Source", data: { out: 1 } },
-        { id: "target", type: "test.Target", data: { value: 999, keep: "ok" } },
+        { id: "target", type: "test.Target", data: { value: 999, keep: "ok" } }
       ],
       edges: [
         {
           source: "source",
           sourceHandle: "out",
           target: "target",
-          targetHandle: "value",
-        },
-      ],
+          targetHandle: "value"
+        }
+      ]
     });
 
     expect(graph.findNode("target")?.properties).toEqual({ keep: "ok" });
@@ -75,17 +75,22 @@ describe("Python parity — Graph.fromDict normalization", () => {
     const graph = Graph.fromDict({
       nodes: [
         { id: "a", type: "test.A" },
-        { id: "b", type: "test.B" },
+        { id: "b", type: "test.B" }
       ],
       edges: [
         { source: "a", sourceHandle: "out", target: "b", targetHandle: "in" },
         { source: "a", target: "b" },
-        { source: "ghost", sourceHandle: "out", target: "b", targetHandle: "extra" },
-      ],
+        {
+          source: "ghost",
+          sourceHandle: "out",
+          target: "b",
+          targetHandle: "extra"
+        }
+      ]
     });
 
     expect(graph.edges).toEqual([
-      { source: "a", sourceHandle: "out", target: "b", targetHandle: "in" },
+      { source: "a", sourceHandle: "out", target: "b", targetHandle: "in" }
     ]);
   });
 
@@ -95,12 +100,12 @@ describe("Python parity — Graph.fromDict normalization", () => {
         {
           nodes: [
             { id: "a", type: "test.A" },
-            { id: "b", type: "test.B" },
+            { id: "b", type: "test.B" }
           ],
-          edges: [{ source: "a", target: "b" }],
+          edges: [{ source: "a", target: "b" }]
         },
-        { skipErrors: false },
-      ),
+        { skipErrors: false }
+      )
     ).toThrow(GraphValidationError);
   });
 });
@@ -111,13 +116,15 @@ describe("Python parity — omitted sync_mode default", () => {
     inbox.addUpstream("left", 1);
     inbox.addUpstream("right", 1);
 
-    const { executor, calls } = trackingExecutor((inputs) => ({ value: inputs }));
+    const { executor, calls } = trackingExecutor((inputs) => ({
+      value: inputs
+    }));
     const actor = new NodeActor({
       node: makeNode(),
       inbox,
       executor,
       sendOutputs: async () => {},
-      emitMessage: () => {},
+      emitMessage: () => {}
     });
 
     await inbox.put("left", 1);
@@ -130,7 +137,7 @@ describe("Python parity — omitted sync_mode default", () => {
 
     expect(calls).toEqual([
       { left: 1, right: 2 },
-      { left: 3, right: 2 },
+      { left: 3, right: 2 }
     ]);
   });
 });

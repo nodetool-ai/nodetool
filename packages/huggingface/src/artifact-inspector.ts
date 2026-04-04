@@ -39,7 +39,10 @@ export interface ArtifactDetection {
 export function inspectPaths(paths: string[]): ArtifactDetection | null {
   if (paths.length === 0) return null;
 
-  const lowerPaths = paths.map((p) => ({ original: p, lower: p.toLowerCase() }));
+  const lowerPaths = paths.map((p) => ({
+    original: p,
+    lower: p.toLowerCase()
+  }));
 
   const safetensors = lowerPaths
     .filter((p) => p.lower.endsWith(".safetensors"))
@@ -62,7 +65,7 @@ export function inspectPaths(paths: string[]): ArtifactDetection | null {
           family: stfResult.family,
           component: stfResult.component,
           confidence: stfResult.confidence,
-          evidence: stfResult.evidence || [],
+          evidence: stfResult.evidence || []
         };
       }
     } catch {
@@ -142,7 +145,7 @@ export function detectGguf(paths: string[]): ArtifactDetection | null {
     family: family || "gguf-unknown",
     component: "llm",
     confidence: !arch ? 0.55 : 0.75,
-    evidence,
+    evidence
   };
 }
 
@@ -238,14 +241,26 @@ const _PIPELINE_CLASS_DETECTION: Readonly<
   Record<string, { family: string; component: string }>
 > = {
   StableDiffusionPipeline: { family: "stable-diffusion", component: "unet" },
-  StableDiffusionImg2ImgPipeline: { family: "stable-diffusion", component: "unet" },
-  StableDiffusionInpaintPipeline: { family: "stable-diffusion", component: "unet" },
-  StableDiffusionUpscalePipeline: { family: "stable-diffusion", component: "unet" },
+  StableDiffusionImg2ImgPipeline: {
+    family: "stable-diffusion",
+    component: "unet"
+  },
+  StableDiffusionInpaintPipeline: {
+    family: "stable-diffusion",
+    component: "unet"
+  },
+  StableDiffusionUpscalePipeline: {
+    family: "stable-diffusion",
+    component: "unet"
+  },
   StableDiffusionXLPipeline: { family: "sdxl", component: "unet" },
   StableDiffusionXLImg2ImgPipeline: { family: "sdxl", component: "unet" },
   StableDiffusionXLInpaintPipeline: { family: "sdxl", component: "unet" },
   StableDiffusionXLControlNetPipeline: { family: "sdxl", component: "unet" },
-  StableDiffusionXLRefinerPipeline: { family: "sdxl-refiner", component: "unet" },
+  StableDiffusionXLRefinerPipeline: {
+    family: "sdxl-refiner",
+    component: "unet"
+  },
   StableDiffusion3Pipeline: { family: "sd3", component: "transformer" },
   StableDiffusion3Img2ImgPipeline: { family: "sd3", component: "transformer" },
   StableDiffusion3InpaintPipeline: { family: "sd3", component: "transformer" },
@@ -258,9 +273,8 @@ const _PIPELINE_CLASS_DETECTION: Readonly<
   QwenImagePipeline: { family: "qwen-image", component: "transformer" },
   QwenImageEditPlusPipeline: { family: "qwen-image", component: "transformer" },
   PixArtAlphaPipeline: { family: "pixart-alpha", component: "transformer" },
-  PixArtSigmaPipeline: { family: "pixart-sigma", component: "transformer" },
+  PixArtSigmaPipeline: { family: "pixart-sigma", component: "transformer" }
 };
-
 
 /**
  * Infer family/component from config.json or model_index.json files.
@@ -285,20 +299,24 @@ export function detectFromJson(
           family: detection.family,
           component: detection.component,
           confidence: 0.75,
-          evidence: [`model_index.json _class_name: ${mi._class_name}`],
+          evidence: [`model_index.json _class_name: ${mi._class_name}`]
         };
       }
     }
 
     const pipelines = mi.pipelines || mi._class_name;
     if (Array.isArray(pipelines)) {
-      const pipelineStrs = pipelines.map((p: unknown) => String(p).toLowerCase());
-      if (pipelineStrs.some((p: string) => p.includes("unet2dconditionmodel"))) {
+      const pipelineStrs = pipelines.map((p: unknown) =>
+        String(p).toLowerCase()
+      );
+      if (
+        pipelineStrs.some((p: string) => p.includes("unet2dconditionmodel"))
+      ) {
         return {
           family: "sd-or-sdxl-unknown",
           component: "unet",
           confidence: 0.6,
-          evidence: ["model_index.json lists UNet2DConditionModel"],
+          evidence: ["model_index.json lists UNet2DConditionModel"]
         };
       }
     }
@@ -311,7 +329,7 @@ export function detectFromJson(
             family: "clip-text-encoder",
             component: "text_encoder",
             confidence: 0.55,
-            evidence: ["model_index.json lists CLIPTextModel"],
+            evidence: ["model_index.json lists CLIPTextModel"]
           };
         }
       }
@@ -323,7 +341,9 @@ export function detectFromJson(
     if (!cfg) continue;
     const modelType = String(cfg.model_type || "").toLowerCase();
     const rawArchs = cfg.architectures;
-    const archs = (Array.isArray(rawArchs) ? rawArchs : []).map((a: unknown) => String(a).toLowerCase());
+    const archs = (Array.isArray(rawArchs) ? rawArchs : []).map((a: unknown) =>
+      String(a).toLowerCase()
+    );
     if (modelType || archs.length > 0) {
       const fam = familyFromModelType(modelType, archs);
       if (fam) return fam;
@@ -334,7 +354,7 @@ export function detectFromJson(
         family: "multimodal-vision-text",
         component: "vision_text",
         confidence: 0.5,
-        evidence: ["config contains both vision_config and text_config"],
+        evidence: ["config contains both vision_config and text_config"]
       };
     }
   }
@@ -358,37 +378,67 @@ export function familyFromModelType(
     mt.includes(target) || archs.some((a) => a.includes(target));
 
   if (has("bert") && !has("roberta") && !has("deberta")) {
-    return { family: "bert", component: "llm", confidence: 0.9, evidence: ["model_type/arch includes bert"] };
+    return {
+      family: "bert",
+      component: "llm",
+      confidence: 0.9,
+      evidence: ["model_type/arch includes bert"]
+    };
   }
   if (has("roberta")) {
-    return { family: "roberta", component: "llm", confidence: 0.9, evidence: ["model_type/arch includes roberta"] };
+    return {
+      family: "roberta",
+      component: "llm",
+      confidence: 0.9,
+      evidence: ["model_type/arch includes roberta"]
+    };
   }
   if (has("deberta")) {
-    return { family: "deberta", component: "llm", confidence: 0.8, evidence: ["model_type/arch includes deberta"] };
+    return {
+      family: "deberta",
+      component: "llm",
+      confidence: 0.8,
+      evidence: ["model_type/arch includes deberta"]
+    };
   }
   if (has("bart")) {
-    return { family: "opt", component: "llm", confidence: 0.7, evidence: ["model_type/arch includes bart/decoder"] };
+    return {
+      family: "opt",
+      component: "llm",
+      confidence: 0.7,
+      evidence: ["model_type/arch includes bart/decoder"]
+    };
   }
   if (has("gpt2")) {
-    return { family: "gpt2", component: "llm", confidence: 0.7, evidence: ["model_type/arch includes gpt2"] };
+    return {
+      family: "gpt2",
+      component: "llm",
+      confidence: 0.7,
+      evidence: ["model_type/arch includes gpt2"]
+    };
   }
   if (has("clip")) {
     return {
       family: "clip-text-encoder",
       component: "text_encoder",
       confidence: 0.6,
-      evidence: ["model_type/arch includes clip"],
+      evidence: ["model_type/arch includes clip"]
     };
   }
   if (has("whisper")) {
-    return { family: "whisper", component: "llm", confidence: 0.7, evidence: ["model_type/arch includes whisper"] };
+    return {
+      family: "whisper",
+      component: "llm",
+      confidence: 0.7,
+      evidence: ["model_type/arch includes whisper"]
+    };
   }
   if (has("vit")) {
     return {
       family: "vision",
       component: "vision_encoder",
       confidence: 0.5,
-      evidence: ["model_type/arch includes vit"],
+      evidence: ["model_type/arch includes vit"]
     };
   }
   if (has("yolos") || has("detr")) {
@@ -396,7 +446,7 @@ export function familyFromModelType(
       family: "vision",
       component: "detection",
       confidence: 0.6,
-      evidence: ["model_type/arch includes yolos/detr"],
+      evidence: ["model_type/arch includes yolos/detr"]
     };
   }
   if (has("segformer")) {
@@ -404,7 +454,7 @@ export function familyFromModelType(
       family: "vision",
       component: "segmentation",
       confidence: 0.6,
-      evidence: ["model_type/arch includes segformer"],
+      evidence: ["model_type/arch includes segformer"]
     };
   }
   if (has("blip")) {
@@ -412,7 +462,7 @@ export function familyFromModelType(
       family: "blip",
       component: "vision_text",
       confidence: 0.6,
-      evidence: ["model_type/arch includes blip"],
+      evidence: ["model_type/arch includes blip"]
     };
   }
   if (has("llama")) {
@@ -420,7 +470,7 @@ export function familyFromModelType(
       family: "llama-family",
       component: "llm",
       confidence: 0.7,
-      evidence: ["model_type/arch includes llama"],
+      evidence: ["model_type/arch includes llama"]
     };
   }
   if (has("mistral")) {
@@ -428,7 +478,7 @@ export function familyFromModelType(
       family: "llama-family",
       component: "llm",
       confidence: 0.7,
-      evidence: ["model_type/arch includes mistral"],
+      evidence: ["model_type/arch includes mistral"]
     };
   }
   if (has("qwen")) {
@@ -436,7 +486,7 @@ export function familyFromModelType(
       family: "qwen-family",
       component: "llm",
       confidence: 0.7,
-      evidence: ["model_type/arch includes qwen"],
+      evidence: ["model_type/arch includes qwen"]
     };
   }
 

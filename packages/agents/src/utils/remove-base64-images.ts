@@ -16,7 +16,9 @@ function isBase64Image(content: MessageImageContent): boolean {
  * Remove base64 image content blocks from a message content array.
  * Preserves text content, audio content, and images with real URLs.
  */
-export function removeBase64Images(content: MessageContent[]): MessageContent[] {
+export function removeBase64Images(
+  content: MessageContent[]
+): MessageContent[] {
   return content.filter((item) => {
     if (item.type !== "image") return true;
     return !isBase64Image(item as MessageImageContent);

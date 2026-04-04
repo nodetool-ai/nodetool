@@ -7,7 +7,7 @@ import type {
   MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
-  ToolCall,
+  ToolCall
 } from "./types.js";
 
 type CustomResponseFn = (
@@ -63,7 +63,7 @@ export class FakeProvider extends BaseProvider {
     return [
       { id: "fake-model-v1", name: "Fake Model v1", provider: "fake" },
       { id: "fake-model-v2", name: "Fake Model v2", provider: "fake" },
-      { id: "fake-fast-model", name: "Fake Fast Model", provider: "fake" },
+      { id: "fake-fast-model", name: "Fake Fast Model", provider: "fake" }
     ];
   }
 
@@ -128,7 +128,7 @@ export class FakeProvider extends BaseProvider {
           type: "chunk",
           content: chunkText,
           done,
-          content_type: "text",
+          content_type: "text"
         } as Chunk;
       }
     } else {
@@ -136,7 +136,7 @@ export class FakeProvider extends BaseProvider {
         type: "chunk",
         content: response,
         done: true,
-        content_type: "text",
+        content_type: "text"
       } as Chunk;
     }
   }
@@ -150,7 +150,7 @@ export function createFakeToolCall(
   return {
     id: callId ?? randomUUID(),
     name,
-    args: args ?? {},
+    args: args ?? {}
   };
 }
 
@@ -167,7 +167,7 @@ export function createStreamingFakeProvider(
   return new FakeProvider({
     textResponse: responseText,
     shouldStream: true,
-    chunkSize,
+    chunkSize
   });
 }
 

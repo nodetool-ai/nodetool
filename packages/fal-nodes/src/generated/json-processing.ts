@@ -6,7 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
-  imageToDataUrl,
+  imageToDataUrl
 } from "../fal-base.js";
 
 // Re-export alias
@@ -18,42 +18,96 @@ export class FfmpegApiLoudnorm extends FalNode {
   static readonly description = `Get EBU R128 loudness normalization from audio files using FFmpeg API.
 json, processing, data, utility`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "summary": "str", "audio": "audio" };
+  static readonly outputTypes = { summary: "str", audio: "audio" };
 
-  @prop({ type: "str", default: "", description: "Measured loudness range of input file in LU. Required for linear mode." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Measured loudness range of input file in LU. Required for linear mode."
+  })
   declare measured_lra: any;
 
-  @prop({ type: "bool", default: false, description: "Return loudness measurement summary with the normalized audio" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Return loudness measurement summary with the normalized audio"
+  })
   declare print_summary: any;
 
-  @prop({ type: "float", default: 0, description: "Offset gain in dB applied before the true-peak limiter" })
+  @prop({
+    type: "float",
+    default: 0,
+    description: "Offset gain in dB applied before the true-peak limiter"
+  })
   declare offset: any;
 
-  @prop({ type: "str", default: "", description: "Measured integrated loudness of input file in LUFS. Required for linear mode." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Measured integrated loudness of input file in LUFS. Required for linear mode."
+  })
   declare measured_i: any;
 
-  @prop({ type: "str", default: "", description: "Measured true peak of input file in dBTP. Required for linear mode." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Measured true peak of input file in dBTP. Required for linear mode."
+  })
   declare measured_tp: any;
 
-  @prop({ type: "bool", default: false, description: "Use linear normalization mode (single-pass). If false, uses dynamic mode (two-pass for better quality)." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Use linear normalization mode (single-pass). If false, uses dynamic mode (two-pass for better quality)."
+  })
   declare linear: any;
 
-  @prop({ type: "bool", default: false, description: "Treat mono input files as dual-mono for correct EBU R128 measurement on stereo systems" })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Treat mono input files as dual-mono for correct EBU R128 measurement on stereo systems"
+  })
   declare dual_mono: any;
 
-  @prop({ type: "str", default: "", description: "Measured threshold of input file in LUFS. Required for linear mode." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Measured threshold of input file in LUFS. Required for linear mode."
+  })
   declare measured_thresh: any;
 
-  @prop({ type: "float", default: -0.1, description: "Maximum true peak in dBTP." })
+  @prop({
+    type: "float",
+    default: -0.1,
+    description: "Maximum true peak in dBTP."
+  })
   declare true_peak: any;
 
-  @prop({ type: "audio", default: "", description: "URL of the audio file to normalize" })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "URL of the audio file to normalize"
+  })
   declare audio: any;
 
-  @prop({ type: "float", default: -18, description: "Integrated loudness target in LUFS." })
+  @prop({
+    type: "float",
+    default: -18,
+    description: "Integrated loudness target in LUFS."
+  })
   declare integrated_loudness: any;
 
-  @prop({ type: "float", default: 7, description: "Loudness range target in LU" })
+  @prop({
+    type: "float",
+    default: 7,
+    description: "Loudness range target in LU"
+  })
   declare loudness_range: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -71,17 +125,17 @@ json, processing, data, utility`;
     const loudnessRange = Number(this.loudness_range ?? 7);
 
     const args: Record<string, unknown> = {
-      "measured_lra": measuredLra,
-      "print_summary": printSummary,
-      "offset": offset,
-      "measured_i": measuredI,
-      "measured_tp": measuredTp,
-      "linear": linear,
-      "dual_mono": dualMono,
-      "measured_thresh": measuredThresh,
-      "true_peak": truePeak,
-      "integrated_loudness": integratedLoudness,
-      "loudness_range": loudnessRange,
+      measured_lra: measuredLra,
+      print_summary: printSummary,
+      offset: offset,
+      measured_i: measuredI,
+      measured_tp: measuredTp,
+      linear: linear,
+      dual_mono: dualMono,
+      measured_thresh: measuredThresh,
+      true_peak: truePeak,
+      integrated_loudness: integratedLoudness,
+      loudness_range: loudnessRange
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -102,18 +156,42 @@ export class FfmpegApiWaveform extends FalNode {
   static readonly description = `Get waveform data from audio files using FFmpeg API.
 json, processing, data, utility`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "waveform": "list[float]", "duration": "float", "points": "int", "precision": "int" };
+  static readonly outputTypes = {
+    waveform: "list[float]",
+    duration: "float",
+    points: "int",
+    precision: "int"
+  };
 
-  @prop({ type: "float", default: 4, description: "Controls how many points are sampled per second of audio. Lower values (e.g. 1-2) create a coarser waveform, higher values (e.g. 4-10) create a more detailed one." })
+  @prop({
+    type: "float",
+    default: 4,
+    description:
+      "Controls how many points are sampled per second of audio. Lower values (e.g. 1-2) create a coarser waveform, higher values (e.g. 4-10) create a more detailed one."
+  })
   declare points_per_second: any;
 
-  @prop({ type: "int", default: 3, description: "Size of the smoothing window. Higher values create a smoother waveform. Must be an odd number." })
+  @prop({
+    type: "int",
+    default: 3,
+    description:
+      "Size of the smoothing window. Higher values create a smoother waveform. Must be an odd number."
+  })
   declare smoothing_window: any;
 
-  @prop({ type: "audio", default: "", description: "URL of the audio file to analyze" })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "URL of the audio file to analyze"
+  })
   declare media_url: any;
 
-  @prop({ type: "int", default: 2, description: "Number of decimal places for the waveform values. Higher values provide more precision but increase payload size." })
+  @prop({
+    type: "int",
+    default: 2,
+    description:
+      "Number of decimal places for the waveform values. Higher values provide more precision but increase payload size."
+  })
   declare precision: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -123,9 +201,9 @@ json, processing, data, utility`;
     const precision = Number(this.precision ?? 2);
 
     const args: Record<string, unknown> = {
-      "points_per_second": pointsPerSecond,
-      "smoothing_window": smoothingWindow,
-      "precision": precision,
+      points_per_second: pointsPerSecond,
+      smoothing_window: smoothingWindow,
+      precision: precision
     };
 
     const mediaUrlRef = this.media_url as Record<string, unknown> | undefined;
@@ -146,12 +224,21 @@ export class FfmpegApiMetadata extends FalNode {
   static readonly description = `Get encoding metadata from video and audio files using FFmpeg API.
 json, processing, data, utility`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "media": "str" };
+  static readonly outputTypes = { media: "str" };
 
-  @prop({ type: "bool", default: false, description: "Whether to extract the start and end frames for videos. Note that when true the request will be slower." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Whether to extract the start and end frames for videos. Note that when true the request will be slower."
+  })
   declare extract_frames: any;
 
-  @prop({ type: "video", default: "", description: "URL of the media file (video or audio) to analyze" })
+  @prop({
+    type: "video",
+    default: "",
+    description: "URL of the media file (video or audio) to analyze"
+  })
   declare media_url: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -159,7 +246,7 @@ json, processing, data, utility`;
     const extractFrames = Boolean(this.extract_frames ?? false);
 
     const args: Record<string, unknown> = {
-      "extract_frames": extractFrames,
+      extract_frames: extractFrames
     };
 
     const mediaUrlRef = this.media_url as Record<string, unknown> | undefined;
@@ -177,5 +264,5 @@ json, processing, data, utility`;
 export const FAL_JSON_PROCESSING_NODES: readonly NodeClass[] = [
   FfmpegApiLoudnorm,
   FfmpegApiWaveform,
-  FfmpegApiMetadata,
+  FfmpegApiMetadata
 ] as const;

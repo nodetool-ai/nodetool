@@ -7,7 +7,7 @@ import {
   toApiEdge,
   toApiGraph,
   removeConnectedSlots,
-  type ApiGraph,
+  type ApiGraph
 } from "../src/api-graph.js";
 import type { Edge, GraphData, NodeDescriptor } from "@nodetool/protocol";
 
@@ -31,7 +31,7 @@ describe("toApiNode", () => {
       parent_id: "parent-1",
       ui_properties: { x: 10, y: 20 },
       dynamic_properties: { extra: "value" },
-      dynamic_outputs: { alt: { type: "string" } as any },
+      dynamic_outputs: { alt: { type: "string" } as any }
     };
     const api = toApiNode(node);
     expect(api).toEqual({
@@ -42,11 +42,13 @@ describe("toApiNode", () => {
       ui_properties: { x: 10, y: 20 },
       dynamic_properties: { extra: "value" },
       dynamic_outputs: { alt: { type: "string" } },
-      sync_mode: "zip_all",
+      sync_mode: "zip_all"
     });
     // Runtime fields should NOT be present
     expect((api as Record<string, unknown>).outputs).toBeUndefined();
-    expect((api as Record<string, unknown>).is_streaming_output).toBeUndefined();
+    expect(
+      (api as Record<string, unknown>).is_streaming_output
+    ).toBeUndefined();
   });
 
   it("defaults data to empty object when properties is undefined", () => {
@@ -70,7 +72,7 @@ describe("toApiNode", () => {
       ui_properties: {},
       dynamic_properties: {},
       dynamic_outputs: {},
-      sync_mode: "on_any",
+      sync_mode: "on_any"
     });
   });
 });
@@ -88,7 +90,7 @@ describe("toApiEdge", () => {
       target: "n2",
       targetHandle: "a",
       ui_properties: { color: "red" },
-      edge_type: "data",
+      edge_type: "data"
     };
     const api = toApiEdge(edge);
     expect(api).toEqual({
@@ -98,7 +100,7 @@ describe("toApiEdge", () => {
       target: "n2",
       targetHandle: "a",
       ui_properties: { color: "red" },
-      edge_type: "data",
+      edge_type: "data"
     });
   });
 
@@ -107,7 +109,7 @@ describe("toApiEdge", () => {
       source: "n1",
       sourceHandle: "out",
       target: "n2",
-      targetHandle: "in",
+      targetHandle: "in"
     };
     const api = toApiEdge(edge);
     expect(api.id).toBeNull();
@@ -121,7 +123,7 @@ describe("toApiEdge", () => {
       sourceHandle: "__control__",
       target: "n2",
       targetHandle: "__control__",
-      edge_type: "control",
+      edge_type: "control"
     };
     expect(toApiEdge(edge).edge_type).toBe("control");
   });
@@ -136,11 +138,11 @@ describe("toApiGraph", () => {
     const graph: GraphData = {
       nodes: [
         { id: "a", type: "test.A", properties: { x: 10 } },
-        { id: "b", type: "test.B" },
+        { id: "b", type: "test.B" }
       ],
       edges: [
-        { source: "a", sourceHandle: "out", target: "b", targetHandle: "in" },
-      ],
+        { source: "a", sourceHandle: "out", target: "b", targetHandle: "in" }
+      ]
     };
     const api = toApiGraph(graph);
     expect(api.nodes).toHaveLength(2);
@@ -165,11 +167,11 @@ describe("removeConnectedSlots", () => {
     const graph: ApiGraph = {
       nodes: [
         { id: "n1", type: "test.A", data: { out: 1 } },
-        { id: "n2", type: "test.B", data: { a: 10, b: 20 } },
+        { id: "n2", type: "test.B", data: { a: 10, b: 20 } }
       ],
       edges: [
-        { source: "n1", sourceHandle: "out", target: "n2", targetHandle: "a" },
-      ],
+        { source: "n1", sourceHandle: "out", target: "n2", targetHandle: "a" }
+      ]
     };
     const cleaned = removeConnectedSlots(graph);
     // n2.data.a should be removed (connected via edge), b should remain
@@ -181,7 +183,7 @@ describe("removeConnectedSlots", () => {
   it("handles nodes with no incoming edges", () => {
     const graph: ApiGraph = {
       nodes: [{ id: "n1", type: "test.A", data: { x: 1 } }],
-      edges: [],
+      edges: []
     };
     const cleaned = removeConnectedSlots(graph);
     expect(cleaned.nodes[0].data).toEqual({ x: 1 });
@@ -191,11 +193,11 @@ describe("removeConnectedSlots", () => {
     const original: ApiGraph = {
       nodes: [
         { id: "n1", type: "test.A", data: { out: 1 } },
-        { id: "n2", type: "test.B", data: { a: 10 } },
+        { id: "n2", type: "test.B", data: { a: 10 } }
       ],
       edges: [
-        { source: "n1", sourceHandle: "out", target: "n2", targetHandle: "a" },
-      ],
+        { source: "n1", sourceHandle: "out", target: "n2", targetHandle: "a" }
+      ]
     };
     removeConnectedSlots(original);
     // Original should be unchanged
@@ -207,12 +209,12 @@ describe("removeConnectedSlots", () => {
       nodes: [
         { id: "n1", type: "test.A", data: {} },
         { id: "n2", type: "test.A", data: {} },
-        { id: "n3", type: "test.B", data: { a: 1, b: 2, c: 3 } },
+        { id: "n3", type: "test.B", data: { a: 1, b: 2, c: 3 } }
       ],
       edges: [
         { source: "n1", sourceHandle: "out", target: "n3", targetHandle: "a" },
-        { source: "n2", sourceHandle: "out", target: "n3", targetHandle: "b" },
-      ],
+        { source: "n2", sourceHandle: "out", target: "n3", targetHandle: "b" }
+      ]
     };
     const cleaned = removeConnectedSlots(graph);
     expect(cleaned.nodes[2].data).toEqual({ c: 3 });
@@ -223,12 +225,12 @@ describe("removeConnectedSlots", () => {
       nodes: [
         { id: "n1", type: "test.A", data: {} },
         { id: "n2", type: "test.A", data: {} },
-        { id: "n3", type: "test.B", data: { a: 99, b: 42 } },
+        { id: "n3", type: "test.B", data: { a: 99, b: 42 } }
       ],
       edges: [
         { source: "n1", sourceHandle: "out", target: "n3", targetHandle: "a" },
-        { source: "n2", sourceHandle: "out", target: "n3", targetHandle: "a" },
-      ],
+        { source: "n2", sourceHandle: "out", target: "n3", targetHandle: "a" }
+      ]
     };
     const cleaned = removeConnectedSlots(graph);
     expect(cleaned.nodes[2].data).toEqual({ b: 42 });
@@ -239,11 +241,16 @@ describe("removeConnectedSlots", () => {
     const graph: ApiGraph = {
       nodes: [
         { id: "n1", type: "test.A", data: {} },
-        { id: "n2", type: "test.B", data: { x: 1 } },
+        { id: "n2", type: "test.B", data: { x: 1 } }
       ],
       edges: [
-        { source: "n1", sourceHandle: "out", target: "n2", targetHandle: "nonexistent" },
-      ],
+        {
+          source: "n1",
+          sourceHandle: "out",
+          target: "n2",
+          targetHandle: "nonexistent"
+        }
+      ]
     };
     const cleaned = removeConnectedSlots(graph);
     // x should remain, and no crash from deleting nonexistent key
@@ -254,11 +261,11 @@ describe("removeConnectedSlots", () => {
     const graph: ApiGraph = {
       nodes: [
         { id: "n1", type: "test.A", data: { out: 1 } },
-        { id: "n2", type: "test.B", data: { a: 10 } },
+        { id: "n2", type: "test.B", data: { a: 10 } }
       ],
       edges: [
-        { source: "n1", sourceHandle: "out", target: "n2", targetHandle: "a" },
-      ],
+        { source: "n1", sourceHandle: "out", target: "n2", targetHandle: "a" }
+      ]
     };
     const cleaned = removeConnectedSlots(graph);
     // edges should be same reference (not cloned)
@@ -277,7 +284,7 @@ describe("toApiNode — additional coverage", () => {
       type: "test.UI",
       name: "UINode",
       properties: { color: "red" },
-      ui_properties: { x: 100, y: 200 },
+      ui_properties: { x: 100, y: 200 }
     };
     const api = toApiNode(node);
     expect(api.id).toBe("n-ui");
@@ -294,15 +301,15 @@ describe("toApiNode — additional coverage", () => {
         nested: { deep: { value: 42 } },
         list: [1, "two", null, { three: 3 }],
         nullVal: null,
-        emptyObj: {},
-      },
+        emptyObj: {}
+      }
     };
     const api = toApiNode(node);
     expect(api.data).toEqual({
       nested: { deep: { value: 42 } },
       list: [1, "two", null, { three: 3 }],
       nullVal: null,
-      emptyObj: {},
+      emptyObj: {}
     });
   });
 });
@@ -319,7 +326,7 @@ describe("toApiEdge — additional coverage", () => {
       sourceHandle: "__control__",
       target: "n2",
       targetHandle: "__control__",
-      edge_type: "control",
+      edge_type: "control"
     };
     const api = toApiEdge(edge);
     expect(api.id).toBe("ctrl-1");
@@ -335,7 +342,7 @@ describe("toApiEdge — additional coverage", () => {
       target: "tgt-node",
       targetHandle: "input",
       ui_properties: { label: "my-edge", stroke: "blue" },
-      edge_type: "data",
+      edge_type: "data"
     };
     const api = toApiEdge(edge);
     expect(api.id).toBe("e-full");
@@ -357,14 +364,18 @@ describe("toApiGraph — additional coverage", () => {
     const nodes: NodeDescriptor[] = [];
     const edges: Edge[] = [];
     for (let i = 0; i < 12; i++) {
-      nodes.push({ id: `n${i}`, type: `test.Node${i}`, properties: { idx: i } });
+      nodes.push({
+        id: `n${i}`,
+        type: `test.Node${i}`,
+        properties: { idx: i }
+      });
     }
     for (let i = 0; i < 11; i++) {
       edges.push({
         source: `n${i}`,
         sourceHandle: "out",
         target: `n${i + 1}`,
-        targetHandle: "in",
+        targetHandle: "in"
       });
     }
     const api = toApiGraph({ nodes, edges });
@@ -381,11 +392,11 @@ describe("toApiGraph — additional coverage", () => {
     const graph: GraphData = {
       nodes: [
         { id: "a", type: "test.A", properties: { x: 10 } },
-        { id: "b", type: "test.B", properties: { y: 20 } },
+        { id: "b", type: "test.B", properties: { y: 20 } }
       ],
       edges: [
-        { source: "a", sourceHandle: "out", target: "b", targetHandle: "in" },
-      ],
+        { source: "a", sourceHandle: "out", target: "b", targetHandle: "in" }
+      ]
     };
     const api1 = toApiGraph(graph);
     const api2 = toApiGraph(graph);

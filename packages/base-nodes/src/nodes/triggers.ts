@@ -1,8 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import type {
-  StreamingInputs,
-  StreamingOutputs,
-} from "@nodetool/node-sdk";
+import type { StreamingInputs, StreamingOutputs } from "@nodetool/node-sdk";
 import * as fs from "fs";
 import * as path from "path";
 import * as http from "http";
@@ -90,7 +87,7 @@ export class WaitNode extends BaseNode {
   static readonly metadataOutputTypes = {
     data: "any",
     resumed_at: "str",
-    waited_seconds: "float",
+    waited_seconds: "float"
   };
 
   @prop({
@@ -98,7 +95,7 @@ export class WaitNode extends BaseNode {
     default: 0,
     title: "Timeout Seconds",
     description: "Optional timeout in seconds (0 = wait indefinitely)",
-    min: 0,
+    min: 0
   })
   declare timeout_seconds: any;
 
@@ -106,7 +103,7 @@ export class WaitNode extends BaseNode {
     type: "any",
     default: "",
     title: "Input",
-    description: "Input data to pass through to the output when resumed",
+    description: "Input data to pass through to the output when resumed"
   })
   declare input: any;
 
@@ -125,7 +122,7 @@ export class WaitNode extends BaseNode {
     return {
       data: inputData,
       resumed_at: new Date().toISOString(),
-      waited_seconds: waitedSeconds,
+      waited_seconds: waitedSeconds
     };
   }
 }
@@ -151,7 +148,7 @@ export class ManualTriggerNode extends BaseNode {
     data: "any",
     timestamp: "str",
     source: "str",
-    event_type: "str",
+    event_type: "str"
   };
 
   static readonly isStreamingInput = true;
@@ -162,7 +159,7 @@ export class ManualTriggerNode extends BaseNode {
     default: 0,
     title: "Max Events",
     description: "Maximum number of events to process (0 = unlimited)",
-    min: 0,
+    min: 0
   })
   declare max_events: any;
 
@@ -170,7 +167,7 @@ export class ManualTriggerNode extends BaseNode {
     type: "str",
     default: "manual_trigger",
     title: "Name",
-    description: "Name for this trigger (used in API calls)",
+    description: "Name for this trigger (used in API calls)"
   })
   declare name: any;
 
@@ -179,7 +176,7 @@ export class ManualTriggerNode extends BaseNode {
     default: null,
     title: "Timeout Seconds",
     description: "Timeout waiting for events (None = wait forever)",
-    min: 0,
+    min: 0
   })
   declare timeout_seconds: any;
 
@@ -191,10 +188,7 @@ export class ManualTriggerNode extends BaseNode {
    * Streaming run: reads events pushed into the inbox via pushInputValue()
    * and emits them downstream. Keeps running until EOS or max_events.
    */
-  async run(
-    inputs: StreamingInputs,
-    outputs: StreamingOutputs
-  ): Promise<void> {
+  async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
     const maxEvents = Number(this.max_events ?? 0);
     const triggerName = String(this.name ?? "manual_trigger");
     let eventsProcessed = 0;
@@ -207,7 +201,7 @@ export class ManualTriggerNode extends BaseNode {
         data,
         timestamp: new Date().toISOString(),
         source: triggerName,
-        event_type: "manual",
+        event_type: "manual"
       };
 
       await outputs.emit("data", event.data);
@@ -248,7 +242,7 @@ export class IntervalTriggerNode extends BaseNode {
     interval_seconds: "float",
     timestamp: "str",
     source: "str",
-    event_type: "str",
+    event_type: "str"
   };
 
   static readonly isStreamingOutput = true;
@@ -258,7 +252,7 @@ export class IntervalTriggerNode extends BaseNode {
     default: 0,
     title: "Max Events",
     description: "Maximum number of events to process (0 = unlimited)",
-    min: 0,
+    min: 0
   })
   declare max_events: any;
 
@@ -266,7 +260,7 @@ export class IntervalTriggerNode extends BaseNode {
     type: "float",
     default: 60,
     title: "Interval Seconds",
-    description: "Interval between triggers in seconds",
+    description: "Interval between triggers in seconds"
   })
   declare interval_seconds: any;
 
@@ -275,7 +269,7 @@ export class IntervalTriggerNode extends BaseNode {
     default: 0,
     title: "Initial Delay Seconds",
     description: "Delay before the first trigger fires",
-    min: 0,
+    min: 0
   })
   declare initial_delay_seconds: any;
 
@@ -283,7 +277,7 @@ export class IntervalTriggerNode extends BaseNode {
     type: "bool",
     default: true,
     title: "Emit On Start",
-    description: "Whether to emit an event immediately on start",
+    description: "Whether to emit an event immediately on start"
   })
   declare emit_on_start: any;
 
@@ -291,8 +285,7 @@ export class IntervalTriggerNode extends BaseNode {
     type: "bool",
     default: true,
     title: "Include Drift Compensation",
-    description:
-      "Compensate for execution time to maintain accurate intervals",
+    description: "Compensate for execution time to maintain accurate intervals"
   })
   declare include_drift_compensation: any;
 
@@ -326,8 +319,7 @@ export class IntervalTriggerNode extends BaseNode {
     while (true) {
       if (driftCompensation) {
         // Calculate next tick time based on start time
-        const nextTickMs =
-          tickCount * intervalMs + initialDelayMs;
+        const nextTickMs = tickCount * intervalMs + initialDelayMs;
         const elapsed = Date.now() - startTime;
         const waitMs = Math.max(MIN_WAIT_SECONDS * 1000, nextTickMs - elapsed);
         await new Promise((r) => setTimeout(r, waitMs));
@@ -352,7 +344,7 @@ export class IntervalTriggerNode extends BaseNode {
       interval_seconds: Number(this.interval_seconds ?? 60),
       timestamp: new Date().toISOString(),
       source: "interval",
-      event_type: "tick",
+      event_type: "tick"
     };
   }
 }
@@ -383,7 +375,7 @@ export class WebhookTriggerNode extends BaseNode {
     path: "str",
     timestamp: "str",
     source: "str",
-    event_type: "str",
+    event_type: "str"
   };
 
   static readonly isStreamingOutput = true;
@@ -393,7 +385,7 @@ export class WebhookTriggerNode extends BaseNode {
     default: 0,
     title: "Max Events",
     description: "Maximum number of events to process (0 = unlimited)",
-    min: 0,
+    min: 0
   })
   declare max_events: any;
 
@@ -403,7 +395,7 @@ export class WebhookTriggerNode extends BaseNode {
     title: "Port",
     description: "Port to listen on for webhook requests",
     min: 1,
-    max: 65535,
+    max: 65535
   })
   declare port: any;
 
@@ -411,7 +403,7 @@ export class WebhookTriggerNode extends BaseNode {
     type: "str",
     default: "/webhook",
     title: "Path",
-    description: "URL path to listen on",
+    description: "URL path to listen on"
   })
   declare path: any;
 
@@ -420,7 +412,7 @@ export class WebhookTriggerNode extends BaseNode {
     default: "127.0.0.1",
     title: "Host",
     description:
-      "Host address to bind to. Use '0.0.0.0' to listen on all interfaces.",
+      "Host address to bind to. Use '0.0.0.0' to listen on all interfaces."
   })
   declare host: any;
 
@@ -428,7 +420,7 @@ export class WebhookTriggerNode extends BaseNode {
     type: "list[str]",
     default: ["POST"],
     title: "Methods",
-    description: "HTTP methods to accept",
+    description: "HTTP methods to accept"
   })
   declare methods: any;
 
@@ -437,7 +429,7 @@ export class WebhookTriggerNode extends BaseNode {
     default: "",
     title: "Secret",
     description:
-      "Optional secret for validating requests (checks X-Webhook-Secret header)",
+      "Optional secret for validating requests (checks X-Webhook-Secret header)"
   })
   declare secret: any;
 
@@ -517,7 +509,7 @@ export class WebhookTriggerNode extends BaseNode {
         path: reqUrl.pathname,
         timestamp: new Date().toISOString(),
         source: req.socket.remoteAddress ?? "",
-        event_type: "webhook",
+        event_type: "webhook"
       });
 
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -573,7 +565,7 @@ export class FileWatchTriggerNode extends BaseNode {
     path: "str",
     dest_path: "str",
     is_directory: "bool",
-    timestamp: "str",
+    timestamp: "str"
   };
 
   static readonly isStreamingOutput = true;
@@ -583,7 +575,7 @@ export class FileWatchTriggerNode extends BaseNode {
     default: 0,
     title: "Max Events",
     description: "Maximum number of events to process (0 = unlimited)",
-    min: 0,
+    min: 0
   })
   declare max_events: any;
 
@@ -591,7 +583,7 @@ export class FileWatchTriggerNode extends BaseNode {
     type: "str",
     default: ".",
     title: "Path",
-    description: "Path to watch (file or directory)",
+    description: "Path to watch (file or directory)"
   })
   declare path: any;
 
@@ -599,7 +591,7 @@ export class FileWatchTriggerNode extends BaseNode {
     type: "bool",
     default: false,
     title: "Recursive",
-    description: "Watch subdirectories recursively",
+    description: "Watch subdirectories recursively"
   })
   declare recursive: any;
 
@@ -607,7 +599,7 @@ export class FileWatchTriggerNode extends BaseNode {
     type: "list[str]",
     default: ["*"],
     title: "Patterns",
-    description: "File patterns to watch (e.g., ['*.txt', '*.json'])",
+    description: "File patterns to watch (e.g., ['*.txt', '*.json'])"
   })
   declare patterns: any;
 
@@ -615,7 +607,7 @@ export class FileWatchTriggerNode extends BaseNode {
     type: "list[str]",
     default: [],
     title: "Ignore Patterns",
-    description: "File patterns to ignore",
+    description: "File patterns to ignore"
   })
   declare ignore_patterns: any;
 
@@ -623,7 +615,7 @@ export class FileWatchTriggerNode extends BaseNode {
     type: "list[str]",
     default: ["created", "modified", "deleted", "moved"],
     title: "Events",
-    description: "Types of events to watch for",
+    description: "Types of events to watch for"
   })
   declare events: any;
 
@@ -632,7 +624,7 @@ export class FileWatchTriggerNode extends BaseNode {
     default: 0.5,
     title: "Debounce Seconds",
     description: "Debounce time to avoid duplicate events",
-    min: 0,
+    min: 0
   })
   declare debounce_seconds: any;
 
@@ -716,7 +708,7 @@ export class FileWatchTriggerNode extends BaseNode {
         path: filePath,
         dest_path: "",
         is_directory: isDirectory,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       });
     };
 
@@ -731,7 +723,8 @@ export class FileWatchTriggerNode extends BaseNode {
           (eventType, filename) => {
             if (!filename) return;
             const fullPath = path.join(dir, filename);
-            const isDir = fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory();
+            const isDir =
+              fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory();
 
             // fs.watch emits 'rename' for create/delete and 'change' for modify
             if (eventType === "rename") {
@@ -778,5 +771,5 @@ export const TRIGGER_NODES = [
   ManualTriggerNode,
   IntervalTriggerNode,
   WebhookTriggerNode,
-  FileWatchTriggerNode,
+  FileWatchTriggerNode
 ] as const;

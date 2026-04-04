@@ -5,7 +5,7 @@ import { homedir, platform } from "node:os";
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json" }
   });
 }
 
@@ -16,7 +16,10 @@ interface SkillInfo {
   instructions: string | null;
 }
 
-function parseFrontmatter(content: string): { frontmatter: Record<string, string>; body: string } {
+function parseFrontmatter(content: string): {
+  frontmatter: Record<string, string>;
+  body: string;
+} {
   const frontmatter: Record<string, string> = {};
   let body = content;
 
@@ -111,7 +114,7 @@ export function handleSkillsRequest(request: Request): Response {
         name,
         description: description || null,
         path: filePath,
-        instructions: body || null,
+        instructions: body || null
       });
     }
   }
@@ -131,7 +134,7 @@ export function handleFontsRequest(request: Request): Response {
     const fontDirs = [
       "/Library/Fonts",
       "/System/Library/Fonts",
-      join(homedir(), "Library", "Fonts"),
+      join(homedir(), "Library", "Fonts")
     ];
     for (const dir of fontDirs) {
       if (!existsSync(dir)) continue;
@@ -164,7 +167,7 @@ export function handleFontsRequest(request: Request): Response {
     const fontDirs = [
       "/usr/share/fonts",
       "/usr/local/share/fonts",
-      join(homedir(), ".fonts"),
+      join(homedir(), ".fonts")
     ];
     for (const dir of fontDirs) {
       if (!existsSync(dir)) continue;

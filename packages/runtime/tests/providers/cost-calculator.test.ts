@@ -8,7 +8,7 @@ import {
   calculateEmbeddingCost,
   calculateSpeechCost,
   calculateWhisperCost,
-  calculateImageCost,
+  calculateImageCost
 } from "../../src/providers/cost-calculator.js";
 
 describe("CostType enum", () => {
@@ -54,28 +54,46 @@ describe("CostCalculator.getTier", () => {
   it("supports prefix matching", () => {
     // "gpt-4o-2024-11-20" is a direct entry but "gpt-4o-2024-11-20-something" would prefix-match
     // Let's use a model that would match via prefix
-    expect(CostCalculator.getTier("gpt-4o-2024-11-20", "openai")).toBe("topTierChat");
+    expect(CostCalculator.getTier("gpt-4o-2024-11-20", "openai")).toBe(
+      "topTierChat"
+    );
   });
 
   it("returns anthropic tiers", () => {
-    expect(CostCalculator.getTier("claude-3-5-sonnet-20241022", "anthropic")).toBe("claude35Sonnet");
-    expect(CostCalculator.getTier("claude-3-haiku-20240307", "anthropic")).toBe("claude3Haiku");
+    expect(
+      CostCalculator.getTier("claude-3-5-sonnet-20241022", "anthropic")
+    ).toBe("claude35Sonnet");
+    expect(CostCalculator.getTier("claude-3-haiku-20240307", "anthropic")).toBe(
+      "claude3Haiku"
+    );
   });
 });
 
 describe("CostCalculator.calculate", () => {
   it("returns 0 for unknown model with a warning", () => {
-    const warnSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const cost = CostCalculator.calculate("unknown-model", { inputTokens: 1000 }, "openai");
+    const warnSpy = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
+    const cost = CostCalculator.calculate(
+      "unknown-model",
+      { inputTokens: 1000 },
+      "openai"
+    );
     expect(cost).toBe(0);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
 
   it("calculates token-based cost", () => {
-    const cost = CostCalculator.calculate("gpt-4o", { inputTokens: 1000, outputTokens: 500 }, "openai");
+    const cost = CostCalculator.calculate(
+      "gpt-4o",
+      { inputTokens: 1000, outputTokens: 500 },
+      "openai"
+    );
     const tier = PRICING_TIERS.topTierChat;
-    const expected = (1000 / 1000) * tier.inputPer1kTokens! + (500 / 1000) * tier.outputPer1kTokens!;
+    const expected =
+      (1000 / 1000) * tier.inputPer1kTokens! +
+      (500 / 1000) * tier.outputPer1kTokens!;
     expect(cost).toBeCloseTo(expected);
   });
 
@@ -104,7 +122,9 @@ describe("CostCalculator.calculate", () => {
     );
     const tier = PRICING_TIERS.topTierChat;
     // cachedPer1kTokens is undefined so it goes to else branch
-    const expected = (1000 / 1000) * tier.inputPer1kTokens! + (500 / 1000) * tier.outputPer1kTokens!;
+    const expected =
+      (1000 / 1000) * tier.inputPer1kTokens! +
+      (500 / 1000) * tier.outputPer1kTokens!;
     expect(cost).toBeCloseTo(expected);
   });
 
@@ -164,13 +184,21 @@ describe("CostCalculator.calculate", () => {
   });
 
   it("warns and returns 0 for undefined tier name", () => {
-    const warnSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const warnSpy = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
     // Temporarily add a bad mapping to test the "tier not defined" path
     const original = MODEL_TO_TIER["openai:__test_model__"];
     MODEL_TO_TIER["openai:__test_model__"] = "nonexistent_tier";
-    const cost = CostCalculator.calculate("__test_model__", { inputTokens: 100 }, "openai");
+    const cost = CostCalculator.calculate(
+      "__test_model__",
+      { inputTokens: 100 },
+      "openai"
+    );
     expect(cost).toBe(0);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("not defined"));
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("not defined")
+    );
     // Cleanup
     if (original === undefined) {
       delete MODEL_TO_TIER["openai:__test_model__"];
@@ -193,7 +221,13 @@ describe("calculateChatCost", () => {
   });
 
   it("calculates cost for anthropic provider", () => {
-    const cost = calculateChatCost("claude-3-5-sonnet-20241022", 1000, 500, 0, "anthropic");
+    const cost = calculateChatCost(
+      "claude-3-5-sonnet-20241022",
+      1000,
+      500,
+      0,
+      "anthropic"
+    );
     expect(cost).toBeGreaterThan(0);
   });
 });
@@ -205,7 +239,11 @@ describe("calculateEmbeddingCost", () => {
   });
 
   it("calculates embedding cost with explicit provider", () => {
-    const cost = calculateEmbeddingCost("text-embedding-3-large", 500, "openai");
+    const cost = calculateEmbeddingCost(
+      "text-embedding-3-large",
+      500,
+      "openai"
+    );
     expect(cost).toBeGreaterThan(0);
   });
 });
@@ -270,7 +308,12 @@ describe("calculateImageCost", () => {
 
   it("returns 0 for unknown image model", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const cost = calculateImageCost("unknown-image-model", 1, "medium", "openai");
+    const cost = calculateImageCost(
+      "unknown-image-model",
+      1,
+      "medium",
+      "openai"
+    );
     expect(cost).toBe(0);
     warnSpy.mockRestore();
   });
@@ -293,12 +336,16 @@ describe("CostCalculator – VIDEO_BASED cost type", () => {
     const tierName = "__test_video__";
     (PRICING_TIERS as any)[tierName] = {
       costType: CostType.VIDEO_BASED,
-      perSecondVideo: 0.05,
+      perSecondVideo: 0.05
     };
     (MODEL_TO_TIER as any)["test:video-model"] = tierName;
 
     try {
-      const cost = CostCalculator.calculate("video-model", { videoSeconds: 10 }, "test");
+      const cost = CostCalculator.calculate(
+        "video-model",
+        { videoSeconds: 10 },
+        "test"
+      );
       expect(cost).toBeCloseTo(0.5);
     } finally {
       delete (PRICING_TIERS as any)[tierName];
@@ -311,12 +358,16 @@ describe("CostCalculator – fallback return 0 for unknown cost type", () => {
   it("returns 0 for an unknown cost type", () => {
     const tierName = "__test_unknown_type__";
     (PRICING_TIERS as any)[tierName] = {
-      costType: "unknown_type" as any,
+      costType: "unknown_type" as any
     };
     (MODEL_TO_TIER as any)["test:unknown-model"] = tierName;
 
     try {
-      const cost = CostCalculator.calculate("unknown-model", { inputTokens: 100 }, "test");
+      const cost = CostCalculator.calculate(
+        "unknown-model",
+        { inputTokens: 100 },
+        "test"
+      );
       expect(cost).toBe(0);
     } finally {
       delete (PRICING_TIERS as any)[tierName];

@@ -9,7 +9,7 @@ import * as path from "node:path";
 import {
   WorkspaceReadTool,
   WorkspaceWriteTool,
-  WorkspaceListTool,
+  WorkspaceListTool
 } from "../../src/tools/workspace-tools.js";
 import type { ProcessingContext } from "@nodetool/runtime";
 
@@ -46,7 +46,7 @@ describe("WorkspaceWriteTool", () => {
     const tool = new WorkspaceWriteTool(tmpDir);
     const result = (await tool.process(mockContext, {
       path: "hello.txt",
-      content: "Hello, workspace!",
+      content: "Hello, workspace!"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -60,13 +60,13 @@ describe("WorkspaceWriteTool", () => {
     const tool = new WorkspaceWriteTool(tmpDir);
     const result = (await tool.process(mockContext, {
       path: "sub/dir/file.txt",
-      content: "nested",
+      content: "nested"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
     const stored = await fs.readFile(
       path.join(tmpDir, "sub", "dir", "file.txt"),
-      "utf-8",
+      "utf-8"
     );
     expect(stored).toBe("nested");
   });
@@ -75,7 +75,7 @@ describe("WorkspaceWriteTool", () => {
     const tool = new WorkspaceWriteTool(tmpDir);
     const result = (await tool.process(mockContext, {
       path: 42,
-      content: "hi",
+      content: "hi"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -86,7 +86,7 @@ describe("WorkspaceWriteTool", () => {
     const tool = new WorkspaceWriteTool(tmpDir);
     const result = (await tool.process(mockContext, {
       path: "file.txt",
-      content: 99,
+      content: 99
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -97,7 +97,7 @@ describe("WorkspaceWriteTool", () => {
     const tool = new WorkspaceWriteTool(tmpDir);
     const result = (await tool.process(mockContext, {
       path: "../outside.txt",
-      content: "evil",
+      content: "evil"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -125,7 +125,7 @@ describe("WorkspaceReadTool", () => {
 
     const tool = new WorkspaceReadTool(tmpDir);
     const result = (await tool.process(mockContext, {
-      path: "notes.txt",
+      path: "notes.txt"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -136,7 +136,7 @@ describe("WorkspaceReadTool", () => {
   it("returns error for a missing file", async () => {
     const tool = new WorkspaceReadTool(tmpDir);
     const result = (await tool.process(mockContext, {
-      path: "nonexistent.txt",
+      path: "nonexistent.txt"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -146,7 +146,7 @@ describe("WorkspaceReadTool", () => {
   it("returns error when path is not a string", async () => {
     const tool = new WorkspaceReadTool(tmpDir);
     const result = (await tool.process(mockContext, {
-      path: 123,
+      path: 123
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -156,7 +156,7 @@ describe("WorkspaceReadTool", () => {
   it("rejects path traversal attempts", async () => {
     const tool = new WorkspaceReadTool(tmpDir);
     const result = (await tool.process(mockContext, {
-      path: "../../etc/passwd",
+      path: "../../etc/passwd"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -186,7 +186,7 @@ describe("WorkspaceListTool", () => {
 
     const tool = new WorkspaceListTool(tmpDir);
     const result = (await tool.process(mockContext, {
-      path: ".",
+      path: "."
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -207,7 +207,7 @@ describe("WorkspaceListTool", () => {
 
     const tool = new WorkspaceListTool(tmpDir);
     const result = (await tool.process(mockContext, {
-      path: ".",
+      path: "."
     })) as Record<string, unknown>;
 
     const entries = result.entries as Array<{
@@ -224,7 +224,7 @@ describe("WorkspaceListTool", () => {
   it("returns error for a non-existent directory", async () => {
     const tool = new WorkspaceListTool(tmpDir);
     const result = (await tool.process(mockContext, {
-      path: "missing_dir",
+      path: "missing_dir"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -234,7 +234,7 @@ describe("WorkspaceListTool", () => {
   it("returns error when path is not a string", async () => {
     const tool = new WorkspaceListTool(tmpDir);
     const result = (await tool.process(mockContext, {
-      path: 0,
+      path: 0
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -244,7 +244,7 @@ describe("WorkspaceListTool", () => {
   it("rejects path traversal attempts", async () => {
     const tool = new WorkspaceListTool(tmpDir);
     const result = (await tool.process(mockContext, {
-      path: "../..",
+      path: "../.."
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -269,13 +269,13 @@ describe("WorkspaceWriteTool + WorkspaceReadTool round-trip", () => {
 
     const written = (await write.process(mockContext, {
       path: "round-trip.txt",
-      content: "round-trip value 42",
+      content: "round-trip value 42"
     })) as Record<string, unknown>;
 
     expect(written.success).toBe(true);
 
     const loaded = (await read.process(mockContext, {
-      path: "round-trip.txt",
+      path: "round-trip.txt"
     })) as Record<string, unknown>;
 
     expect(loaded.success).toBe(true);

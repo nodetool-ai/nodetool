@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Index Array"
-node_type: "lib.numpy.manipulation.IndexArray"
-namespace: "lib.numpy.manipulation"
+node_type: "lib.array.manipulation.IndexArray"
+namespace: "lib.array.manipulation"
 ---
 
-**Type:** `lib.numpy.manipulation.IndexArray`
+**Type:** `lib.array.manipulation.IndexArray`
 
-**Namespace:** `lib.numpy.manipulation`
+**Namespace:** `lib.array.manipulation`
 
 ## Description
 
@@ -37,5 +37,5 @@ Select specific indices from an array along a specified axis.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.manipulation](../) namespace.
+Browse other nodes in the [lib.array.manipulation](../) namespace.
 

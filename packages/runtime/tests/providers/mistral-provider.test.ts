@@ -11,13 +11,15 @@ function makeAsyncIterable(items: unknown[]) {
     },
     async close() {
       return;
-    },
+    }
   };
 }
 
 describe("MistralProvider", () => {
   it("throws if MISTRAL_API_KEY is missing", () => {
-    expect(() => new MistralProvider({})).toThrow("MISTRAL_API_KEY is required");
+    expect(() => new MistralProvider({})).toThrow(
+      "MISTRAL_API_KEY is required"
+    );
   });
 
   it("reports provider id as mistral", () => {
@@ -55,9 +57,9 @@ describe("MistralProvider", () => {
       json: async () => ({
         data: [
           { id: "mistral-large", name: "Mistral Large" },
-          { id: "mistral-small" },
-        ],
-      }),
+          { id: "mistral-small" }
+        ]
+      })
     });
 
     const provider = new MistralProvider(
@@ -68,13 +70,13 @@ describe("MistralProvider", () => {
     const models = await provider.getAvailableLanguageModels();
     expect(models).toEqual([
       { id: "mistral-large", name: "Mistral Large", provider: "mistral" },
-      { id: "mistral-small", name: "mistral-small", provider: "mistral" },
+      { id: "mistral-small", name: "mistral-small", provider: "mistral" }
     ]);
 
     expect(mockFetch).toHaveBeenCalledWith(
       "https://api.mistral.ai/v1/models",
       expect.objectContaining({
-        headers: { Authorization: "Bearer k" },
+        headers: { Authorization: "Bearer k" }
       })
     );
   });
@@ -102,8 +104,8 @@ describe("MistralProvider", () => {
         id: "mistral-embed",
         name: "Mistral Embed",
         provider: "mistral",
-        dimensions: 1024,
-      },
+        dimensions: 1024
+      }
     ]);
   });
 
@@ -113,25 +115,25 @@ describe("MistralProvider", () => {
         {
           message: {
             content: "bonjour",
-            tool_calls: null,
-          },
-        },
-      ],
+            tool_calls: null
+          }
+        }
+      ]
     });
 
     const provider = new MistralProvider(
       { MISTRAL_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
     const result = await provider.generateMessage({
       messages,
-      model: "mistral-large",
+      model: "mistral-large"
     });
 
     expect(result.role).toBe("assistant");
@@ -144,18 +146,18 @@ describe("MistralProvider", () => {
         choices: [
           {
             delta: { content: "salut" },
-            finish_reason: null,
-          },
-        ],
+            finish_reason: null
+          }
+        ]
       },
       {
         choices: [
           {
             delta: { content: "" },
-            finish_reason: "stop",
-          },
-        ],
-      },
+            finish_reason: "stop"
+          }
+        ]
+      }
     ];
 
     const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
@@ -164,8 +166,8 @@ describe("MistralProvider", () => {
       { MISTRAL_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
@@ -173,7 +175,7 @@ describe("MistralProvider", () => {
     const items: unknown[] = [];
     for await (const item of provider.generateMessages({
       messages,
-      model: "mistral-large",
+      model: "mistral-large"
     })) {
       items.push(item);
     }
@@ -183,10 +185,7 @@ describe("MistralProvider", () => {
 
   it("generates embeddings via OpenAI client", async () => {
     const embeddingsCreate = vi.fn().mockResolvedValue({
-      data: [
-        { embedding: [0.1, 0.2, 0.3] },
-        { embedding: [0.4, 0.5, 0.6] },
-      ],
+      data: [{ embedding: [0.1, 0.2, 0.3] }, { embedding: [0.4, 0.5, 0.6] }]
     });
 
     const provider = new MistralProvider(
@@ -194,29 +193,29 @@ describe("MistralProvider", () => {
       {
         client: {
           chat: { completions: { create: vi.fn() } },
-          embeddings: { create: embeddingsCreate },
-        } as any,
+          embeddings: { create: embeddingsCreate }
+        } as any
       }
     );
 
     const result = await provider.generateEmbedding({
       text: ["hello", "world"],
-      model: "mistral-embed",
+      model: "mistral-embed"
     });
 
     expect(result).toEqual([
       [0.1, 0.2, 0.3],
-      [0.4, 0.5, 0.6],
+      [0.4, 0.5, 0.6]
     ]);
     expect(embeddingsCreate).toHaveBeenCalledWith({
       model: "mistral-embed",
-      input: ["hello", "world"],
+      input: ["hello", "world"]
     });
   });
 
   it("uses default model mistral-embed when model is empty", async () => {
     const embeddingsCreate = vi.fn().mockResolvedValue({
-      data: [{ embedding: [1.0, 2.0] }],
+      data: [{ embedding: [1.0, 2.0] }]
     });
 
     const provider = new MistralProvider(
@@ -224,15 +223,15 @@ describe("MistralProvider", () => {
       {
         client: {
           chat: { completions: { create: vi.fn() } },
-          embeddings: { create: embeddingsCreate },
-        } as any,
+          embeddings: { create: embeddingsCreate }
+        } as any
       }
     );
 
     await provider.generateEmbedding({ text: "test", model: "" });
     expect(embeddingsCreate).toHaveBeenCalledWith({
       model: "mistral-embed",
-      input: ["test"],
+      input: ["test"]
     });
   });
 
@@ -242,8 +241,8 @@ describe("MistralProvider", () => {
       {
         client: {
           chat: { completions: { create: vi.fn() } },
-          embeddings: { create: vi.fn() },
-        } as any,
+          embeddings: { create: vi.fn() }
+        } as any
       }
     );
 

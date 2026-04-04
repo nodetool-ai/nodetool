@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.pillow.filter Nodes"
+title: "lib.image.filter Nodes"
 ---
 
 

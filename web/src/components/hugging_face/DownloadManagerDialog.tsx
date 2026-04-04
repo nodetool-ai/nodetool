@@ -8,12 +8,10 @@ import {
   Button,
   Box,
   Typography,
-  IconButton,
-  Tooltip,
   Divider
 } from "@mui/material";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
-import { Dialog } from "../ui_primitives";
+import { Dialog, CloseButton } from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
@@ -21,7 +19,6 @@ import { type Theme } from "@mui/material/styles";
 
 import isEqual from "lodash/isEqual";
 import { FolderOutlined } from "@mui/icons-material";
-import CloseIcon from "@mui/icons-material/Close";
 import DownloadingIcon from "@mui/icons-material/Downloading";
 import {
   isFileExplorerAvailable,
@@ -94,16 +91,11 @@ const DownloadManagerDialog: React.FC = () => {
     >
       <DialogTitle sx={{ color: "inherit", position: "relative" }}>
         {hasActiveDownloads ? "Download Progress" : "Model Downloads"}
-        <Tooltip title="Close">
-          <IconButton
-            size="small"
-            onClick={closeDialog}
-            aria-label="Close download manager"
-            className="title-close"
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <CloseButton
+          onClick={closeDialog}
+          className="title-close"
+          nodrag={false}
+        />
       </DialogTitle>
       <DialogContent className="download-dialog-content">
         <Box mt={1} className="downloads-list">

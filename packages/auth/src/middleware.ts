@@ -60,7 +60,7 @@ export function createAuthMiddleware(
     if (staticResult.ok) {
       return {
         userId: staticResult.userId!,
-        tokenType: staticResult.tokenType ?? TokenType.STATIC,
+        tokenType: staticResult.tokenType ?? TokenType.STATIC
       };
     }
 
@@ -70,7 +70,7 @@ export function createAuthMiddleware(
       if (userResult.ok) {
         return {
           userId: userResult.userId!,
-          tokenType: userResult.tokenType ?? TokenType.USER,
+          tokenType: userResult.tokenType ?? TokenType.USER
         };
       }
     }

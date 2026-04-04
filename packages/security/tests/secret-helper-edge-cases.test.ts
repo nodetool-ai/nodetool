@@ -15,7 +15,7 @@ import {
   clearSecretCache,
   clearAllSecretCache,
   setSecretModelLoader,
-  resetSecretModelLoader,
+  resetSecretModelLoader
 } from "../src/secret-helper.js";
 
 describe("secret-helper edge cases", () => {
@@ -25,7 +25,7 @@ describe("secret-helper edge cases", () => {
     "SUPABASE_KEY",
     "SUPABASE_SERVICE_ROLE_KEY",
     "SERVER_AUTH_TOKEN",
-    "SOME_REGULAR_KEY",
+    "SOME_REGULAR_KEY"
   ];
   const savedEnv: Record<string, string | undefined> = {};
 
@@ -54,10 +54,10 @@ describe("secret-helper edge cases", () => {
     it("SUPABASE_KEY is force-prioritized over database", async () => {
       process.env["SUPABASE_KEY"] = "env-supabase-key";
       const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "db-supabase-key"),
+        getDecryptedValue: vi.fn(async () => "db-supabase-key")
       };
       const mockModel = {
-        find: vi.fn(async () => mockSecret),
+        find: vi.fn(async () => mockSecret)
       };
       setSecretModelLoader(Promise.resolve(mockModel));
 
@@ -82,10 +82,10 @@ describe("secret-helper edge cases", () => {
     it("non-forced key goes through normal resolution", async () => {
       process.env["SOME_REGULAR_KEY"] = "env-val";
       const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "db-val"),
+        getDecryptedValue: vi.fn(async () => "db-val")
       };
       const mockModel = {
-        find: vi.fn(async () => mockSecret),
+        find: vi.fn(async () => mockSecret)
       };
       setSecretModelLoader(Promise.resolve(mockModel));
 
@@ -101,9 +101,9 @@ describe("secret-helper edge cases", () => {
       const mockModel = {
         find: vi.fn(async (userId: string, _key: string) => {
           return {
-            getDecryptedValue: vi.fn(async () => `secret-for-${userId}`),
+            getDecryptedValue: vi.fn(async () => `secret-for-${userId}`)
           };
-        }),
+        })
       };
       setSecretModelLoader(Promise.resolve(mockModel));
 
@@ -117,8 +117,8 @@ describe("secret-helper edge cases", () => {
     it("clearing cache for one user does not affect another", async () => {
       const mockModel = {
         find: vi.fn(async (userId: string) => ({
-          getDecryptedValue: vi.fn(async () => `val-${userId}`),
-        })),
+          getDecryptedValue: vi.fn(async () => `val-${userId}`)
+        }))
       };
       setSecretModelLoader(Promise.resolve(mockModel));
 
@@ -159,8 +159,8 @@ describe("secret-helper edge cases", () => {
     it("returns true from cache even when env was removed", async () => {
       const mockModel = {
         find: vi.fn(async () => ({
-          getDecryptedValue: vi.fn(async () => "db-value"),
-        })),
+          getDecryptedValue: vi.fn(async () => "db-value")
+        }))
       };
       setSecretModelLoader(Promise.resolve(mockModel));
 
@@ -195,8 +195,8 @@ describe("secret-helper edge cases", () => {
     it("succeeds when DB has the value", async () => {
       const mockModel = {
         find: vi.fn(async () => ({
-          getDecryptedValue: vi.fn(async () => "required-db-value"),
-        })),
+          getDecryptedValue: vi.fn(async () => "required-db-value")
+        }))
       };
       setSecretModelLoader(Promise.resolve(mockModel));
 
@@ -209,8 +209,8 @@ describe("secret-helper edge cases", () => {
     it("falls through when getDecryptedValue returns null", async () => {
       const mockModel = {
         find: vi.fn(async () => ({
-          getDecryptedValue: vi.fn(async () => null),
-        })),
+          getDecryptedValue: vi.fn(async () => null)
+        }))
       };
       setSecretModelLoader(Promise.resolve(mockModel));
 
@@ -222,8 +222,8 @@ describe("secret-helper edge cases", () => {
     it("falls through when getDecryptedValue returns undefined", async () => {
       const mockModel = {
         find: vi.fn(async () => ({
-          getDecryptedValue: vi.fn(async () => undefined),
-        })),
+          getDecryptedValue: vi.fn(async () => undefined)
+        }))
       };
       setSecretModelLoader(Promise.resolve(mockModel));
 

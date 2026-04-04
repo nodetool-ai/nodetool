@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
+import { EditButton } from "../ui_primitives/EditButton";
 import SearchIcon from "@mui/icons-material/Search";
 import WarningIcon from "@mui/icons-material/Warning";
 import {
@@ -158,26 +158,6 @@ const SecretsMenu = memo(() => {
     setOpenDialog(false);
   };
 
-  const handleOpenEditDialog = useCallback((event: React.MouseEvent) => {
-    const target = event.currentTarget as HTMLElement;
-    const secretKey = target.dataset.secretKey;
-    if (!secretKey) {
-      return;
-    }
-
-    const secret = safeSecrets.find((s: SecretResponse) => s.key === secretKey);
-    if (!secret) {
-      return;
-    }
-
-    setEditingSecret(secret);
-    setFormData({
-      key: secret.key,
-      value: ""
-    });
-    setOpenDialog(true);
-  }, [safeSecrets]);
-
   const handleDeleteClick = useCallback((event: React.MouseEvent) => {
     const target = event.currentTarget as HTMLElement;
     const secretKey = target.dataset.secretKey;
@@ -332,17 +312,15 @@ const SecretsMenu = memo(() => {
                             flexShrink: 0
                           }}
                         >
-                          <Tooltip title="Update secret">
-                            <IconButton
-                              size="small"
-                              onClick={handleOpenEditDialog}
-                              data-secret-key={secret.key}
-                              disabled={updateMutation.isPending}
-                              aria-label={`Update secret ${secret.key}`}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <EditButton
+                            onClick={() => {
+                              setEditingSecret(secret);
+                              setFormData({ key: secret.key, value: "" });
+                              setOpenDialog(true);
+                            }}
+                            tooltip={`Update secret ${secret.key}`}
+                            disabled={updateMutation.isPending}
+                          />
                           <Tooltip title="Delete secret">
                             <IconButton
                               size="small"
@@ -408,17 +386,15 @@ const SecretsMenu = memo(() => {
                             flexShrink: 0
                           }}
                         >
-                          <Tooltip title="Set secret">
-                            <IconButton
-                              size="small"
-                              onClick={handleOpenEditDialog}
-                              data-secret-key={secret.key}
-                              disabled={updateMutation.isPending}
-                              aria-label={`Set secret ${secret.key}`}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <EditButton
+                            onClick={() => {
+                              setEditingSecret(secret);
+                              setFormData({ key: secret.key, value: "" });
+                              setOpenDialog(true);
+                            }}
+                            tooltip={`Set secret ${secret.key}`}
+                            disabled={updateMutation.isPending}
+                          />
                         </div>
                       </div>
                     ))}

@@ -1,0 +1,165 @@
+{
+  "id": "a0173b98-2bf1-481a-a94e-090cba8da1c6",
+  "access": "public",
+  "created_at": "2026-01-09T22:48:14.857674",
+  "updated_at": "2026-01-09T22:48:14.857674",
+  "name": "ChromaDB Research Agent",
+  "tool_name": null,
+  "description": "Query a Chroma collection of papers.",
+  "tags": [
+    "chromadb",
+    "rag",
+    "research"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "chroma_research_answer",
+          "value": null,
+          "description": ""
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a friendly assistant",
+          "prompt": "",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 4096
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nYou are a research assistant working over a Chroma collection of academic papers.\n\nQuestion:\n{{ question }}\n\nYou are given excerpts from relevant documents. Use them as the main ground truth.\nIf something is not supported by the excerpts, flag it as speculation.\n\nContext snippets:\n{% for doc in documents %}\n---\n{{ doc }}\n{% endfor %}\n\nWrite:\n- A concise explanation that answers the question.\n- A bullet list of key findings.\n- Short notes on open problems or limitations.\n\nRespond in markdown.\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "question": null,
+          "documents": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "research_question",
+          "value": "How do recent transformer variants improve long context modeling?",
+          "description": "Research question about the indexed papers"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "vector.chroma.HybridSearch",
+        "data": {
+          "collection": {
+            "type": "collection",
+            "name": "test-papers"
+          },
+          "text": "",
+          "n_results": 8,
+          "k_constant": 60.0,
+          "min_keyword_length": 3
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "question",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "5",
+        "sourceHandle": "documents",
+        "target": "3",
+        "targetHandle": "documents",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "2",
+        "sourceHandle": "text",
+        "target": "1",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

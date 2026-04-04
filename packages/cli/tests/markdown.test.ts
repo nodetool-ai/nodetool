@@ -39,7 +39,7 @@ describe("stripMarkdown", () => {
   it("strips markdown links, keeping the link text", async () => {
     const { stripMarkdown } = await import("../src/markdown.js");
     expect(stripMarkdown("Visit [NodeTool](https://nodetool.ai)")).toBe(
-      "Visit NodeTool",
+      "Visit NodeTool"
     );
   });
 
@@ -69,12 +69,19 @@ describe("renderMarkdown", () => {
     vi.resetModules();
     // Mock marked-terminal to throw during initialization
     vi.doMock("marked-terminal", () => ({
-      markedTerminal: () => { throw new Error("terminal unavailable"); },
+      markedTerminal: () => {
+        throw new Error("terminal unavailable");
+      }
     }));
     // marked itself also fails (no terminal extension configured), so we mock
     // it to throw too — the outer try/catch should return raw text.
     vi.doMock("marked", () => ({
-      marked: Object.assign(() => { throw new Error("parse error"); }, { use: (_ext: unknown) => {} }),
+      marked: Object.assign(
+        () => {
+          throw new Error("parse error");
+        },
+        { use: (_ext: unknown) => {} }
+      )
     }));
     const { renderMarkdown } = await import("../src/markdown.js");
     const raw = "# Hello **world**";
@@ -86,10 +93,15 @@ describe("renderMarkdown", () => {
     vi.resetModules();
     // Mock marked-terminal to succeed but marked().parse to throw
     vi.doMock("marked-terminal", () => ({
-      markedTerminal: () => ({ extensions: [] }),
+      markedTerminal: () => ({ extensions: [] })
     }));
     vi.doMock("marked", () => ({
-      marked: Object.assign(() => { throw new Error("parse error"); }, { use: () => {} }),
+      marked: Object.assign(
+        () => {
+          throw new Error("parse error");
+        },
+        { use: () => {} }
+      )
     }));
     const { renderMarkdown } = await import("../src/markdown.js");
     const raw = "some text";
@@ -101,12 +113,15 @@ describe("renderMarkdown", () => {
     vi.resetModules();
     // Mock marked-terminal to succeed; marked returns a Promise<string>
     vi.doMock("marked-terminal", () => ({
-      markedTerminal: () => ({ extensions: [] }),
+      markedTerminal: () => ({ extensions: [] })
     }));
     vi.doMock("marked", () => ({
-      marked: Object.assign((_text: string) => Promise.resolve("rendered output"), {
-        use: () => {},
-      }),
+      marked: Object.assign(
+        (_text: string) => Promise.resolve("rendered output"),
+        {
+          use: () => {}
+        }
+      )
     }));
     const { renderMarkdown } = await import("../src/markdown.js");
     const result = await renderMarkdown("# heading");
@@ -116,12 +131,12 @@ describe("renderMarkdown", () => {
   it("returns a string result (sync path)", async () => {
     vi.resetModules();
     vi.doMock("marked-terminal", () => ({
-      markedTerminal: () => ({ extensions: [] }),
+      markedTerminal: () => ({ extensions: [] })
     }));
     vi.doMock("marked", () => ({
       marked: Object.assign((_text: string) => "sync rendered", {
-        use: () => {},
-      }),
+        use: () => {}
+      })
     }));
     const { renderMarkdown } = await import("../src/markdown.js");
     const result = await renderMarkdown("plain text");
@@ -132,10 +147,10 @@ describe("renderMarkdown", () => {
     vi.resetModules();
     const useSpy = vi.fn();
     vi.doMock("marked-terminal", () => ({
-      markedTerminal: () => ({ extensions: [] }),
+      markedTerminal: () => ({ extensions: [] })
     }));
     vi.doMock("marked", () => ({
-      marked: Object.assign((_text: string) => "ok", { use: useSpy }),
+      marked: Object.assign((_text: string) => "ok", { use: useSpy })
     }));
     const { renderMarkdown } = await import("../src/markdown.js");
     await renderMarkdown("first call");

@@ -13,7 +13,7 @@ function createWf(name: string, extra: Record<string, unknown> = {}) {
     name,
     access: "private",
     graph: emptyGraph,
-    ...extra,
+    ...extra
   });
 }
 
@@ -67,16 +67,16 @@ describe("Workflow CRUD", () => {
           id: "n1",
           type: "nodetool.constant.String",
           data: { value: "hello" },
-          ui_properties: { position: [100, 100] },
-        },
+          ui_properties: { position: [100, 100] }
+        }
       ],
-      edges: [],
+      edges: []
     };
 
     const res = await put(`/workflows/${created.id}`, {
       ...created,
       name: "Updated",
-      graph,
+      graph
     });
     expect(res.status).toBe(200);
     expect((await res.json()).name).toBe("Updated");
@@ -101,7 +101,7 @@ describe("Workflow CRUD", () => {
     const res = await put("/workflows/new-id-123", {
       name: "Upserted",
       access: "private",
-      graph: emptyGraph,
+      graph: emptyGraph
     });
     expect(res.status).toBe(200);
     const wf = await res.json();
@@ -143,14 +143,14 @@ describe("Workflow graph persistence", () => {
           id: "input",
           type: "nodetool.constant.String",
           data: { value: "hello" },
-          ui_properties: { position: [0, 0] },
+          ui_properties: { position: [0, 0] }
         },
         {
           id: "output",
           type: "nodetool.constant.String",
           data: { value: "" },
-          ui_properties: { position: [300, 0] },
-        },
+          ui_properties: { position: [300, 0] }
+        }
       ],
       edges: [
         {
@@ -158,9 +158,9 @@ describe("Workflow graph persistence", () => {
           source: "input",
           sourceHandle: "output",
           target: "output",
-          targetHandle: "value",
-        },
-      ],
+          targetHandle: "value"
+        }
+      ]
     };
 
     await put(`/workflows/${created.id}`, { ...created, graph });

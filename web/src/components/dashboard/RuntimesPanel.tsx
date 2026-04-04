@@ -1,13 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { Box, Button, Tooltip, Alert } from "@mui/material";
+import { Box, Button, Tooltip } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DownloadIcon from "@mui/icons-material/Download";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { css } from "@emotion/react";
 import { useTheme, Theme } from "@mui/material/styles";
 import { getIsElectronDetails } from "../../utils/browser";
-import { FlexColumn, FlexRow, Card, Text, Caption, LoadingSpinner } from "../ui_primitives";
+import { FlexColumn, FlexRow, Card, Text, Caption, LoadingSpinner, AlertBanner } from "../ui_primitives";
 import log from "loglevel";
 
 interface RuntimeStatus {
@@ -70,7 +70,7 @@ const RuntimesPanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const loadStatuses = useCallback(async () => {
-    const api = (window as any).api;
+    const api = window.api;
     if (!api?.packages?.getRuntimeStatuses) {return;}
     try {
       const [statuses, location] = await Promise.all([
@@ -92,7 +92,7 @@ const RuntimesPanel: React.FC = () => {
 
   const handleInstall = useCallback(
     async (packageId: string) => {
-      const api = (window as any).api;
+      const api = window.api;
       if (!api?.packages?.installRuntime) {return;}
 
       setInstalling((prev) => new Set(prev).add(packageId));
@@ -105,8 +105,9 @@ const RuntimesPanel: React.FC = () => {
         } else {
           setError(result.message || "Installation failed");
         }
-      } catch (err: any) {
-        setError(err?.message || "Installation failed");
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Installation failed";
+        setError(errorMessage);
       } finally {
         setInstalling((prev) => {
           const next = new Set(prev);
@@ -119,7 +120,7 @@ const RuntimesPanel: React.FC = () => {
   );
 
   const handleChangeLocation = useCallback(async () => {
-    const api = (window as any).api;
+    const api = window.api;
     if (!api?.packages?.selectInstallLocation) {return;}
     try {
       const selected = await api.packages.selectInstallLocation();
@@ -190,13 +191,13 @@ const RuntimesPanel: React.FC = () => {
       </FlexColumn>
 
       {error && (
-        <Alert
+        <AlertBanner
           severity="error"
           onClose={() => setError(null)}
           sx={{ mt: 1, mb: 1 }}
         >
           {error}
-        </Alert>
+        </AlertBanner>
       )}
 
       <Box className="scrollable-content" sx={{ mt: 2 }}>

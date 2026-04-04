@@ -11,7 +11,7 @@ import {
   cleanStack,
   wrapCode,
   MAX_OUTPUT_SIZE,
-  MAX_LOOP_ITERATIONS,
+  MAX_LOOP_ITERATIONS
 } from "../src/js-sandbox.js";
 
 // ---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ describe("serializeResult", () => {
     const result = serializeResult(long);
     expect(typeof result).toBe("string");
     expect((result as string).length).toBeLessThan(long.length);
-    expect((result as string)).toContain("[truncated]");
+    expect(result as string).toContain("[truncated]");
   });
 
   it("serializes objects via JSON", () => {
@@ -86,7 +86,7 @@ describe("cleanStack", () => {
       "    at evalmachine.<anonymous>:1:1",
       "    at node:internal/modules/cjs/loader:1234",
       "    at node_modules/something/index.js:5",
-      "    at agent-js:2:3",
+      "    at agent-js:2:3"
     ].join("\n");
 
     const cleaned = cleanStack(stack);
@@ -97,7 +97,10 @@ describe("cleanStack", () => {
   });
 
   it("limits to 5 lines", () => {
-    const lines = Array.from({ length: 10 }, (_, i) => `    at evalmachine:${i}`);
+    const lines = Array.from(
+      { length: 10 },
+      (_, i) => `    at evalmachine:${i}`
+    );
     const cleaned = cleanStack(lines.join("\n"));
     expect(cleaned.split("\n").length).toBeLessThanOrEqual(5);
   });
@@ -177,7 +180,7 @@ describe("runInSandbox", () => {
       code: `
         const x = await Promise.resolve(42);
         return x;
-      `,
+      `
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe(42);
@@ -189,7 +192,7 @@ describe("runInSandbox", () => {
         console.log("hello");
         console.warn("warning");
         return "done";
-      `,
+      `
     });
     expect(result.success).toBe(true);
     expect(result.logs).toContain("hello");
@@ -204,7 +207,7 @@ describe("runInSandbox", () => {
 
   it("reports runtime errors", async () => {
     const result = await runInSandbox({
-      code: "throw new Error('boom')",
+      code: "throw new Error('boom')"
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain("boom");
@@ -213,7 +216,7 @@ describe("runInSandbox", () => {
   it("injects custom globals", async () => {
     const result = await runInSandbox({
       code: "return myInput * 2",
-      globals: { myInput: 21 },
+      globals: { myInput: 21 }
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe(42);
@@ -221,7 +224,7 @@ describe("runInSandbox", () => {
 
   it("can use lodash", async () => {
     const result = await runInSandbox({
-      code: "return _.sum([1, 2, 3, 4])",
+      code: "return _.sum([1, 2, 3, 4])"
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe(10);
@@ -232,7 +235,7 @@ describe("runInSandbox", () => {
       code: `
         const obj = JSON.parse('{"a": 1}');
         return JSON.stringify(obj);
-      `,
+      `
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe('{"a":1}');
@@ -240,7 +243,7 @@ describe("runInSandbox", () => {
 
   it("can use Array methods", async () => {
     const result = await runInSandbox({
-      code: "return [3, 1, 2].sort().join(',')",
+      code: "return [3, 1, 2].sort().join(',')"
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe("1,2,3");
@@ -251,7 +254,7 @@ describe("runInSandbox", () => {
       code: `
         const s = new Set([1, 2, 2, 3]);
         return s.size;
-      `,
+      `
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe(3);
@@ -260,7 +263,7 @@ describe("runInSandbox", () => {
   it("respects timeout", async () => {
     const result = await runInSandbox({
       code: "while(true) {}",
-      timeoutMs: 100,
+      timeoutMs: 100
     });
     expect(result.success).toBe(false);
     expect(result.error).toBeTruthy();
@@ -268,7 +271,7 @@ describe("runInSandbox", () => {
 
   it("serializes complex return values", async () => {
     const result = await runInSandbox({
-      code: "return { name: 'test', values: [1, 2, 3] }",
+      code: "return { name: 'test', values: [1, 2, 3] }"
     });
     expect(result.success).toBe(true);
     expect(result.result).toEqual({ name: "test", values: [1, 2, 3] });

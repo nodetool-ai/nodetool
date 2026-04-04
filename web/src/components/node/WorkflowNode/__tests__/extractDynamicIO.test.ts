@@ -158,6 +158,30 @@ describe("extractDynamicIO", () => {
     expect(result.dynamic_properties).toEqual({ count: 5, scale: 1.5 });
   });
 
+  it("extracts inputs from API format (flat data without properties nesting)", () => {
+    const workflow = makeWorkflow([
+      {
+        id: "n1",
+        type: "nodetool.input.StringInput",
+        data: { name: "prompt", value: "hello", description: "A prompt" }
+      }
+    ]);
+
+    const result = extractDynamicIO(workflow);
+
+    expect(result.dynamic_inputs).toEqual({
+      prompt: {
+        type: "str",
+        optional: true,
+        type_args: [],
+        description: "A prompt"
+      }
+    });
+    expect(result.dynamic_properties).toEqual({
+      prompt: "hello"
+    });
+  });
+
   it("falls back to node type name when properties.name is missing", () => {
     const workflow = makeWorkflow([
       {

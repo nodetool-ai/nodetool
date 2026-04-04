@@ -25,7 +25,7 @@ vi.mock("node:fs", async (importOriginal) => {
         throw new Error("Mock: permission denied");
       }
       return actual.accessSync(...args);
-    },
+    }
   };
 });
 
@@ -41,13 +41,13 @@ async function createWorkspace(
   userId: string,
   name: string,
   path = "/tmp/ws",
-  isDefault = false,
+  isDefault = false
 ): Promise<Workspace> {
   return Workspace.create<Workspace>({
     user_id: userId,
     name,
     path,
-    is_default: isDefault,
+    is_default: isDefault
   });
 }
 
@@ -87,7 +87,12 @@ describe("Workspace model", () => {
 
   it("isAccessible returns true for an existing writable directory", () => {
     const tmpDir = os.tmpdir();
-    const ws = new Workspace({ user_id: "u1", name: "ws", path: tmpDir, id: "x" });
+    const ws = new Workspace({
+      user_id: "u1",
+      name: "ws",
+      path: tmpDir,
+      id: "x"
+    });
     expect(ws.isAccessible()).toBe(true);
   });
 
@@ -96,7 +101,7 @@ describe("Workspace model", () => {
       user_id: "u1",
       name: "ws",
       path: "/nonexistent/path/that/does/not/exist",
-      id: "x",
+      id: "x"
     });
     expect(ws.isAccessible()).toBe(false);
   });
@@ -107,7 +112,7 @@ describe("Workspace model", () => {
       user_id: "u1",
       name: "legacy",
       path: "/tmp/ws",
-      is_default: 1,
+      is_default: 1
     });
     expect(ws.is_default).toBe(true);
   });
@@ -118,7 +123,7 @@ describe("Workspace model", () => {
       user_id: "u1",
       name: "ws",
       path: tmpDir,
-      id: "x",
+      id: "x"
     });
 
     forceAccessSyncThrow.value = true;
@@ -222,7 +227,7 @@ describe("Workspace model", () => {
     await Workflow.create<Workflow>({
       user_id: "u1",
       name: "Linked Workflow",
-      workspace_id: ws.id,
+      workspace_id: ws.id
     });
 
     const result = await Workspace.hasLinkedWorkflows(ws.id);

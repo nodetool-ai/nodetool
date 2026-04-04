@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Sharpen"
-node_type: "lib.pillow.enhance.Sharpen"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.Sharpen"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.Sharpen`
+**Type:** `lib.image.enhance.Sharpen`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -35,5 +35,5 @@ Enhances image detail by intensifying local pixel contrast.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

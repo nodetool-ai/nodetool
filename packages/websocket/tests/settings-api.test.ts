@@ -12,9 +12,9 @@ function makeSettingsRequest(
     method: "PUT",
     headers: {
       "content-type": "application/json",
-      "x-user-id": userId,
+      "x-user-id": userId
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body)
   });
 }
 
@@ -49,9 +49,12 @@ describe("settings-api", () => {
       userId: "user-1",
       key: "OPENAI_API_KEY",
       value: "second-key",
-      description: "Secret for OPENAI_API_KEY",
+      description: "Secret for OPENAI_API_KEY"
     });
-    expect(clearSecretCacheSpy).toHaveBeenCalledWith("user-1", "OPENAI_API_KEY");
+    expect(clearSecretCacheSpy).toHaveBeenCalledWith(
+      "user-1",
+      "OPENAI_API_KEY"
+    );
     expect(clearProviderCacheSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,0 +1,158 @@
+{
+  "id": "search-walmart-products",
+  "access": "public",
+  "created_at": "2026-03-08T12:00:00.000000",
+  "updated_at": "2026-03-08T12:00:00.000000",
+  "name": "Search - Walmart Products",
+  "tool_name": null,
+  "description": "Claude Agent uses Walmart Search and Walmart Product as tools to find products, compare prices, and get detailed product information.",
+  "tags": [
+    "search",
+    "walmart",
+    "shopping",
+    "ecommerce",
+    "agent"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "e-control-search",
+        "source": "claude-agent",
+        "sourceHandle": "__control__",
+        "target": "search",
+        "targetHandle": "__control__",
+        "edge_type": "control",
+        "ui_properties": {}
+      },
+      {
+        "id": "e-control-product",
+        "source": "claude-agent",
+        "sourceHandle": "__control__",
+        "target": "product-detail",
+        "targetHandle": "__control__",
+        "edge_type": "control",
+        "ui_properties": {}
+      },
+      {
+        "id": "e-agent-to-save",
+        "source": "claude-agent",
+        "sourceHandle": "text",
+        "target": "save-analysis",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "claude-agent",
+        "type": "anthropic.agents.ClaudeAgent",
+        "data": {
+          "prompt": "I'm looking for a good 4K TV under $500. Search Walmart for options, compare the top 3 by features and price, then get detailed info on the best value pick. Write a buying recommendation.",
+          "model": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-4-6",
+            "name": "Claude Sonnet 4.6"
+          },
+          "system_prompt": "You are a savvy shopping assistant. Use Walmart search to find products, then use Walmart product detail to get more info on promising items. Provide clear, actionable recommendations with price comparisons.",
+          "max_turns": 15,
+          "allowed_tools": [],
+          "permission_mode": "acceptEdits",
+          "use_claude_credentials": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 100,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 380,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "search",
+        "type": "search.walmart.WalmartSearch",
+        "data": {
+          "query": "",
+          "num_results": 10
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 100
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Walmart Search"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "product-detail",
+        "type": "search.walmart.WalmartProduct",
+        "data": {
+          "product_id": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Walmart Product Detail"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "save-analysis",
+        "type": "nodetool.dictionary.SaveJSON",
+        "data": {
+          "name": "walmart-recommendation-%Y%m%d-%H%M%S.json"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 500
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "required_providers": null,
+  "required_models": null
+}

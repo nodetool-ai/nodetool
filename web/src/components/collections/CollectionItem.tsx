@@ -2,15 +2,14 @@ import React, { memo, useCallback, useMemo } from "react";
 import {
   ListItem,
   Typography,
-  IconButton,
   CircularProgress,
   LinearProgress,
   Tooltip,
   Button,
   Box
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { DeleteButton } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -201,24 +200,18 @@ const CollectionItem = ({
       onDragLeave={onDragLeave}
       sx={listItemSx}
       secondaryAction={
-        <Tooltip title="Delete this collection">
-          <span>
-            <IconButton
-              edge="end"
-              aria-label="delete"
-              sx={{ mt: -10 }}
-              onClick={handleDeleteClick}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending &&
-                deleteMutation.variables === collection.name ? (
-                <CircularProgress size={20} />
-              ) : (
-                <DeleteIcon sx={{ fontSize: "1rem" }} />
-              )}
-            </IconButton>
-          </span>
-        </Tooltip>
+        deleteMutation.isPending &&
+          deleteMutation.variables === collection.name ? (
+          <CircularProgress size={20} />
+        ) : (
+          <DeleteButton
+            onClick={handleDeleteClick}
+            tooltip="Delete this collection"
+            disabled={deleteMutation.isPending}
+            sx={{ mt: -10 }}
+            nodrag={false}
+          />
+        )
       }
     >
       {dragOverCollection === collection.name && (

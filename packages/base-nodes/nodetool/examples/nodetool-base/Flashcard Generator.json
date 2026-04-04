@@ -1,0 +1,332 @@
+{
+  "id": "flashcard_generator",
+  "access": "public",
+  "created_at": "2025-10-12T14:51:06.701387",
+  "updated_at": "2025-10-12T14:51:06.701402",
+  "name": "Flashcard Generator",
+  "tool_name": null,
+  "description": "Generate study flashcards using AI and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+  "tags": [
+    "education",
+    "database",
+    "ai",
+    "flashcards",
+    "learning"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "topic_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "Python Programming",
+          "description": "Enter the topic you want to study"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 76,
+            "y": 171
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "create_table",
+        "parent_id": null,
+        "type": "lib.sqlite.CreateTable",
+        "data": {
+          "database_name": "flashcards.db",
+          "table_name": "study_cards",
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "id",
+                "data_type": "int"
+              },
+              {
+                "name": "question",
+                "data_type": "string"
+              },
+              {
+                "name": "answer",
+                "data_type": "string"
+              },
+              {
+                "name": "category",
+                "data_type": "string"
+              }
+            ]
+          },
+          "add_primary_key": true,
+          "if_not_exists": true
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 696,
+            "y": 522
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "format_prompt",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Generate 5 educational flashcards about {{TOPIC}}. Create clear questions with concise, accurate answers suitable for studying."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 386,
+            "y": 167
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "TOPIC": ""
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "generate_flashcards",
+        "parent_id": null,
+        "type": "nodetool.generators.DataGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "max_tokens": 4096,
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "question",
+                "data_type": "string"
+              },
+              {
+                "name": "answer",
+                "data_type": "string"
+              },
+              {
+                "name": "category",
+                "data_type": "string"
+              }
+            ]
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 776,
+            "y": 65
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "insert_flashcard",
+        "parent_id": null,
+        "type": "lib.sqlite.Insert",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1126,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "query_all",
+        "parent_id": null,
+        "type": "lib.sqlite.Query",
+        "data": {
+          "where": "",
+          "order_by": "id DESC",
+          "limit": 10
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1206,
+            "y": 630
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "display_result",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "Flashcards Saved!"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1516,
+            "y": 614
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 485,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -605,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 1184,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "40602323-e39f-48d6-95fa-26a1d3a17fbc",
+        "source": "topic_input",
+        "sourceHandle": "output",
+        "target": "format_prompt",
+        "targetHandle": "TOPIC",
+        "ui_properties": null
+      },
+      {
+        "id": "244c407b-37b4-45d9-8b7d-0aa091c973c5",
+        "source": "format_prompt",
+        "sourceHandle": "output",
+        "target": "generate_flashcards",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "a39fe817-b16a-43b3-ae96-2788a8a023ee",
+        "source": "generate_flashcards",
+        "sourceHandle": "record",
+        "target": "insert_flashcard",
+        "targetHandle": "data",
+        "ui_properties": null
+      },
+      {
+        "id": "0a0e761d-50bf-432d-a346-922a503b370c",
+        "source": "create_table",
+        "sourceHandle": "database_name",
+        "target": "query_all",
+        "targetHandle": "database_name",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "c07f93c7-6adf-4e34-a79f-971f39d264b9",
+        "source": "create_table",
+        "sourceHandle": "table_name",
+        "target": "query_all",
+        "targetHandle": "table_name",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "6d344c9b-d47e-42a7-90c1-4e2471efae7e",
+        "source": "create_table",
+        "sourceHandle": "database_name",
+        "target": "insert_flashcard",
+        "targetHandle": "database_name",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "510c3a40-032a-406f-a592-12e5c8fc1c79",
+        "source": "create_table",
+        "sourceHandle": "table_name",
+        "target": "insert_flashcard",
+        "targetHandle": "table_name",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "922eb1a6-d8d8-4211-addf-92b198ebb22b",
+        "source": "create_table",
+        "sourceHandle": "columns",
+        "target": "query_all",
+        "targetHandle": "columns",
+        "ui_properties": {
+          "className": "record_type"
+        }
+      },
+      {
+        "id": "2f5ac40f-e957-442e-ab4d-bb93929483be",
+        "source": "query_all",
+        "sourceHandle": "row",
+        "target": "display_result",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dict"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

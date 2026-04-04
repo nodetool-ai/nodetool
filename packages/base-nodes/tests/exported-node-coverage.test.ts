@@ -26,32 +26,44 @@ function walkTestFiles(dir: string): string[] {
 }
 
 function exportedNodeNames(): string[] {
-  const indexSource = fs.readFileSync(path.join(sourceRoot(), "index.ts"), "utf8");
-  const exportBlocks = [...indexSource.matchAll(/export\s*\{([\s\S]*?)\}\s*from\s*["'][^"']+["'];/g)];
+  const indexSource = fs.readFileSync(
+    path.join(sourceRoot(), "index.ts"),
+    "utf8"
+  );
+  const exportBlocks = [
+    ...indexSource.matchAll(/export\s*\{([\s\S]*?)\}\s*from\s*["'][^"']+["'];/g)
+  ];
 
-  return [...new Set(
-    exportBlocks
-      .flatMap((match) => match[1].split(","))
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-      .map((entry) => {
-        const aliasMatch = entry.match(/^([A-Za-z0-9_]+)\s+as\s+([A-Za-z0-9_]+)$/);
-        return aliasMatch ? aliasMatch[2] : entry;
-      })
-      .filter((name) => name.endsWith("Node")),
-  )].sort();
+  return [
+    ...new Set(
+      exportBlocks
+        .flatMap((match) => match[1].split(","))
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .map((entry) => {
+          const aliasMatch = entry.match(
+            /^([A-Za-z0-9_]+)\s+as\s+([A-Za-z0-9_]+)$/
+          );
+          return aliasMatch ? aliasMatch[2] : entry;
+        })
+        .filter((name) => name.endsWith("Node"))
+    )
+  ].sort();
 }
 
 describe("exported base node coverage audit", () => {
   it("references every exported node class from at least one behavior test", () => {
     const files = walkTestFiles(testsRoot()).filter((file) => {
       const base = path.basename(file);
-      return base !== "metadata-parity.test.ts" && base !== "exported-node-coverage.test.ts";
+      return (
+        base !== "metadata-parity.test.ts" &&
+        base !== "exported-node-coverage.test.ts"
+      );
     });
     const contents = files.map((file) => fs.readFileSync(file, "utf8"));
 
     const missing = exportedNodeNames().filter(
-      (name) => !contents.some((source) => source.includes(name)),
+      (name) => !contents.some((source) => source.includes(name))
     );
 
     expect(missing).toEqual([]);

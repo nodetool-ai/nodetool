@@ -8,18 +8,17 @@ import type { RunPodDeployment } from "../src/deployment-config.js";
 
 vi.mock("../src/docker.js", () => ({
   buildDockerImage: vi.fn().mockReturnValue(false),
-  formatImageName: vi.fn(
-    (name: string, user: string, registry: string) =>
-      registry === "docker.io" ? `${user}/${name}` : `${registry}/${user}/${name}`
+  formatImageName: vi.fn((name: string, user: string, registry: string) =>
+    registry === "docker.io" ? `${user}/${name}` : `${registry}/${user}/${name}`
   ),
   generateImageTag: vi.fn().mockReturnValue("auto-tag-abc123"),
   pushToRegistry: vi.fn(),
-  runCommand: vi.fn().mockReturnValue("Docker version 24.0.0"),
+  runCommand: vi.fn().mockReturnValue("Docker version 24.0.0")
 }));
 
 vi.mock("../src/runpod-api.js", () => ({
   createOrUpdateRunpodTemplate: vi.fn().mockResolvedValue("tpl-new-1"),
-  createRunpodEndpointGraphql: vi.fn().mockResolvedValue("ep-new-1"),
+  createRunpodEndpointGraphql: vi.fn().mockResolvedValue("ep-new-1")
 }));
 
 import {
@@ -27,11 +26,11 @@ import {
   formatImageName,
   generateImageTag,
   pushToRegistry,
-  runCommand,
+  runCommand
 } from "../src/docker.js";
 import {
   createOrUpdateRunpodTemplate,
-  createRunpodEndpointGraphql,
+  createRunpodEndpointGraphql
 } from "../src/runpod-api.js";
 
 const mockedBuild = vi.mocked(buildDockerImage);
@@ -60,7 +59,7 @@ function makeDeployment(overrides: Record<string, any> = {}): RunPodDeployment {
     idle_timeout: 5,
     flashboot: false,
     state: { status: "unknown" },
-    ...overrides,
+    ...overrides
   } as RunPodDeployment;
 }
 
@@ -70,7 +69,9 @@ beforeEach(() => {
   mockedBuild.mockReturnValue(false);
   mockedFormat.mockImplementation(
     (name: string, user: string, registry: string) =>
-      registry === "docker.io" ? `${user}/${name}` : `${registry}/${user}/${name}`
+      registry === "docker.io"
+        ? `${user}/${name}`
+        : `${registry}/${user}/${name}`
   );
   mockedGenTag.mockReturnValue("auto-tag-abc123");
   mockedRunCmd.mockReturnValue("Docker version 24.0.0");
@@ -144,7 +145,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       templateName: "my-tpl",
-      name: "my-endpoint",
+      name: "my-endpoint"
     });
     expect(mockedRunCmd).toHaveBeenCalled(); // docker version check
     expect(mockedBuild).toHaveBeenCalledOnce();
@@ -160,7 +161,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       name: "ep",
-      skipBuild: true,
+      skipBuild: true
     });
     expect(mockedBuild).not.toHaveBeenCalled();
     expect(mockedRunCmd).not.toHaveBeenCalled(); // no docker version check
@@ -173,7 +174,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       name: "ep",
-      skipPush: true,
+      skipPush: true
     });
     expect(mockedPush).not.toHaveBeenCalled();
   });
@@ -185,7 +186,7 @@ describe("deployToRunpod", () => {
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
-      name: "ep",
+      name: "ep"
     });
     expect(mockedPush).not.toHaveBeenCalled();
   });
@@ -197,7 +198,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       name: "ep",
-      skipTemplate: true,
+      skipTemplate: true
     });
     expect(mockedCreateTemplate).not.toHaveBeenCalled();
   });
@@ -209,7 +210,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       name: "ep",
-      skipEndpoint: true,
+      skipEndpoint: true
     });
     expect(mockedCreateEndpoint).not.toHaveBeenCalled();
   });
@@ -221,7 +222,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       name: "ep",
-      skipTemplate: true,
+      skipTemplate: true
     });
     // templateId is undefined since template creation was skipped
     expect(mockedCreateEndpoint).not.toHaveBeenCalled();
@@ -229,13 +230,13 @@ describe("deployToRunpod", () => {
 
   it("generates auto tag when no tag provided", async () => {
     const dep = makeDeployment({
-      image: { name: "my-image", tag: undefined },
+      image: { name: "my-image", tag: undefined }
     });
     await deployToRunpod({
       deployment: dep,
       dockerUsername: "testuser",
       imageName: "my-image",
-      name: "ep",
+      name: "ep"
     });
     expect(mockedGenTag).toHaveBeenCalled();
   });
@@ -246,7 +247,7 @@ describe("deployToRunpod", () => {
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "my-custom-tag",
-      name: "ep",
+      name: "ep"
     });
     // The build should use the provided tag
     expect(mockedBuild).toHaveBeenCalledWith(
@@ -264,7 +265,7 @@ describe("deployToRunpod", () => {
         dockerUsername: "testuser",
         imageName: "my-image",
         tag: "v1",
-        name: "ep",
+        name: "ep"
       })
     ).rejects.toThrow("Docker is not available");
   });
@@ -277,7 +278,7 @@ describe("deployToRunpod", () => {
         tag: "v1",
         name: "ep",
         skipBuild: true,
-        skipPush: true,
+        skipPush: true
       })
     ).rejects.toThrow("Image name is required");
   });
@@ -290,7 +291,7 @@ describe("deployToRunpod", () => {
         deployment: dep,
         imageName: "my-image",
         tag: "v1",
-        name: "ep",
+        name: "ep"
       })
     ).rejects.toThrow("Docker username is required");
   });
@@ -302,9 +303,13 @@ describe("deployToRunpod", () => {
       deployment: dep,
       imageName: "my-image",
       tag: "v1",
-      name: "ep",
+      name: "ep"
     });
-    expect(mockedFormat).toHaveBeenCalledWith("my-image", "envuser", "docker.io");
+    expect(mockedFormat).toHaveBeenCalledWith(
+      "my-image",
+      "envuser",
+      "docker.io"
+    );
     delete process.env.DOCKER_USERNAME;
   });
 
@@ -314,7 +319,7 @@ describe("deployToRunpod", () => {
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
-      name: "ep",
+      name: "ep"
     });
     const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
     expect(envArg).toMatchObject({ PORT: "8000", PORT_HEALTH: "8000" });
@@ -326,7 +331,7 @@ describe("deployToRunpod", () => {
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
-      name: "ep",
+      name: "ep"
     });
     const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
     expect(envArg?.AUTH_PROVIDER).toBe("static");
@@ -339,15 +344,15 @@ describe("deployToRunpod", () => {
         db_path: "/data/db",
         chroma_path: "/data/chroma",
         hf_cache: "/data/hf",
-        asset_bucket: "/data/assets",
-      },
+        asset_bucket: "/data/assets"
+      }
     });
     await deployToRunpod({
       deployment: dep,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
-      name: "ep",
+      name: "ep"
     });
     const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
     expect(envArg?.USERS_FILE).toBe("/data/users.json");
@@ -361,7 +366,7 @@ describe("deployToRunpod", () => {
   it("passes correct options to createRunpodEndpointGraphql", async () => {
     const dep = makeDeployment({
       compute_type: "GPU",
-      network_volume_id: "vol-1",
+      network_volume_id: "vol-1"
     });
     await deployToRunpod({
       deployment: dep,
@@ -376,7 +381,7 @@ describe("deployToRunpod", () => {
       workersMax: 5,
       idleTimeout: 10,
       executionTimeout: 300000,
-      flashboot: true,
+      flashboot: true
     });
     expect(mockedCreateEndpoint).toHaveBeenCalledWith({
       templateId: "tpl-new-1",
@@ -390,7 +395,7 @@ describe("deployToRunpod", () => {
       idleTimeout: 10,
       executionTimeoutMs: 300000,
       flashboot: true,
-      networkVolumeId: "vol-1",
+      networkVolumeId: "vol-1"
     });
   });
 
@@ -400,7 +405,7 @@ describe("deployToRunpod", () => {
         deployment: makeDeployment(),
         dockerUsername: "testuser",
         imageName: "my-image",
-        tag: "v1",
+        tag: "v1"
         // name is missing
       })
     ).rejects.toThrow("Name is required for endpoint creation");
@@ -408,13 +413,13 @@ describe("deployToRunpod", () => {
 
   it("uses deployment docker registry as default", async () => {
     const dep = makeDeployment({
-      docker: { registry: "ghcr.io", username: "user" },
+      docker: { registry: "ghcr.io", username: "user" }
     });
     await deployToRunpod({
       deployment: dep,
       imageName: "my-image",
       tag: "v1",
-      name: "ep",
+      name: "ep"
     });
     expect(mockedFormat).toHaveBeenCalledWith("my-image", "user", "ghcr.io");
   });
@@ -426,7 +431,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       name: "ep",
-      noCache: true,
+      noCache: true
     });
     expect(mockedBuild).toHaveBeenCalledWith(
       expect.objectContaining({ useCache: false })
@@ -441,7 +446,7 @@ describe("deployToRunpod", () => {
         dockerUsername: "testuser",
         imageName: "my-image",
         tag: "v1",
-        name: "ep",
+        name: "ep"
       })
     ).rejects.toThrow("template fail");
   });
@@ -452,7 +457,7 @@ describe("deployToRunpod", () => {
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
-      name: "ep",
+      name: "ep"
       // no templateName provided
     });
     // templateName should fall back: opts.templateName ?? opts.name ?? deployment.template_name ?? undefined
@@ -473,7 +478,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       name: "ep",
-      templateName: "custom-tpl",
+      templateName: "custom-tpl"
     });
     expect(mockedCreateTemplate).toHaveBeenCalledWith(
       "custom-tpl",
@@ -490,8 +495,8 @@ describe("deployToRunpod", () => {
         db_path: "/default/db",
         chroma_path: "/default/chroma",
         hf_cache: "/default/hf",
-        asset_bucket: "/default/assets",
-      },
+        asset_bucket: "/default/assets"
+      }
     });
     await deployToRunpod({
       deployment: dep,
@@ -499,7 +504,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       name: "ep",
-      env: { USERS_FILE: "/custom/users.json", AUTH_PROVIDER: "custom" },
+      env: { USERS_FILE: "/custom/users.json", AUTH_PROVIDER: "custom" }
     });
     const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
     expect(envArg?.USERS_FILE).toBe("/custom/users.json");
@@ -512,7 +517,7 @@ describe("deployToRunpod", () => {
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
-      name: "ep",
+      name: "ep"
     });
     const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
     expect(envArg?.NODETOOL_SERVER_MODE).toBe("private");
@@ -525,7 +530,7 @@ describe("deployToRunpod", () => {
       imageName: "my-image",
       tag: "v1",
       name: "ep",
-      env: { NODETOOL_SERVER_MODE: "public" },
+      env: { NODETOOL_SERVER_MODE: "public" }
     });
     const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
     expect(envArg?.NODETOOL_SERVER_MODE).toBe("public");

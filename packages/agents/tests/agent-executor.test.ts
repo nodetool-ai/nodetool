@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   AgentExecutor,
   FinishTool,
-  jsonSchemaForOutputType,
+  jsonSchemaForOutputType
 } from "../src/agent-executor.js";
 import type { ToolCall } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
@@ -10,7 +10,7 @@ import type { Chunk } from "@nodetool/protocol";
 function createMockProvider(toolCallArgs?: Record<string, unknown>) {
   const args = toolCallArgs ?? {
     result: { answer: "42" },
-    metadata: { title: "Test", description: "Done" },
+    metadata: { title: "Test", description: "Done" }
   };
   return {
     provider: "mock",
@@ -22,12 +22,16 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>) {
         {
           id: "tc_1",
           name: "finish_task",
-          args,
-        },
-      ],
+          args
+        }
+      ]
     }),
-    async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
-    async generateMessageTraced(...args: any[]) { return (this as any).generateMessage(...args); },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
     getAvailableImageModels: vi.fn().mockResolvedValue([]),
     getAvailableVideoModels: vi.fn().mockResolvedValue([]),
@@ -45,7 +49,7 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>) {
     isContextLengthError: () => false,
     trackUsage: vi.fn(),
     getTotalCost: vi.fn().mockReturnValue(0),
-    resetCost: vi.fn(),
+    resetCost: vi.fn()
   } as any;
 }
 
@@ -54,7 +58,7 @@ function createMockContext() {
     storeStepResult: vi.fn(),
     loadStepResult: vi.fn(),
     set: vi.fn(),
-    get: vi.fn(),
+    get: vi.fn()
   } as any;
 }
 
@@ -62,39 +66,39 @@ describe("jsonSchemaForOutputType", () => {
   it("returns correct schema for known types", () => {
     expect(jsonSchemaForOutputType("json")).toEqual({
       type: "object",
-      description: "JSON object",
+      description: "JSON object"
     });
     expect(jsonSchemaForOutputType("string")).toEqual({
       type: "string",
-      description: "Text string",
+      description: "Text string"
     });
     expect(jsonSchemaForOutputType("number")).toEqual({
       type: "number",
-      description: "Numeric value",
+      description: "Numeric value"
     });
     expect(jsonSchemaForOutputType("boolean")).toEqual({
       type: "boolean",
-      description: "Boolean value",
+      description: "Boolean value"
     });
     expect(jsonSchemaForOutputType("list")).toEqual({
       type: "array",
-      description: "Array of values",
+      description: "Array of values"
     });
     expect(jsonSchemaForOutputType("markdown")).toEqual({
       type: "string",
-      description: "Markdown formatted text",
+      description: "Markdown formatted text"
     });
     expect(jsonSchemaForOutputType("html")).toEqual({
       type: "string",
-      description: "HTML markup",
+      description: "HTML markup"
     });
     expect(jsonSchemaForOutputType("csv")).toEqual({
       type: "string",
-      description: "CSV formatted data",
+      description: "CSV formatted data"
     });
     expect(jsonSchemaForOutputType("yaml")).toEqual({
       type: "string",
-      description: "YAML formatted data",
+      description: "YAML formatted data"
     });
   });
 
@@ -124,13 +128,16 @@ describe("FinishTool", () => {
     const props = tool.inputSchema.properties as Record<string, unknown>;
     expect(props.result).toEqual({
       type: "string",
-      description: "Text string",
+      description: "Text string"
     });
   });
 
   it("process returns params unchanged", async () => {
     const tool = new FinishTool("json", null);
-    const params = { result: { data: 1 }, metadata: { title: "T", description: "D" } };
+    const params = {
+      result: { data: 1 },
+      metadata: { title: "T", description: "D" }
+    };
     const result = await tool.process({} as any, params);
     expect(result).toEqual(params);
   });
@@ -154,7 +161,7 @@ describe("AgentExecutor", () => {
       model: "test-model",
       context,
       tools: [],
-      outputType: "json",
+      outputType: "json"
     });
 
     const items: (Chunk | ToolCall)[] = [];
@@ -166,7 +173,7 @@ describe("AgentExecutor", () => {
     expect(executor.getResult()).toEqual({ answer: "42" });
     expect(executor.getMetadata()).toEqual({
       title: "Test",
-      description: "Done",
+      description: "Done"
     });
   });
 
@@ -179,21 +186,19 @@ describe("AgentExecutor", () => {
       model: "test-model",
       context,
       tools: [],
-      outputType: "json",
+      outputType: "json"
     });
 
     const items: unknown[] = [];
     for await (const item of executor.execute("Analyze data", {
-      data: [1, 2, 3],
+      data: [1, 2, 3]
     })) {
       items.push(item);
     }
 
     // Provider was called with messages that include the inputs
     const call = provider.generateMessage.mock.calls[0][0];
-    const userMsg = call.messages.find(
-      (m: any) => m.role === "user"
-    );
+    const userMsg = call.messages.find((m: any) => m.role === "user");
     expect(userMsg.content).toContain("data");
   });
 
@@ -206,9 +211,9 @@ describe("AgentExecutor", () => {
       toProviderTool: () => ({
         name: "calculator",
         description: "Calculate things",
-        inputSchema: { type: "object", properties: {} },
+        inputSchema: { type: "object", properties: {} }
       }),
-      userMessage: () => "Running calculator",
+      userMessage: () => "Running calculator"
     };
 
     // Provider calls calculator first, then finish_task
@@ -225,9 +230,9 @@ describe("AgentExecutor", () => {
               {
                 id: "tc_calc",
                 name: "calculator",
-                args: { expr: "1+1" },
-              },
-            ],
+                args: { expr: "1+1" }
+              }
+            ]
           };
         }
         return {
@@ -239,12 +244,12 @@ describe("AgentExecutor", () => {
               name: "finish_task",
               args: {
                 result: 42,
-                metadata: { title: "Calc", description: "Calculated" },
-              },
-            },
-          ],
+                metadata: { title: "Calc", description: "Calculated" }
+              }
+            }
+          ]
         };
-      }),
+      })
     };
 
     const executor = new AgentExecutor({
@@ -252,7 +257,7 @@ describe("AgentExecutor", () => {
       model: "test-model",
       context: createMockContext(),
       tools: [customTool as any],
-      outputType: "number",
+      outputType: "number"
     });
 
     const items: unknown[] = [];
@@ -271,8 +276,8 @@ describe("AgentExecutor", () => {
       generateMessage: vi.fn().mockResolvedValue({
         role: "assistant",
         content: "Still thinking...",
-        toolCalls: null,
-      }),
+        toolCalls: null
+      })
     };
 
     const executor = new AgentExecutor({
@@ -281,7 +286,7 @@ describe("AgentExecutor", () => {
       context: createMockContext(),
       tools: [],
       outputType: "string",
-      maxIterations: 3,
+      maxIterations: 3
     });
 
     const items: unknown[] = [];
@@ -302,9 +307,9 @@ describe("AgentExecutor", () => {
       toProviderTool: () => ({
         name: "faulty",
         description: "Fails",
-        inputSchema: { type: "object", properties: {} },
+        inputSchema: { type: "object", properties: {} }
       }),
-      userMessage: () => "Running faulty",
+      userMessage: () => "Running faulty"
     };
 
     let callCount = 0;
@@ -316,9 +321,7 @@ describe("AgentExecutor", () => {
           return {
             role: "assistant",
             content: null,
-            toolCalls: [
-              { id: "tc_1", name: "faulty", args: {} },
-            ],
+            toolCalls: [{ id: "tc_1", name: "faulty", args: {} }]
           };
         }
         return {
@@ -330,12 +333,12 @@ describe("AgentExecutor", () => {
               name: "finish_task",
               args: {
                 result: "recovered",
-                metadata: { title: "R", description: "Recovered" },
-              },
-            },
-          ],
+                metadata: { title: "R", description: "Recovered" }
+              }
+            }
+          ]
         };
-      }),
+      })
     };
 
     const executor = new AgentExecutor({
@@ -343,7 +346,7 @@ describe("AgentExecutor", () => {
       model: "test-model",
       context: createMockContext(),
       tools: [failingTool as any],
-      outputType: "string",
+      outputType: "string"
     });
 
     const items: unknown[] = [];
@@ -364,9 +367,7 @@ describe("AgentExecutor", () => {
           return {
             role: "assistant",
             content: null,
-            toolCalls: [
-              { id: "tc_1", name: "nonexistent", args: {} },
-            ],
+            toolCalls: [{ id: "tc_1", name: "nonexistent", args: {} }]
           };
         }
         return {
@@ -378,12 +379,12 @@ describe("AgentExecutor", () => {
               name: "finish_task",
               args: {
                 result: "done",
-                metadata: { title: "D", description: "Done" },
-              },
-            },
-          ],
+                metadata: { title: "D", description: "Done" }
+              }
+            }
+          ]
         };
-      }),
+      })
     };
 
     const executor = new AgentExecutor({
@@ -391,7 +392,7 @@ describe("AgentExecutor", () => {
       model: "test-model",
       context: createMockContext(),
       tools: [],
-      outputType: "string",
+      outputType: "string"
     });
 
     const items: unknown[] = [];

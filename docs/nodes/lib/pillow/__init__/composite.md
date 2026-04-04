@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Composite"
-node_type: "lib.pillow.__init__.Composite"
-namespace: "lib.pillow.__init__"
+node_type: "lib.image.Composite"
+namespace: "lib.image"
 ---
 
-**Type:** `lib.pillow.__init__.Composite`
+**Type:** `lib.image.Composite`
 
-**Namespace:** `lib.pillow.__init__`
+**Namespace:** `lib.image`
 
 ## Description
 
@@ -37,5 +37,5 @@ Combine two images using a mask for advanced compositing.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.__init__](../) namespace.
+Browse other nodes in the [lib.image](../) namespace.
 

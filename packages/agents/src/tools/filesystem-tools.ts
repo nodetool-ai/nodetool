@@ -4,7 +4,15 @@
  * Port of src/nodetool/agents/tools/workspace_tools.py
  */
 
-import { readFile, writeFile, appendFile, mkdir, readdir, stat, access } from "node:fs/promises";
+import {
+  readFile,
+  writeFile,
+  appendFile,
+  mkdir,
+  readdir,
+  stat,
+  access
+} from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { Tool } from "./base-tool.js";
@@ -41,23 +49,24 @@ export class ReadFileTool extends Tool {
     properties: {
       path: {
         type: "string" as const,
-        description: "Path to the file to read, relative to the workspace directory",
+        description:
+          "Path to the file to read, relative to the workspace directory"
       },
       start_line: {
         type: "number" as const,
-        description: "Start line (1-indexed, optional)",
+        description: "Start line (1-indexed, optional)"
       },
       end_line: {
         type: "number" as const,
-        description: "End line (1-indexed, inclusive, optional)",
-      },
+        description: "End line (1-indexed, inclusive, optional)"
+      }
     },
-    required: ["path"],
+    required: ["path"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const rawPath = params["path"];
     if (typeof rawPath !== "string") {
@@ -68,7 +77,10 @@ export class ReadFileTool extends Tool {
     try {
       filePath = resolveSafePath(context, rawPath);
     } catch (e) {
-      return { success: false, error: String(e instanceof Error ? e.message : e) };
+      return {
+        success: false,
+        error: String(e instanceof Error ? e.message : e)
+      };
     }
 
     try {
@@ -76,7 +88,7 @@ export class ReadFileTool extends Tool {
     } catch {
       return {
         success: false,
-        error: `Path ${rawPath} does not exist`,
+        error: `Path ${rawPath} does not exist`
       };
     }
 
@@ -89,7 +101,7 @@ export class ReadFileTool extends Tool {
           is_binary: true,
           path: rawPath,
           full_path: filePath,
-          error: `The file ${rawPath} contains binary data that cannot be processed`,
+          error: `The file ${rawPath} contains binary data that cannot be processed`
         };
       }
 
@@ -103,8 +115,14 @@ export class ReadFileTool extends Tool {
       if (typeof startLine === "number" || typeof endLine === "number") {
         const lines = raw.split("\n");
         const totalLines = lines.length;
-        const startIdx = Math.max(0, (typeof startLine === "number" ? startLine : 1) - 1);
-        const endIdx = Math.min(totalLines, typeof endLine === "number" ? endLine : totalLines);
+        const startIdx = Math.max(
+          0,
+          (typeof startLine === "number" ? startLine : 1) - 1
+        );
+        const endIdx = Math.min(
+          totalLines,
+          typeof endLine === "number" ? endLine : totalLines
+        );
 
         if (startIdx >= totalLines || startIdx > endIdx) {
           return {
@@ -115,8 +133,8 @@ export class ReadFileTool extends Tool {
             error: `Invalid line range: start_line=${startLine}, end_line=${endLine}, total lines=${totalLines}`,
             suggested_ranges: [
               `1-${Math.min(500, totalLines)}`,
-              `${Math.max(1, totalLines - 500)}-${totalLines}`,
-            ],
+              `${Math.max(1, totalLines - 500)}-${totalLines}`
+            ]
           };
         }
 
@@ -124,10 +142,11 @@ export class ReadFileTool extends Tool {
         lineInfo = {
           start_line: typeof startLine === "number" ? startLine : 1,
           end_line: endIdx,
-          total_lines: totalLines,
+          total_lines: totalLines
         };
       } else {
-        content = raw.length > MAX_READ_CHARS ? raw.slice(0, MAX_READ_CHARS) : raw;
+        content =
+          raw.length > MAX_READ_CHARS ? raw.slice(0, MAX_READ_CHARS) : raw;
         lineInfo = { total_lines: (raw.match(/\n/g) || []).length + 1 };
       }
 
@@ -137,17 +156,28 @@ export class ReadFileTool extends Tool {
       if (tokenCount > MAX_TOKENS) {
         const totalLines = lineInfo.total_lines ?? 0;
         const approxLinesPerToken = totalLines / Math.max(1, tokenCount);
-        const suggestedLineCount = Math.floor(approxLinesPerToken * MAX_TOKENS * 0.9);
+        const suggestedLineCount = Math.floor(
+          approxLinesPerToken * MAX_TOKENS * 0.9
+        );
 
         let suggestedRanges: string[];
         if (typeof startLine === "number") {
-          const suggestedEnd = Math.min(startLine + suggestedLineCount - 1, totalLines);
+          const suggestedEnd = Math.min(
+            startLine + suggestedLineCount - 1,
+            totalLines
+          );
           suggestedRanges = [`${startLine}-${suggestedEnd}`];
         } else {
           const chunkSize = Math.min(suggestedLineCount, 500);
           suggestedRanges = [];
-          for (let i = 1; i <= totalLines && suggestedRanges.length < 3; i += chunkSize) {
-            suggestedRanges.push(`${i}-${Math.min(i + chunkSize - 1, totalLines)}`);
+          for (
+            let i = 1;
+            i <= totalLines && suggestedRanges.length < 3;
+            i += chunkSize
+          ) {
+            suggestedRanges.push(
+              `${i}-${Math.min(i + chunkSize - 1, totalLines)}`
+            );
           }
         }
 
@@ -159,7 +189,7 @@ export class ReadFileTool extends Tool {
           error: `Token count (${tokenCount}) exceeds maximum (${MAX_TOKENS}). Please read only a portion of the file.`,
           token_info: tokenInfo,
           line_info: lineInfo,
-          suggested_ranges: suggestedRanges,
+          suggested_ranges: suggestedRanges
         };
       }
 
@@ -172,12 +202,12 @@ export class ReadFileTool extends Tool {
         truncated: raw.length > MAX_READ_CHARS,
         is_binary: false,
         line_info: lineInfo,
-        token_info: tokenInfo,
+        token_info: tokenInfo
       };
     } catch (e) {
       return {
         success: false,
-        error: `Failed to read file: ${String(e)}`,
+        error: `Failed to read file: ${String(e)}`
       };
     }
   }
@@ -198,24 +228,25 @@ export class WriteFileTool extends Tool {
     properties: {
       path: {
         type: "string" as const,
-        description: "Path to the file to write, relative to the workspace directory",
+        description:
+          "Path to the file to write, relative to the workspace directory"
       },
       content: {
         type: "string" as const,
-        description: "Content to write to the file",
+        description: "Content to write to the file"
       },
       append: {
         type: "boolean" as const,
         description: "Whether to append to the file instead of overwriting",
-        default: false,
-      },
+        default: false
+      }
     },
-    required: ["path", "content"],
+    required: ["path", "content"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const rawPath = params["path"];
     const content = params["content"];
@@ -232,7 +263,10 @@ export class WriteFileTool extends Tool {
     try {
       filePath = resolveSafePath(context, rawPath);
     } catch (e) {
-      return { success: false, error: String(e instanceof Error ? e.message : e) };
+      return {
+        success: false,
+        error: String(e instanceof Error ? e.message : e)
+      };
     }
 
     try {
@@ -257,7 +291,7 @@ export class WriteFileTool extends Tool {
         path: rawPath,
         full_path: filePath,
         append: appendMode,
-        created,
+        created
       };
     } catch (e) {
       return { success: false, error: `Failed to write file: ${String(e)}` };
@@ -288,19 +322,20 @@ export class ListDirectoryTool extends Tool {
     properties: {
       path: {
         type: "string" as const,
-        description: "Path to the directory to list, relative to the workspace directory",
+        description:
+          "Path to the directory to list, relative to the workspace directory"
       },
       recursive: {
         type: "boolean" as const,
-        description: "Whether to list contents recursively (default false)",
-      },
+        description: "Whether to list contents recursively (default false)"
+      }
     },
-    required: ["path"],
+    required: ["path"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const rawPath = params["path"];
     if (typeof rawPath !== "string") {
@@ -311,7 +346,10 @@ export class ListDirectoryTool extends Tool {
     try {
       dirPath = resolveSafePath(context, rawPath);
     } catch (e) {
-      return { success: false, error: String(e instanceof Error ? e.message : e) };
+      return {
+        success: false,
+        error: String(e instanceof Error ? e.message : e)
+      };
     }
 
     const recursive = params["recursive"] === true;
@@ -325,13 +363,13 @@ export class ListDirectoryTool extends Tool {
           results.push({
             name: entry.name,
             size: info.size,
-            isDirectory: entry.isDirectory(),
+            isDirectory: entry.isDirectory()
           });
         } catch {
           results.push({
             name: entry.name,
             size: 0,
-            isDirectory: entry.isDirectory(),
+            isDirectory: entry.isDirectory()
           });
         }
       }
@@ -340,13 +378,13 @@ export class ListDirectoryTool extends Tool {
         for (const sub of subdirs) {
           const subResult = (await this.process(context, {
             path: join(rawPath, sub.name),
-            recursive: true,
+            recursive: true
           })) as { entries?: DirEntry[] };
           if (subResult.entries) {
             for (const child of subResult.entries) {
               results.push({
                 ...child,
-                name: `${sub.name}/${child.name}`,
+                name: `${sub.name}/${child.name}`
               });
             }
           }

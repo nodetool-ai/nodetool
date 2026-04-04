@@ -5,7 +5,11 @@
  */
 
 import { Workflow } from "@nodetool/models";
-import { getVecStore, VecNotFoundError, splitDocument } from "@nodetool/vectorstore";
+import {
+  getVecStore,
+  VecNotFoundError,
+  splitDocument
+} from "@nodetool/vectorstore";
 import type { HttpApiOptions } from "./http-api.js";
 
 type JsonObject = Record<string, unknown>;
@@ -13,7 +17,7 @@ type JsonObject = Record<string, unknown>;
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json" }
   });
 }
 
@@ -52,7 +56,7 @@ function normalizePath(pathname: string): string {
 export async function handleCollectionRequest(
   request: Request,
   pathname: string,
-  _options: HttpApiOptions,
+  _options: HttpApiOptions
 ): Promise<Response | null> {
   pathname = normalizePath(pathname);
 
@@ -64,7 +68,8 @@ export async function handleCollectionRequest(
     // POST /api/collections/:name/index
     const indexMatch = pathname.match(/^\/api\/collections\/([^/]+)\/index$/);
     if (indexMatch) {
-      if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+      if (request.method !== "POST")
+        return errorResponse(405, "Method not allowed");
 
       // Parse multipart form data for file upload
       const contentType = request.headers.get("content-type") ?? "";
@@ -90,12 +95,16 @@ export async function handleCollectionRequest(
           documents: chunks.map((c) => c.text),
           metadatas: chunks.map((c) => ({
             source: c.source_id,
-            start_index: String(c.start_index),
-          })),
+            start_index: String(c.start_index)
+          }))
         });
       }
 
-      return jsonResponse({ path: file.name, chunks: chunks.length, error: null });
+      return jsonResponse({
+        path: file.name,
+        chunks: chunks.length,
+        error: null
+      });
     }
 
     // GET /api/collections
@@ -112,7 +121,9 @@ export async function handleCollectionRequest(
           const workflowId = metadata.workflow as string | undefined;
           if (workflowId) {
             try {
-              const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+              const workflow = (await Workflow.get(
+                workflowId
+              )) as Workflow | null;
               if (workflow) workflowName = workflow.name;
             } catch {
               // workflow not found
@@ -123,7 +134,7 @@ export async function handleCollectionRequest(
             name: col.name,
             count,
             metadata,
-            workflow_name: workflowName,
+            workflow_name: workflowName
           });
         }
 
@@ -138,18 +149,20 @@ export async function handleCollectionRequest(
         }
 
         const metadata: Record<string, string> = {};
-        if (body.embedding_model) metadata.embedding_model = body.embedding_model;
-        if (body.embedding_provider) metadata.embedding_provider = body.embedding_provider;
+        if (body.embedding_model)
+          metadata.embedding_model = body.embedding_model;
+        if (body.embedding_provider)
+          metadata.embedding_provider = body.embedding_provider;
 
         const collection = await store.createCollection({
           name: body.name,
-          metadata,
+          metadata
         });
 
         return jsonResponse({
           name: collection.name,
           metadata: collection.metadata,
-          count: 0,
+          count: 0
         });
       }
 
@@ -168,7 +181,7 @@ export async function handleCollectionRequest(
       return jsonResponse({
         name: collection.name,
         metadata: collection.metadata,
-        count,
+        count
       });
     }
 
@@ -188,14 +201,16 @@ export async function handleCollectionRequest(
       return jsonResponse({
         name: newName,
         metadata,
-        count,
+        count
       });
     }
 
     // DELETE /api/collections/:name
     if (request.method === "DELETE") {
       await store.deleteCollection({ name });
-      return jsonResponse({ message: `Collection ${name} deleted successfully` });
+      return jsonResponse({
+        message: `Collection ${name} deleted successfully`
+      });
     }
 
     return errorResponse(405, "Method not allowed");

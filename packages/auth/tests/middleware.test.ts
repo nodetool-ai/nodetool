@@ -3,7 +3,7 @@ import {
   createAuthMiddleware,
   getUserId,
   HttpError,
-  type AuthMiddlewareOptions,
+  type AuthMiddlewareOptions
 } from "../src/middleware.js";
 import { AuthProvider, AuthResult, TokenType } from "../src/auth-provider.js";
 
@@ -66,11 +66,13 @@ describe("HttpError", () => {
 describe("createAuthMiddleware", () => {
   // ── enforceAuth = true ──────────────────────────────────────────────────
   describe("with enforceAuth = true", () => {
-    function opts(overrides?: Partial<AuthMiddlewareOptions>): AuthMiddlewareOptions {
+    function opts(
+      overrides?: Partial<AuthMiddlewareOptions>
+    ): AuthMiddlewareOptions {
       return {
         staticProvider: new RejectProvider(),
         enforceAuth: true,
-        ...overrides,
+        ...overrides
       };
     }
 
@@ -95,7 +97,7 @@ describe("createAuthMiddleware", () => {
       const middleware = createAuthMiddleware(
         opts({
           staticProvider: new RejectProvider("not static"),
-          userProvider: new AcceptProvider("bob"),
+          userProvider: new AcceptProvider("bob")
         })
       );
       const req = bearerRequest("user-token");
@@ -108,7 +110,7 @@ describe("createAuthMiddleware", () => {
       const middleware = createAuthMiddleware(
         opts({
           staticProvider: new RejectProvider("bad static"),
-          userProvider: new RejectProvider("bad user"),
+          userProvider: new RejectProvider("bad user")
         })
       );
       const req = bearerRequest("bad-token");
@@ -124,11 +126,13 @@ describe("createAuthMiddleware", () => {
 
   // ── enforceAuth = false ─────────────────────────────────────────────────
   describe("with enforceAuth = false", () => {
-    function opts(overrides?: Partial<AuthMiddlewareOptions>): AuthMiddlewareOptions {
+    function opts(
+      overrides?: Partial<AuthMiddlewareOptions>
+    ): AuthMiddlewareOptions {
       return {
         staticProvider: new RejectProvider(),
         enforceAuth: false,
-        ...overrides,
+        ...overrides
       };
     }
 
@@ -153,7 +157,7 @@ describe("createAuthMiddleware", () => {
       const middleware = createAuthMiddleware(
         opts({
           staticProvider: new RejectProvider(),
-          userProvider: new RejectProvider(),
+          userProvider: new RejectProvider()
         })
       );
       const req = bearerRequest("invalid");

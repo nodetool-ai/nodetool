@@ -8,7 +8,7 @@ import * as os from "node:os";
 import {
   WorkspaceReadTool,
   WorkspaceWriteTool,
-  WorkspaceListTool,
+  WorkspaceListTool
 } from "../src/tools/workspace-tools.js";
 import { ListProviderModelsTool } from "../src/tools/model-tools.js";
 import { removeBase64Images } from "../src/utils/remove-base64-images.js";
@@ -17,7 +17,9 @@ import type { MessageContent } from "@nodetool/runtime";
 
 // Minimal context stub for workspace tools
 function makeContext(workspaceDir: string) {
-  return { workspaceDir } as unknown as import("@nodetool/runtime").ProcessingContext;
+  return {
+    workspaceDir
+  } as unknown as import("@nodetool/runtime").ProcessingContext;
 }
 
 // ── T-AG-1 — Workspace tools ────────────────────────────────────────
@@ -39,28 +41,36 @@ describe("T-AG-1: Workspace tools", () => {
   describe("WorkspaceReadTool", () => {
     it("reads a file relative to workspace", async () => {
       const tool = new WorkspaceReadTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), { path: "hello.txt" })) as Record<string, unknown>;
+      const result = (await tool.process(makeContext(tmpDir), {
+        path: "hello.txt"
+      })) as Record<string, unknown>;
       expect(result.success).toBe(true);
       expect(result.content).toBe("hello world");
     });
 
     it("reads a file in subdirectory", async () => {
       const tool = new WorkspaceReadTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), { path: "subdir/nested.txt" })) as Record<string, unknown>;
+      const result = (await tool.process(makeContext(tmpDir), {
+        path: "subdir/nested.txt"
+      })) as Record<string, unknown>;
       expect(result.success).toBe(true);
       expect(result.content).toBe("nested");
     });
 
     it("rejects path traversal", async () => {
       const tool = new WorkspaceReadTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), { path: "../../etc/passwd" })) as Record<string, unknown>;
+      const result = (await tool.process(makeContext(tmpDir), {
+        path: "../../etc/passwd"
+      })) as Record<string, unknown>;
       expect(result.success).toBe(false);
       expect(result.error).toContain("traversal");
     });
 
     it("returns error for nonexistent file", async () => {
       const tool = new WorkspaceReadTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), { path: "nope.txt" })) as Record<string, unknown>;
+      const result = (await tool.process(makeContext(tmpDir), {
+        path: "nope.txt"
+      })) as Record<string, unknown>;
       expect(result.success).toBe(false);
     });
   });
@@ -70,10 +80,13 @@ describe("T-AG-1: Workspace tools", () => {
       const tool = new WorkspaceWriteTool(tmpDir);
       const result = (await tool.process(makeContext(tmpDir), {
         path: "output.txt",
-        content: "written",
+        content: "written"
       })) as Record<string, unknown>;
       expect(result.success).toBe(true);
-      const content = await fs.readFile(path.join(tmpDir, "output.txt"), "utf-8");
+      const content = await fs.readFile(
+        path.join(tmpDir, "output.txt"),
+        "utf-8"
+      );
       expect(content).toBe("written");
     });
 
@@ -81,10 +94,13 @@ describe("T-AG-1: Workspace tools", () => {
       const tool = new WorkspaceWriteTool(tmpDir);
       const result = (await tool.process(makeContext(tmpDir), {
         path: "deep/nested/file.txt",
-        content: "deep",
+        content: "deep"
       })) as Record<string, unknown>;
       expect(result.success).toBe(true);
-      const content = await fs.readFile(path.join(tmpDir, "deep/nested/file.txt"), "utf-8");
+      const content = await fs.readFile(
+        path.join(tmpDir, "deep/nested/file.txt"),
+        "utf-8"
+      );
       expect(content).toBe("deep");
     });
 
@@ -92,7 +108,7 @@ describe("T-AG-1: Workspace tools", () => {
       const tool = new WorkspaceWriteTool(tmpDir);
       const result = (await tool.process(makeContext(tmpDir), {
         path: "../../tmp/evil.txt",
-        content: "evil",
+        content: "evil"
       })) as Record<string, unknown>;
       expect(result.success).toBe(false);
       expect(result.error).toContain("traversal");
@@ -102,9 +118,14 @@ describe("T-AG-1: Workspace tools", () => {
   describe("WorkspaceListTool", () => {
     it("lists workspace root", async () => {
       const tool = new WorkspaceListTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), { path: "." })) as Record<string, unknown>;
+      const result = (await tool.process(makeContext(tmpDir), {
+        path: "."
+      })) as Record<string, unknown>;
       expect(result.success).toBe(true);
-      const entries = result.entries as Array<{ name: string; is_dir: boolean }>;
+      const entries = result.entries as Array<{
+        name: string;
+        is_dir: boolean;
+      }>;
       const names = entries.map((e) => e.name);
       expect(names).toContain("hello.txt");
       expect(names).toContain("subdir");
@@ -112,7 +133,9 @@ describe("T-AG-1: Workspace tools", () => {
 
     it("lists subdirectory", async () => {
       const tool = new WorkspaceListTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), { path: "subdir" })) as Record<string, unknown>;
+      const result = (await tool.process(makeContext(tmpDir), {
+        path: "subdir"
+      })) as Record<string, unknown>;
       expect(result.success).toBe(true);
       const entries = result.entries as Array<{ name: string }>;
       expect(entries.length).toBe(1);
@@ -121,7 +144,9 @@ describe("T-AG-1: Workspace tools", () => {
 
     it("rejects path traversal", async () => {
       const tool = new WorkspaceListTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), { path: "../../" })) as Record<string, unknown>;
+      const result = (await tool.process(makeContext(tmpDir), {
+        path: "../../"
+      })) as Record<string, unknown>;
       expect(result.success).toBe(false);
       expect(result.error).toContain("traversal");
     });
@@ -135,11 +160,12 @@ describe("T-AG-3: ListProviderModelsTool", () => {
     const mockProvider = {
       getAvailableLanguageModels: async () => [
         { id: "gpt-4", name: "GPT-4" },
-        { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" },
-      ],
+        { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" }
+      ]
     };
     const tool = new ListProviderModelsTool({
-      openai: mockProvider as unknown as import("@nodetool/runtime").BaseProvider,
+      openai:
+        mockProvider as unknown as import("@nodetool/runtime").BaseProvider
     });
 
     const result = (await tool.process(
@@ -166,7 +192,8 @@ describe("T-AG-3: ListProviderModelsTool", () => {
   it("returns error when provider has no getAvailableLanguageModels", async () => {
     const mockProvider = {};
     const tool = new ListProviderModelsTool({
-      openai: mockProvider as unknown as import("@nodetool/runtime").BaseProvider,
+      openai:
+        mockProvider as unknown as import("@nodetool/runtime").BaseProvider
     });
     const result = (await tool.process(
       {} as import("@nodetool/runtime").ProcessingContext,
@@ -183,7 +210,7 @@ describe("T-AG-7: removeBase64Images", () => {
     const content: MessageContent[] = [
       { type: "text", text: "hello" },
       { type: "image", image: { uri: "data:image/png;base64,abc123" } },
-      { type: "text", text: "world" },
+      { type: "text", text: "world" }
     ];
     const result = removeBase64Images(content);
     expect(result.length).toBe(2);
@@ -194,7 +221,7 @@ describe("T-AG-7: removeBase64Images", () => {
   it("preserves real-URL images", () => {
     const content: MessageContent[] = [
       { type: "text", text: "hello" },
-      { type: "image", image: { uri: "https://example.com/image.png" } },
+      { type: "image", image: { uri: "https://example.com/image.png" } }
     ];
     const result = removeBase64Images(content);
     expect(result.length).toBe(2);
@@ -204,7 +231,7 @@ describe("T-AG-7: removeBase64Images", () => {
   it("preserves text content", () => {
     const content: MessageContent[] = [
       { type: "text", text: "hello" },
-      { type: "text", text: "world" },
+      { type: "text", text: "world" }
     ];
     const result = removeBase64Images(content);
     expect(result.length).toBe(2);
@@ -212,7 +239,7 @@ describe("T-AG-7: removeBase64Images", () => {
 
   it("removes image with base64 data field", () => {
     const content: MessageContent[] = [
-      { type: "image", image: { data: "base64string", mimeType: "image/png" } },
+      { type: "image", image: { data: "base64string", mimeType: "image/png" } }
     ];
     const result = removeBase64Images(content);
     expect(result.length).toBe(0);
@@ -224,7 +251,7 @@ describe("T-AG-7: removeBase64Images", () => {
 
   it("preserves audio content", () => {
     const content: MessageContent[] = [
-      { type: "audio", audio: { uri: "data:audio/mp3;base64,abc" } },
+      { type: "audio", audio: { uri: "data:audio/mp3;base64,abc" } }
     ];
     const result = removeBase64Images(content);
     expect(result.length).toBe(1);
@@ -234,7 +261,10 @@ describe("T-AG-7: removeBase64Images", () => {
 // ── T-AG-8 — wrapGeneratorsParallel ─────────────────────────────────
 
 describe("T-AG-8: wrapGeneratorsParallel", () => {
-  async function* delayedItems<T>(items: T[], delayMs: number): AsyncGenerator<T> {
+  async function* delayedItems<T>(
+    items: T[],
+    delayMs: number
+  ): AsyncGenerator<T> {
     for (const item of items) {
       await new Promise((r) => setTimeout(r, delayMs));
       yield item;

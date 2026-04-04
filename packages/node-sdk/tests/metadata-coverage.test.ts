@@ -32,8 +32,12 @@ afterEach(() => {
 
 describe("loadPythonPackageMetadata – edge cases", () => {
   it("warns when root does not exist", () => {
-    const result = loadPythonPackageMetadata({ roots: ["/nonexistent/path/12345"] });
-    expect(result.warnings.some((w) => w.includes("does not exist"))).toBe(true);
+    const result = loadPythonPackageMetadata({
+      roots: ["/nonexistent/path/12345"]
+    });
+    expect(result.warnings.some((w) => w.includes("does not exist"))).toBe(
+      true
+    );
     expect(result.files).toEqual([]);
     expect(result.packages).toEqual([]);
   });
@@ -52,7 +56,9 @@ describe("loadPythonPackageMetadata – edge cases", () => {
     fs.writeFileSync(path.join(metadataDir, "bad.json"), "{ invalid json }}}");
 
     const result = loadPythonPackageMetadata({ roots: [root] });
-    expect(result.warnings.some((w) => w.includes("Failed to parse JSON"))).toBe(true);
+    expect(
+      result.warnings.some((w) => w.includes("Failed to parse JSON"))
+    ).toBe(true);
   });
 
   it("warns about non-object metadata files", () => {
@@ -67,20 +73,43 @@ describe("loadPythonPackageMetadata – edge cases", () => {
 
   it("detects duplicate node_types", () => {
     const root = makeTmpRoot();
-    const metadataDir1 = path.join(root, "pkg1", "src", "nodetool", "package_metadata");
-    const metadataDir2 = path.join(root, "pkg2", "src", "nodetool", "package_metadata");
+    const metadataDir1 = path.join(
+      root,
+      "pkg1",
+      "src",
+      "nodetool",
+      "package_metadata"
+    );
+    const metadataDir2 = path.join(
+      root,
+      "pkg2",
+      "src",
+      "nodetool",
+      "package_metadata"
+    );
     fs.mkdirSync(metadataDir1, { recursive: true });
     fs.mkdirSync(metadataDir2, { recursive: true });
 
     const nodeData = {
       name: "test-pkg",
       nodes: [
-        { title: "Dup", node_type: "nodetool.test.Dup", properties: [], outputs: [] },
-      ],
+        {
+          title: "Dup",
+          node_type: "nodetool.test.Dup",
+          properties: [],
+          outputs: []
+        }
+      ]
     };
 
-    fs.writeFileSync(path.join(metadataDir1, "pkg1.json"), JSON.stringify(nodeData));
-    fs.writeFileSync(path.join(metadataDir2, "pkg2.json"), JSON.stringify(nodeData));
+    fs.writeFileSync(
+      path.join(metadataDir1, "pkg1.json"),
+      JSON.stringify(nodeData)
+    );
+    fs.writeFileSync(
+      path.join(metadataDir2, "pkg2.json"),
+      JSON.stringify(nodeData)
+    );
 
     const result = loadPythonPackageMetadata({ roots: [root] });
     expect(result.duplicates).toContain("nodetool.test.Dup");
@@ -99,8 +128,13 @@ describe("loadPythonPackageMetadata – edge cases", () => {
           null,
           "string-node",
           { title: "no-type" },
-          { title: "Valid", node_type: "nodetool.test.Valid", properties: [], outputs: [] },
-        ],
+          {
+            title: "Valid",
+            node_type: "nodetool.test.Valid",
+            properties: [],
+            outputs: []
+          }
+        ]
       })
     );
 
@@ -112,7 +146,17 @@ describe("loadPythonPackageMetadata – edge cases", () => {
   it("respects maxDepth", () => {
     const root = makeTmpRoot();
     // Create deeply nested metadata dir beyond maxDepth
-    const deepDir = path.join(root, "a", "b", "c", "d", "e", "src", "nodetool", "package_metadata");
+    const deepDir = path.join(
+      root,
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "src",
+      "nodetool",
+      "package_metadata"
+    );
     fs.mkdirSync(deepDir, { recursive: true });
     fs.writeFileSync(
       path.join(deepDir, "deep.json"),
@@ -148,7 +192,12 @@ describe("loadPythonPackageMetadata – edge cases", () => {
     );
 
     // Create metadata inside node_modules
-    const nmDir = path.join(root, "node_modules", "nodetool", "package_metadata");
+    const nmDir = path.join(
+      root,
+      "node_modules",
+      "nodetool",
+      "package_metadata"
+    );
     fs.mkdirSync(nmDir, { recursive: true });
     fs.writeFileSync(
       path.join(nmDir, "nm.json"),
@@ -182,7 +231,7 @@ describe("loadPythonPackageMetadata – edge cases", () => {
         repo_id: "repo/full-pkg",
         nodes: [],
         examples: [{ name: "ex1" }],
-        assets: [{ name: "asset1" }],
+        assets: [{ name: "asset1" }]
       })
     );
 
@@ -216,21 +265,28 @@ describe("loadPythonPackageMetadata – edge cases", () => {
     // Create a dir that ends with /nodetool/package_metadata
     const metadataDir = path.join(root, "nodetool", "package_metadata");
     fs.mkdirSync(metadataDir, { recursive: true });
-    fs.writeFileSync(path.join(metadataDir, "test.json"), JSON.stringify({ name: "test" }));
+    fs.writeFileSync(
+      path.join(metadataDir, "test.json"),
+      JSON.stringify({ name: "test" })
+    );
 
     // Mock readdirSync to throw for the metadata dir (chmod doesn't work as root)
     const origReaddirSync = fs.readdirSync;
-    const spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args: any[]) => {
-      if (String(args[0]) === metadataDir) {
-        throw new Error("EACCES: permission denied");
-      }
-      return origReaddirSync.apply(fs, args as any);
-    });
+    const spy = vi
+      .spyOn(fs, "readdirSync")
+      .mockImplementation((...args: any[]) => {
+        if (String(args[0]) === metadataDir) {
+          throw new Error("EACCES: permission denied");
+        }
+        return origReaddirSync.apply(fs, args as any);
+      });
 
     const result = loadPythonPackageMetadata({ roots: [root] });
     spy.mockRestore();
 
-    expect(result.warnings.some((w) => w.includes("Failed to scan metadata dir"))).toBe(true);
+    expect(
+      result.warnings.some((w) => w.includes("Failed to scan metadata dir"))
+    ).toBe(true);
   });
 
   it("warns when directory read fails", () => {
@@ -248,18 +304,22 @@ describe("loadPythonPackageMetadata – edge cases", () => {
 
     // Mock readdirSync to throw for the metadata dir (chmod doesn't work as root)
     const origReaddirSync = fs.readdirSync;
-    const spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args: any[]) => {
-      if (String(args[0]) === metadataDir) {
-        throw new Error("EACCES: permission denied");
-      }
-      return origReaddirSync.apply(fs, args as any);
-    });
+    const spy = vi
+      .spyOn(fs, "readdirSync")
+      .mockImplementation((...args: any[]) => {
+        if (String(args[0]) === metadataDir) {
+          throw new Error("EACCES: permission denied");
+        }
+        return origReaddirSync.apply(fs, args as any);
+      });
 
     const result = loadPythonPackageMetadata({ roots: [root] });
     spy.mockRestore();
 
     // Should have a warning about failed scan
-    expect(result.warnings.some((w) => w.includes("Failed to scan metadata dir"))).toBe(true);
+    expect(
+      result.warnings.some((w) => w.includes("Failed to scan metadata dir"))
+    ).toBe(true);
   });
 
   it("warns when a non-metadata directory read fails (lines 106-108)", () => {
@@ -269,17 +329,21 @@ describe("loadPythonPackageMetadata – edge cases", () => {
 
     // Mock readdirSync to throw for the subdirectory (chmod doesn't work as root)
     const origReaddirSync = fs.readdirSync;
-    const spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args: any[]) => {
-      if (String(args[0]) === subDir) {
-        throw new Error("EACCES: permission denied");
-      }
-      return origReaddirSync.apply(fs, args as any);
-    });
+    const spy = vi
+      .spyOn(fs, "readdirSync")
+      .mockImplementation((...args: any[]) => {
+        if (String(args[0]) === subDir) {
+          throw new Error("EACCES: permission denied");
+        }
+        return origReaddirSync.apply(fs, args as any);
+      });
 
     const result = loadPythonPackageMetadata({ roots: [root] });
     spy.mockRestore();
 
-    expect(result.warnings.some((w) => w.includes("Failed to read directory"))).toBe(true);
+    expect(
+      result.warnings.some((w) => w.includes("Failed to read directory"))
+    ).toBe(true);
   });
 
   it("deduplicates files found via multiple roots", () => {

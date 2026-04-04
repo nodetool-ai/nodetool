@@ -19,7 +19,7 @@ class MockWebSocket extends EventEmitter {
       setTimeout(() => {
         this.emit(
           "message",
-          Buffer.from(JSON.stringify({ message_type: "session_started" })),
+          Buffer.from(JSON.stringify({ message_type: "session_started" }))
         );
       }, 0);
     }, 0);
@@ -36,9 +36,9 @@ class MockWebSocket extends EventEmitter {
           Buffer.from(
             JSON.stringify({
               message_type: "committed_transcript",
-              text: "final transcript",
-            }),
-          ),
+              text: "final transcript"
+            })
+          )
         );
       }, 0);
     }
@@ -54,7 +54,7 @@ class MockWebSocket extends EventEmitter {
 }
 
 vi.mock("ws", () => ({
-  WebSocket: MockWebSocket,
+  WebSocket: MockWebSocket
 }));
 
 import { RealtimeSpeechToTextNode } from "../src/nodes/realtime-stt.js";
@@ -85,24 +85,24 @@ describe("RealtimeSpeechToTextNode", () => {
         async *any() {
           yield [
             "chunk",
-            { content: "YWJj", content_type: "audio", done: false },
+            { content: "YWJj", content_type: "audio", done: false }
           ] as [string, unknown];
           yield [
             "chunk",
-            { content: "", content_type: "audio", done: true },
+            { content: "", content_type: "audio", done: true }
           ] as [string, unknown];
         },
         async *stream() {},
         async first() {
           return undefined;
-        },
+        }
       },
       {
         async emit(_slot: string, value: unknown) {
           emitted.push(value as Record<string, unknown>);
         },
-        complete() {},
-      },
+        complete() {}
+      }
     );
 
     expect(sentMessages).toEqual(
@@ -110,14 +110,14 @@ describe("RealtimeSpeechToTextNode", () => {
         expect.objectContaining({
           message_type: "input_audio_chunk",
           audio_base_64: "YWJj",
-          commit: false,
+          commit: false
         }),
         expect.objectContaining({
           message_type: "input_audio_chunk",
           audio_base_64: "",
-          commit: true,
-        }),
-      ]),
+          commit: true
+        })
+      ])
     );
     expect(lifecycleEvents).toEqual(["commit", "close"]);
     expect(emitted).toEqual([
@@ -125,14 +125,14 @@ describe("RealtimeSpeechToTextNode", () => {
         type: "chunk",
         content: "final transcript",
         done: false,
-        content_type: "text",
+        content_type: "text"
       },
       {
         type: "chunk",
         content: "",
         done: true,
-        content_type: "text",
-      },
+        content_type: "text"
+      }
     ]);
   });
 });

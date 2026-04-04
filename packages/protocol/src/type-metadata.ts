@@ -41,7 +41,9 @@ export class TypeMetadata {
     const inner = s.slice(bracketIdx + 1, -1).trim();
 
     // Parse comma-separated args, respecting nested brackets
-    const args = splitTypeArgs(inner).map((arg) => TypeMetadata.fromString(arg));
+    const args = splitTypeArgs(inner).map((arg) =>
+      TypeMetadata.fromString(arg)
+    );
     return new TypeMetadata(baseName, args);
   }
 

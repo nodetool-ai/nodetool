@@ -17,8 +17,6 @@ describe('State', () => {
       expect(serverState.initialURL).toBe('http://127.0.0.1:7777');
       expect(serverState.logs).toEqual([]);
       expect(serverState.serverPort).toBe(7777);
-      expect(serverState.ollamaPort).toBe(11435);
-      expect(serverState.ollamaExternalManaged).toBe(false);
     });
 
     it('should be mutable', () => {

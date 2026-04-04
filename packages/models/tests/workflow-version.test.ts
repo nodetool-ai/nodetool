@@ -22,13 +22,13 @@ async function createVersion(
   workflowId: string,
   userId: string,
   version: number,
-  saveType = "manual",
+  saveType = "manual"
 ): Promise<WorkflowVersion> {
   return WorkflowVersion.create<WorkflowVersion>({
     workflow_id: workflowId,
     user_id: userId,
     version,
-    save_type: saveType,
+    save_type: saveType
   });
 }
 
@@ -63,7 +63,7 @@ describe("WorkflowVersion model", () => {
       name: "v3 snapshot",
       description: "autosaved",
       graph,
-      autosave_metadata: meta,
+      autosave_metadata: meta
     });
     expect(wv.name).toBe("v3 snapshot");
     expect(wv.description).toBe("autosaved");
@@ -168,7 +168,9 @@ describe("WorkflowVersion model", () => {
     const remaining = await WorkflowVersion.listForWorkflow("wf1");
     expect(remaining).toHaveLength(3);
     // Only the 3 newest should remain
-    const versionNumbers = remaining.map((v) => v.version).sort((a, b) => b - a);
+    const versionNumbers = remaining
+      .map((v) => v.version)
+      .sort((a, b) => b - a);
     expect(versionNumbers).toEqual([5, 4, 3]);
   });
 

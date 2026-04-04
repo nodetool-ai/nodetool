@@ -1,0 +1,385 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2025-12-21T13:36:37.815440",
+  "updated_at": "2025-12-21T13:37:04.071106",
+  "name": "Product Description Generator",
+  "tool_name": null,
+  "description": "Automatically generate marketing copy and product descriptions from product data.",
+  "tags": [
+    "business",
+    "data",
+    "research",
+    "example"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "product"
+      },
+      {
+        "id": "2",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "product"
+      },
+      {
+        "id": "3",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "features"
+      },
+      {
+        "id": "4",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "audience"
+      },
+      {
+        "id": "5",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "6",
+        "source": "4",
+        "sourceHandle": "text",
+        "target": "2",
+        "targetHandle": "marketing_desc"
+      },
+      {
+        "id": "7",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "product"
+      },
+      {
+        "id": "8",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "features"
+      },
+      {
+        "id": "9",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "10",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "2",
+        "targetHandle": "seo_desc"
+      },
+      {
+        "id": "11",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "features"
+      },
+      {
+        "id": "12",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "audience"
+      },
+      {
+        "id": "13",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "product_descriptions",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1680,
+            "y": 81
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "# Product Description Package\n\n## Product: {{ product }}\n\n### Marketing Description (A/B Test Version 1):\n{{ marketing_desc }}\n\n### SEO-Optimized Description (A/B Test Version 2):\n{{ seo_desc }}\n\n### Key Features to Highlight:\n{{ features }}\n\n### Target Audience:\n{{ audience }}\n\n---\n**Usage Tips:**\n- Test both descriptions with your audience\n- Use Version 1 for social media and ads\n- Use Version 2 for website and search optimization\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1370,
+            "y": 12
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "product": null,
+          "marketing_desc": null,
+          "seo_desc": null,
+          "features": null,
+          "audience": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product",
+          "value": "Wireless Noise-Cancelling Headphones",
+          "description": "Product name and category"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 228
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are an expert copywriter. Create compelling product descriptions that sell.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 500
+        },
+        "ui_properties": {
+          "position": {
+            "x": 930,
+            "y": 81
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Create a compelling product description for:\nProduct: {{ product }}\nFeatures: {{ features }}\nTarget Audience: {{ audience }}\n\nGenerate a 2-3 sentence marketing description that highlights benefits, not just features."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 510,
+            "y": 201
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "product": null,
+          "features": null,
+          "audience": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "features",
+          "value": "40-hour battery life, active noise cancellation, premium audio quality, comfortable design, fast charging",
+          "description": "Key product features"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 80,
+            "y": 905
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "audience",
+          "value": "Professional remote workers and frequent travelers",
+          "description": "Target customer segment"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 160,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are an SEO specialist. Create keyword-rich product descriptions.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 300
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1010,
+            "y": 580
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "9",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Create an SEO-optimized product description for:\nProduct: {{ product }}\nFeatures: {{ features }}\n\nInclude relevant keywords naturally. Keep it 100-150 words."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 590,
+            "y": 702
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "product": null,
+          "features": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "product": {
+        "type": "string",
+        "default": "Wireless Noise-Cancelling Headphones",
+        "label": ""
+      },
+      "features": {
+        "type": "string",
+        "default": "40-hour battery life, active noise cancellation, premium audio quality, comfortable design, fast charging",
+        "label": ""
+      },
+      "audience": {
+        "type": "string",
+        "default": "Professional remote workers and frequent travelers",
+        "label": ""
+      }
+    },
+    "required": [
+      "product",
+      "features",
+      "audience"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "product_descriptions": {
+        "type": "string",
+        "label": ""
+      }
+    },
+    "required": [
+      "product_descriptions"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

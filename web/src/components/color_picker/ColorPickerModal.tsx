@@ -5,14 +5,13 @@ import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  IconButton,
   Typography,
   Tabs,
   Tab,
   Tooltip,
   Button
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useCombo } from "../../stores/KeyPressedStore";
 import {
@@ -390,11 +389,11 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
             <Typography className="modal-title">Color Picker</Typography>
             <div className="header-actions">
               <EyedropperButton onColorPicked={handleEyedropperPick} />
-              <Tooltip title="Close (Esc)">
-                <IconButton size="small" onClick={handleApply} aria-label="Close color picker">
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <CloseButton
+                onClick={handleApply}
+                tooltip="Close (Esc)"
+                buttonSize="small"
+              />
             </div>
           </div>
 

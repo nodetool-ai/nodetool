@@ -61,7 +61,7 @@ export function toApiNode(node: NodeDescriptor): ApiNode {
     ui_properties: node.ui_properties ?? {},
     dynamic_properties: node.dynamic_properties ?? {},
     dynamic_outputs: (node.dynamic_outputs as Record<string, unknown>) ?? {},
-    sync_mode: node.sync_mode ?? "on_any",
+    sync_mode: node.sync_mode ?? "on_any"
   };
 }
 
@@ -76,7 +76,7 @@ export function toApiEdge(edge: Edge): ApiEdge {
     target: edge.target,
     targetHandle: edge.targetHandle,
     ui_properties: edge.ui_properties ?? null,
-    edge_type: edge.edge_type ?? "data",
+    edge_type: edge.edge_type ?? "data"
   };
 }
 
@@ -86,7 +86,7 @@ export function toApiEdge(edge: Edge): ApiEdge {
 export function toApiGraph(graph: GraphData): ApiGraph {
   return {
     nodes: graph.nodes.map(toApiNode),
-    edges: graph.edges.map(toApiEdge),
+    edges: graph.edges.map(toApiEdge)
   };
 }
 

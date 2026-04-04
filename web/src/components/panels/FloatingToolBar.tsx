@@ -2,16 +2,13 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import {
   Fab,
   Box,
   useMediaQuery,
   Tooltip,
   Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -20,6 +17,7 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import { useLocation } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -38,6 +36,7 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { cn } from "../editor_ui/editorUtils";
+import { MenuItemPrimitive } from "../ui_primitives/MenuItemPrimitive";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
@@ -367,12 +366,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isSuspended
   } = useFloatingToolbarActions();
 
-  const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
-    (state) => ({
-      isRightPanelVisible: state.panel.isVisible,
-      rightPanelSize: state.panel.panelSize
-    })
-  );
+  const isRightPanelVisible = useRightPanelStore((state) => state.panel.isVisible);
+  const rightPanelSize = useRightPanelStore((state) => state.panel.panelSize);
   const bottomPanelVisible = useBottomPanelStore(
     (state) => state.panel.isVisible
   );
@@ -392,6 +387,17 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflow = useNodes((state) => state.workflow);
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
+  const comfyIsConnected = useComfyUIStore((state) => state.isConnected);
+  const comfyIsConnecting = useComfyUIStore((state) => state.isConnecting);
+  const comfyConnectionError = useComfyUIStore((state) => state.connectionError);
+  const comfyBaseUrl = useComfyUIStore((state) => state.baseUrl);
+
+  // Auto-connect to ComfyUI when a comfy workflow is loaded (once per workflow)
+  useEffect(() => {
+    if (isComfyWorkflow && !comfyIsConnected && !comfyIsConnecting && !comfyConnectionError) {
+      useComfyUIStore.getState().connect().catch(() => {});
+    }
+  }, [isComfyWorkflow, comfyIsConnected, comfyIsConnecting, comfyConnectionError]);
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(
@@ -519,6 +525,22 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           />
         )}
 
+        {isComfyWorkflow && (
+          <Tooltip title={comfyIsConnected ? `ComfyUI: ${comfyBaseUrl}` : "ComfyUI not connected — configure in Settings"}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 1, fontSize: "0.7rem", color: "text.secondary" }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: comfyIsConnected ? "success.main" : "grey.500",
+                }}
+              />
+              ComfyUI
+            </Box>
+          </Tooltip>
+        )}
+
         <Box
           css={css({
             width: "1px",
@@ -569,38 +591,32 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           }
         }}
       >
-        <MenuItem onClick={handleToggleTerminalAndCloseMenu}>
-          <ListItemIcon>
-            <TerminalIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
-          />
-        </MenuItem>
-        <MenuItem onClick={handleEditWorkflowAndCloseMenu}>
-          <ListItemIcon>
-            <EditIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Workflow Settings" />
-        </MenuItem>
-        <MenuItem onClick={handleOpenAdvancedMenu}>
-          <ListItemIcon>
-            <MapIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Advanced" />
-        </MenuItem>
-        <MenuItem onClick={handleDownloadAndCloseMenu}>
-          <ListItemIcon>
-            <DownloadIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Download JSON" />
-        </MenuItem>
-        <MenuItem onClick={handleRunAsAppAndCloseMenu}>
-          <ListItemIcon>
-            <RocketLaunchIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Run as App" />
-        </MenuItem>
+        <MenuItemPrimitive
+          label={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
+          icon={<TerminalIcon fontSize="small" />}
+          onClick={handleToggleTerminalAndCloseMenu}
+        />
+        <MenuItemPrimitive
+          label="Workflow Settings"
+          icon={<EditIcon fontSize="small" />}
+          onClick={handleEditWorkflowAndCloseMenu}
+        />
+        <MenuItemPrimitive
+          label="Advanced"
+          icon={<MapIcon fontSize="small" />}
+          onClick={handleOpenAdvancedMenu as (event: React.MouseEvent) => void}
+          hasSubmenu
+        />
+        <MenuItemPrimitive
+          label="Download JSON"
+          icon={<DownloadIcon fontSize="small" />}
+          onClick={handleDownloadAndCloseMenu}
+        />
+        <MenuItemPrimitive
+          label="Run as App"
+          icon={<RocketLaunchIcon fontSize="small" />}
+          onClick={handleRunAsAppAndCloseMenu}
+        />
       </Menu>
 
       <Menu
@@ -615,18 +631,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           }
         }}
       >
-        <MenuItem
+        <MenuItemPrimitive
+          label="Mini Map"
+          icon={<MapIcon fontSize="small" />}
+          secondary={isMiniMapVisible ? "Visible" : "Hidden"}
           className={cn(isMiniMapVisible && "minimap-active")}
           onClick={handleToggleMiniMapAndCloseMenu}
-        >
-          <ListItemIcon>
-            <MapIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary="Mini Map"
-            secondary={isMiniMapVisible ? "Visible" : "Hidden"}
-          />
-        </MenuItem>
+        />
       </Menu>
 
       <MobilePaneMenu open={paneMenuOpen} onClose={handleClosePaneMenu} />

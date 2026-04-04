@@ -8,18 +8,19 @@
  */
 
 import { join, resolve, dirname } from "node:path";
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
+import crypto from "node:crypto";
 import { createLogger, getDefaultDbPath } from "@nodetool/config";
 import { NodeRegistry } from "@nodetool/node-sdk";
+import type { NodeMetadata } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
-import {
-  setSecretResolver,
-  PythonBridge,
-} from "@nodetool/runtime";
+import { setSecretResolver, PythonStdioBridge } from "@nodetool/runtime";
 import { getSecret, initMasterKey } from "@nodetool/security";
 import { initDb } from "@nodetool/models";
 import {
@@ -50,7 +51,7 @@ import {
   DataForSEONewsTool,
   DataForSEOImagesTool,
   SaveAssetTool,
-  ReadAssetTool,
+  ReadAssetTool
 } from "@nodetool/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
@@ -107,59 +108,119 @@ try {
   // This must happen before setSecretResolver so that getMasterKey() (sync)
   // returns the keychain key rather than auto-generating a new one.
   await initMasterKey();
-  setSecretResolver((key, userId) => getSecret(key, userId).then((v) => v ?? undefined));
+  setSecretResolver((key, userId) =>
+    getSecret(key, userId).then((v) => v ?? undefined)
+  );
 } catch (err) {
-  log.error("Database setup failed", err instanceof Error ? err : new Error(String(err)));
+  log.error(
+    "Database setup failed",
+    err instanceof Error ? err : new Error(String(err))
+  );
   process.exit(1);
 }
 
 // ---------------------------------------------------------------------------
-// Metadata root detection
+// Python pip metadata root detection
 // ---------------------------------------------------------------------------
 
-function hasMetadataLayout(root: string): boolean {
-  return (
-    existsSync(join(root, "src", "nodetool", "package_metadata")) ||
-    existsSync(join(root, "nodetool", "package_metadata"))
-  );
-}
-
-function detectMetadataRoots(): string[] {
-  if (process.env["METADATA_ROOTS"]) {
-    return process.env["METADATA_ROOTS"].split(":").filter(Boolean);
-  }
-
-  const candidates = new Set<string>();
-  let cur = resolve(process.cwd());
-  for (let i = 0; i < 8; i++) {
-    candidates.add(cur);
-    const parent = dirname(cur);
-    if (parent === cur) break;
-    cur = parent;
-  }
-
-  cur = resolve(process.cwd());
-  for (let i = 0; i < 6; i++) {
+function detectPipMetadataRoots(): string[] {
+  const script = `
+import json, pathlib, subprocess, sys
+roots = set()
+try:
+    # Discover all nodetool-* packages
+    list_proc = subprocess.run(
+        [sys.executable, "-m", "pip", "list", "--format=json"],
+        capture_output=True, text=True, check=False,
+    )
+    pkg_names = [
+        p["name"] for p in json.loads(list_proc.stdout or "[]")
+        if p["name"].startswith("nodetool-")
+    ] or ["nodetool-core", "nodetool-base"]
+    proc = subprocess.run(
+        [sys.executable, "-m", "pip", "show", "-f"] + pkg_names,
+        capture_output=True, text=True, check=False,
+    )
+    output = proc.stdout or ""
+except Exception:
+    output = ""
+location = None
+in_files = False
+for raw in output.splitlines():
+    line = raw.rstrip("\\n")
+    if line.startswith("Name: "):
+        location = None; in_files = False; continue
+    if line.startswith("Location: "):
+        location = line.split(":", 1)[1].strip(); continue
+    if line.startswith("Editable project location: "):
+        editable = line.split(":", 1)[1].strip()
+        if editable: roots.add(editable)
+        continue
+    if line.startswith("Files:"): in_files = True; continue
+    if line.startswith("---"):
+        location = None; in_files = False; continue
+    if not in_files or not location or not line.startswith("  "): continue
+    rel = line.strip().replace("\\\\", "/")
+    if "package_metadata" not in rel: continue
+    abs_path = (pathlib.Path(location) / rel).resolve()
+    metadata_dir = abs_path if abs_path.is_dir() else abs_path.parent
+    roots.add(str(metadata_dir))
+print(json.dumps(sorted(roots)))
+`;
+  for (const python of ["python3", "python"]) {
+    const proc = spawnSync(python, ["-c", script], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+    if (proc.status !== 0 || !proc.stdout) continue;
     try {
-      for (const entry of readdirSync(cur, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue;
-        if (entry.name.toLowerCase().startsWith("nodetool")) {
-          candidates.add(join(cur, entry.name));
-        }
+      const roots = JSON.parse(proc.stdout.trim()) as string[];
+      if (Array.isArray(roots)) {
+        return roots.filter(
+          (p) => typeof p === "string" && p.length > 0 && existsSync(p)
+        );
       }
     } catch {
-      // ignore
+      // try next python executable
     }
-    const parent = dirname(cur);
-    if (parent === cur) break;
-    cur = parent;
   }
-
-  return [...candidates].filter(hasMetadataLayout);
+  return [];
 }
 
-const metadataRoots = detectMetadataRoots();
-log.info(`Metadata roots detected [${startupMs()}]`, { roots: metadataRoots });
+const metadataRoots = detectPipMetadataRoots();
+
+// Also scan local TS node packages that have nodetool/package_metadata
+const localPackagesDir = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../"
+);
+if (existsSync(localPackagesDir)) {
+  try {
+    for (const entry of readdirSync(localPackagesDir, {
+      withFileTypes: true
+    })) {
+      if (!entry.isDirectory()) continue;
+      const metaDir = join(
+        localPackagesDir,
+        entry.name,
+        "nodetool",
+        "package_metadata"
+      );
+      if (existsSync(metaDir)) {
+        const resolved = resolve(localPackagesDir, entry.name);
+        if (!metadataRoots.includes(resolved)) {
+          metadataRoots.push(resolved);
+        }
+      }
+    }
+  } catch {
+    // ignore scan errors
+  }
+}
+
+log.info(`Metadata roots detected [${startupMs()}]`, {
+  roots: metadataRoots
+});
 
 // ---------------------------------------------------------------------------
 // Node registry
@@ -178,21 +239,13 @@ log.info(`Node registry ready [${startupMs()}]`);
 // Python bridge
 // ---------------------------------------------------------------------------
 
-const pythonBridge = new PythonBridge({
+const pythonBridge = new PythonStdioBridge({
   workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
     ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
-    : [],
+    : []
 });
 
 let pythonBridgeReady = false;
-let resolveBridgePromise: () => void;
-let rejectBridgePromise: (err: Error) => void;
-const pythonBridgeReadyPromise = new Promise<void>((resolve, reject) => {
-  resolveBridgePromise = resolve;
-  rejectBridgePromise = reject;
-});
-// Prevent unhandled rejection — errors are handled when awaited in resolveExecutor
-pythonBridgeReadyPromise.catch(() => {});
 
 pythonBridge.on("stderr", (msg: string) => {
   for (const line of msg.split("\n")) {
@@ -236,7 +289,7 @@ const builtinToolClasses: (new () => Tool)[] = [
   DataForSEONewsTool,
   DataForSEOImagesTool,
   SaveAssetTool,
-  ReadAssetTool,
+  ReadAssetTool
 ];
 
 // Lazy tool class map — defers instantiation until first access.
@@ -248,7 +301,9 @@ function getToolClassMap(): Map<string, new () => Tool> {
       const instance = new cls();
       _toolClassMap.set(instance.name, cls);
     }
-    log.info(`Tool class map built (${_toolClassMap.size} tools) [${startupMs()}]`);
+    log.info(
+      `Tool class map built (${_toolClassMap.size} tools) [${startupMs()}]`
+    );
   }
   return _toolClassMap;
 }
@@ -261,7 +316,7 @@ const toolClassMap = new Proxy(new Map<string, new () => Tool>(), {
       return value.bind(map);
     }
     return value;
-  },
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -291,7 +346,7 @@ let httpsOptions: { cert: Buffer; key: Buffer } | undefined;
 if (tlsEnabled && tlsCertPath && tlsKeyPath) {
   httpsOptions = {
     cert: readFileSync(tlsCertPath),
-    key: readFileSync(tlsKeyPath),
+    key: readFileSync(tlsKeyPath)
   };
   log.info("TLS enabled", { cert: tlsCertPath, key: tlsKeyPath });
 }
@@ -308,13 +363,32 @@ const host = process.env["HOST"] ?? (tlsEnabled ? "0.0.0.0" : "127.0.0.1");
 // Fastify app
 // ---------------------------------------------------------------------------
 
- 
 const app: FastifyInstance = (Fastify as any)({
   ...(httpsOptions ? { https: httpsOptions } : {}),
   trustProxy: true,
   bodyLimit: 100 * 1024 * 1024, // 100 MB
   logger: false,
   ignoreTrailingSlash: true,
+  genReqId: (req: {
+    headers: Record<string, string | string[] | undefined>;
+  }) => {
+    return (req.headers["x-request-id"] as string) || crypto.randomUUID();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Request ID correlation
+// ---------------------------------------------------------------------------
+
+app.addHook("onRequest", async (request) => {
+  request.log.info(
+    { reqId: request.id, method: request.method, url: request.url },
+    "incoming request"
+  );
+});
+
+app.addHook("onSend", async (request, reply) => {
+  reply.header("X-Request-Id", request.id);
 });
 
 // ---------------------------------------------------------------------------
@@ -325,7 +399,10 @@ const supabaseUrl = process.env["SUPABASE_URL"];
 const supabaseKey = process.env["SUPABASE_KEY"];
 const supabaseMode = Boolean(supabaseUrl && supabaseKey);
 const supabaseProvider = supabaseMode
-  ? new SupabaseAuthProvider({ supabaseUrl: supabaseUrl!, supabaseKey: supabaseKey! })
+  ? new SupabaseAuthProvider({
+      supabaseUrl: supabaseUrl!,
+      supabaseKey: supabaseKey!
+    })
   : null;
 const localProvider = supabaseProvider ? null : new LocalAuthProvider();
 
@@ -337,7 +414,14 @@ app.addHook("onRequest", async (req, reply) => {
 
   // Public routes — no auth required
   const pathname = req.url.split("?")[0];
-  if (pathname === "/health" || pathname.startsWith("/api/oauth/") || pathname === "/api/assets/packages" || pathname.startsWith("/api/assets/packages/") || pathname === "/api/nodes/metadata") {
+  if (
+    pathname === "/health" ||
+    pathname === "/ready" ||
+    pathname.startsWith("/api/oauth/") ||
+    pathname === "/api/assets/packages" ||
+    pathname.startsWith("/api/assets/packages/") ||
+    pathname === "/api/nodes/metadata"
+  ) {
     return;
   }
 
@@ -346,7 +430,10 @@ app.addHook("onRequest", async (req, reply) => {
   const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
   const provider = supabaseProvider ?? localProvider!;
   const token = isWs
-    ? provider.extractTokenFromWs(req.headers as Record<string, string>, searchParams)
+    ? provider.extractTokenFromWs(
+        req.headers as Record<string, string>,
+        searchParams
+      )
     : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
 
   if (supabaseMode) {
@@ -403,8 +490,64 @@ await app.register(websocketPlugin, {
   registry,
   pythonBridge,
   getPythonBridgeReady: () => pythonBridgeReady,
-  pythonBridgeReadyPromise,
-  toolClassMap,
+  ensurePythonBridge: async () => {
+    if (pythonBridgeReady) return;
+    await pythonBridge.ensureConnected();
+    pythonBridgeReady = true;
+    const meta = pythonBridge.getNodeMetadata();
+    // Register Python bridge nodes — skip those already loaded from JSON metadata
+    let bridgeOnly = 0;
+    for (const nodeMeta of meta) {
+      if (!nodeMeta.node_type) continue;
+      if (registry.getMetadata(nodeMeta.node_type)) continue;
+      bridgeOnly++;
+      registry.loadMetadata(nodeMeta.node_type, {
+        ...(nodeMeta as unknown as NodeMetadata),
+        namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
+        layout: "default",
+        recommended_models: [],
+        basic_fields: [],
+        required_settings: nodeMeta.required_settings ?? [],
+        is_dynamic: nodeMeta.is_dynamic ?? false,
+        is_streaming_output: nodeMeta.is_streaming_output ?? false,
+        expose_as_tool: false,
+        supports_dynamic_outputs: false
+      });
+    }
+    log.info(
+      `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
+    );
+    // Notify connected clients to reload metadata
+    try {
+      const { encode } = await import("@msgpack/msgpack");
+      const msg = encode({
+        type: "resource_change",
+        event: "updated",
+        resource_type: "metadata",
+        resource: { id: "nodes", etag: String(Date.now()) }
+      });
+      for (const client of app.websocketServer.clients) {
+        if (client.readyState === 1) {
+          client.send(msg);
+        }
+      }
+    } catch {
+      // broadcast is best-effort
+    }
+    registerPythonProviders(pythonBridge)
+      .then((registered) => {
+        if (registered.length > 0) {
+          log.info(`Registered Python providers: ${registered.join(", ")}`);
+        }
+      })
+      .catch((err) => {
+        log.warn(
+          "Failed to register Python providers",
+          err instanceof Error ? err : new Error(String(err))
+        );
+      });
+  },
+  toolClassMap
 });
 
 await app.register(healthRoute);
@@ -437,7 +580,7 @@ if (hasStaticApp && staticFolder) {
 
   await app.register(fastifyStatic, {
     root: staticFolder,
-    prefix: "/",
+    prefix: "/"
   });
 
   app.get("/", async (_req, reply) => {
@@ -485,7 +628,9 @@ if (tlsEnabled) {
   });
   redirectServer.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EACCES") {
-      log.warn(`HTTP redirect server skipped — port ${redirectPort} requires elevated privileges`);
+      log.warn(
+        `HTTP redirect server skipped — port ${redirectPort} requires elevated privileges`
+      );
     } else {
       log.error("HTTP redirect server error", err);
     }
@@ -506,32 +651,74 @@ app.listen({ port, host }, (err) => {
     process.exit(1);
   }
   log.info(`Server listening on ${proto}://${host}:${port} [${startupMs()}]`);
-  log.info(`WebSocket endpoint: ${tlsEnabled ? "wss" : "ws"}://${host}:${port}/ws`);
+  log.info(
+    `WebSocket endpoint: ${tlsEnabled ? "wss" : "ws"}://${host}:${port}/ws`
+  );
 });
 
-// Python bridge connects in background — server is already accepting requests.
-pythonBridge
-  .connect()
-  .then(() => {
-    pythonBridgeReady = true;
-    resolveBridgePromise();
-    const meta = pythonBridge.getNodeMetadata();
-    log.info(`Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`);
-
-    registerPythonProviders(pythonBridge)
-      .then((registered) => {
-        if (registered.length > 0) {
-          log.info(`Registered Python providers: ${registered.join(", ")}`);
-        }
-      })
-      .catch((err) => {
-        log.warn("Failed to register Python providers", err instanceof Error ? err : new Error(String(err)));
-      });
-  })
-  .catch((err) => {
-    rejectBridgePromise(err instanceof Error ? err : new Error(String(err)));
-    log.warn(
-      "Python bridge failed to start (Python nodes will not be available)",
-      err instanceof Error ? err : new Error(String(err)),
-    );
-  });
+// Start Python bridge eagerly if Python is installed.
+if (pythonBridge.hasPython()) {
+  pythonBridge
+    .ensureConnected()
+    .then(() => {
+      pythonBridgeReady = true;
+      const meta = pythonBridge.getNodeMetadata();
+      let bridgeOnly = 0;
+      for (const nodeMeta of meta) {
+        if (!nodeMeta.node_type) continue;
+        if (registry.getMetadata(nodeMeta.node_type)) continue;
+        bridgeOnly++;
+        registry.loadMetadata(nodeMeta.node_type, {
+          ...(nodeMeta as unknown as NodeMetadata),
+          namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
+          layout: "default",
+          recommended_models: [],
+          basic_fields: [],
+          required_settings: nodeMeta.required_settings ?? [],
+          is_dynamic: nodeMeta.is_dynamic ?? false,
+          is_streaming_output: nodeMeta.is_streaming_output ?? false,
+          expose_as_tool: false,
+          supports_dynamic_outputs: false
+        });
+      }
+      log.info(
+        `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
+      );
+      // Notify connected clients to reload metadata
+      import("@msgpack/msgpack")
+        .then(({ encode }) => {
+          const msg = encode({
+            type: "resource_change",
+            event: "updated",
+            resource_type: "metadata",
+            resource: { id: "nodes", etag: String(Date.now()) }
+          });
+          for (const client of app.websocketServer.clients) {
+            if (client.readyState === 1) {
+              client.send(msg);
+            }
+          }
+        })
+        .catch(() => {});
+      registerPythonProviders(pythonBridge)
+        .then((registered) => {
+          if (registered.length > 0) {
+            log.info(`Registered Python providers: ${registered.join(", ")}`);
+          }
+        })
+        .catch((err) => {
+          log.warn(
+            "Failed to register Python providers",
+            err instanceof Error ? err : new Error(String(err))
+          );
+        });
+    })
+    .catch((err) => {
+      log.warn(
+        "Python bridge failed to start (Python nodes will not be available)",
+        err instanceof Error ? err : new Error(String(err))
+      );
+    });
+} else {
+  log.info("Python not found — Python nodes will not be available");
+}

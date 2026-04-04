@@ -114,7 +114,7 @@ export const DeleteButton = memo(
         color: "inherit",
         transition: "all 0.15s ease-in-out",
         "&:hover": {
-          color: theme.vars.palette.error.main,
+          color: theme.vars?.palette?.error?.main ?? theme.palette.error.main,
           backgroundColor: "rgba(244, 67, 54, 0.08)",
           transform: "scale(1.1)"
         },
@@ -138,6 +138,7 @@ export const DeleteButton = memo(
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
+          <span style={{ display: "inline-flex" }}>
           <IconButton
             ref={ref}
             tabIndex={tabIndex}
@@ -154,6 +155,7 @@ export const DeleteButton = memo(
           >
             {renderIcon()}
           </IconButton>
+          </span>
         </Tooltip>
       );
     }

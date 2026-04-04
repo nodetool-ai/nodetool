@@ -136,20 +136,28 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
     }, [modelInfo]);
 
     return (
-      <Box sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={loading}
-          onClick={handleLoad}
-          fullWidth
-        >
-          {loading ? (
-            <CircularProgress size={16} color="inherit" />
-          ) : (
-            "Load schema"
-          )}
-        </Button>
+      <Box sx={{ display: "inline-flex", alignItems: "center" }}>
+        <Tooltip title="Reload Schema" arrow enterDelay={TOOLTIP_ENTER_DELAY}>
+          <IconButton
+            size="small"
+            disabled={loading}
+            onClick={handleLoad}
+            sx={{
+              padding: "4px",
+              color: "var(--palette-text-secondary)",
+              "&:hover": {
+                color: "var(--palette-text-primary)",
+                backgroundColor: "var(--palette-action-hover)"
+              }
+            }}
+          >
+            {loading ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : (
+              <RefreshIcon sx={{ fontSize: 16 }} />
+            )}
+          </IconButton>
+        </Tooltip>
         {error && (
           <Typography
             variant="caption"

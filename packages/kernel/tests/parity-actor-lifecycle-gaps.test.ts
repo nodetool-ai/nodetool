@@ -46,7 +46,7 @@ function createActor(
     sendOutputs: async (nodeId, outputs) => {
       sentOutputs.push({ nodeId, outputs });
     },
-    emitMessage: (msg) => messages.push(msg),
+    emitMessage: (msg) => messages.push(msg)
   });
 
   return { actor, sentOutputs, messages };
@@ -69,7 +69,7 @@ describe("Gap #13 — Node Finalization", () => {
       },
       async finalize() {
         finalizeSpy();
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -98,7 +98,7 @@ describe("Gap #13 — Node Finalization", () => {
       },
       async finalize() {
         finalizeSpy();
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -127,7 +127,7 @@ describe("Gap #13 — Node Finalization", () => {
     const executor: NodeExecutor = {
       async process(inputs) {
         return { out: inputs.a };
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -161,7 +161,7 @@ describe("Gap #11 — Controlled Node Lifecycle", () => {
       async process(inputs) {
         calls.push({ ...inputs });
         return { ok: true };
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -172,18 +172,18 @@ describe("Gap #11 — Controlled Node Lifecycle", () => {
     // Event 1: sets property "alpha"
     await inbox.put("__control__", {
       event_type: "run" as const,
-      properties: { alpha: 1 },
+      properties: { alpha: 1 }
     });
 
     // Event 2: sets property "beta" but NOT "alpha"
     await inbox.put("__control__", {
       event_type: "run" as const,
-      properties: { beta: 2 },
+      properties: { beta: 2 }
     });
 
     // Stop
     await inbox.put("__control__", {
-      event_type: "stop" as const,
+      event_type: "stop" as const
     });
 
     inbox.markSourceDone("__control__");
@@ -222,7 +222,7 @@ describe("Gap #11 — Controlled Node Lifecycle", () => {
     const executor: NodeExecutor = {
       async process(inputs) {
         return { echo: inputs.message, count: (inputs.count as number) + 1 };
-      },
+      }
     };
 
     const { actor, sentOutputs } = createActor(node, inbox, executor);
@@ -232,11 +232,11 @@ describe("Gap #11 — Controlled Node Lifecycle", () => {
 
     await inbox.put("__control__", {
       event_type: "run" as const,
-      properties: { message: "hello", count: 0 },
+      properties: { message: "hello", count: 0 }
     });
     await inbox.put("__control__", {
       event_type: "run" as const,
-      properties: { message: "world", count: 5 },
+      properties: { message: "world", count: 5 }
     });
     await inbox.put("__control__", { event_type: "stop" as const });
     inbox.markSourceDone("__control__");
@@ -273,7 +273,7 @@ describe("Gap #11 — Controlled Node Lifecycle", () => {
       async process(inputs) {
         receivedInputs.push({ ...inputs });
         return { result: "done" };
-      },
+      }
     };
 
     const { actor } = createActor(node, inbox, executor);
@@ -285,8 +285,8 @@ describe("Gap #11 — Controlled Node Lifecycle", () => {
       properties: {
         tool_call_id: "call_abc123",
         tool_name: "search_web",
-        query: "TypeScript testing",
-      },
+        query: "TypeScript testing"
+      }
     });
     await inbox.put("__control__", { event_type: "stop" as const });
     inbox.markSourceDone("__control__");

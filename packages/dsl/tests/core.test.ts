@@ -4,13 +4,9 @@ import {
   createNode,
   workflow,
   run,
-  runGraph,
+  runGraph
 } from "../src/core.js";
-import type {
-  OutputHandle,
-  DslNode,
-  SingleOutput,
-} from "../src/core.js";
+import type { OutputHandle, DslNode, SingleOutput } from "../src/core.js";
 import { NodeRegistry, ALL_E2E_NODES, Constant } from "@nodetool/node-sdk";
 
 beforeAll(() => {
@@ -24,7 +20,7 @@ describe("isOutputHandle", () => {
     const handle = Object.freeze({
       __brand: "OutputHandle" as const,
       nodeId: "abc",
-      slot: "value",
+      slot: "value"
     });
     expect(isOutputHandle(handle)).toBe(true);
   });
@@ -41,7 +37,10 @@ describe("isOutputHandle", () => {
 
 describe("createNode", () => {
   test("returns frozen object with unique nodeId", () => {
-    const node = createNode<SingleOutput<number>>("nodetool.math.Add", { lhs: 1, rhs: 2 });
+    const node = createNode<SingleOutput<number>>("nodetool.math.Add", {
+      lhs: 1,
+      rhs: 2
+    });
     expect(node.nodeId).toBeDefined();
     expect(node.nodeType).toBe("nodetool.math.Add");
     expect(node.inputs).toEqual({ lhs: 1, rhs: 2 });
@@ -51,7 +50,10 @@ describe("createNode", () => {
   });
 
   test("output() returns OutputHandle for the default slot", () => {
-    const node = createNode<SingleOutput<number>>("nodetool.math.Add", { lhs: 1, rhs: 2 });
+    const node = createNode<SingleOutput<number>>("nodetool.math.Add", {
+      lhs: 1,
+      rhs: 2
+    });
     const output = node.output();
     expect(isOutputHandle(output)).toBe(true);
     expect(output.nodeId).toBe(node.nodeId);
@@ -87,7 +89,7 @@ describe("createNode", () => {
       a: "hello",
       b: 42,
       c: true,
-      d: [1, 2, 3],
+      d: [1, 2, 3]
     });
     expect(node.inputs).toEqual({ a: "hello", b: 42, c: true, d: [1, 2, 3] });
     workflow(node);
@@ -103,7 +105,9 @@ describe("createNode", () => {
 
 describe("workflow", () => {
   test("single node — 1 node, 0 edges", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", {
+      input_item: 5
+    });
     const wf = workflow(a);
     expect(wf.nodes).toHaveLength(1);
     expect(wf.edges).toHaveLength(0);
@@ -112,10 +116,12 @@ describe("workflow", () => {
   });
 
   test("linear chain — 2 nodes, 1 edge", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", {
+      input_item: 5
+    });
     const b = createNode<SingleOutput<number>>("nodetool.math.Add", {
       lhs: a.output(),
-      rhs: 1,
+      rhs: 1
     });
     const wf = workflow(b);
     expect(wf.nodes).toHaveLength(2);
@@ -123,7 +129,7 @@ describe("workflow", () => {
     expect(wf.edges[0]).toEqual(
       expect.objectContaining({
         sourceHandle: "output",
-        targetHandle: "lhs",
+        targetHandle: "lhs"
       })
     );
     const bNode = wf.nodes.find((n) => n.type === "nodetool.math.Add")!;
@@ -132,14 +138,16 @@ describe("workflow", () => {
   });
 
   test("diamond dependency — no duplicate nodes", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", {
+      input_item: 5
+    });
     const b = createNode<SingleOutput<number>>("nodetool.math.Add", {
       lhs: a.output(),
-      rhs: 1,
+      rhs: 1
     });
     const c = createNode<SingleOutput<number>>("nodetool.math.Multiply", {
       lhs: b.output(),
-      rhs: a.output(),
+      rhs: a.output()
     });
     const wf = workflow(c);
     expect(wf.nodes).toHaveLength(3);
@@ -147,10 +155,20 @@ describe("workflow", () => {
   });
 
   test("multiple terminals — all branches traced", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 1 });
-    const b = createNode<SingleOutput<number>>("nodetool.math.Add", { lhs: a.output(), rhs: 2 });
-    const c = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 10 });
-    const d = createNode<SingleOutput<number>>("nodetool.math.Add", { lhs: c.output(), rhs: 3 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", {
+      value: 1
+    });
+    const b = createNode<SingleOutput<number>>("nodetool.math.Add", {
+      lhs: a.output(),
+      rhs: 2
+    });
+    const c = createNode<SingleOutput<number>>("nodetool.constant.Integer", {
+      value: 10
+    });
+    const d = createNode<SingleOutput<number>>("nodetool.math.Add", {
+      lhs: c.output(),
+      rhs: 3
+    });
     const wf = workflow(b, d);
     expect(wf.nodes).toHaveLength(4);
     expect(wf.edges).toHaveLength(2);
@@ -167,35 +185,52 @@ describe("workflow", () => {
   });
 
   test("non-streaming defaults to false", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.math.Add", { lhs: 1, rhs: 2 });
+    const a = createNode<SingleOutput<number>>("nodetool.math.Add", {
+      lhs: 1,
+      rhs: 2
+    });
     const wf = workflow(a);
     expect(wf.nodes[0].streaming).toBe(false);
   });
 
   test("throws on zero arguments", () => {
-    expect(() => workflow()).toThrow("workflow() requires at least one terminal node");
+    expect(() => workflow()).toThrow(
+      "workflow() requires at least one terminal node"
+    );
   });
 
   test("registry is cleared after workflow()", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", {
+      input_item: 5
+    });
     workflow(a);
     const b = createNode<SingleOutput<number>>("nodetool.math.Add", {
       lhs: a.output(),
-      rhs: 1,
+      rhs: 1
     });
     expect(() => workflow(b)).toThrow("Node not found");
   });
 
   test("result is frozen", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", {
+      input_item: 5
+    });
     const wf = workflow(a);
     expect(Object.isFrozen(wf)).toBe(true);
   });
 
   test("topological order — sources before consumers", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
-    const b = createNode<SingleOutput<number>>("nodetool.math.Add", { lhs: a.output(), rhs: 1 });
-    const c = createNode<SingleOutput<number>>("nodetool.math.Multiply", { lhs: b.output(), rhs: 2 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", {
+      input_item: 5
+    });
+    const b = createNode<SingleOutput<number>>("nodetool.math.Add", {
+      lhs: a.output(),
+      rhs: 1
+    });
+    const c = createNode<SingleOutput<number>>("nodetool.math.Multiply", {
+      lhs: b.output(),
+      rhs: 2
+    });
     const wf = workflow(c);
     const ids = wf.nodes.map((n) => n.id);
     expect(ids.indexOf(a.nodeId)).toBeLessThan(ids.indexOf(b.nodeId));
@@ -236,9 +271,9 @@ describe("run / runGraph", () => {
   });
 
   test("run() rejects when a node throws", async () => {
-    const a = createNode<SingleOutput<never>>(
-      "nodetool.test.ErrorNode", { message: "boom" }
-    );
+    const a = createNode<SingleOutput<never>>("nodetool.test.ErrorNode", {
+      message: "boom"
+    });
     await expect(run(workflow(a))).rejects.toThrow("boom");
   });
 

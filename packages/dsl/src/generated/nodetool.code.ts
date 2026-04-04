@@ -15,8 +15,14 @@ export interface ExecutePythonOutputs {
   stderr: string;
 }
 
-export function executePython(inputs: ExecutePythonInputs): DslNode<ExecutePythonOutputs> {
-  return createNode("nodetool.code.ExecutePython", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
+export function executePython(
+  inputs: ExecutePythonInputs
+): DslNode<ExecutePythonOutputs> {
+  return createNode(
+    "nodetool.code.ExecutePython",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"], streaming: true }
+  );
 }
 
 // Execute Java Script — nodetool.code.ExecuteJavaScript
@@ -32,8 +38,14 @@ export interface ExecuteJavaScriptOutputs {
   stderr: string;
 }
 
-export function executeJavaScript(inputs: ExecuteJavaScriptInputs): DslNode<ExecuteJavaScriptOutputs> {
-  return createNode("nodetool.code.ExecuteJavaScript", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function executeJavaScript(
+  inputs: ExecuteJavaScriptInputs
+): DslNode<ExecuteJavaScriptOutputs> {
+  return createNode(
+    "nodetool.code.ExecuteJavaScript",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Execute Bash — nodetool.code.ExecuteBash
@@ -49,8 +61,14 @@ export interface ExecuteBashOutputs {
   stderr: string;
 }
 
-export function executeBash(inputs: ExecuteBashInputs): DslNode<ExecuteBashOutputs> {
-  return createNode("nodetool.code.ExecuteBash", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
+export function executeBash(
+  inputs: ExecuteBashInputs
+): DslNode<ExecuteBashOutputs> {
+  return createNode(
+    "nodetool.code.ExecuteBash",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"], streaming: true }
+  );
 }
 
 // Execute Ruby — nodetool.code.ExecuteRuby
@@ -66,8 +84,14 @@ export interface ExecuteRubyOutputs {
   stderr: string;
 }
 
-export function executeRuby(inputs: ExecuteRubyInputs): DslNode<ExecuteRubyOutputs> {
-  return createNode("nodetool.code.ExecuteRuby", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
+export function executeRuby(
+  inputs: ExecuteRubyInputs
+): DslNode<ExecuteRubyOutputs> {
+  return createNode(
+    "nodetool.code.ExecuteRuby",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"], streaming: true }
+  );
 }
 
 // Execute Lua — nodetool.code.ExecuteLua
@@ -84,8 +108,14 @@ export interface ExecuteLuaOutputs {
   stderr: string;
 }
 
-export function executeLua(inputs: ExecuteLuaInputs): DslNode<ExecuteLuaOutputs> {
-  return createNode("nodetool.code.ExecuteLua", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
+export function executeLua(
+  inputs: ExecuteLuaInputs
+): DslNode<ExecuteLuaOutputs> {
+  return createNode(
+    "nodetool.code.ExecuteLua",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"], streaming: true }
+  );
 }
 
 // Execute Command — nodetool.code.ExecuteCommand
@@ -101,8 +131,14 @@ export interface ExecuteCommandOutputs {
   stderr: string;
 }
 
-export function executeCommand(inputs: ExecuteCommandInputs): DslNode<ExecuteCommandOutputs> {
-  return createNode("nodetool.code.ExecuteCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
+export function executeCommand(
+  inputs: ExecuteCommandInputs
+): DslNode<ExecuteCommandOutputs> {
+  return createNode(
+    "nodetool.code.ExecuteCommand",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"], streaming: true }
+  );
 }
 
 // Run Python Command — nodetool.code.RunPythonCommand
@@ -115,8 +151,14 @@ export interface RunPythonCommandOutputs {
   stderr: string;
 }
 
-export function runPythonCommand(inputs: RunPythonCommandInputs): DslNode<RunPythonCommandOutputs> {
-  return createNode("nodetool.code.RunPythonCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runPythonCommand(
+  inputs: RunPythonCommandInputs
+): DslNode<RunPythonCommandOutputs> {
+  return createNode(
+    "nodetool.code.RunPythonCommand",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Java Script Command — nodetool.code.RunJavaScriptCommand
@@ -129,8 +171,14 @@ export interface RunJavaScriptCommandOutputs {
   stderr: string;
 }
 
-export function runJavaScriptCommand(inputs: RunJavaScriptCommandInputs): DslNode<RunJavaScriptCommandOutputs> {
-  return createNode("nodetool.code.RunJavaScriptCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runJavaScriptCommand(
+  inputs: RunJavaScriptCommandInputs
+): DslNode<RunJavaScriptCommandOutputs> {
+  return createNode(
+    "nodetool.code.RunJavaScriptCommand",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Bash Command — nodetool.code.RunBashCommand
@@ -143,8 +191,14 @@ export interface RunBashCommandOutputs {
   stderr: string;
 }
 
-export function runBashCommand(inputs: RunBashCommandInputs): DslNode<RunBashCommandOutputs> {
-  return createNode("nodetool.code.RunBashCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runBashCommand(
+  inputs: RunBashCommandInputs
+): DslNode<RunBashCommandOutputs> {
+  return createNode(
+    "nodetool.code.RunBashCommand",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Ruby Command — nodetool.code.RunRubyCommand
@@ -157,8 +211,14 @@ export interface RunRubyCommandOutputs {
   stderr: string;
 }
 
-export function runRubyCommand(inputs: RunRubyCommandInputs): DslNode<RunRubyCommandOutputs> {
-  return createNode("nodetool.code.RunRubyCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runRubyCommand(
+  inputs: RunRubyCommandInputs
+): DslNode<RunRubyCommandOutputs> {
+  return createNode(
+    "nodetool.code.RunRubyCommand",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Lua Command — nodetool.code.RunLuaCommand
@@ -173,8 +233,14 @@ export interface RunLuaCommandOutputs {
   stderr: string;
 }
 
-export function runLuaCommand(inputs: RunLuaCommandInputs): DslNode<RunLuaCommandOutputs> {
-  return createNode("nodetool.code.RunLuaCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runLuaCommand(
+  inputs: RunLuaCommandInputs
+): DslNode<RunLuaCommandOutputs> {
+  return createNode(
+    "nodetool.code.RunLuaCommand",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Lua Command Docker — nodetool.code.RunLuaCommandDocker
@@ -189,8 +255,14 @@ export interface RunLuaCommandDockerOutputs {
   stderr: string;
 }
 
-export function runLuaCommandDocker(inputs: RunLuaCommandDockerInputs): DslNode<RunLuaCommandDockerOutputs> {
-  return createNode("nodetool.code.RunLuaCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runLuaCommandDocker(
+  inputs: RunLuaCommandDockerInputs
+): DslNode<RunLuaCommandDockerOutputs> {
+  return createNode(
+    "nodetool.code.RunLuaCommandDocker",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Shell Command — nodetool.code.RunShellCommand
@@ -203,8 +275,14 @@ export interface RunShellCommandOutputs {
   stderr: string;
 }
 
-export function runShellCommand(inputs: RunShellCommandInputs): DslNode<RunShellCommandOutputs> {
-  return createNode("nodetool.code.RunShellCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runShellCommand(
+  inputs: RunShellCommandInputs
+): DslNode<RunShellCommandOutputs> {
+  return createNode(
+    "nodetool.code.RunShellCommand",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Python Command Docker — nodetool.code.RunPythonCommandDocker
@@ -218,8 +296,14 @@ export interface RunPythonCommandDockerOutputs {
   stderr: string;
 }
 
-export function runPythonCommandDocker(inputs: RunPythonCommandDockerInputs): DslNode<RunPythonCommandDockerOutputs> {
-  return createNode("nodetool.code.RunPythonCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runPythonCommandDocker(
+  inputs: RunPythonCommandDockerInputs
+): DslNode<RunPythonCommandDockerOutputs> {
+  return createNode(
+    "nodetool.code.RunPythonCommandDocker",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Java Script Command Docker — nodetool.code.RunJavaScriptCommandDocker
@@ -233,8 +317,14 @@ export interface RunJavaScriptCommandDockerOutputs {
   stderr: string;
 }
 
-export function runJavaScriptCommandDocker(inputs: RunJavaScriptCommandDockerInputs): DslNode<RunJavaScriptCommandDockerOutputs> {
-  return createNode("nodetool.code.RunJavaScriptCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runJavaScriptCommandDocker(
+  inputs: RunJavaScriptCommandDockerInputs
+): DslNode<RunJavaScriptCommandDockerOutputs> {
+  return createNode(
+    "nodetool.code.RunJavaScriptCommandDocker",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Bash Command Docker — nodetool.code.RunBashCommandDocker
@@ -248,8 +338,14 @@ export interface RunBashCommandDockerOutputs {
   stderr: string;
 }
 
-export function runBashCommandDocker(inputs: RunBashCommandDockerInputs): DslNode<RunBashCommandDockerOutputs> {
-  return createNode("nodetool.code.RunBashCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runBashCommandDocker(
+  inputs: RunBashCommandDockerInputs
+): DslNode<RunBashCommandDockerOutputs> {
+  return createNode(
+    "nodetool.code.RunBashCommandDocker",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Ruby Command Docker — nodetool.code.RunRubyCommandDocker
@@ -263,8 +359,14 @@ export interface RunRubyCommandDockerOutputs {
   stderr: string;
 }
 
-export function runRubyCommandDocker(inputs: RunRubyCommandDockerInputs): DslNode<RunRubyCommandDockerOutputs> {
-  return createNode("nodetool.code.RunRubyCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runRubyCommandDocker(
+  inputs: RunRubyCommandDockerInputs
+): DslNode<RunRubyCommandDockerOutputs> {
+  return createNode(
+    "nodetool.code.RunRubyCommandDocker",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Run Shell Command Docker — nodetool.code.RunShellCommandDocker
@@ -278,8 +380,14 @@ export interface RunShellCommandDockerOutputs {
   stderr: string;
 }
 
-export function runShellCommandDocker(inputs: RunShellCommandDockerInputs): DslNode<RunShellCommandDockerOutputs> {
-  return createNode("nodetool.code.RunShellCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
+export function runShellCommandDocker(
+  inputs: RunShellCommandDockerInputs
+): DslNode<RunShellCommandDockerOutputs> {
+  return createNode(
+    "nodetool.code.RunShellCommandDocker",
+    inputs as Record<string, unknown>,
+    { outputNames: ["stdout", "stderr"] }
+  );
 }
 
 // Code — nodetool.code.Code
@@ -289,9 +397,11 @@ export interface CodeInputs {
   sync_mode?: Connectable<unknown>;
 }
 
-export interface CodeOutputs {
-}
+export interface CodeOutputs {}
 
 export function code(inputs: CodeInputs): DslNode<CodeOutputs> {
-  return createNode("nodetool.code.Code", inputs as Record<string, unknown>, { outputNames: [], streaming: true });
+  return createNode("nodetool.code.Code", inputs as Record<string, unknown>, {
+    outputNames: [],
+    streaming: true
+  });
 }

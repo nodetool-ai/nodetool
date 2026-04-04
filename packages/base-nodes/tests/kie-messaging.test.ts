@@ -4,7 +4,7 @@ import {
   DiscordBotTrigger,
   DiscordSendMessage,
   TelegramBotTrigger,
-  TelegramSendMessage,
+  TelegramSendMessage
 } from "../src/nodes/messaging.js";
 
 const originalFetch = globalThis.fetch;
@@ -24,7 +24,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   } as unknown as Response;
 }
 
@@ -40,7 +40,6 @@ function metadataDefaults(NodeCls: any) {
 function expectMetadataDefaults(NodeCls: any) {
   expect(new NodeCls().serialize()).toEqual(metadataDefaults(NodeCls));
 }
-
 
 // ── DiscordBotTrigger ──────────────────────────────────────────────────────
 
@@ -66,9 +65,7 @@ describe("DiscordBotTrigger", () => {
 
   it("uses token from _secrets", async () => {
     const node = new DiscordBotTrigger();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "1", username: "Bot" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ id: "1", username: "Bot" }));
     node.setDynamic("_secrets", { DISCORD_BOT_TOKEN: "secret-token" });
     const result = await node.process();
     expect(result.status).toBe("configured");
@@ -93,9 +90,9 @@ describe("DiscordBotTrigger", () => {
       token: "bad-token"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Discord token validation failed (401)");
+    await expect(node.process()).rejects.toThrow(
+      "Discord token validation failed (401)"
+    );
   });
 });
 
@@ -140,9 +137,9 @@ describe("DiscordSendMessage", () => {
       content: "hi"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Discord bot token is required");
+    await expect(node.process()).rejects.toThrow(
+      "Discord bot token is required"
+    );
   });
 
   it("throws when no channel_id", async () => {
@@ -153,9 +150,9 @@ describe("DiscordSendMessage", () => {
       content: "hi"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Discord channel ID is required");
+    await expect(node.process()).rejects.toThrow(
+      "Discord channel ID is required"
+    );
   });
 
   it("throws on API error", async () => {
@@ -168,9 +165,9 @@ describe("DiscordSendMessage", () => {
       content: "hi"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Discord sendMessage failed (403)");
+    await expect(node.process()).rejects.toThrow(
+      "Discord sendMessage failed (403)"
+    );
   });
 
   it("uses token from _secrets", async () => {
@@ -196,7 +193,7 @@ describe("TelegramBotTrigger", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         ok: true,
-        result: { id: 789, username: "test_bot" },
+        result: { id: 789, username: "test_bot" }
       })
     );
 
@@ -217,7 +214,7 @@ describe("TelegramBotTrigger", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         ok: true,
-        result: { id: 1, username: "bot" },
+        result: { id: 1, username: "bot" }
       })
     );
 
@@ -234,7 +231,7 @@ describe("TelegramBotTrigger", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         ok: true,
-        result: { id: 1, username: "bot" },
+        result: { id: 1, username: "bot" }
       })
     );
     node.setDynamic("_secrets", { TELEGRAM_BOT_TOKEN: "secret-tg" });
@@ -259,9 +256,9 @@ describe("TelegramBotTrigger", () => {
       token: "bad"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Telegram token validation failed (401)");
+    await expect(node.process()).rejects.toThrow(
+      "Telegram token validation failed (401)"
+    );
   });
 
   it("throws when getMe returns ok: false", async () => {
@@ -274,9 +271,7 @@ describe("TelegramBotTrigger", () => {
       token: "tok"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Telegram getMe failed");
+    await expect(node.process()).rejects.toThrow("Telegram getMe failed");
   });
 });
 
@@ -291,8 +286,8 @@ describe("TelegramSendMessage", () => {
         result: {
           message_id: 42,
           date: 1234567890,
-          chat: { id: 100 },
-        },
+          chat: { id: 100 }
+        }
       })
     );
 
@@ -313,7 +308,7 @@ describe("TelegramSendMessage", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         ok: true,
-        result: { message_id: 1, date: 0, chat: { id: 1 } },
+        result: { message_id: 1, date: 0, chat: { id: 1 } }
       })
     );
 
@@ -334,7 +329,7 @@ describe("TelegramSendMessage", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         ok: true,
-        result: { message_id: 2, date: 0, chat: { id: 1 } },
+        result: { message_id: 2, date: 0, chat: { id: 1 } }
       })
     );
 
@@ -358,9 +353,9 @@ describe("TelegramSendMessage", () => {
       text: "hi"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Telegram bot token is required");
+    await expect(node.process()).rejects.toThrow(
+      "Telegram bot token is required"
+    );
   });
 
   it("throws when no chat_id", async () => {
@@ -371,9 +366,9 @@ describe("TelegramSendMessage", () => {
       text: "hi"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Telegram chat ID is required");
+    await expect(node.process()).rejects.toThrow(
+      "Telegram chat ID is required"
+    );
   });
 
   it("throws when API returns ok: false", async () => {
@@ -381,7 +376,7 @@ describe("TelegramSendMessage", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         ok: false,
-        description: "Bad Request: chat not found",
+        description: "Bad Request: chat not found"
       })
     );
 
@@ -391,9 +386,7 @@ describe("TelegramSendMessage", () => {
       text: "hi"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("Telegram sendMessage failed");
+    await expect(node.process()).rejects.toThrow("Telegram sendMessage failed");
   });
 
   it("uses token from _secrets", async () => {
@@ -401,7 +394,7 @@ describe("TelegramSendMessage", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         ok: true,
-        result: { message_id: 5, date: 0, chat: { id: 1 } },
+        result: { message_id: 5, date: 0, chat: { id: 1 } }
       })
     );
 

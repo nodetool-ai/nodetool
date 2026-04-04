@@ -6,7 +6,6 @@ import type { Theme } from "@mui/material/styles";
 import {
   Box,
   Typography,
-  IconButton,
   Tooltip,
   Menu,
   MenuItem,
@@ -15,6 +14,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import { DeleteButton, ColorSwatch } from "../ui_primitives";
 import {
   useColorPickerStore,
   PRESET_PALETTES,
@@ -48,19 +48,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexWrap: "wrap",
       gap: "4px"
-    },
-    ".color-swatch": {
-      width: "24px",
-      height: "24px",
-      borderRadius: "4px",
-      cursor: "pointer",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      transition: "transform 0.15s, box-shadow 0.15s",
-      "&:hover": {
-        transform: "scale(1.1)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-        zIndex: 1
-      }
     },
     ".add-swatch-button": {
       width: "24px",
@@ -208,32 +195,11 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
     setSwatchMenuAnchor(null);
   }, []);
 
-  const handleRecentColorClick = useCallback(
-    (color: string) => () => {
-      handleColorSelect(color);
-    },
-    [handleColorSelect]
-  );
-
-  const handleSwatchColorClick = useCallback(
-    (color: string) => () => {
-      handleColorSelect(color);
-    },
-    [handleColorSelect]
-  );
-
   const handlePaletteRemove = useCallback(
     (id: string) => () => {
       handleRemovePalette(id);
     },
     [handleRemovePalette]
-  );
-
-  const handlePaletteColorClick = useCallback(
-    (color: string) => () => {
-      handleColorSelect(color);
-    },
-    [handleColorSelect]
   );
 
   const handleLoadPresetPalette = useCallback(
@@ -250,23 +216,24 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
         <div className="section-header">
           <Typography className="section-title">Recent</Typography>
           {recentColors.length > 0 && (
-            <Tooltip title="Clear recent colors">
-              <IconButton size="small" onClick={clearRecentColors} aria-label="Clear recent colors">
-                <DeleteIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-            </Tooltip>
+            <DeleteButton
+              onClick={clearRecentColors}
+              tooltip="Clear recent colors"
+              iconVariant="clear"
+              nodrag={false}
+            />
           )}
         </div>
         <div className="color-grid">
           {recentColors.length > 0 ? (
             recentColors.map((color) => (
-              <Tooltip key={color} title={color}>
-                <div
-                  className="color-swatch"
-                  style={{ backgroundColor: color }}
-                  onClick={handleRecentColorClick(color)}
-                />
-              </Tooltip>
+              <ColorSwatch
+                key={color}
+                color={color}
+                onClick={handleColorSelect}
+                showTooltip
+                tooltip={color}
+              />
             ))
           ) : (
             <Typography className="empty-message">No recent colors</Typography>
@@ -281,14 +248,14 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
         </div>
         <div className="color-grid">
           {swatches.map((swatch) => (
-            <Tooltip key={swatch.id} title={swatch.name || swatch.color}>
-              <div
-                className="color-swatch"
-                style={{ backgroundColor: swatch.color }}
-                onClick={handleSwatchColorClick(swatch.color)}
-                onContextMenu={(e) => handleSwatchContextMenu(e, swatch.id)}
-              />
-            </Tooltip>
+            <ColorSwatch
+              key={swatch.id}
+              color={swatch.color}
+              onClick={handleColorSelect}
+              showTooltip
+              tooltip={swatch.name || swatch.color}
+              onContextMenu={(e: React.MouseEvent<HTMLDivElement>) => handleSwatchContextMenu(e, swatch.id)}
+            />
           ))}
           <Tooltip title="Save current color">
             <div
@@ -315,19 +282,22 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
             <div key={palette.id} className="palette-section">
               <div className="palette-header">
                 <Typography className="palette-name">{palette.name}</Typography>
-                <IconButton size="small" onClick={handlePaletteRemove(palette.id)} aria-label={`Remove palette ${palette.name}`}>
-                  <DeleteIcon sx={{ fontSize: 12 }} />
-                </IconButton>
+                <DeleteButton
+                  onClick={handlePaletteRemove(palette.id)}
+                  tooltip={`Remove palette ${palette.name}`}
+                  iconVariant="clear"
+                  nodrag={false}
+                />
               </div>
               <div className="color-grid">
                 {palette.colors.map((color) => (
-                  <Tooltip key={color} title={color}>
-                    <div
-                      className="color-swatch"
-                      style={{ backgroundColor: color }}
-                      onClick={handlePaletteColorClick(color)}
-                    />
-                  </Tooltip>
+                  <ColorSwatch
+                    key={color}
+                    color={color}
+                    onClick={handleColorSelect}
+                    showTooltip
+                    tooltip={color}
+                  />
                 ))}
               </div>
             </div>

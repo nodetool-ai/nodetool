@@ -5,7 +5,7 @@ import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "../useAutosave";
-import { executeViaComfyUI } from "../../utils/comfyExecutor";
+import { executeComfyWorkflow } from "../../utils/comfyExecutor";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
@@ -43,8 +43,8 @@ const mockUseSettingsStore = useSettingsStore as jest.MockedFunction<
 const mockTriggerAutosave = triggerAutosaveForWorkflow as jest.MockedFunction<
   typeof triggerAutosaveForWorkflow
 >;
-const mockExecuteViaComfyUI = executeViaComfyUI as jest.MockedFunction<
-  typeof executeViaComfyUI
+const mockExecuteComfyWorkflow = executeComfyWorkflow as jest.MockedFunction<
+  typeof executeComfyWorkflow
 >;
 const mockUseNodeMenuStore = useNodeMenuStore as jest.MockedFunction<
   typeof useNodeMenuStore
@@ -194,7 +194,7 @@ describe("useFloatingToolbarActions", () => {
     });
 
     mockTriggerAutosave.mockResolvedValue(undefined);
-    mockExecuteViaComfyUI.mockResolvedValue({
+    mockExecuteComfyWorkflow.mockResolvedValue({
       success: true,
       promptId: "test-prompt-id"
     });

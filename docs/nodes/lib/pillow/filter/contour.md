@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Contour"
-node_type: "lib.pillow.filter.Contour"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.Contour"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.Contour`
+**Type:** `lib.image.filter.Contour`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -34,5 +34,5 @@ Apply a contour filter to highlight image edges.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

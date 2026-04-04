@@ -7,7 +7,7 @@ import {
   ErrorNode,
   StreamingCounter,
   Passthrough,
-  ALL_TEST_NODES,
+  ALL_TEST_NODES
 } from "../src/nodes/test-nodes.js";
 
 function makeRegistry(): NodeRegistry {
@@ -23,10 +23,14 @@ function makeRunner(registry: NodeRegistry): WorkflowRunner {
     resolveExecutor: (node) => {
       if (!registry.has(node.type)) {
         // Fallback for unregistered types (e.g. raw input/output nodes)
-        return { async process(inputs) { return inputs; } };
+        return {
+          async process(inputs) {
+            return inputs;
+          }
+        };
       }
       return registry.resolve(node);
-    },
+    }
   });
 }
 
@@ -48,12 +52,27 @@ describe("Integration: simple linear pipeline", () => {
       { id: "in_a", type: "test.Input", name: "a" },
       { id: "in_b", type: "test.Input", name: "b" },
       { id: "add", type: Add.nodeType },
-      { id: "sink", type: Passthrough.nodeType, name: "result" },
+      { id: "sink", type: Passthrough.nodeType, name: "result" }
     ];
     const edges: Edge[] = [
-      { source: "in_a", sourceHandle: "value", target: "add", targetHandle: "a" },
-      { source: "in_b", sourceHandle: "value", target: "add", targetHandle: "b" },
-      { source: "add", sourceHandle: "result", target: "sink", targetHandle: "value" },
+      {
+        source: "in_a",
+        sourceHandle: "value",
+        target: "add",
+        targetHandle: "a"
+      },
+      {
+        source: "in_b",
+        sourceHandle: "value",
+        target: "add",
+        targetHandle: "b"
+      },
+      {
+        source: "add",
+        sourceHandle: "result",
+        target: "sink",
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner(makeRegistry());
@@ -72,12 +91,27 @@ describe("Integration: multiple inputs to Add node", () => {
       { id: "src_a", type: "test.Input", name: "a" },
       { id: "src_b", type: "test.Input", name: "b" },
       { id: "add", type: Add.nodeType },
-      { id: "out", type: Passthrough.nodeType, name: "sum" },
+      { id: "out", type: Passthrough.nodeType, name: "sum" }
     ];
     const edges: Edge[] = [
-      { source: "src_a", sourceHandle: "value", target: "add", targetHandle: "a" },
-      { source: "src_b", sourceHandle: "value", target: "add", targetHandle: "b" },
-      { source: "add", sourceHandle: "result", target: "out", targetHandle: "value" },
+      {
+        source: "src_a",
+        sourceHandle: "value",
+        target: "add",
+        targetHandle: "a"
+      },
+      {
+        source: "src_b",
+        sourceHandle: "value",
+        target: "add",
+        targetHandle: "b"
+      },
+      {
+        source: "add",
+        sourceHandle: "result",
+        target: "out",
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner(makeRegistry());
@@ -97,11 +131,16 @@ describe("Integration: error propagation", () => {
       {
         id: "err",
         type: ErrorNode.nodeType,
-        properties: { message: "integration error" },
-      },
+        properties: { message: "integration error" }
+      }
     ];
     const edges: Edge[] = [
-      { source: "in", sourceHandle: "value", target: "err", targetHandle: "value" },
+      {
+        source: "in",
+        sourceHandle: "value",
+        target: "err",
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner(makeRegistry());
@@ -111,7 +150,8 @@ describe("Integration: error propagation", () => {
     );
 
     const hasError = result.messages.some(
-      (m) => m.type === "node_update" && (m as { status: string }).status === "error"
+      (m) =>
+        m.type === "node_update" && (m as { status: string }).status === "error"
     );
     expect(hasError).toBe(true);
   });
@@ -127,23 +167,23 @@ describe("Integration: streaming output", () => {
         id: "counter",
         type: StreamingCounter.nodeType,
         is_streaming_output: true,
-        properties: { count: 3, start: 0 },
+        properties: { count: 3, start: 0 }
       },
-      { id: "sink", type: Passthrough.nodeType, name: "values" },
+      { id: "sink", type: Passthrough.nodeType, name: "values" }
     ];
     const edges: Edge[] = [
       {
         source: "trigger",
         sourceHandle: "value",
         target: "counter",
-        targetHandle: "start",
+        targetHandle: "start"
       },
       {
         source: "counter",
         sourceHandle: "value",
         target: "sink",
-        targetHandle: "value",
-      },
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner(makeRegistry());
@@ -156,4 +196,3 @@ describe("Integration: streaming output", () => {
     expect(result.outputs["values"]?.length).toBeGreaterThanOrEqual(1);
   });
 });
-

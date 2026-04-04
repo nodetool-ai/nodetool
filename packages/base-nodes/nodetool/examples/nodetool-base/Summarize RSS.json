@@ -1,0 +1,143 @@
+{
+  "id": "bcbefdbea78311f09c5e000014a97b82",
+  "access": "public",
+  "created_at": "2025-10-12T17:55:18.861423",
+  "updated_at": "2025-10-12T17:55:18.861432",
+  "name": "Summarize RSS",
+  "tool_name": null,
+  "description": "",
+  "tags": [],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
+        "parent_id": null,
+        "type": "lib.rss.FetchRSSFeed",
+        "data": {
+          "url": "https://feeds.bbci.co.uk/news/world/europe/rss.xml"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 266,
+            "y": 403
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "98cc0ca5-7361-44d7-9e74-c47c0def5aeb",
+        "parent_id": null,
+        "type": "nodetool.text.Collect",
+        "data": {
+          "separator": "---"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 576,
+            "y": 460
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "0659612a-1a3b-471b-b397-6ec97e33882f",
+        "parent_id": null,
+        "type": "nodetool.agents.Summarizer",
+        "data": {
+          "system_prompt": "\n        You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring. \n        Follow these guidelines:\n        1. Identify and include only the most important information.\n        2. Maintain factual accuracy - do not add or modify information.\n        3. Use clear, direct language.\n        4. Aim for approximately {self.max_tokens} tokens.\n        ",
+          "model": {
+            "type": "language_model"
+          },
+          "max_tokens": 1000
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 886,
+            "y": 329
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "578ff15c-a820-4e4e-b4b1-b5a6007635e8",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1196,
+            "y": 162
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 758,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "291768e5-6f8f-4c37-b3e7-00a466d48aea",
+        "source": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
+        "sourceHandle": "title",
+        "target": "98cc0ca5-7361-44d7-9e74-c47c0def5aeb",
+        "targetHandle": "input_item",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "b0699d6a-7cea-48d5-8b49-ddc36aa3bac0",
+        "source": "98cc0ca5-7361-44d7-9e74-c47c0def5aeb",
+        "sourceHandle": "output",
+        "target": "0659612a-1a3b-471b-b397-6ec97e33882f",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "928b8a16-482f-4cf3-94ab-4e0b1ebc9297",
+        "source": "0659612a-1a3b-471b-b397-6ec97e33882f",
+        "sourceHandle": "text",
+        "target": "578ff15c-a820-4e4e-b4b1-b5a6007635e8",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

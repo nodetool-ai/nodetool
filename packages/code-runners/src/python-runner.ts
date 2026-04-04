@@ -1,4 +1,7 @@
-import { StreamRunnerBase, type StreamRunnerOptions } from "./stream-runner-base.js";
+import {
+  StreamRunnerBase,
+  type StreamRunnerOptions
+} from "./stream-runner-base.js";
 
 /**
  * Docker-backed Python code runner.
@@ -13,7 +16,7 @@ export class PythonDockerRunner extends StreamRunnerBase {
 
   override buildContainerCommand(
     userCode: string,
-    envLocals: Record<string, unknown>,
+    envLocals: Record<string, unknown>
   ): string[] {
     let code = "";
     for (const [key, value] of Object.entries(envLocals)) {
@@ -48,7 +51,7 @@ function pythonRepr(value: unknown): string {
   }
   if (typeof value === "object") {
     const parts = Object.entries(value as Record<string, unknown>).map(
-      ([k, v]) => `${JSON.stringify(k)}: ${pythonRepr(v)}`,
+      ([k, v]) => `${JSON.stringify(k)}: ${pythonRepr(v)}`
     );
     return `{${parts.join(", ")}}`;
   }

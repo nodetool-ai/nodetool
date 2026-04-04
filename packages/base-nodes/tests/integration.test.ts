@@ -8,7 +8,7 @@ import {
   ForEachNode,
   CollectNode,
   OutputNode,
-  RerouteNode,
+  RerouteNode
 } from "../src/index.js";
 
 function makeRegistry(): NodeRegistry {
@@ -24,11 +24,11 @@ function makeRunner(registry: NodeRegistry): WorkflowRunner {
         return {
           async process(inputs: Record<string, unknown>) {
             return inputs;
-          },
+          }
         };
       }
       return registry.resolve(node);
-    },
+    }
   });
 }
 
@@ -37,16 +37,21 @@ describe("integration: If node with input source", () => {
     const nodes: NodeDescriptor[] = [
       { id: "src", type: "test.Input", name: "value" },
       { id: "if", type: IfNode.nodeType, properties: { condition: true } },
-      { id: "sink", type: RerouteNode.nodeType, name: "out" },
+      { id: "sink", type: RerouteNode.nodeType, name: "out" }
     ];
     const edges: Edge[] = [
-      { source: "src", sourceHandle: "value", target: "if", targetHandle: "value" },
+      {
+        source: "src",
+        sourceHandle: "value",
+        target: "if",
+        targetHandle: "value"
+      },
       {
         source: "if",
         sourceHandle: "if_true",
         target: "sink",
-        targetHandle: "input_value",
-      },
+        targetHandle: "input_value"
+      }
     ];
 
     const result = await makeRunner(makeRegistry()).run(
@@ -66,11 +71,11 @@ describe.skip("integration: ForEach node streaming output (ListRangeNode not ava
       {
         id: "range",
         type: "nodetool.data.ListRange",
-        properties: { stop: 4, step: 1 },
+        properties: { stop: 4, step: 1 }
       },
       { id: "each", type: ForEachNode.nodeType, is_streaming_output: true },
       { id: "collect", type: CollectNode.nodeType },
-      { id: "sink", type: OutputNode.nodeType, name: "values" },
+      { id: "sink", type: OutputNode.nodeType, name: "values" }
     ];
 
     const edges: Edge[] = [
@@ -78,26 +83,26 @@ describe.skip("integration: ForEach node streaming output (ListRangeNode not ava
         source: "trigger",
         sourceHandle: "value",
         target: "range",
-        targetHandle: "start",
+        targetHandle: "start"
       },
       {
         source: "range",
         sourceHandle: "output",
         target: "each",
-        targetHandle: "input_list",
+        targetHandle: "input_list"
       },
       {
         source: "each",
         sourceHandle: "output",
         target: "collect",
-        targetHandle: "input_item",
+        targetHandle: "input_item"
       },
       {
         source: "collect",
         sourceHandle: "output",
         target: "sink",
-        targetHandle: "value",
-      },
+        targetHandle: "value"
+      }
     ];
 
     const result = await makeRunner(makeRegistry()).run(
@@ -118,30 +123,30 @@ describe.skip("integration: GenerateSequence streaming output (GenerateSequenceN
         id: "seq",
         type: "nodetool.data.GenerateSequence",
         is_streaming_output: true,
-        properties: { stop: 4, step: 1 },
+        properties: { stop: 4, step: 1 }
       },
       { id: "collect", type: CollectNode.nodeType },
-      { id: "sink", type: OutputNode.nodeType, name: "values" },
+      { id: "sink", type: OutputNode.nodeType, name: "values" }
     ];
     const edges: Edge[] = [
       {
         source: "trigger",
         sourceHandle: "value",
         target: "seq",
-        targetHandle: "start",
+        targetHandle: "start"
       },
       {
         source: "seq",
         sourceHandle: "output",
         target: "collect",
-        targetHandle: "input_item",
+        targetHandle: "input_item"
       },
       {
         source: "collect",
         sourceHandle: "output",
         target: "sink",
-        targetHandle: "value",
-      },
+        targetHandle: "value"
+      }
     ];
 
     const result = await makeRunner(makeRegistry()).run(

@@ -29,7 +29,7 @@ export class ChecksumError extends MigrationError {
     message: string,
     migrationVersion: string,
     expectedChecksum: string,
-    actualChecksum: string,
+    actualChecksum: string
   ) {
     super(message, migrationVersion);
     this.name = "ChecksumError";

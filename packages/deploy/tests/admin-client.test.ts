@@ -6,7 +6,7 @@ import { AdminHTTPClient } from "../src/admin-client.js";
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" }
   });
 }
 
@@ -21,18 +21,18 @@ function sseResponse(lines: string[]): Response {
     start(controller) {
       controller.enqueue(encoder.encode(text));
       controller.close();
-    },
+    }
   });
   return new Response(stream, {
     status: 200,
-    headers: { "Content-Type": "text/event-stream" },
+    headers: { "Content-Type": "text/event-stream" }
   });
 }
 
 function bytesResponse(data: Uint8Array): Response {
   return new Response(data, {
     status: 200,
-    headers: { "Content-Type": "application/octet-stream" },
+    headers: { "Content-Type": "application/octet-stream" }
   });
 }
 
@@ -47,7 +47,7 @@ describe("AdminHTTPClient", () => {
     vi.stubGlobal("fetch", fetchSpy);
     client = new AdminHTTPClient({
       baseUrl: "http://localhost:8000",
-      authToken: "test-token",
+      authToken: "test-token"
     });
   });
 
@@ -112,7 +112,7 @@ describe("AdminHTTPClient", () => {
       "http://localhost:8000/api/workflows/w1",
       expect.objectContaining({
         method: "PUT",
-        body: JSON.stringify({ name: "test" }),
+        body: JSON.stringify({ name: "test" })
       })
     );
   });
@@ -143,9 +143,7 @@ describe("AdminHTTPClient", () => {
   it("getAsset sends GET with user_id param", async () => {
     fetchSpy.mockResolvedValueOnce(jsonResponse({ id: "a1" }));
     await client.getAsset("a1", "42");
-    expect(fetchSpy.mock.calls[0][0]).toContain(
-      "/admin/assets/a1?user_id=42"
-    );
+    expect(fetchSpy.mock.calls[0][0]).toContain("/admin/assets/a1?user_id=42");
   });
 
   it("getAsset defaults userId to '1'", async () => {
@@ -161,7 +159,7 @@ describe("AdminHTTPClient", () => {
       contentType: "text/plain",
       parentId: "p1",
       workflowId: "wf1",
-      metadata: { foo: "bar" },
+      metadata: { foo: "bar" }
     });
     const body = JSON.parse(fetchSpy.mock.calls[0][1].body);
     expect(body.name).toBe("file.txt");
@@ -185,9 +183,7 @@ describe("AdminHTTPClient", () => {
     const data = new Uint8Array([1, 2, 3]);
     await client.uploadAssetFile("test.bin", data);
     const call = fetchSpy.mock.calls[0];
-    expect(call[0]).toBe(
-      "http://localhost:8000/admin/storage/assets/test.bin"
-    );
+    expect(call[0]).toBe("http://localhost:8000/admin/storage/assets/test.bin");
     expect(call[1].method).toBe("PUT");
     // Content-Type should be removed for raw body
     expect(call[1].headers["Content-Type"]).toBeUndefined();
@@ -257,12 +253,12 @@ describe("AdminHTTPClient", () => {
     const sse = sseResponse([
       'data: {"status":"starting"}\n',
       'data: {"status":"completed"}\n',
-      "data: [DONE]\n",
+      "data: [DONE]\n"
     ]);
     fetchSpy.mockResolvedValueOnce(sse);
     const results: Record<string, unknown>[] = [];
     for await (const chunk of client.downloadHuggingfaceModel({
-      repoId: "org/model",
+      repoId: "org/model"
     })) {
       results.push(chunk);
     }
@@ -279,7 +275,7 @@ describe("AdminHTTPClient", () => {
       cacheDir: "/tmp/cache",
       filePath: "model.bin",
       ignorePatterns: ["*.md"],
-      allowPatterns: ["*.bin"],
+      allowPatterns: ["*.bin"]
     });
     for await (const _ of gen) {
       // consume
@@ -303,7 +299,7 @@ describe("AdminHTTPClient", () => {
     const sse = sseResponse([
       'data: {"status":"pulling"}\n',
       'data: {"status":"done"}\n',
-      "data: [DONE]\n",
+      "data: [DONE]\n"
     ]);
     fetchSpy.mockResolvedValueOnce(sse);
     const results: Record<string, unknown>[] = [];
@@ -330,7 +326,7 @@ describe("AdminHTTPClient", () => {
     const sse = sseResponse([
       "data: NOT_JSON\n",
       'data: {"ok":true}\n',
-      "data: [DONE]\n",
+      "data: [DONE]\n"
     ]);
     fetchSpy.mockResolvedValueOnce(sse);
     const results: Record<string, unknown>[] = [];
@@ -346,7 +342,7 @@ describe("AdminHTTPClient", () => {
       ": comment\n",
       "event: update\n",
       'data: {"a":1}\n',
-      "data: [DONE]\n",
+      "data: [DONE]\n"
     ]);
     fetchSpy.mockResolvedValueOnce(sse);
     const results: Record<string, unknown>[] = [];
@@ -373,9 +369,7 @@ describe("AdminHTTPClient", () => {
   });
 
   it("getCacheSize sends GET with cache_dir param", async () => {
-    fetchSpy.mockResolvedValueOnce(
-      jsonResponse({ total_size_bytes: 1024 })
-    );
+    fetchSpy.mockResolvedValueOnce(jsonResponse({ total_size_bytes: 1024 }));
     await client.getCacheSize("/my/cache");
     expect(fetchSpy.mock.calls[0][0]).toContain("cache_dir=%2Fmy%2Fcache");
   });
@@ -425,10 +419,10 @@ describe("AdminHTTPClient", () => {
     const sse = sseResponse([
       'data: {"step":1}\n',
       'data: {"step":2}\n',
-      "data: [DONE]\n",
+      "data: [DONE]\n"
     ]);
     Object.defineProperty(sse, "headers", {
-      value: new Headers({ "content-type": "text/event-stream" }),
+      value: new Headers({ "content-type": "text/event-stream" })
     });
     fetchSpy.mockResolvedValueOnce(sse);
     const results: Record<string, unknown>[] = [];

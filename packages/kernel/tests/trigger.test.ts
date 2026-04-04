@@ -66,7 +66,7 @@ describe("TriggerState", () => {
 
     // Use a very short timeout (50ms = 0.05s)
     await expect(ts.waitForTriggerEvent(0.05)).rejects.toThrow(
-      TriggerInactivityTimeout,
+      TriggerInactivityTimeout
     );
   });
 
@@ -106,7 +106,7 @@ describe("TriggerState", () => {
       expect(e.state).toHaveProperty("custom", "data");
       expect(e.metadata).toEqual({
         trigger_node: true,
-        inactivity_suspension: true,
+        inactivity_suspension: true
       });
     }
   });

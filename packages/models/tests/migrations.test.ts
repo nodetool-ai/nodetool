@@ -14,11 +14,11 @@ import {
   MigrationError,
   BaselineError,
   RollbackError,
-  migrations,
+  migrations
 } from "../src/migrations/index.js";
 import type {
   MigrationDef,
-  MigrationDBAdapter,
+  MigrationDBAdapter
 } from "../src/migrations/index.js";
 
 function createInMemoryAdapter(): SQLiteMigrationAdapter {
@@ -45,7 +45,7 @@ const testMigrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS users");
-    },
+    }
   },
   {
     version: "002",
@@ -60,7 +60,7 @@ const testMigrations: MigrationDef[] = [
     },
     async down() {
       // no-op for SQLite
-    },
+    }
   },
   {
     version: "003",
@@ -79,8 +79,8 @@ const testMigrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS posts");
-    },
-  },
+    }
+  }
 ];
 
 // ── SQLiteMigrationAdapter tests ─────────────────────────────────────
@@ -97,38 +97,31 @@ describe("SQLiteMigrationAdapter", () => {
   });
 
   it("should execute DDL statements", async () => {
-    await adapter.execute(
-      "CREATE TABLE test (id TEXT PRIMARY KEY, val TEXT)",
-    );
+    await adapter.execute("CREATE TABLE test (id TEXT PRIMARY KEY, val TEXT)");
     expect(await adapter.tableExists("test")).toBe(true);
   });
 
   it("should execute with params", async () => {
-    await adapter.execute(
-      "CREATE TABLE test (id TEXT PRIMARY KEY, val TEXT)",
-    );
+    await adapter.execute("CREATE TABLE test (id TEXT PRIMARY KEY, val TEXT)");
     await adapter.execute("INSERT INTO test (id, val) VALUES (?, ?)", [
       "1",
-      "hello",
+      "hello"
     ]);
-    const row = await adapter.fetchone(
-      "SELECT * FROM test WHERE id = ?",
-      ["1"],
-    );
+    const row = await adapter.fetchone("SELECT * FROM test WHERE id = ?", [
+      "1"
+    ]);
     expect(row).toEqual({ id: "1", val: "hello" });
   });
 
   it("should fetchall rows", async () => {
-    await adapter.execute(
-      "CREATE TABLE test (id TEXT PRIMARY KEY, val TEXT)",
-    );
+    await adapter.execute("CREATE TABLE test (id TEXT PRIMARY KEY, val TEXT)");
     await adapter.execute("INSERT INTO test (id, val) VALUES (?, ?)", [
       "1",
-      "a",
+      "a"
     ]);
     await adapter.execute("INSERT INTO test (id, val) VALUES (?, ?)", [
       "2",
-      "b",
+      "b"
     ]);
     const rows = await adapter.fetchall("SELECT * FROM test ORDER BY id");
     expect(rows).toHaveLength(2);
@@ -138,10 +131,9 @@ describe("SQLiteMigrationAdapter", () => {
 
   it("should return null for fetchone with no results", async () => {
     await adapter.execute("CREATE TABLE test (id TEXT PRIMARY KEY)");
-    const row = await adapter.fetchone(
-      "SELECT * FROM test WHERE id = ?",
-      ["nope"],
-    );
+    const row = await adapter.fetchone("SELECT * FROM test WHERE id = ?", [
+      "nope"
+    ]);
     expect(row).toBeNull();
   });
 
@@ -152,16 +144,14 @@ describe("SQLiteMigrationAdapter", () => {
   });
 
   it("should detect column existence", async () => {
-    await adapter.execute(
-      "CREATE TABLE test (id TEXT PRIMARY KEY, name TEXT)",
-    );
+    await adapter.execute("CREATE TABLE test (id TEXT PRIMARY KEY, name TEXT)");
     expect(await adapter.columnExists("test", "name")).toBe(true);
     expect(await adapter.columnExists("test", "age")).toBe(false);
   });
 
   it("should get column list", async () => {
     await adapter.execute(
-      "CREATE TABLE test (id TEXT PRIMARY KEY, name TEXT, age INTEGER)",
+      "CREATE TABLE test (id TEXT PRIMARY KEY, name TEXT, age INTEGER)"
     );
     const columns = await adapter.getColumns("test");
     expect(columns).toContain("id");
@@ -170,27 +160,23 @@ describe("SQLiteMigrationAdapter", () => {
   });
 
   it("should detect index existence", async () => {
-    await adapter.execute(
-      "CREATE TABLE test (id TEXT PRIMARY KEY, name TEXT)",
-    );
+    await adapter.execute("CREATE TABLE test (id TEXT PRIMARY KEY, name TEXT)");
     expect(await adapter.indexExists("idx_test_name")).toBe(false);
     await adapter.execute("CREATE INDEX idx_test_name ON test(name)");
     expect(await adapter.indexExists("idx_test_name")).toBe(true);
   });
 
   it("should track row changes", async () => {
-    await adapter.execute(
-      "CREATE TABLE test (id TEXT PRIMARY KEY, val TEXT)",
-    );
+    await adapter.execute("CREATE TABLE test (id TEXT PRIMARY KEY, val TEXT)");
     await adapter.execute("INSERT INTO test (id, val) VALUES (?, ?)", [
       "1",
-      "a",
+      "a"
     ]);
     expect(adapter.getRowcount()).toBe(1);
 
     await adapter.execute("UPDATE test SET val = ? WHERE id = ?", [
       "b",
-      "nope",
+      "nope"
     ]);
     expect(adapter.getRowcount()).toBe(0);
   });
@@ -202,27 +188,27 @@ describe("detectDatabaseState", () => {
   it("should detect FRESH_INSTALL on empty database", async () => {
     const adapter = createInMemoryAdapter();
     expect(await detectDatabaseState(adapter)).toBe(
-      DatabaseState.FRESH_INSTALL,
+      DatabaseState.FRESH_INSTALL
     );
   });
 
   it("should detect LEGACY_DATABASE when app tables exist", async () => {
     const adapter = createInMemoryAdapter();
     await adapter.execute(
-      "CREATE TABLE nodetool_workflows (id TEXT PRIMARY KEY)",
+      "CREATE TABLE nodetool_workflows (id TEXT PRIMARY KEY)"
     );
     expect(await detectDatabaseState(adapter)).toBe(
-      DatabaseState.LEGACY_DATABASE,
+      DatabaseState.LEGACY_DATABASE
     );
   });
 
   it("should detect MIGRATION_TRACKED when tracking table exists", async () => {
     const adapter = createInMemoryAdapter();
     await adapter.execute(
-      `CREATE TABLE ${MIGRATION_TRACKING_TABLE} (version TEXT PRIMARY KEY)`,
+      `CREATE TABLE ${MIGRATION_TRACKING_TABLE} (version TEXT PRIMARY KEY)`
     );
     expect(await detectDatabaseState(adapter)).toBe(
-      DatabaseState.MIGRATION_TRACKED,
+      DatabaseState.MIGRATION_TRACKED
     );
   });
 });
@@ -267,9 +253,7 @@ describe("MigrationRunner", () => {
 
     it("should create tracking tables", async () => {
       await runner.migrate();
-      expect(await adapter.tableExists(MIGRATION_TRACKING_TABLE)).toBe(
-        true,
-      );
+      expect(await adapter.tableExists(MIGRATION_TRACKING_TABLE)).toBe(true);
       expect(await adapter.tableExists(MIGRATION_LOCK_TABLE)).toBe(true);
     });
 
@@ -301,9 +285,7 @@ describe("MigrationRunner", () => {
       const applied = await runner.migrate({ dryRun: true });
       expect(applied).toHaveLength(3);
       expect(await adapter.tableExists("users")).toBe(false);
-      expect(await adapter.tableExists(MIGRATION_TRACKING_TABLE)).toBe(
-        false,
-      );
+      expect(await adapter.tableExists(MIGRATION_TRACKING_TABLE)).toBe(false);
     });
 
     it("should throw MigrationError on failure", async () => {
@@ -316,8 +298,8 @@ describe("MigrationRunner", () => {
           async up() {
             throw new Error("intentional failure");
           },
-          async down() {},
-        },
+          async down() {}
+        }
       ];
 
       const badRunner = new MigrationRunner(adapter, badMigrations);
@@ -337,7 +319,7 @@ describe("MigrationRunner", () => {
     it("should report applied and pending after partial migration", async () => {
       const partialRunner = new MigrationRunner(
         adapter,
-        testMigrations.slice(0, 2),
+        testMigrations.slice(0, 2)
       );
       await partialRunner.migrate();
 
@@ -388,10 +370,7 @@ describe("MigrationRunner", () => {
 
     it("should throw RollbackError if migration not found", async () => {
       await runner.migrate();
-      const partial = new MigrationRunner(
-        adapter,
-        testMigrations.slice(0, 2),
-      );
+      const partial = new MigrationRunner(adapter, testMigrations.slice(0, 2));
       await expect(partial.rollback(1)).rejects.toThrow(RollbackError);
     });
   });
@@ -418,10 +397,10 @@ describe("MigrationRunner", () => {
   describe("baseline", () => {
     it("should baseline existing tables", async () => {
       await adapter.execute(
-        "CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT)",
+        "CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT)"
       );
       await adapter.execute(
-        "CREATE TABLE posts (id TEXT PRIMARY KEY, user_id TEXT, title TEXT, body TEXT)",
+        "CREATE TABLE posts (id TEXT PRIMARY KEY, user_id TEXT, title TEXT, body TEXT)"
       );
 
       const baselined = await runner.baseline();
@@ -474,12 +453,8 @@ describe("Built-in migrations", () => {
     expect(await adapter.tableExists("nodetool_jobs")).toBe(true);
     expect(await adapter.tableExists("nodetool_predictions")).toBe(true);
     expect(await adapter.tableExists("nodetool_secrets")).toBe(true);
-    expect(await adapter.tableExists("nodetool_oauth_credentials")).toBe(
-      true,
-    );
-    expect(await adapter.tableExists("nodetool_workflow_versions")).toBe(
-      true,
-    );
+    expect(await adapter.tableExists("nodetool_oauth_credentials")).toBe(true);
+    expect(await adapter.tableExists("nodetool_workflow_versions")).toBe(true);
     expect(await adapter.tableExists("nodetool_workspaces")).toBe(true);
     expect(await adapter.tableExists("run_state")).toBe(true);
     expect(await adapter.tableExists("run_node_state")).toBe(true);
@@ -503,22 +478,22 @@ describe("Built-in migrations", () => {
 
     // Simulate legacy: create the initial tables without migration tracking
     await adapter.execute(
-      "CREATE TABLE nodetool_workflows (id TEXT PRIMARY KEY, user_id TEXT, access TEXT, created_at TEXT, updated_at TEXT, name TEXT, tags TEXT, description TEXT, thumbnail TEXT, graph TEXT, settings TEXT, receive_clipboard INTEGER)",
+      "CREATE TABLE nodetool_workflows (id TEXT PRIMARY KEY, user_id TEXT, access TEXT, created_at TEXT, updated_at TEXT, name TEXT, tags TEXT, description TEXT, thumbnail TEXT, graph TEXT, settings TEXT, receive_clipboard INTEGER)"
     );
     await adapter.execute(
-      "CREATE TABLE nodetool_assets (id TEXT PRIMARY KEY, type TEXT, user_id TEXT, workflow_id TEXT, parent_id TEXT, file_id TEXT, name TEXT, content_type TEXT, metadata TEXT, created_at TEXT, duration REAL)",
+      "CREATE TABLE nodetool_assets (id TEXT PRIMARY KEY, type TEXT, user_id TEXT, workflow_id TEXT, parent_id TEXT, file_id TEXT, name TEXT, content_type TEXT, metadata TEXT, created_at TEXT, duration REAL)"
     );
     await adapter.execute(
-      "CREATE TABLE nodetool_threads (id TEXT PRIMARY KEY, user_id TEXT, title TEXT, created_at TEXT, updated_at TEXT)",
+      "CREATE TABLE nodetool_threads (id TEXT PRIMARY KEY, user_id TEXT, title TEXT, created_at TEXT, updated_at TEXT)"
     );
     await adapter.execute(
-      "CREATE TABLE nodetool_messages (id TEXT PRIMARY KEY, user_id TEXT, workflow_id TEXT, graph TEXT, thread_id TEXT, tools TEXT, tool_call_id TEXT, role TEXT, name TEXT, content TEXT, tool_calls TEXT, collections TEXT, input_files TEXT, output_files TEXT, created_at TEXT, provider TEXT, model TEXT, cost REAL, agent_mode INTEGER, help_mode INTEGER, agent_execution_id TEXT, execution_event_type TEXT, workflow_target TEXT)",
+      "CREATE TABLE nodetool_messages (id TEXT PRIMARY KEY, user_id TEXT, workflow_id TEXT, graph TEXT, thread_id TEXT, tools TEXT, tool_call_id TEXT, role TEXT, name TEXT, content TEXT, tool_calls TEXT, collections TEXT, input_files TEXT, output_files TEXT, created_at TEXT, provider TEXT, model TEXT, cost REAL, agent_mode INTEGER, help_mode INTEGER, agent_execution_id TEXT, execution_event_type TEXT, workflow_target TEXT)"
     );
     await adapter.execute(
-      "CREATE TABLE nodetool_jobs (id TEXT PRIMARY KEY, user_id TEXT, job_type TEXT, status TEXT, workflow_id TEXT, started_at TEXT, finished_at TEXT, graph TEXT, error TEXT, cost REAL)",
+      "CREATE TABLE nodetool_jobs (id TEXT PRIMARY KEY, user_id TEXT, job_type TEXT, status TEXT, workflow_id TEXT, started_at TEXT, finished_at TEXT, graph TEXT, error TEXT, cost REAL)"
     );
     await adapter.execute(
-      "CREATE TABLE nodetool_predictions (id TEXT PRIMARY KEY, user_id TEXT, node_id TEXT, provider TEXT, model TEXT, workflow_id TEXT, error TEXT, logs TEXT, status TEXT, created_at TEXT, started_at TEXT, completed_at TEXT, cost REAL, duration REAL, hardware TEXT, input_tokens INTEGER, output_tokens INTEGER)",
+      "CREATE TABLE nodetool_predictions (id TEXT PRIMARY KEY, user_id TEXT, node_id TEXT, provider TEXT, model TEXT, workflow_id TEXT, error TEXT, logs TEXT, status TEXT, created_at TEXT, started_at TEXT, completed_at TEXT, cost REAL, duration REAL, hardware TEXT, input_tokens INTEGER, output_tokens INTEGER)"
     );
 
     const runner = new MigrationRunner(adapter);

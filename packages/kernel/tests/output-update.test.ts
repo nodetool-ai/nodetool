@@ -6,9 +6,11 @@ import { WorkflowRunner } from "../src/runner.js";
 import type { NodeDescriptor } from "@nodetool/protocol";
 import type { NodeExecutor } from "../src/actor.js";
 
-function makeExecutor(fn: () => Record<string, unknown> | Promise<Record<string, unknown>>): NodeExecutor {
+function makeExecutor(
+  fn: () => Record<string, unknown> | Promise<Record<string, unknown>>
+): NodeExecutor {
   return {
-    process: async () => fn(),
+    process: async () => fn()
   };
 }
 
@@ -16,10 +18,10 @@ describe("T-K-9: OutputUpdate messages", () => {
   it("emits output_update after node produces output", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "n1", type: "test.Source", outputs: { output: "int" } },
-      { id: "n2", type: "test.Sink", outputs: { result: "int" } },
+      { id: "n2", type: "test.Sink", outputs: { result: "int" } }
     ];
     const edges = [
-      { source: "n1", sourceHandle: "output", target: "n2", targetHandle: "a" },
+      { source: "n1", sourceHandle: "output", target: "n2", targetHandle: "a" }
     ];
 
     const runner = new WorkflowRunner("job1", {
@@ -28,15 +30,14 @@ describe("T-K-9: OutputUpdate messages", () => {
           return makeExecutor(() => ({ output: 42 }));
         }
         return makeExecutor(() => ({ result: 99 }));
-      },
+      }
     });
 
-    const result = await runner.run(
-      { job_id: "job1" },
-      { nodes, edges }
-    );
+    const result = await runner.run({ job_id: "job1" }, { nodes, edges });
 
-    const outputUpdates = result.messages.filter((m) => m.type === "output_update");
+    const outputUpdates = result.messages.filter(
+      (m) => m.type === "output_update"
+    );
     expect(outputUpdates.length).toBeGreaterThanOrEqual(1);
 
     // Check that at least one output_update has the node's output
@@ -53,10 +54,10 @@ describe("T-K-9: OutputUpdate messages", () => {
   it("emits output_update for each output handle", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "n1", type: "test.MultiOut", outputs: { a: "int", b: "str" } },
-      { id: "n2", type: "test.Sink", outputs: { result: "int" } },
+      { id: "n2", type: "test.Sink", outputs: { result: "int" } }
     ];
     const edges = [
-      { source: "n1", sourceHandle: "a", target: "n2", targetHandle: "x" },
+      { source: "n1", sourceHandle: "a", target: "n2", targetHandle: "x" }
     ];
 
     const runner = new WorkflowRunner("job1", {
@@ -65,13 +66,10 @@ describe("T-K-9: OutputUpdate messages", () => {
           return makeExecutor(() => ({ a: 10, b: "hello" }));
         }
         return makeExecutor(() => ({ result: 10 }));
-      },
+      }
     });
 
-    const result = await runner.run(
-      { job_id: "job1" },
-      { nodes, edges }
-    );
+    const result = await runner.run({ job_id: "job1" }, { nodes, edges });
 
     const outputUpdates = result.messages.filter(
       (m) => m.type === "output_update" && m.node_id === "n1"
@@ -86,11 +84,15 @@ describe("T-K-9: OutputUpdate messages", () => {
 
   it("does not emit output_update for undefined values", async () => {
     const nodes: NodeDescriptor[] = [
-      { id: "n1", type: "test.Source", outputs: { output: "int", extra: "str" } },
-      { id: "n2", type: "test.Sink", outputs: { result: "int" } },
+      {
+        id: "n1",
+        type: "test.Source",
+        outputs: { output: "int", extra: "str" }
+      },
+      { id: "n2", type: "test.Sink", outputs: { result: "int" } }
     ];
     const edges = [
-      { source: "n1", sourceHandle: "output", target: "n2", targetHandle: "a" },
+      { source: "n1", sourceHandle: "output", target: "n2", targetHandle: "a" }
     ];
 
     const runner = new WorkflowRunner("job1", {
@@ -100,13 +102,10 @@ describe("T-K-9: OutputUpdate messages", () => {
           return makeExecutor(() => ({ output: 5 }));
         }
         return makeExecutor(() => ({ result: 5 }));
-      },
+      }
     });
 
-    const result = await runner.run(
-      { job_id: "job1" },
-      { nodes, edges }
-    );
+    const result = await runner.run({ job_id: "job1" }, { nodes, edges });
 
     const outputUpdates = result.messages.filter(
       (m) => m.type === "output_update" && m.node_id === "n1"

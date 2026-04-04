@@ -16,7 +16,7 @@ import { DeleteButton } from "../ui_primitives/DeleteButton";
 import InfoIcon from "@mui/icons-material/Info";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
-import EditIcon from "@mui/icons-material/Edit";
+import { EditButton } from "../ui_primitives/EditButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
@@ -205,24 +205,12 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           </IconButton>
         </Tooltip>
 
-        <Tooltip
-          title={
-            <span>
-              {hasCommentTitle ? "Remove Comment" : "Add Comment"}
-            </span>
-          }
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <IconButton
-            className="nodrag"
-            onClick={handleToggleComment}
-            tabIndex={-1}
-            color={hasCommentTitle ? "primary" : "default"}
-            size="small"
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <EditButton
+          onClick={handleToggleComment}
+          tooltip={hasCommentTitle ? "Remove Comment" : "Add Comment"}
+          tabIndex={-1}
+          sx={hasCommentTitle ? { color: "primary.main" } : undefined}
+        />
 
         <Tooltip
           title={

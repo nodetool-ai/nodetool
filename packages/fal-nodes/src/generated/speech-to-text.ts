@@ -6,7 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
-  imageToDataUrl,
+  imageToDataUrl
 } from "../fal-base.js";
 
 // Re-export alias
@@ -18,18 +18,35 @@ export class ElevenLabsSpeechToText extends FalNode {
   static readonly description = `ElevenLabs Speech to Text transcribes audio to text with high accuracy.
 audio, transcription, stt, elevenlabs, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "text": "str", "language_probability": "float", "language_code": "str", "words": "list[TranscriptionWord]" };
+  static readonly outputTypes = {
+    text: "str",
+    language_probability: "float",
+    language_code: "str",
+    words: "list[TranscriptionWord]"
+  };
 
   @prop({ type: "str", default: "", description: "Language code of the audio" })
   declare language_code: any;
 
-  @prop({ type: "audio", default: "", description: "URL of the audio file to transcribe" })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "URL of the audio file to transcribe"
+  })
   declare audio: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to annotate who is speaking" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to annotate who is speaking"
+  })
   declare diarize: any;
 
-  @prop({ type: "bool", default: true, description: "Tag audio events like laughter, applause, etc." })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Tag audio events like laughter, applause, etc."
+  })
   declare tag_audio_events: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -39,9 +56,9 @@ audio, transcription, stt, elevenlabs, speech-to-text`;
     const tagAudioEvents = Boolean(this.tag_audio_events ?? true);
 
     const args: Record<string, unknown> = {
-      "language_code": languageCode,
-      "diarize": diarize,
-      "tag_audio_events": tagAudioEvents,
+      language_code: languageCode,
+      diarize: diarize,
+      tag_audio_events: tagAudioEvents
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -51,7 +68,11 @@ audio, transcription, stt, elevenlabs, speech-to-text`;
     }
     removeNulls(args);
 
-    const res = await falSubmit(apiKey, "fal-ai/elevenlabs/speech-to-text", args);
+    const res = await falSubmit(
+      apiKey,
+      "fal-ai/elevenlabs/speech-to-text",
+      args
+    );
     return res as Record<string, unknown>;
   }
 }
@@ -62,21 +83,43 @@ export class ElevenLabsScribeV2 extends FalNode {
   static readonly description = `ElevenLabs Scribe V2 provides blazingly fast speech-to-text transcription.
 audio, transcription, stt, fast, elevenlabs, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "text": "str", "language_probability": "float", "language_code": "str", "words": "list[TranscriptionWord]" };
+  static readonly outputTypes = {
+    text: "str",
+    language_probability: "float",
+    language_code: "str",
+    words: "list[TranscriptionWord]"
+  };
 
-  @prop({ type: "list[str]", default: [], description: "Words or sentences to bias the model towards transcribing. Up to 100 keyterms, max 50 characters each. Adds 30% premium over base transcription price." })
+  @prop({
+    type: "list[str]",
+    default: [],
+    description:
+      "Words or sentences to bias the model towards transcribing. Up to 100 keyterms, max 50 characters each. Adds 30% premium over base transcription price."
+  })
   declare keyterms: any;
 
-  @prop({ type: "audio", default: "", description: "URL of the audio file to transcribe" })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "URL of the audio file to transcribe"
+  })
   declare audio: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to annotate who is speaking" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to annotate who is speaking"
+  })
   declare diarize: any;
 
   @prop({ type: "str", default: "", description: "Language code of the audio" })
   declare language_code: any;
 
-  @prop({ type: "bool", default: true, description: "Tag audio events like laughter, applause, etc." })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Tag audio events like laughter, applause, etc."
+  })
   declare tag_audio_events: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -87,10 +130,10 @@ audio, transcription, stt, fast, elevenlabs, speech-to-text`;
     const tagAudioEvents = Boolean(this.tag_audio_events ?? true);
 
     const args: Record<string, unknown> = {
-      "keyterms": keyterms,
-      "diarize": diarize,
-      "language_code": languageCode,
-      "tag_audio_events": tagAudioEvents,
+      keyterms: keyterms,
+      diarize: diarize,
+      language_code: languageCode,
+      tag_audio_events: tagAudioEvents
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -100,7 +143,11 @@ audio, transcription, stt, fast, elevenlabs, speech-to-text`;
     }
     removeNulls(args);
 
-    const res = await falSubmit(apiKey, "fal-ai/elevenlabs/speech-to-text/scribe-v2", args);
+    const res = await falSubmit(
+      apiKey,
+      "fal-ai/elevenlabs/speech-to-text/scribe-v2",
+      args
+    );
     return res as Record<string, unknown>;
   }
 }
@@ -111,15 +158,22 @@ export class SmartTurn extends FalNode {
   static readonly description = `Pipecat's Smart Turn model provides native audio turn detection for conversations.
 audio, turn-detection, conversation, pipecat, speech-analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "prediction": "int", "probability": "float", "metrics": "dict[str, any]" };
+  static readonly outputTypes = {
+    prediction: "int",
+    probability: "float",
+    metrics: "dict[str, any]"
+  };
 
-  @prop({ type: "audio", default: "", description: "The URL of the audio file to be processed." })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "The URL of the audio file to be processed."
+  })
   declare audio: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(this._secrets);
-    const args: Record<string, unknown> = {
-    };
+    const args: Record<string, unknown> = {};
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
@@ -139,12 +193,20 @@ export class SpeechToText extends FalNode {
   static readonly description = `General-purpose speech-to-text model for accurate audio transcription.
 audio, transcription, stt, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "partial": "bool", "output": "str" };
+  static readonly outputTypes = { partial: "bool", output: "str" };
 
-  @prop({ type: "audio", default: "", description: "Local filesystem path (or remote URL) to a long audio file" })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "Local filesystem path (or remote URL) to a long audio file"
+  })
   declare audio: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to use Canary's built-in punctuation & capitalization" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to use Canary's built-in punctuation & capitalization"
+  })
   declare use_pnc: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -152,7 +214,7 @@ audio, transcription, stt, speech-to-text`;
     const usePnc = Boolean(this.use_pnc ?? true);
 
     const args: Record<string, unknown> = {
-      "use_pnc": usePnc,
+      use_pnc: usePnc
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -175,10 +237,18 @@ audio, transcription, stt, streaming, real-time, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "dict" };
 
-  @prop({ type: "audio", default: "", description: "Local filesystem path (or remote URL) to a long audio file" })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "Local filesystem path (or remote URL) to a long audio file"
+  })
   declare audio: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to use Canary's built-in punctuation & capitalization" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to use Canary's built-in punctuation & capitalization"
+  })
   declare use_pnc: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -186,7 +256,7 @@ audio, transcription, stt, streaming, real-time, speech-to-text`;
     const usePnc = Boolean(this.use_pnc ?? true);
 
     const args: Record<string, unknown> = {
-      "use_pnc": usePnc,
+      use_pnc: usePnc
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -207,12 +277,20 @@ export class SpeechToTextTurbo extends FalNode {
   static readonly description = `High-speed speech-to-text model optimized for fast transcription.
 audio, transcription, stt, turbo, fast, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "partial": "bool", "output": "str" };
+  static readonly outputTypes = { partial: "bool", output: "str" };
 
-  @prop({ type: "audio", default: "", description: "Local filesystem path (or remote URL) to a long audio file" })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "Local filesystem path (or remote URL) to a long audio file"
+  })
   declare audio: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to use Canary's built-in punctuation & capitalization" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to use Canary's built-in punctuation & capitalization"
+  })
   declare use_pnc: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -220,7 +298,7 @@ audio, transcription, stt, turbo, fast, speech-to-text`;
     const usePnc = Boolean(this.use_pnc ?? true);
 
     const args: Record<string, unknown> = {
-      "use_pnc": usePnc,
+      use_pnc: usePnc
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -243,10 +321,18 @@ audio, transcription, stt, turbo, streaming, fast, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "dict" };
 
-  @prop({ type: "audio", default: "", description: "Local filesystem path (or remote URL) to a long audio file" })
+  @prop({
+    type: "audio",
+    default: "",
+    description: "Local filesystem path (or remote URL) to a long audio file"
+  })
   declare audio: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to use Canary's built-in punctuation & capitalization" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to use Canary's built-in punctuation & capitalization"
+  })
   declare use_pnc: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -254,7 +340,7 @@ audio, transcription, stt, turbo, streaming, fast, speech-to-text`;
     const usePnc = Boolean(this.use_pnc ?? true);
 
     const args: Record<string, unknown> = {
-      "use_pnc": usePnc,
+      use_pnc: usePnc
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -264,7 +350,11 @@ audio, transcription, stt, turbo, streaming, fast, speech-to-text`;
     }
     removeNulls(args);
 
-    const res = await falSubmit(apiKey, "fal-ai/speech-to-text/turbo/stream", args);
+    const res = await falSubmit(
+      apiKey,
+      "fal-ai/speech-to-text/turbo/stream",
+      args
+    );
     return { output: res };
   }
 }
@@ -275,30 +365,71 @@ export class Whisper extends FalNode {
   static readonly description = `OpenAI's Whisper model for robust multilingual speech recognition.
 audio, transcription, stt, whisper, multilingual, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "text": "str", "inferred_languages": "list[str]", "chunks": "str", "diarization_segments": "list[DiarizationSegment]" };
+  static readonly outputTypes = {
+    text: "str",
+    inferred_languages: "list[str]",
+    chunks: "str",
+    diarization_segments: "list[DiarizationSegment]"
+  };
 
-  @prop({ type: "str", default: "", description: "\n        Language of the audio file. If set to null, the language will be\n        automatically detected. Defaults to null.\n\n        If translate is selected as the task, the audio will be translated to\n        English, regardless of the language selected.\n        " })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "\n        Language of the audio file. If set to null, the language will be\n        automatically detected. Defaults to null.\n\n        If translate is selected as the task, the audio will be translated to\n        English, regardless of the language selected.\n        "
+  })
   declare language: any;
 
   @prop({ type: "int", default: 64 })
   declare batch_size: any;
 
-  @prop({ type: "str", default: "", description: "Prompt to use for generation. Defaults to an empty string." })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Prompt to use for generation. Defaults to an empty string."
+  })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "\n            Number of speakers in the audio file. Defaults to null.\n            If not provided, the number of speakers will be automatically\n            detected.\n        " })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "\n            Number of speakers in the audio file. Defaults to null.\n            If not provided, the number of speakers will be automatically\n            detected.\n        "
+  })
   declare num_speakers: any;
 
-  @prop({ type: "enum", default: "transcribe", values: ["transcribe", "translate"], description: "Task to perform on the audio file. Either transcribe or translate." })
+  @prop({
+    type: "enum",
+    default: "transcribe",
+    values: ["transcribe", "translate"],
+    description:
+      "Task to perform on the audio file. Either transcribe or translate."
+  })
   declare task: any;
 
-  @prop({ type: "enum", default: "segment", values: ["none", "segment", "word"], description: "Level of the chunks to return. Either none, segment or word. 'none' would imply that all of the audio will be transcribed without the timestamp tokens, we suggest to switch to 'none' if you are not satisfied with the transcription quality, since it will usually improve the quality of the results. Switching to 'none' will also provide minor speed ups in the transcription due to less amount of generated tokens. Notice that setting to none will produce **a single chunk with the whole transcription**." })
+  @prop({
+    type: "enum",
+    default: "segment",
+    values: ["none", "segment", "word"],
+    description:
+      "Level of the chunks to return. Either none, segment or word. 'none' would imply that all of the audio will be transcribed without the timestamp tokens, we suggest to switch to 'none' if you are not satisfied with the transcription quality, since it will usually improve the quality of the results. Switching to 'none' will also provide minor speed ups in the transcription due to less amount of generated tokens. Notice that setting to none will produce **a single chunk with the whole transcription**."
+  })
   declare chunk_level: any;
 
-  @prop({ type: "audio", default: "", description: "URL of the audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, wav or webm." })
+  @prop({
+    type: "audio",
+    default: "",
+    description:
+      "URL of the audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, wav or webm."
+  })
   declare audio: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to diarize the audio file. Defaults to false. Setting to true will add costs proportional to diarization inference time." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Whether to diarize the audio file. Defaults to false. Setting to true will add costs proportional to diarization inference time."
+  })
   declare diarize: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -312,13 +443,13 @@ audio, transcription, stt, whisper, multilingual, speech-to-text`;
     const diarize = Boolean(this.diarize ?? false);
 
     const args: Record<string, unknown> = {
-      "language": language,
-      "batch_size": batchSize,
-      "prompt": prompt,
-      "num_speakers": numSpeakers,
-      "task": task,
-      "chunk_level": chunkLevel,
-      "diarize": diarize,
+      language: language,
+      batch_size: batchSize,
+      prompt: prompt,
+      num_speakers: numSpeakers,
+      task: task,
+      chunk_level: chunkLevel,
+      diarize: diarize
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -339,27 +470,65 @@ export class Wizper extends FalNode {
   static readonly description = `Wizper provides fast and accurate speech-to-text transcription.
 audio, transcription, stt, wizper, fast, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "text": "str", "languages": "list[str]", "chunks": "list[WhisperChunk]" };
+  static readonly outputTypes = {
+    text: "str",
+    languages: "list[str]",
+    chunks: "list[WhisperChunk]"
+  };
 
-  @prop({ type: "str", default: "en", description: "\n        Language of the audio file.\n        If translate is selected as the task, the audio will be translated to\n        English, regardless of the language selected. If 'None' is passed,\n        the language will be automatically detected. This will also increase\n        the inference time.\n        " })
+  @prop({
+    type: "str",
+    default: "en",
+    description:
+      "\n        Language of the audio file.\n        If translate is selected as the task, the audio will be translated to\n        English, regardless of the language selected. If 'None' is passed,\n        the language will be automatically detected. This will also increase\n        the inference time.\n        "
+  })
   declare language: any;
 
-  @prop({ type: "str", default: "3", description: "Version of the model to use. All of the models are the Whisper large variant." })
+  @prop({
+    type: "str",
+    default: "3",
+    description:
+      "Version of the model to use. All of the models are the Whisper large variant."
+  })
   declare version: any;
 
-  @prop({ type: "int", default: 29, description: "Maximum speech segment duration in seconds before splitting." })
+  @prop({
+    type: "int",
+    default: 29,
+    description: "Maximum speech segment duration in seconds before splitting."
+  })
   declare max_segment_len: any;
 
-  @prop({ type: "enum", default: "transcribe", values: ["transcribe", "translate"], description: "Task to perform on the audio file. Either transcribe or translate." })
+  @prop({
+    type: "enum",
+    default: "transcribe",
+    values: ["transcribe", "translate"],
+    description:
+      "Task to perform on the audio file. Either transcribe or translate."
+  })
   declare task: any;
 
-  @prop({ type: "str", default: "segment", description: "Level of the chunks to return." })
+  @prop({
+    type: "str",
+    default: "segment",
+    description: "Level of the chunks to return."
+  })
   declare chunk_level: any;
 
-  @prop({ type: "audio", default: "", description: "URL of the audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, wav or webm." })
+  @prop({
+    type: "audio",
+    default: "",
+    description:
+      "URL of the audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, wav or webm."
+  })
   declare audio: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to merge consecutive chunks. When enabled, chunks are merged if their combined duration does not exceed max_segment_len." })
+  @prop({
+    type: "bool",
+    default: true,
+    description:
+      "Whether to merge consecutive chunks. When enabled, chunks are merged if their combined duration does not exceed max_segment_len."
+  })
   declare merge_chunks: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -372,12 +541,12 @@ audio, transcription, stt, wizper, fast, speech-to-text`;
     const mergeChunks = Boolean(this.merge_chunks ?? true);
 
     const args: Record<string, unknown> = {
-      "language": language,
-      "version": version,
-      "max_segment_len": maxSegmentLen,
-      "task": task,
-      "chunk_level": chunkLevel,
-      "merge_chunks": mergeChunks,
+      language: language,
+      version: version,
+      max_segment_len: maxSegmentLen,
+      task: task,
+      chunk_level: chunkLevel,
+      merge_chunks: mergeChunks
     };
 
     const audioRef = this.audio as Record<string, unknown> | undefined;
@@ -401,5 +570,5 @@ export const FAL_SPEECH_TO_TEXT_NODES: readonly NodeClass[] = [
   SpeechToTextTurbo,
   SpeechToTextTurboStream,
   Whisper,
-  Wizper,
+  Wizper
 ] as const;

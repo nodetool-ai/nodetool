@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Posterize"
-node_type: "lib.pillow.filter.Posterize"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.Posterize"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.Posterize`
+**Type:** `lib.image.filter.Posterize`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -35,5 +35,5 @@ Reduce the number of colors in an image for a poster-like effect.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

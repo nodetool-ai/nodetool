@@ -3,7 +3,7 @@ import http from "node:http";
 import {
   WebFetchLibNode,
   DownloadFileLibNode,
-  SpiderCrawlLibNode,
+  SpiderCrawlLibNode
 } from "../../src/index.js";
 
 async function withServer(
@@ -161,7 +161,7 @@ describe("lib.browser.SpiderCrawl", () => {
         same_domain_only: true,
         include_html: false,
         delay_ms: 0,
-        timeout: 5000,
+        timeout: 5000
       });
       const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;
@@ -194,7 +194,7 @@ describe("lib.browser.SpiderCrawl", () => {
         same_domain_only: true,
         include_html: false,
         delay_ms: 0,
-        timeout: 5000,
+        timeout: 5000
       });
       const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;
@@ -212,7 +212,7 @@ describe("lib.browser.SpiderCrawl", () => {
         max_pages: 1,
         include_html: true,
         delay_ms: 0,
-        timeout: 5000,
+        timeout: 5000
       });
       const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;
@@ -229,7 +229,7 @@ describe("lib.browser.SpiderCrawl", () => {
         max_pages: 2,
         same_domain_only: true,
         delay_ms: 0,
-        timeout: 5000,
+        timeout: 5000
       });
       const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;
@@ -247,7 +247,7 @@ describe("lib.browser.SpiderCrawl", () => {
         same_domain_only: true,
         exclude_pattern: "page3",
         delay_ms: 0,
-        timeout: 5000,
+        timeout: 5000
       });
       const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;

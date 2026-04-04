@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Extract Links"
-node_type: "lib.beautifulsoup.ExtractLinks"
-namespace: "lib.beautifulsoup"
+node_type: "lib.html.ExtractLinks"
+namespace: "lib.html"
 ---
 
-**Type:** `lib.beautifulsoup.ExtractLinks`
+**Type:** `lib.html.ExtractLinks`
 
-**Namespace:** `lib.beautifulsoup`
+**Namespace:** `lib.html`
 
 ## Description
 
@@ -38,5 +38,5 @@ Extract links from HTML content.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.beautifulsoup](../) namespace.
+Browse other nodes in the [lib.html](../) namespace.
 

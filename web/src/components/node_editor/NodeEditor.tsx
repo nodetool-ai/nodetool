@@ -45,6 +45,7 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { useWorkflowRuntimeCheck } from "../../hooks/useWorkflowRuntimeCheck";
 
 declare global {
   interface Window {
@@ -76,11 +77,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     handleSaveExampleCancel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
+  useWorkflowRuntimeCheck(workflowId);
+
   // Subscribe only to undo/redo functions to prevent re-renders on history changes
-  const { undo, redo } = useTemporalNodes((state) => ({
-    undo: state.undo,
-    redo: state.redo
-  }));
+  const undo = useTemporalNodes((state) => state.undo);
+  const redo = useTemporalNodes((state) => state.redo);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)

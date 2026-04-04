@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Find Edges"
-node_type: "lib.pillow.filter.FindEdges"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.FindEdges"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.FindEdges`
+**Type:** `lib.image.filter.FindEdges`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -34,5 +34,5 @@ Detect and highlight edges in an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

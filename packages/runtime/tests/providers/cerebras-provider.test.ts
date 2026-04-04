@@ -11,7 +11,7 @@ function makeAsyncIterable(items: unknown[]) {
     },
     async close() {
       return;
-    },
+    }
   };
 }
 
@@ -31,9 +31,7 @@ describe("CerebrasProvider", () => {
   });
 
   it("returns required secrets", () => {
-    expect(CerebrasProvider.requiredSecrets()).toEqual([
-      "CEREBRAS_API_KEY",
-    ]);
+    expect(CerebrasProvider.requiredSecrets()).toEqual(["CEREBRAS_API_KEY"]);
   });
 
   it("returns container env with CEREBRAS_API_KEY", () => {
@@ -42,7 +40,7 @@ describe("CerebrasProvider", () => {
       { client: {} as any }
     );
     expect(provider.getContainerEnv()).toEqual({
-      CEREBRAS_API_KEY: "test-key",
+      CEREBRAS_API_KEY: "test-key"
     });
   });
 
@@ -60,9 +58,9 @@ describe("CerebrasProvider", () => {
       json: async () => ({
         data: [
           { id: "llama3.1-70b", name: "Llama 3.1 70B" },
-          { id: "llama3.1-8b" },
-        ],
-      }),
+          { id: "llama3.1-8b" }
+        ]
+      })
     });
 
     const provider = new CerebrasProvider(
@@ -75,19 +73,19 @@ describe("CerebrasProvider", () => {
       {
         id: "llama3.1-70b",
         name: "Llama 3.1 70B",
-        provider: "cerebras",
+        provider: "cerebras"
       },
       {
         id: "llama3.1-8b",
         name: "llama3.1-8b",
-        provider: "cerebras",
-      },
+        provider: "cerebras"
+      }
     ]);
 
     expect(mockFetch).toHaveBeenCalledWith(
       "https://api.cerebras.ai/v1/models",
       expect.objectContaining({
-        headers: { Authorization: "Bearer k" },
+        headers: { Authorization: "Bearer k" }
       })
     );
   });
@@ -109,25 +107,25 @@ describe("CerebrasProvider", () => {
         {
           message: {
             content: "cerebras response",
-            tool_calls: null,
-          },
-        },
-      ],
+            tool_calls: null
+          }
+        }
+      ]
     });
 
     const provider = new CerebrasProvider(
       { CEREBRAS_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
     const result = await provider.generateMessage({
       messages,
-      model: "llama3.1-70b",
+      model: "llama3.1-70b"
     });
 
     expect(result.role).toBe("assistant");
@@ -137,15 +135,11 @@ describe("CerebrasProvider", () => {
   it("streams messages via inherited OpenAI logic", async () => {
     const chunks = [
       {
-        choices: [
-          { delta: { content: "hello" }, finish_reason: null },
-        ],
+        choices: [{ delta: { content: "hello" }, finish_reason: null }]
       },
       {
-        choices: [
-          { delta: { content: "" }, finish_reason: "stop" },
-        ],
-      },
+        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
+      }
     ];
 
     const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
@@ -154,8 +148,8 @@ describe("CerebrasProvider", () => {
       { CEREBRAS_API_KEY: "k" },
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
@@ -163,7 +157,7 @@ describe("CerebrasProvider", () => {
     const items: unknown[] = [];
     for await (const item of provider.generateMessages({
       messages,
-      model: "llama3.1-70b",
+      model: "llama3.1-70b"
     })) {
       items.push(item);
     }

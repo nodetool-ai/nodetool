@@ -1,4 +1,4 @@
-.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart electron-dev dev dev-server
+.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart check-node-version electron-dev dev dev-server build-stale-backend screenshots screenshots-force
 
 # Default target
 help:
@@ -39,6 +39,11 @@ help:
 	@echo "  make typecheck-mobile - Type check mobile package"
 	@echo "  make check            - Run all checks (typecheck, lint, test)"
 	@echo "  make format           - Format code (alias for lint-fix)"
+	@echo ""
+	@echo "Documentation Screenshots:"
+	@echo "  make screenshots                 - Capture real screenshots (auto-starts web dev server)"
+	@echo "  make screenshots-force           - Re-capture ALL screenshots (overwrite existing)"
+	@echo "    API calls are intercepted with mock data — no real backend needed."
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean            - Remove build artifacts and dependencies"
@@ -94,20 +99,37 @@ electron: $(WEB_BUILD_MARKER) $(ELECTRON_BUILD_MARKER)
 	cd electron && npm start
 
 # tsx --watch dev server: runs TS source directly, restarts on changes.
-# NOTE: base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes
-# load from dist/ (decorators). Run `npm run build:packages` if those change.
+# NOTE: electron-dev runs the compiled websocket backend. Rebuild any stale
+# backend workspaces before launch so dist-backed packages stay in sync.
 dev:
 	npm run dev:watch
 
 dev-server:
 	npm run dev:watch:server
 
+build-stale-backend:
+	@echo "Building stale backend workspaces..."
+	npm run build:stale --workspace=packages/websocket
+
+check-node-version:
+	@NODE_MAJOR=$$(node -e "console.log(process.versions.node.split('.')[0])"); \
+	if [ "$$NODE_MAJOR" != "22" ]; then \
+		echo "ERROR: Node.js 22.x required (found $$(node -v))"; \
+		echo "  Electron 35 embeds Node 22 — native modules must match."; \
+		echo "  Run: nvm use 22"; \
+		exit 1; \
+	fi
+
 ifeq ($(OS),Windows_NT)
-electron-dev:
+electron-dev: check-node-version build-stale-backend
+	@echo "Rebuilding native modules for Electron..."
+	cd electron && npx electron-builder install-app-deps
 	@echo "Starting Electron development mode..."
 	powershell -ExecutionPolicy Bypass -File scripts/electron-dev.ps1
 else
-electron-dev:
+electron-dev: check-node-version build-stale-backend
+	@echo "Rebuilding native modules for Electron..."
+	cd electron && npx electron-builder install-app-deps
 	@echo "Starting Electron development mode..."
 	./scripts/electron-dev.sh
 endif
@@ -214,6 +236,15 @@ clean-build:
 # Combined target
 all: install typecheck lint test build
 	@echo "All tasks completed successfully!"
+
+# Documentation screenshot targets
+screenshots:
+	@echo "Capturing documentation screenshots (API calls intercepted with mock data)..."
+	cd web && npm run screenshots
+
+screenshots-force:
+	@echo "Re-capturing ALL documentation screenshots (overwriting existing)..."
+	cd web && npm run screenshots:force
 
 # Quick start target for new developers
 quickstart: install

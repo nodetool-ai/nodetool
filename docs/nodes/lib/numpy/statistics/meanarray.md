@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Mean Array"
-node_type: "lib.numpy.statistics.MeanArray"
-namespace: "lib.numpy.statistics"
+node_type: "lib.array.statistics.MeanArray"
+namespace: "lib.array.statistics"
 ---
 
-**Type:** `lib.numpy.statistics.MeanArray`
+**Type:** `lib.array.statistics.MeanArray`
 
-**Namespace:** `lib.numpy.statistics`
+**Namespace:** `lib.array.statistics`
 
 ## Description
 
@@ -36,5 +36,5 @@ Compute the mean value along a specified axis of a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.statistics](../) namespace.
+Browse other nodes in the [lib.array.statistics](../) namespace.
 

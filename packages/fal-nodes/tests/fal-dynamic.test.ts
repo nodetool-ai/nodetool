@@ -11,8 +11,8 @@ const mockStorageUpload = vi.fn();
 vi.mock("@fal-ai/client", () => ({
   createFalClient: vi.fn(() => ({
     subscribe: mockSubscribe,
-    storage: { upload: mockStorageUpload },
-  })),
+    storage: { upload: mockStorageUpload }
+  }))
 }));
 
 /* ------------------------------------------------------------------ */
@@ -42,7 +42,7 @@ afterEach(() => {
 /** Minimal OpenAPI schema stub for a flux/dev-like endpoint */
 const minimalOpenApi = {
   info: {
-    "x-fal-metadata": { endpointId: "fal-ai/flux/dev" },
+    "x-fal-metadata": { endpointId: "fal-ai/flux/dev" }
   },
   paths: {
     "/fal-ai/flux/dev": {
@@ -54,13 +54,13 @@ const minimalOpenApi = {
                 type: "object",
                 properties: {
                   prompt: { type: "string" },
-                  num_images: { type: "integer" },
+                  num_images: { type: "integer" }
                 },
-                required: ["prompt"],
-              },
-            },
-          },
-        },
+                required: ["prompt"]
+              }
+            }
+          }
+        }
       },
       get: {
         responses: {
@@ -77,19 +77,19 @@ const minimalOpenApi = {
                         properties: {
                           url: { type: "string" },
                           width: { type: "integer" },
-                          height: { type: "integer" },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
+                          height: { type: "integer" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 };
 
 /* ================================================================== */
@@ -125,14 +125,14 @@ describe("FalRawNode.process", () => {
     const result = await executor.process({
       _secrets: { FAL_API_KEY: "test-key" },
       endpoint_id: "fal-ai/flux/dev",
-      arguments: JSON.stringify({ prompt: "a cat" }),
+      arguments: JSON.stringify({ prompt: "a cat" })
     });
 
     expect(result).toEqual({ result: response });
     expect(mockSubscribe).toHaveBeenCalledOnce();
     const [endpoint, opts] = mockSubscribe.mock.calls[0] as [
       string,
-      { input: Record<string, unknown> },
+      { input: Record<string, unknown> }
     ];
     expect(endpoint).toBe("fal-ai/flux/dev");
     expect(opts.input).toEqual({ prompt: "a cat" });
@@ -147,7 +147,7 @@ describe("FalRawNode.process", () => {
 
     const executor = node.toExecutor();
     const result = await executor.process({
-      _secrets: { FAL_API_KEY: "k" },
+      _secrets: { FAL_API_KEY: "k" }
     });
     expect(result).toEqual({ result: { ok: true } });
   });
@@ -159,7 +159,7 @@ describe("FalRawNode.process", () => {
       executor.process({
         _secrets: { FAL_API_KEY: "k" },
         endpoint_id: "",
-        arguments: "{}",
+        arguments: "{}"
       })
     ).rejects.toThrow("endpoint_id is required");
   });
@@ -171,7 +171,7 @@ describe("FalRawNode.process", () => {
       executor.process({
         _secrets: { FAL_API_KEY: "k" },
         endpoint_id: "fal-ai/test",
-        arguments: "not json",
+        arguments: "not json"
       })
     ).rejects.toThrow("arguments must be valid JSON");
   });
@@ -184,7 +184,7 @@ describe("FalRawNode.process", () => {
       executor.process({
         _secrets: { FAL_API_KEY: "k" },
         endpoint_id: "fal-ai/test",
-        arguments: "{}",
+        arguments: "{}"
       })
     ).rejects.toThrow("FAL queue error");
   });
@@ -232,7 +232,7 @@ describe("FalDynamicNode.process — model_info validation", () => {
     await expect(
       executor.process({
         _secrets: { FAL_API_KEY: "k" },
-        model_info: "https://evil.com/some/path",
+        model_info: "https://evil.com/some/path"
       })
     ).rejects.toThrow();
   });
@@ -253,17 +253,19 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
             Promise.resolve(
               `**Model ID**: \`fal-ai/flux/dev\`\n` +
                 `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux/dev`
-            ),
+            )
         });
       }
       // OpenAPI schema fetch
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(minimalOpenApi),
+        json: () => Promise.resolve(minimalOpenApi)
       });
     });
 
-    const apiResponse = { images: [{ url: "https://fal.media/img.png", width: 512, height: 512 }] };
+    const apiResponse = {
+      images: [{ url: "https://fal.media/img.png", width: 512, height: 512 }]
+    };
     mockSubscribe.mockResolvedValue({ data: apiResponse });
 
     const node = new FalDynamicNode();
@@ -271,13 +273,13 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
     const result = await executor.process({
       _secrets: { FAL_API_KEY: "test-key" },
       model_info: "fal-ai/flux/dev",
-      prompt: "a dog",
+      prompt: "a dog"
     });
 
     expect(mockSubscribe).toHaveBeenCalledOnce();
     const [endpoint, opts] = mockSubscribe.mock.calls[0] as [
       string,
-      { input: Record<string, unknown> },
+      { input: Record<string, unknown> }
     ];
     expect(endpoint).toBe("fal-ai/flux/dev");
     expect(opts.input.prompt).toBe("a dog");
@@ -297,14 +299,14 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
               "200": {
                 content: {
                   "application/json": {
-                    schema: { type: "object", properties: {} },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+                    schema: { type: "object", properties: {} }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     };
 
     mockFetch.mockImplementation((url: string) => {
@@ -315,12 +317,12 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
             Promise.resolve(
               `**Model ID**: \`fal-ai/flux/dev\`\n` +
                 `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux/dev`
-            ),
+            )
         });
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(emptyOutputOpenApi),
+        json: () => Promise.resolve(emptyOutputOpenApi)
       });
     });
 
@@ -332,7 +334,7 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
     const result = await executor.process({
       _secrets: { FAL_API_KEY: "key" },
       model_info: "fal-ai/flux/dev",
-      prompt: "test",
+      prompt: "test"
     });
     expect(result).toEqual({ result: apiResponse });
   });
@@ -346,9 +348,13 @@ describe("FalDynamicNode.process — direct OpenAPI URL", () => {
   it("accepts a direct openapi.json URL as model_info", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(minimalOpenApi),
+      json: () => Promise.resolve(minimalOpenApi)
     });
-    mockSubscribe.mockResolvedValue({ data: { images: [{ url: "https://fal.media/x.png", width: 1, height: 1 }] } });
+    mockSubscribe.mockResolvedValue({
+      data: {
+        images: [{ url: "https://fal.media/x.png", width: 1, height: 1 }]
+      }
+    });
 
     const node = new FalDynamicNode();
     const executor = node.toExecutor();
@@ -356,7 +362,7 @@ describe("FalDynamicNode.process — direct OpenAPI URL", () => {
       _secrets: { FAL_API_KEY: "k" },
       model_info:
         "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux/dev",
-      prompt: "hello",
+      prompt: "hello"
     });
     expect(result).toBeDefined();
     // Should only fetch OpenAPI once (no llms.txt detour)
@@ -388,14 +394,14 @@ describe("FalDynamicNode.process — domain validation", () => {
       // llms.txt URL resolves to fal.ai, but open api url could be bad
       return Promise.resolve({
         ok: true,
-        text: () => Promise.resolve(maliciousText),
+        text: () => Promise.resolve(maliciousText)
       });
     });
 
     await expect(
       executor.process({
         _secrets: { FAL_API_KEY: "k" },
-        model_info: "fal-ai/test",
+        model_info: "fal-ai/test"
       })
     ).rejects.toThrow();
   });
@@ -415,12 +421,12 @@ describe("FalDynamicNode.process — required input validation", () => {
             Promise.resolve(
               `**Model ID**: \`fal-ai/flux/dev\`\n` +
                 `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux/dev`
-            ),
+            )
         });
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(minimalOpenApi),
+        json: () => Promise.resolve(minimalOpenApi)
       });
     });
 
@@ -430,7 +436,7 @@ describe("FalDynamicNode.process — required input validation", () => {
     await expect(
       executor.process({
         _secrets: { FAL_API_KEY: "k" },
-        model_info: "fal-ai/flux/dev",
+        model_info: "fal-ai/flux/dev"
         // no "prompt" key
       })
     ).rejects.toThrow("Missing required input: prompt");
@@ -454,27 +460,27 @@ describe("FalDynamicNode.process — asset ref coercion", () => {
                   schema: {
                     type: "object",
                     properties: {
-                      image_url: { type: "string" },
+                      image_url: { type: "string" }
                     },
-                    required: ["image_url"],
-                  },
-                },
-              },
-            },
+                    required: ["image_url"]
+                  }
+                }
+              }
+            }
           },
           get: {
             responses: {
               "200": {
                 content: {
                   "application/json": {
-                    schema: { type: "object", properties: {} },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+                    schema: { type: "object", properties: {} }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     };
 
     mockFetch.mockImplementation((url: string) => {
@@ -485,12 +491,12 @@ describe("FalDynamicNode.process — asset ref coercion", () => {
             Promise.resolve(
               `**Model ID**: \`fal-ai/img2img\`\n` +
                 `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/img2img`
-            ),
+            )
         });
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(openApiWithImage),
+        json: () => Promise.resolve(openApiWithImage)
       });
     });
 
@@ -504,11 +510,14 @@ describe("FalDynamicNode.process — asset ref coercion", () => {
       image_url: {
         type: "image",
         data: "aGVsbG8=", // base64 "hello"
-        uri: "test.png",
-      },
+        uri: "test.png"
+      }
     });
 
-    const [, opts] = mockSubscribe.mock.calls[0] as [string, { input: Record<string, unknown> }];
+    const [, opts] = mockSubscribe.mock.calls[0] as [
+      string,
+      { input: Record<string, unknown> }
+    ];
     // Should be converted to a data URI string
     expect(typeof opts.input.image_url).toBe("string");
     expect((opts.input.image_url as string).startsWith("data:")).toBe(true);
@@ -532,17 +541,19 @@ describe("FalDynamicNode.process — fal.ai model URL", () => {
             Promise.resolve(
               `**Model ID**: \`fal-ai/flux/dev\`\n` +
                 `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux/dev`
-            ),
+            )
         });
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(minimalOpenApi),
+        json: () => Promise.resolve(minimalOpenApi)
       });
     });
 
     mockSubscribe.mockResolvedValue({
-      data: { images: [{ url: "https://fal.media/x.png", width: 1, height: 1 }] },
+      data: {
+        images: [{ url: "https://fal.media/x.png", width: 1, height: 1 }]
+      }
     });
 
     const node = new FalDynamicNode();
@@ -550,7 +561,7 @@ describe("FalDynamicNode.process — fal.ai model URL", () => {
     await executor.process({
       _secrets: { FAL_API_KEY: "k" },
       model_info: "https://fal.ai/models/fal-ai/flux/dev",
-      prompt: "test",
+      prompt: "test"
     });
 
     // Should have fetched llms.txt

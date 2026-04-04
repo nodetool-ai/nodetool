@@ -19,7 +19,7 @@ describe("RunNodeState model", () => {
   it("creates with defaults", async () => {
     const state = await RunNodeState.create<RunNodeState>({
       run_id: "run1",
-      node_id: "node1",
+      node_id: "node1"
     });
     expect(state.status).toBe("idle");
     expect(state.attempt).toBe(1);
@@ -31,7 +31,7 @@ describe("RunNodeState model", () => {
     const state = new RunNodeState({
       run_id: "run1",
       node_id: "node1",
-      retryable: 1,
+      retryable: 1
     });
     expect(state.retryable).toBe(true);
   });
@@ -39,7 +39,7 @@ describe("RunNodeState model", () => {
   it("getNodeState returns state or null", async () => {
     await RunNodeState.create<RunNodeState>({
       run_id: "run1",
-      node_id: "node1",
+      node_id: "node1"
     });
 
     const found = await RunNodeState.getNodeState("run1", "node1");
@@ -123,17 +123,17 @@ describe("RunNodeState model", () => {
     await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n1",
-      status: "scheduled",
+      status: "scheduled"
     });
     await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n2",
-      status: "running",
+      status: "running"
     });
     await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n3",
-      status: "completed",
+      status: "completed"
     });
 
     const incomplete = await RunNodeState.getIncompleteNodes("run1");
@@ -145,12 +145,12 @@ describe("RunNodeState model", () => {
     await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n1",
-      status: "suspended",
+      status: "suspended"
     });
     await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n2",
-      status: "running",
+      status: "running"
     });
 
     const suspended = await RunNodeState.getSuspendedNodes("run1");
@@ -182,7 +182,7 @@ describe("RunEvent model", () => {
 
   it("appendEvent creates event with auto-seq", async () => {
     const ev = await RunEvent.appendEvent("run1", "RunCreated", {
-      workflow_id: "w1",
+      workflow_id: "w1"
     });
     expect(ev.run_id).toBe("run1");
     expect(ev.seq).toBe(0);
@@ -237,7 +237,7 @@ describe("RunEvent model", () => {
     await RunEvent.appendEvent("run1", "NodeCompleted", {}, "n1");
 
     const events = await RunEvent.getEvents("run1", {
-      eventType: "NodeScheduled",
+      eventType: "NodeScheduled"
     });
     expect(events).toHaveLength(1);
   });
@@ -261,13 +261,13 @@ describe("RunEvent model", () => {
     expect(last!.event_type).toBe("NodeCompleted");
 
     const lastForType = await RunEvent.getLastEvent("run1", {
-      eventType: "NodeScheduled",
+      eventType: "NodeScheduled"
     });
     expect(lastForType).not.toBeNull();
     expect(lastForType!.event_type).toBe("NodeScheduled");
 
     const lastForNode = await RunEvent.getLastEvent("run1", {
-      nodeId: "n1",
+      nodeId: "n1"
     });
     expect(lastForNode).not.toBeNull();
     expect(lastForNode!.node_id).toBe("n1");
@@ -284,7 +284,7 @@ describe("RunEvent model", () => {
       event_type: "NodeCompleted",
       event_time: "2025-01-01T00:00:00.000Z",
       node_id: "n1",
-      payload: { result: 42 },
+      payload: { result: 42 }
     });
     expect(ev).toBeInstanceOf(RunEvent);
     expect(ev.id).toBe("ev-123");
@@ -324,7 +324,7 @@ describe("Prediction model", () => {
       cost: 0.05,
       input_tokens: 100,
       output_tokens: 50,
-      total_tokens: 150,
+      total_tokens: 150
     });
 
     const found = await Prediction.find(created.id);
@@ -384,7 +384,7 @@ describe("RunLease model", () => {
     const oldExpires = lease!.expires_at;
     await lease!.renew(300);
     expect(new Date(lease!.expires_at).getTime()).toBeGreaterThan(
-      new Date(oldExpires).getTime(),
+      new Date(oldExpires).getTime()
     );
   });
 

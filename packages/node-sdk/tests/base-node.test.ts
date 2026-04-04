@@ -50,9 +50,15 @@ describe("BaseNode", () => {
     const calls: string[] = [];
     class HookNode extends BaseNode {
       static readonly nodeType = "test.Hook";
-      async initialize() { calls.push("initialize"); }
-      async preProcess() { calls.push("preProcess"); }
-      async finalize() { calls.push("finalize"); }
+      async initialize() {
+        calls.push("initialize");
+      }
+      async preProcess() {
+        calls.push("preProcess");
+      }
+      async finalize() {
+        calls.push("finalize");
+      }
       async process() {
         calls.push("process");
         return {};
@@ -71,7 +77,9 @@ describe("BaseNode", () => {
     class StreamNode extends BaseNode {
       static readonly nodeType = "test.Stream";
       static readonly isStreamingOutput = true;
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
       async *genProcess() {
         yield { value: 1 };
         yield { value: 2 };

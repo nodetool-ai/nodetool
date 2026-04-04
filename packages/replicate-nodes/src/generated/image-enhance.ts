@@ -9,7 +9,7 @@ import {
   outputToImageRef,
   outputToVideoRef,
   outputToAudioRef,
-  outputToString,
+  outputToString
 } from "../replicate-base.js";
 
 const ReplicateNode = BaseNode;
@@ -24,19 +24,36 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "bool", default: true, description: "Enhance background image with Real-ESRGAN" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Enhance background image with Real-ESRGAN"
+  })
   declare background_enhance: any;
 
-  @prop({ type: "float", default: 0.5, description: "Balance the quality (lower number) and fidelity (higher number)." })
+  @prop({
+    type: "float",
+    default: 0.5,
+    description:
+      "Balance the quality (lower number) and fidelity (higher number)."
+  })
   declare codeformer_fidelity: any;
 
-  @prop({ type: "bool", default: true, description: "Upsample restored faces for high-resolution AI-created images" })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Upsample restored faces for high-resolution AI-created images"
+  })
   declare face_upsample: any;
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
-  @prop({ type: "int", default: 2, description: "The final upsampling scale of the image" })
+  @prop({
+    type: "int",
+    default: 2,
+    description: "The final upsampling scale of the image"
+  })
   declare upscale: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -47,10 +64,10 @@ replicate, ai`;
     const upscale = Number(this.upscale ?? 2);
 
     const args: Record<string, unknown> = {
-      "background_enhance": backgroundEnhance,
-      "codeformer_fidelity": codeformerFidelity,
-      "face_upsample": faceUpsample,
-      "upscale": upscale,
+      background_enhance: backgroundEnhance,
+      codeformer_fidelity: codeformerFidelity,
+      face_upsample: faceUpsample,
+      upscale: upscale
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -60,7 +77,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "lucataco/codeformer:78f2bab438ab0ffc85a68cdfd316a2ecd3994b5dd26aa6b3d203357b45e5eb1b", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "lucataco/codeformer:78f2bab438ab0ffc85a68cdfd316a2ecd3994b5dd26aa6b3d203357b45e5eb1b",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -80,8 +101,7 @@ replicate, ai`;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(this._secrets);
-    const args: Record<string, unknown> = {
-    };
+    const args: Record<string, unknown> = {};
 
     const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
@@ -90,7 +110,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "cjwbw/night-enhancement:4328e402cfedafa70ad7cec04412e86ab61832204deccd94108ae5222c9b1ae1", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "cjwbw/night-enhancement:4328e402cfedafa70ad7cec04412e86ab61832204deccd94108ae5222c9b1ae1",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -105,66 +129,141 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.", description: "Additive positive prompt for the inputs." })
+  @prop({
+    type: "str",
+    default:
+      "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.",
+    description: "Additive positive prompt for the inputs."
+  })
   declare a_prompt: any;
 
-  @prop({ type: "enum", default: "Wavelet", values: ["None", "AdaIn", "Wavelet"], description: "Color Fixing Type.." })
+  @prop({
+    type: "enum",
+    default: "Wavelet",
+    values: ["None", "AdaIn", "Wavelet"],
+    description: "Color Fixing Type.."
+  })
   declare color_fix_type: any;
 
-  @prop({ type: "int", default: 50, description: "Number of steps for EDM Sampling Schedule." })
+  @prop({
+    type: "int",
+    default: 50,
+    description: "Number of steps for EDM Sampling Schedule."
+  })
   declare edm_steps: any;
 
   @prop({ type: "image", default: "", description: "Low quality input image." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg."
+  })
   declare linear_CFG: any;
 
-  @prop({ type: "bool", default: false, description: "Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2."
+  })
   declare linear_s_stage2: any;
 
-  @prop({ type: "float", default: 1024, description: "Minimum resolution of output images." })
+  @prop({
+    type: "float",
+    default: 1024,
+    description: "Minimum resolution of output images."
+  })
   declare min_size: any;
 
-  @prop({ type: "str", default: "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth", description: "Negative prompt for the inputs." })
+  @prop({
+    type: "str",
+    default:
+      "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth",
+    description: "Negative prompt for the inputs."
+  })
   declare n_prompt: any;
 
-  @prop({ type: "float", default: 7.5, description: " Classifier-free guidance scale for prompts." })
+  @prop({
+    type: "float",
+    default: 7.5,
+    description: " Classifier-free guidance scale for prompts."
+  })
   declare s_cfg: any;
 
-  @prop({ type: "float", default: 5, description: "Original churn hy-param of EDM." })
+  @prop({
+    type: "float",
+    default: 5,
+    description: "Original churn hy-param of EDM."
+  })
   declare s_churn: any;
 
-  @prop({ type: "float", default: 1.003, description: "Original noise hy-param of EDM." })
+  @prop({
+    type: "float",
+    default: 1.003,
+    description: "Original noise hy-param of EDM."
+  })
   declare s_noise: any;
 
-  @prop({ type: "int", default: -1, description: "Control Strength of Stage1 (negative means invalid)." })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Control Strength of Stage1 (negative means invalid)."
+  })
   declare s_stage1: any;
 
-  @prop({ type: "float", default: 1, description: "Control Strength of Stage2." })
+  @prop({
+    type: "float",
+    default: 1,
+    description: "Control Strength of Stage2."
+  })
   declare s_stage2: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Leave blank to randomize the seed"
+  })
   declare seed: any;
 
-  @prop({ type: "float", default: 1, description: "Start point of linearly increasing CFG." })
+  @prop({
+    type: "float",
+    default: 1,
+    description: "Start point of linearly increasing CFG."
+  })
   declare spt_linear_CFG: any;
 
-  @prop({ type: "float", default: 0, description: "Start point of linearly increasing s_stage2." })
+  @prop({
+    type: "float",
+    default: 0,
+    description: "Start point of linearly increasing s_stage2."
+  })
   declare spt_linear_s_stage2: any;
 
-  @prop({ type: "int", default: 1, description: "Upsampling ratio of given inputs." })
+  @prop({
+    type: "int",
+    default: 1,
+    description: "Upsampling ratio of given inputs."
+  })
   declare upscale: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(this._secrets);
-    const aPrompt = String(this.a_prompt ?? "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.");
+    const aPrompt = String(
+      this.a_prompt ??
+        "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations."
+    );
     const colorFixType = String(this.color_fix_type ?? "Wavelet");
     const edmSteps = Number(this.edm_steps ?? 50);
     const linear_CFG = Boolean(this.linear_CFG ?? false);
     const linearSStage2 = Boolean(this.linear_s_stage2 ?? false);
     const minSize = Number(this.min_size ?? 1024);
-    const nPrompt = String(this.n_prompt ?? "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth");
+    const nPrompt = String(
+      this.n_prompt ??
+        "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth"
+    );
     const sCfg = Number(this.s_cfg ?? 7.5);
     const sChurn = Number(this.s_churn ?? 5);
     const sNoise = Number(this.s_noise ?? 1.003);
@@ -176,22 +275,22 @@ replicate, ai`;
     const upscale = Number(this.upscale ?? 1);
 
     const args: Record<string, unknown> = {
-      "a_prompt": aPrompt,
-      "color_fix_type": colorFixType,
-      "edm_steps": edmSteps,
-      "linear_CFG": linear_CFG,
-      "linear_s_stage2": linearSStage2,
-      "min_size": minSize,
-      "n_prompt": nPrompt,
-      "s_cfg": sCfg,
-      "s_churn": sChurn,
-      "s_noise": sNoise,
-      "s_stage1": sStage1,
-      "s_stage2": sStage2,
-      "seed": seed,
-      "spt_linear_CFG": sptLinear_CFG,
-      "spt_linear_s_stage2": sptLinearSStage2,
-      "upscale": upscale,
+      a_prompt: aPrompt,
+      color_fix_type: colorFixType,
+      edm_steps: edmSteps,
+      linear_CFG: linear_CFG,
+      linear_s_stage2: linearSStage2,
+      min_size: minSize,
+      n_prompt: nPrompt,
+      s_cfg: sCfg,
+      s_churn: sChurn,
+      s_noise: sNoise,
+      s_stage1: sStage1,
+      s_stage2: sStage2,
+      seed: seed,
+      spt_linear_CFG: sptLinear_CFG,
+      spt_linear_s_stage2: sptLinearSStage2,
+      upscale: upscale
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -201,7 +300,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "cjwbw/supir-v0q:ede69f6a5ae7d09f769d683347325b08d2f83a93d136ed89747941205e0a71da", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "cjwbw/supir-v0q:ede69f6a5ae7d09f769d683347325b08d2f83a93d136ed89747941205e0a71da",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -216,66 +319,141 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.", description: "Additive positive prompt for the inputs." })
+  @prop({
+    type: "str",
+    default:
+      "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.",
+    description: "Additive positive prompt for the inputs."
+  })
   declare a_prompt: any;
 
-  @prop({ type: "enum", default: "Wavelet", values: ["None", "AdaIn", "Wavelet"], description: "Color Fixing Type.." })
+  @prop({
+    type: "enum",
+    default: "Wavelet",
+    values: ["None", "AdaIn", "Wavelet"],
+    description: "Color Fixing Type.."
+  })
   declare color_fix_type: any;
 
-  @prop({ type: "int", default: 50, description: "Number of steps for EDM Sampling Schedule." })
+  @prop({
+    type: "int",
+    default: 50,
+    description: "Number of steps for EDM Sampling Schedule."
+  })
   declare edm_steps: any;
 
   @prop({ type: "image", default: "", description: "Low quality input image." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg."
+  })
   declare linear_CFG: any;
 
-  @prop({ type: "bool", default: false, description: "Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2."
+  })
   declare linear_s_stage2: any;
 
-  @prop({ type: "float", default: 1024, description: "Minimum resolution of output images." })
+  @prop({
+    type: "float",
+    default: 1024,
+    description: "Minimum resolution of output images."
+  })
   declare min_size: any;
 
-  @prop({ type: "str", default: "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth", description: "Negative prompt for the inputs." })
+  @prop({
+    type: "str",
+    default:
+      "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth",
+    description: "Negative prompt for the inputs."
+  })
   declare n_prompt: any;
 
-  @prop({ type: "float", default: 7.5, description: " Classifier-free guidance scale for prompts." })
+  @prop({
+    type: "float",
+    default: 7.5,
+    description: " Classifier-free guidance scale for prompts."
+  })
   declare s_cfg: any;
 
-  @prop({ type: "float", default: 5, description: "Original churn hy-param of EDM." })
+  @prop({
+    type: "float",
+    default: 5,
+    description: "Original churn hy-param of EDM."
+  })
   declare s_churn: any;
 
-  @prop({ type: "float", default: 1.003, description: "Original noise hy-param of EDM." })
+  @prop({
+    type: "float",
+    default: 1.003,
+    description: "Original noise hy-param of EDM."
+  })
   declare s_noise: any;
 
-  @prop({ type: "int", default: -1, description: "Control Strength of Stage1 (negative means invalid)." })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Control Strength of Stage1 (negative means invalid)."
+  })
   declare s_stage1: any;
 
-  @prop({ type: "float", default: 1, description: "Control Strength of Stage2." })
+  @prop({
+    type: "float",
+    default: 1,
+    description: "Control Strength of Stage2."
+  })
   declare s_stage2: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Leave blank to randomize the seed"
+  })
   declare seed: any;
 
-  @prop({ type: "float", default: 1, description: "Start point of linearly increasing CFG." })
+  @prop({
+    type: "float",
+    default: 1,
+    description: "Start point of linearly increasing CFG."
+  })
   declare spt_linear_CFG: any;
 
-  @prop({ type: "float", default: 0, description: "Start point of linearly increasing s_stage2." })
+  @prop({
+    type: "float",
+    default: 0,
+    description: "Start point of linearly increasing s_stage2."
+  })
   declare spt_linear_s_stage2: any;
 
-  @prop({ type: "int", default: 1, description: "Upsampling ratio of given inputs." })
+  @prop({
+    type: "int",
+    default: 1,
+    description: "Upsampling ratio of given inputs."
+  })
   declare upscale: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(this._secrets);
-    const aPrompt = String(this.a_prompt ?? "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.");
+    const aPrompt = String(
+      this.a_prompt ??
+        "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations."
+    );
     const colorFixType = String(this.color_fix_type ?? "Wavelet");
     const edmSteps = Number(this.edm_steps ?? 50);
     const linear_CFG = Boolean(this.linear_CFG ?? false);
     const linearSStage2 = Boolean(this.linear_s_stage2 ?? false);
     const minSize = Number(this.min_size ?? 1024);
-    const nPrompt = String(this.n_prompt ?? "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth");
+    const nPrompt = String(
+      this.n_prompt ??
+        "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth"
+    );
     const sCfg = Number(this.s_cfg ?? 7.5);
     const sChurn = Number(this.s_churn ?? 5);
     const sNoise = Number(this.s_noise ?? 1.003);
@@ -287,22 +465,22 @@ replicate, ai`;
     const upscale = Number(this.upscale ?? 1);
 
     const args: Record<string, unknown> = {
-      "a_prompt": aPrompt,
-      "color_fix_type": colorFixType,
-      "edm_steps": edmSteps,
-      "linear_CFG": linear_CFG,
-      "linear_s_stage2": linearSStage2,
-      "min_size": minSize,
-      "n_prompt": nPrompt,
-      "s_cfg": sCfg,
-      "s_churn": sChurn,
-      "s_noise": sNoise,
-      "s_stage1": sStage1,
-      "s_stage2": sStage2,
-      "seed": seed,
-      "spt_linear_CFG": sptLinear_CFG,
-      "spt_linear_s_stage2": sptLinearSStage2,
-      "upscale": upscale,
+      a_prompt: aPrompt,
+      color_fix_type: colorFixType,
+      edm_steps: edmSteps,
+      linear_CFG: linear_CFG,
+      linear_s_stage2: linearSStage2,
+      min_size: minSize,
+      n_prompt: nPrompt,
+      s_cfg: sCfg,
+      s_churn: sChurn,
+      s_noise: sNoise,
+      s_stage1: sStage1,
+      s_stage2: sStage2,
+      seed: seed,
+      spt_linear_CFG: sptLinear_CFG,
+      spt_linear_s_stage2: sptLinearSStage2,
+      upscale: upscale
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -312,7 +490,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "cjwbw/supir-v0f:b9c26267b41f3617099b53f09f2d894a621ebf4a59b632bfedb5031eeabd8959", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "cjwbw/supir-v0f:b9c26267b41f3617099b53f09f2d894a621ebf4a59b632bfedb5031eeabd8959",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -330,7 +512,24 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image." })
   declare image: any;
 
-  @prop({ type: "enum", default: "", values: ["Image Denoising", "Image Deblurring (GoPro)", "Image Deblurring (REDS)", "Image Deblurring (RealBlur_R)", "Image Deblurring (RealBlur_J)", "Image Deraining (Rain streak)", "Image Deraining (Rain drop)", "Image Dehazing (Indoor)", "Image Dehazing (Outdoor)", "Image Enhancement (Low-light)", "Image Enhancement (Retouching)"], description: "Choose a model." })
+  @prop({
+    type: "enum",
+    default: "",
+    values: [
+      "Image Denoising",
+      "Image Deblurring (GoPro)",
+      "Image Deblurring (REDS)",
+      "Image Deblurring (RealBlur_R)",
+      "Image Deblurring (RealBlur_J)",
+      "Image Deraining (Rain streak)",
+      "Image Deraining (Rain drop)",
+      "Image Dehazing (Indoor)",
+      "Image Dehazing (Outdoor)",
+      "Image Enhancement (Low-light)",
+      "Image Enhancement (Retouching)"
+    ],
+    description: "Choose a model."
+  })
   declare model: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -338,7 +537,7 @@ replicate, ai`;
     const model = String(this.model ?? "");
 
     const args: Record<string, unknown> = {
-      "model": model,
+      model: model
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -348,7 +547,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "google-research/maxim:494ca4d578293b4b93945115601b6a38190519da18467556ca223d219c3af9f9", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "google-research/maxim:494ca4d578293b4b93945115601b6a38190519da18467556ca223d219c3af9f9",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -363,13 +566,21 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "bool", default: false, description: "whether the input image is high-resolution" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "whether the input image is high-resolution"
+  })
   declare HR: any;
 
   @prop({ type: "image", default: "", description: "input image." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "whether the input image is scratched" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "whether the input image is scratched"
+  })
   declare with_scratch: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -378,8 +589,8 @@ replicate, ai`;
     const withScratch = Boolean(this.with_scratch ?? false);
 
     const args: Record<string, unknown> = {
-      "HR": HR,
-      "with_scratch": withScratch,
+      HR: HR,
+      with_scratch: withScratch
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -389,7 +600,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "microsoft/bringing-old-photos-back-to-life:c75db81db6cbd809d93cc3b7e7a088a351a3349c9fa02b6d393e35e0d51ba799", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "microsoft/bringing-old-photos-back-to-life:c75db81db6cbd809d93cc3b7e7a088a351a3349c9fa02b6d393e35e0d51ba799",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -407,10 +622,21 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Path to an image" })
   declare input_image: any;
 
-  @prop({ type: "enum", default: "", values: ["Artistic", "Stable"], description: "Which model to use: Artistic has more vibrant color but may leave important parts of the image gray.Stable is better for nature scenery and is less prone to leaving gray human parts" })
+  @prop({
+    type: "enum",
+    default: "",
+    values: ["Artistic", "Stable"],
+    description:
+      "Which model to use: Artistic has more vibrant color but may leave important parts of the image gray.Stable is better for nature scenery and is less prone to leaving gray human parts"
+  })
   declare model_name: any;
 
-  @prop({ type: "int", default: 35, description: "The default value of 35 has been carefully chosen and should work -ok- for most scenarios (but probably won't be the -best-). This determines resolution at which the color portion of the image is rendered. Lower resolution will render faster, and colors also tend to look more vibrant. Older and lower quality images in particular will generally benefit by lowering the render factor. Higher render factors are often better for higher quality images, but the colors may get slightly washed out." })
+  @prop({
+    type: "int",
+    default: 35,
+    description:
+      "The default value of 35 has been carefully chosen and should work -ok- for most scenarios (but probably won't be the -best-). This determines resolution at which the color portion of the image is rendered. Lower resolution will render faster, and colors also tend to look more vibrant. Older and lower quality images in particular will generally benefit by lowering the render factor. Higher render factors are often better for higher quality images, but the colors may get slightly washed out."
+  })
   declare render_factor: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -419,18 +645,24 @@ replicate, ai`;
     const renderFactor = Number(this.render_factor ?? 35);
 
     const args: Record<string, unknown> = {
-      "model_name": modelName,
-      "render_factor": renderFactor,
+      model_name: modelName,
+      render_factor: renderFactor
     };
 
-    const inputImageRef = this.input_image as Record<string, unknown> | undefined;
+    const inputImageRef = this.input_image as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(inputImageRef)) {
       const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "arielreplicate/deoldify_image:0da600fab0c45a66211339f1c16b71345d22f26ef5fea3dca1bb90bb5711e950", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "arielreplicate/deoldify_image:0da600fab0c45a66211339f1c16b71345d22f26ef5fea3dca1bb90bb5711e950",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -445,13 +677,23 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "88", description: "Specify classes for Multi-modal class vector c, separate the classes with space." })
+  @prop({
+    type: "str",
+    default: "88",
+    description:
+      "Specify classes for Multi-modal class vector c, separate the classes with space."
+  })
   declare classes: any;
 
   @prop({ type: "image", default: "", description: "Input image." })
   declare image: any;
 
-  @prop({ type: "enum", default: "Real Gray Colorization", values: ["Real Gray Colorization", "Multi-modal class vector c"], description: "Choose the colorization mode." })
+  @prop({
+    type: "enum",
+    default: "Real Gray Colorization",
+    values: ["Real Gray Colorization", "Multi-modal class vector c"],
+    description: "Choose the colorization mode."
+  })
   declare mode: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -460,8 +702,8 @@ replicate, ai`;
     const mode = String(this.mode ?? "Real Gray Colorization");
 
     const args: Record<string, unknown> = {
-      "classes": classes,
-      "mode": mode,
+      classes: classes,
+      mode: mode
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -471,7 +713,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "cjwbw/bigcolor:9451bfbf652b21a9bccc741e5c7046540faa5586cfa3aa45abc7dbb46151a4f7", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "cjwbw/bigcolor:9451bfbf652b21a9bccc741e5c7046540faa5586cfa3aa45abc7dbb46151a4f7",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -486,13 +732,33 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "image", default: "", description: "Input image. Stereo Image Super-Resolution, upload the left image here." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Input image. Stereo Image Super-Resolution, upload the left image here."
+  })
   declare image: any;
 
-  @prop({ type: "image", default: "", description: "Right Input image for Stereo Image Super-Resolution. Optional, only valid for Stereo Image Super-Resolution task." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Right Input image for Stereo Image Super-Resolution. Optional, only valid for Stereo Image Super-Resolution task."
+  })
   declare image_r: any;
 
-  @prop({ type: "enum", default: "Image Debluring (REDS)", values: ["Image Denoising", "Image Debluring (GoPro)", "Image Debluring (REDS)", "Stereo Image Super-Resolution"], description: "Choose task type." })
+  @prop({
+    type: "enum",
+    default: "Image Debluring (REDS)",
+    values: [
+      "Image Denoising",
+      "Image Debluring (GoPro)",
+      "Image Debluring (REDS)",
+      "Stereo Image Super-Resolution"
+    ],
+    description: "Choose task type."
+  })
   declare task_type: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -500,7 +766,7 @@ replicate, ai`;
     const taskType = String(this.task_type ?? "Image Debluring (REDS)");
 
     const args: Record<string, unknown> = {
-      "task_type": taskType,
+      task_type: taskType
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -516,7 +782,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "megvii-research/nafnet:018241a6c880319404eaa2714b764313e27e11f950a7ff0a7b5b37b27b74dcf7", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "megvii-research/nafnet:018241a6c880319404eaa2714b764313e27e11f950a7ff0a7b5b37b27b74dcf7",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -537,7 +807,11 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Input prompt." })
   declare prompt: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Leave blank to randomize the seed"
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -546,8 +820,8 @@ replicate, ai`;
     const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "seed": seed,
+      prompt: prompt,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -557,7 +831,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "mv-lab/instructir:e98baeb90b5cd143a86aa2a9deeffb2852c3bebbd428f3cdf5da1b31fb99d3a3", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "mv-lab/instructir:e98baeb90b5cd143a86aa2a9deeffb2852c3bebbd428f3cdf5da1b31fb99d3a3",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -572,7 +850,12 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "image", default: "", description: "Zip file of frames of a video. Ignored when video is provided." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Zip file of frames of a video. Ignored when video is provided."
+  })
   declare frames: any;
 
   @prop({ type: "video", default: "", description: "Input video file" })
@@ -580,8 +863,7 @@ replicate, ai`;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(this._secrets);
-    const args: Record<string, unknown> = {
-    };
+    const args: Record<string, unknown> = {};
 
     const framesRef = this.frames as Record<string, unknown> | undefined;
     if (isRefSet(framesRef)) {
@@ -596,7 +878,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "tencentarc/animesr:8c5b0d2da7a0c881bb2253adc3b899f27cb191f643f43c14a0e554078a7bbad3", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "tencentarc/animesr:8c5b0d2da7a0c881bb2253adc3b899f27cb191f643f43c14a0e554078a7bbad3",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -611,10 +897,18 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "bool", default: false, description: "Input are aligned faces." })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Input are aligned faces."
+  })
   declare aligned: any;
 
-  @prop({ type: "image", default: "", description: "Input image. Output restored faces and whole image." })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Input image. Output restored faces and whole image."
+  })
   declare image: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -622,7 +916,7 @@ replicate, ai`;
     const aligned = Boolean(this.aligned ?? false);
 
     const args: Record<string, unknown> = {
-      "aligned": aligned,
+      aligned: aligned
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -632,7 +926,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "tencentarc/vqfr:f9085ea5bf9c8f2d7e5c64564234ab41b5bcd8cd61a58b59a3dde5cbb487721a", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "tencentarc/vqfr:f9085ea5bf9c8f2d7e5c64564234ab41b5bcd8cd61a58b59a3dde5cbb487721a",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -647,25 +945,57 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "bool", default: false, description: "Apply film grain effect to the output" })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "Apply film grain effect to the output"
+  })
   declare grain: any;
 
-  @prop({ type: "int", default: 30, description: "Density of the grain particles from 0 to 60" })
+  @prop({
+    type: "int",
+    default: 30,
+    description: "Density of the grain particles from 0 to 60"
+  })
   declare grain_density: any;
 
-  @prop({ type: "enum", default: "silver rich", values: ["silver rich", "gaussian", "grey"], description: "Type of grain to apply: silver rich (classic film look), gaussian (uniform noise), or grey (monochromatic grain)" })
+  @prop({
+    type: "enum",
+    default: "silver rich",
+    values: ["silver rich", "gaussian", "grey"],
+    description:
+      "Type of grain to apply: silver rich (classic film look), gaussian (uniform noise), or grey (monochromatic grain)"
+  })
   declare grain_model: any;
 
-  @prop({ type: "int", default: 1, description: "Size of the grain particles from 1 to 5" })
+  @prop({
+    type: "int",
+    default: 1,
+    description: "Size of the grain particles from 1 to 5"
+  })
   declare grain_size: any;
 
-  @prop({ type: "int", default: 30, description: "Intensity of the grain effect from 0 to 60" })
+  @prop({
+    type: "int",
+    default: 30,
+    description: "Intensity of the grain effect from 0 to 60"
+  })
   declare grain_strength: any;
 
-  @prop({ type: "image", default: "", description: "Image with dust, scratches, or surface imperfections to restore" })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "Image with dust, scratches, or surface imperfections to restore"
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "jpg", values: ["jpg", "png"], description: "Output format" })
+  @prop({
+    type: "enum",
+    default: "jpg",
+    values: ["jpg", "png"],
+    description: "Output format"
+  })
   declare output_format: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -678,12 +1008,12 @@ replicate, ai`;
     const outputFormat = String(this.output_format ?? "jpg");
 
     const args: Record<string, unknown> = {
-      "grain": grain,
-      "grain_density": grainDensity,
-      "grain_model": grainModel,
-      "grain_size": grainSize,
-      "grain_strength": grainStrength,
-      "output_format": outputFormat,
+      grain: grain,
+      grain_density: grainDensity,
+      grain_model: grainModel,
+      grain_size: grainSize,
+      grain_strength: grainStrength,
+      output_format: outputFormat
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -693,7 +1023,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "topazlabs/dust-and-scratch-v2:f9848c7feb1604b71c4d09a70ccfde538c86e3c82dbdacecb93cdc2513163c44", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "topazlabs/dust-and-scratch-v2:f9848c7feb1604b71c4d09a70ccfde538c86e3c82dbdacecb93cdc2513163c44",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -708,13 +1042,27 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "image", default: "", description: "Grayscale or faded image to colorize" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "Grayscale or faded image to colorize"
+  })
   declare image: any;
 
-  @prop({ type: "enum", default: "jpg", values: ["jpg", "png"], description: "Output format" })
+  @prop({
+    type: "enum",
+    default: "jpg",
+    values: ["jpg", "png"],
+    description: "Output format"
+  })
   declare output_format: any;
 
-  @prop({ type: "float", default: 0.2, description: "Color saturation level from 0 to 1. Higher values produce more vibrant colors." })
+  @prop({
+    type: "float",
+    default: 0.2,
+    description:
+      "Color saturation level from 0 to 1. Higher values produce more vibrant colors."
+  })
   declare saturation: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -723,8 +1071,8 @@ replicate, ai`;
     const saturation = Number(this.saturation ?? 0.2);
 
     const args: Record<string, unknown> = {
-      "output_format": outputFormat,
-      "saturation": saturation,
+      output_format: outputFormat,
+      saturation: saturation
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -734,7 +1082,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "topazlabs/image-colorization:52d9e774f4f6e15dacd9f794fd572a90b3ebcbe874720436fb25fc5fbd73f629", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "topazlabs/image-colorization:52d9e774f4f6e15dacd9f794fd572a90b3ebcbe874720436fb25fc5fbd73f629",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -749,16 +1101,30 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "bool", default: true, description: "whether the input image is broken, valid for Face Inpainting. When set to True, the output will be the 'fixed' image. When set to False, the image will randomly add brush strokes to simulate a broken image and the output will be broken + fixed image" })
+  @prop({
+    type: "bool",
+    default: true,
+    description:
+      "whether the input image is broken, valid for Face Inpainting. When set to True, the output will be the 'fixed' image. When set to False, the image will randomly add brush strokes to simulate a broken image and the output will be broken + fixed image"
+  })
   declare broken_image: any;
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "whether outputs individual enhanced faces." })
+  @prop({
+    type: "bool",
+    default: false,
+    description: "whether outputs individual enhanced faces."
+  })
   declare output_individual: any;
 
-  @prop({ type: "enum", default: "Face Restoration", values: ["Face Restoration", "Face Colorization", "Face Inpainting"], description: "Choose a task." })
+  @prop({
+    type: "enum",
+    default: "Face Restoration",
+    values: ["Face Restoration", "Face Colorization", "Face Inpainting"],
+    description: "Choose a task."
+  })
   declare task: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -768,9 +1134,9 @@ replicate, ai`;
     const task = String(this.task ?? "Face Restoration");
 
     const args: Record<string, unknown> = {
-      "broken_image": brokenImage,
-      "output_individual": outputIndividual,
-      "task": task,
+      broken_image: brokenImage,
+      output_individual: outputIndividual,
+      task: task
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -780,7 +1146,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "yangxy/gpen:cf4e15a70049c0119884eb2906c8ae8807af8317bea98313fefd941e414d0c91", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "yangxy/gpen:cf4e15a70049c0119884eb2906c8ae8807af8317bea98313fefd941e414d0c91",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -795,73 +1165,158 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.", description: "Additive positive prompt for the inputs." })
+  @prop({
+    type: "str",
+    default:
+      "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.",
+    description: "Additive positive prompt for the inputs."
+  })
   declare a_prompt: any;
 
-  @prop({ type: "enum", default: "Wavelet", values: ["None", "AdaIn", "Wavelet"], description: "Color Fixing Type.." })
+  @prop({
+    type: "enum",
+    default: "Wavelet",
+    values: ["None", "AdaIn", "Wavelet"],
+    description: "Color Fixing Type.."
+  })
   declare color_fix_type: any;
 
-  @prop({ type: "int", default: 50, description: "Number of steps for EDM Sampling Schedule." })
+  @prop({
+    type: "int",
+    default: 50,
+    description: "Number of steps for EDM Sampling Schedule."
+  })
   declare edm_steps: any;
 
   @prop({ type: "image", default: "", description: "Low quality input image." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg."
+  })
   declare linear_CFG: any;
 
-  @prop({ type: "bool", default: false, description: "Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2."
+  })
   declare linear_s_stage2: any;
 
-  @prop({ type: "float", default: 1024, description: "Minimum resolution of output images." })
+  @prop({
+    type: "float",
+    default: 1024,
+    description: "Minimum resolution of output images."
+  })
   declare min_size: any;
 
-  @prop({ type: "enum", default: "SUPIR-v0Q", values: ["SUPIR-v0Q", "SUPIR-v0F"], description: "Choose a model. SUPIR-v0Q is the default training settings with paper. SUPIR-v0F is high generalization and high image quality in most cases. Training with light degradation settings. Stage1 encoder of SUPIR-v0F remains more details when facing light degradations." })
+  @prop({
+    type: "enum",
+    default: "SUPIR-v0Q",
+    values: ["SUPIR-v0Q", "SUPIR-v0F"],
+    description:
+      "Choose a model. SUPIR-v0Q is the default training settings with paper. SUPIR-v0F is high generalization and high image quality in most cases. Training with light degradation settings. Stage1 encoder of SUPIR-v0F remains more details when facing light degradations."
+  })
   declare model_name: any;
 
-  @prop({ type: "str", default: "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth", description: "Negative prompt for the inputs." })
+  @prop({
+    type: "str",
+    default:
+      "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth",
+    description: "Negative prompt for the inputs."
+  })
   declare n_prompt: any;
 
-  @prop({ type: "float", default: 7.5, description: " Classifier-free guidance scale for prompts." })
+  @prop({
+    type: "float",
+    default: 7.5,
+    description: " Classifier-free guidance scale for prompts."
+  })
   declare s_cfg: any;
 
-  @prop({ type: "float", default: 5, description: "Original churn hy-param of EDM." })
+  @prop({
+    type: "float",
+    default: 5,
+    description: "Original churn hy-param of EDM."
+  })
   declare s_churn: any;
 
-  @prop({ type: "float", default: 1.003, description: "Original noise hy-param of EDM." })
+  @prop({
+    type: "float",
+    default: 1.003,
+    description: "Original noise hy-param of EDM."
+  })
   declare s_noise: any;
 
-  @prop({ type: "int", default: -1, description: "Control Strength of Stage1 (negative means invalid)." })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Control Strength of Stage1 (negative means invalid)."
+  })
   declare s_stage1: any;
 
-  @prop({ type: "float", default: 1, description: "Control Strength of Stage2." })
+  @prop({
+    type: "float",
+    default: 1,
+    description: "Control Strength of Stage2."
+  })
   declare s_stage2: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
+  @prop({
+    type: "int",
+    default: -1,
+    description: "Random seed. Leave blank to randomize the seed"
+  })
   declare seed: any;
 
-  @prop({ type: "float", default: 1, description: "Start point of linearly increasing CFG." })
+  @prop({
+    type: "float",
+    default: 1,
+    description: "Start point of linearly increasing CFG."
+  })
   declare spt_linear_CFG: any;
 
-  @prop({ type: "float", default: 0, description: "Start point of linearly increasing s_stage2." })
+  @prop({
+    type: "float",
+    default: 0,
+    description: "Start point of linearly increasing s_stage2."
+  })
   declare spt_linear_s_stage2: any;
 
-  @prop({ type: "int", default: 1, description: "Upsampling ratio of given inputs." })
+  @prop({
+    type: "int",
+    default: 1,
+    description: "Upsampling ratio of given inputs."
+  })
   declare upscale: any;
 
-  @prop({ type: "bool", default: true, description: "Use LLaVA model to get captions." })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Use LLaVA model to get captions."
+  })
   declare use_llava: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(this._secrets);
-    const aPrompt = String(this.a_prompt ?? "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.");
+    const aPrompt = String(
+      this.a_prompt ??
+        "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations."
+    );
     const colorFixType = String(this.color_fix_type ?? "Wavelet");
     const edmSteps = Number(this.edm_steps ?? 50);
     const linear_CFG = Boolean(this.linear_CFG ?? false);
     const linearSStage2 = Boolean(this.linear_s_stage2 ?? false);
     const minSize = Number(this.min_size ?? 1024);
     const modelName = String(this.model_name ?? "SUPIR-v0Q");
-    const nPrompt = String(this.n_prompt ?? "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth");
+    const nPrompt = String(
+      this.n_prompt ??
+        "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth"
+    );
     const sCfg = Number(this.s_cfg ?? 7.5);
     const sChurn = Number(this.s_churn ?? 5);
     const sNoise = Number(this.s_noise ?? 1.003);
@@ -874,24 +1329,24 @@ replicate, ai`;
     const useLlava = Boolean(this.use_llava ?? true);
 
     const args: Record<string, unknown> = {
-      "a_prompt": aPrompt,
-      "color_fix_type": colorFixType,
-      "edm_steps": edmSteps,
-      "linear_CFG": linear_CFG,
-      "linear_s_stage2": linearSStage2,
-      "min_size": minSize,
-      "model_name": modelName,
-      "n_prompt": nPrompt,
-      "s_cfg": sCfg,
-      "s_churn": sChurn,
-      "s_noise": sNoise,
-      "s_stage1": sStage1,
-      "s_stage2": sStage2,
-      "seed": seed,
-      "spt_linear_CFG": sptLinear_CFG,
-      "spt_linear_s_stage2": sptLinearSStage2,
-      "upscale": upscale,
-      "use_llava": useLlava,
+      a_prompt: aPrompt,
+      color_fix_type: colorFixType,
+      edm_steps: edmSteps,
+      linear_CFG: linear_CFG,
+      linear_s_stage2: linearSStage2,
+      min_size: minSize,
+      model_name: modelName,
+      n_prompt: nPrompt,
+      s_cfg: sCfg,
+      s_churn: sChurn,
+      s_noise: sNoise,
+      s_stage1: sStage1,
+      s_stage2: sStage2,
+      seed: seed,
+      spt_linear_CFG: sptLinear_CFG,
+      spt_linear_s_stage2: sptLinearSStage2,
+      upscale: upscale,
+      use_llava: useLlava
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
@@ -901,7 +1356,11 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "cjwbw/supir:1302b550b4f7681da87ed0e405016d443fe1fafd64dabce6673401855a5039b5", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "cjwbw/supir:1302b550b4f7681da87ed0e405016d443fe1fafd64dabce6673401855a5039b5",
+      args
+    );
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -922,5 +1381,5 @@ export const REPLICATE_IMAGE_ENHANCE_NODES: readonly NodeClass[] = [
   Topaz_DustScratch_V2,
   Topaz_Colorization,
   GPEN,
-  SUPIR,
+  SUPIR
 ] as const;

@@ -25,7 +25,7 @@ export const audioConfig: ModuleConfig = {
           default: false,
           title: "Custom Mode",
           description:
-            "Enable custom mode for detailed control over style and title.",
+            "Enable custom mode for detailed control over style and title."
         },
         {
           name: "prompt",
@@ -33,28 +33,29 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Prompt",
           description:
-            "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea.",
+            "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea."
         },
         {
           name: "style",
           type: "str",
           default: "",
           title: "Style",
-          description: "Music style specification (required in custom mode).",
+          description: "Music style specification (required in custom mode)."
         },
         {
           name: "title",
           type: "str",
           default: "",
           title: "Title",
-          description: "Track title (required in custom mode, max 80 characters).",
+          description:
+            "Track title (required in custom mode, max 80 characters)."
         },
         {
           name: "instrumental",
           type: "bool",
           default: false,
           title: "Instrumental",
-          description: "Generate instrumental-only (no vocals).",
+          description: "Generate instrumental-only (no vocals)."
         },
         {
           name: "model",
@@ -62,7 +63,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use.",
-          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"],
+          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"]
         },
         {
           name: "negative_tags",
@@ -70,7 +71,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Negative Tags",
           description:
-            "Music styles or traits to exclude from the generated audio.",
+            "Music styles or traits to exclude from the generated audio."
         },
         {
           name: "vocal_gender",
@@ -78,36 +79,36 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Vocal Gender",
           description: "Vocal gender preference (custom mode only).",
-          values: ["", "m", "f"],
+          values: ["", "m", "f"]
         },
         {
           name: "style_weight",
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1).",
+          description: "Strength of adherence to style (0-1)."
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1).",
+          description: "Creative deviation control (0-1)."
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1).",
+          description: "Balance weight for audio features (0-1)."
         },
         {
           name: "persona_id",
           type: "str",
           default: "",
           title: "Persona Id",
-          description: "Persona ID to apply (custom mode only).",
-        },
+          description: "Persona ID to apply (custom mode only)."
+        }
       ],
       paramNames: {
         custom_mode: "customMode",
@@ -116,7 +117,7 @@ export const audioConfig: ModuleConfig = {
         style_weight: "styleWeight",
         weirdness_constraint: "weirdnessConstraint",
         audio_weight: "audioWeight",
-        persona_id: "personaId",
+        persona_id: "personaId"
       },
       conditionalFields: [
         { field: "negative_tags", condition: "truthy" },
@@ -124,11 +125,11 @@ export const audioConfig: ModuleConfig = {
         { field: "style_weight", condition: "truthy" },
         { field: "weirdness_constraint", condition: "truthy" },
         { field: "audio_weight", condition: "truthy" },
-        { field: "persona_id", condition: "truthy" },
+        { field: "persona_id", condition: "truthy" }
       ],
       validation: [
-        { field: "prompt", rule: "not_empty", message: "prompt is required" },
-      ],
+        { field: "prompt", rule: "not_empty", message: "prompt is required" }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -151,21 +152,21 @@ export const audioConfig: ModuleConfig = {
           default: false,
           title: "Default Param Flag",
           description:
-            "If true, use custom parameters (prompt/style/title/continue_at). If false, inherit parameters from the source audio.",
+            "If true, use custom parameters (prompt/style/title/continue_at). If false, inherit parameters from the source audio."
         },
         {
           name: "audio_id",
           type: "str",
           default: "",
           title: "Audio Id",
-          description: "Audio ID to extend.",
+          description: "Audio ID to extend."
         },
         {
           name: "prompt",
           type: "str",
           default: "",
           title: "Prompt",
-          description: "Description of the desired extension content.",
+          description: "Description of the desired extension content."
         },
         {
           name: "style",
@@ -173,7 +174,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Style",
           description:
-            "Music style for the extension (required for custom params).",
+            "Music style for the extension (required for custom params)."
         },
         {
           name: "title",
@@ -181,7 +182,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Title",
           description:
-            "Title for the extended track (required for custom params).",
+            "Title for the extended track (required for custom params)."
         },
         {
           name: "continue_at",
@@ -190,7 +191,7 @@ export const audioConfig: ModuleConfig = {
           title: "Continue At",
           description:
             "Time in seconds to start extending from (required for custom params).",
-          min: 0,
+          min: 0
         },
         {
           name: "model",
@@ -198,15 +199,14 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use (must match source audio).",
-          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"],
+          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"]
         },
         {
           name: "negative_tags",
           type: "str",
           default: "",
           title: "Negative Tags",
-          description:
-            "Music styles or traits to exclude from the extension.",
+          description: "Music styles or traits to exclude from the extension."
         },
         {
           name: "vocal_gender",
@@ -214,40 +214,44 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Vocal Gender",
           description: "Vocal gender preference.",
-          values: ["", "m", "f"],
+          values: ["", "m", "f"]
         },
         {
           name: "style_weight",
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1).",
+          description: "Strength of adherence to style (0-1)."
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1).",
+          description: "Creative deviation control (0-1)."
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1).",
+          description: "Balance weight for audio features (0-1)."
         },
         {
           name: "persona_id",
           type: "str",
           default: "",
           title: "Persona Id",
-          description: "Persona ID to apply (custom params only).",
-        },
+          description: "Persona ID to apply (custom params only)."
+        }
       ],
       validation: [
-        { field: "audio_id", rule: "not_empty", message: "audio_id is required" },
-      ],
+        {
+          field: "audio_id",
+          rule: "not_empty",
+          message: "audio_id is required"
+        }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -270,14 +274,20 @@ export const audioConfig: ModuleConfig = {
           default: false,
           title: "Custom Mode",
           description:
-            "Enable custom mode for detailed control over style and title.",
+            "Enable custom mode for detailed control over style and title."
         },
         {
           name: "audio",
           type: "audio",
-          default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "audio",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Audio",
-          description: "Source audio to upload for covering.",
+          description: "Source audio to upload for covering."
         },
         {
           name: "prompt",
@@ -285,28 +295,28 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Prompt",
           description:
-            "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea.",
+            "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea."
         },
         {
           name: "style",
           type: "str",
           default: "",
           title: "Style",
-          description: "Music style specification (required in custom mode).",
+          description: "Music style specification (required in custom mode)."
         },
         {
           name: "title",
           type: "str",
           default: "",
           title: "Title",
-          description: "Track title (required in custom mode).",
+          description: "Track title (required in custom mode)."
         },
         {
           name: "instrumental",
           type: "bool",
           default: false,
           title: "Instrumental",
-          description: "Generate instrumental-only (no vocals).",
+          description: "Generate instrumental-only (no vocals)."
         },
         {
           name: "model",
@@ -314,7 +324,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use.",
-          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"],
+          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"]
         },
         {
           name: "negative_tags",
@@ -322,7 +332,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Negative Tags",
           description:
-            "Music styles or traits to exclude from the generated audio.",
+            "Music styles or traits to exclude from the generated audio."
         },
         {
           name: "vocal_gender",
@@ -330,53 +340,51 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Vocal Gender",
           description: "Vocal gender preference (custom mode only).",
-          values: ["", "m", "f"],
+          values: ["", "m", "f"]
         },
         {
           name: "style_weight",
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1).",
+          description: "Strength of adherence to style (0-1)."
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1).",
+          description: "Creative deviation control (0-1)."
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1).",
+          description: "Balance weight for audio features (0-1)."
         },
         {
           name: "persona_id",
           type: "str",
           default: "",
           title: "Persona Id",
-          description: "Persona ID to apply (custom mode only).",
-        },
+          description: "Persona ID to apply (custom mode only)."
+        }
       ],
       uploads: [
         {
           field: "audio",
           kind: "audio",
-          paramName: "audio_url",
-        },
+          paramName: "audio_url"
+        }
       ],
       validation: [
-        { field: "audio", rule: "not_empty", message: "audio is required" },
+        { field: "audio", rule: "not_empty", message: "audio is required" }
       ],
       paramNames: {
-        vocal_gender: "vocalGender",
+        vocal_gender: "vocalGender"
       },
-      conditionalFields: [
-        { field: "vocal_gender", condition: "truthy" },
-      ],
+      conditionalFields: [{ field: "vocal_gender", condition: "truthy" }]
     },
 
     // -----------------------------------------------------------------------
@@ -396,31 +404,36 @@ export const audioConfig: ModuleConfig = {
         {
           name: "audio",
           type: "audio",
-          default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "audio",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Audio",
-          description: "Source audio to upload for instrumental generation.",
+          description: "Source audio to upload for instrumental generation."
         },
         {
           name: "title",
           type: "str",
           default: "",
           title: "Title",
-          description: "Title of the generated music.",
+          description: "Title of the generated music."
         },
         {
           name: "tags",
           type: "str",
           default: "",
           title: "Tags",
-          description:
-            "Music styles or tags to include in the generated music.",
+          description: "Music styles or tags to include in the generated music."
         },
         {
           name: "negative_tags",
           type: "str",
           default: "",
           title: "Negative Tags",
-          description: "Music styles or characteristics to exclude.",
+          description: "Music styles or characteristics to exclude."
         },
         {
           name: "model",
@@ -428,7 +441,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use.",
-          values: ["V4_5PLUS", "V5"],
+          values: ["V4_5PLUS", "V5"]
         },
         {
           name: "vocal_gender",
@@ -436,44 +449,44 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Vocal Gender",
           description: "Vocal gender preference.",
-          values: ["", "m", "f"],
+          values: ["", "m", "f"]
         },
         {
           name: "style_weight",
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1).",
+          description: "Strength of adherence to style (0-1)."
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1).",
+          description: "Creative deviation control (0-1)."
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1).",
-        },
+          description: "Balance weight for audio features (0-1)."
+        }
       ],
       uploads: [
         {
           field: "audio",
           kind: "audio",
-          paramName: "audio_url",
-        },
+          paramName: "audio_url"
+        }
       ],
       validation: [
-        { field: "audio", rule: "not_empty", message: "audio is required" },
+        { field: "audio", rule: "not_empty", message: "audio is required" }
       ],
       paramNames: {
         tags: "prompt",
-        title: "style",
-      },
+        title: "style"
+      }
     },
 
     // -----------------------------------------------------------------------
@@ -493,44 +506,50 @@ export const audioConfig: ModuleConfig = {
         {
           name: "audio",
           type: "audio",
-          default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "audio",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Audio",
-          description: "Source audio to upload for vocal generation.",
+          description: "Source audio to upload for vocal generation."
         },
         {
           name: "prompt",
           type: "str",
           default: "",
           title: "Prompt",
-          description: "Prompt describing lyric content and singing style.",
+          description: "Prompt describing lyric content and singing style."
         },
         {
           name: "title",
           type: "str",
           default: "",
           title: "Title",
-          description: "Title of the generated music.",
+          description: "Title of the generated music."
         },
         {
           name: "style",
           type: "str",
           default: "",
           title: "Style",
-          description: "Music style for vocal generation.",
+          description: "Music style for vocal generation."
         },
         {
           name: "tags",
           type: "str",
           default: "",
           title: "Tags",
-          description: "Optional music tags to include in the generation.",
+          description: "Optional music tags to include in the generation."
         },
         {
           name: "negative_tags",
           type: "str",
           default: "",
           title: "Negative Tags",
-          description: "Excluded music styles or elements.",
+          description: "Excluded music styles or elements."
         },
         {
           name: "model",
@@ -538,7 +557,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use.",
-          values: ["V4_5PLUS", "V5"],
+          values: ["V4_5PLUS", "V5"]
         },
         {
           name: "vocal_gender",
@@ -546,46 +565,44 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Vocal Gender",
           description: "Vocal gender preference.",
-          values: ["", "m", "f"],
+          values: ["", "m", "f"]
         },
         {
           name: "style_weight",
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1).",
+          description: "Strength of adherence to style (0-1)."
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1).",
+          description: "Creative deviation control (0-1)."
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1).",
-        },
+          description: "Balance weight for audio features (0-1)."
+        }
       ],
       uploads: [
         {
           field: "audio",
           kind: "audio",
-          paramName: "audio_url",
-        },
+          paramName: "audio_url"
+        }
       ],
       validation: [
-        { field: "audio", rule: "not_empty", message: "audio is required" },
+        { field: "audio", rule: "not_empty", message: "audio is required" }
       ],
       paramNames: {
-        vocal_gender: "vocalGender",
+        vocal_gender: "vocalGender"
       },
-      conditionalFields: [
-        { field: "vocal_gender", condition: "truthy" },
-      ],
+      conditionalFields: [{ field: "vocal_gender", condition: "truthy" }]
     },
 
     // -----------------------------------------------------------------------
@@ -607,35 +624,35 @@ export const audioConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Task Id",
-          description: "Original music task ID.",
+          description: "Original music task ID."
         },
         {
           name: "audio_id",
           type: "str",
           default: "",
           title: "Audio Id",
-          description: "Audio ID to replace.",
+          description: "Audio ID to replace."
         },
         {
           name: "prompt",
           type: "str",
           default: "",
           title: "Prompt",
-          description: "Prompt describing the replacement segment content.",
+          description: "Prompt describing the replacement segment content."
         },
         {
           name: "tags",
           type: "str",
           default: "",
           title: "Tags",
-          description: "Music style tags.",
+          description: "Music style tags."
         },
         {
           name: "title",
           type: "str",
           default: "",
           title: "Title",
-          description: "Music title.",
+          description: "Music title."
         },
         {
           name: "infill_start_s",
@@ -643,7 +660,7 @@ export const audioConfig: ModuleConfig = {
           default: 0,
           title: "Infill Start S",
           description: "Start time point for replacement (seconds).",
-          min: 0,
+          min: 0
         },
         {
           name: "infill_end_s",
@@ -651,32 +668,36 @@ export const audioConfig: ModuleConfig = {
           default: 0,
           title: "Infill End S",
           description: "End time point for replacement (seconds).",
-          min: 0,
+          min: 0
         },
         {
           name: "negative_tags",
           type: "str",
           default: "",
           title: "Negative Tags",
-          description: "Excluded music styles for the replacement segment.",
+          description: "Excluded music styles for the replacement segment."
         },
         {
           name: "full_lyrics",
           type: "str",
           default: "",
           title: "Full Lyrics",
-          description: "Full lyrics after modification.",
-        },
+          description: "Full lyrics after modification."
+        }
       ],
       validation: [
         { field: "task_id", rule: "not_empty", message: "task_id is required" },
-        { field: "audio_id", rule: "not_empty", message: "audio_id is required" },
+        {
+          field: "audio_id",
+          rule: "not_empty",
+          message: "audio_id is required"
+        }
       ],
       paramNames: {
         tags: "style",
         infill_start_s: "start_time",
-        infill_end_s: "end_time",
-      },
+        infill_end_s: "end_time"
+      }
     },
 
     // -----------------------------------------------------------------------
@@ -695,7 +716,7 @@ export const audioConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Text",
-          description: "The text to convert to speech.",
+          description: "The text to convert to speech."
         },
         {
           name: "voice",
@@ -703,7 +724,7 @@ export const audioConfig: ModuleConfig = {
           default: "Rachel",
           title: "Voice",
           description:
-            "The voice ID to use for synthesis. Common voices: Rachel, Adam, Bella, Antoni.",
+            "The voice ID to use for synthesis. Common voices: Rachel, Adam, Bella, Antoni."
         },
         {
           name: "stability",
@@ -713,7 +734,7 @@ export const audioConfig: ModuleConfig = {
           description:
             "Stability of the voice output. Lower values are more expressive, higher values are more consistent.",
           min: 0,
-          max: 1,
+          max: 1
         },
         {
           name: "similarity_boost",
@@ -723,16 +744,17 @@ export const audioConfig: ModuleConfig = {
           description:
             "How closely to clone the voice characteristics. Higher values match the voice more closely.",
           min: 0,
-          max: 1,
+          max: 1
         },
         {
           name: "style",
           type: "float",
           default: 0,
           title: "Style",
-          description: "Style parameter for voice expression. Range 0.0 to 1.0.",
+          description:
+            "Style parameter for voice expression. Range 0.0 to 1.0.",
           min: 0,
-          max: 1,
+          max: 1
         },
         {
           name: "speed",
@@ -741,7 +763,7 @@ export const audioConfig: ModuleConfig = {
           title: "Speed",
           description: "Speed of the speech. Range 0.5 to 1.5.",
           min: 0.5,
-          max: 1.5,
+          max: 1.5
         },
         {
           name: "language_code",
@@ -749,7 +771,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Language Code",
           description:
-            "Language code for multilingual TTS (e.g., 'en', 'es', 'fr', 'de'). Leave empty for auto-detection.",
+            "Language code for multilingual TTS (e.g., 'en', 'es', 'fr', 'de'). Leave empty for auto-detection."
         },
         {
           name: "model",
@@ -757,17 +779,17 @@ export const audioConfig: ModuleConfig = {
           default: "text-to-speech-turbo-2-5",
           title: "Model",
           description: "ElevenLabs model version to use.",
-          values: ["text-to-speech-turbo-2-5", "text-to-speech-multilingual-v2"],
-        },
+          values: ["text-to-speech-turbo-2-5", "text-to-speech-multilingual-v2"]
+        }
       ],
       validation: [
         { field: "text", rule: "not_empty", message: "text is required" },
-        { field: "voice", rule: "not_empty", message: "voice_id is required" },
+        { field: "voice", rule: "not_empty", message: "voice_id is required" }
       ],
       paramNames: {
         voice: "voice_id",
-        model: "model_id",
-      },
+        model: "model_id"
+      }
     },
 
     // -----------------------------------------------------------------------
@@ -784,21 +806,27 @@ export const audioConfig: ModuleConfig = {
         {
           name: "audio",
           type: "audio",
-          default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "audio",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Audio",
-          description: "Audio file to process for speech isolation.",
-        },
+          description: "Audio file to process for speech isolation."
+        }
       ],
       uploads: [
         {
           field: "audio",
           kind: "audio",
-          paramName: "audio_url",
-        },
+          paramName: "audio_url"
+        }
       ],
       validation: [
-        { field: "audio", rule: "not_empty", message: "audio is required" },
-      ],
+        { field: "audio", rule: "not_empty", message: "audio is required" }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -817,7 +845,7 @@ export const audioConfig: ModuleConfig = {
           type: "str",
           default: "",
           title: "Text",
-          description: "Text description of the sound effect to generate.",
+          description: "Text description of the sound effect to generate."
         },
         {
           name: "duration_seconds",
@@ -827,7 +855,7 @@ export const audioConfig: ModuleConfig = {
           description:
             "Duration of the sound effect in seconds (up to 22 seconds).",
           min: 0.5,
-          max: 22,
+          max: 22
         },
         {
           name: "prompt_influence",
@@ -836,15 +864,13 @@ export const audioConfig: ModuleConfig = {
           title: "Prompt Influence",
           description: "How strongly the prompt influences generation (0-1).",
           min: 0,
-          max: 1,
-        },
+          max: 1
+        }
       ],
       validation: [
-        { field: "text", rule: "not_empty", message: "text is required" },
+        { field: "text", rule: "not_empty", message: "text is required" }
       ],
-      conditionalFields: [
-        { field: "duration_seconds", condition: "truthy" },
-      ],
+      conditionalFields: [{ field: "duration_seconds", condition: "truthy" }]
     },
 
     // -----------------------------------------------------------------------
@@ -861,9 +887,15 @@ export const audioConfig: ModuleConfig = {
         {
           name: "audio",
           type: "audio",
-          default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+          default: {
+            type: "audio",
+            uri: "",
+            asset_id: null,
+            data: null,
+            metadata: null
+          },
           title: "Audio",
-          description: "Audio file to transcribe.",
+          description: "Audio file to transcribe."
         },
         {
           name: "language_code",
@@ -871,7 +903,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Language Code",
           description:
-            "Language code (e.g., 'en', 'es', 'fr'). Leave empty for auto-detection.",
+            "Language code (e.g., 'en', 'es', 'fr'). Leave empty for auto-detection."
         },
         {
           name: "diarization",
@@ -879,19 +911,19 @@ export const audioConfig: ModuleConfig = {
           default: false,
           title: "Diarization",
           description:
-            "Enable speaker diarization to identify different speakers.",
-        },
+            "Enable speaker diarization to identify different speakers."
+        }
       ],
       uploads: [
         {
           field: "audio",
           kind: "audio",
-          paramName: "audio_url",
-        },
+          paramName: "audio_url"
+        }
       ],
       validation: [
-        { field: "audio", rule: "not_empty", message: "audio is required" },
-      ],
+        { field: "audio", rule: "not_empty", message: "audio is required" }
+      ]
     },
 
     // -----------------------------------------------------------------------
@@ -911,14 +943,14 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Text",
           description:
-            "The dialogue text to convert to speech. Supports audio tags for control.",
+            "The dialogue text to convert to speech. Supports audio tags for control."
         },
         {
           name: "voice",
           type: "str",
           default: "Rachel",
           title: "Voice",
-          description: "Primary voice ID to use for synthesis.",
+          description: "Primary voice ID to use for synthesis."
         },
         {
           name: "stability",
@@ -927,7 +959,7 @@ export const audioConfig: ModuleConfig = {
           title: "Stability",
           description: "Stability of the voice output (0-1).",
           min: 0,
-          max: 1,
+          max: 1
         },
         {
           name: "similarity_boost",
@@ -936,7 +968,7 @@ export const audioConfig: ModuleConfig = {
           title: "Similarity Boost",
           description: "Voice clone similarity (0-1).",
           min: 0,
-          max: 1,
+          max: 1
         },
         {
           name: "style",
@@ -945,7 +977,7 @@ export const audioConfig: ModuleConfig = {
           title: "Style",
           description: "Style expression parameter (0-1).",
           min: 0,
-          max: 1,
+          max: 1
         },
         {
           name: "speed",
@@ -954,7 +986,7 @@ export const audioConfig: ModuleConfig = {
           title: "Speed",
           description: "Speech speed (0.5-1.5).",
           min: 0.5,
-          max: 1.5,
+          max: 1.5
         },
         {
           name: "language_code",
@@ -962,16 +994,16 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Language Code",
           description:
-            "Language code for multilingual output. Leave empty for auto-detection.",
-        },
+            "Language code for multilingual output. Leave empty for auto-detection."
+        }
       ],
       validation: [
-        { field: "text", rule: "not_empty", message: "script is required" },
+        { field: "text", rule: "not_empty", message: "script is required" }
       ],
       paramNames: {
         text: "script",
-        voice: "voice_assignments",
-      },
-    },
-  ],
+        voice: "voice_assignments"
+      }
+    }
+  ]
 };

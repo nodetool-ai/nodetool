@@ -14,14 +14,14 @@ function makeRequest(
   urlPath: string,
   method = "GET",
   userId = "1",
-  body?: Record<string, unknown>,
+  body?: Record<string, unknown>
 ): Request {
   const init: RequestInit = {
     method,
     headers: {
       "x-user-id": userId,
-      ...(body ? { "content-type": "application/json" } : {}),
-    },
+      ...(body ? { "content-type": "application/json" } : {})
+    }
   };
   if (body) init.body = JSON.stringify(body);
   return new Request(`http://localhost${urlPath}`, init);
@@ -37,7 +37,7 @@ describe("admin authorization", () => {
     const res = await handleUsersRequest(
       makeRequest("/api/users", "GET", "1"),
       "/api/users",
-      {},
+      {}
     );
     expect(res).not.toBeNull();
     expect(res!.status).toBe(200);
@@ -47,7 +47,7 @@ describe("admin authorization", () => {
     const res = await handleUsersRequest(
       makeRequest("/api/users", "GET", "non-admin-user"),
       "/api/users",
-      {},
+      {}
     );
     expect(res).not.toBeNull();
     expect(res!.status).toBe(403);
@@ -65,7 +65,7 @@ describe("admin authorization", () => {
       const res = await handleUsersRequest(
         makeRequest("/api/users", "GET", "admin-b"),
         "/api/users",
-        {},
+        {}
       );
       expect(res!.status).toBe(200);
     } finally {
@@ -89,14 +89,14 @@ describe("GET /api/users", () => {
         id: "u1",
         role: "user",
         tokenHash: "abcdef1234567890extra",
-        createdAt: "2024-01-01",
-      },
+        createdAt: "2024-01-01"
+      }
     });
 
     const res = await handleUsersRequest(
       makeRequest("/api/users"),
       "/api/users",
-      {},
+      {}
     );
     expect(res!.status).toBe(200);
     const body = await res!.json();
@@ -117,13 +117,13 @@ describe("POST /api/users", () => {
       userId: "u2",
       role: "user",
       token: "secret-token",
-      createdAt: "2024-01-02",
+      createdAt: "2024-01-02"
     });
 
     const res = await handleUsersRequest(
       makeRequest("/api/users", "POST", "1", { username: "bob" }),
       "/api/users",
-      {},
+      {}
     );
     expect(res!.status).toBe(200);
     const body = await res!.json();
@@ -135,20 +135,20 @@ describe("POST /api/users", () => {
     const res = await handleUsersRequest(
       makeRequest("/api/users", "POST", "1", {}),
       "/api/users",
-      {},
+      {}
     );
     expect(res!.status).toBe(400);
   });
 
   it("returns 400 when addUser throws", async () => {
     vi.spyOn(FileUserManager.prototype, "addUser").mockRejectedValue(
-      new Error("User already exists"),
+      new Error("User already exists")
     );
 
     const res = await handleUsersRequest(
       makeRequest("/api/users", "POST", "1", { username: "dup" }),
       "/api/users",
-      {},
+      {}
     );
     expect(res!.status).toBe(400);
     const body = await res!.json();
@@ -166,13 +166,13 @@ describe("GET /api/users/:username", () => {
       id: "u1",
       role: "admin",
       tokenHash: "hash1234567890abcdef",
-      createdAt: "2024-01-01",
+      createdAt: "2024-01-01"
     });
 
     const res = await handleUsersRequest(
       makeRequest("/api/users/alice"),
       "/api/users/alice",
-      {},
+      {}
     );
     expect(res!.status).toBe(200);
     const body = await res!.json();
@@ -186,7 +186,7 @@ describe("GET /api/users/:username", () => {
     const res = await handleUsersRequest(
       makeRequest("/api/users/unknown"),
       "/api/users/unknown",
-      {},
+      {}
     );
     expect(res!.status).toBe(404);
   });
@@ -199,13 +199,13 @@ describe("GET /api/users/:username", () => {
 describe("DELETE /api/users/:username", () => {
   it("removes a user", async () => {
     vi.spyOn(FileUserManager.prototype, "removeUser").mockResolvedValue(
-      undefined,
+      undefined
     );
 
     const res = await handleUsersRequest(
       makeRequest("/api/users/alice", "DELETE"),
       "/api/users/alice",
-      {},
+      {}
     );
     expect(res!.status).toBe(200);
     const body = await res!.json();
@@ -214,13 +214,13 @@ describe("DELETE /api/users/:username", () => {
 
   it("returns 404 when removeUser throws", async () => {
     vi.spyOn(FileUserManager.prototype, "removeUser").mockRejectedValue(
-      new Error("Not found"),
+      new Error("Not found")
     );
 
     const res = await handleUsersRequest(
       makeRequest("/api/users/ghost", "DELETE"),
       "/api/users/ghost",
-      {},
+      {}
     );
     expect(res!.status).toBe(404);
   });
@@ -237,15 +237,15 @@ describe("POST /api/users/reset-token", () => {
       userId: "u1",
       role: "user",
       token: "new-token-value",
-      createdAt: "2024-01-01",
+      createdAt: "2024-01-01"
     });
 
     const res = await handleUsersRequest(
       makeRequest("/api/users/reset-token", "POST", "1", {
-        username: "alice",
+        username: "alice"
       }),
       "/api/users/reset-token",
-      {},
+      {}
     );
     expect(res!.status).toBe(200);
     const body = await res!.json();
@@ -256,7 +256,7 @@ describe("POST /api/users/reset-token", () => {
     const res = await handleUsersRequest(
       makeRequest("/api/users/reset-token", "GET"),
       "/api/users/reset-token",
-      {},
+      {}
     );
     expect(res!.status).toBe(405);
   });
@@ -265,7 +265,7 @@ describe("POST /api/users/reset-token", () => {
     const res = await handleUsersRequest(
       makeRequest("/api/users/reset-token", "POST", "1", {}),
       "/api/users/reset-token",
-      {},
+      {}
     );
     expect(res!.status).toBe(400);
   });
@@ -280,7 +280,7 @@ describe("method not allowed", () => {
     const res = await handleUsersRequest(
       makeRequest("/api/users", "PATCH"),
       "/api/users",
-      {},
+      {}
     );
     expect(res!.status).toBe(405);
   });
@@ -289,7 +289,7 @@ describe("method not allowed", () => {
     const res = await handleUsersRequest(
       makeRequest("/api/users/alice", "PUT"),
       "/api/users/alice",
-      {},
+      {}
     );
     expect(res!.status).toBe(405);
   });

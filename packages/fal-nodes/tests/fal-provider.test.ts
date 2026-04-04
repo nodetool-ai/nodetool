@@ -4,7 +4,7 @@ import {
   FAL_IMAGE_MODELS,
   type TextToImageParams,
   type ImageToImageParams,
-  type TextToSpeechParams,
+  type TextToSpeechParams
 } from "../src/fal-provider.js";
 
 /* ------------------------------------------------------------------ */
@@ -17,8 +17,8 @@ const mockStorageUpload = vi.fn();
 vi.mock("@fal-ai/client", () => ({
   createFalClient: vi.fn(() => ({
     subscribe: mockSubscribe,
-    storage: { upload: mockStorageUpload },
-  })),
+    storage: { upload: mockStorageUpload }
+  }))
 }));
 
 /* ------------------------------------------------------------------ */
@@ -134,7 +134,7 @@ describe("FalProvider.imageRefToUrl", () => {
     const provider = new FalProvider("key");
     const result = await provider.imageRefToUrl({
       data: "aGVsbG8=", // "hello" in base64
-      uri: "test.png",
+      uri: "test.png"
     });
     expect(result).toMatch(/^data:image\/png;base64,/);
   });
@@ -154,14 +154,14 @@ describe("FalProvider.textToImage", () => {
   const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]); // PNG magic bytes
 
   const makeImageResult = (url = "https://cdn.fal.media/result.png") => ({
-    data: { images: [{ url }] },
+    data: { images: [{ url }] }
   });
 
   beforeEach(() => {
     // Mock the download fetch call that follows falSubmit
     mockFetch.mockResolvedValue({
       ok: true,
-      arrayBuffer: () => Promise.resolve(pngBytes.buffer),
+      arrayBuffer: () => Promise.resolve(pngBytes.buffer)
     });
   });
 
@@ -170,14 +170,14 @@ describe("FalProvider.textToImage", () => {
     const provider = new FalProvider("key");
     const params: TextToImageParams = {
       prompt: "a cat on a rainbow",
-      model: "fal-ai/flux/dev",
+      model: "fal-ai/flux/dev"
     };
     const result = await provider.textToImage(params);
     expect(result).toBeInstanceOf(Uint8Array);
     expect(mockSubscribe).toHaveBeenCalledOnce();
     const [endpoint, opts] = mockSubscribe.mock.calls[0] as [
       string,
-      { input: Record<string, unknown> },
+      { input: Record<string, unknown> }
     ];
     expect(endpoint).toBe("fal-ai/flux/dev");
     expect(opts.input.prompt).toBe("a cat on a rainbow");
@@ -204,12 +204,12 @@ describe("FalProvider.textToImage", () => {
       seed: 42,
       guidanceScale: 7.5,
       numInferenceSteps: 20,
-      safetyCheck: false,
+      safetyCheck: false
     };
     await provider.textToImage(params);
     const [, opts] = mockSubscribe.mock.calls[0] as [
       string,
-      { input: Record<string, unknown> },
+      { input: Record<string, unknown> }
     ];
     expect(opts.input.negative_prompt).toBe("blurry");
     expect(opts.input.image_size).toEqual({ width: 512, height: 512 });
@@ -221,10 +221,13 @@ describe("FalProvider.textToImage", () => {
 
   it("accepts response with single `image` field instead of `images` array", async () => {
     mockSubscribe.mockResolvedValue({
-      data: { image: { url: "https://cdn.fal.media/single.png" } },
+      data: { image: { url: "https://cdn.fal.media/single.png" } }
     });
     const provider = new FalProvider("key");
-    const result = await provider.textToImage({ prompt: "test", model: "fal-ai/flux/dev" });
+    const result = await provider.textToImage({
+      prompt: "test",
+      model: "fal-ai/flux/dev"
+    });
     expect(result).toBeInstanceOf(Uint8Array);
   });
 
@@ -237,7 +240,8 @@ describe("FalProvider.textToImage", () => {
   });
 
   it("formats pydantic validation errors for out-of-range values", async () => {
-    const pydanticErr = '[{"loc": ["steps"], "msg": "value too large", "type": "less_than_equal", "ctx": {"le": 50}, "input": 100}]';
+    const pydanticErr =
+      '[{"loc": ["steps"], "msg": "value too large", "type": "less_than_equal", "ctx": {"le": 50}, "input": 100}]';
     mockSubscribe.mockRejectedValue(new Error(pydanticErr));
     const provider = new FalProvider("key");
     await expect(
@@ -246,7 +250,8 @@ describe("FalProvider.textToImage", () => {
   });
 
   it("formats pydantic missing-required validation errors", async () => {
-    const pydanticErr = '[{"loc": ["prompt"], "msg": "Field required", "type": "missing", "input": null}]';
+    const pydanticErr =
+      '[{"loc": ["prompt"], "msg": "Field required", "type": "missing", "input": null}]';
     mockSubscribe.mockRejectedValue(new Error(pydanticErr));
     const provider = new FalProvider("key");
     await expect(
@@ -265,8 +270,15 @@ describe("FalProvider.textToImage", () => {
   it("does not include seed in args when seed is -1", async () => {
     mockSubscribe.mockResolvedValue(makeImageResult());
     const provider = new FalProvider("key");
-    await provider.textToImage({ prompt: "test", model: "fal-ai/flux/dev", seed: -1 });
-    const [, opts] = mockSubscribe.mock.calls[0] as [string, { input: Record<string, unknown> }];
+    await provider.textToImage({
+      prompt: "test",
+      model: "fal-ai/flux/dev",
+      seed: -1
+    });
+    const [, opts] = mockSubscribe.mock.calls[0] as [
+      string,
+      { input: Record<string, unknown> }
+    ];
     expect("seed" in opts.input).toBe(false);
   });
 });
@@ -281,19 +293,19 @@ describe("FalProvider.imageToImage", () => {
   beforeEach(() => {
     mockFetch.mockResolvedValue({
       ok: true,
-      arrayBuffer: () => Promise.resolve(pngBytes.buffer),
+      arrayBuffer: () => Promise.resolve(pngBytes.buffer)
     });
   });
 
   it("returns image bytes", async () => {
     mockSubscribe.mockResolvedValue({
-      data: { images: [{ url: "https://cdn.fal.media/out.png" }] },
+      data: { images: [{ url: "https://cdn.fal.media/out.png" }] }
     });
     const provider = new FalProvider("key");
     const params: ImageToImageParams = {
       imageBytes: new Uint8Array([1, 2, 3]),
       prompt: "make it futuristic",
-      model: "fal-ai/flux/dev",
+      model: "fal-ai/flux/dev"
     };
     const result = await provider.imageToImage(params);
     expect(result).toBeInstanceOf(Uint8Array);
@@ -301,28 +313,33 @@ describe("FalProvider.imageToImage", () => {
 
   it("sends the input image as a data URI", async () => {
     mockSubscribe.mockResolvedValue({
-      data: { images: [{ url: "https://cdn.fal.media/out.png" }] },
+      data: { images: [{ url: "https://cdn.fal.media/out.png" }] }
     });
     const provider = new FalProvider("key");
     await provider.imageToImage({
       imageBytes: new Uint8Array([0x89, 0x50]),
       prompt: "test",
-      model: "fal-ai/flux/dev",
+      model: "fal-ai/flux/dev"
     });
-    const [, opts] = mockSubscribe.mock.calls[0] as [string, { input: Record<string, unknown> }];
+    const [, opts] = mockSubscribe.mock.calls[0] as [
+      string,
+      { input: Record<string, unknown> }
+    ];
     expect(typeof opts.input.image_url).toBe("string");
-    expect((opts.input.image_url as string).startsWith("data:image/png;base64,")).toBe(true);
+    expect(
+      (opts.input.image_url as string).startsWith("data:image/png;base64,")
+    ).toBe(true);
   });
 
   it("increments counters on success", async () => {
     mockSubscribe.mockResolvedValue({
-      data: { images: [{ url: "https://cdn.fal.media/out.png" }] },
+      data: { images: [{ url: "https://cdn.fal.media/out.png" }] }
     });
     const provider = new FalProvider("key");
     await provider.imageToImage({
       imageBytes: new Uint8Array([1]),
       prompt: "test",
-      model: "fal-ai/flux/dev",
+      model: "fal-ai/flux/dev"
     });
     expect(provider.totalRequests).toBe(1);
     expect(provider.totalImages).toBe(1);
@@ -330,7 +347,7 @@ describe("FalProvider.imageToImage", () => {
 
   it("passes optional parameters", async () => {
     mockSubscribe.mockResolvedValue({
-      data: { images: [{ url: "https://cdn.fal.media/out.png" }] },
+      data: { images: [{ url: "https://cdn.fal.media/out.png" }] }
     });
     const provider = new FalProvider("key");
     const params: ImageToImageParams = {
@@ -342,10 +359,13 @@ describe("FalProvider.imageToImage", () => {
       numInferenceSteps: 10,
       targetWidth: 256,
       targetHeight: 256,
-      seed: 7,
+      seed: 7
     };
     await provider.imageToImage(params);
-    const [, opts] = mockSubscribe.mock.calls[0] as [string, { input: Record<string, unknown> }];
+    const [, opts] = mockSubscribe.mock.calls[0] as [
+      string,
+      { input: Record<string, unknown> }
+    ];
     expect(opts.input.strength).toBe(0.8);
     expect(opts.input.guidance_scale).toBe(5);
     expect(opts.input.num_inference_steps).toBe(10);
@@ -360,7 +380,7 @@ describe("FalProvider.imageToImage", () => {
       provider.imageToImage({
         imageBytes: new Uint8Array([1]),
         prompt: "test",
-        model: "fal-ai/flux/dev",
+        model: "fal-ai/flux/dev"
       })
     ).rejects.toThrow("FAL image-to-image generation failed");
   });
@@ -376,30 +396,33 @@ describe("FalProvider.textToSpeech", () => {
   beforeEach(() => {
     mockFetch.mockResolvedValue({
       ok: true,
-      arrayBuffer: () => Promise.resolve(wavBytes.buffer),
+      arrayBuffer: () => Promise.resolve(wavBytes.buffer)
     });
   });
 
   it("throws immediately for empty text", async () => {
     const provider = new FalProvider("key");
     await expect(
-      provider.textToSpeech({ text: "", model: "fal-ai/mmaudio-v2/text-to-audio" })
+      provider.textToSpeech({
+        text: "",
+        model: "fal-ai/mmaudio-v2/text-to-audio"
+      })
     ).rejects.toThrow("text must not be empty");
   });
 
   it("returns audio bytes on success", async () => {
     mockSubscribe.mockResolvedValue({
-      data: { audio: { url: "https://cdn.fal.media/result.wav" } },
+      data: { audio: { url: "https://cdn.fal.media/result.wav" } }
     });
     const provider = new FalProvider("key");
     const result = await provider.textToSpeech({
       text: "Hello, world!",
-      model: "fal-ai/mmaudio-v2/text-to-audio",
+      model: "fal-ai/mmaudio-v2/text-to-audio"
     });
     expect(result).toBeInstanceOf(Uint8Array);
     const [endpoint, opts] = mockSubscribe.mock.calls[0] as [
       string,
-      { input: Record<string, unknown> },
+      { input: Record<string, unknown> }
     ];
     expect(endpoint).toBe("fal-ai/mmaudio-v2/text-to-audio");
     expect(opts.input.prompt).toBe("Hello, world!");
@@ -407,7 +430,7 @@ describe("FalProvider.textToSpeech", () => {
 
   it("passes optional parameters", async () => {
     mockSubscribe.mockResolvedValue({
-      data: { audio: { url: "https://cdn.fal.media/result.wav" } },
+      data: { audio: { url: "https://cdn.fal.media/result.wav" } }
     });
     const provider = new FalProvider("key");
     const params: TextToSpeechParams = {
@@ -417,10 +440,13 @@ describe("FalProvider.textToSpeech", () => {
       duration: 10,
       cfgStrength: 4.5,
       negativePrompt: "noise",
-      seed: 99,
+      seed: 99
     };
     await provider.textToSpeech(params);
-    const [, opts] = mockSubscribe.mock.calls[0] as [string, { input: Record<string, unknown> }];
+    const [, opts] = mockSubscribe.mock.calls[0] as [
+      string,
+      { input: Record<string, unknown> }
+    ];
     expect(opts.input.num_steps).toBe(50);
     expect(opts.input.duration).toBe(10);
     expect(opts.input.cfg_strength).toBe(4.5);
@@ -432,7 +458,10 @@ describe("FalProvider.textToSpeech", () => {
     mockSubscribe.mockResolvedValue({ data: { text: "some text" } });
     const provider = new FalProvider("key");
     await expect(
-      provider.textToSpeech({ text: "test", model: "fal-ai/mmaudio-v2/text-to-audio" })
+      provider.textToSpeech({
+        text: "test",
+        model: "fal-ai/mmaudio-v2/text-to-audio"
+      })
     ).rejects.toThrow("FAL text-to-speech generation failed");
   });
 
@@ -440,7 +469,10 @@ describe("FalProvider.textToSpeech", () => {
     mockSubscribe.mockRejectedValue(new Error("network error"));
     const provider = new FalProvider("key");
     await expect(
-      provider.textToSpeech({ text: "test", model: "fal-ai/mmaudio-v2/text-to-audio" })
+      provider.textToSpeech({
+        text: "test",
+        model: "fal-ai/mmaudio-v2/text-to-audio"
+      })
     ).rejects.toThrow("FAL text-to-speech generation failed");
   });
 });

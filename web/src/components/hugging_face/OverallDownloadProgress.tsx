@@ -81,7 +81,7 @@ const OverallDownloadProgress: React.FC = () => {
           borderRadius: "6px",
           transition: "all 0.2s ease-out",
           "&:hover": {
-            backgroundColor: "rgba(255, 255, 255, 0.05)"
+            backgroundColor: "var(--palette-action-selected)"
           },
           "&:focus-visible": {
             outline: "2px solid var(--palette-primary-main)",

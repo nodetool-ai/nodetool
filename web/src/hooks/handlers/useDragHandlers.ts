@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, MouseEvent } from "react";
+import { useCallback, useState, useRef, MouseEvent as ReactMouseEvent } from "react";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   getMousePosition,
@@ -53,7 +53,7 @@ export default function useDragHandlers() {
 
   /* NODE DRAG START */
   const onNodeDragStart = useCallback(
-    (_event: any, node: Node<NodeData>) => {
+    (_event: ReactMouseEvent, node: Node<NodeData>) => {
       setLastParentNode(undefined);
       resetWiggleDetection();
       setDraggedNodes(new Set([node]));
@@ -65,7 +65,7 @@ export default function useDragHandlers() {
 
   /* NODE DRAG */
   const onNodeDrag = useCallback(
-    (event: MouseEvent, node: Node<NodeData>) => {
+    (event: ReactMouseEvent, node: Node<NodeData>) => {
       pause();
       addWiggleMovement(event.clientX, event.clientY);
 
@@ -130,7 +130,7 @@ export default function useDragHandlers() {
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
-    (_event: any, node: Node<NodeData>) => {
+    (_event: ReactMouseEvent, node: Node<NodeData>) => {
       // Only add to group if a valid parent was intersected during drag
       // and the node isn't already in that group
       if (lastParentNode && node.parentId !== lastParentNode.id) {
@@ -148,7 +148,7 @@ export default function useDragHandlers() {
 
   /* SELECTION DRAG START */
   const onSelectionDragStart = useCallback(
-    (event: any, nodes: Node<NodeData>[]) => {
+    (event: ReactMouseEvent, nodes: Node<NodeData>[]) => {
       // Clear potential parent from previous drag
       setLastParentNode(undefined);
       pause(); // pause history
@@ -162,7 +162,7 @@ export default function useDragHandlers() {
 
   /* SELECTION DRAG */
   const onSelectionDrag = useCallback(
-    (event: MouseEvent, nodes: Node<NodeData>[]) => {
+    (event: ReactMouseEvent, nodes: Node<NodeData>[]) => {
       // Add movement to wiggle detection
       addWiggleMovement(event.clientX, event.clientY);
 
@@ -235,7 +235,7 @@ export default function useDragHandlers() {
 
   /* SELECTION DRAG STOP */
   const onSelectionDragStop = useCallback(
-    (event: MouseEvent, nodes: Node<NodeData>[]) => {
+    (event: ReactMouseEvent, nodes: Node<NodeData>[]) => {
       if (
         lastParentNode &&
         nodes.length > 0 &&
@@ -255,7 +255,7 @@ export default function useDragHandlers() {
   );
 
   /* SELECTION START */
-  const onSelectionStart = useCallback((_event: any) => {
+  const onSelectionStart = useCallback((_event: ReactMouseEvent | TouchEvent | null) => {
     const currentMousePos = getMousePosition();
     const projectedStartPos = reactFlow.screenToFlowPosition({
       x: currentMousePos.x,
@@ -269,7 +269,7 @@ export default function useDragHandlers() {
   ]); // Added commentDragState.isActive
 
   const onSelectionEnd = useCallback(
-    (_event: MouseEvent) => {
+    (_event: ReactMouseEvent | TouchEvent | null) => {
       // No-op: drag-to-create-comment has been removed
     },
     []

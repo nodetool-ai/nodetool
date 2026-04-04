@@ -5,6 +5,6 @@ export default {
   test: {
     ...baseConfig.test,
     include: ["tests/e2e/**/*.test.ts"],
-    exclude: [],
-  },
+    exclude: []
+  }
 };

@@ -15,8 +15,14 @@ export interface TextToVideoOutputs {
   output: VideoRef;
 }
 
-export function textToVideo(inputs: TextToVideoInputs): DslNode<TextToVideoOutputs, "output"> {
-  return createNode("gemini.video.TextToVideo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function textToVideo(
+  inputs: TextToVideoInputs
+): DslNode<TextToVideoOutputs, "output"> {
+  return createNode(
+    "gemini.video.TextToVideo",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Image To Video — gemini.video.ImageToVideo
@@ -32,6 +38,12 @@ export interface ImageToVideoOutputs {
   output: VideoRef;
 }
 
-export function imageToVideo(inputs: ImageToVideoInputs): DslNode<ImageToVideoOutputs, "output"> {
-  return createNode("gemini.video.ImageToVideo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function imageToVideo(
+  inputs: ImageToVideoInputs
+): DslNode<ImageToVideoOutputs, "output"> {
+  return createNode(
+    "gemini.video.ImageToVideo",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

@@ -1,0 +1,140 @@
+{
+  "id": "4fd373a0a7a711f08ffb0000744cb0d1",
+  "access": "public",
+  "created_at": "2025-10-12T22:10:36.637867",
+  "updated_at": "2025-10-12T22:10:36.637886",
+  "name": "Transcribe Audio",
+  "tool_name": null,
+  "description": "Convert speech to text using Whisper model with word-level timestamps",
+  "tags": [
+    "start",
+    "audio",
+    "huggingface"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Transcribe Audio\n\nConvert speech to text using the Whisper model with word-level timestamps.\n\n## Workflow:\n\n1. **Audio Input** - Record your voice or upload an audio file\n2. **Automatic Speech Recognition** - Processes the audio through Whisper model to generate transcription\n3. **String Output** - Displays the transcribed text\n\n## How to Use:\n- Record your voice using the audio input\n- Hit the run button\n- Read the transcription in the output"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -421,
+            "y": 18
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 373,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "audio",
+          "description": "",
+          "value": {}
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "transcription",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 670,
+            "y": 96
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "c5191702-2a3c-440d-b3af-2db20e74a369",
+        "parent_id": null,
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "data": {
+          "model": {
+            "type": "asr_model"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 360,
+            "y": 79
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "8f80e8d4-86f2-4324-84bc-d375d11bc89a",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "c5191702-2a3c-440d-b3af-2db20e74a369",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "144d485c-a6f5-45b3-9822-e6206dd36154",
+        "source": "c5191702-2a3c-440d-b3af-2db20e74a369",
+        "sourceHandle": "text",
+        "target": "8",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

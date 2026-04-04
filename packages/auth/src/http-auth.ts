@@ -42,7 +42,7 @@ export async function authenticateRequest(
 
   return {
     userId: result.userId!,
-    tokenType: result.tokenType ?? TokenType.STATIC,
+    tokenType: result.tokenType ?? TokenType.STATIC
   };
 }
 
@@ -62,14 +62,11 @@ export async function requireAuth(
   const user = await authenticateRequest(request, options);
   if (user) return null;
 
-  return new Response(
-    JSON.stringify({ detail: "Authorization required" }),
-    {
-      status: 401,
-      headers: {
-        "Content-Type": "application/json",
-        "WWW-Authenticate": "Bearer",
-      },
+  return new Response(JSON.stringify({ detail: "Authorization required" }), {
+    status: 401,
+    headers: {
+      "Content-Type": "application/json",
+      "WWW-Authenticate": "Bearer"
     }
-  );
+  });
 }

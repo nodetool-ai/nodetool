@@ -1,0 +1,168 @@
+{
+  "id": "9ad58a63-abec-4196-bd53-9262bc1e7eb7",
+  "access": "public",
+  "created_at": "2026-01-09T22:48:14.857272",
+  "updated_at": "2026-01-09T22:48:14.857272",
+  "name": "Hacker News Agent",
+  "tool_name": null,
+  "description": "Scrape and analyze the front page of Hacker News.",
+  "tags": [
+    "hackernews",
+    "news",
+    "analysis"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "hn_report",
+          "value": null,
+          "description": ""
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\n# Hacker News snapshot\n\n## Overview\n{{ summary }}\n\n{% for p in posts %}\n### {{ p.title }}\n{{ p.url }}\n\nTop comments:\n{% for c in p.top_comments %}\n- {{ c.author }}: {{ c.text }}\n{% endfor %}\n\n{% endfor %}\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "summary": null,
+          "posts": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.agents.ResearchAgent",
+        "data": {
+          "objective": "",
+          "model": {
+            "type": "language_model"
+          },
+          "system_prompt": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Write intermediate findings to the workspace for reference\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n- write_file: Save research findings to files\n- read_file: Read previously saved research files\n- list_directory: List files in the workspace\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Save important findings using write_file\n5. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
+          "tools": [
+            {
+              "type": "tool_name",
+              "name": "google_search"
+            },
+            {
+              "type": "tool_name",
+              "name": "browser"
+            }
+          ],
+          "max_tokens": 8192
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "summary": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "posts": {
+            "type": "list",
+            "optional": false,
+            "values": null,
+            "type_args": [
+              {
+                "type": "dict",
+                "optional": false,
+                "values": null,
+                "type_args": [
+                  {
+                    "type": "str",
+                    "optional": false,
+                    "values": null,
+                    "type_args": [],
+                    "type_name": null
+                  },
+                  {
+                    "type": "any",
+                    "optional": false,
+                    "values": null,
+                    "type_args": [],
+                    "type_name": null
+                  }
+                ],
+                "type_name": null
+              }
+            ],
+            "type_name": null
+          }
+        },
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nScrape the front page of https://news.ycombinator.com/ and analyze activity.\n\nTasks:\n1) Identify the top 5 posts on the front page.\n2) For each post:\n   - Record title and url.\n   - Fetch the discussion thread with the browser tool.\n   - Extract the top 3 comments by score or prominence.\n   - For each comment, store text and author.\n\n3) Summarize the overall themes across the selected posts.\n\nOutput format (JSON):\n{\n  \"summary\": \"<high level summary of the 5 posts>\",\n  \"posts\": [\n    {\n      \"title\": \"<title>\",\n      \"url\": \"<url>\",\n      \"top_comments\": [\n        {\"text\": \"<comment text>\", \"author\": \"<username>\"},\n        ...\n      ]\n    },\n    ...\n  ]\n}\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "objective",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "3",
+        "sourceHandle": "summary",
+        "target": "2",
+        "targetHandle": "summary",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "3",
+        "sourceHandle": "posts",
+        "target": "2",
+        "targetHandle": "posts",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

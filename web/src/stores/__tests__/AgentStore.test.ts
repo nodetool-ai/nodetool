@@ -72,7 +72,9 @@ const createSessionMock = jest.fn<
           sendMessage: sendMessageMock,
           stopExecution: stopExecutionMock,
           closeSession: closeSessionMock,
-          onStreamMessage: onStreamMessageMock
+          onStreamMessage: onStreamMessageMock,
+          listSessions: jest.fn().mockResolvedValue([]),
+          listModels: jest.fn().mockResolvedValue([])
         }
       },
       configurable: true

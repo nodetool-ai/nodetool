@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
-import { UnifiedWebSocketRunner, type WebSocketConnection, type WebSocketReceiveFrame } from "../src/unified-websocket-runner.js";
+import {
+  UnifiedWebSocketRunner,
+  type WebSocketConnection,
+  type WebSocketReceiveFrame
+} from "../src/unified-websocket-runner.js";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -38,7 +42,7 @@ class MockWebSocket implements WebSocketConnection {
 const resolveExecutor = () => ({
   async process() {
     return {};
-  },
+  }
 });
 
 describe("UnifiedWebSocketRunner", () => {
@@ -67,13 +71,19 @@ describe("UnifiedWebSocketRunner", () => {
   });
 
   it("switches to text mode", async () => {
-    const res = await runner.handleCommand({ command: "set_mode", data: { mode: "text" } });
+    const res = await runner.handleCommand({
+      command: "set_mode",
+      data: { mode: "text" }
+    });
     expect(res.message).toBe("Mode set to text");
     expect(runner.mode).toBe("text");
   });
 
   it("validates chat_message thread id", async () => {
-    const res = await runner.handleCommand({ command: "chat_message", data: { content: "hello" } });
+    const res = await runner.handleCommand({
+      command: "chat_message",
+      data: { content: "hello" }
+    });
     expect(res.error).toContain("thread_id is required");
   });
 
@@ -86,27 +96,37 @@ describe("UnifiedWebSocketRunner", () => {
 
   it("replies pong for ping in receive loop", async () => {
     await runner.connect(ws);
-    ws.queue.push({ type: "websocket.message", text: JSON.stringify({ type: "ping" }) });
+    ws.queue.push({
+      type: "websocket.message",
+      text: JSON.stringify({ type: "ping" })
+    });
     ws.queue.push({ type: "websocket.disconnect" });
 
     await runner.receiveMessages();
 
     expect(ws.sentBytes.length + ws.sentText.length).toBeGreaterThan(0);
-    const first = ws.sentBytes.length > 0 ? (unpack(ws.sentBytes[0]) as Record<string, unknown>) : JSON.parse(ws.sentText[0]) as Record<string, unknown>;
+    const first =
+      ws.sentBytes.length > 0
+        ? (unpack(ws.sentBytes[0]) as Record<string, unknown>)
+        : (JSON.parse(ws.sentText[0]) as Record<string, unknown>);
     expect(first.type).toBe("pong");
     await runner.disconnect();
   });
 
   it("processes get_status command envelope", async () => {
     await runner.connect(ws);
-    ws.queue.push({ type: "websocket.message", text: JSON.stringify({ command: "get_status", data: {} }) });
+    ws.queue.push({
+      type: "websocket.message",
+      text: JSON.stringify({ command: "get_status", data: {} })
+    });
     ws.queue.push({ type: "websocket.disconnect" });
 
     await runner.receiveMessages();
 
-    const out = ws.sentBytes.length > 0
-      ? (unpack(ws.sentBytes[0]) as Record<string, unknown>)
-      : (JSON.parse(ws.sentText[0]) as Record<string, unknown>);
+    const out =
+      ws.sentBytes.length > 0
+        ? (unpack(ws.sentBytes[0]) as Record<string, unknown>)
+        : (JSON.parse(ws.sentText[0]) as Record<string, unknown>);
     expect(Array.isArray(out.active_jobs)).toBe(true);
     await runner.disconnect();
   });
@@ -115,7 +135,10 @@ describe("UnifiedWebSocketRunner", () => {
     await runner.connect(ws);
     ws.queue.push({
       type: "websocket.message",
-      text: JSON.stringify({ type: "client_tools_manifest", tools: [{ name: "tool_1", description: "x" }] }),
+      text: JSON.stringify({
+        type: "client_tools_manifest",
+        tools: [{ name: "tool_1", description: "x" }]
+      })
     });
     ws.queue.push({ type: "websocket.disconnect" });
 
@@ -123,7 +146,9 @@ describe("UnifiedWebSocketRunner", () => {
     await runner.receiveMessages();
 
     // manifest itself doesn't require response
-    expect(sendSpy).not.toHaveBeenCalledWith(expect.objectContaining({ error: "invalid_message" }));
+    expect(sendSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ error: "invalid_message" })
+    );
     await runner.disconnect();
   });
 
@@ -133,27 +158,37 @@ describe("UnifiedWebSocketRunner", () => {
     const graph = {
       nodes: [
         { id: "stream_input", type: "test.Input", name: "stream_input" },
-        { id: "sink", type: "test.Sink", name: "sink" },
+        { id: "sink", type: "test.Sink", name: "sink" }
       ],
       edges: [
-        { source: "stream_input", sourceHandle: "value", target: "sink", targetHandle: "value" },
-      ],
+        {
+          source: "stream_input",
+          sourceHandle: "value",
+          target: "sink",
+          targetHandle: "value"
+        }
+      ]
     };
 
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     expect(status.active_jobs.length).toBeGreaterThan(0);
     const jobId = status.active_jobs[0].job_id;
 
     const streamed = await runner.handleCommand({
       command: "stream_input",
-      data: { job_id: jobId, input: "stream_input", value: 7 },
+      data: { job_id: jobId, input: "stream_input", value: 7 }
     });
     expect(streamed.message).toBe("Input item streamed");
 
     const ended = await runner.handleCommand({
       command: "end_input_stream",
-      data: { job_id: jobId, input: "stream_input" },
+      data: { job_id: jobId, input: "stream_input" }
     });
     expect(ended.message).toBe("Input stream ended");
 
@@ -169,22 +204,22 @@ describe("UnifiedWebSocketRunner", () => {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? "hello world" };
-            },
+            }
           };
         }
         if (node.type === "nodetool.output.Output") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? null };
-            },
+            }
           };
         }
         return {
           async process() {
             return {};
-          },
+          }
         };
-      },
+      }
     });
 
     await outputRunner.connect(ws);
@@ -194,14 +229,14 @@ describe("UnifiedWebSocketRunner", () => {
           id: "n1",
           type: "nodetool.constant.String",
           name: "nodetool.constant.String",
-          properties: { value: "hello world" },
+          properties: { value: "hello world" }
         },
         {
           id: "n2",
           type: "nodetool.output.Output",
           name: "nodetool.output.Output",
-          properties: {},
-        },
+          properties: {}
+        }
       ],
       edges: [
         {
@@ -210,12 +245,15 @@ describe("UnifiedWebSocketRunner", () => {
           target: "n2",
           sourceHandle: "output",
           targetHandle: "value",
-          edge_type: "data",
-        },
-      ],
+          edge_type: "data"
+        }
+      ]
     };
 
-    await outputRunner.handleCommand({ command: "run_job", data: { graph, params: {} } });
+    await outputRunner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
     await new Promise((r) => setTimeout(r, 30));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
@@ -233,22 +271,22 @@ describe("UnifiedWebSocketRunner", () => {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? "hello world" };
-            },
+            }
           };
         }
         if (node.type === "nodetool.output.Output") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? null };
-            },
+            }
           };
         }
         return {
           async process() {
             return {};
-          },
+          }
         };
-      },
+      }
     });
 
     await outputRunner.connect(ws);
@@ -258,14 +296,14 @@ describe("UnifiedWebSocketRunner", () => {
           id: "n1",
           type: "nodetool.constant.String",
           name: "nodetool.constant.String",
-          properties: { value: "hello world" },
+          properties: { value: "hello world" }
         },
         {
           id: "n2",
           type: "nodetool.output.Output",
           name: "nodetool.output.Output",
-          properties: {},
-        },
+          properties: {}
+        }
       ],
       edges: [
         {
@@ -274,21 +312,32 @@ describe("UnifiedWebSocketRunner", () => {
           target: "n2",
           sourceHandle: "output",
           targetHandle: "value",
-          edge_type: "data",
-        },
-      ],
+          edge_type: "data"
+        }
+      ]
     };
 
-    await outputRunner.handleCommand({ command: "run_job", data: { graph, params: {} } });
+    await outputRunner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
     await new Promise((r) => setTimeout(r, 30));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     const nodeUpdates = sent.filter((m) => m.type === "node_update");
 
-    expect(nodeUpdates.some((m) => m.node_id === "n1" && m.status === "running")).toBe(true);
-    expect(nodeUpdates.some((m) => m.node_id === "n1" && m.status === "completed")).toBe(true);
-    expect(nodeUpdates.some((m) => m.node_id === "n2" && m.status === "running")).toBe(true);
-    expect(nodeUpdates.some((m) => m.node_id === "n2" && m.status === "completed")).toBe(true);
+    expect(
+      nodeUpdates.some((m) => m.node_id === "n1" && m.status === "running")
+    ).toBe(true);
+    expect(
+      nodeUpdates.some((m) => m.node_id === "n1" && m.status === "completed")
+    ).toBe(true);
+    expect(
+      nodeUpdates.some((m) => m.node_id === "n2" && m.status === "running")
+    ).toBe(true);
+    expect(
+      nodeUpdates.some((m) => m.node_id === "n2" && m.status === "completed")
+    ).toBe(true);
 
     await outputRunner.disconnect();
   });
@@ -300,22 +349,22 @@ describe("UnifiedWebSocketRunner", () => {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? "hello world" };
-            },
+            }
           };
         }
         if (node.type === "nodetool.output.Output") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? null };
-            },
+            }
           };
         }
         return {
           async process() {
             return {};
-          },
+          }
         };
-      },
+      }
     });
 
     await outputRunner.connect(ws);
@@ -325,14 +374,14 @@ describe("UnifiedWebSocketRunner", () => {
           id: "n1",
           type: "nodetool.constant.String",
           name: "nodetool.constant.String",
-          properties: { value: "hello world" },
+          properties: { value: "hello world" }
         },
         {
           id: "n2",
           type: "nodetool.output.Output",
           name: "nodetool.output.Output",
-          properties: {},
-        },
+          properties: {}
+        }
       ],
       edges: [
         {
@@ -341,12 +390,15 @@ describe("UnifiedWebSocketRunner", () => {
           target: "n2",
           sourceHandle: "output",
           targetHandle: "value",
-          edge_type: "data",
-        },
-      ],
+          edge_type: "data"
+        }
+      ]
     };
 
-    await outputRunner.handleCommand({ command: "run_job", data: { graph, params: {} } });
+    await outputRunner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
     await new Promise((r) => setTimeout(r, 30));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
@@ -371,26 +423,29 @@ describe("UnifiedWebSocketRunner", () => {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? "hello world" };
-            },
+            }
           };
         }
         if (node.type === "nodetool.output.Output") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? null };
-            },
+            }
           };
         }
         return {
           async process() {
             return {};
-          },
+          }
         };
-      },
+      }
     });
 
     await outputRunner.connect(ws);
-    await outputRunner.handleCommand({ command: "set_mode", data: { mode: "text" } });
+    await outputRunner.handleCommand({
+      command: "set_mode",
+      data: { mode: "text" }
+    });
 
     const graph = {
       nodes: [
@@ -398,14 +453,14 @@ describe("UnifiedWebSocketRunner", () => {
           id: "n1",
           type: "nodetool.constant.String",
           name: "nodetool.constant.String",
-          properties: { value: "hello world" },
+          properties: { value: "hello world" }
         },
         {
           id: "n2",
           type: "nodetool.output.Output",
           name: "nodetool.output.Output",
-          properties: {},
-        },
+          properties: {}
+        }
       ],
       edges: [
         {
@@ -414,15 +469,20 @@ describe("UnifiedWebSocketRunner", () => {
           target: "n2",
           sourceHandle: "output",
           targetHandle: "value",
-          edge_type: "data",
-        },
-      ],
+          edge_type: "data"
+        }
+      ]
     };
 
-    await outputRunner.handleCommand({ command: "run_job", data: { graph, params: {} } });
+    await outputRunner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
     await new Promise((r) => setTimeout(r, 30));
 
-    const sent = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
+    const sent = ws.sentText.map(
+      (t) => JSON.parse(t) as Record<string, unknown>
+    );
     const outputUpdate = sent.find((m) => m.type === "output_update");
     expect(outputUpdate).toBeDefined();
     expect(outputUpdate?.value).toBe("hello world");
@@ -446,7 +506,7 @@ describe("UnifiedWebSocketRunner", () => {
               genProcessCalls += 1;
               yield { chunk: "first" };
               yield { chunk: "second" };
-            },
+            }
           };
         }
         if (node.type === "nodetool.workflows.base_node.Preview") {
@@ -454,13 +514,13 @@ describe("UnifiedWebSocketRunner", () => {
             async process(inputs: Record<string, unknown>) {
               sinkValues.push(inputs.value ?? null);
               return { output: inputs.value ?? null };
-            },
+            }
           };
         }
         return {
           async process() {
             return {};
-          },
+          }
         };
       },
       resolveNodeType: {
@@ -471,8 +531,8 @@ describe("UnifiedWebSocketRunner", () => {
               outputs: { chunk: "chunk" },
               descriptorDefaults: {
                 is_streaming_output: true,
-                name: "Streamer",
-              },
+                name: "Streamer"
+              }
             };
           }
           if (nodeType === "nodetool.workflows.base_node.Preview") {
@@ -480,12 +540,12 @@ describe("UnifiedWebSocketRunner", () => {
               nodeType,
               propertyTypes: { value: "any" },
               outputs: { output: "any" },
-              descriptorDefaults: { name: "Preview" },
+              descriptorDefaults: { name: "Preview" }
             };
           }
           return null;
-        },
-      },
+        }
+      }
     });
 
     await outputRunner.connect(ws);
@@ -495,7 +555,7 @@ describe("UnifiedWebSocketRunner", () => {
         graph: {
           nodes: [
             { id: "stream", type: "test.Streamer" },
-            { id: "preview", type: "nodetool.workflows.base_node.Preview" },
+            { id: "preview", type: "nodetool.workflows.base_node.Preview" }
           ],
           edges: [
             {
@@ -504,11 +564,11 @@ describe("UnifiedWebSocketRunner", () => {
               sourceHandle: "chunk",
               target: "preview",
               targetHandle: "value",
-              edge_type: "data",
-            },
-          ],
-        },
-      },
+              edge_type: "data"
+            }
+          ]
+        }
+      }
     });
     await new Promise((r) => setTimeout(r, 50));
 

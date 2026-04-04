@@ -190,9 +190,7 @@ export async function getHFToken(options?: {
         return dbToken;
       }
     } catch (err) {
-      console.debug(
-        `getHFToken: failed to get HF_TOKEN from secrets: ${err}`
-      );
+      console.debug(`getHFToken: failed to get HF_TOKEN from secrets: ${err}`);
     }
   }
 
@@ -225,9 +223,7 @@ export class AdminDownloadManager {
         `AdminDownloadManager initialized with HF_TOKEN (${this.token.length} chars)`
       );
     } else {
-      console.debug(
-        "AdminDownloadManager initialized without HF_TOKEN"
-      );
+      console.debug("AdminDownloadManager initialized without HF_TOKEN");
     }
   }
 
@@ -243,11 +239,11 @@ export class AdminDownloadManager {
   ): Promise<AdminDownloadManager> {
     const token = await getHFToken({
       userId: options?.userId,
-      getSecret: options?.getSecret,
+      getSecret: options?.getSecret
     });
     return new AdminDownloadManager({
       token: token ?? undefined,
-      hub,
+      hub
     });
   }
 
@@ -269,14 +265,14 @@ export class AdminDownloadManager {
       filePath,
       ignorePatterns,
       allowPatterns,
-      userId,
+      userId
     } = options;
 
     // Lazy token init
     if (!this.tokenInitialized && userId) {
       this.token = await getHFToken({
         userId,
-        getSecret: options.getSecret,
+        getSecret: options.getSecret
       });
       this.tokenInitialized = true;
     }
@@ -287,7 +283,7 @@ export class AdminDownloadManager {
       yield {
         status: "starting",
         repo_id: repoId,
-        message: `Starting download of ${repoId}`,
+        message: `Starting download of ${repoId}`
       };
 
       // Single file download
@@ -296,7 +292,7 @@ export class AdminDownloadManager {
           status: "progress",
           repo_id: repoId,
           message: `Downloading single file: ${filePath}`,
-          current_file: filePath,
+          current_file: filePath
         };
 
         const localPath = await this.hub.downloadFile(
@@ -310,7 +306,7 @@ export class AdminDownloadManager {
           status: "completed",
           repo_id: repoId,
           local_path: localPath,
-          message: `Successfully downloaded ${repoId}/${filePath}`,
+          message: `Successfully downloaded ${repoId}/${filePath}`
         };
         return;
       }
@@ -319,13 +315,10 @@ export class AdminDownloadManager {
       yield {
         status: "progress",
         repo_id: repoId,
-        message: "Fetching file list...",
+        message: "Fetching file list..."
       };
 
-      let files = await this.hub.listRepoFiles(
-        repoId,
-        this.token ?? undefined
-      );
+      let files = await this.hub.listRepoFiles(repoId, this.token ?? undefined);
       files = filterRepoFiles(files, allowPatterns, ignorePatterns);
 
       // Partition into cached vs. uncached
@@ -350,7 +343,7 @@ export class AdminDownloadManager {
         message: `Found ${totalFiles} files to download, ${cachedPaths.length} already cached`,
         total_files: totalFiles,
         total_size: totalSize,
-        cached_files: cachedPaths.length,
+        cached_files: cachedPaths.length
       };
 
       if (totalFiles === 0) {
@@ -359,7 +352,7 @@ export class AdminDownloadManager {
           repo_id: repoId,
           message: `All files already cached for ${repoId}`,
           total_files: 0,
-          cached_files: cachedPaths.length,
+          cached_files: cachedPaths.length
         };
         return;
       }
@@ -379,7 +372,7 @@ export class AdminDownloadManager {
           file_progress: i + 1,
           total_files: totalFiles,
           downloaded_size: downloadedSize,
-          total_size: totalSize,
+          total_size: totalSize
         };
 
         try {
@@ -401,7 +394,7 @@ export class AdminDownloadManager {
             total_files: totalFiles,
             downloaded_files: downloadedFiles.length,
             downloaded_size: downloadedSize,
-            total_size: totalSize,
+            total_size: totalSize
           };
         } catch (err) {
           console.error(`Error downloading file ${file.path}: ${err}`);
@@ -410,7 +403,7 @@ export class AdminDownloadManager {
             repo_id: repoId,
             message: `Error downloading ${file.path}: ${err}`,
             current_file: file.path,
-            error_file: file.path,
+            error_file: file.path
           };
         }
       }
@@ -422,7 +415,7 @@ export class AdminDownloadManager {
         downloaded_files: downloadedFiles.length,
         total_files: totalFiles,
         total_size: totalSize,
-        downloaded_size: downloadedSize,
+        downloaded_size: downloadedSize
       };
     } catch (err) {
       console.error(`Error in HF model download ${repoId}: ${err}`);
@@ -430,7 +423,7 @@ export class AdminDownloadManager {
         status: "error",
         repo_id: repoId,
         error: String(err),
-        message: `Error downloading ${repoId}: ${err}`,
+        message: `Error downloading ${repoId}: ${err}`
       };
     }
   }
@@ -451,7 +444,7 @@ export async function* streamOllamaModelPull(
     yield {
       status: "starting",
       model: modelName,
-      message: `Starting download of ${modelName}`,
+      message: `Starting download of ${modelName}`
     };
 
     for await (const chunk of ollama.pull(modelName)) {
@@ -461,14 +454,14 @@ export async function* streamOllamaModelPull(
     yield {
       status: "completed",
       model: modelName,
-      message: `Successfully downloaded ${modelName}`,
+      message: `Successfully downloaded ${modelName}`
     };
   } catch (err) {
     console.error(`Error pulling Ollama model ${modelName}: ${err}`);
     yield {
       status: "error",
       model: modelName,
-      error: String(err),
+      error: String(err)
     };
   }
 }
@@ -490,7 +483,7 @@ export async function* streamHFModelDownload(
 ): AsyncGenerator<AdminProgressUpdate> {
   const manager = await AdminDownloadManager.create(hub, {
     userId: options.userId,
-    getSecret: options.getSecret,
+    getSecret: options.getSecret
   });
   yield* manager.downloadWithProgress(options);
 }
@@ -523,7 +516,7 @@ export async function* downloadHFModel(
   } else {
     const manager = await AdminDownloadManager.create(hub, {
       userId: options.userId,
-      getSecret: options.getSecret,
+      getSecret: options.getSecret
     });
     let finalResult: AdminProgressUpdate | null = null;
     for await (const update of manager.downloadWithProgress(options)) {
@@ -558,14 +551,14 @@ export async function* downloadOllamaModel(
       yield {
         status: "completed",
         model: modelName,
-        message: `Successfully downloaded ${modelName}`,
+        message: `Successfully downloaded ${modelName}`
       };
     } catch (err) {
       console.error(`Error downloading Ollama model ${modelName}: ${err}`);
       yield {
         status: "error",
         model: modelName,
-        error: String(err),
+        error: String(err)
       };
     }
   }
@@ -603,7 +596,7 @@ export async function* deleteHFModel(
     yield {
       status: "completed",
       repo_id: repoId,
-      message: `Successfully deleted ${repoId}`,
+      message: `Successfully deleted ${repoId}`
     };
   } catch (err) {
     console.error(`Error deleting HF model ${repoId}: ${err}`);
@@ -616,9 +609,10 @@ export async function* deleteHFModel(
 /**
  * Recursively calculate total size of files in a directory.
  */
-function calculateCacheSizeSync(
-  cacheDir: string
-): { totalSize: number; error: string | null } {
+function calculateCacheSizeSync(cacheDir: string): {
+  totalSize: number;
+  error: string | null;
+} {
   let totalSize = 0;
   let error: string | null = null;
 
@@ -668,7 +662,7 @@ export async function* calculateCacheSize(
       success: true,
       cache_dir: cacheDir,
       total_size_bytes: totalSize,
-      size_gb: Math.round(sizeGb * 100) / 100,
+      size_gb: Math.round(sizeGb * 100) / 100
     };
   } catch (err) {
     console.error(`Error calculating cache size: ${err}`);

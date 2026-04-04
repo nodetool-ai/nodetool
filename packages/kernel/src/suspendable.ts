@@ -40,7 +40,7 @@ export class WorkflowSuspendedError extends Error {
       node_id: this.nodeId,
       reason: this.reason,
       state: this.state,
-      metadata: this.metadata,
+      metadata: this.metadata
     };
   }
 }
@@ -66,7 +66,7 @@ export interface SuspendableNode {
   suspendWorkflow(
     reason: string,
     state: Record<string, unknown>,
-    metadata?: Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): never;
 
   /**
@@ -100,10 +100,14 @@ export class SuspendableState implements SuspendableNode {
 
   getSavedState(): Record<string, unknown> {
     if (!this._isResuming) {
-      throw new Error("getSavedState() can only be called when resuming from suspension");
+      throw new Error(
+        "getSavedState() can only be called when resuming from suspension"
+      );
     }
     if (this._savedState === null) {
-      log.warn("No saved state found for suspended node", { nodeId: this._nodeId });
+      log.warn("No saved state found for suspended node", {
+        nodeId: this._nodeId
+      });
       return {};
     }
     return this._savedState;
@@ -112,18 +116,18 @@ export class SuspendableState implements SuspendableNode {
   suspendWorkflow(
     reason: string,
     state: Record<string, unknown>,
-    metadata?: Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): never {
     log.info("Suspending workflow at node", {
       nodeId: this._nodeId,
       reason,
-      stateKeys: Object.keys(state),
+      stateKeys: Object.keys(state)
     });
     throw new WorkflowSuspendedError({
       nodeId: this._nodeId,
       reason,
       state,
-      metadata,
+      metadata
     });
   }
 
@@ -137,21 +141,24 @@ export class SuspendableState implements SuspendableNode {
     Object.assign(this._savedState, updates);
     log.info("Updated suspended state", {
       nodeId: this._nodeId,
-      keys: Object.keys(updates),
+      keys: Object.keys(updates)
     });
   }
 
   /**
    * Internal: set resumption state (called by the workflow runner).
    */
-  setResumingState(savedState: Record<string, unknown>, eventSeq: number): void {
+  setResumingState(
+    savedState: Record<string, unknown>,
+    eventSeq: number
+  ): void {
     this._isResuming = true;
     this._savedState = savedState;
     this.eventSeq = eventSeq;
     log.debug("Node set to resuming mode", {
       nodeId: this._nodeId,
       eventSeq,
-      stateKeys: Object.keys(savedState),
+      stateKeys: Object.keys(savedState)
     });
   }
 }

@@ -314,6 +314,10 @@ const api = {
         installLocation,
       }),
 
+    /** Uninstall a runtime package */
+    uninstallRuntime: (packageId: RuntimePackageId) =>
+      ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_UNINSTALL, { packageId }),
+
     /** Get current conda install location */
     getInstallLocation: () =>
       ipcRenderer.invoke(IpcChannels.RUNTIME_GET_INSTALL_LOCATION),
@@ -372,9 +376,6 @@ const api = {
     openExternal: (url: string) =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_OPEN_EXTERNAL, validateUrl(url)),
 
-    /** Check if Ollama is installed */
-    checkOllamaInstalled: () =>
-      ipcRenderer.invoke(IpcChannels.CHECK_OLLAMA_INSTALLED),
   },
 
   // ============================================================================
@@ -491,18 +492,14 @@ const api = {
       location: string,
       packages: PythonPackages,
       modelBackend?: "ollama" | "llama_cpp" | "none",
-      installOllama?: boolean,
       installLlamaCpp?: boolean,
-      startOllamaOnStartup?: boolean,
       startLlamaCppOnStartup?: boolean,
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
         packages,
         modelBackend,
-        installOllama,
         installLlamaCpp,
-        startOllamaOnStartup,
         startLlamaCppOnStartup,
       }),
 
@@ -644,7 +641,6 @@ const api = {
 
     /** Update startup settings for managed local model services */
     setModelServicesStartup: (update: {
-      startOllamaOnStartup?: boolean;
       startLlamaCppOnStartup?: boolean;
     }) =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP, update),
@@ -730,7 +726,7 @@ const api = {
       ipcRenderer.invoke(IpcChannels.AGENT_CREATE_SESSION, options),
 
     /** List available models for the selected provider */
-    listModels: (options?: { provider?: "claude" | "codex"; workspacePath?: string }) =>
+    listModels: (options?: { provider?: "claude" | "codex" | "opencode"; workspacePath?: string }) =>
       ipcRenderer.invoke(IpcChannels.AGENT_LIST_MODELS, options || {}),
 
     /** Send a message to an active Claude Agent session */
@@ -747,6 +743,18 @@ const api = {
     /** Close an active Claude Agent session */
     closeSession: (sessionId: string) =>
       ipcRenderer.invoke(IpcChannels.AGENT_CLOSE_SESSION, sessionId),
+
+    /** List previous Claude Agent sessions from SDK storage */
+    listSessions: (options?: { dir?: string; limit?: number; offset?: number }) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_LIST_SESSIONS, options || {}),
+
+    /** Load conversation messages from a session transcript */
+    getSessionMessages: (options: { sessionId: string; dir?: string }) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_GET_SESSION_MESSAGES, options),
+
+    /** Start the MCP tool server and return its URL */
+    startMcpServer: () =>
+      ipcRenderer.invoke(IpcChannels.AGENT_START_MCP_SERVER),
 
     /** Subscribe to streaming messages from the Claude Agent */
     onStreamMessage: createEventSubscription(

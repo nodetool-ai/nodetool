@@ -18,7 +18,7 @@ describe("LMStudioProvider", () => {
       { client: {} as any, baseURL: "http://localhost:9999" }
     );
     expect(provider.getContainerEnv()).toEqual({
-      LMSTUDIO_API_URL: "http://localhost:9999",
+      LMSTUDIO_API_URL: "http://localhost:9999"
     });
   });
 
@@ -41,8 +41,8 @@ describe("LMStudioProvider", () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        data: [{ id: "local-model-1" }, { id: "local-model-2" }],
-      }),
+        data: [{ id: "local-model-1" }, { id: "local-model-2" }]
+      })
     });
 
     const provider = new LMStudioProvider(
@@ -53,14 +53,12 @@ describe("LMStudioProvider", () => {
     const models = await provider.getAvailableLanguageModels();
     expect(models).toEqual([
       { id: "local-model-1", name: "local-model-1", provider: "lmstudio" },
-      { id: "local-model-2", name: "local-model-2", provider: "lmstudio" },
+      { id: "local-model-2", name: "local-model-2", provider: "lmstudio" }
     ]);
   });
 
   it("returns empty list when LM Studio not available", async () => {
-    const mockFetch = vi
-      .fn()
-      .mockRejectedValue(new Error("ECONNREFUSED"));
+    const mockFetch = vi.fn().mockRejectedValue(new Error("ECONNREFUSED"));
     const provider = new LMStudioProvider(
       {},
       { client: {} as any, fetchFn: mockFetch as any }
@@ -87,25 +85,25 @@ describe("LMStudioProvider", () => {
         {
           message: {
             content: "lmstudio response",
-            tool_calls: null,
-          },
-        },
-      ],
+            tool_calls: null
+          }
+        }
+      ]
     });
 
     const provider = new LMStudioProvider(
       {},
       {
         client: {
-          chat: { completions: { create } },
-        } as any,
+          chat: { completions: { create } }
+        } as any
       }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
     const result = await provider.generateMessage({
       messages,
-      model: "local-model",
+      model: "local-model"
     });
 
     expect(result.role).toBe("assistant");

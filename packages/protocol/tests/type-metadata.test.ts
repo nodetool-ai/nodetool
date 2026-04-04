@@ -66,13 +66,17 @@ describe("T-META-1: TypeMetadata", () => {
     });
 
     it("returns false for union[str, int]", () => {
-      expect(TypeMetadata.fromString("union[str, int]").isListType()).toBe(false);
+      expect(TypeMetadata.fromString("union[str, int]").isListType()).toBe(
+        false
+      );
     });
   });
 
   describe("isUnionType", () => {
     it("returns true for union[str, int]", () => {
-      expect(TypeMetadata.fromString("union[str, int]").isUnionType()).toBe(true);
+      expect(TypeMetadata.fromString("union[str, int]").isUnionType()).toBe(
+        true
+      );
     });
 
     it("returns false for list[int]", () => {
@@ -165,7 +169,9 @@ describe("T-META-1: TypeMetadata", () => {
     });
 
     it("union type", () => {
-      expect(TypeMetadata.fromString("union[str, int]").toString()).toBe("union[str, int]");
+      expect(TypeMetadata.fromString("union[str, int]").toString()).toBe(
+        "union[str, int]"
+      );
     });
   });
 });

@@ -19,6 +19,7 @@
     "@nodetool/agents": "*",
     "@nodetool/config": "*",
     "@nodetool/code-runners": "*",
+    "@nodetool/kernel": "*",
     "@nodetool/node-sdk": "*",
     "@nodetool/runtime": "*",
     "@nodetool/vectorstore": "*",

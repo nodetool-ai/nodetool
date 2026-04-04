@@ -12,9 +12,9 @@ export const config: ModuleConfig = {
         "Create marketing videos from product descriptions",
         "Produce educational video content",
         "Generate creative video concepts",
-        "Create animated scenes from stories",
+        "Create animated scenes from stories"
       ],
-      basicFields: ["prompt", "aspect_ratio", "resolution"],
+      basicFields: ["prompt", "aspect_ratio", "resolution"]
     },
 
     "fal-ai/cogvideox-5b": {
@@ -27,9 +27,9 @@ export const config: ModuleConfig = {
         "Create animated storytelling content",
         "Produce concept videos for pitches",
         "Generate video storyboards",
-        "Create educational demonstrations",
+        "Create educational demonstrations"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/fast-animatediff/text-to-video": {
@@ -42,16 +42,16 @@ export const config: ModuleConfig = {
         "animatediff",
         "animation",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Animate ideas from text descriptions",
         "Create animated content quickly",
         "Generate motion graphics from prompts",
         "Produce animated concept art",
-        "Create video loops and sequences",
+        "Create video loops and sequences"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/fast-animatediff/turbo/text-to-video": {
@@ -65,16 +65,16 @@ export const config: ModuleConfig = {
         "turbo",
         "fast",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Rapidly prototype video animations",
         "Create quick video previews",
         "Generate animations with minimal latency",
         "Iterate on video concepts quickly",
-        "Produce real-time animation effects",
+        "Produce real-time animation effects"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/animatediff-sparsectrl-lcm": {
@@ -88,16 +88,16 @@ export const config: ModuleConfig = {
         "sparsectrl",
         "lcm",
         "animation",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Animate hand-drawn sketches",
         "Bring drawings to life",
         "Create animated illustrations",
         "Generate animations from concept art",
-        "Produce animation from sparse frames",
+        "Produce animation from sparse frames"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "veed/avatars/text-to-video": {
@@ -110,16 +110,16 @@ export const config: ModuleConfig = {
         "avatar",
         "talking-head",
         "veed",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Create talking avatar presentations",
         "Generate spokesperson videos",
         "Produce educational talking head videos",
         "Create personalized video messages",
-        "Generate multilingual avatar content",
+        "Generate multilingual avatar content"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "argil/avatars/text-to-video": {
@@ -132,16 +132,16 @@ export const config: ModuleConfig = {
         "avatar",
         "talking-head",
         "argil",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Generate avatar spokesperson videos",
         "Create virtual presenter content",
         "Produce automated video announcements",
         "Generate character-based narratives",
-        "Create social media avatar videos",
+        "Create social media avatar videos"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/bytedance/seedance/v1.5/pro/text-to-video": {
@@ -154,16 +154,16 @@ export const config: ModuleConfig = {
         "dance",
         "seedance",
         "bytedance",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Generate dance choreography videos",
         "Create dance performance visualizations",
         "Produce music video concepts",
         "Generate dance training content",
-        "Create dance animation prototypes",
+        "Create dance animation prototypes"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video": {
@@ -177,16 +177,16 @@ export const config: ModuleConfig = {
         "seedance",
         "fast",
         "bytedance",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Rapidly prototype dance videos",
         "Create quick dance previews",
         "Generate dance concepts efficiently",
         "Iterate on choreography ideas",
-        "Produce dance storyboards",
+        "Produce dance storyboards"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "veed/fabric-1.0/text": {
@@ -199,16 +199,16 @@ export const config: ModuleConfig = {
         "fabric",
         "veed",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate marketing videos from text",
         "Create explainer video content",
         "Produce video ads from copy",
         "Generate social media videos",
-        "Create branded video content",
+        "Create branded video content"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/ltx-video": {
@@ -221,9 +221,9 @@ export const config: ModuleConfig = {
         "Create smooth video sequences",
         "Produce high-quality video content",
         "Generate professional video clips",
-        "Create cinematic video scenes",
+        "Create cinematic video scenes"
       ],
-      basicFields: ["prompt", "aspect_ratio", "resolution"],
+      basicFields: ["prompt", "aspect_ratio", "resolution"]
     },
 
     "fal-ai/kling-video/v1/standard/text-to-video": {
@@ -236,31 +236,24 @@ export const config: ModuleConfig = {
         "Create video content efficiently",
         "Produce videos for web use",
         "Generate video previews",
-        "Create video concepts",
+        "Create video concepts"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/kling-video/v1/pro/text-to-video": {
       className: "KlingVideoV1ProTextToVideo",
       docstring:
         "Kling Video v1 Pro generates high-quality professional videos from text prompts.",
-      tags: [
-        "video",
-        "generation",
-        "kling",
-        "pro",
-        "text-to-video",
-        "txt2vid",
-      ],
+      tags: ["video", "generation", "kling", "pro", "text-to-video", "txt2vid"],
       useCases: [
         "Generate professional grade videos",
         "Create high-quality marketing content",
         "Produce cinematic video sequences",
         "Generate detailed video scenes",
-        "Create premium video content",
+        "Create premium video content"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/mochi-v1": {
@@ -273,16 +266,16 @@ export const config: ModuleConfig = {
         "mochi",
         "artistic",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate artistic video content",
         "Create stylized animations",
         "Produce creative video art",
         "Generate experimental videos",
-        "Create unique visual content",
+        "Create unique visual content"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/runway-gen3/turbo/text-to-video": {
@@ -296,16 +289,16 @@ export const config: ModuleConfig = {
         "gen3",
         "turbo",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate videos rapidly from text",
         "Create quick video prototypes",
         "Produce fast video iterations",
         "Generate real-time video content",
-        "Create efficient video workflows",
+        "Create efficient video workflows"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/stable-video": {
@@ -318,9 +311,9 @@ export const config: ModuleConfig = {
         "Create consistent video content",
         "Produce reliable video outputs",
         "Generate predictable video scenes",
-        "Create controlled video generation",
+        "Create controlled video generation"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/t2v-turbo": {
@@ -333,16 +326,16 @@ export const config: ModuleConfig = {
         "turbo",
         "fast",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate videos with minimal latency",
         "Create rapid video prototypes",
         "Produce quick video previews",
         "Generate real-time video content",
-        "Create efficient video workflows",
+        "Create efficient video workflows"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/wan-cinematic": {
@@ -355,16 +348,16 @@ export const config: ModuleConfig = {
         "cinematic",
         "professional",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate cinematic video sequences",
         "Create film-quality content",
         "Produce professional video clips",
         "Generate movie-like scenes",
-        "Create dramatic video content",
+        "Create dramatic video content"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/minimax-video/v1": {
@@ -377,14 +370,15 @@ export const config: ModuleConfig = {
         "Create video content with minimal resources",
         "Produce lightweight video outputs",
         "Generate scalable video content",
-        "Create optimized video workflows",
+        "Create optimized video workflows"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/minimax-video/v1/turbo": {
       className: "MinimaxVideoV1Turbo",
-      docstring: "Minimax Video v1 Turbo generates videos from text at maximum speed.",
+      docstring:
+        "Minimax Video v1 Turbo generates videos from text at maximum speed.",
       tags: [
         "video",
         "generation",
@@ -392,16 +386,16 @@ export const config: ModuleConfig = {
         "turbo",
         "fast",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate videos at maximum speed",
         "Create rapid video iterations",
         "Produce instant video previews",
         "Generate real-time video responses",
-        "Create ultra-fast video workflows",
+        "Create ultra-fast video workflows"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/pyramidflow": {
@@ -414,16 +408,16 @@ export const config: ModuleConfig = {
         "pyramid",
         "flow",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate smooth motion videos",
         "Create fluid video animations",
         "Produce high-quality motion sequences",
         "Generate temporally coherent videos",
-        "Create professional motion graphics",
+        "Create professional motion graphics"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/luma-dream-machine": {
@@ -436,16 +430,16 @@ export const config: ModuleConfig = {
         "luma",
         "dream-machine",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate dreamlike video content",
         "Create surreal video sequences",
         "Produce artistic video interpretations",
         "Generate creative video concepts",
-        "Create imaginative video art",
+        "Create imaginative video art"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/luma-photon": {
@@ -458,16 +452,16 @@ export const config: ModuleConfig = {
         "luma",
         "photon",
         "photorealistic",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Generate photorealistic video content",
         "Create realistic video simulations",
         "Produce lifelike video scenes",
         "Generate high-fidelity video outputs",
-        "Create realistic visual content",
+        "Create realistic visual content"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/luma-photon-flash": {
@@ -481,16 +475,16 @@ export const config: ModuleConfig = {
         "photon",
         "flash",
         "fast",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Generate photorealistic videos rapidly",
         "Create realistic video previews",
         "Produce fast photorealistic content",
         "Generate quick realistic sequences",
-        "Create efficient realistic workflows",
+        "Create efficient realistic workflows"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/luma-ray2": {
@@ -503,16 +497,16 @@ export const config: ModuleConfig = {
         "luma",
         "ray2",
         "advanced",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Generate ray-traced video content",
         "Create advanced lighting effects",
         "Produce high-quality rendered videos",
         "Generate realistic lighting sequences",
-        "Create professional visual effects",
+        "Create professional visual effects"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/luma-ray2/turbo": {
@@ -526,16 +520,16 @@ export const config: ModuleConfig = {
         "ray2",
         "turbo",
         "fast",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Generate ray-traced videos quickly",
         "Create fast rendered previews",
         "Produce efficient visual effects",
         "Generate rapid lighting iterations",
-        "Create optimized rendering workflows",
+        "Create optimized rendering workflows"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/qihoo-t2v": {
@@ -548,16 +542,16 @@ export const config: ModuleConfig = {
         "qihoo",
         "chinese",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate videos from Chinese text",
         "Create multilingual video content",
         "Produce localized video scenes",
         "Generate culturally relevant videos",
-        "Create international video content",
+        "Create international video content"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/wan-show-1": {
@@ -569,16 +563,16 @@ export const config: ModuleConfig = {
         "generation",
         "presentation",
         "showcase",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Generate presentation videos",
         "Create showcase content",
         "Produce pitch videos",
         "Generate demo videos",
-        "Create educational presentations",
+        "Create educational presentations"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/luma-photon/v2": {
@@ -592,16 +586,16 @@ export const config: ModuleConfig = {
         "photon",
         "v2",
         "photorealistic",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Generate high-quality photorealistic videos",
         "Create detailed realistic scenes",
         "Produce cinematic realistic content",
         "Generate professional video outputs",
-        "Create premium photorealistic sequences",
+        "Create premium photorealistic sequences"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/luma-dream-machine/v1.6": {
@@ -614,16 +608,16 @@ export const config: ModuleConfig = {
         "luma",
         "dream-machine",
         "v1.6",
-        "text-to-video",
+        "text-to-video"
       ],
       useCases: [
         "Generate enhanced dreamlike videos",
         "Create surreal video art",
         "Produce creative visual content",
         "Generate artistic video sequences",
-        "Create imaginative video effects",
+        "Create imaginative video effects"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/pixverse/v5.6/text-to-video": {
@@ -635,8 +629,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltx-2-19b/distilled/text-to-video/lora": {
@@ -648,8 +642,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltx-2-19b/distilled/text-to-video": {
@@ -661,8 +655,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltx-2-19b/text-to-video/lora": {
@@ -674,8 +668,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltx-2-19b/text-to-video": {
@@ -687,27 +681,21 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kandinsky5-pro/text-to-video": {
       className: "Kandinsky5ProTextToVideo",
       docstring: "Kandinsky5 Pro",
-      tags: [
-        "video",
-        "generation",
-        "text-to-video",
-        "txt2vid",
-        "professional",
-      ],
+      tags: ["video", "generation", "text-to-video", "txt2vid", "professional"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "wan/v2.6/text-to-video": {
@@ -719,27 +707,21 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v2.6/pro/text-to-video": {
       className: "KlingVideoV26ProTextToVideo",
       docstring: "Kling Video v2.6 Text to Video",
-      tags: [
-        "video",
-        "generation",
-        "text-to-video",
-        "txt2vid",
-        "professional",
-      ],
+      tags: ["video", "generation", "text-to-video", "txt2vid", "professional"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pixverse/v5.5/text-to-video": {
@@ -751,8 +733,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltx-2/text-to-video/fast": {
@@ -764,8 +746,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltx-2/text-to-video": {
@@ -777,8 +759,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/hunyuan-video-v1.5/text-to-video": {
@@ -790,8 +772,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/infinity-star/text-to-video": {
@@ -803,8 +785,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/sana-video": {
@@ -816,8 +798,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/longcat-video/text-to-video/720p": {
@@ -829,8 +811,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/longcat-video/text-to-video/480p": {
@@ -842,8 +824,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/longcat-video/distilled/text-to-video/720p": {
@@ -855,8 +837,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/longcat-video/distilled/text-to-video/480p": {
@@ -868,46 +850,34 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/minimax/hailuo-2.3/standard/text-to-video": {
       className: "MinimaxHailuo23StandardTextToVideo",
       docstring: "MiniMax Hailuo 2.3 [Standard] (Text to Video)",
-      tags: [
-        "video",
-        "generation",
-        "text-to-video",
-        "txt2vid",
-        "professional",
-      ],
+      tags: ["video", "generation", "text-to-video", "txt2vid", "professional"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/minimax/hailuo-2.3/pro/text-to-video": {
       className: "MinimaxHailuo23ProTextToVideo",
       docstring: "MiniMax Hailuo 2.3 [Pro] (Text to Video)",
-      tags: [
-        "video",
-        "generation",
-        "text-to-video",
-        "txt2vid",
-        "professional",
-      ],
+      tags: ["video", "generation", "text-to-video", "txt2vid", "professional"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/vidu/q2/text-to-video": {
@@ -919,8 +889,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/krea-wan-14b/text-to-video": {
@@ -932,8 +902,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan-alpha": {
@@ -945,8 +915,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kandinsky5/text-to-video/distill": {
@@ -958,8 +928,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kandinsky5/text-to-video": {
@@ -971,8 +941,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/veo3.1/fast": {
@@ -984,8 +954,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/veo3.1": {
@@ -997,27 +967,21 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/sora-2/text-to-video/pro": {
       className: "Sora2TextToVideoPro",
       docstring: "Sora 2",
-      tags: [
-        "video",
-        "generation",
-        "text-to-video",
-        "txt2vid",
-        "professional",
-      ],
+      tags: ["video", "generation", "text-to-video", "txt2vid", "professional"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/sora-2/text-to-video": {
@@ -1029,8 +993,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ovi": {
@@ -1042,8 +1006,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan-25-preview/text-to-video": {
@@ -1055,8 +1019,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pixverse/v5/text-to-video": {
@@ -1068,8 +1032,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/infinitalk/single-text": {
@@ -1081,8 +1045,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "moonvalley/marey/t2v": {
@@ -1094,8 +1058,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan/v2.2-a14b/text-to-video/lora": {
@@ -1108,8 +1072,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan/v2.2-5b/text-to-video/distill": {
@@ -1122,8 +1086,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan/v2.2-5b/text-to-video/fast-wan": {
@@ -1136,8 +1100,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan/v2.2-a14b/text-to-video/turbo": {
@@ -1150,8 +1114,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan/v2.2-5b/text-to-video": {
@@ -1164,8 +1128,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan/v2.2-a14b/text-to-video": {
@@ -1178,8 +1142,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltxv-13b-098-distilled": {
@@ -1192,8 +1156,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/minimax/hailuo-02/pro/text-to-video": {
@@ -1206,8 +1170,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/bytedance/seedance/v1/pro/text-to-video": {
@@ -1220,8 +1184,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/bytedance/seedance/v1/lite/text-to-video": {
@@ -1233,8 +1197,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v2.1/master/text-to-video": {
@@ -1247,8 +1211,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltx-video-13b-dev": {
@@ -1261,8 +1225,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltx-video-13b-distilled": {
@@ -1275,8 +1239,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pixverse/v4.5/text-to-video/fast": {
@@ -1289,8 +1253,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pixverse/v4.5/text-to-video": {
@@ -1303,8 +1267,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/vidu/q1/text-to-video": {
@@ -1317,8 +1281,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/magi": {
@@ -1331,8 +1295,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/magi-distilled": {
@@ -1345,8 +1309,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pixverse/v4/text-to-video": {
@@ -1359,8 +1323,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pixverse/v4/text-to-video/fast": {
@@ -1373,8 +1337,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/lipsync/audio-to-video": {
@@ -1387,8 +1351,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/lipsync/text-to-video": {
@@ -1401,8 +1365,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan-t2v-lora": {
@@ -1415,8 +1379,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/luma-dream-machine/ray-2-flash": {
@@ -1429,8 +1393,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pika/v2.1/text-to-video": {
@@ -1443,8 +1407,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pika/v2.2/text-to-video": {
@@ -1457,8 +1421,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pika/v2/turbo/text-to-video": {
@@ -1471,8 +1435,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan-pro/text-to-video": {
@@ -1485,8 +1449,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v1.6/pro/effects": {
@@ -1498,8 +1462,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v1.6/standard/effects": {
@@ -1511,8 +1475,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v1.5/pro/effects": {
@@ -1524,8 +1488,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v1/standard/effects": {
@@ -1537,8 +1501,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/ltx-video-v095": {
@@ -1550,8 +1514,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v1.6/pro/text-to-video": {
@@ -1563,8 +1527,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan/v2.1/1.3b/text-to-video": {
@@ -1577,8 +1541,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/wan-t2v": {
@@ -1591,8 +1555,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/veo2": {
@@ -1605,8 +1569,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/minimax/video-01-director": {
@@ -1619,8 +1583,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pixverse/v3.5/text-to-video": {
@@ -1633,8 +1597,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/pixverse/v3.5/text-to-video/fast": {
@@ -1647,8 +1611,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/luma-dream-machine/ray-2": {
@@ -1661,8 +1625,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/hunyuan-video-lora": {
@@ -1675,8 +1639,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/transpixar": {
@@ -1689,8 +1653,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v1.6/standard/text-to-video": {
@@ -1702,22 +1666,21 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/minimax/video-01-live": {
       className: "MinimaxVideo01Live",
-      docstring:
-        "Generate video clips from your prompts using MiniMax model",
+      docstring: "Generate video clips from your prompts using MiniMax model",
       tags: ["video", "generation", "text-to-video", "txt2vid"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v1.5/pro/text-to-video": {
@@ -1729,22 +1692,21 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/fast-svd/text-to-video": {
       className: "FastSvdTextToVideo",
-      docstring:
-        "Generate short video clips from your prompts using SVD v1.1",
+      docstring: "Generate short video clips from your prompts using SVD v1.1",
       tags: ["video", "generation", "text-to-video", "txt2vid", "fast"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/fast-svd-lcm/text-to-video": {
@@ -1757,22 +1719,21 @@ export const config: ModuleConfig = {
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/minimax/video-01": {
       className: "MinimaxVideo01",
-      docstring:
-        "Generate video clips from your prompts using MiniMax model",
+      docstring: "Generate video clips from your prompts using MiniMax model",
       tags: ["video", "generation", "text-to-video", "txt2vid"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
         "Educational content creation",
         "Social media video posts",
-        "Automated video production",
-      ],
+        "Automated video production"
+      ]
     },
 
     "fal-ai/kling-video/v3/standard/text-to-video": {
@@ -1786,16 +1747,16 @@ export const config: ModuleConfig = {
         "v3",
         "standard",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate cinematic videos from text descriptions",
         "Create marketing videos from product descriptions",
         "Produce educational video content from scripts",
         "Generate social media video content",
-        "Create animated scenes from text prompts",
+        "Create animated scenes from text prompts"
       ],
-      basicFields: ["prompt", "duration", "aspect_ratio"],
+      basicFields: ["prompt", "duration", "aspect_ratio"]
     },
 
     "fal-ai/kling-video/v3/pro/text-to-video": {
@@ -1809,16 +1770,16 @@ export const config: ModuleConfig = {
         "v3",
         "pro",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Create professional-grade videos from detailed prompts",
         "Generate cinematic video content with precise motion",
         "Produce high-fidelity advertising videos",
         "Create premium animated content from scripts",
-        "Generate top-tier video for film and media",
+        "Generate top-tier video for film and media"
       ],
-      basicFields: ["prompt", "duration", "aspect_ratio"],
+      basicFields: ["prompt", "duration", "aspect_ratio"]
     },
 
     "fal-ai/kling-video/o3/standard/text-to-video": {
@@ -1832,16 +1793,16 @@ export const config: ModuleConfig = {
         "o3",
         "standard",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Generate cinematic videos from text descriptions",
         "Create marketing videos from product descriptions",
         "Produce educational video content from scripts",
         "Generate social media video content",
-        "Create animated scenes from text prompts",
+        "Create animated scenes from text prompts"
       ],
-      basicFields: ["prompt", "duration", "aspect_ratio"],
+      basicFields: ["prompt", "duration", "aspect_ratio"]
     },
 
     "fal-ai/kling-video/o3/pro/text-to-video": {
@@ -1855,16 +1816,16 @@ export const config: ModuleConfig = {
         "o3",
         "pro",
         "text-to-video",
-        "txt2vid",
+        "txt2vid"
       ],
       useCases: [
         "Create professional-grade videos from detailed prompts",
         "Generate cinematic video content with precise motion",
         "Produce high-fidelity advertising videos",
         "Create premium animated content from scripts",
-        "Generate top-tier video for film and media",
+        "Generate top-tier video for film and media"
       ],
-      basicFields: ["prompt", "duration", "aspect_ratio"],
-    },
-  },
+      basicFields: ["prompt", "duration", "aspect_ratio"]
+    }
+  }
 };

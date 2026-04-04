@@ -6,21 +6,29 @@ const USER_AGENT =
 
 export class WebFetchLibNode extends BaseNode {
   static readonly nodeType = "lib.browser.WebFetch";
-            static readonly title = "Web Fetch";
-            static readonly description = "Fetches HTML content from a URL and converts it to text.\n    web, fetch, html, markdown, http\n\n    Use cases:\n    - Extract text content from web pages\n    - Process web content for analysis\n    - Save web content to files";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Web Fetch";
+  static readonly description =
+    "Fetches HTML content from a URL and converts it to text.\n    web, fetch, html, markdown, http\n\n    Use cases:\n    - Extract text content from web pages\n    - Process web content for analysis\n    - Save web content to files";
+  static readonly metadataOutputTypes = {
     output: "str"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "str", default: "", title: "Url", description: "URL to fetch content from" })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "URL to fetch content from"
+  })
   declare url: any;
 
-  @prop({ type: "str", default: "body", title: "Selector", description: "CSS selector to extract specific elements" })
+  @prop({
+    type: "str",
+    default: "body",
+    title: "Selector",
+    description: "CSS selector to extract specific elements"
+  })
   declare selector: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? "");
@@ -34,7 +42,7 @@ export class WebFetchLibNode extends BaseNode {
     const response = await axios.get(url, {
       headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
       responseType: "text",
-      timeout: 30000,
+      timeout: 30000
     });
 
     const contentType = String(
@@ -66,18 +74,21 @@ export class WebFetchLibNode extends BaseNode {
 
 export class DownloadFileLibNode extends BaseNode {
   static readonly nodeType = "lib.browser.DownloadFile";
-            static readonly title = "Download File";
-            static readonly description = "Downloads a file from a URL and saves it to disk.\n    download, file, web, save\n\n    Use cases:\n    - Download documents, images, or other files from the web\n    - Save data for further processing\n    - Retrieve file assets for analysis";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Download File";
+  static readonly description =
+    "Downloads a file from a URL and saves it to disk.\n    download, file, web, save\n\n    Use cases:\n    - Download documents, images, or other files from the web\n    - Save data for further processing\n    - Retrieve file assets for analysis";
+  static readonly metadataOutputTypes = {
     output: "bytes"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "str", default: "", title: "Url", description: "URL of the file to download" })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "URL of the file to download"
+  })
   declare url: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? "");
@@ -87,7 +98,7 @@ export class DownloadFileLibNode extends BaseNode {
     const response = await axios.get(url, {
       headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
       responseType: "arraybuffer",
-      timeout: 60000,
+      timeout: 60000
     });
 
     const data = Buffer.from(response.data).toString("base64");
@@ -97,23 +108,31 @@ export class DownloadFileLibNode extends BaseNode {
 
 export class BrowserLibNode extends BaseNode {
   static readonly nodeType = "lib.browser.Browser";
-            static readonly title = "Browser";
-            static readonly description = "Fetches content from a web page using a headless browser.\n    browser, web, scraping, content, fetch\n\n    Use cases:\n    - Extract content from JavaScript-heavy websites\n    - Retrieve text content from web pages\n    - Get metadata from web pages\n    - Save extracted content to files";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Browser";
+  static readonly description =
+    "Fetches content from a web page using a headless browser.\n    browser, web, scraping, content, fetch\n\n    Use cases:\n    - Extract content from JavaScript-heavy websites\n    - Retrieve text content from web pages\n    - Get metadata from web pages\n    - Save extracted content to files";
+  static readonly metadataOutputTypes = {
     success: "bool",
     content: "str",
     metadata: "dict[str, any]"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "str", default: "", title: "Url", description: "URL to navigate to" })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "URL to navigate to"
+  })
   declare url: any;
 
-  @prop({ type: "int", default: 20000, title: "Timeout", description: "Timeout in milliseconds for page navigation" })
+  @prop({
+    type: "int",
+    default: 20000,
+    title: "Timeout",
+    description: "Timeout in milliseconds for page navigation"
+  })
   declare timeout: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? "");
@@ -136,7 +155,7 @@ export class BrowserLibNode extends BaseNode {
       return {
         success: true,
         content,
-        metadata: { title },
+        metadata: { title }
       };
     } finally {
       await browser.close();
@@ -146,27 +165,45 @@ export class BrowserLibNode extends BaseNode {
 
 export class ScreenshotLibNode extends BaseNode {
   static readonly nodeType = "lib.browser.Screenshot";
-            static readonly title = "Screenshot";
-            static readonly description = "Takes a screenshot of a web page or specific element.\n    browser, screenshot, capture, image\n\n    Use cases:\n    - Capture visual representation of web pages\n    - Document specific UI elements\n    - Create visual records of web content";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Screenshot";
+  static readonly description =
+    "Takes a screenshot of a web page or specific element.\n    browser, screenshot, capture, image\n\n    Use cases:\n    - Capture visual representation of web pages\n    - Document specific UI elements\n    - Create visual records of web content";
+  static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "str", default: "", title: "Url", description: "URL to navigate to before taking screenshot" })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "URL to navigate to before taking screenshot"
+  })
   declare url: any;
 
-  @prop({ type: "str", default: "", title: "Selector", description: "Optional CSS selector for capturing a specific element" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Selector",
+    description: "Optional CSS selector for capturing a specific element"
+  })
   declare selector: any;
 
-  @prop({ type: "str", default: "screenshot.png", title: "Output File", description: "Path to save the screenshot (relative to workspace)" })
+  @prop({
+    type: "str",
+    default: "screenshot.png",
+    title: "Output File",
+    description: "Path to save the screenshot (relative to workspace)"
+  })
   declare output_file: any;
 
-  @prop({ type: "int", default: 30000, title: "Timeout", description: "Timeout in milliseconds for page navigation" })
+  @prop({
+    type: "int",
+    default: 30000,
+    title: "Timeout",
+    description: "Timeout in milliseconds for page navigation"
+  })
   declare timeout: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? "");
@@ -184,7 +221,8 @@ export class ScreenshotLibNode extends BaseNode {
       let buffer: Buffer;
       if (selector) {
         const el = await page.waitForSelector(selector, { timeout });
-        if (!el) throw new Error(`No element found matching selector: ${selector}`);
+        if (!el)
+          throw new Error(`No element found matching selector: ${selector}`);
         buffer = await el.screenshot();
       } else {
         buffer = await page.screenshot();
@@ -194,7 +232,7 @@ export class ScreenshotLibNode extends BaseNode {
       return {
         success: true,
         output: { type: "image", data },
-        url,
+        url
       };
     } finally {
       await browser.close();
@@ -202,52 +240,81 @@ export class ScreenshotLibNode extends BaseNode {
   }
 }
 
-type BrowserAction = "click" | "goto" | "back" | "forward" | "reload" | "extract";
+type BrowserAction =
+  | "click"
+  | "goto"
+  | "back"
+  | "forward"
+  | "reload"
+  | "extract";
 type ExtractType = "text" | "html" | "value" | "attribute";
 
 export class BrowserNavigationLibNode extends BaseNode {
   static readonly nodeType = "lib.browser.BrowserNavigation";
-            static readonly title = "Browser Navigation";
-            static readonly description = "Navigates and interacts with web pages in a browser session.\n    browser, navigation, interaction, click, extract\n\n    Use cases:\n    - Perform complex web interactions\n    - Navigate through multi-step web processes\n    - Extract content after interaction";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Browser Navigation";
+  static readonly description =
+    "Navigates and interacts with web pages in a browser session.\n    browser, navigation, interaction, click, extract\n\n    Use cases:\n    - Perform complex web interactions\n    - Navigate through multi-step web processes\n    - Extract content after interaction";
+  static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  
-  @prop({ type: "str", default: "", title: "Url", description: "URL to navigate to (required for 'goto' action)" })
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "URL to navigate to (required for 'goto' action)"
+  })
   declare url: any;
 
-  @prop({ type: "enum", default: "goto", title: "Action", description: "Navigation or extraction action to perform", values: [
-  "click",
-  "goto",
-  "back",
-  "forward",
-  "reload",
-  "extract"
-] })
+  @prop({
+    type: "enum",
+    default: "goto",
+    title: "Action",
+    description: "Navigation or extraction action to perform",
+    values: ["click", "goto", "back", "forward", "reload", "extract"]
+  })
   declare action: any;
 
-  @prop({ type: "str", default: "", title: "Selector", description: "CSS selector for the element to interact with or extract from" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Selector",
+    description: "CSS selector for the element to interact with or extract from"
+  })
   declare selector: any;
 
-  @prop({ type: "int", default: 30000, title: "Timeout", description: "Timeout in milliseconds for the action" })
+  @prop({
+    type: "int",
+    default: 30000,
+    title: "Timeout",
+    description: "Timeout in milliseconds for the action"
+  })
   declare timeout: any;
 
-  @prop({ type: "str", default: "", title: "Wait For", description: "Optional selector to wait for after performing the action" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Wait For",
+    description: "Optional selector to wait for after performing the action"
+  })
   declare wait_for: any;
 
-  @prop({ type: "enum", default: "text", title: "Extract Type", description: "Type of content to extract (for 'extract' action)", values: [
-  "text",
-  "html",
-  "value",
-  "attribute"
-] })
+  @prop({
+    type: "enum",
+    default: "text",
+    title: "Extract Type",
+    description: "Type of content to extract (for 'extract' action)",
+    values: ["text", "html", "value", "attribute"]
+  })
   declare extract_type: any;
 
-  @prop({ type: "str", default: "", title: "Attribute", description: "Attribute name to extract (when extract_type is 'attribute')" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Attribute",
+    description: "Attribute name to extract (when extract_type is 'attribute')"
+  })
   declare attribute: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? "");
@@ -258,7 +325,8 @@ export class BrowserNavigationLibNode extends BaseNode {
     const extractType = String(this.extract_type ?? "text") as ExtractType;
     const attribute = String(this.attribute ?? "");
 
-    if (action === "goto" && !url) throw new Error("URL is required for goto action");
+    if (action === "goto" && !url)
+      throw new Error("URL is required for goto action");
 
     const { chromium } = await import("playwright");
     const browser = await chromium.launch({ headless: true });
@@ -296,7 +364,9 @@ export class BrowserNavigationLibNode extends BaseNode {
           if (extractType === "html") {
             extracted = await el.evaluate((e: Element) => e.outerHTML);
           } else if (extractType === "value") {
-            extracted = await el.evaluate((e: HTMLInputElement) => e.value ?? "");
+            extracted = await el.evaluate(
+              (e: HTMLInputElement) => e.value ?? ""
+            );
           } else if (extractType === "attribute") {
             extracted = await el.evaluate(
               (e: Element, a: string) => e.getAttribute(a),
@@ -304,15 +374,16 @@ export class BrowserNavigationLibNode extends BaseNode {
             );
           } else {
             extracted = await el.evaluate(
-              (e: Element) => (e as HTMLElement).innerText ?? e.textContent ?? ""
+              (e: Element) =>
+                (e as HTMLElement).innerText ?? e.textContent ?? ""
             );
           }
         } else {
           if (extractType === "html") {
             extracted = await page.content();
           } else {
-            extracted = await page.evaluate(
-              () => document.body ? document.body.innerText : ""
+            extracted = await page.evaluate(() =>
+              document.body ? document.body.innerText : ""
             );
           }
         }
@@ -327,50 +398,109 @@ export class BrowserNavigationLibNode extends BaseNode {
 
 export class SpiderCrawlLibNode extends BaseNode {
   static readonly nodeType = "lib.browser.SpiderCrawl";
-            static readonly title = "Spider Crawl";
-            static readonly description = "Crawls websites following links and emitting URLs with optional HTML content.\n    spider, crawler, web scraping, links, sitemap\n\n    Use cases:\n    - Build sitemaps and discover website structure\n    - Collect URLs for bulk processing\n    - Find all pages on a website\n    - Extract content from multiple pages\n    - Feed agentic workflows with discovered pages\n    - Analyze website content and structure";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Spider Crawl";
+  static readonly description =
+    "Crawls websites following links and emitting URLs with optional HTML content.\n    spider, crawler, web scraping, links, sitemap\n\n    Use cases:\n    - Build sitemaps and discover website structure\n    - Collect URLs for bulk processing\n    - Find all pages on a website\n    - Extract content from multiple pages\n    - Feed agentic workflows with discovered pages\n    - Analyze website content and structure";
+  static readonly metadataOutputTypes = {
     url: "str",
     depth: "int",
     html: "str",
     title: "str",
     status_code: "int"
   };
-          static readonly exposeAsTool = true;
-  
-          static readonly isStreamingOutput = true;
-  @prop({ type: "str", default: "", title: "Start Url", description: "The starting URL to begin crawling from" })
+  static readonly exposeAsTool = true;
+
+  static readonly isStreamingOutput = true;
+  @prop({
+    type: "str",
+    default: "",
+    title: "Start Url",
+    description: "The starting URL to begin crawling from"
+  })
   declare start_url: any;
 
-  @prop({ type: "int", default: 2, title: "Max Depth", description: "Maximum depth to crawl (0 = start page only, 1 = start + linked pages, etc.)", min: 0, max: 10 })
+  @prop({
+    type: "int",
+    default: 2,
+    title: "Max Depth",
+    description:
+      "Maximum depth to crawl (0 = start page only, 1 = start + linked pages, etc.)",
+    min: 0,
+    max: 10
+  })
   declare max_depth: any;
 
-  @prop({ type: "int", default: 50, title: "Max Pages", description: "Maximum number of pages to crawl (safety limit)", min: 1, max: 1000 })
+  @prop({
+    type: "int",
+    default: 50,
+    title: "Max Pages",
+    description: "Maximum number of pages to crawl (safety limit)",
+    min: 1,
+    max: 1000
+  })
   declare max_pages: any;
 
-  @prop({ type: "bool", default: true, title: "Same Domain Only", description: "Only follow links within the same domain as the start URL" })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Same Domain Only",
+    description: "Only follow links within the same domain as the start URL"
+  })
   declare same_domain_only: any;
 
-  @prop({ type: "bool", default: false, title: "Include Html", description: "Include the HTML content of each page in the output (increases bandwidth)" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Include Html",
+    description:
+      "Include the HTML content of each page in the output (increases bandwidth)"
+  })
   declare include_html: any;
 
-  @prop({ type: "bool", default: true, title: "Respect Robots Txt", description: "Respect robots.txt rules (follows web crawler best practices)" })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Respect Robots Txt",
+    description: "Respect robots.txt rules (follows web crawler best practices)"
+  })
   declare respect_robots_txt: any;
 
-  @prop({ type: "int", default: 1000, title: "Delay Ms", description: "Delay in milliseconds between requests (politeness policy)", min: 0, max: 10000 })
+  @prop({
+    type: "int",
+    default: 1000,
+    title: "Delay Ms",
+    description: "Delay in milliseconds between requests (politeness policy)",
+    min: 0,
+    max: 10000
+  })
   declare delay_ms: any;
 
-  @prop({ type: "int", default: 30000, title: "Timeout", description: "Timeout in milliseconds for each page load", min: 1000, max: 120000 })
+  @prop({
+    type: "int",
+    default: 30000,
+    title: "Timeout",
+    description: "Timeout in milliseconds for each page load",
+    min: 1000,
+    max: 120000
+  })
   declare timeout: any;
 
-  @prop({ type: "str", default: "", title: "Url Pattern", description: "Optional regex pattern to filter URLs (only crawl matching URLs)" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url Pattern",
+    description:
+      "Optional regex pattern to filter URLs (only crawl matching URLs)"
+  })
   declare url_pattern: any;
 
-  @prop({ type: "str", default: "", title: "Exclude Pattern", description: "Optional regex pattern to exclude URLs (skip matching URLs)" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Exclude Pattern",
+    description: "Optional regex pattern to exclude URLs (skip matching URLs)"
+  })
   declare exclude_pattern: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const startUrl = String(this.start_url ?? "");
@@ -395,7 +525,9 @@ export class SpiderCrawlLibNode extends BaseNode {
     const excludePatternRe = excludePattern ? new RegExp(excludePattern) : null;
 
     const visited = new Set<string>();
-    const toVisit: Array<{ url: string; depth: number }> = [{ url: startUrl, depth: 0 }];
+    const toVisit: Array<{ url: string; depth: number }> = [
+      { url: startUrl, depth: 0 }
+    ];
     const results: Array<Record<string, unknown>> = [];
     let pagesCrawled = 0;
 
@@ -415,7 +547,7 @@ export class SpiderCrawlLibNode extends BaseNode {
           headers: { "User-Agent": USER_AGENT },
           timeout,
           responseType: "text",
-          validateStatus: () => true,
+          validateStatus: () => true
         });
 
         const statusCode = response.status;
@@ -428,7 +560,7 @@ export class SpiderCrawlLibNode extends BaseNode {
           depth,
           html: includeHtml ? htmlContent : null,
           title,
-          status_code: statusCode,
+          status_code: statusCode
         });
         pagesCrawled++;
 
@@ -436,7 +568,12 @@ export class SpiderCrawlLibNode extends BaseNode {
           $("a[href]").each((_i, el) => {
             try {
               const href = $(el).attr("href") ?? "";
-              if (!href || href.startsWith("javascript:") || href.startsWith("mailto:") || href.startsWith("tel:"))
+              if (
+                !href ||
+                href.startsWith("javascript:") ||
+                href.startsWith("mailto:") ||
+                href.startsWith("tel:")
+              )
                 return;
               const resolved = new URL(href, currentUrl).href.split("#")[0];
               if (visited.has(resolved)) return;
@@ -465,7 +602,7 @@ export class SpiderCrawlLibNode extends BaseNode {
           depth,
           html: null,
           title: null,
-          status_code: 0,
+          status_code: 0
         });
       }
     }
@@ -480,5 +617,5 @@ export const LIB_BROWSER_NODES: readonly NodeClass[] = [
   BrowserLibNode,
   ScreenshotLibNode,
   BrowserNavigationLibNode,
-  SpiderCrawlLibNode,
+  SpiderCrawlLibNode
 ] as const;

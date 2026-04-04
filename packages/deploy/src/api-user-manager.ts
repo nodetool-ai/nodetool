@@ -53,7 +53,7 @@ export class APIUserManager {
   private get headers(): Record<string, string> {
     return {
       Authorization: `Bearer ${this.adminToken}`,
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     };
   }
 
@@ -65,7 +65,7 @@ export class APIUserManager {
     const url = `${this.serverUrl}${path}`;
     const init: RequestInit = {
       method,
-      headers: this.headers,
+      headers: this.headers
     };
 
     if (body !== undefined) {
@@ -76,9 +76,7 @@ export class APIUserManager {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `${method} ${path} failed: ${response.status} ${text}`
-      );
+      throw new Error(`${method} ${path} failed: ${response.status} ${text}`);
     }
 
     return (await response.json()) as T;
@@ -94,10 +92,7 @@ export class APIUserManager {
    * @returns Array of user records (with masked tokens).
    */
   async listUsers(): Promise<UserRecord[]> {
-    const data = await this.request<UserListResponse>(
-      "GET",
-      "/api/users/"
-    );
+    const data = await this.request<UserListResponse>("GET", "/api/users/");
     return data.users ?? [];
   }
 
@@ -108,13 +103,10 @@ export class APIUserManager {
    * @param role - User role ("admin" or "user").
    * @returns User record with plaintext token (only shown on creation).
    */
-  async addUser(
-    username: string,
-    role: string = "user"
-  ): Promise<UserRecord> {
+  async addUser(username: string, role: string = "user"): Promise<UserRecord> {
     return this.request<UserRecord>("POST", "/api/users/", {
       username,
-      role,
+      role
     });
   }
 
@@ -126,7 +118,7 @@ export class APIUserManager {
    */
   async resetToken(username: string): Promise<UserRecord> {
     return this.request<UserRecord>("POST", "/api/users/reset-token", {
-      username,
+      username
     });
   }
 

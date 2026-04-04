@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "List To Array"
-node_type: "lib.numpy.conversion.ListToArray"
-namespace: "lib.numpy.conversion"
+node_type: "lib.array.conversion.ListToArray"
+namespace: "lib.array.conversion"
 ---
 
-**Type:** `lib.numpy.conversion.ListToArray`
+**Type:** `lib.array.conversion.ListToArray`
 
-**Namespace:** `lib.numpy.conversion`
+**Namespace:** `lib.array.conversion`
 
 ## Description
 
@@ -35,5 +35,5 @@ Convert a list of values to a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](../) namespace.
 

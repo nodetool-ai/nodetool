@@ -1,4 +1,7 @@
-import { StreamRunnerBase, type StreamRunnerOptions } from "./stream-runner-base.js";
+import {
+  StreamRunnerBase,
+  type StreamRunnerOptions
+} from "./stream-runner-base.js";
 
 /**
  * Docker-backed Bash code runner.
@@ -13,7 +16,7 @@ export class BashDockerRunner extends StreamRunnerBase {
 
   override buildContainerCommand(
     userCode: string,
-    envLocals: Record<string, unknown>,
+    envLocals: Record<string, unknown>
   ): string[] {
     let code = "set -e\n";
     for (const [key, value] of Object.entries(envLocals)) {
@@ -47,7 +50,7 @@ function bashRepr(value: unknown): string {
   }
   if (typeof value === "object") {
     const parts = Object.entries(value as Record<string, unknown>).map(
-      ([k, v]) => `${JSON.stringify(k)}: ${bashRepr(v)}`,
+      ([k, v]) => `${JSON.stringify(k)}: ${bashRepr(v)}`
     );
     return `{${parts.join(", ")}}`;
   }

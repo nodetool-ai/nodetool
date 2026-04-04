@@ -6,7 +6,7 @@ import {
   DockerRunGenerator,
   generateDockerRunCommand,
   getDockerRunHash,
-  getContainerName,
+  getContainerName
 } from "../src/docker-run.js";
 import type { DockerRunDeployment } from "../src/docker-run.js";
 
@@ -14,22 +14,24 @@ import type { DockerRunDeployment } from "../src/docker-run.js";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeDeployment(overrides?: Partial<DockerRunDeployment>): DockerRunDeployment {
+function makeDeployment(
+  overrides?: Partial<DockerRunDeployment>
+): DockerRunDeployment {
   return {
     image: {
       name: "myuser/myapp",
       tag: "latest",
-      registry: "docker.io",
+      registry: "docker.io"
     },
     container: {
       name: "test-container",
-      port: 8080,
+      port: 8080
     },
     paths: {
       workspace: "/srv/nodetool",
-      hfCache: "/srv/hf-cache",
+      hfCache: "/srv/hf-cache"
     },
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -53,9 +55,9 @@ describe("constants", () => {
 
 describe("imageFullName", () => {
   it("should append tag to name", () => {
-    expect(imageFullName({ name: "user/app", tag: "v1", registry: "docker.io" })).toBe(
-      "user/app:v1"
-    );
+    expect(
+      imageFullName({ name: "user/app", tag: "v1", registry: "docker.io" })
+    ).toBe("user/app:v1");
   });
 
   it("should return name as-is if it contains @", () => {
@@ -63,7 +65,7 @@ describe("imageFullName", () => {
       imageFullName({
         name: "user/app@sha256:abc123",
         tag: "v1",
-        registry: "docker.io",
+        registry: "docker.io"
       })
     ).toBe("user/app@sha256:abc123");
   });
@@ -73,7 +75,7 @@ describe("imageFullName", () => {
       imageFullName({
         name: "registry.io/user/app:pinned",
         tag: "v1",
-        registry: "docker.io",
+        registry: "docker.io"
       })
     ).toBe("registry.io/user/app:pinned");
   });
@@ -89,7 +91,7 @@ describe("imageFullName", () => {
       imageFullName({
         name: "ghcr.io/user/app",
         tag: "latest",
-        registry: "ghcr.io",
+        registry: "ghcr.io"
       })
     ).toBe("ghcr.io/user/app:latest");
   });
@@ -131,7 +133,7 @@ describe("getContainerName", () => {
 
   it("should handle different container names", () => {
     const d = makeDeployment({
-      container: { name: "prod-api", port: 80 },
+      container: { name: "prod-api", port: 80 }
     });
     expect(getContainerName(d)).toBe("nodetool-prod-api");
   });
@@ -165,7 +167,7 @@ describe("DockerRunGenerator.generateCommand", () => {
 
   it("should use APP_ENV_PORT when container port equals INTERNAL_API_PORT", () => {
     const d = makeDeployment({
-      container: { name: "c", port: INTERNAL_API_PORT },
+      container: { name: "c", port: INTERNAL_API_PORT }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain(`-p ${APP_ENV_PORT}:${INTERNAL_API_PORT}`);
@@ -173,7 +175,7 @@ describe("DockerRunGenerator.generateCommand", () => {
 
   it("should use APP_ENV_PORT when container port is 0", () => {
     const d = makeDeployment({
-      container: { name: "c", port: 0 },
+      container: { name: "c", port: 0 }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain(`-p ${APP_ENV_PORT}:${INTERNAL_API_PORT}`);
@@ -196,8 +198,8 @@ describe("DockerRunGenerator.generateCommand", () => {
         dbPath: "/data/db",
         chromaPath: "/data/chroma",
         hfCache: "/data/hf",
-        assetBucket: "/data/assets",
-      },
+        assetBucket: "/data/assets"
+      }
     });
     const cmd = generateDockerRunCommand(d);
     // Should NOT have :ro for hf-cache
@@ -260,8 +262,8 @@ describe("DockerRunGenerator environment variables", () => {
         dbPath: "/data/db",
         chromaPath: "/data/chroma",
         hfCache: "/data/hf",
-        assetBucket: "/data/assets",
-      },
+        assetBucket: "/data/assets"
+      }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain("AUTH_PROVIDER=multi_user");
@@ -274,8 +276,8 @@ describe("DockerRunGenerator environment variables", () => {
         dbPath: "/data/db",
         chromaPath: "/data/chroma",
         hfCache: "/data/hf",
-        assetBucket: "/data/assets",
-      },
+        assetBucket: "/data/assets"
+      }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain("USERS_FILE=/data/users.json");
@@ -296,8 +298,8 @@ describe("DockerRunGenerator environment variables", () => {
       container: {
         name: "c",
         port: 8080,
-        environment: { FOO: "bar", BAZ: "qux" },
-      },
+        environment: { FOO: "bar", BAZ: "qux" }
+      }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain("FOO=bar");
@@ -309,8 +311,8 @@ describe("DockerRunGenerator environment variables", () => {
       container: {
         name: "c",
         port: 8080,
-        workflows: ["wf1", "wf2", "wf3"],
-      },
+        workflows: ["wf1", "wf2", "wf3"]
+      }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain("NODETOOL_WORKFLOWS=wf1,wf2,wf3");
@@ -318,7 +320,7 @@ describe("DockerRunGenerator environment variables", () => {
 
   it("should not include NODETOOL_WORKFLOWS when empty", () => {
     const d = makeDeployment({
-      container: { name: "c", port: 8080, workflows: [] },
+      container: { name: "c", port: 8080, workflows: [] }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).not.toContain("NODETOOL_WORKFLOWS");
@@ -340,8 +342,8 @@ describe("DockerRunGenerator environment variables", () => {
       container: {
         name: "c",
         port: 8080,
-        environment: { AUTH_PROVIDER: "custom" },
-      },
+        environment: { AUTH_PROVIDER: "custom" }
+      }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain("AUTH_PROVIDER=custom");
@@ -362,7 +364,7 @@ describe("DockerRunGenerator GPU configuration", () => {
 
   it("should include --gpus for single GPU", () => {
     const d = makeDeployment({
-      container: { name: "c", port: 8080, gpu: "0" },
+      container: { name: "c", port: 8080, gpu: "0" }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain("--gpus");
@@ -371,7 +373,7 @@ describe("DockerRunGenerator GPU configuration", () => {
 
   it("should include --gpus for multiple GPUs", () => {
     const d = makeDeployment({
-      container: { name: "c", port: 8080, gpu: "0,1" },
+      container: { name: "c", port: 8080, gpu: "0,1" }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain("--gpus");
@@ -380,7 +382,7 @@ describe("DockerRunGenerator GPU configuration", () => {
 
   it("should handle gpu with spaces", () => {
     const d = makeDeployment({
-      container: { name: "c", port: 8080, gpu: " 0 " },
+      container: { name: "c", port: 8080, gpu: " 0 " }
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain("device=0");
@@ -405,7 +407,7 @@ describe("DockerRunGenerator.generateHash", () => {
   it("should change when image changes", () => {
     const d1 = makeDeployment();
     const d2 = makeDeployment({
-      image: { name: "other/app", tag: "v2", registry: "docker.io" },
+      image: { name: "other/app", tag: "v2", registry: "docker.io" }
     });
     expect(getDockerRunHash(d1)).not.toBe(getDockerRunHash(d2));
   });
@@ -413,7 +415,7 @@ describe("DockerRunGenerator.generateHash", () => {
   it("should change when port changes", () => {
     const d1 = makeDeployment();
     const d2 = makeDeployment({
-      container: { name: "test-container", port: 9090 },
+      container: { name: "test-container", port: 9090 }
     });
     expect(getDockerRunHash(d1)).not.toBe(getDockerRunHash(d2));
   });
@@ -421,17 +423,17 @@ describe("DockerRunGenerator.generateHash", () => {
   it("should change when container name changes", () => {
     const d1 = makeDeployment();
     const d2 = makeDeployment({
-      container: { name: "other-container", port: 8080 },
+      container: { name: "other-container", port: 8080 }
     });
     expect(getDockerRunHash(d1)).not.toBe(getDockerRunHash(d2));
   });
 
   it("should change when gpu changes", () => {
     const d1 = makeDeployment({
-      container: { name: "c", port: 8080 },
+      container: { name: "c", port: 8080 }
     });
     const d2 = makeDeployment({
-      container: { name: "c", port: 8080, gpu: "0" },
+      container: { name: "c", port: 8080, gpu: "0" }
     });
     expect(getDockerRunHash(d1)).not.toBe(getDockerRunHash(d2));
   });
@@ -442,8 +444,8 @@ describe("DockerRunGenerator.generateHash", () => {
       container: {
         name: "test-container",
         port: 8080,
-        environment: { NEW_VAR: "value" },
-      },
+        environment: { NEW_VAR: "value" }
+      }
     });
     expect(getDockerRunHash(d1)).not.toBe(getDockerRunHash(d2));
   });
@@ -456,7 +458,7 @@ describe("DockerRunGenerator.generateHash", () => {
 describe("DockerRunGenerator volume paths", () => {
   it("should handle tilde-prefixed workspace path", () => {
     const d = makeDeployment({
-      paths: { workspace: "~/nodetool", hfCache: "~/hf" },
+      paths: { workspace: "~/nodetool", hfCache: "~/hf" }
     });
     const cmd = generateDockerRunCommand(d);
     // safeShellQuote should preserve ~/

@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Scalar To Array"
-node_type: "lib.numpy.conversion.ScalarToArray"
-namespace: "lib.numpy.conversion"
+node_type: "lib.array.conversion.ScalarToArray"
+namespace: "lib.array.conversion"
 ---
 
-**Type:** `lib.numpy.conversion.ScalarToArray`
+**Type:** `lib.array.conversion.ScalarToArray`
 
-**Namespace:** `lib.numpy.conversion`
+**Namespace:** `lib.array.conversion`
 
 ## Description
 
@@ -35,5 +35,5 @@ Convert a scalar value to a single-element array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](../) namespace.
 

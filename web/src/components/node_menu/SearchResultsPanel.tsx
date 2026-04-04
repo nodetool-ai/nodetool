@@ -6,6 +6,7 @@ import SearchResultItem from "./SearchResultItem";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import { EmptyState } from "../ui_primitives/EmptyState";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as VirtualList, ListChildComponentProps } from "react-window";
 
@@ -71,6 +72,17 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
     },
     [searchNodes, handleDragStart, handleDragEnd, handleNodeClick, selectedIndex]
   );
+
+  if (searchNodes.length === 0) {
+    return (
+      <EmptyState
+        variant="no-results"
+        title="No matching nodes"
+        description="Try a different search term or adjust your filters."
+        size="small"
+      />
+    );
+  }
 
   return (
     <AutoSizer>

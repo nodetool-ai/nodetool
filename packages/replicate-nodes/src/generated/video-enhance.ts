@@ -9,7 +9,7 @@ import {
   outputToImageRef,
   outputToVideoRef,
   outputToAudioRef,
-  outputToString,
+  outputToString
 } from "../replicate-base.js";
 
 const ReplicateNode = BaseNode;
@@ -24,10 +24,19 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "int", default: 30, description: "Target FPS (choose from 15-60fps)" })
+  @prop({
+    type: "int",
+    default: 30,
+    description: "Target FPS (choose from 15-60fps)"
+  })
   declare target_fps: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["720p", "1080p", "4k"], description: "Target resolution" })
+  @prop({
+    type: "enum",
+    default: "1080p",
+    values: ["720p", "1080p", "4k"],
+    description: "Target resolution"
+  })
   declare target_resolution: any;
 
   @prop({ type: "video", default: "", description: "Video file to upscale" })
@@ -39,8 +48,8 @@ replicate, ai`;
     const targetResolution = String(this.target_resolution ?? "1080p");
 
     const args: Record<string, unknown> = {
-      "target_fps": targetFps,
-      "target_resolution": targetResolution,
+      target_fps: targetFps,
+      target_resolution: targetResolution
     };
 
     const videoRef = this.video as Record<string, unknown> | undefined;
@@ -50,11 +59,15 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "topazlabs/video-upscale:f4dad23bbe2d0bf4736d2ea8c9156f1911d8eeb511c8d0bb390931e25caaef61", args);
+    const res = await replicateSubmit(
+      apiKey,
+      "topazlabs/video-upscale:f4dad23bbe2d0bf4736d2ea8c9156f1911d8eeb511c8d0bb390931e25caaef61",
+      args
+    );
     return { output: outputToVideoRef(res.output) };
   }
 }
 
 export const REPLICATE_VIDEO_ENHANCE_NODES: readonly NodeClass[] = [
-  Topaz_Video_Upscale,
+  Topaz_Video_Upscale
 ] as const;

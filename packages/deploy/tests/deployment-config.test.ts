@@ -43,7 +43,7 @@ import {
   loadDeploymentConfig,
   saveDeploymentConfig,
   initDeploymentConfig,
-  mergeDefaultsWithEnv,
+  mergeDefaultsWithEnv
 } from "../src/deployment-config.js";
 
 // ============================================================================
@@ -85,7 +85,7 @@ describe("SSHConfigSchema", () => {
       user: "deploy",
       key_path: "/home/deploy/.ssh/id_rsa",
       password: "secret",
-      port: 2222,
+      port: 2222
     });
     expect(result.user).toBe("deploy");
     expect(result.key_path).toBe("/home/deploy/.ssh/id_rsa");
@@ -101,7 +101,7 @@ describe("SSHConfigSchema", () => {
   it("expands ~ in key_path", () => {
     const result = SSHConfigSchema.parse({
       user: "root",
-      key_path: "~/.ssh/id_rsa",
+      key_path: "~/.ssh/id_rsa"
     });
     expect(result.key_path).toBe(path.join(os.homedir(), ".ssh/id_rsa"));
   });
@@ -109,7 +109,7 @@ describe("SSHConfigSchema", () => {
   it("leaves absolute key_path unchanged", () => {
     const result = SSHConfigSchema.parse({
       user: "root",
-      key_path: "/etc/ssh/key",
+      key_path: "/etc/ssh/key"
     });
     expect(result.key_path).toBe("/etc/ssh/key");
   });
@@ -134,7 +134,7 @@ describe("ContainerConfigSchema", () => {
       port: 8000,
       gpu: "nvidia",
       environment: { FOO: "bar" },
-      workflows: ["wf1.json"],
+      workflows: ["wf1.json"]
     });
     expect(result.name).toBe("nodetool-api");
     expect(result.port).toBe(8000);
@@ -173,7 +173,7 @@ describe("ServerPathsSchema", () => {
   it("allows overrides", () => {
     const result = ServerPathsSchema.parse({
       workspace: "/data/ws",
-      hf_cache: "/data/hf",
+      hf_cache: "/data/hf"
     });
     expect(result.workspace).toBe("/data/ws");
     expect(result.hf_cache).toBe("/data/hf");
@@ -213,8 +213,15 @@ describe("SelfHostedStateSchema", () => {
 
   it("accepts valid status values", () => {
     for (const status of [
-      "unknown", "pending", "deploying", "running",
-      "active", "serving", "error", "stopped", "destroyed",
+      "unknown",
+      "pending",
+      "deploying",
+      "running",
+      "active",
+      "serving",
+      "error",
+      "stopped",
+      "destroyed"
     ]) {
       const result = SelfHostedStateSchema.parse({ status });
       expect(result.status).toBe(status);
@@ -247,7 +254,7 @@ describe("imageConfigFullName", () => {
   it("returns name as-is if it contains @", () => {
     const image = ImageConfigSchema.parse({
       name: "myimage@sha256:abc123",
-      tag: "v1",
+      tag: "v1"
     });
     expect(imageConfigFullName(image)).toBe("myimage@sha256:abc123");
   });
@@ -255,7 +262,7 @@ describe("imageConfigFullName", () => {
   it("returns name as-is if last segment contains :", () => {
     const image = ImageConfigSchema.parse({
       name: "registry.io/repo:v2",
-      tag: "v1",
+      tag: "v1"
     });
     expect(imageConfigFullName(image)).toBe("registry.io/repo:v2");
   });
@@ -281,14 +288,12 @@ describe("NginxConfigSchema", () => {
   it("expands ~ in ssl paths", () => {
     const result = NginxConfigSchema.parse({
       ssl_cert_path: "~/certs/cert.pem",
-      ssl_key_path: "~/certs/key.pem",
+      ssl_key_path: "~/certs/key.pem"
     });
     expect(result.ssl_cert_path).toBe(
       path.join(os.homedir(), "certs/cert.pem")
     );
-    expect(result.ssl_key_path).toBe(
-      path.join(os.homedir(), "certs/key.pem")
-    );
+    expect(result.ssl_key_path).toBe(path.join(os.homedir(), "certs/key.pem"));
   });
 
   it("rejects ssl_cert_path without ssl_key_path", () => {
@@ -298,9 +303,9 @@ describe("NginxConfigSchema", () => {
   });
 
   it("rejects ssl_key_path without ssl_cert_path", () => {
-    expect(() =>
-      NginxConfigSchema.parse({ ssl_key_path: "/key.pem" })
-    ).toThrow("Both ssl_cert_path and ssl_key_path must be provided together");
+    expect(() => NginxConfigSchema.parse({ ssl_key_path: "/key.pem" })).toThrow(
+      "Both ssl_cert_path and ssl_key_path must be provided together"
+    );
   });
 
   it("expands ~ in config_dir", () => {
@@ -319,7 +324,7 @@ describe("DockerDeploymentSchema", () => {
   const validDocker = {
     host: "192.168.1.100",
     image: { name: "nodetool/api" },
-    container: { name: "nodetool-api", port: 7777 },
+    container: { name: "nodetool-api", port: 7777 }
   };
 
   it("parses valid config with defaults", () => {
@@ -334,7 +339,7 @@ describe("DockerDeploymentSchema", () => {
     expect(() =>
       DockerDeploymentSchema.parse({
         image: { name: "x" },
-        container: { name: "c", port: 8000 },
+        container: { name: "c", port: 8000 }
       })
     ).toThrow();
   });
@@ -345,7 +350,7 @@ describe("dockerDeploymentGetServerUrl", () => {
     const d = DockerDeploymentSchema.parse({
       host: "myhost",
       image: { name: "img" },
-      container: { name: "c", port: 7777 },
+      container: { name: "c", port: 7777 }
     });
     expect(dockerDeploymentGetServerUrl(d)).toBe("http://myhost:8000");
   });
@@ -354,12 +359,11 @@ describe("dockerDeploymentGetServerUrl", () => {
     const d = DockerDeploymentSchema.parse({
       host: "myhost",
       image: { name: "img" },
-      container: { name: "c", port: 9000 },
+      container: { name: "c", port: 9000 }
     });
     expect(dockerDeploymentGetServerUrl(d)).toBe("http://myhost:9000");
   });
 });
-
 
 // ============================================================================
 // RunPod Schemas
@@ -422,7 +426,7 @@ describe("RunPodStateSchema", () => {
 describe("RunPodDeploymentSchema", () => {
   it("parses valid RunPod deployment", () => {
     const result = RunPodDeploymentSchema.parse({
-      image: { name: "img", tag: "v1" },
+      image: { name: "img", tag: "v1" }
     });
     expect(result.type).toBe("runpod");
     expect(result.enabled).toBe(true);
@@ -437,7 +441,7 @@ describe("RunPodDeploymentSchema", () => {
 describe("runPodDeploymentGetServerUrl", () => {
   it("returns endpoint_url when present", () => {
     const d = RunPodDeploymentSchema.parse({
-      image: { name: "img", tag: "v1" },
+      image: { name: "img", tag: "v1" }
     });
     d.state.endpoint_url = "https://api.runpod.io/v2/abc123";
     expect(runPodDeploymentGetServerUrl(d)).toBe(
@@ -447,7 +451,7 @@ describe("runPodDeploymentGetServerUrl", () => {
 
   it("returns undefined when no endpoint_url", () => {
     const d = RunPodDeploymentSchema.parse({
-      image: { name: "img", tag: "v1" },
+      image: { name: "img", tag: "v1" }
     });
     expect(runPodDeploymentGetServerUrl(d)).toBeUndefined();
   });
@@ -467,7 +471,7 @@ describe("GCPImageConfigSchema", () => {
   it("defaults registry", () => {
     const result = GCPImageConfigSchema.parse({
       repository: "my-project/my-repo",
-      tag: "v1",
+      tag: "v1"
     });
     expect(result.registry).toBe("us-docker.pkg.dev");
   });
@@ -477,9 +481,11 @@ describe("gcpImageConfigFullName", () => {
   it("returns registry/repository:tag", () => {
     const image = GCPImageConfigSchema.parse({
       repository: "proj/repo",
-      tag: "v1",
+      tag: "v1"
     });
-    expect(gcpImageConfigFullName(image)).toBe("us-docker.pkg.dev/proj/repo:v1");
+    expect(gcpImageConfigFullName(image)).toBe(
+      "us-docker.pkg.dev/proj/repo:v1"
+    );
   });
 });
 
@@ -525,7 +531,7 @@ describe("GCPDeploymentSchema", () => {
     const result = GCPDeploymentSchema.parse({
       project_id: "my-project",
       service_name: "nodetool",
-      image: { repository: "proj/repo", tag: "v1" },
+      image: { repository: "proj/repo", tag: "v1" }
     });
     expect(result.type).toBe("gcp");
     expect(result.region).toBe("us-central1");
@@ -537,7 +543,7 @@ describe("GCPDeploymentSchema", () => {
     expect(() =>
       GCPDeploymentSchema.parse({
         service_name: "s",
-        image: { repository: "r", tag: "t" },
+        image: { repository: "r", tag: "t" }
       })
     ).toThrow();
   });
@@ -548,7 +554,7 @@ describe("gcpDeploymentGetServerUrl", () => {
     const d = GCPDeploymentSchema.parse({
       project_id: "p",
       service_name: "s",
-      image: { repository: "r", tag: "t" },
+      image: { repository: "r", tag: "t" }
     });
     d.state.service_url = "https://s-abc.run.app";
     expect(gcpDeploymentGetServerUrl(d)).toBe("https://s-abc.run.app");
@@ -558,7 +564,7 @@ describe("gcpDeploymentGetServerUrl", () => {
     const d = GCPDeploymentSchema.parse({
       project_id: "p",
       service_name: "s",
-      image: { repository: "r", tag: "t" },
+      image: { repository: "r", tag: "t" }
     });
     expect(gcpDeploymentGetServerUrl(d)).toBeUndefined();
   });
@@ -583,7 +589,7 @@ describe("DefaultsConfigSchema", () => {
       chat_provider: "openai",
       default_model: "gpt-4",
       log_level: "DEBUG",
-      extra: { CUSTOM_KEY: "value" },
+      extra: { CUSTOM_KEY: "value" }
     });
     expect(result.chat_provider).toBe("openai");
     expect(result.default_model).toBe("gpt-4");
@@ -618,9 +624,9 @@ describe("parseDeploymentConfig", () => {
           type: "docker",
           host: "server1",
           image: { name: "img" },
-          container: { name: "c", port: 8000 },
-        },
-      },
+          container: { name: "c", port: 8000 }
+        }
+      }
     });
     expect(result.deployments.prod.type).toBe("docker");
   });
@@ -640,19 +646,19 @@ describe("parseDeploymentConfig", () => {
           type: "docker",
           host: "h1",
           image: { name: "img" },
-          container: { name: "c", port: 8000 },
+          container: { name: "c", port: 8000 }
         },
         runpod1: {
           type: "runpod",
-          image: { name: "img", tag: "v1" },
+          image: { name: "img", tag: "v1" }
         },
         gcp1: {
           type: "gcp",
           project_id: "p",
           service_name: "s",
-          image: { repository: "r", tag: "t" },
-        },
-      },
+          image: { repository: "r", tag: "t" }
+        }
+      }
     });
     expect(Object.keys(result.deployments)).toHaveLength(3);
     expect(result.deployments.docker1.type).toBe("docker");
@@ -664,8 +670,8 @@ describe("parseDeploymentConfig", () => {
     expect(() =>
       parseDeploymentConfig({
         deployments: {
-          bad: { type: "invalid_type", host: "h" },
-        },
+          bad: { type: "invalid_type", host: "h" }
+        }
       })
     ).toThrow();
   });
@@ -713,7 +719,7 @@ describe("mergeDefaultsWithEnv", () => {
 
   it("includes extra fields from defaults", () => {
     const defaults = DefaultsConfigSchema.parse({
-      extra: { MY_VAR: "hello", NUM: 42 },
+      extra: { MY_VAR: "hello", NUM: 42 }
     });
     const env = mergeDefaultsWithEnv(defaults);
     expect(env.MY_VAR).toBe("hello");
@@ -724,7 +730,7 @@ describe("mergeDefaultsWithEnv", () => {
     const defaults = DefaultsConfigSchema.parse({});
     const env = mergeDefaultsWithEnv(defaults, {
       CHAT_PROVIDER: "openai",
-      CUSTOM: "value",
+      CUSTOM: "value"
     });
     expect(env.CHAT_PROVIDER).toBe("openai");
     expect(env.CUSTOM).toBe("value");
@@ -732,7 +738,7 @@ describe("mergeDefaultsWithEnv", () => {
 
   it("deployment env overrides default values", () => {
     const defaults = DefaultsConfigSchema.parse({
-      log_level: "DEBUG",
+      log_level: "DEBUG"
     });
     const env = mergeDefaultsWithEnv(defaults, { LOG_LEVEL: "WARN" });
     expect(env.LOG_LEVEL).toBe("WARN");
@@ -746,7 +752,7 @@ describe("mergeDefaultsWithEnv", () => {
       "CHAT_PROVIDER",
       "DEFAULT_MODEL",
       "LOG_LEVEL",
-      "AUTH_PROVIDER",
+      "AUTH_PROVIDER"
     ]);
   });
 
@@ -794,7 +800,7 @@ describe("Edge cases", () => {
     const result = ImageConfigSchema.parse({
       name: "us-docker.pkg.dev/project/repo/image",
       tag: "sha-abc123",
-      registry: "us-docker.pkg.dev",
+      registry: "us-docker.pkg.dev"
     });
     expect(imageConfigFullName(result)).toBe(
       "us-docker.pkg.dev/project/repo/image:sha-abc123"
@@ -814,7 +820,7 @@ describe("Edge cases", () => {
       workflows: ["wf.json"],
       template_name: "my-tmpl",
       flashboot: true,
-      execution_timeout: 300,
+      execution_timeout: 300
     });
     expect(result.gpu_types).toEqual(["NVIDIA A100"]);
     expect(result.gpu_count).toBe(2);
@@ -834,8 +840,8 @@ describe("Edge cases", () => {
         concurrency: 100,
         timeout: 7200,
         gpu_type: "nvidia-l4",
-        gpu_count: 1,
-      },
+        gpu_count: 1
+      }
     });
     expect(result.resources.cpu).toBe("8");
     expect(result.resources.gpu_type).toBe("nvidia-l4");
@@ -853,8 +859,8 @@ describe("Edge cases", () => {
         default_model: "gpt-4o",
         log_level: "DEBUG",
         auth_provider: "supabase",
-        extra: { SPECIAL: "true" },
-      },
+        extra: { SPECIAL: "true" }
+      }
     });
     expect(result.defaults.chat_provider).toBe("openai");
     expect(result.defaults.extra.SPECIAL).toBe("true");

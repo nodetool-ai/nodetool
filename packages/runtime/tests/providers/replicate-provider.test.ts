@@ -23,13 +23,13 @@ describe("ReplicateProvider", () => {
 
   it("returns required secrets", () => {
     expect(ReplicateProvider.requiredSecrets()).toEqual([
-      "REPLICATE_API_TOKEN",
+      "REPLICATE_API_TOKEN"
     ]);
   });
 
   it("returns container env with REPLICATE_API_TOKEN", () => {
     expect(createProvider().getContainerEnv()).toEqual({
-      REPLICATE_API_TOKEN: "r8_test",
+      REPLICATE_API_TOKEN: "r8_test"
     });
   });
 
@@ -54,30 +54,29 @@ describe("ReplicateProvider", () => {
   // --- Chat via replicate.run() ---
 
   it("generateMessage calls client.run with correct model and input", async () => {
-    const runMock = vi.fn().mockResolvedValue(["Hello", " from", " Replicate!"]);
+    const runMock = vi
+      .fn()
+      .mockResolvedValue(["Hello", " from", " Replicate!"]);
     const provider = createProvider({ run: runMock });
 
     const messages: Message[] = [
       { role: "system", content: "You are helpful" },
-      { role: "user", content: "hello" },
+      { role: "user", content: "hello" }
     ];
     const result = await provider.generateMessage({
       messages,
-      model: "qwen/qwen3-235b-a22b-instruct-2507",
+      model: "qwen/qwen3-235b-a22b-instruct-2507"
     });
 
     expect(result.role).toBe("assistant");
     expect(result.content).toBe("Hello from Replicate!");
 
-    expect(runMock).toHaveBeenCalledWith(
-      "qwen/qwen3-235b-a22b-instruct-2507",
-      {
-        input: expect.objectContaining({
-          prompt: "hello",
-          system_prompt: "You are helpful",
-        }),
-      }
-    );
+    expect(runMock).toHaveBeenCalledWith("qwen/qwen3-235b-a22b-instruct-2507", {
+      input: expect.objectContaining({
+        prompt: "hello",
+        system_prompt: "You are helpful"
+      })
+    });
   });
 
   it("generateMessage handles string output", async () => {
@@ -86,7 +85,7 @@ describe("ReplicateProvider", () => {
 
     const result = await provider.generateMessage({
       messages: [{ role: "user", content: "hi" }],
-      model: "meta/meta-llama-3-70b-instruct",
+      model: "meta/meta-llama-3-70b-instruct"
     });
 
     expect(result.content).toBe("Direct string response");
@@ -101,7 +100,7 @@ describe("ReplicateProvider", () => {
       model: "meta/meta-llama-3-70b-instruct",
       temperature: 0.5,
       topP: 0.9,
-      maxTokens: 100,
+      maxTokens: 100
     });
 
     const input = runMock.mock.calls[0][1].input;
@@ -124,7 +123,7 @@ describe("ReplicateProvider", () => {
     const items: unknown[] = [];
     for await (const item of provider.generateMessages({
       messages: [{ role: "user", content: "hi" }],
-      model: "meta/meta-llama-3-70b-instruct",
+      model: "meta/meta-llama-3-70b-instruct"
     })) {
       items.push(item);
     }
@@ -134,10 +133,9 @@ describe("ReplicateProvider", () => {
     expect((items[1] as any).content).toBe(" world");
     expect((items[2] as any).done).toBe(true);
 
-    expect(streamMock).toHaveBeenCalledWith(
-      "meta/meta-llama-3-70b-instruct",
-      { input: expect.objectContaining({ prompt: "hi" }) }
-    );
+    expect(streamMock).toHaveBeenCalledWith("meta/meta-llama-3-70b-instruct", {
+      input: expect.objectContaining({ prompt: "hi" })
+    });
   });
 
   it("generateMessages throws on stream error event", async () => {
@@ -152,7 +150,7 @@ describe("ReplicateProvider", () => {
     await expect(async () => {
       for await (const item of provider.generateMessages({
         messages: [{ role: "user", content: "hi" }],
-        model: "meta/meta-llama-3-70b-instruct",
+        model: "meta/meta-llama-3-70b-instruct"
       })) {
         items.push(item);
       }
@@ -176,40 +174,52 @@ describe("ReplicateProvider", () => {
             return Promise.resolve({ done: false, value: fakeBytes });
           }
           return Promise.resolve({ done: true, value: undefined });
-        },
-      }),
+        }
+      })
     };
 
     const runMock = vi.fn().mockResolvedValue([fakeReadableStream]);
     const provider = createProvider({ run: runMock });
 
     const result = await provider.textToImage({
-      model: { id: "black-forest-labs/flux-schnell", name: "FLUX Schnell", provider: "replicate" },
-      prompt: "a cat",
+      model: {
+        id: "black-forest-labs/flux-schnell",
+        name: "FLUX Schnell",
+        provider: "replicate"
+      },
+      prompt: "a cat"
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
     expect(result.length).toBe(4);
 
-    expect(runMock).toHaveBeenCalledWith(
-      "black-forest-labs/flux-schnell",
-      { input: expect.objectContaining({ prompt: "a cat" }) }
-    );
+    expect(runMock).toHaveBeenCalledWith("black-forest-labs/flux-schnell", {
+      input: expect.objectContaining({ prompt: "a cat" })
+    });
   });
 
   it("textToImage handles string URL output", async () => {
     const fakeBytes = new Uint8Array([0xff, 0xd8]);
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: () => Promise.resolve(fakeBytes.buffer),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(fakeBytes.buffer)
+      })
+    );
 
-    const runMock = vi.fn().mockResolvedValue("https://replicate.delivery/image.png");
+    const runMock = vi
+      .fn()
+      .mockResolvedValue("https://replicate.delivery/image.png");
     const provider = createProvider({ run: runMock });
 
     const result = await provider.textToImage({
-      model: { id: "black-forest-labs/flux-schnell", name: "FLUX Schnell", provider: "replicate" },
-      prompt: "a dog",
+      model: {
+        id: "black-forest-labs/flux-schnell",
+        name: "FLUX Schnell",
+        provider: "replicate"
+      },
+      prompt: "a dog"
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
@@ -219,8 +229,12 @@ describe("ReplicateProvider", () => {
   it("textToImage throws on empty prompt", async () => {
     await expect(
       createProvider().textToImage({
-        model: { id: "black-forest-labs/flux-schnell", name: "FLUX Schnell", provider: "replicate" },
-        prompt: "",
+        model: {
+          id: "black-forest-labs/flux-schnell",
+          name: "FLUX Schnell",
+          provider: "replicate"
+        },
+        prompt: ""
       })
     ).rejects.toThrow("Prompt is required");
   });
@@ -228,21 +242,25 @@ describe("ReplicateProvider", () => {
   it("textToImage passes optional params", async () => {
     const fakeReadableStream = {
       getReader: () => ({
-        read: () => Promise.resolve({ done: true, value: undefined }),
-      }),
+        read: () => Promise.resolve({ done: true, value: undefined })
+      })
     };
     const runMock = vi.fn().mockResolvedValue([fakeReadableStream]);
     const provider = createProvider({ run: runMock });
 
     await provider.textToImage({
-      model: { id: "black-forest-labs/flux-schnell", name: "FLUX", provider: "replicate" },
+      model: {
+        id: "black-forest-labs/flux-schnell",
+        name: "FLUX",
+        provider: "replicate"
+      },
       prompt: "test",
       width: 1024,
       height: 768,
       negativePrompt: "blurry",
       guidanceScale: 7.5,
       numInferenceSteps: 30,
-      seed: 42,
+      seed: 42
     });
 
     const input = runMock.mock.calls[0][1].input;

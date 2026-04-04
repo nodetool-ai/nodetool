@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Power Array"
-node_type: "lib.numpy.math.PowerArray"
-namespace: "lib.numpy.math"
+node_type: "lib.array.math.PowerArray"
+namespace: "lib.array.math"
 ---
 
-**Type:** `lib.numpy.math.PowerArray`
+**Type:** `lib.array.math.PowerArray`
 
-**Namespace:** `lib.numpy.math`
+**Namespace:** `lib.array.math`
 
 ## Description
 
@@ -36,5 +36,5 @@ Raises the base array to the power of the exponent element-wise.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.math](../) namespace.
+Browse other nodes in the [lib.array.math](../) namespace.
 

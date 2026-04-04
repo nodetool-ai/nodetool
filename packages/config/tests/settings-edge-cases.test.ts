@@ -10,12 +10,9 @@ import {
   registerSetting,
   getSettings,
   clearSettings,
-  type SettingDefinition,
+  type SettingDefinition
 } from "../src/settings.js";
-import {
-  maskSecret,
-  diagnoseEnvironment,
-} from "../src/diagnostics.js";
+import { maskSecret, diagnoseEnvironment } from "../src/diagnostics.js";
 
 describe("settings edge cases", () => {
   beforeEach(() => {
@@ -34,7 +31,7 @@ describe("settings edge cases", () => {
         envVar: "EMPTY_SETTING",
         group: "test",
         description: "Test setting",
-        isSecret: false,
+        isSecret: false
       });
       const settings = getSettings();
       expect(settings[0].configured).toBe(false);
@@ -51,7 +48,7 @@ describe("settings edge cases", () => {
         envVar: "GOOD_SETTING",
         group: "test",
         description: "Has value",
-        isSecret: false,
+        isSecret: false
       });
       const settings = getSettings();
       expect(settings[0].configured).toBe(true);
@@ -66,14 +63,14 @@ describe("settings edge cases", () => {
       envVar: "MY_KEY",
       group: "group1",
       description: "Original",
-      isSecret: false,
+      isSecret: false
     });
     registerSetting({
       package: "test",
       envVar: "MY_KEY",
       group: "group2",
       description: "Replaced",
-      isSecret: true,
+      isSecret: true
     });
 
     const settings = getSettings();
@@ -88,14 +85,14 @@ describe("settings edge cases", () => {
       envVar: "A",
       group: "g",
       description: "d",
-      isSecret: false,
+      isSecret: false
     });
     registerSetting({
       package: "test",
       envVar: "B",
       group: "g",
       description: "d",
-      isSecret: false,
+      isSecret: false
     });
     clearSettings();
     expect(getSettings()).toHaveLength(0);
@@ -107,7 +104,7 @@ describe("settings edge cases", () => {
       envVar: "DYNAMIC_KEY",
       group: "g",
       description: "d",
-      isSecret: false,
+      isSecret: false
     });
 
     delete process.env["DYNAMIC_KEY"];
@@ -126,7 +123,7 @@ describe("settings edge cases", () => {
         envVar: `SETTING_${i}`,
         group: "bulk",
         description: `Setting ${i}`,
-        isSecret: i % 2 === 0,
+        isSecret: i % 2 === 0
       });
     }
     expect(getSettings()).toHaveLength(100);
@@ -180,7 +177,7 @@ describe("diagnostics edge cases", () => {
         envVar: "DIAG_KEY",
         group: "test",
         description: "Diagnostic key",
-        isSecret: false,
+        isSecret: false
       });
       process.env["DIAG_KEY"] = "visible-value";
       try {
@@ -200,7 +197,7 @@ describe("diagnostics edge cases", () => {
         envVar: "SECRET_DIAG",
         group: "test",
         description: "Secret",
-        isSecret: true,
+        isSecret: true
       });
       process.env["SECRET_DIAG"] = "super-secret-api-key-12345";
       try {
@@ -218,7 +215,7 @@ describe("diagnostics edge cases", () => {
         envVar: "UNSET_DIAG",
         group: "test",
         description: "Unset",
-        isSecret: false,
+        isSecret: false
       });
       delete process.env["UNSET_DIAG"];
       const results = diagnoseEnvironment();
@@ -234,8 +231,8 @@ describe("diagnostics edge cases", () => {
           group: "custom",
           description: "Custom",
           isSecret: false,
-          configured: true,
-        },
+          configured: true
+        }
       ];
       process.env["CUSTOM_KEY"] = "custom-val";
       try {

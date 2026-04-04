@@ -12,7 +12,10 @@ describe("T-SEC-6: UserManager", () => {
   });
 
   it("create persists a user", () => {
-    const user = manager.create({ username: "alice", email: "alice@example.com" });
+    const user = manager.create({
+      username: "alice",
+      email: "alice@example.com"
+    });
     expect(user.id).toBeDefined();
     expect(user.username).toBe("alice");
     expect(user.email).toBe("alice@example.com");
@@ -24,12 +27,19 @@ describe("T-SEC-6: UserManager", () => {
   });
 
   it("create with custom role", () => {
-    const user = manager.create({ username: "admin", email: "admin@example.com", role: "admin" });
+    const user = manager.create({
+      username: "admin",
+      email: "admin@example.com",
+      role: "admin"
+    });
     expect(user.role).toBe("admin");
   });
 
   it("findById returns created user", () => {
-    const user = manager.create({ username: "alice", email: "alice@example.com" });
+    const user = manager.create({
+      username: "alice",
+      email: "alice@example.com"
+    });
     const found = manager.findById(user.id);
     expect(found).toBeDefined();
     expect(found!.username).toBe("alice");
@@ -41,7 +51,10 @@ describe("T-SEC-6: UserManager", () => {
   });
 
   it("setRole updates user role", () => {
-    const user = manager.create({ username: "alice", email: "alice@example.com" });
+    const user = manager.create({
+      username: "alice",
+      email: "alice@example.com"
+    });
     manager.setRole(user.id, "admin");
     const found = manager.findById(user.id);
     expect(found!.role).toBe("admin");
@@ -52,7 +65,10 @@ describe("T-SEC-6: UserManager", () => {
   });
 
   it("multiple users are independent", () => {
-    const alice = manager.create({ username: "alice", email: "alice@example.com" });
+    const alice = manager.create({
+      username: "alice",
+      email: "alice@example.com"
+    });
     const bob = manager.create({ username: "bob", email: "bob@example.com" });
     expect(alice.id).not.toBe(bob.id);
     expect(manager.findById(alice.id)!.username).toBe("alice");
@@ -62,7 +78,10 @@ describe("T-SEC-6: UserManager", () => {
   it("each user gets a unique id", () => {
     const ids = new Set<string>();
     for (let i = 0; i < 100; i++) {
-      const user = manager.create({ username: `user${i}`, email: `user${i}@test.com` });
+      const user = manager.create({
+        username: `user${i}`,
+        email: `user${i}@test.com`
+      });
       ids.add(user.id);
     }
     expect(ids.size).toBe(100);

@@ -17,7 +17,10 @@ export interface AgentOutputs {
 }
 
 export function agent(inputs: AgentInputs): DslNode<AgentOutputs, "result"> {
-  return createNode("nodetool.team.Agent", inputs as Record<string, unknown>, { outputNames: ["result"], defaultOutput: "result" });
+  return createNode("nodetool.team.Agent", inputs as Record<string, unknown>, {
+    outputNames: ["result"],
+    defaultOutput: "result"
+  });
 }
 
 // Team Lead — nodetool.team.TeamLead
@@ -36,5 +39,9 @@ export interface TeamLeadOutputs {
 }
 
 export function teamLead(inputs: TeamLeadInputs): DslNode<TeamLeadOutputs> {
-  return createNode("nodetool.team.TeamLead", inputs as Record<string, unknown>, { outputNames: ["result", "board", "messages", "events"] });
+  return createNode(
+    "nodetool.team.TeamLead",
+    inputs as Record<string, unknown>,
+    { outputNames: ["result", "board", "messages", "events"] }
+  );
 }

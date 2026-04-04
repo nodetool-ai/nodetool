@@ -38,7 +38,7 @@ async function flyctl(
 ): Promise<string> {
   try {
     const { stdout } = await execFileAsync("flyctl", args, {
-      timeout: opts?.timeout ?? 60_000,
+      timeout: opts?.timeout ?? 60_000
     });
     return stdout;
   } catch (e: unknown) {
@@ -69,9 +69,11 @@ async function flyctlJson<T = unknown>(
  */
 async function appExists(app: string): Promise<boolean> {
   try {
-    const apps = await flyctlJson<Array<{ Name?: string; name?: string }>>(
-      ["apps", "list", "--json"]
-    );
+    const apps = await flyctlJson<Array<{ Name?: string; name?: string }>>([
+      "apps",
+      "list",
+      "--json"
+    ]);
     return apps.some((a) => (a.Name ?? a.name) === app);
   } catch {
     return false;
@@ -117,7 +119,7 @@ export class FlyDeployer {
       changes: [],
       will_create: [],
       will_update: [],
-      will_destroy: [],
+      will_destroy: []
     };
 
     const exists = await appExists(this.deployment.app);
@@ -165,7 +167,7 @@ export class FlyDeployer {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
     try {
@@ -194,12 +196,7 @@ export class FlyDeployer {
       // 2. Ensure Fly app exists
       const exists = await appExists(app);
       if (!exists) {
-        await flyctl([
-          "apps",
-          "create",
-          app,
-          "--json",
-        ]);
+        await flyctl(["apps", "create", app, "--json"]);
         results.steps.push(`Created Fly app: ${app}`);
       } else {
         results.steps.push(`Fly app already exists: ${app}`);
@@ -220,7 +217,7 @@ export class FlyDeployer {
               "--size",
               String(vol.size),
               "--json",
-              "--yes",
+              "--yes"
             ]);
             results.steps.push(
               `Created volume: ${vol.name} (${vol.size}GB at ${vol.mount})`
@@ -242,30 +239,14 @@ export class FlyDeployer {
         const entries = Object.entries(this.deployment.environment);
         if (entries.length > 0) {
           const secretArgs = entries.map(([k, v]) => `${k}=${v}`);
-          await flyctl([
-            "secrets",
-            "set",
-            "--app",
-            app,
-            ...secretArgs,
-          ]);
-          results.steps.push(
-            `Set ${entries.length} secret(s)`
-          );
+          await flyctl(["secrets", "set", "--app", app, ...secretArgs]);
+          results.steps.push(`Set ${entries.length} secret(s)`);
         }
       }
 
       // 5. Deploy
       await flyctl(
-        [
-          "deploy",
-          "--app",
-          app,
-          "--image",
-          imageTag,
-          "--region",
-          region,
-        ],
+        ["deploy", "--app", app, "--image", imageTag, "--region", region],
         { timeout: 600_000 }
       );
       results.steps.push("Deployment complete");
@@ -275,7 +256,7 @@ export class FlyDeployer {
         status: DeploymentStatus.SERVING,
         app,
         region,
-        url: `https://${app}.fly.dev`,
+        url: `https://${app}.fly.dev`
       });
     } catch (e) {
       results.status = "error";
@@ -299,18 +280,13 @@ export class FlyDeployer {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
     try {
       results.steps.push(`Destroying Fly app: ${this.deployment.app}...`);
 
-      await flyctl([
-        "apps",
-        "destroy",
-        this.deployment.app,
-        "--yes",
-      ]);
+      await flyctl(["apps", "destroy", this.deployment.app, "--yes"]);
 
       results.steps.push("App destroyed successfully");
 
@@ -337,7 +313,7 @@ export class FlyDeployer {
     const statusInfo: DeployStatus = {
       deployment_name: this.deploymentName,
       host: `${this.deployment.app}.fly.dev`,
-      type: "fly",
+      type: "fly"
     };
 
     // Get saved state
@@ -354,15 +330,14 @@ export class FlyDeployer {
         "status",
         "--app",
         this.deployment.app,
-        "--json",
+        "--json"
       ]);
       const live = JSON.parse(raw) as Record<string, unknown>;
       statusInfo.live_status = (live["Status"] ?? live["status"]) as
         | string
         | undefined;
     } catch (e) {
-      statusInfo.live_status_error =
-        e instanceof Error ? e.message : String(e);
+      statusInfo.live_status_error = e instanceof Error ? e.message : String(e);
     }
 
     return statusInfo;
@@ -370,10 +345,7 @@ export class FlyDeployer {
 
   // ---------- logs ----------
 
-  async logs(opts?: {
-    follow?: boolean;
-    tail?: number;
-  }): Promise<string> {
+  async logs(opts?: { follow?: boolean; tail?: number }): Promise<string> {
     if (opts?.follow) {
       throw new Error(
         "Streaming logs not supported. Use 'flyctl logs --app " +

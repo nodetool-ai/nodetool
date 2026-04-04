@@ -9,12 +9,12 @@ class StubTool extends Tool {
   readonly description = "A stub tool for testing";
   readonly inputSchema: Record<string, unknown> = {
     type: "object",
-    properties: { foo: { type: "string" } },
+    properties: { foo: { type: "string" } }
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     return params;
   }
@@ -44,11 +44,11 @@ describe("FinishStepTool", () => {
         properties: {
           result: {
             type: "string",
-            description: "The result of the step.",
-          },
+            description: "The result of the step."
+          }
         },
         required: ["result"],
-        additionalProperties: false,
+        additionalProperties: false
       });
     });
   });
@@ -58,9 +58,9 @@ describe("FinishStepTool", () => {
       const outputSchema = {
         type: "object",
         properties: {
-          answer: { type: "number" },
+          answer: { type: "number" }
         },
-        required: ["answer"],
+        required: ["answer"]
       };
       const tool = new FinishStepTool(outputSchema);
 
@@ -70,14 +70,14 @@ describe("FinishStepTool", () => {
           result: {
             type: "object",
             properties: {
-              answer: { type: "number" },
+              answer: { type: "number" }
             },
             required: ["answer"],
-            additionalProperties: false,
-          },
+            additionalProperties: false
+          }
         },
         required: ["result"],
-        additionalProperties: false,
+        additionalProperties: false
       });
     });
 
@@ -85,7 +85,7 @@ describe("FinishStepTool", () => {
       const outputSchema = {
         type: "object",
         properties: { x: { type: "string" } },
-        additionalProperties: true,
+        additionalProperties: true
       };
       const tool = new FinishStepTool(outputSchema);
 
@@ -96,14 +96,14 @@ describe("FinishStepTool", () => {
     it("does not add additionalProperties to non-object type schemas", () => {
       const outputSchema = {
         type: "array",
-        items: { type: "string" },
+        items: { type: "string" }
       };
       const tool = new FinishStepTool(outputSchema);
 
       const result = (tool.inputSchema as any).properties.result;
       expect(result).toEqual({
         type: "array",
-        items: { type: "string" },
+        items: { type: "string" }
       });
       expect(result.additionalProperties).toBeUndefined();
     });
@@ -111,7 +111,7 @@ describe("FinishStepTool", () => {
     it("does not mutate the original outputSchema", () => {
       const outputSchema = {
         type: "object",
-        properties: { a: { type: "string" } },
+        properties: { a: { type: "string" } }
       };
       const original = { ...outputSchema };
       new FinishStepTool(outputSchema);
@@ -143,7 +143,7 @@ describe("FinishStepTool", () => {
       expect(providerTool).toEqual({
         name: "finish_step",
         description: tool.description,
-        inputSchema: tool.inputSchema,
+        inputSchema: tool.inputSchema
       });
     });
   });
@@ -160,8 +160,8 @@ describe("Tool (base class)", () => {
         description: "A stub tool for testing",
         inputSchema: {
           type: "object",
-          properties: { foo: { type: "string" } },
-        },
+          properties: { foo: { type: "string" } }
+        }
       });
     });
   });

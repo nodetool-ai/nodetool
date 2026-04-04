@@ -23,6 +23,12 @@ type ModelPreferencesState = {
   setOnlyAvailable: (only: boolean) => void;
   isProviderEnabled: (provider: string) => boolean;
   setProviderEnabled: (provider: string, enabled: boolean) => void;
+  defaults: Record<string, { provider: string; id: string; name: string }>;
+  setDefault: (
+    modelType: string,
+    model: { provider: string; id: string; name: string }
+  ) => void;
+  clearDefault: (modelType: string) => void;
 };
 
 function keyFor(provider: string, id: string): FavoriteKey {
@@ -38,6 +44,15 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
       recents: [],
       onlyAvailable: false,
       enabledProviders: {},
+      defaults: {},
+      setDefault: (modelType, model) => {
+        const prev = get().defaults;
+        set({ defaults: { ...prev, [modelType]: model } });
+      },
+      clearDefault: (modelType) => {
+        const { [modelType]: _, ...rest } = get().defaults;
+        set({ defaults: rest });
+      },
       toggleFavorite: (provider: string, id: string) => {
         const preferenceKey = keyFor(provider, id);
         const favorites = new Set(get().favorites);
@@ -82,11 +97,14 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         favorites: Array.from(state.favorites),
         recents: state.recents,
         onlyAvailable: state.onlyAvailable,
-        enabledProviders: state.enabledProviders
+        enabledProviders: state.enabledProviders,
+        defaults: state.defaults
       }),
       // Rehydrate Set
       onRehydrateStorage: () => (state) => {
-        if (!state) {return;}
+        if (!state) {
+          return;
+        }
         const rawFavorites = (state as { favorites: unknown }).favorites;
         if (Array.isArray(rawFavorites)) {
           state.favorites = new Set(rawFavorites as FavoriteKey[]);

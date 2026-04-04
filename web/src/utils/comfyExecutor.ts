@@ -453,3 +453,11 @@ export async function cancelComfyUIExecution(promptId: string): Promise<void> {
   const service = getComfyUIService();
   await service.cancelPrompt(promptId);
 }
+
+/**
+ * Execute a ComfyUI workflow on the local ComfyUI backend.
+ *
+ * For RunPod execution, use the RunComfyUIWorkflowOnRunPod backend node
+ * instead — it handles API key retrieval from secrets and per-node endpoint ID.
+ */
+export const executeComfyWorkflow = executeViaComfyUI;

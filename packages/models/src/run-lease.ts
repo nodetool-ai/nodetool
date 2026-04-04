@@ -28,7 +28,7 @@ export class RunLease extends DBModel {
   static async acquire(
     runId: string,
     workerId: string,
-    ttlSeconds = 60,
+    ttlSeconds = 60
   ): Promise<RunLease | null> {
     const now = new Date();
     const expires = new Date(now.getTime() + ttlSeconds * 1000);
@@ -39,7 +39,9 @@ export class RunLease extends DBModel {
     // Use a transaction with BEGIN IMMEDIATE to get an exclusive lock,
     // preventing two workers from acquiring the same lease concurrently.
     return db.transaction((tx: any) => {
-      const existing = tx.select().from(runLeases)
+      const existing = tx
+        .select()
+        .from(runLeases)
         .where(eq(runLeases.run_id, runId))
         .limit(1)
         .get();
@@ -51,7 +53,7 @@ export class RunLease extends DBModel {
             .set({
               worker_id: workerId,
               acquired_at: nowIso,
-              expires_at: expiresIso,
+              expires_at: expiresIso
             })
             .where(eq(runLeases.run_id, runId))
             .run();
@@ -59,7 +61,7 @@ export class RunLease extends DBModel {
             ...existing,
             worker_id: workerId,
             acquired_at: nowIso,
-            expires_at: expiresIso,
+            expires_at: expiresIso
           } as Record<string, unknown>);
         }
         // Lease still held by another worker
@@ -67,18 +69,20 @@ export class RunLease extends DBModel {
       }
 
       // No existing lease -- create one
-      tx.insert(runLeases).values({
-        run_id: runId,
-        worker_id: workerId,
-        acquired_at: nowIso,
-        expires_at: expiresIso,
-      }).run();
+      tx.insert(runLeases)
+        .values({
+          run_id: runId,
+          worker_id: workerId,
+          acquired_at: nowIso,
+          expires_at: expiresIso
+        })
+        .run();
 
       return new RunLease({
         run_id: runId,
         worker_id: workerId,
         acquired_at: nowIso,
-        expires_at: expiresIso,
+        expires_at: expiresIso
       } as Record<string, unknown>);
     });
   }
@@ -109,7 +113,9 @@ export class RunLease extends DBModel {
   static async cleanupExpired(): Promise<number> {
     const now = new Date().toISOString();
     const db = getDb();
-    const expired = db.select().from(runLeases)
+    const expired = db
+      .select()
+      .from(runLeases)
       .where(lt(runLeases.expires_at, now))
       .all();
 

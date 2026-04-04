@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Blend"
-node_type: "lib.pillow.__init__.Blend"
-namespace: "lib.pillow.__init__"
+node_type: "lib.image.Blend"
+namespace: "lib.image"
 ---
 
-**Type:** `lib.pillow.__init__.Blend`
+**Type:** `lib.image.Blend`
 
-**Namespace:** `lib.pillow.__init__`
+**Namespace:** `lib.image`
 
 ## Description
 
@@ -37,5 +37,5 @@ Blend two images with adjustable alpha mixing.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.__init__](../) namespace.
+Browse other nodes in the [lib.image](../) namespace.
 

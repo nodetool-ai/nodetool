@@ -19,11 +19,11 @@ export function makeRunner(registry: NodeRegistry): WorkflowRunner {
         return {
           async process(inputs: Record<string, unknown>) {
             return inputs;
-          },
+          }
         };
       }
       return registry.resolve(node);
-    },
+    }
   });
 }
 
@@ -38,19 +38,19 @@ export function makeRunnerWithContext(
         return {
           async process(inputs: Record<string, unknown>) {
             return inputs;
-          },
+          }
         };
       }
       return registry.resolve(node);
     },
-    executionContext: context,
+    executionContext: context
   });
 }
 
 export const inp = (id: string, name: string): NodeDescriptor => ({
   id,
   type: "test.Input",
-  name,
+  name
 });
 
 export const nd = (
@@ -63,5 +63,5 @@ export const de = (s: string, sh: string, t: string, th: string): Edge => ({
   source: s,
   sourceHandle: sh,
   target: t,
-  targetHandle: th,
+  targetHandle: th
 });

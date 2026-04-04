@@ -10,7 +10,7 @@ import {
   ErrorNode,
   SlowNode,
   StreamingCounter,
-  IntAccumulator,
+  IntAccumulator
 } from "../src/nodes/test-nodes.js";
 
 describe("Passthrough", () => {

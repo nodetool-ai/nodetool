@@ -24,6 +24,8 @@ Build workflows by connecting nodes.
 
 Your infinite workspace.
 
+![Workflow Canvas](assets/screenshots/editor-empty-state.png)
+
 **Navigate:**
 
 | Do This | How |

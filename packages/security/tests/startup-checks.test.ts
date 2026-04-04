@@ -10,7 +10,11 @@ describe("T-SEC-8: runStartupChecks", () => {
 
   beforeEach(() => {
     // Save and clear relevant env vars
-    for (const key of ["SECRETS_MASTER_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"]) {
+    for (const key of [
+      "SECRETS_MASTER_KEY",
+      "OPENAI_API_KEY",
+      "ANTHROPIC_API_KEY"
+    ]) {
       savedEnv[key] = process.env[key];
       delete process.env[key];
     }

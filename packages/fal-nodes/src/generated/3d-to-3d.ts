@@ -6,7 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
-  imageToDataUrl,
+  imageToDataUrl
 } from "../fal-base.js";
 
 // Re-export alias
@@ -20,22 +20,38 @@ export class Ultrashape extends FalNode {
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "model_3d" };
 
-  @prop({ type: "int", default: 1024, description: "Marching cubes resolution." })
+  @prop({
+    type: "int",
+    default: 1024,
+    description: "Marching cubes resolution."
+  })
   declare octree_resolution: any;
 
-  @prop({ type: "bool", default: true, description: "Remove image background." })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Remove image background."
+  })
   declare remove_background: any;
 
   @prop({ type: "int", default: 50, description: "Diffusion steps." })
   declare num_inference_steps: any;
 
-  @prop({ type: "str", default: "", description: "URL of the coarse mesh (.glb or .obj) to refine." })
+  @prop({
+    type: "str",
+    default: "",
+    description: "URL of the coarse mesh (.glb or .obj) to refine."
+  })
   declare model_url: any;
 
   @prop({ type: "int", default: 42, description: "Random seed." })
   declare seed: any;
 
-  @prop({ type: "image", default: "", description: "URL of the reference image for mesh refinement." })
+  @prop({
+    type: "image",
+    default: "",
+    description: "URL of the reference image for mesh refinement."
+  })
   declare image: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -47,16 +63,18 @@ export class Ultrashape extends FalNode {
     const seed = Number(this.seed ?? 42);
 
     const args: Record<string, unknown> = {
-      "octree_resolution": octreeResolution,
-      "remove_background": removeBackground,
-      "num_inference_steps": numInferenceSteps,
-      "model_url": modelUrl,
-      "seed": seed,
+      octree_resolution: octreeResolution,
+      remove_background: removeBackground,
+      num_inference_steps: numInferenceSteps,
+      model_url: modelUrl,
+      seed: seed
     };
 
     const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl =
+        (await imageToDataUrl(imageRef!)) ??
+        (await assetToFalUrl(apiKey, imageRef!));
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -75,19 +93,42 @@ export class Sam33DAlign extends FalNode {
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "model_3d" };
 
-  @prop({ type: "image", default: "", description: "URL of the human mask image. If not provided, uses full image." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "URL of the human mask image. If not provided, uses full image."
+  })
   declare body_mask_url: any;
 
-  @prop({ type: "str", default: "", description: "URL of the SAM-3D Body mesh file (.ply or .glb) to align" })
+  @prop({
+    type: "str",
+    default: "",
+    description: "URL of the SAM-3D Body mesh file (.ply or .glb) to align"
+  })
   declare body_mesh_url: any;
 
-  @prop({ type: "str", default: "", description: "Optional URL of SAM-3D Object mesh (.glb) to create combined scene" })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Optional URL of SAM-3D Object mesh (.glb) to create combined scene"
+  })
   declare object_mesh_url: any;
 
-  @prop({ type: "str", default: "", description: "Focal length from SAM-3D Body metadata. If not provided, estimated from MoGe." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Focal length from SAM-3D Body metadata. If not provided, estimated from MoGe."
+  })
   declare focal_length: any;
 
-  @prop({ type: "image", default: "", description: "URL of the original image used for MoGe depth estimation" })
+  @prop({
+    type: "image",
+    default: "",
+    description: "URL of the original image used for MoGe depth estimation"
+  })
   declare image: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -97,20 +138,26 @@ export class Sam33DAlign extends FalNode {
     const focalLength = String(this.focal_length ?? "");
 
     const args: Record<string, unknown> = {
-      "body_mesh_url": bodyMeshUrl,
-      "object_mesh_url": objectMeshUrl,
-      "focal_length": focalLength,
+      body_mesh_url: bodyMeshUrl,
+      object_mesh_url: objectMeshUrl,
+      focal_length: focalLength
     };
 
-    const bodyMaskUrlRef = this.body_mask_url as Record<string, unknown> | undefined;
+    const bodyMaskUrlRef = this.body_mask_url as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(bodyMaskUrlRef)) {
-      const bodyMaskUrlUrl = await imageToDataUrl(bodyMaskUrlRef!) ?? await assetToFalUrl(apiKey, bodyMaskUrlRef!);
+      const bodyMaskUrlUrl =
+        (await imageToDataUrl(bodyMaskUrlRef!)) ??
+        (await assetToFalUrl(apiKey, bodyMaskUrlRef!));
       if (bodyMaskUrlUrl) args["body_mask_url"] = bodyMaskUrlUrl;
     }
 
     const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl =
+        (await imageToDataUrl(imageRef!)) ??
+        (await assetToFalUrl(apiKey, imageRef!));
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -129,22 +176,52 @@ export class MeshyV5Retexture extends FalNode {
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "model_3d" };
 
-  @prop({ type: "bool", default: false, description: "Generate PBR Maps (metallic, roughness, normal) in addition to base color." })
+  @prop({
+    type: "bool",
+    default: false,
+    description:
+      "Generate PBR Maps (metallic, roughness, normal) in addition to base color."
+  })
   declare enable_pbr: any;
 
-  @prop({ type: "str", default: "", description: "Describe your desired texture style using text. Maximum 600 characters. Required if image_style_url is not provided." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "Describe your desired texture style using text. Maximum 600 characters. Required if image_style_url is not provided."
+  })
   declare text_style_prompt: any;
 
-  @prop({ type: "bool", default: true, description: "If set to true, input data will be checked for safety before processing." })
+  @prop({
+    type: "bool",
+    default: true,
+    description:
+      "If set to true, input data will be checked for safety before processing."
+  })
   declare enable_safety_checker: any;
 
-  @prop({ type: "bool", default: true, description: "Use the original UV mapping of the model instead of generating new UVs. If the model has no original UV, output quality may be reduced." })
+  @prop({
+    type: "bool",
+    default: true,
+    description:
+      "Use the original UV mapping of the model instead of generating new UVs. If the model has no original UV, output quality may be reduced."
+  })
   declare enable_original_uv: any;
 
-  @prop({ type: "str", default: "", description: "URL or base64 data URI of a 3D model to texture. Supports .glb, .gltf, .obj, .fbx, .stl formats. Can be a publicly accessible URL or data URI with MIME type application/octet-stream." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "URL or base64 data URI of a 3D model to texture. Supports .glb, .gltf, .obj, .fbx, .stl formats. Can be a publicly accessible URL or data URI with MIME type application/octet-stream."
+  })
   declare model_url: any;
 
-  @prop({ type: "image", default: "", description: "2D image to guide the texturing process. Supports .jpg, .jpeg, and .png formats. Required if text_style_prompt is not provided. If both are provided, image_style_url takes precedence." })
+  @prop({
+    type: "image",
+    default: "",
+    description:
+      "2D image to guide the texturing process. Supports .jpg, .jpeg, and .png formats. Required if text_style_prompt is not provided. If both are provided, image_style_url takes precedence."
+  })
   declare image_style: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -156,16 +233,20 @@ export class MeshyV5Retexture extends FalNode {
     const modelUrl = String(this.model_url ?? "");
 
     const args: Record<string, unknown> = {
-      "enable_pbr": enablePbr,
-      "text_style_prompt": textStylePrompt,
-      "enable_safety_checker": enableSafetyChecker,
-      "enable_original_uv": enableOriginalUv,
-      "model_url": modelUrl,
+      enable_pbr: enablePbr,
+      text_style_prompt: textStylePrompt,
+      enable_safety_checker: enableSafetyChecker,
+      enable_original_uv: enableOriginalUv,
+      model_url: modelUrl
     };
 
-    const imageStyleRef = this.image_style as Record<string, unknown> | undefined;
+    const imageStyleRef = this.image_style as
+      | Record<string, unknown>
+      | undefined;
     if (isRefSet(imageStyleRef)) {
-      const imageStyleUrl = await imageToDataUrl(imageStyleRef!) ?? await assetToFalUrl(apiKey, imageStyleRef!);
+      const imageStyleUrl =
+        (await imageToDataUrl(imageStyleRef!)) ??
+        (await assetToFalUrl(apiKey, imageStyleRef!));
       if (imageStyleUrl) args["image_style_url"] = imageStyleUrl;
     }
     removeNulls(args);
@@ -184,22 +265,51 @@ export class MeshyV5Remesh extends FalNode {
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "model_3d" };
 
-  @prop({ type: "float", default: 0, description: "Resize the model to a certain height measured in meters. Set to 0 for no resizing." })
+  @prop({
+    type: "float",
+    default: 0,
+    description:
+      "Resize the model to a certain height measured in meters. Set to 0 for no resizing."
+  })
   declare resize_height: any;
 
-  @prop({ type: "str", default: "", description: "Position of the origin. None means no effect." })
+  @prop({
+    type: "str",
+    default: "",
+    description: "Position of the origin. None means no effect."
+  })
   declare origin_at: any;
 
-  @prop({ type: "int", default: 30000, description: "Target number of polygons in the generated model. Actual count may vary based on geometry complexity." })
+  @prop({
+    type: "int",
+    default: 30000,
+    description:
+      "Target number of polygons in the generated model. Actual count may vary based on geometry complexity."
+  })
   declare target_polycount: any;
 
-  @prop({ type: "str", default: "", description: "URL or base64 data URI of a 3D model to remesh. Supports .glb, .gltf, .obj, .fbx, .stl formats. Can be a publicly accessible URL or data URI with MIME type application/octet-stream." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "URL or base64 data URI of a 3D model to remesh. Supports .glb, .gltf, .obj, .fbx, .stl formats. Can be a publicly accessible URL or data URI with MIME type application/octet-stream."
+  })
   declare model_url: any;
 
-  @prop({ type: "enum", default: "triangle", values: ["quad", "triangle"], description: "Specify the topology of the generated model. Quad for smooth surfaces, Triangle for detailed geometry." })
+  @prop({
+    type: "enum",
+    default: "triangle",
+    values: ["quad", "triangle"],
+    description:
+      "Specify the topology of the generated model. Quad for smooth surfaces, Triangle for detailed geometry."
+  })
   declare topology: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of target formats for the remeshed model." })
+  @prop({
+    type: "list[str]",
+    default: [],
+    description: "List of target formats for the remeshed model."
+  })
   declare target_formats: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -212,12 +322,12 @@ export class MeshyV5Remesh extends FalNode {
     const targetFormats = String(this.target_formats ?? []);
 
     const args: Record<string, unknown> = {
-      "resize_height": resizeHeight,
-      "origin_at": originAt,
-      "target_polycount": targetPolycount,
-      "model_url": modelUrl,
-      "topology": topology,
-      "target_formats": targetFormats,
+      resize_height: resizeHeight,
+      origin_at: originAt,
+      target_polycount: targetPolycount,
+      model_url: modelUrl,
+      topology: topology,
+      target_formats: targetFormats
     };
     removeNulls(args);
 
@@ -233,30 +343,75 @@ export class HunyuanPart extends FalNode {
   static readonly description = `Use the capabilities of hunyuan part to generate point clouds from your 3D files.
 3d, editing, transformation, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "iou_scores": "list[float]", "best_mask_index": "int", "mask_2_mesh": "str", "mask_1_mesh": "str", "segmented_mesh": "str", "seed": "int", "mask_3_mesh": "str" };
+  static readonly outputTypes = {
+    iou_scores: "list[float]",
+    best_mask_index: "int",
+    mask_2_mesh: "str",
+    mask_1_mesh: "str",
+    segmented_mesh: "str",
+    seed: "int",
+    mask_3_mesh: "str"
+  };
 
-  @prop({ type: "float", default: 0, description: "X coordinate of the point prompt for segmentation (normalized space -1 to 1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    description:
+      "X coordinate of the point prompt for segmentation (normalized space -1 to 1)."
+  })
   declare point_prompt_x: any;
 
-  @prop({ type: "float", default: 0, description: "Z coordinate of the point prompt for segmentation (normalized space -1 to 1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    description:
+      "Z coordinate of the point prompt for segmentation (normalized space -1 to 1)."
+  })
   declare point_prompt_z: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to use normal information for segmentation." })
+  @prop({
+    type: "bool",
+    default: true,
+    description: "Whether to use normal information for segmentation."
+  })
   declare use_normal: any;
 
-  @prop({ type: "float", default: 0, description: "Standard deviation of noise to add to sampled points." })
+  @prop({
+    type: "float",
+    default: 0,
+    description: "Standard deviation of noise to add to sampled points."
+  })
   declare noise_std: any;
 
-  @prop({ type: "int", default: 100000, description: "Number of points to sample from the mesh." })
+  @prop({
+    type: "int",
+    default: 100000,
+    description: "Number of points to sample from the mesh."
+  })
   declare point_num: any;
 
-  @prop({ type: "float", default: 0, description: "Y coordinate of the point prompt for segmentation (normalized space -1 to 1)." })
+  @prop({
+    type: "float",
+    default: 0,
+    description:
+      "Y coordinate of the point prompt for segmentation (normalized space -1 to 1)."
+  })
   declare point_prompt_y: any;
 
-  @prop({ type: "str", default: "", description: "URL of the 3D model file (.glb or .obj) to process for segmentation." })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "URL of the 3D model file (.glb or .obj) to process for segmentation."
+  })
   declare model_file_url: any;
 
-  @prop({ type: "str", default: "", description: "\n            The same seed and input will produce the same segmentation results.\n        " })
+  @prop({
+    type: "str",
+    default: "",
+    description:
+      "\n            The same seed and input will produce the same segmentation results.\n        "
+  })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -271,14 +426,14 @@ export class HunyuanPart extends FalNode {
     const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
-      "point_prompt_x": pointPromptX,
-      "point_prompt_z": pointPromptZ,
-      "use_normal": useNormal,
-      "noise_std": noiseStd,
-      "point_num": pointNum,
-      "point_prompt_y": pointPromptY,
-      "model_file_url": modelFileUrl,
-      "seed": seed,
+      point_prompt_x: pointPromptX,
+      point_prompt_z: pointPromptZ,
+      use_normal: useNormal,
+      noise_std: noiseStd,
+      point_num: pointNum,
+      point_prompt_y: pointPromptY,
+      model_file_url: modelFileUrl,
+      seed: seed
     };
     removeNulls(args);
 
@@ -292,5 +447,5 @@ export const FAL_3D_TO_3D_NODES: readonly NodeClass[] = [
   Sam33DAlign,
   MeshyV5Retexture,
   MeshyV5Remesh,
-  HunyuanPart,
+  HunyuanPart
 ] as const;

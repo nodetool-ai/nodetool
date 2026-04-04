@@ -6,25 +6,26 @@ describe("control context property metadata", () => {
   it("_buildControlActionProperties includes min/max/description from propertyMeta", () => {
     const node: NodeDescriptor = {
       id: "n1",
-      type: "lib.pillow.color_grading.ColorBalance",
+      type: "lib.image.color_grading.ColorBalance",
       properties: { temperature: 0, tint: 0 },
       propertyTypes: { temperature: "float", tint: "float" },
       propertyMeta: {
         temperature: {
-          description: "Color temperature. Positive = warmer (orange), negative = cooler (blue).",
+          description:
+            "Color temperature. Positive = warmer (orange), negative = cooler (blue).",
           min: -1,
-          max: 1,
+          max: 1
         },
         tint: {
           description: "Color tint. Positive = magenta, negative = green.",
           min: -1,
-          max: 1,
-        },
-      },
+          max: 1
+        }
+      }
     };
 
     const runner = new WorkflowRunner("test-job", {
-      resolveExecutor: () => ({ process: async () => ({}) }),
+      resolveExecutor: () => ({ process: async () => ({}) })
     });
     const result = (runner as any)._buildControlActionProperties(node);
 
@@ -40,11 +41,11 @@ describe("control context property metadata", () => {
       id: "n1",
       type: "test.node",
       properties: { value: 42 },
-      propertyTypes: { value: "int" },
+      propertyTypes: { value: "int" }
     };
 
     const runner = new WorkflowRunner("test-job", {
-      resolveExecutor: () => ({ process: async () => ({}) }),
+      resolveExecutor: () => ({ process: async () => ({}) })
     });
     const result = (runner as any)._buildControlActionProperties(node);
 

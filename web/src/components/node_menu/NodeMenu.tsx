@@ -314,6 +314,31 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   onPressEnter={handleEnter}
                   searchResults={searchResults}
                 />
+                {searchTerm && searchTerm.trim() !== "" && (
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "var(--palette-text-secondary)",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0
+                    }}
+                  >
+                    {searchResults.length} {searchResults.length === 1 ? "node" : "nodes"}
+                  </span>
+                )}
+                {(selectedProviderType !== "all" || selectedInputType || selectedOutputType) && (
+                  <Chip
+                    size="small"
+                    label="Filtered"
+                    variant="outlined"
+                    sx={{
+                      height: "20px",
+                      fontSize: "0.65rem",
+                      borderColor: "var(--palette-warning-main)",
+                      color: "var(--palette-warning-main)"
+                    }}
+                  />
+                )}
                 <FlexRow
                   gap={0.75}
                   align="center"

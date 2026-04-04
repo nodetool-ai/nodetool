@@ -1,0 +1,326 @@
+{
+  "id": "autonomous_research_agent",
+  "access": "public",
+  "created_at": "2025-11-22T16:54:18.095690",
+  "updated_at": "2025-11-22T16:54:18.095690",
+  "name": "Autonomous Research Agent",
+  "tool_name": null,
+  "description": "Use the ResearchAgent node to perform a lightweight market analysis with structured outputs defined through dynamic slots.",
+  "tags": [
+    "agent",
+    "business",
+    "research"
+  ],
+  "thumbnail": "Autonomous Research Agent.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "market_research_brief",
+          "value": "",
+          "description": "Compiled market research memo"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "# Aurora Metrics \u2013 Market Intelligence Brief\n\n## Executive Summary\n{{ summary }}\n\n## Market Landscape\n{{ landscape }}\n\n## Key Players\n- {{ players | join('\n- ') }}\n\n## Opportunities\n{{ opportunities }}\n\n## Risk Factors\n{{ risks }}\n\n## Recommended Actions\n{{ actions }}\n\n## Source Notes\n{{ sources }}\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "summary": null,
+          "landscape": null,
+          "players": null,
+          "opportunities": null,
+          "risks": null,
+          "actions": null,
+          "sources": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.agents.ResearchAgent",
+        "data": {
+          "objective": "",
+          "model": {
+            "type": "language_model"
+          },
+          "system_prompt": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Write intermediate findings to the workspace for reference\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n- write_file: Save research findings to files\n- read_file: Read previously saved research files\n- list_directory: List files in the workspace\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Save important findings using write_file\n5. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
+          "tools": [
+            {
+              "type": "tool_name",
+              "name": "google_search"
+            },
+            {
+              "type": "tool_name",
+              "name": "browser"
+            }
+          ],
+          "max_tokens": 8192
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "executive_summary": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "market_landscape": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "key_players": {
+            "type": "list",
+            "optional": false,
+            "values": null,
+            "type_args": [
+              {
+                "type": "str",
+                "optional": false,
+                "values": null,
+                "type_args": [],
+                "type_name": null
+              }
+            ],
+            "type_name": null
+          },
+          "opportunities": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "risk_factors": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "recommended_actions": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "sources": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          }
+        },
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "You are supporting the launch team for {{ product }}.\n        Build a concise market research brief that helps leadership evaluate\n        {{ goal }}\n\n        Context to consider:\n        - Target segment: {{ segment }}\n        - Focus region: {{ region }}\n        - Deliver the results using the predefined JSON keys.\n        "
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "product": null,
+          "goal": null,
+          "segment": null,
+          "region": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product_name",
+          "value": "Aurora Metrics",
+          "description": "SaaS product under evaluation"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "analysis_goal",
+          "value": "Assess the competitive landscape and opportunities for a data-driven operations dashboard ahead of a Q1 launch.",
+          "description": "Specific decision the leadership team needs to make"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "target_segment",
+          "value": "Series B startup COOs in North America",
+          "description": "Primary audience for the product"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "focus_region",
+          "value": "United States and Canada",
+          "description": "Geographic focus for market intelligence"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "product",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "goal",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "segment",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "region",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "objective",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "3",
+        "sourceHandle": "executive_summary",
+        "target": "2",
+        "targetHandle": "summary",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "3",
+        "sourceHandle": "market_landscape",
+        "target": "2",
+        "targetHandle": "landscape",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "3",
+        "sourceHandle": "key_players",
+        "target": "2",
+        "targetHandle": "players",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "3",
+        "sourceHandle": "opportunities",
+        "target": "2",
+        "targetHandle": "opportunities",
+        "ui_properties": null
+      },
+      {
+        "id": "10",
+        "source": "3",
+        "sourceHandle": "risk_factors",
+        "target": "2",
+        "targetHandle": "risks",
+        "ui_properties": null
+      },
+      {
+        "id": "11",
+        "source": "3",
+        "sourceHandle": "recommended_actions",
+        "target": "2",
+        "targetHandle": "actions",
+        "ui_properties": null
+      },
+      {
+        "id": "12",
+        "source": "3",
+        "sourceHandle": "sources",
+        "target": "2",
+        "targetHandle": "sources",
+        "ui_properties": null
+      },
+      {
+        "id": "13",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}
