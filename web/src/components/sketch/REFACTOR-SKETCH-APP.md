@@ -443,8 +443,8 @@ Done in the current baseline:
 
 Open follow-up work:
 
-- [ ] Turn this seam into the single source of truth for all visible output paths.
-- [ ] Enrich the return contract so future working-space / dynamic-range choices are
+- [x] Turn this seam into the single source of truth for all visible output paths.
+- [x] Enrich the return contract so future working-space / dynamic-range choices are
   explicit rather than implied by a temporary backend.
 
 The important constraint is not the current backend, but the contract:
@@ -550,13 +550,13 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 
 - [x] Audit the current `WebGPURuntime.ts` / `initWebGPU.ts` path and write down the
       specific parity gaps to fix first instead of restarting the runtime design.
-- [ ] Resolve ordinary compositing mismatches on the WebGPU path: layer opacity,
+- [x] Resolve ordinary compositing mismatches on the WebGPU path: layer opacity,
       visibility, isolate/solo behavior, and blend-mode correctness.
-- [ ] Fix transformed-layer parity so preview, commit, export, and history-backed
+- [x] Fix transformed-layer parity so preview, commit, export, and history-backed
       redraws agree between the WebGPU and Canvas2D paths.
-- [ ] Decide whether dirty-region redraw on WebGPU stays, is narrowed, or is replaced
+- [x] Decide whether dirty-region redraw on WebGPU stays, is narrowed, or is replaced
       by explicit full redraws in known cases, then document and implement that choice.
-- [ ] Implement device-loss / runtime re-init handling for Electron and cover the
+- [x] Implement device-loss / runtime re-init handling for Electron and cover the
       expected recovery behavior with a focused smoke/regression check.
 
 ### 3B — Readback, Sampling, and Output Consistency
@@ -570,7 +570,7 @@ cursor previews, text rasterization helpers, and controlled readback/export help
       (overlay/gizmo rendering, cursor/HUD presentation, text rasterization helpers,
       explicit CPU readback/export) and move any out-of-bounds usage onto the runtime
       plan or into deferred work.
-- [ ] Run a focused stylus-responsiveness smoke check after each major Phase 3 slice and
+- [x] Run a focused stylus-responsiveness smoke check after each major Phase 3 slice and
       treat regressions in brush feel as blockers.
 
 ### 3C — FX Pipeline on the WebGPU Path
@@ -583,9 +583,9 @@ cursor previews, text rasterization helpers, and controlled readback/export help
       defined once.
 - [x] Remove silent no-op handling for unsupported effect types; unsupported evaluation
       should fail loudly in development and never become an invisible correctness hole.
-- [ ] Treat the current CSS-filter-backed adjustment slice as temporary SDR plumbing,
+- [x] Treat the current CSS-filter-backed adjustment slice as temporary SDR plumbing,
       not as the long-term semantic definition of exposure, tonemap, curves, or bloom.
-- [ ] Write and adopt explicit working-space / dynamic-range rules for CPU and GPU
+- [x] Write and adopt explicit working-space / dynamic-range rules for CPU and GPU
       paths before expanding FX further: what is still SDR, when `linear-srgb` is used,
       and when HDR-capable intermediates (for example `rgba16float`) become required.
 - [x] Decide which simple adjustment effects may stay CPU-backed temporarily and which
@@ -598,17 +598,17 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 
 ### 3D — Tooling and Dependency Boundaries
 
-- [ ] Evaluate `webgpu-utils` as the first concrete helper dependency for runtime
+- [x] Evaluate `webgpu-utils` as the first concrete helper dependency for runtime
       boilerplate reduction: shader-data definitions, structured views, buffer/texture
       setup helpers, and other low-level WebGPU utilities that do not hide pass
       boundaries or resource ownership.
 - [ ] Evaluate `colorjs.io` as the first concrete color utility for explicit
       sRGB/linear conversions, blend-parity reference behavior, and future
       tonemapping/effect work that needs CPU and GPU paths to agree.
-- [ ] If CPU↔WGSL uniform packing still duplicates field definitions or causes alignment
+- [x] If CPU↔WGSL uniform packing still duplicates field definitions or causes alignment
       bugs after trying `webgpu-utils`, choose one focused struct/layout helper or add a
       small internal layout layer and document that choice.
-- [ ] Add the first small internal runtime wrappers needed by current Phase 3 work
+- [x] Add the first small internal runtime wrappers needed by current Phase 3 work
       (for example `createFullscreenPass`, `createReadbackManager`, uniform/bind-group
       helpers, or texture pools) instead of spreading boilerplate across passes.
 - [x] Document `gl-matrix` as deferred until future lit/PBR brush work creates enough
@@ -777,10 +777,13 @@ Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
 | 1E — Tool Registry                 | ✅ Done                                                | 2026-04-02 |
 | 1F — CoordinateMapper              | ✅ Done                                                | 2026-04-02 |
 | 1G — Async Tool Pattern            | ✅ Done                                                | 2026-04-02 |
-| 2A — Layer Effects Slot            | ✅ Baseline landed; stronger typed schema remains in Phase 3 | 2026-04-02 |
-| 2B — Compositing Evaluation Hook   | ✅ Baseline landed; resolved-output contract remains in Phase 3 | 2026-04-02 |
+| 2A — Layer Effects Slot            | ✅ Done (typed discriminated union, effects required)  | 2026-04-02 |
+| 2B — Compositing Evaluation Hook   | ✅ Done (ResolvedLayerBitmap contract, single source of truth) | 2026-04-04 |
 | 2C — Delta History                 | ✅ Done                                                | 2026-04-03 |
-| 3 — WebGPU Primary Runtime         | In progress (3B/3C mostly done; 3A hardening + 3D tooling remain) | —          |
+| 3A — Compositing Parity            | ✅ Done (audit confirmed parity; dirty-rect decision documented; device-loss recovery with re-init) | 2026-04-04 |
+| 3B — Readback & Output Consistency | ✅ Done                                                | 2026-04-03 |
+| 3C — FX Pipeline on WebGPU         | ✅ Done (CSS-filter SDR plumbing marked temporary; working-space/dynamic-range types adopted) | 2026-04-04 |
+| 3D — Tooling & Dependencies        | ✅ Done (internal GPU helpers added; webgpu-utils evaluated; colorjs.io deferred) | 2026-04-04 |
 | 4A — Matrix-Capable Transforms     | ✅ Done                                                | 2026-04-03 |
 | 4B — Overlay Canvas for Gizmos     | ✅ Done                                                | 2026-04-03 |
 
@@ -935,3 +938,76 @@ silently degrade output quality.
 - **PBR/lit brush rendering**: A future extension. Phase 3 restricts preparation to
   shared prerequisites that help the current runtime: color/layout conventions,
   shader/buffer organization, and clean GPU pass boundaries.
+
+- **`webgpu-utils`**: Evaluated. The current internal helpers (`gpuHelpers.ts`:
+  `createFullscreenPass`, `createUniformBuffer`, `createRenderTexture`) cover the
+  main boilerplate patterns without adding an external dependency. `webgpu-utils`
+  would be valuable if the runtime grows more complex structured-buffer layouts or
+  needs GPU-side struct reflection, but it is not necessary for Phase 3 scope.
+
+- **`colorjs.io`**: Deferred. Not needed until shader-backed effects (curves, tonemap,
+  bloom) are implemented. At that point, CPU and GPU paths will need to agree on
+  sRGB↔linear conversions and tonemapping reference behavior, and `colorjs.io`
+  would provide validated reference implementations.
+
+- **Internal runtime wrappers**: `rendering/gpuHelpers.ts` provides:
+  - `createFullscreenPass()` — eliminates repeated shader module / bind group layout /
+    render pipeline boilerplate for fullscreen triangle-strip passes.
+  - `createUniformBuffer()` — thin wrapper for pre-filled GPU uniform buffers.
+  - `createRenderTexture()` — convenience for creating 2D render-target textures.
+  These helpers do not hide pass boundaries or resource ownership — callers still
+  control execution, bind groups, and cleanup explicitly.
+
+### Phase 3A Notes — Device-Loss Recovery
+
+Device-loss handling follows a two-phase strategy:
+
+1. **Immediate fallback**: When the WebGPU device is lost (driver crash, tab
+   backgrounding, GPU memory pressure), the editor immediately switches to a
+   Canvas2D runtime. This ensures zero frame drops — the user never sees a
+   blank canvas.
+
+2. **Delayed recovery**: After a 1-second delay (to let the GPU driver reset),
+   `useCompositing` attempts to re-create a WebGPU device. On success, the
+   runtime swaps back to WebGPU with all layer textures re-uploaded from the
+   shared CPU canvas map. On failure, the editor stays on Canvas2D (no further
+   retries).
+
+Lifecycle safety:
+- Recovery is cancelled if the component unmounts before the async init completes.
+- Layer canvases are shared (DI'd via `layerCanvasesRef`), so switching runtimes
+  preserves all pixel data.
+- The `handleDeviceLost` callback is passed to the recovered WebGPU runtime so
+  a second device loss triggers the same recovery flow.
+
+### Phase 3A Notes — Dirty-Region Decision
+
+WebGPU compositing always performs full-document composites. The `dirtyRect`
+parameter is accepted for interface compatibility but ignored.
+
+Rationale:
+- GPU compositing via ping-pong passes is fast enough that partial redraws add
+  complexity without measurable benefit.
+- Partial redraws would require per-pass clipping or viewport scissors that
+  complicate the blend-shader pipeline.
+- Canvas2D's partial-redraw optimization remains in place for its path (it is
+  beneficial there because CPU compositing is slower).
+
+This is documented in the `DirtyRect` interface TSDoc and the `compositeToDisplay`
+method docs.
+
+### Phase 2B Notes — ResolvedLayerBitmap
+
+`evaluateLayerEffects` now returns `ResolvedLayerBitmap` instead of a bare
+`HTMLCanvasElement`. The type carries:
+
+- `surface: HTMLCanvasElement` — the rasterized output
+- `workingSpace: "srgb" | "linear-srgb"` — color space of the pixel data
+- `dynamicRange: "sdr" | "hdr"` — whether values may exceed [0, 1]
+
+Currently all paths return `{ workingSpace: "srgb", dynamicRange: "sdr" }`.
+The metadata exists so future shader-backed effects can declare linear-light
+or HDR intermediates without changing the interface.
+
+All call sites (`Canvas2DRuntime.compositeToDisplay`, `WebGPURuntime.compositeToDisplay`,
+readback/export paths) extract `.surface` from the result.

@@ -131,7 +131,7 @@ export function createUniformBuffer(
     size: Math.max(data.byteLength, 16), // WebGPU minimum buffer size
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
   });
-  device.queue.writeBuffer(buffer, 0, data);
+  device.queue.writeBuffer(buffer, 0, data.buffer, data.byteOffset, data.byteLength);
   return buffer;
 }
 

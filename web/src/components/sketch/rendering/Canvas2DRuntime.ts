@@ -1340,7 +1340,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     }
     const ctx = temp.getContext("2d");
     if (!ctx) {
-      return source;
+      return { surface: source, ...SDR_SRGB };
     }
 
     ctx.clearRect(0, 0, temp.width, temp.height);
