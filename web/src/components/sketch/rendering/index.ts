@@ -8,7 +8,10 @@
 export type {
   SketchRuntime,
   DirtyRect,
-  ActiveStrokeInfo
+  ActiveStrokeInfo,
+  ResolvedLayerBitmap,
+  WorkingSpace,
+  DynamicRange
 } from "./types";
 
 export { Canvas2DRuntime } from "./Canvas2DRuntime";
@@ -19,3 +22,13 @@ export {
   createRuntime
 } from "./initWebGPU";
 export type { WebGPUInitResult } from "./initWebGPU";
+export {
+  createFullscreenPass,
+  createUniformBuffer,
+  createRenderTexture
+} from "./gpuHelpers";
+export type {
+  FullscreenPassDescriptor,
+  FullscreenPassBinding,
+  FullscreenPassResult
+} from "./gpuHelpers";

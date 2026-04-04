@@ -12,11 +12,61 @@ import type { LayerContentBounds, LayerEffect, Selection, SketchDocument } from 
 
 // ─── Dirty rect for partial compositing ──────────────────────────────────────
 
+/**
+ * Region of the document canvas that needs recompositing.
+ *
+ * **Backend behavior:**
+ * - **Canvas2D**: When provided, compositing clips to this rect + 2px padding
+ *   for a partial redraw. Falls back to full composite when `null`.
+ * - **WebGPU**: Always performs full compositing — the `dirtyRect` parameter is
+ *   accepted for interface compatibility but ignored. GPU compositing via
+ *   ping-pong passes is fast enough that partial redraws add complexity without
+ *   measurable benefit.
+ *
+ * This is an intentional design decision (Phase 3A): WebGPU dirty-region redraw
+ * is not implemented because full GPU composites are already fast and partial
+ * redraws would require per-pass clipping or viewport scissors that complicate
+ * the blend-shader pipeline.
+ */
 export interface DirtyRect {
   x: number;
   y: number;
   w: number;
   h: number;
+}
+
+// ─── Resolved layer output ───────────────────────────────────────────────────
+
+/**
+ * The resolved output of a layer after non-destructive effects have been
+ * evaluated. Carries working-space and dynamic-range metadata so downstream
+ * consumers (compositing, export, thumbnails) can make informed decisions.
+ *
+ * **Phase 3C contract:**
+ * - `workingSpace` declares the color space of the surface pixels.
+ *   `"srgb"` means standard gamma-encoded sRGB (current default for all paths).
+ *   `"linear-srgb"` means linear-light sRGB — required for physically correct
+ *   blending, tonemapping, and bloom.
+ * - `dynamicRange` declares whether pixel values may exceed [0, 1].
+ *   `"sdr"` means values are clamped to 8-bit [0, 255] per channel.
+ *   `"hdr"` means the surface may contain values outside [0, 1] (e.g. via
+ *   `rgba16float` textures) that require tonemapping before display.
+ *
+ * **Current state:** All paths return `{ workingSpace: "srgb", dynamicRange: "sdr" }`.
+ * The metadata exists so future shader-backed effects (curves, tonemap, bloom)
+ * can declare when they produce linear-light or HDR intermediates without
+ * changing the interface.
+ */
+export type WorkingSpace = "srgb" | "linear-srgb";
+export type DynamicRange = "sdr" | "hdr";
+
+export interface ResolvedLayerBitmap {
+  /** The rasterized surface after effect evaluation. */
+  surface: HTMLCanvasElement;
+  /** Color space of the pixel data in `surface`. */
+  workingSpace: WorkingSpace;
+  /** Whether pixel values may exceed the standard [0, 1] range. */
+  dynamicRange: DynamicRange;
 }
 
 // ─── Active stroke buffer ────────────────────────────────────────────────────
@@ -66,7 +116,10 @@ export interface SketchRuntime {
   // ─── Compositing ─────────────────────────────────────────────────────
   /**
    * Composite all visible layers onto the target canvas.
-   * When `dirtyRect` is provided, only that region is repainted.
+   *
+   * @param dirtyRect - Optional region for partial recompositing.
+   *   **Canvas2D**: clips to this rect + padding for a fast partial redraw.
+   *   **WebGPU**: ignored — always performs full compositing (see `DirtyRect` docs).
    */
   compositeToDisplay(
     targetCanvas: HTMLCanvasElement,
@@ -191,17 +244,31 @@ export interface SketchRuntime {
   // ─── Effects evaluation ──────────────────────────────────────────────
   /**
    * Apply non-destructive effects to a layer's raster before compositing.
-   * Returns `source` unchanged if `effects` is empty or all disabled.
+   * Returns a `ResolvedLayerBitmap` containing the output surface and its
+   * working-space / dynamic-range metadata.
+   *
+   * When `effects` is empty or all disabled, returns the unmodified `source`
+   * wrapped in `{ surface: source, workingSpace: "srgb", dynamicRange: "sdr" }`.
    *
    * This method is the single integration point for the FX pipeline —
    * all output paths (main canvas, thumbnails, flatten/export, solo preview)
    * must call it. Bypassing it is a bug.
+   *
+   * **Current implementation (Phase 3C — temporary SDR plumbing):**
+   * Simple SDR adjustments (brightness/contrast, hue/saturation, exposure) are
+   * evaluated via CSS `ctx.filter` on a Canvas2D scratch surface. This is
+   * adequate for SDR editing but does **not** define the long-term semantics
+   * for curves, true exposure, tonemapping, or bloom — those require
+   * shader-backed evaluation with explicit working-space handling.
+   *
+   * Advanced effects (`curves`, `tonemap`, `bloom`) throw in development to
+   * prevent silent correctness degradation.
    */
   evaluateLayerEffects(
     layerId: string,
     source: HTMLCanvasElement,
     effects: LayerEffect[]
-  ): HTMLCanvasElement;
+  ): ResolvedLayerBitmap;
 
   // ─── Composite readback ─────────────────────────────────────────────
   /**
