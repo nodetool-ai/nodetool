@@ -398,42 +398,75 @@ Important constraints:
 
 ## (keep performance in mind so that after a brush stroke the mouse cursor does not jump)
 
-## Phase 3 — WebGPU: Where It Actually Helps
+## Phase 3 — WebGPU as the Primary Document Runtime
 
-_Not a rewrite. Opt-in runtime swap. Canvas2D stays as fallback._
+_This is not a greenfield WebGPU rewrite. A WebGPU path already exists and should now
+be treated as the intended document renderer in Electron. Canvas2D remains acceptable
+only for explicit helper paths where it is still the better tool: overlay/gizmo UI,
+cursor previews, text rasterization helpers, and controlled readback/export helpers._
 
-### Assessment
+### Phase 3 Decisions
 
-| Operation               | Worth GPU?              | Reason                                                                                                                                                            |
-| ----------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Layer compositing**   | **Yes — highest value** | N layers × blend modes on every pointer move. GPU texture compositing with blend shaders is 5–10× faster for 10+ layers. Directly enables smooth FX layers.       |
-| **FX layer evaluation** | **Yes — natural fit**   | Hue/sat/brightness/tonemapping as compute shaders; runs alongside compositing on already-uploaded textures. Design alongside FX layer implementation, not before. |
-| **Selection mask ops**  | **Yes — medium value**  | Feather, expand, contract on large canvases are CPU-bound. WebGPU compute shaders solve this cleanly. Worth doing when adding lasso polish or magic wand tuning.  |
-| **Brush engine**        | **No**                  | Brush stamps are small; the bottleneck is pointer event throughput, not GPU bandwidth. Canvas2D is fine here.                                                     |
-| **Gradient rendering**  | **No**                  | Single-operation, not in the hot path.                                                                                                                            |
+- WebGPU is the primary renderer for document pixels, not an opt-in experiment.
+- Canvas2D is no longer described as the default fallback for the editor; it is a
+  targeted helper backend used deliberately where correctness or simplicity wins.
+- The current `SketchRuntime` seam is the starting point. Do not add public texture
+  lifecycle methods unless implementation pressure proves the current interface is
+  insufficient.
+- Do not rewrite the existing brush engine just to make more code run on WebGPU.
+  Brush feel is already good enough that Phase 3 should focus on compositing parity,
+  FX integration, and runtime correctness first.
+- Future GPU-native brush work, selection compute, or more advanced paint simulation
+  must build on this phase, not be bundled into it prematurely.
 
-### Plan
+### 3A — Compositing Parity and Runtime Hardening
 
-1. **Extend the `SketchRuntime` interface** to include resource lifecycle:
-   `uploadLayerTexture`, `invalidateLayerTexture`, `releaseLayerTexture`.
-   Canvas2D no-ops these; WebGPU uses them to manage GPU-side layer textures.
+- [ ] Treat the existing `WebGPURuntime.ts` / `initWebGPU.ts` path as the baseline
+      implementation to improve, not a sketch to replace by default.
+- [ ] Keep `SketchRuntime` aligned with the current seam (`invalidateLayer`,
+      `compositeToDisplay`, `evaluateLayerEffects`, readback/export helpers) and
+      avoid expanding the public API without a concrete need.
+- [ ] Close the remaining WebGPU compositing parity gaps for ordinary editing:
+      layer opacity, visibility, isolate/solo behavior, and blend-mode correctness.
+- [ ] Make transformed layers render identically enough across Canvas2D and WebGPU
+      that preview, commit, export, and history-backed redraws agree.
+- [ ] Make dirty-region behavior explicit: either partial redraws on WebGPU are real
+      and trustworthy, or Phase 3 narrows/documents where full redraws are still used.
+- [ ] Define and implement device-loss / runtime re-init behavior as part of normal
+      Electron operation rather than leaving it as an implicit fallback story.
 
-2. **Implement WebGPU compositing** as an alternative `compositeToDisplay` path:
-   - One texture per layer, uploaded lazily on first composite after invalidation
-   - Blend mode shaders covering the 12 current modes (WGSL)
-   - Opacity and visibility handled in the shader
-   - Graceful fallback to Canvas2D if WebGPU unavailable or device lost
+### 3B — Readback, Sampling, and Output Consistency
 
-3. **Gate on a feature flag** (`useWebGPUCompositing` in `uiStore` or a build constant)
-   so Canvas2D remains the default until WebGPU compositing is validated.
+- [ ] Centralize full-document readback so eyedropper, magic wand / selection sampling,
+      clipboard/export helpers, and future thumbnail paths do not invent separate
+      WebGPU-vs-Canvas2D rules.
+- [ ] Ensure flatten/export, isolate preview, and any other non-editor output path use
+      the same compositing semantics as the main canvas.
+- [ ] Keep Canvas2D helper paths only where they remain clearly justified:
+      overlay/gizmo rendering, cursor/HUD presentation, text rasterization helpers,
+      and explicit CPU readback/export workflows.
+- [ ] Verify that Phase 3 changes preserve current stylus responsiveness; do not trade
+      away brush feel for architectural neatness.
 
-4. **Selection GPU compute** — add as a separate `SelectionRuntime` interface,
-   not mixed into the compositing runtime. This keeps selection logic testable
-   without a GPU context.
+### 3C — FX Pipeline on the WebGPU Path
 
-The existing `WebGPURuntime.ts` and `initWebGPU.ts` are Phase 1–2 sketches.
-Review them for partly reuse but be willing to restart from the `SketchRuntime` interface
-rather than extending the draft.
+- [ ] Treat `evaluateLayerEffects` as the single FX seam and wire all output paths to
+      respect it consistently.
+- [ ] Start with a narrow first slice: adjustment-style effects already implied by the
+      current `effects` model, rather than a generalized shader/plugin system.
+- [ ] Decide explicitly where CPU-backed effect evaluation is still acceptable
+      temporarily and where WebGPU implementation is required before Phase 3 is done.
+- [ ] Define blend/color-space expectations before expanding GPU blend modes and FX
+      shaders further, so parity work is not built on incorrect assumptions.
+
+### Explicitly Deferred from Phase 3
+
+- Selection-mask compute remains a likely future GPU target, but it is not required to
+  complete the first WebGPU-primary rendering slice.
+- A fully GPU-native brush engine is deferred until parity, readback, and FX behavior
+  are stable and profiling shows a real gain.
+- More ambitious GPU paint simulation (smudge, wet mix, bristle dynamics) belongs in a
+  later phase with its own latency and memory validation work.
 
 ---
 
@@ -501,7 +534,8 @@ Required checks should focus on what the phase can realistically break:
   extra rerenders in hot paths
 - Phase 2: save/load compatibility, thumbnail/export parity, history correctness,
   transform-only vs pixel-edit semantics
-- Phase 3: visual parity with Canvas2D first, then performance wins
+- Phase 3: WebGPU parity for blend modes, transformed layers, readback/export/isolate
+  behavior, then performance wins
 - Phase 4: hit testing, overlay sharpness, commit/cancel behavior, serialization of
   transformed layers
 
@@ -525,7 +559,8 @@ Phase 2A (effects slot)    ← depends on 1B (document.ts needs to be stable)
 Phase 2B (eval hook)       ← depends on 2A
 Phase 2C (delta history)   ← depends on 1A (historySlice isolated)
     ↓
-Phase 3  (WebGPU)          ← depends on 2B (runtime interface must have eval hook)
+Phase 3  (WebGPU primary runtime) ← depends on 2B; must preserve shipped transform/
+                                     overlay behavior from Phase 4
 Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
 ```
 
@@ -545,7 +580,7 @@ Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
 | 2A Effects slot      | FX layer panel can be built; format v3 migration path exists                            |
 | 2B Eval hook         | First FX layer (hue/sat/brightness) works; live adjustment previews without bake        |
 | 2C Delta history     | History stays cheap as layer count grows; large-canvas editing stays fast               |
-| 3 WebGPU compositing | 10+ layer documents stay responsive; FX layers don't tank frame rate                    |
+| 3 WebGPU primary runtime | Electron rendering has one clear home; FX, readback, and parity work stop being split between "future GPU" and "current editor" |
 | 4 Matrix transforms  | Transform tool completion; future text/vector layers; non-destructive scale             |
 
 ---
@@ -577,7 +612,7 @@ Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
 | 2A — Layer Effects Slot | ✅ Done | 2026-04-02 |
 | 2B — Compositing Evaluation Hook | ✅ Done | 2026-04-02 |
 | 2C — Delta History | ✅ Done | 2026-04-03 |
-| 3 — WebGPU Compositing | Not started | — |
+| 3 — WebGPU Primary Runtime | In progress (baseline exists; parity/hardening remain) | — |
 | 4A — Matrix-Capable Transforms | ✅ Done | 2026-04-03 |
 | 4B — Overlay Canvas for Gizmos | ✅ Done | 2026-04-03 |
 

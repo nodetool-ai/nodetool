@@ -1,13 +1,14 @@
 # Sketch Editor Roadmap
 
-> **Status**: transform-aware layer foundation is in place; next work should stay focused on correctness and high-value workflows.
-> **Last updated**: 2026-03-26
+> **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place; next work should stay focused on parity, correctness, and high-value workflows.
+> **Last updated**: 2026-04-04
 
 ## Principles
 
 - keep code clean and modular with separation of concerns
 - keep the document canvas fixed; off-canvas layer content must survive editing, history, and serialization
 - prefer shared transform-aware infrastructure over ad hoc per-tool fixes
+- treat WebGPU as the primary document renderer in Electron; keep Canvas 2D only for explicit helper paths where it is still the better tool
 - keep ordinary raster workflows cheap and predictable
 - only run sketch-related tests for normal iteration, not full app tests
 - when changing shortcuts, edit src/components/sketch/SHORTCUTS.md
@@ -42,7 +43,7 @@
 - [x] route all remaining pointer/helper paths through one shared coordinate model for screen, canvas, layer-local, raster-bounds, and selection-space math
 - [x] add cut/copy/paste for selected pixels, including clipboard interop with images copied from outside apps
 - [x] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. Exposed input layers are locked when receiving image data from inputs. Dynamic output handles are registered for exposed output layers. Toggle actions push history for undo/redo support.
-- [ ] add transform tool: live transform preview with commit/cancel, then scale/rotate/free transform on top of a matrix-capable layer transform model
+- [ ] finish transform tool UX on top of the matrix-capable transform model: show live preview while transforming, keep commit/cancel reliable, and fix left/top handle scaling so it does not behave like right/bottom scaling
 - [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
 - [x] fix brush strokes not visible when holding shift for straight lines - they only appear after releasing shift key. also all layers become invisible during drawing of straight lines
 
@@ -75,6 +76,15 @@
 - [x] better cursor and pixel-workflow affordances such as thin white grid overlay when zoomed in, snap-to-pixel, and crisp high-zoom view
 - [x] improve selection mask to be able to select 1 pixel width exactly on close zoom
 - [x] make the canvas resizable from edges/corners with a solid interaction model
+
+### WEBGPU PRIMARY RUNTIME - CURRENT PRIORITIES
+
+- [ ] finish WebGPU compositing parity for ordinary editing: blend modes, transformed layers, isolate/solo behavior, and dirty-region behavior
+- [ ] centralize full-document readback so eyedropper, selection sampling, clipboard/export helpers, and future thumbnails follow one set of rules
+- [ ] keep Canvas 2D helper paths explicit and limited to overlay/gizmo UI, cursor/HUD presentation, text rasterization helpers, and controlled CPU readback/export workflows
+- [ ] wire `evaluateLayerEffects` through all relevant output paths so main canvas, export, isolate preview, and future thumbnails stay consistent
+- [ ] preserve current stylus responsiveness while hardening the WebGPU path; do not trade brush feel away for architectural neatness
+- [ ] defer fully GPU-native brush simulation and GPU selection compute until parity/readback/FX work is stable and profiling shows real benefit
 
 ### PHASE 5 - FX LAYER
 
@@ -146,18 +156,18 @@ These are not current priorities, but they should stay visible so they can be re
 1. **Workflow node** — `../node/SketchNode/SketchNode.tsx` hosts the editor inside the graph (props, I/O, layout).
 2. **Editor UI** — `SketchEditor.tsx` composes toolbar, layers panel, settings, shortcuts.
 3. **Canvas** — `SketchCanvas.tsx` mounts the `<canvas>` and pulls in the hook bundle under `sketchCanvasHooks/`.
-4. **State** — `state/useSketchStore.ts` is the Zustand document; `hooks/*` wraps store updates (canvas, layers, history, selectors).
-5. **Input → pixels** — pointer flow lives in `sketchCanvasHooks/`; tools in `tools/`; actual drawing in `painting/`; raster compositing in `rendering/` (main path: `Canvas2DRuntime.ts`).
+4. **State** — `state/` is a slice-based Zustand document store composed into `useSketchStore`; `hooks/*` wraps store updates and selectors.
+5. **Input → pixels** — pointer flow lives in `sketchCanvasHooks/`; tools in `tools/`; actual drawing in `painting/`; document compositing lives in `rendering/` with WebGPU as the intended primary runtime and Canvas 2D retained for targeted helper paths.
 
 ### Folders
 
 - **`sketchCanvasHooks/`** — Pointer events, compositing, overlay, keyboard modifiers, imperative canvas API. Heaviest files: `usePointerHandlers.ts`, `usePointerHandlerUtils.ts`.
-- **`state/`** — `useSketchStore.ts` (layers, transforms, tool state, history pointers).
+- **`state/`** — slice-based store under `state/slices/` composed into `useSketchStore.ts`.
 - **`hooks/`** — `useCanvasActions.ts`, `useLayerActions.ts`, `useHistoryActions.ts`, `useSketchStoreSelectors.ts`.
-- **`rendering/`** — `Canvas2DRuntime.ts` (2D); `WebGPURuntime.ts` / `initWebGPU.ts` / `shaders.ts` for the GPU path.
+- **`rendering/`** — `WebGPURuntime.ts` / `initWebGPU.ts` / `shaders.ts` for the primary document runtime; `Canvas2DRuntime.ts` remains the reference/helper 2D path.
 - **`painting/`** — `PaintSession.ts`, `CoordinateMapper.ts`, brush/pencil/eraser engines, `layerBounds.ts`.
 - **`tools/`** — One module per tool; `toolDefinitions.ts` registers them; `tools/types.ts` for shared tool types.
-- **`types/`** — Shared TypeScript types (`index.ts`).
+- **`types/`** — shared TypeScript types split by domain and re-exported from `index.ts`.
 - **`serialization/`** — Save/load document and layer payloads.
 
 ### UI pieces (same folder, top-level files)
