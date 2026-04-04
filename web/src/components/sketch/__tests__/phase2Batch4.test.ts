@@ -119,7 +119,6 @@ describe("Canvas resize store action", () => {
 
     // Use a mocked Date to ensure different timestamp
     const mockDate = new Date("2099-01-01T00:00:00Z");
-    const originalToISOString = Date.prototype.toISOString;
     jest.spyOn(Date.prototype, "toISOString").mockReturnValue(mockDate.toISOString());
 
     act(() => {

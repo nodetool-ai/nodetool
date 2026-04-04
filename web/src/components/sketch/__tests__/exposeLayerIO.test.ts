@@ -11,7 +11,7 @@
 
 import { act } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
-import { Layer, createDefaultLayer, createDefaultDocument } from "../types";
+import { createDefaultLayer, createDefaultDocument } from "../types";
 import { serializeDocument, deserializeDocument } from "../serialization";
 
 // Reset store before each test

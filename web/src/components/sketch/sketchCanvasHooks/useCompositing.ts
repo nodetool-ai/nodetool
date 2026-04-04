@@ -357,6 +357,7 @@ export function useCompositing({
     // functions derived from it) is recreated when the backend switches to
     // WebGPU, which causes the [requestRedraw, doc.layers] effect to fire and
     // trigger the first WebGPU frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       doc,
       isolatedLayerId,
@@ -456,7 +457,7 @@ export function useCompositing({
         compositeToDisplayRef.current(null);
       });
     }
-  }, [activeStrokeRef, drainPendingStrokeCommit]);
+  }, [drainPendingStrokeCommit]);
 
   /**
    * Schedule a partial redraw over a dirty region.
@@ -609,14 +610,14 @@ export function useCompositing({
   // map and wipes hydrated pixels while `hydratedLayerStateRef` still says
   // "synced" — blank canvas until something forces a repaint (e.g. a click).
   useEffect(() => {
+    const hydratedState = hydratedLayerStateRef.current;
     return () => {
       if (redrawRequestRef.current !== null) {
         cancelAnimationFrame(redrawRequestRef.current);
       }
-      hydratedLayerStateRef.current.clear();
+      hydratedState.clear();
       runtimeRef.current?.dispose();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: mount/unmount only
   }, []);
 
   return {

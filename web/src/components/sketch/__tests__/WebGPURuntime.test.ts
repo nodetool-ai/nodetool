@@ -12,6 +12,7 @@
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
 import { WebGPURuntime } from "../rendering/WebGPURuntime";
 import { isWebGPUAvailable, createRuntime } from "../rendering/initWebGPU";
+import type { LayerEffect } from "../types";
 
 describe("WebGPU initialization", () => {
   describe("isWebGPUAvailable", () => {
@@ -121,8 +122,7 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
     const result = runtime.evaluateLayerEffects(
       "layer1",
       sourceCanvas,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      null as any
+      null as unknown as LayerEffect[]
     );
     expect(result.surface).toBe(sourceCanvas);
   });
