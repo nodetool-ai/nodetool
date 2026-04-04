@@ -41,10 +41,6 @@ export async function initWebGPU(): Promise<WebGPUInitResult> {
   device.addEventListener("uncapturederror", (event) => {
     console.error("[WebGPU] Uncaptured device error:", event);
   });
-  // Handle device loss
-  device.lost.then((info) => {
-    console.error("[WebGPU] Device lost:", info.message, info.reason);
-  });
   return { adapter, device };
 }
 
@@ -52,15 +48,18 @@ export async function initWebGPU(): Promise<WebGPUInitResult> {
  * Create a SketchRuntime: tries WebGPU first, falls back to Canvas2D.
  *
  * @param layerCanvases  Shared map for layer canvas storage (DI).
+ * @param onDeviceLost   Called if the WebGPU device is lost at runtime.
+ *                       The caller should fall back to Canvas2D when this fires.
  * @returns The runtime and a flag indicating which backend was used.
  */
 export async function createRuntime(
-  layerCanvases?: Map<string, HTMLCanvasElement>
+  layerCanvases?: Map<string, HTMLCanvasElement>,
+  onDeviceLost?: () => void
 ): Promise<{ runtime: SketchRuntime; backend: "webgpu" | "canvas2d" }> {
   if (isWebGPUAvailable()) {
     try {
       const { device } = await initWebGPU();
-      const runtime = new WebGPURuntime(device, layerCanvases);
+      const runtime = new WebGPURuntime(device, layerCanvases, onDeviceLost);
       return { runtime, backend: "webgpu" };
     } catch (err) {
       console.warn(

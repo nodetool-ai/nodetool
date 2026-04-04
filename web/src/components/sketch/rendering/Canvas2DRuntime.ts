@@ -104,6 +104,8 @@ export class Canvas2DRuntime implements SketchRuntime {
   private strokeTempCanvas: HTMLCanvasElement | null = null;
   /** Scratch for feathered selection preview (stroke buffer × mask alpha). */
   private strokeMaskScratchCanvas: HTMLCanvasElement | null = null;
+  /** Temp canvas for FX-evaluated layer content. */
+  private fxTempCanvas: HTMLCanvasElement | null = null;
 
   /**
    * Current zoom level, updated by the compositing hook so that
@@ -208,6 +210,12 @@ export class Canvas2DRuntime implements SketchRuntime {
         continue;
       }
 
+      // Apply non-destructive effects (FX pipeline integration)
+      let drawCanvas = layerCanvas;
+      if (layer.effects && layer.effects.some((e) => e.enabled)) {
+        drawCanvas = this.evaluateLayerEffects(layer.id, layerCanvas, layer.effects);
+      }
+
       const opacityScale = getAncestorGroupOpacityProduct(
         doc.layers,
         layer,
@@ -217,8 +225,8 @@ export class Canvas2DRuntime implements SketchRuntime {
       const compositeOffset = getLayerCompositeOffset(
         layer,
         {
-          width: layerCanvas.width,
-          height: layerCanvas.height
+          width: drawCanvas.width,
+          height: drawCanvas.height
         },
         layerCanvas
       );
@@ -227,12 +235,12 @@ export class Canvas2DRuntime implements SketchRuntime {
         let tempCanvas = this.strokeTempCanvas;
         if (
           !tempCanvas ||
-          tempCanvas.width !== layerCanvas.width ||
-          tempCanvas.height !== layerCanvas.height
+          tempCanvas.width !== drawCanvas.width ||
+          tempCanvas.height !== drawCanvas.height
         ) {
           tempCanvas = window.document.createElement("canvas");
-          tempCanvas.width = layerCanvas.width;
-          tempCanvas.height = layerCanvas.height;
+          tempCanvas.width = drawCanvas.width;
+          tempCanvas.height = drawCanvas.height;
           this.strokeTempCanvas = tempCanvas;
         }
         const tempCtx = tempCanvas.getContext("2d");
@@ -241,7 +249,7 @@ export class Canvas2DRuntime implements SketchRuntime {
           tempCtx.globalAlpha = 1;
           tempCtx.globalCompositeOperation = "source-over";
           tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-          tempCtx.drawImage(layerCanvas, 0, 0);
+          tempCtx.drawImage(drawCanvas, 0, 0);
           tempCtx.save();
           tempCtx.globalAlpha = activeStroke.opacity;
           tempCtx.globalCompositeOperation = activeStroke.compositeOp;
@@ -268,7 +276,7 @@ export class Canvas2DRuntime implements SketchRuntime {
         ctx.globalCompositeOperation = blendModeToComposite(
           layer.blendMode || "normal"
         );
-        this.drawWithTransform(ctx, layerCanvas, compositeOffset, layer);
+        this.drawWithTransform(ctx, drawCanvas, compositeOffset, layer);
         ctx.restore();
       }
     }
@@ -1201,14 +1209,92 @@ export class Canvas2DRuntime implements SketchRuntime {
     source: HTMLCanvasElement,
     effects: import("../types").LayerEffect[]
   ): HTMLCanvasElement {
-    // Pass-through: when FX layers are implemented, this method will apply
-    // effects in order and return a processed canvas. For now, return the
-    // source unchanged if there are no enabled effects.
     if (!effects || effects.length === 0 || effects.every((e) => !e.enabled)) {
       return source;
     }
-    // TODO: implement per-effect evaluation (hue_saturation, brightness_contrast, etc.)
-    return source;
+
+    // Build a composite CSS filter string from all enabled effects.
+    // Canvas2D's `filter` property supports the same CSS filter functions
+    // (brightness, contrast, saturate, hue-rotate) and they compose in order.
+    const filterParts: string[] = [];
+
+    for (const effect of effects) {
+      if (!effect.enabled) {
+        continue;
+      }
+      switch (effect.type) {
+        case "brightness_contrast": {
+          const brightness = effect.params.brightness ?? 0;
+          const contrast = effect.params.contrast ?? 0;
+          // brightness: -1 → 0 (black), 0 → 1 (no change), 1 → 2 (double)
+          if (brightness !== 0) {
+            filterParts.push(`brightness(${1 + brightness})`);
+          }
+          // contrast: -1 → 0 (flat gray), 0 → 1 (no change), 1 → 2 (double)
+          if (contrast !== 0) {
+            filterParts.push(`contrast(${1 + contrast})`);
+          }
+          break;
+        }
+        case "hue_saturation": {
+          const hue = effect.params.hue ?? 0;
+          const saturation = effect.params.saturation ?? 0;
+          const lightness = effect.params.lightness ?? 0;
+          // hue: degrees of rotation (-180 to 180)
+          if (hue !== 0) {
+            filterParts.push(`hue-rotate(${hue}deg)`);
+          }
+          // saturation: -1 → 0 (grayscale), 0 → 1 (no change), 1 → 2 (double)
+          if (saturation !== 0) {
+            filterParts.push(`saturate(${1 + saturation})`);
+          }
+          // lightness: mapped to brightness adjustment
+          if (lightness !== 0) {
+            filterParts.push(`brightness(${1 + lightness})`);
+          }
+          break;
+        }
+        case "exposure": {
+          const exposure = effect.params.exposure ?? 0;
+          // exposure: EV stops; brightness factor = 2^exposure
+          if (exposure !== 0) {
+            filterParts.push(`brightness(${Math.pow(2, exposure)})`);
+          }
+          break;
+        }
+        default:
+          // Unsupported effect types (curves, tonemap) are silently skipped
+          break;
+      }
+    }
+
+    if (filterParts.length === 0) {
+      return source;
+    }
+
+    // Apply the filter chain to a temporary canvas
+    let temp = this.fxTempCanvas;
+    if (
+      !temp ||
+      temp.width !== source.width ||
+      temp.height !== source.height
+    ) {
+      temp = window.document.createElement("canvas");
+      temp.width = source.width;
+      temp.height = source.height;
+      this.fxTempCanvas = temp;
+    }
+    const ctx = temp.getContext("2d");
+    if (!ctx) {
+      return source;
+    }
+
+    ctx.clearRect(0, 0, temp.width, temp.height);
+    ctx.filter = filterParts.join(" ");
+    ctx.drawImage(source, 0, 0);
+    ctx.filter = "none";
+
+    return temp;
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────
@@ -1217,5 +1303,6 @@ export class Canvas2DRuntime implements SketchRuntime {
     this.layerCanvases.clear();
     this.strokeTempCanvas = null;
     this.strokeMaskScratchCanvas = null;
+    this.fxTempCanvas = null;
   }
 }
