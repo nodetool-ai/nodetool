@@ -19,7 +19,6 @@ import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
-  type BlendMode,
   type Layer,
   type LayerContentBounds,
   type Selection,
@@ -172,12 +171,6 @@ export class WebGPURuntime implements SketchRuntime {
 
   private initPipelines(): void {
     const device = this.device;
-
-    // Shared vertex shader module
-    const vertexModule = device.createShaderModule({
-      label: "fullscreen-quad-vert",
-      code: FULLSCREEN_QUAD_VERTEX
-    });
 
     // ── Checkerboard ───────────────────────────────────────────────────
     const checkerboardModule = device.createShaderModule({

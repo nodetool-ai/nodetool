@@ -421,19 +421,34 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 
 ### 3A — Compositing Parity and Runtime Hardening
 
-- [ ] Treat the existing `WebGPURuntime.ts` / `initWebGPU.ts` path as the baseline
+- [x] Treat the existing `WebGPURuntime.ts` / `initWebGPU.ts` path as the baseline
       implementation to improve, not a sketch to replace by default.
-- [ ] Keep `SketchRuntime` aligned with the current seam (`invalidateLayer`,
+- [x] Keep `SketchRuntime` aligned with the current seam (`invalidateLayer`,
       `compositeToDisplay`, `evaluateLayerEffects`, readback/export helpers) and
       avoid expanding the public API without a concrete need.
-- [ ] Close the remaining WebGPU compositing parity gaps for ordinary editing:
+- [x] Close the remaining WebGPU compositing parity gaps for ordinary editing:
       layer opacity, visibility, isolate/solo behavior, and blend-mode correctness.
-- [ ] Make transformed layers render identically enough across Canvas2D and WebGPU
+      _All 12 Photoshop-style blend modes implemented via ping-pong compositing
+      with a custom WGSL blend shader. Each layer is composited through a shader
+      that reads the current composite ("read" texture) and the layer texture,
+      applies the blend formula, and writes the result to the "write" texture.
+      After each layer the two textures swap roles._
+- [x] Make transformed layers render identically enough across Canvas2D and WebGPU
       that preview, commit, export, and history-backed redraws agree.
-- [ ] Make dirty-region behavior explicit: either partial redraws on WebGPU are real
+      _Inverse affine matrix computation maps screen pixels → layer texels,
+      supporting translation, scale, and rotation in the same shader._
+- [x] Make dirty-region behavior explicit: either partial redraws on WebGPU are real
       and trustworthy, or Phase 3 narrows/documents where full redraws are still used.
-- [ ] Define and implement device-loss / runtime re-init behavior as part of normal
+      _The WebGPU ping-pong path always does full compositing (every layer writes
+      every pixel). The `dirtyRect` parameter is accepted but intentionally unused
+      on the GPU path — partial redraws are a Canvas2D optimization only. This is
+      documented in the compositeToDisplay signature (`_dirtyRect`)._
+- [x] Define and implement device-loss / runtime re-init behavior as part of normal
       Electron operation rather than leaving it as an implicit fallback story.
+      _`createRuntime` accepts an `onDeviceLost` callback. `WebGPURuntime` registers
+      a `device.lost` handler that sets a `_deviceLost` guard (early-return in
+      compositeToDisplay) and invokes the callback. `useCompositing` handles the
+      callback by swapping to a fresh `Canvas2DRuntime` and scheduling a redraw._
 
 ### 3B — Readback, Sampling, and Output Consistency
 
