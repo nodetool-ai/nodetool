@@ -49,31 +49,7 @@ const styles = (theme: Theme) =>
     alignContent: "center",
     flexShrink: 0,
     "& .MuiIconButton-root": {
-      padding: SKETCH_SIZE.iconButtonPad,
       padding: "3px"
-    },
-    "& .setting-row": {
-      display: "flex",
-      alignItems: "center",
-      gap: "4px",
-      "& .MuiSlider-root": {
-        width: "80px",
-        minWidth: "60px"
-      },
-      "& .setting-label": {
-        fontSize: "0.65rem",
-        whiteSpace: "nowrap",
-        paddingLeft: "1em",
-        paddingRight: ".5em",
-        color: theme.vars.palette.grey[300]
-      },
-      "& .setting-value": {
-        fontSize: "0.65rem",
-        minWidth: "24px",
-        textAlign: "right",
-        paddingLeft: ".5em",
-        color: theme.vars.palette.grey[200]
-      }
     },
     ...settingRowChildrenSx(theme),
   });

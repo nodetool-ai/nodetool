@@ -89,7 +89,11 @@ describe("drawPixelGrid", () => {
 
 describe("PencilEngine snap-to-pixel", () => {
   it("stabilize() snaps to nearest integer", () => {
-    const engine = new PencilEngine({ size: 1, opacity: 1, color: "#000000" });
+    const engine = new PencilEngine({
+      size: 1, opacity: 1, color: "#000000",
+      pressureSensitivity: false, pressureAffects: "size",
+      pressureMinScale: 0.1, pressureCurve: 1, stabilizer: 0
+    });
     expect(engine.stabilize({ x: 3.7, y: 4.2 })).toEqual({ x: 4, y: 4 });
     expect(engine.stabilize({ x: 0.5, y: 0.5 })).toEqual({ x: 1, y: 1 });
     expect(engine.stabilize({ x: 0.3, y: 2.9 })).toEqual({ x: 0, y: 3 });
@@ -97,7 +101,11 @@ describe("PencilEngine snap-to-pixel", () => {
   });
 
   it("evaluate() snaps coordinates to integers", () => {
-    const engine = new PencilEngine({ size: 1, opacity: 1, color: "#000000" });
+    const engine = new PencilEngine({
+      size: 1, opacity: 1, color: "#000000",
+      pressureSensitivity: false, pressureAffects: "size",
+      pressureMinScale: 0.1, pressureCurve: 1, stabilizer: 0
+    });
     engine.beginStroke();
 
     // Create a mock context to verify snapped coordinates (pencil uses fillRect dabs)

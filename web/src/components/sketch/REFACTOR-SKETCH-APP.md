@@ -602,7 +602,7 @@ cursor previews, text rasterization helpers, and controlled readback/export help
       boilerplate reduction: shader-data definitions, structured views, buffer/texture
       setup helpers, and other low-level WebGPU utilities that do not hide pass
       boundaries or resource ownership.
-- [ ] Evaluate `colorjs.io` as the first concrete color utility for explicit
+- [x] Evaluate `colorjs.io` as the first concrete color utility for explicit
       sRGB/linear conversions, blend-parity reference behavior, and future
       tonemapping/effect work that needs CPU and GPU paths to agree.
 - [x] If CPU↔WGSL uniform packing still duplicates field definitions or causes alignment

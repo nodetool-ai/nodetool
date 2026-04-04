@@ -7,7 +7,7 @@ import { render, fireEvent } from "@testing-library/react";
 // Polyfill PointerEvent for jsdom (which doesn't support it natively).
 // PointerEvent extends MouseEvent so clientX/clientY work correctly.
 if (typeof window !== "undefined" && !window.PointerEvent) {
-  (window as Record<string, unknown>).PointerEvent = class PointerEvent extends MouseEvent {
+  (window as unknown as Record<string, unknown>).PointerEvent = class PointerEvent extends MouseEvent {
     readonly pointerId: number;
     readonly width: number;
     readonly height: number;
