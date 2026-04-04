@@ -2,6 +2,7 @@
 
 > **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place; next work should stay focused on parity, correctness, and high-value workflows.
 > **Last updated**: 2026-04-04
+> **Execution note**: near-term implementation order follows `REFACTOR-SKETCH-APP.md`; this file is the broader roadmap/backlog view.
 
 ## Principles
 
@@ -15,14 +16,9 @@
 
 ## PHASE 0: Current Fixes
 
-- [ ] Selection drawing is slow
-- [ ] Move tool is slow: dragging layer around feels slow
-- [ ] Transform tool should show update while scaling, not only at commit
-- [ ] Transform tool gizmo should adapt to layer size, so if layer is smaller than canvas the gizmo should be small
-- [ ] Transform tool: fix transforming from top and left side, currently scales from opposite side
-- [ ] Transform tool: add options for perspective, skew, etc.
-- [ ] Commit, cancel, reset as icons instead of text buttons
-- [ ] Changing brush properties is slow: e.g. changing brush size is laggy
+- [ ] Improve selection rendering responsiveness during active selection edits and overlay redraws
+- [ ] Improve move-tool responsiveness so dragging layers feels immediate even on larger documents
+- [ ] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag
 
 ## PHASE 1: Current Priorities
 
@@ -47,9 +43,32 @@
 - [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
 - [x] fix brush strokes not visible when holding shift for straight lines - they only appear after releasing shift key. also all layers become invisible during drawing of straight lines
 
-## PHASE 1.2: Transform Tool features and shortcuts
+## PHASE 2 - FIXES
 
-The modifier logic for transform tool should follow a consistent pattern:
+- [x] remove white border around canvas, seems not to come from css?
+- [x] make alpha texture resolution independent
+- [x] fix history redo, currently not working. undo does work.
+- [x] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
+- [x] improve round cursor/tool preview accuracy: cursor now accounts for effective brush hardness (including brush type caps for soft/airbrush) to show the approximate visible paint extent rather than the mathematical maximum radius
+- [x] keep drawing straight line with shift as one object / stroke until shift is released. currently overlapping lines multiply stroke and create visible seams at crossings and start dot.
+
+## 2.1 - FEATURES
+
+- [x] **Selection** replace the rectangle-only selection model with a per-pixel selection mask, then build lasso, magic wand, invert/add/subtract/intersect, smooth borders, and feathering on top of it
+- [x] add auto-pick layer option to directly move another layer via hit mask (CTRL Alt+click picks topmost visible layer with non-transparent pixels)
+- [x] spring-loaded move: hold Ctrl (Windows/Linux) or Cmd (Mac) to move layers without changing the selected tool or top tool bar; release to stop
+- [x] Ctrl+Alt (Cmd+Option on Mac) + drag duplicates the active layer and moves the copy; Alt does not pan while Ctrl/Cmd is held
+- [x] radial palette HUD with color circle and a triangle inside for brightness and saturation, gamut hints like in krita.
+
+## PHASE 2.2: Transform Tool features and shortcuts
+
+- [ ] Transform tool should show update while scaling, not only at commit
+- [ ] Transform tool gizmo should adapt to layer size, so if layer is smaller than canvas the gizmo should be small
+- [ ] Transform tool: fix transforming from top and left side, currently scales from opposite side
+- [ ] Transform tool: add options for perspective, skew, etc.
+- [ ] Transform tool: Commit, cancel, reset as icons instead of text buttons
+- [ ] Modifier Keys:
+      The modifier logic for transform tool should follow a consistent pattern:
 
 No modifier → Scale (default)
 Ctrl (Cmd) → "Break free" — independent vertex control (Distort on corners, Skew on edges)
@@ -100,23 +119,6 @@ Right-click inside the bounding box — Context menu with all transform modes (S
   Action, Shortcut
   Repeat last transformation Ctrl+Shift+T (Cmd+Shift+T)Repeat transformation on a copyCtrl+Alt+Shift+T (Cmd+Option+Shift+T)Move the object while in transformClick and drag inside the bounding box (not on a handle or the reference point)
 
-## PHASE 2 - FIXES
-
-- [x] remove white border around canvas, seems not to come from css?
-- [x] make alpha texture resolution independent
-- [x] fix history redo, currently not working. undo does work.
-- [x] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
-- [x] improve round cursor/tool preview accuracy: cursor now accounts for effective brush hardness (including brush type caps for soft/airbrush) to show the approximate visible paint extent rather than the mathematical maximum radius
-- [x] keep drawing straight line with shift as one object / stroke until shift is released. currently overlapping lines multiply stroke and create visible seams at crossings and start dot.
-
-## 2.1 - FEATURES
-
-- [x] **Selection** replace the rectangle-only selection model with a per-pixel selection mask, then build lasso, magic wand, invert/add/subtract/intersect, smooth borders, and feathering on top of it
-- [x] add auto-pick layer option to directly move another layer via hit mask (CTRL Alt+click picks topmost visible layer with non-transparent pixels)
-- [x] spring-loaded move: hold Ctrl (Windows/Linux) or Cmd (Mac) to move layers without changing the selected tool or top tool bar; release to stop
-- [x] Ctrl+Alt (Cmd+Option on Mac) + drag duplicates the active layer and moves the copy; Alt does not pan while Ctrl/Cmd is held
-- [x] radial palette HUD with color circle and a triangle inside for brightness and saturation, gamut hints like in krita.
-
 ### PHASE 3 - SAM SEGMENTATION
 
 - [ ] segmentation/SAM-driven layer creation flows - see web/components/sketch/FEAT-2-SAM.md
@@ -134,27 +136,29 @@ Right-click inside the bounding box — Context menu with all transform modes (S
 
 - [ ] finish WebGPU compositing parity for ordinary editing: blend modes, transformed layers, isolate/solo behavior, and dirty-region behavior
 - [ ] centralize full-document readback so eyedropper, selection sampling, clipboard/export helpers, and future thumbnails follow one set of rules
-- [ ] keep Canvas 2D helper paths explicit and limited to overlay/gizmo UI, cursor/HUD presentation, text rasterization helpers, and controlled CPU readback/export workflows
+- [ ] document the approved Canvas 2D helper paths for the current WebGPU-first architecture (overlay/gizmo UI, cursor/HUD presentation, text rasterization helpers, controlled CPU readback/export) and move any other usage into explicit follow-up work
 - [ ] wire `evaluateLayerEffects` through all relevant output paths so main canvas, export, isolate preview, and future thumbnails stay consistent
-- [ ] preserve current stylus responsiveness while hardening the WebGPU path; do not trade brush feel away for architectural neatness
-- [ ] add only small non-owning GPU helpers where they reduce boilerplate or color/layout bugs: start with `webgpu-utils`, consider `colorjs.io` for color correctness work, and defer `gl-matrix` until future lit/PBR brush math really needs it; do not pull engine-style libraries into the sketch runtime
-- [ ] defer fully GPU-native brush simulation and GPU selection compute until parity/readback/FX work is stable and profiling shows real benefit
+- [ ] run a focused stylus-responsiveness smoke check after each major WebGPU slice and treat regressions in brush feel as blockers
+- [ ] evaluate `webgpu-utils` and `colorjs.io` for the current runtime work, then explicitly decide adopt/defer for each; keep `gl-matrix` deferred until future lit/PBR brush math really needs it
+- [ ] record fully GPU-native brush simulation and GPU selection compute as deferred until parity/readback/FX work is stable and profiling shows real benefit
 
 ### PHASE 5 - FX LAYER
 
 - [ ] add stackable FX layers under each layer as the long-term replacement for destructive adjustments
 - [ ] first FX-layer slice: draggable/reorderable per-layer FX stack, toggle on/off, live preview, not baked into layer pixels, starting with combined hue/saturation/contrast and exposure
 - [ ] support stacking multiple FX layers under one layer and define how they interact with groups, masks, exports, and future blend/effect ordering
-- [ ] add professional tonemapping as layer fx, additionally add presets for 10 distinctive but well-balanced looks
-- [ ] support serious tonemapping and exposure workflows that preserve highlight headroom before final mapping down, likely via HDR-capable intermediate passes even if final display/output stays SDR at first
+- [ ] decide whether the first tonemapping/exposure slice stays fully SDR or introduces HDR-capable intermediate passes to preserve highlight headroom before final mapping down
+- [ ] add professional tonemapping / exposure FX once the intermediate-format and color-space expectations are explicit, including presets for 10 distinctive but well-balanced looks
 - [ ] add bloom / glow / light accumulation style FX once the core non-destructive effect stack is stable
 
 ### PHASE 6 - IMPROVE PAINT AND SELECT
 
-- [-] build a more programmable/extensible brush system on top of the shared paint/session seams a more programmable/extensible brush system on top of the shared paint/session seams
-- [ ] drawing extensions: ADJUSTABLE stabilizer controls to help with drawing less jaggy lines, similar to https://github.com/steveruizok/perfect-freehand. one implementation that all drawing tools can use.
+- [-] build a more programmable/extensible brush system on top of the shared paint/session seams
+- [x] drawing extensions: ADJUSTABLE stabilizer controls to help with drawing less jaggy lines, similar to https://github.com/steveruizok/perfect-freehand. one implementation that all drawing tools can use.
 - [ ] brush extensions: smudge/color-smudge
-- [ ] explore lit / PBR-style brushes once the WebGPU runtime and FX pipeline are stable; allow temporary energy values above display range internally if that improves lighting/material behavior
+- [ ] define the first narrow goal for lit / PBR-style brushes once the WebGPU runtime and FX pipeline are stable (for example: one lighting model, one material response, and one expected visual use case)
+- [ ] decide whether lit / PBR-style brushes need temporary above-display-range internal energy and which intermediate formats that implies
+- [ ] build one focused lit / PBR brush prototype only after the goal and intermediate-format decision are explicit
 - [ ] selection transform tools + selection move with (shift) arrow keys. note: do not move layer when selection active
 - [ ] add AI-assisted tools such as healing or segmentation-driven layer creation
 
@@ -176,13 +180,13 @@ Right-click inside the bounding box — Context menu with all transform modes (S
 
 These are not current priorities, but they should stay visible so they can be revived deliberately later.
 
-### 3.2
+### Parked - Nearer-Term
 
 - [ ] replace the old `ImageEditor.tsx` path with the new `SketchEditor` once parity is strong
 - [ ] richer export options such as alpha/opaque/JPEG choices
 - [ ] healing brush and other AI-assisted painting tools
 
-### 3.3
+### Parked - Editor / Input Ideas
 
 - [ ] touch/tablet features such as pinch zoom, two-finger pan, and palm rejection
 - [ ] rulers and draggable guides
@@ -194,15 +198,15 @@ These are not current priorities, but they should stay visible so they can be re
 - [ ] portable project import/export, backup/download flows, and richer project persistence
 - [ ] clipping masks / clipping groups
 
-### 3.4 MAYBE
+### Parked - Maybe Later
 
-HDR / Pro Imaging:
+#### HDR / Pro Imaging
 
 - [ ] wide-gamut / professional imaging workflows beyond the first SDR-focused editor slices
 - [ ] import/export of higher dynamic range image data and any related document/export semantics
 - [ ] HDR display/output support if it becomes a real product requirement rather than just an internal processing convenience
 
-OTHER:
+#### Other
 
 - [ ] add canvas-size-from-input-layer. needs some planning
 - [ ] plugin/tool extensibility as a product feature
