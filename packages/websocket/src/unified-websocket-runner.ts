@@ -10,6 +10,7 @@ import {
   type NodeTypeResolver
 } from "@nodetool/kernel";
 import {
+  Asset,
   Job,
   Message,
   ModelChangeEvent,
@@ -217,11 +218,48 @@ function createRuntimeContext(opts: {
     | "workspace"
     | "raw";
 }): RuntimeProcessingContext {
-  return new RuntimeProcessingContext({
+  const storagePath = getAssetStoragePath();
+  const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
-    storage: new FileStorageAdapter(getAssetStoragePath())
+    storage: new FileStorageAdapter(storagePath)
   });
+
+  const MIME_TO_EXT: Record<string, string> = {
+    "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif",
+    "image/webp": "webp", "image/bmp": "bmp", "image/svg+xml": "svg",
+    "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav",
+    "audio/ogg": "ogg", "video/mp4": "mp4", "video/webm": "webm",
+    "application/pdf": "pdf", "text/plain": "txt", "text/html": "html",
+    "model/gltf-binary": "glb"
+  };
+
+  ctx.setModelInterfaces({
+    createAsset: async (args) => {
+      const { join } = await import("node:path");
+      const { writeFile, mkdir } = await import("node:fs/promises");
+      const asset = new Asset({
+        user_id: args.userId,
+        workflow_id: args.workflowId ?? null,
+        node_id: args.nodeId ?? null,
+        job_id: args.jobId ?? null,
+        name: args.name,
+        content_type: args.contentType,
+        parent_id: args.parentId ?? null
+      });
+      if (args.content) {
+        const ext = MIME_TO_EXT[args.contentType] ?? "bin";
+        const fileName = `${asset.id}.${ext}`;
+        await mkdir(storagePath, { recursive: true });
+        await writeFile(join(storagePath, fileName), args.content);
+        asset.size = args.content.length;
+      }
+      await asset.save();
+      return asset;
+    }
+  });
+
+  return ctx;
 }
 
 /**

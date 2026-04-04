@@ -406,14 +406,51 @@ export class SaveImageNode extends BaseNode {
   })
   declare name: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const folder = String(this.folder ?? ".");
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await imageBytesAsync(this.image);
+    if (bytes.length === 0) throw new Error("The input image is not connected.");
+
     const name = dateName(String(this.name ?? "image.png"));
+    const mime = inferImageMime(undefined, bytes);
+    const meta = await metadataFor(bytes);
+
+    // Use context to create an asset if available
+    if (context && typeof context.createAsset === "function") {
+      const folderRef = this.folder as Record<string, unknown> | undefined;
+      const parentId = (folderRef?.asset_id as string) ?? null;
+      const asset = (await context.createAsset({
+        name,
+        contentType: mime === "image/unknown" ? "image/png" : mime,
+        content: bytes,
+        parentId,
+        nodeId: this.__node_id || null
+      })) as Record<string, unknown>;
+
+      const assetId = asset.id as string;
+      const ext = name.includes(".") ? name.slice(name.lastIndexOf(".")) : ".png";
+      return {
+        output: imageRef(bytes, {
+          uri: `asset://${assetId}${ext}`,
+          mimeType: mime,
+          width: meta.width,
+          height: meta.height
+        })
+      };
+    }
+
+    // Fallback: write to filesystem
+    const folder = typeof this.folder === "string" ? this.folder : ".";
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    const bytes = imageBytes(this.image);
     await fs.writeFile(full, bytes);
-    return { output: imageRef(bytes, { uri: `file://${full}` }) };
+    return {
+      output: imageRef(bytes, {
+        uri: `file://${full}`,
+        mimeType: mime,
+        width: meta.width,
+        height: meta.height
+      })
+    };
   }
 }
 
