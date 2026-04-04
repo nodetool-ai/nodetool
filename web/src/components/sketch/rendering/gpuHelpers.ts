@@ -128,7 +128,7 @@ export function createUniformBuffer(
 ): GPUBuffer {
   const buffer = device.createBuffer({
     label: label ?? "uniform",
-    size: Math.max(data.byteLength, 16), // WebGPU minimum buffer size
+    size: Math.max(data.byteLength, 16), // Avoid zero-size buffers for empty data
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
   });
   device.queue.writeBuffer(buffer, 0, data.buffer, data.byteOffset, data.byteLength);

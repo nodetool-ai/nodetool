@@ -154,7 +154,7 @@ export function useCompositing({
         createRuntime(layerCanvasesRef.current, handleDeviceLost).then(
           ({ runtime: recoveredRuntime, backend: recoveredBackend }) => {
             if (cancelled) {
-              void recoveredRuntime;
+              // Discarding recovered runtime — component unmounted during recovery
               return;
             }
             if (recoveredBackend === "webgpu") {
@@ -170,8 +170,8 @@ export function useCompositing({
                 }
               });
             } else {
+              // Recovery returned Canvas2D fallback — staying on current Canvas2D runtime
               console.warn("[Sketch] WebGPU recovery failed — staying on Canvas2D");
-              void recoveredRuntime;
             }
           }
         );
