@@ -8,6 +8,7 @@ import { handleResourceChange } from "../../stores/resourceChangeHandler";
 import { handleSystemStats } from "../../stores/systemStatsHandler";
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
 
+// Message handlers can receive any message type - they are responsible for their own type checking
 type MessageHandler = (message: any) => void;
 type GlobalWebSocketEvent =
   | "open"
@@ -251,7 +252,7 @@ class GlobalWebSocketManager extends EventEmitter {
   /**
    * Send a message through the WebSocket
    */
-  async send(message: any): Promise<void> {
+  async send(message: Record<string, unknown>): Promise<void> {
     await this.ensureConnection();
 
     if (!this.wsManager) {
@@ -305,7 +306,7 @@ class GlobalWebSocketManager extends EventEmitter {
 
   subscribeEvent(
     event: GlobalWebSocketEvent,
-    listener: (...args: any[]) => void
+    listener: (...args: unknown[]) => void
   ): () => void {
     this.addListener(event, listener);
     return () => {

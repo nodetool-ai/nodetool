@@ -1,6 +1,6 @@
 /**
  * ComfyUI Workflow Converter
- * 
+ *
  * Converts between ComfyUI workflow format and NodeTool graph format.
  */
 
@@ -65,7 +65,7 @@ function comfyNodeToNodeToolNode(comfyNode: ComfyUINode): GraphNode {
   const nodeType = `comfy.${comfyNode.type}`;
 
   // Extract properties from widgets_values
-  const properties: Record<string, any> = { ...comfyNode.properties };
+  const properties: Record<string, unknown> = { ...comfyNode.properties };
   
   // Store widget values if present
   if (comfyNode.widgets_values) {
@@ -94,7 +94,7 @@ function comfyNodeToNodeToolNode(comfyNode: ComfyUINode): GraphNode {
   };
 
   // Store original ComfyUI metadata
-  const data = nodeToolNode.data as Record<string, any>;
+  const data = nodeToolNode.data as Record<string, unknown>;
   if (!data._comfy_metadata) {
     data._comfy_metadata = {
       original_type: comfyNode.type,
@@ -203,29 +203,29 @@ function nodeToolNodeToComfyNode(nodeToolNode: GraphNode): ComfyUINode {
     ? nodeToolNode.type.substring(6)
     : nodeToolNode.type;
 
-  // Get data as Record
-  const data = (nodeToolNode.data || {}) as Record<string, any>;
-  
+  // Get data as Record<string, unknown>
+  const data = (nodeToolNode.data || {}) as Record<string, unknown>;
+
   // Get metadata if available
-  const metadata = data._comfy_metadata || {};
+  const metadata = data._comfy_metadata as Record<string, unknown> | undefined;
 
   // Get position and size from ui_properties
-  const uiProps = (nodeToolNode.ui_properties || {}) as Record<string, any>;
-  const position = uiProps.position || {};
-  const size = uiProps.size || {};
-  
+  const uiProps = (nodeToolNode.ui_properties || {}) as Record<string, unknown>;
+  const position = (uiProps.position || {}) as Record<string, unknown>;
+  const size = (uiProps.size || {}) as Record<string, unknown>;
+
   const pos: [number, number] = [
-    position.x || 0,
-    position.y || 0
+    (position.x as number) || 0,
+    (position.y as number) || 0
   ];
 
   const sizeArray: [number, number] = [
-    size.width || 210,
-    size.height || 80
+    (size.width as number) || 210,
+    (size.height as number) || 80
   ];
 
   // Extract properties, excluding internal metadata fields
-  const properties: Record<string, any> = {};
+  const properties: Record<string, unknown> = {};
   Object.entries(data).forEach(([key, value]) => {
     if (!key.startsWith("_comfy")) {
       properties[key] = value;
@@ -237,11 +237,11 @@ function nodeToolNodeToComfyNode(nodeToolNode: GraphNode): ComfyUINode {
     type: comfyType,
     pos,
     size: sizeArray,
-    flags: metadata.flags || {},
-    order: metadata.order || 0,
-    mode: metadata.mode || 0,
+    flags: (metadata?.flags as Record<string, unknown>) || {},
+    order: (metadata?.order as number) || 0,
+    mode: (metadata?.mode as number) || 0,
     properties,
-    widgets_values: data._comfy_widgets || []
+    widgets_values: (data._comfy_widgets as unknown[]) || []
   };
 
   return comfyNode;
@@ -338,10 +338,10 @@ export function nodeToolGraphToComfyPrompt(graph: Graph): ComfyUIPrompt {
     const classType = node.type.substring(6);
 
     // Build inputs from node data and edges
-    const inputs: Record<string, any> = {};
+    const inputs: Record<string, unknown> = {};
 
-    // Get node data as Record
-    const data = (node.data || {}) as Record<string, any>;
+    // Get node data as Record<string, unknown>
+    const data = (node.data || {}) as Record<string, unknown>;
 
     // Add properties as inputs
     Object.entries(data).forEach(([key, value]) => {
