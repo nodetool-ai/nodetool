@@ -19,6 +19,13 @@ if [[ -z "${CONDA_PREFIX:-}" ]]; then
   exit 1
 fi
 
+# The Electron main process has native modules compiled for Electron's Node ABI.
+# The backend runs as a separate system Node process (via tsx), so we need
+# native modules compiled for the system Node ABI. Rebuild them here.
+# This is fast if already up-to-date and only affects the spawned backend.
+echo "Rebuilding native modules for system Node (tsx backend)..."
+npm rebuild better-sqlite3 canvas 2>/dev/null || true
+
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
 npm --prefix web start &

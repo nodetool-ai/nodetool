@@ -126,8 +126,6 @@ electron-dev: check-node-version
 	powershell -ExecutionPolicy Bypass -File scripts/electron-dev.ps1
 else
 electron-dev: check-node-version
-	@echo "Rebuilding native modules for Electron..."
-	cd electron && npx electron-builder install-app-deps
 	@echo "Starting Electron development mode..."
 	./scripts/electron-dev.sh
 endif
