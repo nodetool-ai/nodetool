@@ -157,13 +157,14 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
     expect(result.width).toBe(64);
   });
 
-  it("skips unsupported effect types gracefully", () => {
-    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
-      // "curves" is a known type but not yet implemented in the filter pipeline
-      { type: "curves", enabled: true, params: { rgb: [] } }
-    ]);
-    // Unsupported types produce no filter parts → returns source unchanged
-    expect(result).toBe(sourceCanvas);
+  it("throws for unsupported effect types in development", () => {
+    // curves/tonemap/bloom are not yet implemented — they must fail loudly
+    // in dev mode so unsupported effects never silently no-op.
+    expect(() => {
+      runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+        { type: "curves", enabled: true, params: { rgb: [] } }
+      ]);
+    }).toThrow(/not yet implemented/);
   });
 
   it("chains multiple enabled effects", () => {

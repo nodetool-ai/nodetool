@@ -548,7 +548,7 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 
 ### 3A — Compositing Parity and Runtime Hardening
 
-- [ ] Audit the current `WebGPURuntime.ts` / `initWebGPU.ts` path and write down the
+- [x] Audit the current `WebGPURuntime.ts` / `initWebGPU.ts` path and write down the
       specific parity gaps to fix first instead of restarting the runtime design.
 - [ ] Resolve ordinary compositing mismatches on the WebGPU path: layer opacity,
       visibility, isolate/solo behavior, and blend-mode correctness.
@@ -561,12 +561,12 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 
 ### 3B — Readback, Sampling, and Output Consistency
 
-- [ ] Centralize full-document readback so eyedropper, magic wand / selection sampling,
+- [x] Centralize full-document readback so eyedropper, magic wand / selection sampling,
       clipboard/export helpers, and future thumbnail paths do not invent separate
       WebGPU-vs-Canvas2D rules.
-- [ ] Route flatten/export, isolate preview, and the next thumbnail path through the
+- [x] Route flatten/export, isolate preview, and the next thumbnail path through the
       same compositing/readback rules as the main canvas.
-- [ ] Write down the approved Canvas2D helper paths for Phase 3
+- [x] Write down the approved Canvas2D helper paths for Phase 3
       (overlay/gizmo rendering, cursor/HUD presentation, text rasterization helpers,
       explicit CPU readback/export) and move any out-of-bounds usage onto the runtime
       plan or into deferred work.
@@ -578,17 +578,17 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 - [x] Replace loose effect param bags with a discriminated union and make `effects`
       required (`[]` when empty) so future curves / tonemap / bloom work has a real
       schema instead of generic number maps.
-- [ ] Route main canvas, flatten/export, merge-down, isolate preview, and thumbnail
+- [x] Route main canvas, flatten/export, merge-down, isolate preview, and thumbnail
       generation through one resolved-layer-output path so visible FX semantics are
       defined once.
-- [ ] Remove silent no-op handling for unsupported effect types; unsupported evaluation
+- [x] Remove silent no-op handling for unsupported effect types; unsupported evaluation
       should fail loudly in development and never become an invisible correctness hole.
 - [ ] Treat the current CSS-filter-backed adjustment slice as temporary SDR plumbing,
       not as the long-term semantic definition of exposure, tonemap, curves, or bloom.
 - [ ] Write and adopt explicit working-space / dynamic-range rules for CPU and GPU
       paths before expanding FX further: what is still SDR, when `linear-srgb` is used,
       and when HDR-capable intermediates (for example `rgba16float`) become required.
-- [ ] Decide which simple adjustment effects may stay CPU-backed temporarily and which
+- [x] Decide which simple adjustment effects may stay CPU-backed temporarily and which
       advanced effects must go straight to shader-backed implementation:
       curves, true exposure, tonemapping, bloom/glow, and any effect that depends on
       precise parity with future shader math should not be defined by CSS behavior.
@@ -611,11 +611,11 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 - [ ] Add the first small internal runtime wrappers needed by current Phase 3 work
       (for example `createFullscreenPass`, `createReadbackManager`, uniform/bind-group
       helpers, or texture pools) instead of spreading boilerplate across passes.
-- [ ] Document `gl-matrix` as deferred until future lit/PBR brush work creates enough
+- [x] Document `gl-matrix` as deferred until future lit/PBR brush work creates enough
       shared `mat3`/`mat4` lighting/material math to justify the dependency.
-- [ ] Record `three.js` and `babylon.js` as explicit non-goals for the core sketch
+- [x] Record `three.js` and `babylon.js` as explicit non-goals for the core sketch
       runtime in this phase so dependency decisions stay aligned during implementation.
-- [ ] Restrict future lit/PBR brush preparation in Phase 3 to shared prerequisites that
+- [x] Restrict future lit/PBR brush preparation in Phase 3 to shared prerequisites that
       help the current runtime too: color/layout conventions, shader/buffer organization,
       and clean GPU pass boundaries.
 
@@ -780,7 +780,7 @@ Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
 | 2A — Layer Effects Slot            | ✅ Baseline landed; stronger typed schema remains in Phase 3 | 2026-04-02 |
 | 2B — Compositing Evaluation Hook   | ✅ Baseline landed; resolved-output contract remains in Phase 3 | 2026-04-02 |
 | 2C — Delta History                 | ✅ Done                                                | 2026-04-03 |
-| 3 — WebGPU Primary Runtime         | In progress (baseline exists; parity/hardening remain) | —          |
+| 3 — WebGPU Primary Runtime         | In progress (3B/3C mostly done; 3A hardening + 3D tooling remain) | —          |
 | 4A — Matrix-Capable Transforms     | ✅ Done                                                | 2026-04-03 |
 | 4B — Overlay Canvas for Gizmos     | ✅ Done                                                | 2026-04-03 |
 
@@ -842,3 +842,96 @@ tool, not just TransformTool. Key changes:
 - Ad-hoc gizmo clearing in `useOverlayRenderer` replaced with `clearGizmo()` call
   — tools that need the gizmo redraw it in `onActivate`
 - 2 new tests verifying TransformTool uses the new API
+
+### Phase 3A Notes — Compositing Parity Audit
+
+An audit of `WebGPURuntime.compositeToDisplay` vs `Canvas2DRuntime.compositeToDisplay`
+found the two implementations are **functionally equivalent** for compositing:
+
+| Feature | Canvas2D | WebGPU | Gap |
+|---------|----------|--------|-----|
+| Visibility | ✓ `isLayerCompositeVisible()` | ✓ Same | None |
+| Isolate/Solo | ✓ `isolatedLayerId` | ✓ Same | None |
+| Group layers | Skipped (flat composite) | Skipped (same) | None |
+| Effects | ✓ `evaluateLayerEffects()` before draw | ✓ Delegates to CPU then uploads | None |
+| Opacity + ancestor groups | ✓ `getAncestorGroupOpacityProduct()` | ✓ Same | None |
+| Blend modes | CSS `globalCompositeOperation` | WGSL shader (12 modes) | Minor precision |
+| Transforms | `drawWithTransform()` with affine matrix | `computeInverseAffine()` GPU sampling | None |
+| Selection feathering | ✓ Active stroke path | ✓ `uploadStrokeMergePreview()` → CPU | None |
+
+Remaining parity work (3A items still open) is about edge-case correctness under
+transform, dirty-region behavior, and device-loss recovery — not architectural gaps.
+
+### Phase 3B Notes — Readback Centralization
+
+`SketchRuntime.readbackComposite()` is now the single entry point for all composite
+readback operations. It replaces the ad-hoc Canvas2DRuntime instantiation that was
+previously done inside `usePointerHandlers`.
+
+- `Canvas2DRuntime.readbackComposite()` uses a reusable `readbackCanvas` with
+  `willReadFrequently: true` optimization hint
+- `WebGPURuntime.readbackComposite()` delegates to the CPU runtime (same shared
+  layer canvas map — effects and compositing are applied correctly)
+- `usePointerHandlers` no longer imports `Canvas2DRuntime` — it uses the runtime
+  passed via props, keeping a stable ref for the readback callback
+- Tools (`EyedropperTool`, `SelectTool` magic wand) access readback through
+  `ctx.getFullCompositeImageData()` which calls `runtime.readbackComposite()`
+
+### Phase 3B Notes — Approved Canvas2D Helper Paths
+
+Canvas2D is no longer the default document renderer; it is a targeted helper backend
+used deliberately where correctness or simplicity wins over GPU rendering:
+
+1. **Overlay / gizmo rendering** — `useOverlayRenderer` draws marching ants, selection
+   outlines, crop handles, and tool gizmos onto dedicated overlay canvases at screen
+   resolution. These are pure UI elements, not document pixels.
+
+2. **Cursor / HUD presentation** — Brush previews, crosshairs, and cursor rings are
+   drawn to a cursor canvas. No document-pixel accuracy needed.
+
+3. **Text rasterization helpers** — Future text layer rasterization may use Canvas2D
+   `fillText` / `strokeText` to produce bitmap output that is then uploaded as a texture.
+
+4. **Explicit CPU readback / export** — `readbackComposite()`, `flattenToDataUrl()`,
+   `flattenVisible()`, `getMaskDataUrl()`, `mergeLayerDown()`, and `getLayerData()` all
+   run through Canvas2D compositing. This is acceptable because these are one-shot
+   operations (not per-frame hot paths), and Canvas2D's `getImageData()` is the natural
+   CPU readback mechanism.
+
+5. **Brush stroke rendering** — `PaintSession` uses Canvas2D to rasterize strokes onto
+   layer canvases. This stays CPU-backed unless profiling proves GPU stroke rasterization
+   is necessary.
+
+Any other Canvas2D usage in the editor should be evaluated for migration to the runtime
+or documented as an explicit exception.
+
+### Phase 3C Notes — Effect Evaluation Decisions
+
+**CPU-backed effects that may stay temporary (SDR adjustments via CSS filters):**
+- `brightness_contrast` — CSS `brightness()` / `contrast()` are mathematically close
+  enough for SDR editing
+- `hue_saturation` — CSS `hue-rotate()` / `saturate()` are adequate for SDR
+- `exposure` — CSS `brightness(2^stops)` is a rough approximation; precision is
+  acceptable for SDR but not for HDR or working-space-correct evaluation
+
+**Effects that must go straight to shader-backed implementation:**
+- `curves` — Requires per-channel LUT evaluation; CSS has no equivalent
+- `tonemap` — Requires operator-specific math (ACES, Reinhard, filmic); no CSS path
+- `bloom` — Requires threshold + blur + composite; fundamentally multi-pass
+
+These advanced effects now throw in development if encountered, ensuring they cannot
+silently degrade output quality.
+
+### Phase 3D Notes — Dependency Decisions
+
+- **`gl-matrix`**: Deferred. Current affine matrix operations (compose, decompose,
+  invert) are small enough to be self-contained. A dependency is only justified when
+  future lit/PBR brush work creates enough shared `mat3`/`mat4` lighting/material math.
+
+- **`three.js` / `babylon.js`**: Explicit non-goals for the core sketch runtime.
+  The sketch editor owns its own WebGPU render model (fullscreen passes, ping-pong
+  compositing, custom blend shaders). Scene-graph engines are out of scope.
+
+- **PBR/lit brush rendering**: A future extension. Phase 3 restricts preparation to
+  shared prerequisites that help the current runtime: color/layout conventions,
+  shader/buffer organization, and clean GPU pass boundaries.

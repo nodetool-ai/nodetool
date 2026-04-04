@@ -19,7 +19,6 @@ import {
   isPaintingTool,
 } from "../types";
 import type { ActiveStrokeInfo } from "./useCompositing";
-import { Canvas2DRuntime } from "../rendering";
 import { getToolHandler } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
@@ -72,6 +71,8 @@ export interface UsePointerHandlersParams {
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   mousePositionRef: React.MutableRefObject<Point>;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
+  /** The active SketchRuntime — used for centralized composite readback. */
+  runtime: import("../rendering/types").SketchRuntime;
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   invalidateLayer: (layerId: string) => void;
   redraw: () => void;
@@ -168,6 +169,7 @@ export function usePointerHandlers({
   layerCanvasesRef,
   mousePositionRef,
   activeStrokeRef,
+  runtime,
   getOrCreateLayerCanvas,
   invalidateLayer,
   redraw,
@@ -224,14 +226,6 @@ export function usePointerHandlers({
 
   // Tool-specific state (now managed by tool handlers; only kept for legacy refs)
 
-  /**
-   * WebGPU uses a "webgpu" context on the display canvas, so getContext("2d") is null.
-   * Magic wand and eyedropper need RGBA; we composite once via Canvas2D onto this buffer
-   * (same shared layer map as the active runtime).
-   */
-  const displayReadbackCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const displayReadbackRuntimeRef = useRef<Canvas2DRuntime | null>(null);
-
   // Keep pan offset in sync
   useEffect(() => {
     panOffsetRef.current = pan;
@@ -267,45 +261,20 @@ export function usePointerHandlers({
 
   // ─── Composite readback helpers ─────────────────────────────────────
 
+  // Keep a stable ref to the runtime so the readback callback doesn't
+  // re-create on every render while still using the latest runtime.
+  const runtimeRef = useRef(runtime);
+  runtimeRef.current = runtime;
+
   const getFullCompositeImageData = useCallback((): ImageData | null => {
-    const cw = doc.canvas.width;
-    const ch = doc.canvas.height;
-    const display = displayCanvasRef.current;
-    if (display) {
-      const d2d = display.getContext("2d", { willReadFrequently: true });
-      if (d2d && display.width === cw && display.height === ch) {
-        return d2d.getImageData(0, 0, cw, ch);
-      }
-    }
-    let rb = displayReadbackCanvasRef.current;
-    if (!rb || rb.width !== cw || rb.height !== ch) {
-      rb = document.createElement("canvas");
-      rb.width = cw;
-      rb.height = ch;
-      displayReadbackCanvasRef.current = rb;
-    }
-    if (!displayReadbackRuntimeRef.current) {
-      displayReadbackRuntimeRef.current = new Canvas2DRuntime(
-        layerCanvasesRef.current
-      );
-    }
-    const rt = displayReadbackRuntimeRef.current;
-    rt.zoom = zoom;
-    // First getContext wins for willReadFrequently; compositeToDisplay uses getContext("2d")
-    // without attributes, so we must acquire a readback-friendly context before compositing.
-    void rb.getContext("2d", { willReadFrequently: true });
-    rt.compositeToDisplay(
-      rb,
+    return runtimeRef.current.readbackComposite(
       doc,
       isolatedLayerId ?? null,
-      activeStrokeRef.current,
-      null
+      activeStrokeRef.current
     );
-    const rctx = rb.getContext("2d", { willReadFrequently: true });
-    return rctx ? rctx.getImageData(0, 0, cw, ch) : null;
   },
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- displayCanvasRef, layerCanvasesRef, activeStrokeRef are stable
-  [doc, zoom, isolatedLayerId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- activeStrokeRef is stable
+  [doc, isolatedLayerId]);
 
   const sampleRgbAtDocPoint = useCallback(
     (clientX: number, clientY: number): { r: number; g: number; b: number } | null => {

@@ -203,6 +203,27 @@ export interface SketchRuntime {
     effects: LayerEffect[]
   ): HTMLCanvasElement;
 
+  // ─── Composite readback ─────────────────────────────────────────────
+  /**
+   * Composite all visible layers (with effects, opacity, blend modes) and
+   * return the result as ImageData at document resolution.
+   *
+   * This is the single entry point for any tool or subsystem that needs to
+   * sample the composited document (eyedropper, magic wand, selection
+   * sampling, clipboard readback). Callers must not create their own
+   * Canvas2DRuntime or duplicate compositing logic.
+   *
+   * @param doc - The current document state.
+   * @param isolatedLayerId - If set, only this layer is composited (solo/isolate preview).
+   * @param activeStroke - Optional in-progress stroke for live preview.
+   * @returns ImageData at document resolution, or null if readback fails.
+   */
+  readbackComposite(
+    doc: SketchDocument,
+    isolatedLayerId: string | null | undefined,
+    activeStroke: ActiveStrokeInfo | null
+  ): ImageData | null;
+
   // ─── Lifecycle ───────────────────────────────────────────────────────
   /** Release all resources held by the runtime. */
   dispose(): void;

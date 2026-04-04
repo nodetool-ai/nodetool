@@ -1180,6 +1180,18 @@ export class WebGPURuntime implements SketchRuntime {
     return this.cpuRuntime.evaluateLayerEffects(layerId, source, effects);
   }
 
+  // ─── Composite readback ─────────────────────────────────────────────
+
+  readbackComposite(
+    doc: import("../types").SketchDocument,
+    isolatedLayerId: string | null | undefined,
+    activeStroke: ActiveStrokeInfo | null
+  ): ImageData | null {
+    // Delegate to the CPU runtime which shares the same layer canvas map.
+    // This produces pixel-accurate results with effects applied.
+    return this.cpuRuntime.readbackComposite(doc, isolatedLayerId, activeStroke);
+  }
+
   // ─── Lifecycle ───────────────────────────────────────────────────────
 
   dispose(): void {
