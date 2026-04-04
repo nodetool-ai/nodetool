@@ -100,6 +100,7 @@ export class CodexQuerySession {
     if (existsSync(configPath)) {
       try {
         const existing = JSON.parse(
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           require("node:fs").readFileSync(configPath, "utf8"),
         ) as { mcpServers?: { "nodetool-ui"?: { url?: string } } };
         if (existing?.mcpServers?.["nodetool-ui"]?.url === mcpUrl) {

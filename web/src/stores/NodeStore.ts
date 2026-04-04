@@ -204,10 +204,10 @@ export type PartializedNodeStore = Pick<
 >;
 
 export type NodeStore = UseBoundStore<
-  StoreApi<NodeStoreState> & {
-    temporal: StoreApi<TemporalState<PartializedNodeStore>>;
-  }
->;
+  StoreApi<NodeStoreState>
+> & {
+  temporal: StoreApi<TemporalState<PartializedNodeStore>>;
+};
 
 let comfyMetadataHydrationPromise: Promise<void> | null = null;
 
@@ -264,10 +264,19 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
 export const createNodeStore = (
   workflow?: Workflow,
   state?: Partial<NodeStoreState>
-): NodeStore =>
-  create<NodeStoreState>()(
-    temporal(
-      (set, get) => {
+): NodeStore => {
+  const store = create<NodeStoreState>()(
+    (temporal as any)(
+      (
+        set: (
+          partial:
+            | NodeStoreState
+            | Partial<NodeStoreState>
+            | ((state: NodeStoreState) => NodeStoreState | Partial<NodeStoreState>),
+          replace?: boolean
+        ) => void,
+        get: () => NodeStoreState
+      ) => {
         const metadata = useMetadataStore.getState().metadata;
         const nodeTypes = useMetadataStore.getState().nodeTypes;
         const addNodeType = useMetadataStore.getState().addNodeType;
@@ -1369,10 +1378,13 @@ export const createNodeStore = (
       {
         limit: undo_limit,
         equality: customEquality,
-        partialize: (state): PartializedNodeStore => {
+        partialize: (state: NodeStoreState): PartializedNodeStore => {
           const { workflow, nodes, edges } = state;
           return { workflow, nodes, edges };
         }
       }
     )
   ) as unknown as NodeStore;
+
+  return store;
+};
