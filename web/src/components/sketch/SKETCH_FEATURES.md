@@ -84,6 +84,7 @@
 - [ ] keep Canvas 2D helper paths explicit and limited to overlay/gizmo UI, cursor/HUD presentation, text rasterization helpers, and controlled CPU readback/export workflows
 - [ ] wire `evaluateLayerEffects` through all relevant output paths so main canvas, export, isolate preview, and future thumbnails stay consistent
 - [ ] preserve current stylus responsiveness while hardening the WebGPU path; do not trade brush feel away for architectural neatness
+- [ ] add only small non-owning GPU helpers where they reduce boilerplate or color/layout bugs: start with `webgpu-utils`, consider `colorjs.io` for color correctness work, and defer `gl-matrix` until future lit/PBR brush math really needs it; do not pull engine-style libraries into the sketch runtime
 - [ ] defer fully GPU-native brush simulation and GPU selection compute until parity/readback/FX work is stable and profiling shows real benefit
 
 ### PHASE 5 - FX LAYER
