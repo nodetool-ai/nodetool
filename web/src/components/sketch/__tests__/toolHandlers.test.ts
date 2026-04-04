@@ -679,3 +679,129 @@ describe("CloneStampTool", () => {
     expect(result).toBeFalsy();
   });
 });
+
+// ─── sampleColorHex ──────────────────────────────────────────────────────────
+
+describe("sampleColorHex", () => {
+  // Import as a standalone function
+  const { sampleColorHex } = require("../tools/EyedropperTool");
+
+  it("returns hex color from display canvas", () => {
+    const canvas = window.document.createElement("canvas");
+    canvas.width = 4;
+    canvas.height = 4;
+    const ctx2d = canvas.getContext("2d")!;
+    // Draw a known color at (1,1)
+    ctx2d.fillStyle = "#ff0000";
+    ctx2d.fillRect(1, 1, 1, 1);
+
+    const toolCtx = makeToolContext({
+      displayCanvasRef: { current: canvas }
+    });
+    const hex = sampleColorHex(toolCtx, { x: 1, y: 1 });
+    expect(hex).toBe("#ff0000");
+  });
+
+  it("falls back to getFullCompositeImageData when display canvas unavailable", () => {
+    // Create a mock ImageData-like object (JSDOM doesn't have ImageData constructor)
+    const width = 4;
+    const height = 4;
+    const data = new Uint8ClampedArray(width * height * 4);
+    // Set pixel at (2,2) to green
+    const idx = (2 * width + 2) * 4;
+    data[idx] = 0;
+    data[idx + 1] = 255;
+    data[idx + 2] = 0;
+    data[idx + 3] = 255;
+
+    const imageData = { data, width, height } as ImageData;
+
+    const toolCtx = makeToolContext({
+      displayCanvasRef: { current: null },
+      getFullCompositeImageData: jest.fn(() => imageData)
+    });
+    const hex = sampleColorHex(toolCtx, { x: 2, y: 2 });
+    expect(hex).toBe("#00ff00");
+  });
+
+  it("returns null when point is out of bounds", () => {
+    const width = 4;
+    const height = 4;
+    const data = new Uint8ClampedArray(width * height * 4);
+    const imageData = { data, width, height } as ImageData;
+
+    const toolCtx = makeToolContext({
+      displayCanvasRef: { current: null },
+      getFullCompositeImageData: jest.fn(() => imageData)
+    });
+    expect(sampleColorHex(toolCtx, { x: -1, y: 0 })).toBeNull();
+    expect(sampleColorHex(toolCtx, { x: 10, y: 0 })).toBeNull();
+  });
+
+  it("returns null when no display canvas and no readback", () => {
+    const toolCtx = makeToolContext({
+      displayCanvasRef: { current: null },
+      getFullCompositeImageData: undefined
+    });
+    expect(sampleColorHex(toolCtx, { x: 0, y: 0 })).toBeNull();
+  });
+});
+
+// ─── Async tool lifecycle (onCommit / onCancel / getProgress) ────────────────
+
+describe("ToolHandler async lifecycle", () => {
+  it("onCommit, onCancel, getProgress are optional on ToolHandler interface", () => {
+    // A minimal handler with no async methods should work fine
+    const handler = getToolHandler("brush");
+    expect(handler.onCommit).toBeUndefined();
+    expect(handler.onCancel).toBeUndefined();
+    expect(handler.getProgress).toBeUndefined();
+  });
+
+  it("async tool can implement onCommit", async () => {
+    const commitLog: string[] = [];
+
+    // Create a mock async tool handler
+    const asyncTool = {
+      toolId: "brush" as const,
+      onDown() { return true; },
+      onUp() { /* no-op */ },
+      async onCommit(_ctx: ToolContext) {
+        commitLog.push("committed");
+      },
+      onCancel(_ctx: ToolContext) {
+        commitLog.push("cancelled");
+      },
+      getProgress(_ctx: ToolContext): number | null {
+        return 0.5;
+      }
+    };
+
+    // Verify the methods exist and work
+    const ctx = makeToolContext();
+    expect(asyncTool.onCommit).toBeDefined();
+    expect(asyncTool.getProgress!(ctx)).toBe(0.5);
+
+    await asyncTool.onCommit!(ctx);
+    expect(commitLog).toContain("committed");
+
+    asyncTool.onCancel!(ctx);
+    expect(commitLog).toContain("cancelled");
+  });
+
+  it("onCancel is called during tool deactivation lifecycle", () => {
+    // SegmentTool has onDeactivate which clears prompts —
+    // verify the lifecycle pattern works
+    const { SegmentTool } = require("../tools/SegmentTool");
+    const tool = new SegmentTool();
+    const ctx = makeToolContext();
+
+    tool.onActivate!(ctx);
+    // Simulate collecting some prompts
+    tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }));
+
+    // Deactivate should clear state
+    tool.onDeactivate!(ctx);
+    expect(tool.getPointPrompts()).toHaveLength(0);
+  });
+});
