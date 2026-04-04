@@ -81,10 +81,6 @@ const mockTheme = {
       },
       common: {
         white: "#fff"
-      },
-      action: {
-        disabled: "#000",
-        disabledBackground: "#000"
       }
     }
   }
