@@ -1115,6 +1115,7 @@ export interface AgentSdkProvider {
     workspacePath: string;
     resumeSessionId?: string;
     systemPrompt?: string;
+    useStandardTools?: boolean;
     modelParams?: AgentModelParams;
   }): AgentQuerySession;
 
@@ -1147,6 +1148,7 @@ class ClaudeSdkProvider implements AgentSdkProvider {
     workspacePath: string;
     resumeSessionId?: string;
     systemPrompt?: string;
+    useStandardTools?: boolean;
     modelParams?: AgentModelParams;
   }): AgentQuerySession {
     const useCliAgent = process.env.NODETOOL_AGENT_USE_CLI === "1";
@@ -1155,7 +1157,7 @@ class ClaudeSdkProvider implements AgentSdkProvider {
     if (useCliAgent) {
       return new ClaudeCliSession({ ...options, systemPrompt, maxTurns: options.modelParams?.maxTurns });
     }
-    return new ClaudeAgentSession({ ...options, systemPrompt, maxTurns: options.modelParams?.maxTurns });
+    return new ClaudeAgentSession({ ...options, systemPrompt, useStandardTools: options.useStandardTools, maxTurns: options.modelParams?.maxTurns });
   }
 
   async listSessions(options: AgentListSessionsRequest): Promise<AgentSessionInfoEntry[]> {
@@ -1466,6 +1468,8 @@ export async function createAgentSession(
     model: options.model,
     workspacePath: options.workspacePath,
     resumeSessionId: options.resumeSessionId,
+    systemPrompt: options.systemPrompt,
+    useStandardTools: options.useStandardTools,
     modelParams: options.modelParams,
   });
 

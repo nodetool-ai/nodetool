@@ -7,18 +7,28 @@ import {
   MenuItem,
   CircularProgress,
   Paper,
-  MenuList
+  MenuList,
+  ToggleButtonGroup,
+  ToggleButton,
+  Tooltip,
+  IconButton,
+  Menu
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AddIcon from "@mui/icons-material/Add";
+import ReplayIcon from "@mui/icons-material/Replay";
 import { Message } from "../../stores/ApiTypes";
 import type { Workflow, WorkspaceResponse } from "../../stores/ApiTypes";
 import useAgentStore from "../../stores/AgentStore";
+import type { AgentProvider } from "../../stores/AgentStore";
 import ChatView from "../chat/containers/ChatView";
 import { useVibecodingTemplates, Template } from "../../hooks/useVibecodingTemplates";
 import { client } from "../../stores/ApiClient";
 import { useWorkflow } from "../../serverState/useWorkflow";
+import log from "loglevel";
 
 const BASE_SYSTEM_PROMPT = `You are a VibeCoding assistant inside NodeTool.
 You build polished Next.js applications that integrate with NodeTool workflows.
@@ -255,14 +265,82 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   isLoadingWorkspaces,
   onWorkspaceChange
 }) => {
+  const theme = useTheme();
   const status = useAgentStore((s) => s.status);
   const messages = useAgentStore((s) => s.messages);
   const sendMessage = useAgentStore((s) => s.sendMessage);
   const stopGeneration = useAgentStore((s) => s.stopGeneration);
   const setWorkspaceContext = useAgentStore((s) => s.setWorkspaceContext);
   const isAvailable = useAgentStore((s) => s.isAvailable);
+  const provider = useAgentStore((s) => s.provider);
+  const setProvider = useAgentStore((s) => s.setProvider);
+  const model = useAgentStore((s) => s.model);
+  const setModel = useAgentStore((s) => s.setModel);
+  const availableModels = useAgentStore((s) => s.availableModels);
+  const modelsLoading = useAgentStore((s) => s.modelsLoading);
+  const sessionId = useAgentStore((s) => s.sessionId);
+  const newChat = useAgentStore((s) => s.newChat);
+  const resumeSession = useAgentStore((s) => s.resumeSession);
+  const sessionHistory = useAgentStore((s) => s.sessionHistory);
+  const hasRunningSession = Boolean(sessionId);
 
   const { templates } = useVibecodingTemplates();
+
+  // Resume menu state
+  const [resumeAnchorEl, setResumeAnchorEl] = useState<HTMLElement | null>(null);
+  const resumeMenuOpen = Boolean(resumeAnchorEl);
+
+  const previousSessions = useMemo(
+    () => sessionHistory.filter((entry) => entry.id !== sessionId),
+    [sessionHistory, sessionId]
+  );
+
+  // Load models and sessions on mount
+  useEffect(() => {
+    useAgentStore.getState().loadModels();
+    useAgentStore.getState().loadSessions();
+  }, []);
+
+  const handleProviderToggle = useCallback(
+    (_event: React.MouseEvent, value: string | null) => {
+      if (value === "claude" || value === "codex" || value === "opencode") {
+        setProvider(value as AgentProvider);
+      }
+    },
+    [setProvider]
+  );
+
+  const handleModelChange = useCallback(
+    (event: SelectChangeEvent<string>) => {
+      setModel(event.target.value);
+    },
+    [setModel]
+  );
+
+  const handleNewSession = useCallback(() => {
+    newChat();
+  }, [newChat]);
+
+  const handleResumeMenuOpen = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      setResumeAnchorEl(event.currentTarget);
+    },
+    []
+  );
+
+  const handleResumeMenuClose = useCallback(() => {
+    setResumeAnchorEl(null);
+  }, []);
+
+  const handleResumeSession = useCallback(
+    (entryId: string) => () => {
+      setResumeAnchorEl(null);
+      void resumeSession(entryId).catch((err: unknown) => {
+        log.error("Failed to resume session:", err);
+      });
+    },
+    [resumeSession]
+  );
 
   // @mention dropdown state
   const containerRef = useRef<HTMLDivElement>(null);
@@ -506,19 +584,156 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         bgcolor: "background.paper"
       }}
     >
-      {/* Workspace selector header */}
+      {/* Toolbar */}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 2,
-          px: 3,
-          py: 2,
-          borderBottom: (theme) => `1px solid ${theme.palette.divider}`
+          gap: "6px",
+          px: 1,
+          py: "5px",
+          borderBottom: `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        <ToggleButtonGroup
+          value={provider}
+          exclusive
+          onChange={handleProviderToggle}
+          size="small"
+          disabled={hasRunningSession}
+          sx={{
+            height: "26px",
+            "& .MuiToggleButton-root": {
+              fontSize: "0.7rem",
+              fontFamily: theme.fontFamily2,
+              padding: "1px 8px",
+              textTransform: "none",
+              border: `1px solid ${theme.palette.divider}`,
+              color: theme.palette.text.secondary,
+              "&.Mui-selected": {
+                backgroundColor: `${theme.palette.primary.main}18`,
+                color: theme.palette.primary.light,
+                borderColor: theme.palette.primary.main,
+              },
+            },
+          }}
+        >
+          <ToggleButton value="claude">Claude</ToggleButton>
+          <ToggleButton value="codex">Codex</ToggleButton>
+          <ToggleButton value="opencode">OpenCode</ToggleButton>
+        </ToggleButtonGroup>
+
+        <Select
+          value={availableModels.some((m) => m.id === model) ? model : ""}
+          onChange={handleModelChange}
+          size="small"
+          disabled={hasRunningSession || modelsLoading || availableModels.length === 0}
+          displayEmpty
+          variant="outlined"
+          sx={{
+            height: "26px",
+            flex: 1,
+            minWidth: 0,
+            fontSize: "0.7rem",
+            fontFamily: theme.fontFamily2,
+            "& .MuiSelect-select": {
+              padding: "1px 24px 1px 8px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            },
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.divider,
+            },
+          }}
+        >
+          {availableModels.map((entry) => (
+            <MenuItem
+              key={entry.id}
+              value={entry.id}
+              sx={{ fontSize: "0.75rem", fontFamily: theme.fontFamily2 }}
+            >
+              {entry.label}
+            </MenuItem>
+          ))}
+        </Select>
+
+        <Tooltip title="Resume a previous session">
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleResumeMenuOpen}
+              disabled={!isAvailable || previousSessions.length === 0}
+              aria-label="Resume session"
+              sx={{
+                borderRadius: "4px",
+                padding: "3px",
+                color: theme.palette.text.secondary,
+                "&:hover": {
+                  color: theme.palette.primary.light,
+                  backgroundColor: `${theme.palette.primary.main}0a`,
+                },
+              }}
+            >
+              <ReplayIcon sx={{ fontSize: "16px" }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title="Start a new session">
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleNewSession}
+              disabled={!isAvailable || !hasRunningSession}
+              aria-label="New session"
+              sx={{
+                borderRadius: "4px",
+                padding: "3px",
+                color: theme.palette.text.secondary,
+                "&:hover": {
+                  color: theme.palette.primary.light,
+                  backgroundColor: `${theme.palette.primary.main}0a`,
+                },
+              }}
+            >
+              <AddIcon sx={{ fontSize: "16px" }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Menu
+          anchorEl={resumeAnchorEl}
+          open={resumeMenuOpen}
+          onClose={handleResumeMenuClose}
+        >
+          {previousSessions.map((entry) => (
+            <MenuItem
+              key={entry.id}
+              onClick={handleResumeSession(entry.id)}
+              sx={{ fontSize: "0.75rem", fontFamily: theme.fontFamily2 }}
+            >
+              {entry.summary
+                ? entry.summary.length > 50
+                  ? entry.summary.slice(0, 50) + "…"
+                  : entry.summary
+                : entry.id.slice(0, 12) + "…"}
+            </MenuItem>
+          ))}
+        </Menu>
+      </Box>
+
+      {/* Workspace selector */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          px: 1,
+          py: "4px",
+          borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
         <AutoFixHighIcon
-          sx={{ fontSize: 20, color: "primary.main", flexShrink: 0 }}
+          sx={{ fontSize: 16, color: "text.secondary", flexShrink: 0 }}
         />
         <Select
           size="small"
@@ -526,14 +741,21 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
           onChange={handleWorkspaceSelect}
           displayEmpty
           disabled={isLoadingWorkspaces}
-          fullWidth
           MenuProps={{
             sx: { zIndex: 1500 },
             disablePortal: false
           }}
           sx={{
-            fontSize: "0.8125rem",
-            "& .MuiSelect-select": { py: 1 }
+            height: "26px",
+            flex: 1,
+            fontSize: "0.7rem",
+            fontFamily: theme.fontFamily2,
+            "& .MuiSelect-select": {
+              padding: "1px 24px 1px 8px",
+            },
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.divider,
+            },
           }}
         >
           <MenuItem value="" disabled>
@@ -545,7 +767,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
             </MenuItem>
           ))}
         </Select>
-        {isLoadingWorkspaces && <CircularProgress size={16} />}
+        {isLoadingWorkspaces && <CircularProgress size={14} />}
       </Box>
 
       {/* Linked workflow chip */}

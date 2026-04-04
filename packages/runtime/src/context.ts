@@ -516,7 +516,7 @@ export class ProcessingContext {
         id: string;
         type: string;
         [key: string]: unknown;
-      }) => NodeExecutor)
+      }) => NodeExecutor | Promise<NodeExecutor>)
     | null = null;
   /** Optional node type resolver for sub-workflow graph hydration. */
   private _resolveNodeType:
@@ -652,7 +652,7 @@ export class ProcessingContext {
       id: string;
       type: string;
       [key: string]: unknown;
-    }) => NodeExecutor
+    }) => NodeExecutor | Promise<NodeExecutor>
   ): void {
     this._resolveExecutor = fn;
   }
@@ -662,7 +662,7 @@ export class ProcessingContext {
         id: string;
         type: string;
         [key: string]: unknown;
-      }) => NodeExecutor)
+      }) => NodeExecutor | Promise<NodeExecutor>)
     | null {
     return this._resolveExecutor;
   }
