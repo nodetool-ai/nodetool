@@ -91,9 +91,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s, border-color 0.15s;
   z-index: 10;
   color: var(--palette-text-secondary);
+}
+.output-handle-container:hover .output-add-button {
+  opacity: 1;
 }
 .output-add-button:hover {
   background: var(--palette-primary-main);
