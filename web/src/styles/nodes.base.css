@@ -76,6 +76,36 @@
   text-align: right;
 }
 
+.output-add-button {
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--palette-background-paper);
+  border: 1px solid var(--palette-divider);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s;
+  z-index: 10;
+  color: var(--palette-text-secondary);
+}
+.output-handle-container:hover .output-add-button,
+.react-flow__node:hover .output-add-button {
+  opacity: 0.7;
+}
+.output-add-button:hover {
+  opacity: 1 !important;
+  background: var(--palette-primary-main);
+  border-color: var(--palette-primary-main);
+  color: var(--palette-primary-contrastText);
+}
+
 .react-flow__node-toolbar button {
   opacity: 0.7;
   transition: opacity 0.2s;
