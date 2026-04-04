@@ -22,7 +22,7 @@ let bundledObjectInfoPromise: Promise<ComfyUIObjectInfo | null> | null = null;
 function loadBundledObjectInfo(): Promise<ComfyUIObjectInfo | null> {
   if (!bundledObjectInfoPromise) {
     bundledObjectInfoPromise = import("../data/comfy-object-info.json")
-      .then((m) => (m.default ?? m) as ComfyUIObjectInfo)
+      .then((m) => (m.default ?? m) as unknown as ComfyUIObjectInfo)
       .catch(() => null);
   }
   return bundledObjectInfoPromise;
