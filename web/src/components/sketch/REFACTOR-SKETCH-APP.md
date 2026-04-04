@@ -460,6 +460,10 @@ cursor previews, text rasterization helpers, and controlled readback/export help
       the WebGPU path before Phase 3 can be called complete.
 - [ ] Write and adopt explicit blend/color-space expectations for CPU and GPU paths
       before expanding blend-mode coverage or FX shader work further.
+- [ ] Decide whether the first FX/compositing slice stays fully SDR or whether selected
+      intermediate passes should already support HDR-capable formats
+      (for example `rgba16float`) to preserve highlight headroom for future exposure and
+      tonemapping work, then document that boundary clearly.
 
 ### 3D — Tooling and Dependency Boundaries
 
@@ -495,6 +499,9 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 - PBR/lit brush rendering is a future extension. It may justify stronger GPU math and
   material abstractions later, but it does not change the current Phase 3 goal of
   making the document runtime correct, consistent, and easy to extend.
+- HDR display/output support, wide-gamut/professional imaging workflows, and import/export
+  of higher dynamic range image data are future extensions. Phase 3 should avoid blocking
+  them, but does not need to ship them.
 
 ---
 

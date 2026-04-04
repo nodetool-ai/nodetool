@@ -146,12 +146,15 @@ Right-click inside the bounding box — Context menu with all transform modes (S
 - [ ] first FX-layer slice: draggable/reorderable per-layer FX stack, toggle on/off, live preview, not baked into layer pixels, starting with combined hue/saturation/contrast and exposure
 - [ ] support stacking multiple FX layers under one layer and define how they interact with groups, masks, exports, and future blend/effect ordering
 - [ ] add professional tonemapping as layer fx, additionally add presets for 10 distinctive but well-balanced looks
+- [ ] support serious tonemapping and exposure workflows that preserve highlight headroom before final mapping down, likely via HDR-capable intermediate passes even if final display/output stays SDR at first
+- [ ] add bloom / glow / light accumulation style FX once the core non-destructive effect stack is stable
 
 ### PHASE 6 - IMPROVE PAINT AND SELECT
 
 - [-] build a more programmable/extensible brush system on top of the shared paint/session seams a more programmable/extensible brush system on top of the shared paint/session seams
 - [ ] drawing extensions: ADJUSTABLE stabilizer controls to help with drawing less jaggy lines, similar to https://github.com/steveruizok/perfect-freehand. one implementation that all drawing tools can use.
 - [ ] brush extensions: smudge/color-smudge
+- [ ] explore lit / PBR-style brushes once the WebGPU runtime and FX pipeline are stable; allow temporary energy values above display range internally if that improves lighting/material behavior
 - [ ] selection transform tools + selection move with (shift) arrow keys. note: do not move layer when selection active
 - [ ] add AI-assisted tools such as healing or segmentation-driven layer creation
 
@@ -192,6 +195,14 @@ These are not current priorities, but they should stay visible so they can be re
 - [ ] clipping masks / clipping groups
 
 ### 3.4 MAYBE
+
+HDR / Pro Imaging:
+
+- [ ] wide-gamut / professional imaging workflows beyond the first SDR-focused editor slices
+- [ ] import/export of higher dynamic range image data and any related document/export semantics
+- [ ] HDR display/output support if it becomes a real product requirement rather than just an internal processing convenience
+
+OTHER:
 
 - [ ] add canvas-size-from-input-layer. needs some planning
 - [ ] plugin/tool extensibility as a product feature
