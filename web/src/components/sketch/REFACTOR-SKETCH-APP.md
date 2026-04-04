@@ -3,7 +3,7 @@
 > **Goal**: Clear, incremental path to an architecture that makes Phase 3–7 features
 > easy to add without rewrites. Every phase leaves the app fully functional.
 >
-> **Last updated**: 2026-04-03
+> **Last updated**: 2026-04-04
 
 ---
 
@@ -386,9 +386,9 @@ Done in the current baseline:
 
 Open follow-up work:
 
-- [ ] Replace the provisional loose schema with a typed, discriminated effect model.
-- [ ] Treat `effects: []` as the canonical empty value.
-- [ ] Stop treating placeholder future effect names as enough architecture by themselves.
+- [x] Replace the provisional loose schema with a typed, discriminated effect model.
+- [x] Treat `effects: []` as the canonical empty value.
+- [x] Stop treating placeholder future effect names as enough architecture by themselves.
 
 Backward compatibility is **not** a goal here. The refactor is allowed to make
 `effects` required with `[]` as the normal empty value and to replace any temporary
@@ -575,7 +575,7 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 
 ### 3C — FX Pipeline on the WebGPU Path
 
-- [ ] Replace loose effect param bags with a discriminated union and make `effects`
+- [x] Replace loose effect param bags with a discriminated union and make `effects`
       required (`[]` when empty) so future curves / tonemap / bloom work has a real
       schema instead of generic number maps.
 - [ ] Route main canvas, flatten/export, merge-down, isolate preview, and thumbnail
@@ -592,7 +592,7 @@ cursor previews, text rasterization helpers, and controlled readback/export help
       advanced effects must go straight to shader-backed implementation:
       curves, true exposure, tonemapping, bloom/glow, and any effect that depends on
       precise parity with future shader math should not be defined by CSS behavior.
-- [ ] Add effect-result invalidation/caching hooks so repeated FX evaluation is tied to
+- [x] Add effect-result invalidation/caching hooks so repeated FX evaluation is tied to
       source raster changes and effect-param changes rather than recomputing blindly on
       every composite.
 
