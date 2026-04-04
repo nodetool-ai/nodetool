@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, memo, useRef } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Handle, Position, useHandleConnections } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
@@ -93,6 +93,9 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
     };
   }, []);
 
+  const connections = useHandleConnections({ type: "source", id: output.name });
+  const isConnected = connections.length > 0;
+
   const {
     setNodeId: setConnNodeId,
     setSourceHandle: setConnSourceHandle,
@@ -175,13 +178,15 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
           className={`${classConnectable} ${Slugify(output.type.type)}${isStreamingOutput ? " streaming-handle" : ""}`}
         />
       </HandleTooltip>
-      <div
-        className="output-add-button"
-        onClick={handleAddClick}
-        title="Add connected node"
-      >
-        <AddIcon sx={{ fontSize: 14 }} />
-      </div>
+      {!isConnected && (
+        <div
+          className="output-add-button"
+          onClick={handleAddClick}
+          title="Add connected node"
+        >
+          <AddIcon sx={{ fontSize: 14 }} />
+        </div>
+      )}
     </div>
   );
 };
