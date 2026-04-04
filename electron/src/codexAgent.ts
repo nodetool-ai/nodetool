@@ -99,8 +99,9 @@ export class CodexQuerySession {
     // Check if config already exists with the correct URL
     if (existsSync(configPath)) {
       try {
+        const fs = await import("node:fs");
         const existing = JSON.parse(
-          require("node:fs").readFileSync(configPath, "utf8"),
+          fs.readFileSync(configPath, "utf8"),
         ) as { mcpServers?: { "nodetool-ui"?: { url?: string } } };
         if (existing?.mcpServers?.["nodetool-ui"]?.url === mcpUrl) {
           return; // Already configured
