@@ -23,6 +23,7 @@ import { getToolHandler } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { SelectTool } from "../tools/SelectTool";
+import { sampleColorHex } from "../tools/EyedropperTool";
 import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
@@ -238,7 +239,6 @@ export function usePointerHandlers({
   const {
     screenToCanvas,
     withMirror,
-    rgbToHex,
     clipSelectionForOffset,
     drawActiveStrokePreview
   } = usePointerHandlerUtils({
@@ -275,38 +275,12 @@ export function usePointerHandlers({
   // eslint-disable-next-line react-hooks/exhaustive-deps -- activeStrokeRef is stable
   [doc, isolatedLayerId]);
 
-  const sampleRgbAtDocPoint = useCallback(
-    (clientX: number, clientY: number): { r: number; g: number; b: number } | null => {
-      const pt = screenToCanvas(clientX, clientY);
-      const x = Math.round(pt.x);
-      const y = Math.round(pt.y);
-      const display = displayCanvasRef.current;
-      if (
-        display &&
-        x >= 0 &&
-        x < display.width &&
-        y >= 0 &&
-        y < display.height
-      ) {
-        const ctx = display.getContext("2d", { willReadFrequently: true });
-        if (ctx) {
-          const pixel = ctx.getImageData(x, y, 1, 1).data;
-          return { r: pixel[0], g: pixel[1], b: pixel[2] };
-        }
-      }
-      const id = getFullCompositeImageData();
-      if (!id) {
-        return null;
-      }
-      if (x < 0 || y < 0 || x >= id.width || y >= id.height) {
-        return null;
-      }
-      const i = (y * id.width + x) * 4;
-      return { r: id.data[i], g: id.data[i + 1], b: id.data[i + 2] };
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- displayCanvasRef is stable; read via .current
-    [screenToCanvas, getFullCompositeImageData]
-  );
+  // ─── Async tool commit generation ──────────────────────────────────
+  // Monotonically increasing counter used to detect stale async commits.
+  // Incremented whenever a new gesture starts, the tool changes, or a new
+  // onCommit is dispatched — ensuring that only the most recent commit is
+  // accepted.
+  const commitGenRef = useRef(0);
 
   // ─── Tool context ref ──────────────────────────────────────────────
   // Updated synchronously every render. Handlers read this ref to get
@@ -417,9 +391,10 @@ export function usePointerHandlers({
         activeTool !== "clone_stamp" &&
         onEyedropperPick
       ) {
-        const rgb = sampleRgbAtDocPoint(e.clientX, e.clientY);
-        if (rgb) {
-          onEyedropperPick(rgbToHex(rgb.r, rgb.g, rgb.b));
+        const pt = screenToCanvas(e.clientX, e.clientY);
+        const hex = sampleColorHex(toolCtxRef.current, pt);
+        if (hex) {
+          onEyedropperPick(hex);
         }
         return;
       }
@@ -517,12 +492,10 @@ export function usePointerHandlers({
       onBrushSizeChange,
       getOrCreateLayerCanvas,
       onEyedropperPick,
-      rgbToHex,
       activeStrokeRef,
       drawActiveStrokePreview,
       spaceHeldRef,
       sKeyHeldRef,
-      sampleRgbAtDocPoint,
     ]
   );
 
@@ -651,6 +624,22 @@ export function usePointerHandlers({
       // ─── Generic tool delegation ─────────────────────────────────────
       const handler = getToolHandler(interactionTool);
       handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
+
+      // ─── Async tool lifecycle: call onCommit if present ──────────────
+      // onCommit allows tools with long-running async work (e.g. SAM
+      // inference, AI inpaint) to finalize after onUp.  A generation
+      // counter guards against stale results: if the tool, document, or
+      // session changed while the Promise was pending, the result is
+      // silently discarded.
+      if (handler.onCommit) {
+        const gen = ++commitGenRef.current;
+        handler.onCommit(toolCtxRef.current).catch((err) => {
+          // Only log if this commit was not superseded by a newer one
+          if (commitGenRef.current === gen) {
+            console.error(`Tool ${interactionTool} onCommit error:`, err);
+          }
+        });
+      }
 
       // Post-delegation: active stroke preview for paint tools
       if (
@@ -841,6 +830,8 @@ export function usePointerHandlers({
     if (prev === activeTool) {
       return;
     }
+    // Invalidate any pending async commits from the previous tool
+    commitGenRef.current++;
     const prevHandler = getToolHandler(prev);
     // Cancel any pending async work before deactivating
     prevHandler.onCancel?.(toolCtxRef.current);
