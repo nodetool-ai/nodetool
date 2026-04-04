@@ -112,7 +112,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
       setConnFilterType("input");
       setConnTypeMetadata(output.type);
       showConnMenu({
-        x: event.clientX,
+        x: event.clientX + 20,
         y: event.clientY
       });
     },
