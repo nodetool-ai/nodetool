@@ -99,8 +99,6 @@ electron: $(WEB_BUILD_MARKER) $(ELECTRON_BUILD_MARKER)
 	cd electron && npm start
 
 # tsx --watch dev server: runs TS source directly, restarts on changes.
-# NOTE: electron-dev runs the compiled websocket backend. Rebuild any stale
-# backend workspaces before launch so dist-backed packages stay in sync.
 dev:
 	npm run dev:watch
 
@@ -121,13 +119,13 @@ check-node-version:
 	fi
 
 ifeq ($(OS),Windows_NT)
-electron-dev: check-node-version build-stale-backend
+electron-dev: check-node-version
 	@echo "Rebuilding native modules for Electron..."
 	cd electron && npx electron-builder install-app-deps
 	@echo "Starting Electron development mode..."
 	powershell -ExecutionPolicy Bypass -File scripts/electron-dev.ps1
 else
-electron-dev: check-node-version build-stale-backend
+electron-dev: check-node-version
 	@echo "Rebuilding native modules for Electron..."
 	cd electron && npx electron-builder install-app-deps
 	@echo "Starting Electron development mode..."
