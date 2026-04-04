@@ -15,6 +15,7 @@ import { uiToolSchemas } from "@nodetool/protocol";
 import type { WebContents } from "electron";
 import { ipcMain } from "electron";
 import { IpcChannels } from "./types.d";
+import { z, toJSONSchema } from "zod";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,62 +49,27 @@ interface McpJsonRpcResponse {
 // Tool schema conversion
 // ---------------------------------------------------------------------------
 
-function zodSchemaToJsonSchema(zodShape: Record<string, unknown>): {
+function zodShapeToJsonSchema(zodShape: Record<string, z.ZodTypeAny>): {
   type: "object";
   properties: Record<string, unknown>;
-  required: string[];
+  required?: string[];
 } {
-  const properties: Record<string, unknown> = {};
-  const required: string[] = [];
-
-  for (const [key, value] of Object.entries(zodShape)) {
-    const zodType = value as { _def?: { typeName?: string; description?: string; innerType?: unknown } };
-    const typeName = zodType?._def?.typeName;
-    const description = zodType?._def?.description;
-
-    let prop: Record<string, unknown> = { type: "string" };
-
-    if (typeName === "ZodString") {
-      prop = { type: "string" };
-    } else if (typeName === "ZodNumber") {
-      prop = { type: "number" };
-    } else if (typeName === "ZodBoolean") {
-      prop = { type: "boolean" };
-    } else if (typeName === "ZodRecord") {
-      prop = { type: "object" };
-    } else if (typeName === "ZodEnum") {
-      const values = (zodType as { _def?: { values?: string[] } })?._def?.values;
-      prop = { type: "string", enum: values };
-    } else if (typeName === "ZodUnion" || typeName === "ZodObject") {
-      prop = { type: "object" };
-    } else if (typeName === "ZodArray") {
-      prop = { type: "array" };
-    }
-
-    if (description) {
-      prop.description = description;
-    }
-
-    properties[key] = prop;
-
-    // If not optional/nullable, it's required
-    if (typeName !== "ZodOptional" && typeName !== "ZodNullable") {
-      const isOptional = zodType?._def?.typeName === "ZodOptional" ||
-        (zodType as { isOptional?: () => boolean })?.isOptional?.();
-      if (!isOptional) {
-        required.push(key);
-      }
-    }
-  }
-
-  return { type: "object", properties, required };
+  const schema = z.object(zodShape);
+  const jsonSchema = toJSONSchema(schema) as Record<string, unknown>;
+  // Remove $schema key — MCP inputSchema doesn't need it
+  delete jsonSchema.$schema;
+  return {
+    type: "object",
+    properties: (jsonSchema.properties ?? {}) as Record<string, unknown>,
+    required: jsonSchema.required as string[] | undefined
+  };
 }
 
 function buildToolDefinitions(): McpToolDefinition[] {
   return Object.entries(uiToolSchemas).map(([name, schema]) => ({
     name,
     description: schema.description,
-    inputSchema: zodSchemaToJsonSchema(schema.parameters),
+    inputSchema: zodShapeToJsonSchema(schema.parameters as Record<string, z.ZodTypeAny>),
   }));
 }
 
