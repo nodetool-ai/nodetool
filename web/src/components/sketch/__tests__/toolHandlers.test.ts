@@ -21,9 +21,10 @@ import { ShapeTool } from "../tools/ShapeTool";
 import { GradientTool } from "../tools/GradientTool";
 import { CropTool } from "../tools/CropTool";
 import { SelectTool } from "../tools/SelectTool";
-import { EyedropperTool } from "../tools/EyedropperTool";
+import { EyedropperTool, sampleColorHex } from "../tools/EyedropperTool";
 import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
+import { SegmentTool } from "../tools/SegmentTool";
 import type { SketchTool } from "../types";
 import { createDefaultDocument, createDefaultLayer } from "../types";
 import { rectSelectionMask } from "../selection/selectionMask";
@@ -683,8 +684,7 @@ describe("CloneStampTool", () => {
 // ─── sampleColorHex ──────────────────────────────────────────────────────────
 
 describe("sampleColorHex", () => {
-  // Import as a standalone function
-  const { sampleColorHex } = require("../tools/EyedropperTool");
+  // sampleColorHex imported at module level
 
   it("returns hex color from display canvas", () => {
     const canvas = window.document.createElement("canvas");
@@ -792,7 +792,6 @@ describe("ToolHandler async lifecycle", () => {
   it("onCancel is called during tool deactivation lifecycle", () => {
     // SegmentTool has onDeactivate which clears prompts —
     // verify the lifecycle pattern works
-    const { SegmentTool } = require("../tools/SegmentTool");
     const tool = new SegmentTool();
     const ctx = makeToolContext();
 
