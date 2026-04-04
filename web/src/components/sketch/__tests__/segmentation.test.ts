@@ -269,7 +269,7 @@ describe("SegmentTool", () => {
       ctx.doc.toolSettings.segment.promptMode = "box";
 
       tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }));
-      tool.onMove!(ctx, makePointerEvent({ point: { x: 50, y: 50 } }), []);
+      tool.onMove!(ctx, makePointerEvent({ point: { x: 50, y: 50 } }));
       tool.onUp!(ctx, makePointerEvent({ point: { x: 50, y: 50 } }));
 
       const box = tool.getBoxPrompt();
@@ -282,7 +282,7 @@ describe("SegmentTool", () => {
       ctx.doc.toolSettings.segment.promptMode = "box";
 
       tool.onDown(ctx, makePointerEvent({ point: { x: 50, y: 50 } }));
-      tool.onMove!(ctx, makePointerEvent({ point: { x: 10, y: 20 } }), []);
+      tool.onMove!(ctx, makePointerEvent({ point: { x: 10, y: 20 } }));
       tool.onUp!(ctx, makePointerEvent({ point: { x: 10, y: 20 } }));
 
       const box = tool.getBoxPrompt();
@@ -295,7 +295,7 @@ describe("SegmentTool", () => {
       ctx.doc.toolSettings.segment.promptMode = "box";
 
       tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }));
-      tool.onMove!(ctx, makePointerEvent({ point: { x: 11, y: 11 } }), []);
+      tool.onMove!(ctx, makePointerEvent({ point: { x: 11, y: 11 } }));
       tool.onUp!(ctx, makePointerEvent({ point: { x: 11, y: 11 } }));
 
       expect(tool.getBoxPrompt()).toBeNull();
@@ -307,7 +307,7 @@ describe("SegmentTool", () => {
       ctx.doc.toolSettings.segment.promptMode = "box";
 
       // Move without down — should do nothing
-      tool.onMove!(ctx, makePointerEvent({ point: { x: 50, y: 50 } }), []);
+      tool.onMove!(ctx, makePointerEvent({ point: { x: 50, y: 50 } }));
       expect(tool.getBoxPrompt()).toBeNull();
     });
   });
@@ -342,7 +342,7 @@ describe("SegmentTool", () => {
       tool.onDown(ctx, makePointerEvent());
       ctx.doc.toolSettings.segment.promptMode = "box";
       tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
-      tool.onMove!(ctx, makePointerEvent({ point: { x: 55, y: 55 } }), []);
+      tool.onMove!(ctx, makePointerEvent({ point: { x: 55, y: 55 } }));
       tool.onUp!(ctx, makePointerEvent({ point: { x: 55, y: 55 } }));
 
       tool.clearPrompts();
@@ -694,7 +694,7 @@ describe("Extended segment settings", () => {
   it("old documents without new fields get defaults from normalize", () => {
     const doc = createDefaultDocument();
     // Simulate old document missing new fields by deleting them
-    const toolSettings = doc.toolSettings.segment as Record<string, unknown>;
+    const toolSettings = doc.toolSettings.segment as unknown as Record<string, unknown>;
     delete toolSettings.sourceLayerAction;
     delete toolSettings.maskFeather;
     delete toolSettings.outputCutouts;

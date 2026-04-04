@@ -23,7 +23,7 @@ describe("pointerPen", () => {
         normalizePointerPressure({
           pointerType: "mouse",
           pressure: undefined
-        } as PointerEvent)
+        } as unknown as PointerEvent)
       ).toBe(0.5);
     });
 

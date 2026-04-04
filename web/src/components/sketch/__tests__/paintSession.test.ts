@@ -71,6 +71,8 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     drawOverlayLassoPreview: jest.fn(),
     drawOverlaySelection: jest.fn(),
     drawCursor: jest.fn(),
+    clearGizmo: jest.fn(),
+    drawGizmo: jest.fn(),
     onZoomChange: jest.fn(),
     onPanChange: jest.fn(),
     onStrokeStart: jest.fn(),

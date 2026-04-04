@@ -308,7 +308,7 @@ describe("TransformTool", () => {
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
     tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
-    tool.onMove!(ctx, makePointerEvent({ point: { x: 42, y: 37 } }), []);
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 42, y: 37 } }));
     expect(ctx.onLayerTransformChange).toHaveBeenCalledWith(
       doc.activeLayerId,
       expect.objectContaining({ x: 10, y: 5 })
@@ -321,7 +321,7 @@ describe("TransformTool", () => {
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
     tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
-    tool.onUp!(ctx, makePointerEvent());
+    tool.onUp!(ctx);
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
       doc.activeLayerId,
       null,
