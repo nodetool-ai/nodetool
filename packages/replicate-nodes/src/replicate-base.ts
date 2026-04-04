@@ -165,17 +165,16 @@ export async function replicateSubmit(
 function extractUrl(output: unknown): string | null {
   if (typeof output === "string") return output;
 
-  // FileOutput (ReadableStream with .url() method)
+  // FileOutput (ReadableStream with .url() method that returns URL object)
   if (output && typeof output === "object" && "url" in output) {
-    const urlFn = (output as { url: () => string }).url;
+    const urlFn = (output as { url: () => unknown }).url;
     if (typeof urlFn === "function") {
       const url = urlFn.call(output);
-      if (typeof url === "string") return url;
+      if (url) return String(url);
     }
     // .url might be a string property instead
-    if (typeof (output as Record<string, unknown>).url === "string") {
-      return (output as Record<string, unknown>).url as string;
-    }
+    const urlProp = (output as Record<string, unknown>).url;
+    if (urlProp) return String(urlProp);
   }
 
   if (Array.isArray(output)) {
