@@ -37,7 +37,7 @@ import {
 import {
   applySelectionMaskAlpha,
   selectionHasAnyPixels
-} from "../selection/selectionMask";
+} from "../selection";
 
 // ─── Session state ──────────────────────────────────────────────────────────
 

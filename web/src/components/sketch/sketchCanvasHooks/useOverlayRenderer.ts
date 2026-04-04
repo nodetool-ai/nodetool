@@ -26,7 +26,7 @@ import {
   marqueeRectFromDocPoints,
   rectSelectionMask,
   selectionHasAnyPixels
-} from "../selection/selectionMask";
+} from "../selection";
 
 /** While dragging a selection, marching ants use `start` + `translate(dx,dy)` so the outline is not clipped before commit. */
 export type SelectionMoveAntsRef = React.MutableRefObject<{

@@ -42,7 +42,7 @@ import {
   useColorActions,
   useSegmentation
 } from "./hooks";
-import { selectionHasAnyPixels } from "./selection/selectionMask";
+import { selectionHasAnyPixels } from "./selection";
 
 const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
   "nodetool-sketch-canvas-resize-handles";

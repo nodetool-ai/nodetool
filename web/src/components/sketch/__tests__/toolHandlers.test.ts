@@ -27,7 +27,7 @@ import { CloneStampTool } from "../tools/CloneStampTool";
 import { SegmentTool } from "../tools/SegmentTool";
 import type { SketchTool } from "../types";
 import { createDefaultDocument, createDefaultLayer } from "../types";
-import { rectSelectionMask } from "../selection/selectionMask";
+import { rectSelectionMask } from "../selection";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 

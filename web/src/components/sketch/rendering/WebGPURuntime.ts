@@ -27,7 +27,7 @@ import {
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
 import { checkerboardDocumentCellPx } from "../drawingUtils";
 import { getLayerCompositeOffset } from "../painting/layerBounds";
-import { drawStrokeBufferForDisplayWithSelectionFeather } from "../selection/selectionMask";
+import { drawStrokeBufferForDisplayWithSelectionFeather } from "../selection";
 import {
   FULLSCREEN_QUAD_VERTEX,
   CHECKERBOARD_FRAGMENT,

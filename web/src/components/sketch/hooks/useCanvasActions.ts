@@ -19,7 +19,7 @@ import {
 } from "../types";
 import { useSketchStore } from "../state";
 import { getCanvasRasterBounds, getLayerCompositeOffset } from "../painting";
-import { getSelectionBounds, selectionHasAnyPixels } from "../selection/selectionMask";
+import { getSelectionBounds, selectionHasAnyPixels } from "../selection";
 import {
   buildSketchInternalClipboardCanvas,
   drawSketchPasteOnLayerContext,

@@ -9,7 +9,7 @@ import {
   rectSelectionMask,
   sampleMask,
   translateMask
-} from "../selection/selectionMask";
+} from "../selection";
 
 describe("marqueeRectFromDocPoints", () => {
   it("matches fillRectMask coverage (no round-vs-floor drift)", () => {
