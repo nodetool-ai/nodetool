@@ -282,76 +282,184 @@ Lifecycle rules for async tools:
 
 ---
 
-## Phase 2 — Non-Destructive Pipeline Scaffolding
+## Phase 2 — Non-Destructive Pipeline Baseline
 
-_Enables: FX Layers (Phase 5), live adjustment previews, transform live preview._
+_Status: the first baseline is already landed. The document has an effects slot, the
+runtime has an evaluation seam, and delta history is in place. The remaining work is
+no longer "add the hook" — it is to replace the provisional schema/semantics with the
+stronger contract described in Phase 3._
 
 ### 2A — Layer Effects Slot
 
 Add to the `Layer` interface in `types/document.ts`:
 
 ```typescript
-effects?: LayerEffect[];
+effects: LayerEffect[];
 ```
 
 ```typescript
 // types/document.ts
 export type LayerEffectType =
-  | "hue_saturation"
   | "brightness_contrast"
+  | "hue_saturation"
   | "exposure"
-  | "curves" // future
-  | "tonemap"; // future
+  | "curves"
+  | "tonemap"
+  | "bloom";
 
-export interface LayerEffect {
-  type: LayerEffectType;
-  enabled: boolean;
-  params: Record<string, number>; // typed per-effect when implementing
+export interface CurvePoint {
+  x: number;
+  y: number;
 }
+
+export interface BrightnessContrastEffect {
+  type: "brightness_contrast";
+  enabled: boolean;
+  params: {
+    brightness: number;
+    contrast: number;
+  };
+}
+
+export interface HueSaturationEffect {
+  type: "hue_saturation";
+  enabled: boolean;
+  params: {
+    hueDegrees: number;
+    saturation: number;
+    lightness: number;
+  };
+}
+
+export interface ExposureEffect {
+  type: "exposure";
+  enabled: boolean;
+  params: {
+    exposureStops: number;
+  };
+}
+
+export interface CurvesEffect {
+  type: "curves";
+  enabled: boolean;
+  params: {
+    rgb: CurvePoint[];
+    red?: CurvePoint[];
+    green?: CurvePoint[];
+    blue?: CurvePoint[];
+  };
+}
+
+export interface TonemapEffect {
+  type: "tonemap";
+  enabled: boolean;
+  params: {
+    operator: "aces" | "reinhard" | "filmic";
+    exposureStops: number;
+    whitePoint?: number;
+  };
+}
+
+export interface BloomEffect {
+  type: "bloom";
+  enabled: boolean;
+  params: {
+    threshold: number;
+    radius: number;
+    intensity: number;
+  };
+}
+
+export type LayerEffect =
+  | BrightnessContrastEffect
+  | HueSaturationEffect
+  | ExposureEffect
+  | CurvesEffect
+  | TonemapEffect
+  | BloomEffect;
 ```
 
-This is just the slot and schema. No evaluation logic yet. The serialization format
-bumps to v3 with `effects` optional on each layer (backward-compatible: absent = []).
+Done in the current baseline:
+
+- [x] Layers can carry an `effects` array.
+- [x] The current implementation proved the document-level slot is viable.
+
+Open follow-up work:
+
+- [ ] Replace the provisional loose schema with a typed, discriminated effect model.
+- [ ] Treat `effects: []` as the canonical empty value.
+- [ ] Stop treating placeholder future effect names as enough architecture by themselves.
+
+Backward compatibility is **not** a goal here. The refactor is allowed to make
+`effects` required with `[]` as the normal empty value and to replace any temporary
+`Record<string, number>` shape with the typed union above.
 
 **Thumbnail note**: layer thumbnails currently come from raw raster data. Once FX
-layers ship, thumbnails must come from the composited output (effects applied).
-Flag this when implementing the FX panel — the thumbnail generation path in
-`SketchLayersPanel` / `LayerItem` will need to call `evaluateLayerEffects` before
-drawing the thumbnail canvas.
+layers ship, thumbnails must come from the same resolved layer output as the main
+canvas rather than reimplementing effect logic locally.
 
-**Placeholder decisions for the first FX slice:**
+**Decisions for the first architecture slice:**
 
 - Effects are attached to raster/mask layers only in the first implementation
 - Group layers do **not** own FX yet; group-level FX is deferred until semantics are
   specified deliberately
 - Child-layer effects evaluate before the layer is blended into its parent/group stack
-- Export and thumbnails must apply the same per-layer effects as the main canvas
+- Export, merge-down, isolate preview, and thumbnails must apply the same per-layer
+  effects as the main canvas
+- Unsupported effect types must never silently no-op; unsupported evaluation is a bug
+  and should fail loudly in development
+- CSS filters may remain a temporary implementation detail for simple SDR adjustments,
+  but they do **not** define the long-term semantics for curves, true exposure,
+  tonemapping, bloom/glow, or any shader-backed effect math
 
 ### 2B — Compositing Evaluation Hook
 
-In `Canvas2DRuntime` (and eventually `WebGPURuntime`), add a single evaluation
-step between "draw raster" and "blend into composite":
+In `Canvas2DRuntime` and `WebGPURuntime`, keep one shared seam between "raw layer
+raster" and "blend into composite", but make it rich enough to support future
+working-space / dynamic-range decisions:
 
 ```typescript
 // rendering/types.ts
+export interface ResolvedLayerBitmap {
+  surface: HTMLCanvasElement;
+  workingSpace: "srgb" | "linear-srgb";
+  dynamicRange: "sdr" | "hdr";
+}
+
 export interface SketchRuntime {
   // ...existing API...
   evaluateLayerEffects(
     layerId: string,
     source: HTMLCanvasElement,
     effects: LayerEffect[]
-  ): HTMLCanvasElement; // returns source unchanged if effects is empty
+  ): ResolvedLayerBitmap;
 }
 ```
 
-Initial Canvas2D implementation is a pass-through. When FX layers are built, this
-is the only place the implementation changes — no compositing loop restructuring.
+Done in the current baseline:
+
+- [x] `evaluateLayerEffects` exists as a runtime seam.
+- [x] The current implementation proved effects can be injected into the compositing path.
+
+Open follow-up work:
+
+- [ ] Turn this seam into the single source of truth for all visible output paths.
+- [ ] Enrich the return contract so future working-space / dynamic-range choices are
+  explicit rather than implied by a temporary backend.
+
+The important constraint is not the current backend, but the contract:
+
+- one effect-evaluation seam
+- one resolved layer representation
+- explicit working-space / dynamic-range metadata
+- no duplicated effect logic across canvas, export, merge, thumbnails, or readback
 
 This hook becomes the contract used by all output paths, not only the editor canvas:
 
 - main compositing
 - layer thumbnails
 - flatten/export
+- merge-down / bake operations that are meant to match visible output
 - isolated/solo preview
 - future WebGPU compositing
 
@@ -422,36 +530,24 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 - Future GPU-native brush work, selection compute, or more advanced paint simulation
   must build on this phase, not be bundled into it prematurely.
 
+### Phase 3 Baseline Already Landed
+
+- [x] The existing `WebGPURuntime.ts` / `initWebGPU.ts` path is the baseline
+      implementation to improve, not a sketch to replace by default.
+- [x] `SketchRuntime` already carries the right high-level seam:
+      `invalidateLayer`, `compositeToDisplay`, `evaluateLayerEffects`, and
+      readback/export helpers.
+- [x] All 12 Photoshop-style blend modes are implemented on the WebGPU path via
+      ping-pong compositing with a custom WGSL blend shader.
+- [x] Transformed-layer support already exists on the WebGPU path through inverse affine
+      mapping from screen pixels to layer texels.
+- [x] Dirty-region behavior is already narrowed: the WebGPU path does full compositing,
+      while partial redraw remains a Canvas2D optimization.
+- [x] Device-loss / runtime re-init handling exists at a baseline level through the
+      current `device.lost` callback flow in `createRuntime` / `useCompositing`.
+
 ### 3A — Compositing Parity and Runtime Hardening
 
-- [x] Treat the existing `WebGPURuntime.ts` / `initWebGPU.ts` path as the baseline
-      implementation to improve, not a sketch to replace by default.
-- [x] Keep `SketchRuntime` aligned with the current seam (`invalidateLayer`,
-      `compositeToDisplay`, `evaluateLayerEffects`, readback/export helpers) and
-      avoid expanding the public API without a concrete need.
-- [x] Close the remaining WebGPU compositing parity gaps for ordinary editing:
-      layer opacity, visibility, isolate/solo behavior, and blend-mode correctness.
-      _All 12 Photoshop-style blend modes implemented via ping-pong compositing
-      with a custom WGSL blend shader. Each layer is composited through a shader
-      that reads the current composite ("read" texture) and the layer texture,
-      applies the blend formula, and writes the result to the "write" texture.
-      After each layer the two textures swap roles._
-- [x] Make transformed layers render identically enough across Canvas2D and WebGPU
-      that preview, commit, export, and history-backed redraws agree.
-      _Inverse affine matrix computation maps screen pixels → layer texels,
-      supporting translation, scale, and rotation in the same shader._
-- [x] Make dirty-region behavior explicit: either partial redraws on WebGPU are real
-      and trustworthy, or Phase 3 narrows/documents where full redraws are still used.
-      _The WebGPU ping-pong path always does full compositing (every layer writes
-      every pixel). The `dirtyRect` parameter is accepted but intentionally unused
-      on the GPU path — partial redraws are a Canvas2D optimization only. This is
-      documented in the compositeToDisplay signature (`_dirtyRect`)._
-- [x] Define and implement device-loss / runtime re-init behavior as part of normal
-      Electron operation rather than leaving it as an implicit fallback story.
-      _`createRuntime` accepts an `onDeviceLost` callback. `WebGPURuntime` registers
-      a `device.lost` handler that sets a `_deviceLost` guard (early-return in
-      compositeToDisplay) and invokes the callback. `useCompositing` handles the
-      callback by swapping to a fresh `Canvas2DRuntime` and scheduling a redraw._
 - [ ] Audit the current `WebGPURuntime.ts` / `initWebGPU.ts` path and write down the
       specific parity gaps to fix first instead of restarting the runtime design.
 - [ ] Resolve ordinary compositing mismatches on the WebGPU path: layer opacity,
@@ -479,19 +575,26 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 
 ### 3C — FX Pipeline on the WebGPU Path
 
-- [ ] Treat `evaluateLayerEffects` as the single FX seam and wire all output paths to
-      respect it consistently.
-- [ ] Pick the first Phase 3 FX slice from the current `effects` model
-      (adjustment-style effects only) and define which output paths must support it on
-      day one.
-- [ ] Decide which effects may stay CPU-backed temporarily and which ones must move to
-      the WebGPU path before Phase 3 can be called complete.
-- [ ] Write and adopt explicit blend/color-space expectations for CPU and GPU paths
-      before expanding blend-mode coverage or FX shader work further.
-- [ ] Decide whether the first FX/compositing slice stays fully SDR or whether selected
-      intermediate passes should already support HDR-capable formats
-      (for example `rgba16float`) to preserve highlight headroom for future exposure and
-      tonemapping work, then document that boundary clearly.
+- [ ] Replace loose effect param bags with a discriminated union and make `effects`
+      required (`[]` when empty) so future curves / tonemap / bloom work has a real
+      schema instead of generic number maps.
+- [ ] Route main canvas, flatten/export, merge-down, isolate preview, and thumbnail
+      generation through one resolved-layer-output path so visible FX semantics are
+      defined once.
+- [ ] Remove silent no-op handling for unsupported effect types; unsupported evaluation
+      should fail loudly in development and never become an invisible correctness hole.
+- [ ] Treat the current CSS-filter-backed adjustment slice as temporary SDR plumbing,
+      not as the long-term semantic definition of exposure, tonemap, curves, or bloom.
+- [ ] Write and adopt explicit working-space / dynamic-range rules for CPU and GPU
+      paths before expanding FX further: what is still SDR, when `linear-srgb` is used,
+      and when HDR-capable intermediates (for example `rgba16float`) become required.
+- [ ] Decide which simple adjustment effects may stay CPU-backed temporarily and which
+      advanced effects must go straight to shader-backed implementation:
+      curves, true exposure, tonemapping, bloom/glow, and any effect that depends on
+      precise parity with future shader math should not be defined by CSS behavior.
+- [ ] Add effect-result invalidation/caching hooks so repeated FX evaluation is tied to
+      source raster changes and effect-param changes rather than recomputing blindly on
+      every composite.
 
 ### 3D — Tooling and Dependency Boundaries
 
@@ -572,12 +675,14 @@ could represent future extensions.
 
 ### 4B — Overlay Canvas for Tool Gizmos
 
+before doing any of the following 4B items, check what may already exist.
+
 The transform tool gizmo (handles, rotation arc, borders outside canvas) needs a
 rendering layer that sits above the composited canvas but is separate from the
 painting surface.
 
 Extract a dedicated `overlayCanvas` from `useOverlayRenderer` — this already exists
-as a concept but is coupled to the selection marching ants. Make it a first-class
+as a concept but may be coupled to the selection marching ants. Make it a first-class
 canvas that any tool can draw into during `onMove`/`onUp` without going through the
 compositing pipeline.
 
@@ -631,20 +736,20 @@ Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
 
 ## What Each Phase Unlocks
 
-| Phase                | Roadmap items directly enabled                                                          |
-| -------------------- | --------------------------------------------------------------------------------------- |
-| 1A Store split       | Any feature that adds state (FX, new tools) without polluting document or history       |
-| 1B Types split       | Faster iteration; import only what you need; onboard new tools faster                   |
-| 1C Pointer decomp    | New tools (AI inpaint, healing, vector shape) = one file, no `usePointerHandlers` touch |
-| 1D drawingUtils      | Third monolith gone; painting, rendering, and tool concerns land in the right folders   |
-| 1E Tool registry     | Adding a new tool = truly one file; `toolDefinitions.ts` stops being a mandatory touch  |
-| 1F CoordinateMapper  | All tools share one coordinate model; transform tool + overlay gizmos work correctly    |
-| 1G Async tool        | SAM segment tool in same lifecycle as all tools; future AI tools have a defined home    |
-| 2A Effects slot      | FX layer panel can be built; format v3 migration path exists                            |
-| 2B Eval hook         | First FX layer (hue/sat/brightness) works; live adjustment previews without bake        |
-| 2C Delta history     | History stays cheap as layer count grows; large-canvas editing stays fast               |
+| Phase                    | Roadmap items directly enabled                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| 1A Store split           | Any feature that adds state (FX, new tools) without polluting document or history                                               |
+| 1B Types split           | Faster iteration; import only what you need; onboard new tools faster                                                           |
+| 1C Pointer decomp        | New tools (AI inpaint, healing, vector shape) = one file, no `usePointerHandlers` touch                                         |
+| 1D drawingUtils          | Third monolith gone; painting, rendering, and tool concerns land in the right folders                                           |
+| 1E Tool registry         | Adding a new tool = truly one file; `toolDefinitions.ts` stops being a mandatory touch                                          |
+| 1F CoordinateMapper      | All tools share one coordinate model; transform tool + overlay gizmos work correctly                                            |
+| 1G Async tool            | SAM segment tool in same lifecycle as all tools; future AI tools have a defined home                                            |
+| 2A Effects slot          | FX layer panel can be built; format v3 migration path exists                                                                    |
+| 2B Eval hook             | First FX layer (hue/sat/brightness) works; live adjustment previews without bake                                                |
+| 2C Delta history         | History stays cheap as layer count grows; large-canvas editing stays fast                                                       |
 | 3 WebGPU primary runtime | Electron rendering has one clear home; FX, readback, and parity work stop being split between "future GPU" and "current editor" |
-| 4 Matrix transforms  | Transform tool completion; future text/vector layers; non-destructive scale             |
+| 4 Matrix transforms      | Transform tool completion; future text/vector layers; non-destructive scale                                                     |
 
 ---
 
@@ -663,21 +768,21 @@ Phase 4  (transforms)      ← depends on 1B + 1C + 1F, independent of 2 and 3
 
 ## Completion Status
 
-| Phase | Status | Date |
-| ----- | ------ | ---- |
-| 1A — Store Split | ✅ Done | 2026-04-01 |
-| 1B — Types Split | ✅ Done | 2026-04-01 |
-| 1C — Pointer Handler Decomposition | ✅ Done | 2026-04-02 |
-| 1D — `drawingUtils.ts` Split | ✅ Done | 2026-04-03 |
-| 1E — Tool Registry | ✅ Done | 2026-04-02 |
-| 1F — CoordinateMapper | ✅ Done | 2026-04-02 |
-| 1G — Async Tool Pattern | ✅ Done | 2026-04-02 |
-| 2A — Layer Effects Slot | ✅ Done | 2026-04-02 |
-| 2B — Compositing Evaluation Hook | ✅ Done | 2026-04-02 |
-| 2C — Delta History | ✅ Done | 2026-04-03 |
-| 3 — WebGPU Primary Runtime | In progress (baseline exists; parity/hardening remain) | — |
-| 4A — Matrix-Capable Transforms | ✅ Done | 2026-04-03 |
-| 4B — Overlay Canvas for Gizmos | ✅ Done | 2026-04-03 |
+| Phase                              | Status                                                 | Date       |
+| ---------------------------------- | ------------------------------------------------------ | ---------- |
+| 1A — Store Split                   | ✅ Done                                                | 2026-04-01 |
+| 1B — Types Split                   | ✅ Done                                                | 2026-04-01 |
+| 1C — Pointer Handler Decomposition | ✅ Done                                                | 2026-04-02 |
+| 1D — `drawingUtils.ts` Split       | ✅ Done                                                | 2026-04-03 |
+| 1E — Tool Registry                 | ✅ Done                                                | 2026-04-02 |
+| 1F — CoordinateMapper              | ✅ Done                                                | 2026-04-02 |
+| 1G — Async Tool Pattern            | ✅ Done                                                | 2026-04-02 |
+| 2A — Layer Effects Slot            | ✅ Baseline landed; stronger typed schema remains in Phase 3 | 2026-04-02 |
+| 2B — Compositing Evaluation Hook   | ✅ Baseline landed; resolved-output contract remains in Phase 3 | 2026-04-02 |
+| 2C — Delta History                 | ✅ Done                                                | 2026-04-03 |
+| 3 — WebGPU Primary Runtime         | In progress (baseline exists; parity/hardening remain) | —          |
+| 4A — Matrix-Capable Transforms     | ✅ Done                                                | 2026-04-03 |
+| 4B — Overlay Canvas for Gizmos     | ✅ Done                                                | 2026-04-03 |
 
 ### Phase 1D Notes
 
@@ -698,6 +803,7 @@ Delta history stores raster data only for layers that changed since the
 previous entry. The first entry is always a full baseline snapshot.
 
 Key implementation details:
+
 - `resolveLayerData(history, index, layerId)` walks backward to find data
 - When the oldest entry is trimmed (MAX_HISTORY_SIZE), its data merges into
   the new oldest to maintain the baseline invariant

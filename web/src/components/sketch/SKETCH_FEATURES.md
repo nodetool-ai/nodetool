@@ -137,7 +137,8 @@ Right-click inside the bounding box — Context menu with all transform modes (S
 - [ ] finish WebGPU compositing parity for ordinary editing: blend modes, transformed layers, isolate/solo behavior, and dirty-region behavior
 - [ ] centralize full-document readback so eyedropper, selection sampling, clipboard/export helpers, and future thumbnails follow one set of rules
 - [ ] document the approved Canvas 2D helper paths for the current WebGPU-first architecture (overlay/gizmo UI, cursor/HUD presentation, text rasterization helpers, controlled CPU readback/export) and move any other usage into explicit follow-up work
-- [ ] wire `evaluateLayerEffects` through all relevant output paths so main canvas, export, isolate preview, and future thumbnails stay consistent
+- [ ] replace loose layer-effect param bags with a typed per-effect model so curves, true exposure, tonemapping, and bloom have real data structures from the start
+- [ ] wire `evaluateLayerEffects` / resolved-layer output through all relevant output paths so main canvas, export, isolate preview, merge/downstream bake paths, and future thumbnails stay consistent
 - [ ] run a focused stylus-responsiveness smoke check after each major WebGPU slice and treat regressions in brush feel as blockers
 - [ ] evaluate `webgpu-utils` and `colorjs.io` for the current runtime work, then explicitly decide adopt/defer for each; keep `gl-matrix` deferred until future lit/PBR brush math really needs it
 - [ ] record fully GPU-native brush simulation and GPU selection compute as deferred until parity/readback/FX work is stable and profiling shows real benefit
@@ -147,8 +148,10 @@ Right-click inside the bounding box — Context menu with all transform modes (S
 - [ ] add stackable FX layers under each layer as the long-term replacement for destructive adjustments
 - [ ] first FX-layer slice: draggable/reorderable per-layer FX stack, toggle on/off, live preview, not baked into layer pixels, starting with combined hue/saturation/contrast and exposure
 - [ ] support stacking multiple FX layers under one layer and define how they interact with groups, masks, exports, and future blend/effect ordering
-- [ ] decide whether the first tonemapping/exposure slice stays fully SDR or introduces HDR-capable intermediate passes to preserve highlight headroom before final mapping down
-- [ ] add professional tonemapping / exposure FX once the intermediate-format and color-space expectations are explicit, including presets for 10 distinctive but well-balanced looks
+- [ ] replace the provisional CSS-filter semantics with explicit effect semantics before locking in public FX behavior for exposure, lightness, or future presets
+- [ ] add curves as a first-class effect with typed control-point or LUT data rather than forcing it into scalar adjustment semantics
+- [ ] decide whether the first true exposure / tonemapping slice stays fully SDR or introduces HDR-capable intermediate passes to preserve highlight headroom before final mapping down
+- [ ] add true exposure and professional tonemapping FX only after working-space, dynamic-range, and export semantics are explicit
 - [ ] add bloom / glow / light accumulation style FX once the core non-destructive effect stack is stable
 
 ### PHASE 6 - IMPROVE PAINT AND SELECT
