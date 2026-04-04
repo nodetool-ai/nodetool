@@ -1162,10 +1162,12 @@ export class UnifiedWebSocketRunner {
           });
         }
 
-        // Only relay output_update messages for actual output-type nodes.
-        // The kernel emits output_update for all nodes; the WebSocket API
-        // should only forward them for final output nodes (type contains "Output").
-        if (outbound.type === "output_update") {
+        // Skip messages for constant/input nodes — they produce trivial
+        // outputs that don't need to be relayed to the frontend.
+        if (
+          outbound.type === "output_update" ||
+          outbound.type === "node_update"
+        ) {
           const nodeId = String(outbound.node_id ?? "");
           const graphNodes =
             (
@@ -1175,8 +1177,20 @@ export class UnifiedWebSocketRunner {
             ).nodes ?? [];
           const node = graphNodes.find((n) => n.id === nodeId);
           const nodeType = typeof node?.type === "string" ? node.type : "";
-          if (!nodeType.includes("Output")) continue;
-          outputUpdateSeen = true;
+
+          // Skip constant and input nodes entirely
+          if (
+            nodeType.startsWith("nodetool.constant.") ||
+            nodeType.startsWith("nodetool.input.")
+          ) {
+            continue;
+          }
+
+          // Only relay output_update for Output-type nodes
+          if (outbound.type === "output_update") {
+            if (!nodeType.includes("Output")) continue;
+            outputUpdateSeen = true;
+          }
         }
         await this.sendMessage(outbound);
         if (outbound.type === "job_update") {
