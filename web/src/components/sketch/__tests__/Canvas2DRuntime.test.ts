@@ -13,9 +13,10 @@
 
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
 import type { SketchDocument } from "../types";
-import { createDefaultDocument } from "../types";
+import { createDefaultDocument, createDefaultLayer } from "../types";
 import {
   getCanvasRasterBounds,
+  getLayerCompositeOffset,
   setCanvasRasterBounds
 } from "../painting/layerBounds";
 
@@ -739,5 +740,269 @@ describe("Canvas2DRuntime", () => {
       runtime.dispose();
       expect(() => runtime.dispose()).not.toThrow();
     });
+  });
+});
+
+// ─── Phase 1.6 ────────────────────────────────────────────────────────
+
+describe("Phase 1.6 – compositing and rendering hardening", () => {
+  let runtime: Canvas2DRuntime;
+  beforeEach(() => {
+    runtime = new Canvas2DRuntime();
+  });
+  afterEach(() => {
+    runtime.dispose();
+  });
+
+  // ─── 1. flattenToDataUrl uses renderDocumentCompositeToContext ──────
+
+  it("flattenToDataUrl returns a PNG data-url without display chrome", () => {
+    const doc = makeDoc();
+    const layerId = doc.layers[0].id;
+    doc.layers[0].visible = true;
+    runtime.getOrCreateLayerCanvas(layerId, 64, 64);
+
+    const mocks = mockCanvas2DContext();
+    try {
+      const result = runtime.flattenToDataUrl(doc);
+      expect(typeof result).toBe("string");
+      expect(result.startsWith("data:image/png")).toBe(true);
+
+      // flattenToDataUrl must NOT draw display chrome
+      // The mock is global – all canvases share fakeContext. Access via spy.
+      const getCtxSpy = jest.spyOn(HTMLCanvasElement.prototype, "getContext");
+      const fakeCtx = getCtxSpy.mock.results.find(
+        (r) => r.type === "return" && r.value
+      )?.value;
+      getCtxSpy.mockRestore();
+
+      if (fakeCtx) {
+        // strokeRect → border, createPattern → checkerboard — neither should
+        // appear in the export path.
+        expect(fakeCtx.strokeRect).not.toHaveBeenCalled();
+        expect(fakeCtx.createPattern).not.toHaveBeenCalled();
+      }
+    } finally {
+      mocks.restore();
+    }
+  });
+
+  // ─── 2. flattenToDataUrl and compositeToDisplay share rendering core ─
+
+  it("both flattenToDataUrl and compositeToDisplay call drawImage for a visible layer", () => {
+    const doc = makeDoc();
+    const layerId = doc.layers[0].id;
+    doc.layers[0].visible = true;
+    runtime.getOrCreateLayerCanvas(layerId, 64, 64);
+
+    const mocks = mockCanvas2DContext();
+    try {
+      // Run flattenToDataUrl — should call drawImage at least once.
+      runtime.flattenToDataUrl(doc);
+      const fakeCtx = (
+        HTMLCanvasElement.prototype.getContext as jest.Mock
+      ).mock.results.find(
+        (r: jest.MockResult<unknown>) => r.type === "return" && r.value
+      )?.value;
+
+      expect(fakeCtx).toBeDefined();
+      expect(fakeCtx.drawImage.mock.calls.length).toBeGreaterThanOrEqual(1);
+
+      // Reset drawImage call count and verify compositeToDisplay also draws.
+      fakeCtx.drawImage.mockClear();
+
+      const target = document.createElement("canvas");
+      target.width = 64;
+      target.height = 64;
+      runtime.compositeToDisplay(target, doc, null, null);
+      expect(fakeCtx.drawImage.mock.calls.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      mocks.restore();
+    }
+  });
+
+  // ─── 3. getLayerCompositeOffset pure-function tests ────────────────
+
+  describe("getLayerCompositeOffset", () => {
+    it("sums transform and contentBounds offsets", () => {
+      const layer = createDefaultLayer("offset-test", "raster", 100, 100);
+      layer.transform = { x: -10, y: -10, matrix: [1, 0, 0, 1, 0, 0] };
+      layer.contentBounds = { x: 50, y: 50, width: 100, height: 100 };
+
+      const offset = getLayerCompositeOffset(layer);
+      expect(offset).toEqual({ x: 40, y: 40 });
+    });
+
+    it("falls back to contentBounds when no canvas metadata exists", () => {
+      const layer = createDefaultLayer("no-canvas", "raster", 64, 64);
+      layer.transform = { x: 0, y: 0, matrix: [1, 0, 0, 1, 0, 0] };
+      layer.contentBounds = { x: 10, y: 20, width: 64, height: 64 };
+
+      const offset = getLayerCompositeOffset(layer);
+      // No canvas → uses contentBounds: x=0+10, y=0+20
+      expect(offset).toEqual({ x: 10, y: 20 });
+    });
+
+    it("uses canvas raster bounds when they exist", () => {
+      const layer = createDefaultLayer("canvas-bounds", "raster", 64, 64);
+      layer.transform = { x: 5, y: 5, matrix: [1, 0, 0, 1, 0, 0] };
+      layer.contentBounds = { x: 10, y: 10, width: 64, height: 64 };
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 64;
+      setCanvasRasterBounds(canvas, { x: 20, y: 30, width: 64, height: 64 });
+
+      // Canvas raster bounds (20,30) take priority over contentBounds (10,10)
+      const offset = getLayerCompositeOffset(layer, undefined, canvas);
+      expect(offset).toEqual({ x: 25, y: 35 });
+    });
+  });
+
+  // ─── 4. getMaskDataUrl returns non-null for a valid mask layer ──────
+
+  it("getMaskDataUrl returns a data URL for a valid mask layer", () => {
+    const doc = makeDoc();
+    // Create a mask layer and add it to the document
+    const maskLayer = createDefaultLayer("Mask", "mask", 64, 64);
+    maskLayer.visible = true;
+    doc.layers.push(maskLayer);
+    doc.maskLayerId = maskLayer.id;
+
+    // Register a layer canvas for the mask layer so drawLayerToContext can find it
+    runtime.getOrCreateLayerCanvas(maskLayer.id, 64, 64);
+
+    const mocks = mockCanvas2DContext();
+    try {
+      const result = runtime.getMaskDataUrl(doc);
+      expect(typeof result).toBe("string");
+      expect(result!.startsWith("data:image/png")).toBe(true);
+    } finally {
+      mocks.restore();
+    }
+  });
+
+  // ─── 5. evaluateLayerEffects caching ───────────────────────────────
+
+  describe("evaluateLayerEffects caching", () => {
+    it("returns stable cached surface on repeated calls with identical params", () => {
+      const canvas = runtime.getOrCreateLayerCanvas("fx-layer", 64, 64);
+      const effects = [
+        {
+          type: "brightness_contrast" as const,
+          enabled: true,
+          params: { brightness: 0.5, contrast: 0 }
+        }
+      ];
+
+      const mocks = mockCanvas2DContext();
+      try {
+        // First call populates the cache and returns the temp canvas.
+        const first = runtime.evaluateLayerEffects("fx-layer", canvas, effects);
+        expect(first.surface).toBeInstanceOf(HTMLCanvasElement);
+
+        // Second call is a cache hit — returns the cached clone canvas.
+        const second = runtime.evaluateLayerEffects("fx-layer", canvas, effects);
+        expect(second.surface).toBeInstanceOf(HTMLCanvasElement);
+
+        // Third call is also a cache hit — same cached reference as second.
+        const third = runtime.evaluateLayerEffects("fx-layer", canvas, effects);
+        expect(third.surface).toBe(second.surface);
+      } finally {
+        mocks.restore();
+      }
+    });
+
+    it("recomputes when effect params change", () => {
+      const canvas = runtime.getOrCreateLayerCanvas("fx-layer2", 64, 64);
+      const effectsA = [
+        {
+          type: "brightness_contrast" as const,
+          enabled: true,
+          params: { brightness: 0.5, contrast: 0 }
+        }
+      ];
+      const effectsB = [
+        {
+          type: "brightness_contrast" as const,
+          enabled: true,
+          params: { brightness: -0.3, contrast: 0.2 }
+        }
+      ];
+
+      const mocks = mockCanvas2DContext();
+      try {
+        // Populate cache with effectsA
+        runtime.evaluateLayerEffects("fx-layer2", canvas, effectsA);
+        const cachedA = runtime.evaluateLayerEffects("fx-layer2", canvas, effectsA);
+
+        // Switch to effectsB — forces cache miss and recomputation.
+        // The returned surface is the temp canvas (different from cachedA).
+        const freshB = runtime.evaluateLayerEffects("fx-layer2", canvas, effectsB);
+        expect(freshB.surface).not.toBe(cachedA.surface);
+        expect(freshB.surface).toBeInstanceOf(HTMLCanvasElement);
+      } finally {
+        mocks.restore();
+      }
+    });
+  });
+
+  // ─── 6. readbackComposite returns ImageData ────────────────────────
+
+  it("readbackComposite returns ImageData with expected properties", () => {
+    const doc = makeDoc();
+    const layerId = doc.layers[0].id;
+    doc.layers[0].visible = true;
+    runtime.getOrCreateLayerCanvas(layerId, 64, 64);
+
+    const mocks = mockCanvas2DContext();
+    try {
+      const result = runtime.readbackComposite(doc, null, null);
+      expect(result).not.toBeNull();
+      expect(result!.width).toBe(64);
+      expect(result!.height).toBe(64);
+      expect(result!.data).toBeDefined();
+      expect(result!.data.length).toBeGreaterThan(0);
+    } finally {
+      mocks.restore();
+    }
+  });
+
+  // ─── 7. reconcileLayerToDocumentSpace for translated layer ─────────
+
+  it("reconcileLayerToDocumentSpace returns serialized data for a translated layer", () => {
+    const doc = makeDoc();
+    const layerId = doc.layers[0].id;
+    doc.layers[0].transform = { x: 10, y: 10, matrix: [1, 0, 0, 1, 0, 0] };
+    runtime.getOrCreateLayerCanvas(layerId, 64, 64);
+
+    const mocks = mockCanvas2DContext();
+    try {
+      const result = runtime.reconcileLayerToDocumentSpace(layerId, doc);
+      expect(typeof result).toBe("string");
+      // Serialized layer data starts with the ntlayer: prefix
+      expect(result!.startsWith("ntlayer:")).toBe(true);
+    } finally {
+      mocks.restore();
+    }
+  });
+
+  // ─── 8. reconcileLayerToDocumentSpace for identity transform ───────
+
+  it("reconcileLayerToDocumentSpace still returns data for identity transform", () => {
+    const doc = makeDoc();
+    const layerId = doc.layers[0].id;
+    doc.layers[0].transform = { x: 0, y: 0, matrix: [1, 0, 0, 1, 0, 0] };
+    runtime.getOrCreateLayerCanvas(layerId, 64, 64);
+
+    const mocks = mockCanvas2DContext();
+    try {
+      const result = runtime.reconcileLayerToDocumentSpace(layerId, doc);
+      // Identity transform still serializes the layer data (no-op reconcile)
+      expect(typeof result).toBe("string");
+      expect(result!.startsWith("ntlayer:")).toBe(true);
+    } finally {
+      mocks.restore();
+    }
   });
 });
