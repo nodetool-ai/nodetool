@@ -17,6 +17,77 @@ import {
 } from "../types";
 import { getLayerCompositeOffset } from "../painting";
 import { useSketchStore } from "../state/useSketchStore";
+/** Convert a document-space rect to gizmo canvas pixel coordinates. */
+function docRectToGizmo(
+  docX: number,
+  docY: number,
+  docW: number,
+  docH: number,
+  canvasDocW: number,
+  canvasDocH: number,
+  zoom: number,
+  pan: Point,
+  containerW: number,
+  containerH: number,
+  dpr: number
+): { x: number; y: number; w: number; h: number } {
+  const toX = (dx: number) =>
+    ((dx - canvasDocW / 2) * zoom + containerW / 2 + pan.x) * dpr;
+  const toY = (dy: number) =>
+    ((dy - canvasDocH / 2) * zoom + containerH / 2 + pan.y) * dpr;
+  return {
+    x: toX(docX),
+    y: toY(docY),
+    w: docW * zoom * dpr,
+    h: docH * zoom * dpr
+  };
+}
+
+/** Paint a dashed outline for off-canvas layer extents on the gizmo canvas. */
+function paintOffCanvasGizmo(
+  ctx: ToolContext,
+  layerId: string,
+  transform: LayerTransform
+): void {
+  const layer = ctx.doc.layers.find((l) => l.id === layerId);
+  if (!layer) {
+    return;
+  }
+  const bounds = layer.contentBounds;
+  const lx = (transform.x ?? 0) + (bounds.x ?? 0);
+  const ly = (transform.y ?? 0) + (bounds.y ?? 0);
+  const lw = bounds.width ?? 0;
+  const lh = bounds.height ?? 0;
+
+  const cw = ctx.doc.canvas.width;
+  const ch = ctx.doc.canvas.height;
+
+  // Only show gizmo when the layer visually extends outside the canvas
+  const extendsOutside =
+    lx < 0 || ly < 0 || lx + lw > cw || ly + lh > ch;
+  if (!extendsOutside) {
+    ctx.clearGizmo();
+    return;
+  }
+
+  ctx.drawGizmo((gc, dpr, containerW, containerH) => {
+    const r = docRectToGizmo(
+      lx, ly, lw, lh,
+      cw, ch,
+      ctx.zoom, ctx.pan,
+      containerW, containerH,
+      dpr
+    );
+
+    gc.save();
+    gc.strokeStyle = "rgba(255, 200, 0, 0.75)";
+    gc.lineWidth = dpr;
+    gc.setLineDash([4 * dpr, 3 * dpr]);
+    gc.strokeRect(r.x, r.y, r.w, r.h);
+    gc.setLineDash([]);
+    gc.restore();
+  });
+}
 
 export class MoveTool implements ToolHandler {
   readonly toolId = "move" as const;
@@ -25,6 +96,25 @@ export class MoveTool implements ToolHandler {
   private moveLayerStartTransform: LayerTransform = { x: 0, y: 0 };
   private movePreviewTransform: LayerTransform | null = null;
   private movePreviewLayerId: string | null = null;
+
+  onActivate(ctx: ToolContext): void {
+    this.refreshGizmo(ctx);
+  }
+
+  onDeactivate(ctx: ToolContext): void {
+    ctx.clearGizmo();
+  }
+
+  private refreshGizmo(ctx: ToolContext): void {
+    const { doc } = ctx;
+    const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+    if (!activeLayer) {
+      ctx.clearGizmo();
+      return;
+    }
+    const previewTransform = this.movePreviewTransform ?? activeLayer.transform;
+    paintOffCanvasGizmo(ctx, activeLayer.id, previewTransform);
+  }
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
     const { doc } = ctx;
@@ -139,6 +229,7 @@ export class MoveTool implements ToolHandler {
       // re-render on every pointer-move event. The transform is committed to the
       // store once on pointer-up via onLayerTransformChange.
       ctx.setLayerTransformPreview?.(layer.id, previewTransform);
+      this.refreshGizmo(ctx);
     }
   }
 
@@ -160,6 +251,7 @@ export class MoveTool implements ToolHandler {
         syncDocumentFromCanvas: false
       });
     }
+    this.refreshGizmo(ctx);
   }
 }
 

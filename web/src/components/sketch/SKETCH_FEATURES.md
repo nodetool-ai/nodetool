@@ -29,43 +29,13 @@
 
 ## PHASE 1: Current Priorities
 
-- [x] fix editor bootstrap so the canvas is visible immediately on open instead of only appearing after the first draw/erase interaction
-- [x] fix moving the active layer with arrow keys (incl. Shift+10px nudge; transform deltas covered by `useSketchStore` tests)
-- [x] fix exposed layers being treated as non-image datatypes where image-layer behavior is expected
-- [x] fix: make input images appear in the editor as real reference/image-backed layers with source URI, crop/fit metadata, transform behavior, and explicit editing rules
-- [x] improve node/editor layout so input handle titles are not covered by the preview and outputs sit below the preview cleanly
-- [x] widen and clean up the right panel: spacing, icon order, icon position, and expose-button visibility
-- [x] add focused regression coverage for transformed layers: move, nudge, paint-after-transform, undo/redo, serialize, reload, and repaint
-- [x] define and enforce transform-only edit semantics explicitly across store, canvas actions, and history
-- [x] transform-only actions: move, nudge, and future live transform preview/commit update `layer.transform` only, never rewrite `layer.data`, never change `contentBounds`, only invalidate compositing/overlay, and create one history transaction on commit/end
-- [x] pixel-edit actions: brush, eraser, fill, gradient, blur, clone, clear, paste, and trim may change `layer.data` and raster bounds, and must use pixel/history sync paths rather than transform-only paths
-- [x] raster-bounds rule: `contentBounds` tracks stored raster extent, not visual placement after transform; translate/nudge/preview must not mutate it
-- [x] reconciliation rule: ordinary paint-after-move must stay transform-aware and must not reconcile to document space; reconciliation is allowed only for explicit destructive bake operations such as merge/flatten/rasterize/export-bake or an explicit "reconcile layer" command
-- [x] history/invalidation rule: hover, drag preview, transient transform updates, and adjustment preview only invalidate; pointer-up, apply, confirm, or destructive bake creates exactly one undo step
-- [x] adjustment tool semantics: current destructive adjustments should use preview + confirm/cancel, with no history spam while sliders move and exactly one undo step when confirmed
-- [x] route all remaining pointer/helper paths through one shared coordinate model for screen, canvas, layer-local, raster-bounds, and selection-space math
-- [x] add cut/copy/paste for selected pixels, including clipboard interop with images copied from outside apps
-- [x] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. Exposed input layers are locked when receiving image data from inputs. Dynamic output handles are registered for exposed output layers. Toggle actions push history for undo/redo support.
 - [ ] finish transform tool UX on top of the matrix-capable transform model: show live preview while transforming, keep commit/cancel reliable, and fix left/top handle scaling so it does not behave like right/bottom scaling
 - [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
 - [x] fix brush strokes not visible when holding shift for straight lines - they only appear after releasing shift key. also all layers become invisible during drawing of straight lines
 
 ## PHASE 2 - FIXES
 
-- [x] remove white border around canvas, seems not to come from css?
-- [x] make alpha texture resolution independent
-- [x] fix history redo, currently not working. undo does work.
-- [x] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
-- [x] improve round cursor/tool preview accuracy: cursor now accounts for effective brush hardness (including brush type caps for soft/airbrush) to show the approximate visible paint extent rather than the mathematical maximum radius
-- [x] keep drawing straight line with shift as one object / stroke until shift is released. currently overlapping lines multiply stroke and create visible seams at crossings and start dot.
-
 ## 2.1 - FEATURES
-
-- [x] **Selection** replace the rectangle-only selection model with a per-pixel selection mask, then build lasso, magic wand, invert/add/subtract/intersect, smooth borders, and feathering on top of it
-- [x] add auto-pick layer option to directly move another layer via hit mask (CTRL Alt+click picks topmost visible layer with non-transparent pixels)
-- [x] spring-loaded move: hold Ctrl (Windows/Linux) or Cmd (Mac) to move layers without changing the selected tool or top tool bar; release to stop
-- [x] Ctrl+Alt (Cmd+Option on Mac) + drag duplicates the active layer and moves the copy; Alt does not pan while Ctrl/Cmd is held
-- [x] radial palette HUD with color circle and a triangle inside for brightness and saturation, gamut hints like in krita.
 
 ## PHASE 2.2: Transform Tool features and shortcuts
 
@@ -150,23 +120,16 @@ Right-click inside the bounding box — Context menu with all transform modes (S
 
 ### PHASE 4 - ADVANCED FEATURES
 
-- [x] rename the editor/node from "Sketch Input" to "Image Editor"
-- [x] import image into current layer by drop from outside and paste command
-- [x] add groupable layers as tree structure with drag and drop support, expand / close option
-- [x] better cursor and pixel-workflow affordances such as thin white grid overlay when zoomed in, snap-to-pixel, and crisp high-zoom view
-- [x] improve selection mask to be able to select 1 pixel width exactly on close zoom
-- [x] make the canvas resizable from edges/corners with a solid interaction model
-
 ### WEBGPU PRIMARY RUNTIME - CURRENT PRIORITIES
 
-- [ ] finish WebGPU compositing parity for ordinary editing: blend modes, transformed layers, isolate/solo behavior, and dirty-region behavior
-- [ ] centralize full-document readback so eyedropper, selection sampling, clipboard/export helpers, and future thumbnails follow one set of rules
-- [ ] document the approved Canvas 2D helper paths for the current WebGPU-first architecture (overlay/gizmo UI, cursor/HUD presentation, text rasterization helpers, controlled CPU readback/export) and move any other usage into explicit follow-up work
-- [ ] replace loose layer-effect param bags with a typed per-effect model so curves, true exposure, tonemapping, and bloom have real data structures from the start
-- [ ] wire `evaluateLayerEffects` / resolved-layer output through all relevant output paths so main canvas, export, isolate preview, merge/downstream bake paths, and future thumbnails stay consistent
-- [ ] run a focused stylus-responsiveness smoke check after each major WebGPU slice and treat regressions in brush feel as blockers
-- [ ] evaluate `webgpu-utils` and `colorjs.io` for the current runtime work, then explicitly decide adopt/defer for each; keep `gl-matrix` deferred until future lit/PBR brush math really needs it
-- [ ] record fully GPU-native brush simulation and GPU selection compute as deferred until parity/readback/FX work is stable and profiling shows real benefit
+- [ ] finish the remaining WebGPU compositing parity work for ordinary editing, especially dirty-region behavior and any edge-case redraw mismatches; blend modes, transformed layers, and isolate/solo behavior are in place
+- [ ] finish centralizing full-document readback so clipboard/export helpers and future thumbnails follow the same rules as eyedropper and selection sampling
+- [ ] finish wiring `evaluateLayerEffects` / resolved-layer output through the remaining output paths so future thumbnails and helper flows stay consistent with the main canvas, export, isolate preview, and merge/downstream bake paths
+- [ ] keep running a focused stylus-responsiveness smoke check after each major WebGPU slice and treat regressions in brush feel as blockers
+- [x] document the approved Canvas 2D helper paths for the current WebGPU-first architecture (overlay/gizmo UI, cursor/HUD presentation, text rasterization helpers, controlled CPU readback/export) and move any other usage into explicit follow-up work
+- [x] replace loose layer-effect param bags with a typed per-effect model so curves, true exposure, tonemapping, and bloom have real data structures from the start
+- [x] evaluate `webgpu-utils` and `colorjs.io` for the current runtime work, then explicitly decide adopt/defer for each; keep `gl-matrix` deferred until future lit/PBR brush math really needs it
+- [x] record fully GPU-native brush simulation and GPU selection compute as deferred until parity/readback/FX work is stable and profiling shows real benefit
 
 ### PHASE 5 - FX LAYER
 

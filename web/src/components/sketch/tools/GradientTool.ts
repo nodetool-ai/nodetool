@@ -8,10 +8,42 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
-import type { Point, GradientSettings } from "../types";
+import type { Point, GradientSettings, Selection } from "../types";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
-import { getCanvasRasterBounds } from "../painting";
+import {
+  getCanvasRasterBounds,
+  ensureLayerRasterBounds,
+  getDocumentViewportLayerBounds
+} from "../painting";
+import { selectionHasAnyPixels, selectionHitTest } from "../selection";
 import GradientIcon from "@mui/icons-material/Gradient";
+
+// putImageData bypasses canvas clipping — restore outside-selection pixels post-fill.
+function applySelectionConstraint(
+  ctx: CanvasRenderingContext2D,
+  beforeData: ImageData,
+  selection: Selection,
+  offsetX: number,
+  offsetY: number
+): void {
+  const afterData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+  const after = afterData.data;
+  const before = beforeData.data;
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!selectionHitTest(selection, x + offsetX, y + offsetY)) {
+        const i = (y * w + x) * 4;
+        after[i]     = before[i];
+        after[i + 1] = before[i + 1];
+        after[i + 2] = before[i + 2];
+        after[i + 3] = before[i + 3];
+      }
+    }
+  }
+  ctx.putImageData(afterData, 0, 0);
+}
 
 // ─── Gradient Drawing (moved from drawingUtils.ts) ───────────────────────────
 
@@ -94,16 +126,40 @@ export class GradientTool implements ToolHandler {
 
     const start = this.gradientStart;
     const end = this.gradientEnd ?? start;
-    const mapper = this.mapper ?? new CoordinateMapper({
+    let mapper = this.mapper ?? new CoordinateMapper({
       layerTransform: activeLayer.transform,
       rasterBounds: activeLayer.contentBounds
     });
+    const { selection } = ctx;
+    const hasSelection = selection && selectionHasAnyPixels(selection);
+
+    // When a selection is active, expand the layer canvas to cover the full
+    // document viewport so that all selection areas (including those outside
+    // the current contentBounds) receive the gradient.
+    if (hasSelection) {
+      const viewportBounds = getDocumentViewportLayerBounds(activeLayer, doc);
+      ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
+      // Recreate mapper after canvas expansion — origin may have shifted.
+      mapper = new CoordinateMapper({
+        layerTransform: activeLayer.transform,
+        rasterBounds: viewportBounds
+      });
+    }
+
     const localStart = mapper.docToLayer(start);
     const localEnd = mapper.docToLayer(end);
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const layerCtx = layerCanvas.getContext("2d");
     if (layerCtx) {
+      const beforeData = hasSelection
+        ? layerCtx.getImageData(0, 0, layerCanvas.width, layerCanvas.height)
+        : null;
+
       drawGradient(layerCtx, localStart, localEnd, doc.toolSettings.gradient);
+
+      if (hasSelection && beforeData && selection) {
+        applySelectionConstraint(layerCtx, beforeData, selection, mapper.offset.x, mapper.offset.y);
+      }
       const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
       ctx.onStrokeEnd(activeLayer.id, null, committedBounds);
       ctx.invalidateLayer?.(activeLayer.id);

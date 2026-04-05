@@ -621,7 +621,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             >
               <SectionLabel>Canvas</SectionLabel>
               <Stack direction="row" spacing={0.8}>
-                <Tooltip title="Undo">
+                <Tooltip title="Undo" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                   <span>
                     <IconButton
                       size="small"
@@ -640,7 +640,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     </IconButton>
                   </span>
                 </Tooltip>
-                <Tooltip title="Redo">
+                <Tooltip title="Redo" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                   <span>
                     <IconButton
                       size="small"
@@ -659,7 +659,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     </IconButton>
                   </span>
                 </Tooltip>
-                <Tooltip title="Clear Layer">
+                <Tooltip title="Clear Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                   <IconButton
                     size="small"
                     onClick={() => {
@@ -676,7 +676,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     <DeleteOutlineIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Export PNG">
+                <Tooltip title="Export PNG" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                   <IconButton
                     size="small"
                     onClick={() => {

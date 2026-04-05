@@ -130,7 +130,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       minHeight: 0,
       minWidth: 0,
       overflow: "visible",
-      "--sketch-handle-stack-gap": "18px"
+      "--sketch-handle-stack-gap": "1rem"
     },
     ".sketch-input-handles": {
       position: "absolute",
@@ -234,7 +234,6 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       position: "relative",
       flexShrink: 0,
       width: 18,
-      minHeight: "var(--handle_height)",
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-start"
@@ -318,7 +317,9 @@ function parseLayerInputHandleName(
 }
 
 function ensureEditableActiveLayer(doc: SketchDocument): SketchDocument {
-  const activeLayer = doc.layers.find((layer) => layer.id === doc.activeLayerId);
+  const activeLayer = doc.layers.find(
+    (layer) => layer.id === doc.activeLayerId
+  );
   if (activeLayer && !activeLayer.locked) {
     return doc;
   }
@@ -525,7 +526,10 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       return undefined;
     }
     return (
-      state.getOutputResult(props.data.workflow_id, inputImageConnection.source) ??
+      state.getOutputResult(
+        props.data.workflow_id,
+        inputImageConnection.source
+      ) ??
       state.getResult(props.data.workflow_id, inputImageConnection.source) ??
       state.getPreview(props.data.workflow_id, inputImageConnection.source)
     );
@@ -851,12 +855,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     return extractImageUri(
       (staticProps as Record<string, unknown> | undefined)?.input_image
     );
-  }, [
-    findNode,
-    inputImageConnection,
-    inputImageSourceResult,
-    staticProps
-  ]);
+  }, [findNode, inputImageConnection, inputImageSourceResult, staticProps]);
 
   // ─── Load input_image into sketch document when it changes ────────
   useEffect(() => {
@@ -978,19 +977,21 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                   })(),
                   ...currentDoc.layers
                 ];
-          storeState.setDocument(ensureEditableActiveLayer({
-            ...currentDoc,
-            canvas: {
-              ...currentDoc.canvas,
-              width: canvasWidth,
-              height: canvasHeight
-            },
-            layers: mergedLayers,
-            metadata: {
-              ...currentDoc.metadata,
-              updatedAt: new Date().toISOString()
-            }
-          }));
+          storeState.setDocument(
+            ensureEditableActiveLayer({
+              ...currentDoc,
+              canvas: {
+                ...currentDoc.canvas,
+                width: canvasWidth,
+                height: canvasHeight
+              },
+              layers: mergedLayers,
+              metadata: {
+                ...currentDoc.metadata,
+                updatedAt: new Date().toISOString()
+              }
+            })
+          );
         } else {
           setEditorDocument(updatedDoc);
         }
@@ -1026,7 +1027,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               connection.sourceHandle
             )
           : undefined;
-      const uri = extractImageUri(resolvedResult) ?? extractImageUri(fallbackValue);
+      const uri =
+        extractImageUri(resolvedResult) ?? extractImageUri(fallbackValue);
       if (!uri) {
         continue;
       }
@@ -1098,14 +1100,16 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                 contentBounds,
                 locked: true
               };
-              storeState.setDocument(ensureEditableActiveLayer({
-                ...currentDoc,
-                layers: storeLayers,
-                metadata: {
-                  ...currentDoc.metadata,
-                  updatedAt: new Date().toISOString()
-                }
-              }));
+              storeState.setDocument(
+                ensureEditableActiveLayer({
+                  ...currentDoc,
+                  layers: storeLayers,
+                  metadata: {
+                    ...currentDoc.metadata,
+                    updatedAt: new Date().toISOString()
+                  }
+                })
+              );
             }
           } else {
             setEditorDocument(updatedDoc);
@@ -1218,7 +1222,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           return edges
             .filter(
               (edge) =>
-                (edge.target === props.id && edge.targetHandle === inputHandle) ||
+                (edge.target === props.id &&
+                  edge.targetHandle === inputHandle) ||
                 (edge.source === props.id && edge.sourceHandle === outputHandle)
             )
             .map((edge) => edge.id);
