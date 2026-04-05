@@ -135,7 +135,7 @@ Architecture note: `layerCanvasesRef.current` (React ref Map) and `Canvas2DRunti
 - [x] add dedicated test suite for `layerBounds.ts`: cover `ensureLayerRasterBounds` (expansion, no-op when already large enough, content preservation after expansion), `getEffectiveLayerRasterBounds` (canvas metadata priority, fallback to contentBounds, fallback to canvas dimensions), `unionLayerBounds` (disjoint, overlapping, contained), `getDocumentViewportLayerBounds` (with and without layer transform offset)
 - [x] add tests for layer canvas lifecycle across operations: create layer → draw → move → draw again → undo → redo; verify canvas dimensions and raster bounds metadata stay consistent at each step
 - [x] add tests for `getOrCreateLayerCanvas` sizing decision chain: verify that `layer.contentBounds` takes priority, then stable raster size cache, then existing canvas, then document size fallback; verify that once a canvas is expanded it is not shrunk by a subsequent `getOrCreateLayerCanvas` call
-- [ ] [test-first] verify that `drainPendingStrokeCommit` runs before every operation that reads layer pixel data (history push, export, flatten, merge); replace the current smoke coverage with a real pending-stroke integration test that exercises the deferred commit path
+- [x] [test-first] verify that `drainPendingStrokeCommit` runs before every operation that reads layer pixel data (history push, export, flatten, merge); replace the current smoke coverage with a real pending-stroke integration test that exercises the deferred commit path
 - [x] audit all callers of `ensureLayerRasterBounds` (PaintSession, FillTool, ShapeTool, GradientTool, usePointerHandlerUtils) and verify each one uses the returned expanded bounds for CoordinateMapper, not the stale `layer.contentBounds`
 
 ### 1.4 - Harden coordinate mapping
@@ -158,18 +158,18 @@ The selection system (`Selection` type, mask creation, hit testing, constraint a
   - suggested seam: if current selection constraint behavior is duplicated/private inside tool modules, extract a shared helper under `selection/` or `painting/` and test that production helper directly
 - [x] add tests for `selectionHasAnyPixels`: verify correct results for empty mask (all zeros), mask with a single selected pixel, and fully selected mask
 - [x] verify that selection `originX/originY` is handled consistently: when a selection is created at a non-zero document offset (e.g. ellipse at x=50,y=50), verify that `selectionHitTest`, `applySelectionConstraint`, and paint clipping all account for the origin correctly
-- [ ] [test] verify that each selection mode (rectangle, ellipse, lasso, polygon, magic wand) produces a mask with correct `width`, `height`, and `originX/originY` values relative to the document canvas; current coverage is strongest for rectangle/ellipse/core mask ops and needs explicit lasso/magic-wand follow-up
+- [x] [test] verify that each selection mode (rectangle, ellipse, lasso, polygon, magic wand) produces a mask with correct `width`, `height`, and `originX/originY` values relative to the document canvas; current coverage is strongest for rectangle/ellipse/core mask ops and needs explicit lasso/magic-wand follow-up
 
 ### 1.6 - Harden compositing and rendering
 
 The compositing pipeline (`renderDocumentCompositeToContext`) is the single path for both display and export. The per-layer compositing involves offset calculation, transform application, effects evaluation, and active stroke blending. Making this path trustworthy means display and export always agree.
 
-- [ ] [test] add test that verifies display compositing and `flattenToDataUrl` produce identical pixel output for the same document state (ignoring checkerboard background) — use real pixel equivalence, not only structural/mock coverage
+- [x] [test] add test that verifies display compositing and `flattenToDataUrl` produce identical pixel output for the same document state (ignoring checkerboard background) — use real pixel equivalence, not only structural/mock coverage
 - [x] add test that a layer with `contentBounds` offset at `(50, 50)` and transform at `(-10, -10)` composites at the correct document position (expected: top-left at `(40, 40)`) — this exercises the `getLayerCompositeOffset` + `drawWithTransform` pipeline
 - [x] add test that the active stroke buffer composites at the correct opacity and blend mode during display, and that after commit, the committed layer matches the preview
 - [x] add test that `getMaskDataUrl` returns only the mask layer content (not other layers) and respects the mask layer's transform and contentBounds offset
-- [ ] [test] add test that layer effects (`evaluateLayerEffects`) are applied during both display compositing and export — not just one path
-- [ ] [test] verify that `readbackComposite` (used by eyedropper and magic wand) samples the same pixels as the display shows, including layer transforms and effects
+- [x] [test] add test that layer effects (`evaluateLayerEffects`) are applied during both display compositing and export — not just one path
+- [x] [test] verify that `readbackComposite` (used by eyedropper and magic wand) samples the same pixels as the display shows, including layer transforms and effects
 
 ### 1.7 - Harden transform model
 
@@ -188,7 +188,7 @@ The delta history system is the safety net for all editing. History entries capt
 - [x] add test for history delta correctness: push three history entries where only one layer changes each time; verify that `resolveLayerData` reconstructs the correct data for each layer at each history position
 - [x] add test that undo after a bounds-expanding stroke restores the original (smaller) canvas dimensions and contentBounds — not the expanded ones
 - [x] add test that redo after undo replays the stroke correctly, including the bounds expansion
-- [ ] [test] add test for `serializeLayerData` / `deserializeLayerData` round-trip: verify helper-level bounds metadata and pixel data survive encode → decode; document-level serialization coverage is not enough on its own
+- [x] [test] add test for `serializeLayerData` / `deserializeLayerData` round-trip: verify helper-level bounds metadata and pixel data survive encode → decode; document-level serialization coverage is not enough on its own
 - [x] add test that document serialization → deserialization preserves all layer contentBounds, transforms, effects, and pixel data — verify by comparing a freshly created document with one that has been serialized and deserialized
 
 ### 1.9 - Active feature work
