@@ -28,6 +28,7 @@ export interface UseCanvasImperativeHandleParams {
   drainPendingStrokeCommit: () => void;
   zoom: number;
   lastPointerClientRef: MutableRefObject<{ x: number; y: number } | null>;
+  cancelActiveTool: () => void;
 }
 
 export function useCanvasImperativeHandle({
@@ -39,7 +40,8 @@ export function useCanvasImperativeHandle({
   redraw,
   drainPendingStrokeCommit,
   zoom,
-  lastPointerClientRef
+  lastPointerClientRef,
+  cancelActiveTool
 }: UseCanvasImperativeHandleParams): void {
   useImperativeHandle(
     ref,
@@ -196,7 +198,8 @@ export function useCanvasImperativeHandle({
         const dx = (client.x - rect.left) / zoom;
         const dy = (client.y - rect.top) / zoom;
         return { x: Math.floor(dx), y: Math.floor(dy) };
-      }
+      },
+      cancelActiveTool
     }),
     [
       doc,
@@ -206,7 +209,8 @@ export function useCanvasImperativeHandle({
       displayCanvasRef,
       overlayCanvasRef,
       zoom,
-      lastPointerClientRef
+      lastPointerClientRef,
+      cancelActiveTool
     ]
   );
 }

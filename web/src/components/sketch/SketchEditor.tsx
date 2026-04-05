@@ -351,7 +351,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     setCloneStampSettings: store.setCloneStampSettings,
     swapColors: store.swapColors,
     resetColors: store.resetColors,
-    togglePanelsHidden: store.togglePanelsHidden
+    togglePanelsHidden: store.togglePanelsHidden,
+    cancelActiveTool: () => canvasRef.current?.cancelActiveTool()
   });
 
   // ─── Foreground color change (syncs to active tool settings) ───────

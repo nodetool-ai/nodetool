@@ -53,11 +53,18 @@ function paintOffCanvasGizmo(
   if (!layer) {
     return;
   }
+
+  // Use the actual layer canvas dimensions when available so the gizmo
+  // reflects the real raster footprint, not just the declared contentBounds
+  // which may lag behind after moves or draws.
+  const layerCanvas = ctx.layerCanvasesRef.current.get(layerId);
   const bounds = layer.contentBounds;
+  const rasterW = layerCanvas && layerCanvas.width > 0 ? layerCanvas.width : (bounds.width ?? 0);
+  const rasterH = layerCanvas && layerCanvas.height > 0 ? layerCanvas.height : (bounds.height ?? 0);
   const lx = (transform.x ?? 0) + (bounds.x ?? 0);
   const ly = (transform.y ?? 0) + (bounds.y ?? 0);
-  const lw = bounds.width ?? 0;
-  const lh = bounds.height ?? 0;
+  const lw = rasterW;
+  const lh = rasterH;
 
   const cw = ctx.doc.canvas.width;
   const ch = ctx.doc.canvas.height;
