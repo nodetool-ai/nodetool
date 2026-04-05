@@ -1,8 +1,10 @@
 /**
  * EyedropperTool – reads a pixel from the composite and dispatches an event.
  *
- * Uses getFullCompositeImageData when the display canvas uses a WebGPU context
- * that does not support getContext("2d").
+ * Uses `sampleCompositeColor` from the shared sampling contract so
+ * display-only chrome (checkerboard, canvas border) never leaks into
+ * the sampled result. This is the same readback path used by magic wand,
+ * clone-stamp source preview, and any future readback helpers.
  *
  * Also exports `sampleColorHex` so the dispatcher can delegate Alt+click
  * eyedropper sampling without duplicating the pixel readback logic.
@@ -10,43 +12,19 @@
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point } from "../types";
-import { rgbToHex } from "../types/geometry";
+import { sampleCompositeColor } from "../painting/sampleDocument";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 
 /**
  * Sample the composite color at a document-space point.
  *
- * Tries the display canvas 2D context first (fast path), then falls back to
- * full composite readback (required when the display canvas uses WebGPU).
+ * Delegates to the shared `sampleCompositeColor` utility which always
+ * uses `readbackComposite` (no checkerboard, no border, no display chrome).
  *
  * @returns A hex color string (e.g. "#ff0000") or null if sampling failed.
  */
 export function sampleColorHex(ctx: ToolContext, docPoint: Point): string | null {
-  const x = Math.round(docPoint.x);
-  const y = Math.round(docPoint.y);
-
-  // Fast path: display canvas 2D context
-  const displayCanvas = ctx.displayCanvasRef.current;
-  if (displayCanvas) {
-    const canvasCtx = displayCanvas.getContext("2d", { willReadFrequently: true });
-    if (
-      canvasCtx &&
-      x >= 0 && x < displayCanvas.width &&
-      y >= 0 && y < displayCanvas.height
-    ) {
-      const pixel = canvasCtx.getImageData(x, y, 1, 1).data;
-      return rgbToHex(pixel[0], pixel[1], pixel[2]);
-    }
-  }
-
-  // Fallback: full composite readback (WebGPU path)
-  const id = ctx.getFullCompositeImageData?.();
-  if (id && x >= 0 && y >= 0 && x < id.width && y < id.height) {
-    const i = (y * id.width + x) * 4;
-    return rgbToHex(id.data[i], id.data[i + 1], id.data[i + 2]);
-  }
-
-  return null;
+  return sampleCompositeColor(ctx, docPoint);
 }
 
 export class EyedropperTool implements ToolHandler {

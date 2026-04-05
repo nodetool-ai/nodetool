@@ -15,6 +15,7 @@ import {
 } from "../drawingUtils";
 import type { BlurTempCanvases, DirtyRectTracker } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
 import {
   coalescedStrokePressure,
   normalizePointerPressure
@@ -87,15 +88,7 @@ export class BlurTool implements ToolHandler {
     // Alpha lock snapshot
     if (activeLayer.alphaLock) {
       const layerCanvasForSnapshot = ctx.getOrCreateLayerCanvas(activeLayer.id);
-      const snapCtx = layerCanvasForSnapshot.getContext("2d");
-      if (snapCtx) {
-        this.alphaSnapshot = snapCtx.getImageData(
-          0,
-          0,
-          layerCanvasForSnapshot.width,
-          layerCanvasForSnapshot.height
-        );
-      }
+      this.alphaSnapshot = captureAlphaSnapshot(layerCanvasForSnapshot);
     } else {
       this.alphaSnapshot = null;
     }
@@ -215,35 +208,11 @@ export class BlurTool implements ToolHandler {
     if (activeLayer?.alphaLock && this.alphaSnapshot) {
       const layerCanvas = ctx.layerCanvasesRef.current.get(activeLayer.id);
       if (layerCanvas) {
-        const layerCtx = layerCanvas.getContext("2d");
-        if (layerCtx) {
-          const dirtyRect = this.strokeDirtyRect.current ?? {
-            minX: 0,
-            minY: 0,
-            maxX: layerCanvas.width,
-            maxY: layerCanvas.height
-          };
-          const x = Math.max(0, dirtyRect.minX);
-          const y = Math.max(0, dirtyRect.minY);
-          const width = Math.min(layerCanvas.width - x, dirtyRect.maxX - x);
-          const height = Math.min(layerCanvas.height - y, dirtyRect.maxY - y);
-          if (width > 0 && height > 0) {
-            const currentData = layerCtx.getImageData(x, y, width, height);
-            const snapshot = this.alphaSnapshot;
-            for (let yy = 0; yy < height; yy++) {
-              for (let xx = 0; xx < width; xx++) {
-                const localIndex = (yy * width + xx) * 4 + 3;
-                const snapshotIndex =
-                  ((y + yy) * layerCanvas.width + (x + xx)) * 4 + 3;
-                currentData.data[localIndex] = Math.min(
-                  currentData.data[localIndex],
-                  snapshot.data[snapshotIndex]
-                );
-              }
-            }
-            layerCtx.putImageData(currentData, x, y);
-          }
-        }
+        restoreAlphaFromSnapshot(
+          layerCanvas,
+          this.alphaSnapshot,
+          this.strokeDirtyRect.current
+        );
       }
       this.alphaSnapshot = null;
     }

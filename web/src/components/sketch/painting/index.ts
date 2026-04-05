@@ -39,3 +39,17 @@ export {
   setCanvasRasterBounds,
   ensureLayerRasterBounds
 } from "./layerBounds";
+
+// ── Document sampling / hit-testing ────────────────────────────────────────
+export {
+  sampleCompositeColor,
+  sampleCompositeRGBA,
+  hitTestLayerAtDocPoint
+} from "./sampleDocument";
+
+// ── Alpha-lock save/restore ────────────────────────────────────────────────
+export {
+  captureAlphaSnapshot,
+  restoreAlphaFromSnapshot
+} from "./alphaLock";
+export type { AlphaRestoreDirtyRect } from "./alphaLock";
