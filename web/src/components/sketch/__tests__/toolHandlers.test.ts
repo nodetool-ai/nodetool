@@ -686,23 +686,28 @@ describe("CloneStampTool", () => {
 describe("sampleColorHex", () => {
   // sampleColorHex imported at module level
 
-  it("returns hex color from display canvas", () => {
-    const canvas = window.document.createElement("canvas");
-    canvas.width = 4;
-    canvas.height = 4;
-    const ctx2d = canvas.getContext("2d")!;
-    // Draw a known color at (1,1)
-    ctx2d.fillStyle = "#ff0000";
-    ctx2d.fillRect(1, 1, 1, 1);
+  it("returns hex color from composite readback (not display canvas)", () => {
+    // sampleColorHex now always uses readbackComposite via
+    // getFullCompositeImageData — display chrome (checkerboard) never leaks.
+    const width = 4;
+    const height = 4;
+    const data = new Uint8ClampedArray(width * height * 4);
+    // Set pixel at (1,1) to red
+    const idx = (1 * width + 1) * 4;
+    data[idx] = 255;
+    data[idx + 1] = 0;
+    data[idx + 2] = 0;
+    data[idx + 3] = 255;
+    const imageData = { data, width, height } as ImageData;
 
     const toolCtx = makeToolContext({
-      displayCanvasRef: { current: canvas }
+      getFullCompositeImageData: jest.fn(() => imageData)
     });
     const hex = sampleColorHex(toolCtx, { x: 1, y: 1 });
     expect(hex).toBe("#ff0000");
   });
 
-  it("falls back to getFullCompositeImageData when display canvas unavailable", () => {
+  it("returns hex from getFullCompositeImageData when display canvas unavailable", () => {
     // Create a mock ImageData-like object (JSDOM doesn't have ImageData constructor)
     const width = 4;
     const height = 4;

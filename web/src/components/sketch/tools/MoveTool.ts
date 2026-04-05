@@ -16,6 +16,7 @@ import {
   layerAllowsTransformWhilePixelLocked
 } from "../types";
 import { getLayerCompositeOffset } from "../painting";
+import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
 import { useSketchStore } from "../state/useSketchStore";
 /** Convert a document-space rect to gizmo canvas pixel coordinates. */
 function docRectToGizmo(
@@ -148,9 +149,10 @@ export class MoveTool implements ToolHandler {
         moveTargetLayer = dup;
       }
     } else if (event.nativeEvent.altKey && ctx.onAutoPickLayer) {
-      // Alt+click: auto-pick the topmost layer with non-transparent pixels
-      const px = Math.floor(pt.x);
-      const py = Math.floor(pt.y);
+      // Alt+click: auto-pick the topmost layer with non-transparent pixels.
+      // Uses the shared hitTestLayerAtDocPoint utility which goes through
+      // CoordinateMapper so layers with affine transforms (rotation, scale)
+      // are hit-tested correctly.
       for (let i = doc.layers.length - 1; i >= 0; i--) {
         const layer = doc.layers[i];
         const skipForHit =
@@ -163,28 +165,9 @@ export class MoveTool implements ToolHandler {
         if (!layerCanvas) {
           continue;
         }
-        const layerCtx = layerCanvas.getContext("2d");
-        if (!layerCtx) {
-          continue;
-        }
-        const compositeOffset = getLayerCompositeOffset(
-          layer,
-          { width: layerCanvas.width, height: layerCanvas.height },
-          layerCanvas
-        );
-        const localX = px - compositeOffset.x;
-        const localY = py - compositeOffset.y;
-        if (
-          localX >= 0 &&
-          localX < layerCanvas.width &&
-          localY >= 0 &&
-          localY < layerCanvas.height
-        ) {
-          const pixel = layerCtx.getImageData(localX, localY, 1, 1).data;
-          if (pixel[3] > 0) {
-            ctx.onAutoPickLayer(layer.id);
-            break;
-          }
+        if (hitTestLayerAtDocPoint(layer, layerCanvas, pt)) {
+          ctx.onAutoPickLayer(layer.id);
+          break;
         }
       }
     }

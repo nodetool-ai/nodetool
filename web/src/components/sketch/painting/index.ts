@@ -39,3 +39,10 @@ export {
   setCanvasRasterBounds,
   ensureLayerRasterBounds
 } from "./layerBounds";
+
+// ── Document sampling / hit-testing ────────────────────────────────────────
+export {
+  sampleCompositeColor,
+  sampleCompositeRGBA,
+  hitTestLayerAtDocPoint
+} from "./sampleDocument";
