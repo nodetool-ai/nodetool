@@ -754,6 +754,14 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
     runtime.dispose();
   });
 
+  /** Extract the shared fake context from the mocked getContext spy. */
+  function getFakeContext(): Record<string, jest.Mock> | undefined {
+    const spy = HTMLCanvasElement.prototype.getContext as jest.Mock;
+    return spy.mock.results.find(
+      (r: jest.MockResult<unknown>) => r.type === "return" && r.value
+    )?.value;
+  }
+
   // ─── 1. flattenToDataUrl uses renderDocumentCompositeToContext ──────
 
   it("flattenToDataUrl returns a PNG data-url without display chrome", () => {
@@ -770,18 +778,12 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
 
       // flattenToDataUrl must NOT draw display chrome
       // The mock is global – all canvases share fakeContext. Access via spy.
-      const getCtxSpy = jest.spyOn(HTMLCanvasElement.prototype, "getContext");
-      const fakeCtx = getCtxSpy.mock.results.find(
-        (r) => r.type === "return" && r.value
-      )?.value;
-      getCtxSpy.mockRestore();
-
-      if (fakeCtx) {
-        // strokeRect → border, createPattern → checkerboard — neither should
-        // appear in the export path.
-        expect(fakeCtx.strokeRect).not.toHaveBeenCalled();
-        expect(fakeCtx.createPattern).not.toHaveBeenCalled();
-      }
+      const fakeCtx = getFakeContext();
+      expect(fakeCtx).toBeDefined();
+      // strokeRect → border, createPattern → checkerboard — neither should
+      // appear in the export path.
+      expect(fakeCtx!.strokeRect).not.toHaveBeenCalled();
+      expect(fakeCtx!.createPattern).not.toHaveBeenCalled();
     } finally {
       mocks.restore();
     }
@@ -799,23 +801,19 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
     try {
       // Run flattenToDataUrl — should call drawImage at least once.
       runtime.flattenToDataUrl(doc);
-      const fakeCtx = (
-        HTMLCanvasElement.prototype.getContext as jest.Mock
-      ).mock.results.find(
-        (r: jest.MockResult<unknown>) => r.type === "return" && r.value
-      )?.value;
+      const fakeCtx = getFakeContext();
 
       expect(fakeCtx).toBeDefined();
-      expect(fakeCtx.drawImage.mock.calls.length).toBeGreaterThanOrEqual(1);
+      expect(fakeCtx!.drawImage.mock.calls.length).toBeGreaterThanOrEqual(1);
 
       // Reset drawImage call count and verify compositeToDisplay also draws.
-      fakeCtx.drawImage.mockClear();
+      fakeCtx!.drawImage.mockClear();
 
       const target = document.createElement("canvas");
       target.width = 64;
       target.height = 64;
       runtime.compositeToDisplay(target, doc, null, null);
-      expect(fakeCtx.drawImage.mock.calls.length).toBeGreaterThanOrEqual(1);
+      expect(fakeCtx!.drawImage.mock.calls.length).toBeGreaterThanOrEqual(1);
     } finally {
       mocks.restore();
     }
