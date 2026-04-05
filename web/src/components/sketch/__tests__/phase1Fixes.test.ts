@@ -9,11 +9,12 @@
  */
 
 import { CropTool } from "../tools/CropTool";
-import { FillTool, floodFill } from "../tools/FillTool";
+import { floodFill } from "../tools/FillTool";
 import { MoveTool } from "../tools/MoveTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import type { SketchDocument, Point, Selection, Layer, LayerContentBounds } from "../types";
-import { createDefaultDocument, createDefaultLayer } from "../types";
+import type { Point, SketchDocument } from "../types";
+import { createDefaultDocument } from "../types";
+import { ellipseSelectionMask } from "../selection";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -63,12 +64,19 @@ function makeMinimalCtx(overrides: Partial<ToolContext> = {}): ToolContext {
     layerCanvasesRef: { current: new Map() },
     mousePositionRef: { current: { x: 0, y: 0 } },
     activeStrokeRef: { current: null },
-    getOrCreateLayerCanvas: jest.fn(() => {
-      const c = document.createElement("canvas");
-      c.width = 100;
-      c.height = 100;
-      return c;
-    }),
+    getOrCreateLayerCanvas: (() => {
+      const cache = new Map<string, HTMLCanvasElement>();
+      return jest.fn((layerId: string) => {
+        let c = cache.get(layerId);
+        if (!c) {
+          c = document.createElement("canvas");
+          c.width = 100;
+          c.height = 100;
+          cache.set(layerId, c);
+        }
+        return c;
+      });
+    })(),
     redraw: jest.fn(),
     redrawDirty: jest.fn(),
     requestRedraw: jest.fn(),
@@ -147,8 +155,7 @@ describe("FillTool flood fill", () => {
     // Flood fill from center with red
     floodFill(ctx, 25, 25, {
       color: "#ff0000",
-      tolerance: 0,
-      fillEntireCanvas: false
+      tolerance: 0
     });
 
     // Check that ALL pixels are now red
@@ -176,8 +183,7 @@ describe("FillTool flood fill", () => {
 
     floodFill(ctx, 0, 0, {
       color: "#00ff00",
-      tolerance: 0,
-      fillEntireCanvas: false
+      tolerance: 0
     });
 
     // All pixels should be green
@@ -198,8 +204,7 @@ describe("FillTool flood fill", () => {
 
     floodFill(ctx, 9, 9, {
       color: "#0000ff",
-      tolerance: 0,
-      fillEntireCanvas: false
+      tolerance: 0
     });
 
     const imageData = ctx.getImageData(0, 0, 10, 10);
@@ -289,9 +294,6 @@ describe("MoveTool gizmo", () => {
 
 describe("Selection mask - ellipse extends beyond canvas", () => {
   it("ellipseSelectionMask selects pixels inside canvas when ellipse extends beyond", () => {
-    // Import the function directly
-    const { ellipseSelectionMask } = require("../selection");
-
     // Ellipse that extends 10px beyond the left edge of a 50×50 canvas
     const mask = ellipseSelectionMask(50, 50, -10, 0, 70, 50);
 

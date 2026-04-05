@@ -480,11 +480,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Redraw cursor when tool settings change ──────────────────────
     // When brush size/hardness/etc. change via sliders or keyboard shortcuts,
     // the cursor ring must update immediately even without pointer movement.
+    // `lastPointerClientRef` is a stable ref — only `.current` changes, so it
+    // is intentionally NOT in the dependency array. The effect fires when
+    // `drawCursor` changes (on tool settings change) and reads the latest
+    // pointer position at that moment.
     useEffect(() => {
       const client = lastPointerClientRef.current;
       if (client) {
         overlay.drawCursor(client.x, client.y);
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [overlay.drawCursor]);
 
     // ─── Document-space cursor tracking ─────────────────────────────────
