@@ -19,23 +19,23 @@ export class SaveAssetTool extends Tool {
     properties: {
       name: {
         type: "string" as const,
-        description: "Name of the asset file to save",
+        description: "Name of the asset file to save"
       },
       content: {
         type: "string" as const,
-        description: "Text content to save",
+        description: "Text content to save"
       },
       content_type: {
         type: "string" as const,
-        description: "MIME type of the content (defaults to text/plain)",
-      },
+        description: "MIME type of the content (defaults to text/plain)"
+      }
     },
-    required: ["name", "content"] as string[],
+    required: ["name", "content"] as string[]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       const name = params.name;
@@ -43,7 +43,10 @@ export class SaveAssetTool extends Tool {
       const contentType = params.content_type;
 
       if (typeof name !== "string" || !name) {
-        return { success: false, error: "name is required and must be a string" };
+        return {
+          success: false,
+          error: "name is required and must be a string"
+        };
       }
       if (typeof content !== "string") {
         return { success: false, error: "content must be a string" };
@@ -53,7 +56,10 @@ export class SaveAssetTool extends Tool {
         return { success: false, error: "No storage adapter configured" };
       }
 
-      const mime = typeof contentType === "string" && contentType ? contentType : "text/plain";
+      const mime =
+        typeof contentType === "string" && contentType
+          ? contentType
+          : "text/plain";
       const data = new TextEncoder().encode(content);
       const key = `assets/${name}`;
       const uri = await context.storage.store(key, data, mime);
@@ -63,12 +69,12 @@ export class SaveAssetTool extends Tool {
         name,
         uri,
         content_type: mime,
-        size: data.byteLength,
+        size: data.byteLength
       };
     } catch (e) {
       return {
         success: false,
-        error: e instanceof Error ? e.message : String(e),
+        error: e instanceof Error ? e.message : String(e)
       };
     }
   }
@@ -91,21 +97,24 @@ export class ReadAssetTool extends Tool {
     properties: {
       name: {
         type: "string" as const,
-        description: "Name of the asset file to read",
-      },
+        description: "Name of the asset file to read"
+      }
     },
-    required: ["name"] as string[],
+    required: ["name"] as string[]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       const name = params.name;
 
       if (typeof name !== "string" || !name) {
-        return { success: false, error: "name is required and must be a string" };
+        return {
+          success: false,
+          error: "name is required and must be a string"
+        };
       }
 
       if (!context.storage) {
@@ -134,7 +143,7 @@ export class ReadAssetTool extends Tool {
       if (!data) {
         return {
           success: false,
-          error: `Asset not found: ${name}`,
+          error: `Asset not found: ${name}`
         };
       }
 
@@ -145,12 +154,12 @@ export class ReadAssetTool extends Tool {
         name,
         content,
         uri: matchedUri,
-        size: data.byteLength,
+        size: data.byteLength
       };
     } catch (e) {
       return {
         success: false,
-        error: e instanceof Error ? e.message : String(e),
+        error: e instanceof Error ? e.message : String(e)
       };
     }
   }

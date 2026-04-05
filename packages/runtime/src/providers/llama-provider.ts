@@ -7,7 +7,7 @@ import type {
   MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
-  ToolCall,
+  ToolCall
 } from "./types.js";
 
 interface LlamaProviderOptions {
@@ -136,13 +136,13 @@ function parseEmulatedToolCalls(
     calls.push({
       id: `tool_${calls.length + 1}`,
       name,
-      args,
+      args
     });
   }
 
   return {
     toolCalls: calls,
-    cleanedContent: cleaned.join("\n").trim(),
+    cleanedContent: cleaned.join("\n").trim()
   };
 }
 
@@ -177,7 +177,10 @@ export class LlamaProvider extends BaseProvider {
   private _clientFactory: (baseUrl: string) => OpenAI;
   private _fetch: typeof fetch;
 
-  constructor(secrets: { LLAMA_CPP_URL?: string }, options: LlamaProviderOptions = {}) {
+  constructor(
+    secrets: { LLAMA_CPP_URL?: string },
+    options: LlamaProviderOptions = {}
+  ) {
     super("llama_cpp");
 
     const raw = secrets.LLAMA_CPP_URL ?? process.env.LLAMA_CPP_URL;
@@ -193,7 +196,7 @@ export class LlamaProvider extends BaseProvider {
       ((url) =>
         new OpenAI({
           apiKey: "sk-no-key-required",
-          baseURL: `${url}/v1`,
+          baseURL: `${url}/v1`
         }));
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }
@@ -229,7 +232,9 @@ export class LlamaProvider extends BaseProvider {
       .map((id) => ({ id, name: id, provider: "llama_cpp" }));
   }
 
-  private async normalizeMessagesForLlama(messages: Message[]): Promise<Message[]> {
+  private async normalizeMessagesForLlama(
+    messages: Message[]
+  ): Promise<Message[]> {
     const systemParts: string[] = [];
     const normalized: Message[] = [];
 
@@ -245,7 +250,7 @@ export class LlamaProvider extends BaseProvider {
             : JSON.stringify(msg.content ?? null);
         normalized.push({
           role: "user",
-          content: `Tool result:\n${content}`,
+          content: `Tool result:\n${content}`
         });
         continue;
       }
@@ -256,7 +261,7 @@ export class LlamaProvider extends BaseProvider {
     if (systemParts.length > 0) {
       out.push({
         role: "system",
-        content: systemParts.filter(Boolean).join("\n"),
+        content: systemParts.filter(Boolean).join("\n")
       });
     }
 
@@ -265,7 +270,8 @@ export class LlamaProvider extends BaseProvider {
     const startExpected: Array<"user" | "assistant"> = ["user"];
     let expected = startExpected[0];
     for (const msg of seq) {
-      const mappedRole: "user" | "assistant" = msg.role === "assistant" ? "assistant" : "user";
+      const mappedRole: "user" | "assistant" =
+        msg.role === "assistant" ? "assistant" : "user";
       while (mappedRole !== expected) {
         out.push({ role: expected, content: "" });
         expected = expected === "user" ? "assistant" : "user";
@@ -284,13 +290,13 @@ export class LlamaProvider extends BaseProvider {
         id: tc.id,
         function: {
           name: tc.name,
-          arguments: JSON.stringify(tc.args),
-        },
+          arguments: JSON.stringify(tc.args)
+        }
       }));
       return {
         role: "assistant",
         content: asTextContent(message.content),
-        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
       };
     }
 
@@ -299,7 +305,10 @@ export class LlamaProvider extends BaseProvider {
     }
 
     if (message.role === "tool") {
-      return { role: "user", content: `Tool result:\n${contentToString(message.content)}` };
+      return {
+        role: "user",
+        content: `Tool result:\n${contentToString(message.content)}`
+      };
     }
 
     return { role: "user", content: asTextContent(message.content) };
@@ -311,8 +320,8 @@ export class LlamaProvider extends BaseProvider {
       function: {
         name: tool.name,
         description: tool.description ?? "",
-        parameters: tool.inputSchema ?? { type: "object", properties: {} },
-      },
+        parameters: tool.inputSchema ?? { type: "object", properties: {} }
+      }
     }));
   }
 
@@ -334,21 +343,25 @@ export class LlamaProvider extends BaseProvider {
       tools = [],
       maxTokens = 1024,
       responseFormat,
-      jsonSchema,
+      jsonSchema
     } = args;
 
     if (jsonSchema) {
-      throw new Error("Llama provider expects responseFormat; jsonSchema is not supported directly");
+      throw new Error(
+        "Llama provider expects responseFormat; jsonSchema is not supported directly"
+      );
     }
 
     const normalized = await this.normalizeMessagesForLlama(args.messages);
-    const openaiMessages = await Promise.all(normalized.map((m) => this.convertMessage(m)));
+    const openaiMessages = await Promise.all(
+      normalized.map((m) => this.convertMessage(m))
+    );
 
     const request: Record<string, unknown> = {
       model,
       messages: openaiMessages,
       max_tokens: maxTokens,
-      stream: true,
+      stream: true
     };
     if (responseFormat) request.response_format = responseFormat;
     if (tools.length > 0 && (await this.hasToolSupport(model))) {
@@ -371,11 +384,15 @@ export class LlamaProvider extends BaseProvider {
         if (Array.isArray(delta?.tool_calls)) {
           for (const tc of delta.tool_calls) {
             const index = Number(tc.index ?? 0);
-            const cur =
-              deltaToolCalls.get(index) ?? { id: String(tc.id ?? ""), name: "", arguments: "" };
+            const cur = deltaToolCalls.get(index) ?? {
+              id: String(tc.id ?? ""),
+              name: "",
+              arguments: ""
+            };
             if (tc.id) cur.id = String(tc.id);
             if (tc.function?.name) cur.name = String(tc.function.name);
-            if (tc.function?.arguments) cur.arguments += String(tc.function.arguments);
+            if (tc.function?.arguments)
+              cur.arguments += String(tc.function.arguments);
             deltaToolCalls.set(index, cur);
           }
         }
@@ -389,7 +406,7 @@ export class LlamaProvider extends BaseProvider {
           const out: Chunk = {
             type: "chunk",
             content,
-            done: choice.finish_reason === "stop",
+            done: choice.finish_reason === "stop"
           };
           yield out;
         }
@@ -401,7 +418,11 @@ export class LlamaProvider extends BaseProvider {
           deltaToolCalls.clear();
         }
 
-        if (choice.finish_reason === "stop" && tools.length > 0 && !(await this.hasToolSupport(model))) {
+        if (
+          choice.finish_reason === "stop" &&
+          tools.length > 0 &&
+          !(await this.hasToolSupport(model))
+        ) {
           const parsed = parseEmulatedToolCalls(accumulatedText, tools);
           for (const tc of parsed.toolCalls) {
             yield tc;
@@ -432,21 +453,25 @@ export class LlamaProvider extends BaseProvider {
       tools = [],
       maxTokens = 1024,
       responseFormat,
-      jsonSchema,
+      jsonSchema
     } = args;
 
     if (jsonSchema) {
-      throw new Error("Llama provider expects responseFormat; jsonSchema is not supported directly");
+      throw new Error(
+        "Llama provider expects responseFormat; jsonSchema is not supported directly"
+      );
     }
 
     const normalized = await this.normalizeMessagesForLlama(args.messages);
-    const openaiMessages = await Promise.all(normalized.map((m) => this.convertMessage(m)));
+    const openaiMessages = await Promise.all(
+      normalized.map((m) => this.convertMessage(m))
+    );
 
     const request: Record<string, unknown> = {
       model,
       messages: openaiMessages,
       max_tokens: maxTokens,
-      stream: false,
+      stream: false
     };
     if (responseFormat) request.response_format = responseFormat;
     if (tools.length > 0 && (await this.hasToolSupport(model))) {
@@ -463,7 +488,11 @@ export class LlamaProvider extends BaseProvider {
     const nativeToolCalls = message?.tool_calls ?? [];
     if (nativeToolCalls.length > 0) {
       toolCalls = nativeToolCalls.map((tc: any) =>
-        this.buildToolCall(String(tc.id ?? ""), String(tc.function?.name ?? ""), tc.function?.arguments)
+        this.buildToolCall(
+          String(tc.id ?? ""),
+          String(tc.function?.name ?? ""),
+          tc.function?.arguments
+        )
       );
     } else if (tools.length > 0 && !(await this.hasToolSupport(model))) {
       toolCalls = parseEmulatedToolCalls(content, tools).toolCalls;
@@ -472,7 +501,7 @@ export class LlamaProvider extends BaseProvider {
     return {
       role: "assistant",
       content,
-      toolCalls,
+      toolCalls
     };
   }
 

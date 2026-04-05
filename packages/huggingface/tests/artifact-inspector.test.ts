@@ -5,7 +5,7 @@ import * as os from "node:os";
 import {
   inspectPaths,
   detectFromJson,
-  type ArtifactDetection,
+  type ArtifactDetection
 } from "../src/artifact-inspector.js";
 
 // ---------------------------------------------------------------------------
@@ -43,13 +43,17 @@ describe("inspectPaths", () => {
     const result = inspectPaths(["/nonexistent/model.safetensors"]);
     // Should either return null or a minimal result without throwing
     // (the safetensors inspector will fail to open the file and fall through)
-    expect(result === null || typeof result.family === "string" || result.family === null).toBe(true);
+    expect(
+      result === null ||
+        typeof result.family === "string" ||
+        result.family === null
+    ).toBe(true);
   });
 
   it("falls through to JSON detection for config-only repos", async () => {
     const configPath = await writeJson("config.json", {
       model_type: "whisper",
-      architectures: ["WhisperForConditionalGeneration"],
+      architectures: ["WhisperForConditionalGeneration"]
     });
 
     const result = inspectPaths([configPath]);
@@ -78,7 +82,7 @@ describe("detectFromJson", () => {
   it("detects whisper from config.json model_type", async () => {
     const configPath = await writeJson("config.json", {
       model_type: "whisper",
-      architectures: ["WhisperForConditionalGeneration"],
+      architectures: ["WhisperForConditionalGeneration"]
     });
     const result = detectFromJson([configPath], []);
     expect(result).not.toBeNull();
@@ -87,7 +91,7 @@ describe("detectFromJson", () => {
 
   it("detects LLaMA from config.json architectures", async () => {
     const configPath = await writeJson("config.json", {
-      architectures: ["LlamaForCausalLM"],
+      architectures: ["LlamaForCausalLM"]
     });
     const result = detectFromJson([configPath], []);
     expect(result).not.toBeNull();
@@ -97,7 +101,7 @@ describe("detectFromJson", () => {
 
   it("detects diffusers model from model_index.json _class_name", async () => {
     const indexPath = await writeJson("model_index.json", {
-      _class_name: "StableDiffusionPipeline",
+      _class_name: "StableDiffusionPipeline"
     });
     const result = detectFromJson([], [indexPath]);
     expect(result).not.toBeNull();
@@ -108,7 +112,7 @@ describe("detectFromJson", () => {
   it("detects SDXL from model_index.json _class_name", async () => {
     const indexPath = await writeJson("model_index.json", {
       _class_name: "StableDiffusionXLPipeline",
-      unet: ["diffusers", "UNet2DConditionModel"],
+      unet: ["diffusers", "UNet2DConditionModel"]
     });
     const result = detectFromJson([], [indexPath]);
     expect(result).not.toBeNull();
@@ -118,7 +122,7 @@ describe("detectFromJson", () => {
 
   it("detects Flux pipeline with transformer component", async () => {
     const indexPath = await writeJson("model_index.json", {
-      _class_name: "FluxPipeline",
+      _class_name: "FluxPipeline"
     });
     const result = detectFromJson([], [indexPath]);
     expect(result).not.toBeNull();
@@ -128,7 +132,7 @@ describe("detectFromJson", () => {
 
   it("detects SDXL refiner from model_index.json _class_name", async () => {
     const indexPath = await writeJson("model_index.json", {
-      _class_name: "StableDiffusionXLRefinerPipeline",
+      _class_name: "StableDiffusionXLRefinerPipeline"
     });
     const result = detectFromJson([], [indexPath]);
     expect(result).not.toBeNull();
@@ -151,7 +155,7 @@ describe("detectFromJson", () => {
 
   it("has non-null family or component in successful detections", async () => {
     const configPath = await writeJson("config.json", {
-      model_type: "bert",
+      model_type: "bert"
     });
     const result = detectFromJson([configPath], []);
     if (result !== null) {
@@ -161,7 +165,7 @@ describe("detectFromJson", () => {
 
   it("includes confidence between 0 and 1 in detections", async () => {
     const configPath = await writeJson("config.json", {
-      architectures: ["GPT2LMHeadModel"],
+      architectures: ["GPT2LMHeadModel"]
     });
     const result = detectFromJson([configPath], []);
     if (result !== null && result.confidence !== null) {

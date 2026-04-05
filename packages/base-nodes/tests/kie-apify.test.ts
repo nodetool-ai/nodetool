@@ -7,7 +7,7 @@ import {
   ApifyAmazonScraperNode,
   ApifyYouTubeScraperNode,
   ApifyTwitterScraperNode,
-  ApifyLinkedInScraperNode,
+  ApifyLinkedInScraperNode
 } from "../src/nodes/apify.js";
 
 const originalFetch = globalThis.fetch;
@@ -29,7 +29,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   } as unknown as Response;
 }
 
@@ -47,7 +47,6 @@ function metadataDefaults(NodeCls: any) {
 function expectMetadataDefaults(NodeCls: any) {
   expect(new NodeCls().serialize()).toEqual(metadataDefaults(NodeCls));
 }
-
 
 /** Mock a successful runActor flow: POST actor run -> GET dataset items */
 function mockRunActor(items: Record<string, unknown>[]) {
@@ -83,9 +82,7 @@ describe("ApifyWebScraperNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("start_urls is required");
+    await expect(node.process()).rejects.toThrow("start_urls is required");
   });
 
   it("throws when API key missing", async () => {
@@ -95,9 +92,9 @@ describe("ApifyWebScraperNode", () => {
       start_urls: ["https://example.com"]
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("APIFY_API_KEY not configured");
+    await expect(node.process()).rejects.toThrow(
+      "APIFY_API_KEY not configured"
+    );
   });
 
   it("throws on API error", async () => {
@@ -109,9 +106,7 @@ describe("ApifyWebScraperNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Apify API error (403)");
+    await expect(node.process()).rejects.toThrow("Apify API error (403)");
   });
 
   it("returns empty array when no datasetId", async () => {
@@ -183,9 +178,7 @@ describe("ApifyGoogleSearchScraperNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("queries is required");
+    await expect(node.process()).rejects.toThrow("queries is required");
   });
 
   it("clamps results_per_page to valid range", async () => {
@@ -245,9 +238,9 @@ describe("ApifyInstagramScraperNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Either usernames or hashtags is required");
+    await expect(node.process()).rejects.toThrow(
+      "Either usernames or hashtags is required"
+    );
   });
 });
 
@@ -290,9 +283,9 @@ describe("ApifyAmazonScraperNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow("Either search_queries or product_urls is required");
+    await expect(node.process()).rejects.toThrow(
+      "Either search_queries or product_urls is required"
+    );
   });
 });
 
@@ -348,9 +341,7 @@ describe("ApifyYouTubeScraperNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow(
+    await expect(node.process()).rejects.toThrow(
       "At least one of search_queries, video_urls, or channel_urls is required"
     );
   });
@@ -408,9 +399,7 @@ describe("ApifyTwitterScraperNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow(
+    await expect(node.process()).rejects.toThrow(
       "At least one of search_terms, usernames, or tweet_urls is required"
     );
   });
@@ -468,9 +457,7 @@ describe("ApifyLinkedInScraperNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    await expect(
-      node.process()
-    ).rejects.toThrow(
+    await expect(node.process()).rejects.toThrow(
       "At least one of profile_urls, company_urls, or job_search_urls is required"
     );
   });

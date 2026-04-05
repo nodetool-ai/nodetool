@@ -99,7 +99,10 @@ export interface NodeDescriptor {
   propertyTypes?: Record<string, string>;
 
   /** Per-property metadata (description, min, max) for control context enrichment. */
-  propertyMeta?: Record<string, { description?: string; min?: number; max?: number }>;
+  propertyMeta?: Record<
+    string,
+    { description?: string; min?: number; max?: number }
+  >;
 }
 
 // ---------------------------------------------------------------------------

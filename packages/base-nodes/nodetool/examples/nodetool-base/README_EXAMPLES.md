@@ -127,7 +127,7 @@ if __name__ == "__main__":
 - `ExtractColumn` - Extract specific column
 - `DataGenerator` - Generate synthetic data
 
-### Image Processing Nodes (`lib.pillow`)
+### Image Processing Nodes (`lib.image`)
 - `Sharpen` - Apply sharpening filter
 - `AutoContrast` - Adjust image contrast
 - `RenderText` - Draw text on images

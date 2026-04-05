@@ -17,21 +17,27 @@ class TestNodeA extends BaseNode {
   static readonly nodeType = "test.A";
   static readonly title = "A";
   static readonly description = "";
-  async process() { return {}; }
+  async process() {
+    return {};
+  }
 }
 
 class TestNodeB extends BaseNode {
   static readonly nodeType = "test.B";
   static readonly title = "B";
   static readonly description = "";
-  async process() { return {}; }
+  async process() {
+    return {};
+  }
 }
 
 class TestNodeWithSuffix extends BaseNode {
   static readonly nodeType = "test.SampleNode";
   static readonly title = "Sample Node";
   static readonly description = "";
-  async process() { return {}; }
+  async process() {
+    return {};
+  }
 }
 
 const sampleMetadata: NodeMetadata = {
@@ -40,7 +46,7 @@ const sampleMetadata: NodeMetadata = {
   namespace: "test",
   node_type: "test.A",
   properties: [],
-  outputs: [],
+  outputs: []
 };
 
 describe("NodeRegistry – listMetadata", () => {
@@ -82,7 +88,9 @@ describe("NodeRegistry – listRegisteredNodeTypesWithoutMetadata", () => {
       static readonly nodeType = "test.Minimal";
       static readonly title = "Minimal";
       static readonly description = "";
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
     }
     registry.register(TestNodeA, { metadata: sampleMetadata });
     registry.register(MinimalNode as unknown as typeof TestNodeB); // auto-generated metadata
@@ -151,7 +159,7 @@ describe("NodeRegistry – _resolveLoadedMetadata Node suffix", () => {
     loaded.set("test.Sample", {
       ...sampleMetadata,
       node_type: "test.Sample",
-      title: "Sample From Python",
+      title: "Sample From Python"
     });
 
     const registry = new NodeRegistry({ metadataByType: loaded });
@@ -159,6 +167,8 @@ describe("NodeRegistry – _resolveLoadedMetadata Node suffix", () => {
 
     // TS class is authoritative; Python metadata is used for backfill only.
     expect(registry.getMetadata("test.SampleNode")?.title).toBe("Sample Node");
-    expect(registry.resolveMetadata("test.SampleNode")?.title).toBe("Sample Node");
+    expect(registry.resolveMetadata("test.SampleNode")?.title).toBe(
+      "Sample Node"
+    );
   });
 });

@@ -18,13 +18,13 @@ const styles = (theme: Theme) =>
     ".step-item": {
       padding: "0.85rem 1rem",
       borderRadius: "10px",
-      backgroundColor: "rgba(255, 255, 255, 0.03)",
+      backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.grey[800]}44`,
       transition: "all 0.2s ease",
       position: "relative",
       overflow: "hidden",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        backgroundColor: theme.vars.palette.action.selected,
         borderColor: theme.vars.palette.grey[700]
       },
       "&.running": {

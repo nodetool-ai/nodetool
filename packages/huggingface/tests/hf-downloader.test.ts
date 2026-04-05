@@ -9,7 +9,7 @@ import {
   hfCacheRoot,
   hfRepoCacheDir,
   hfHubFileUrl,
-  HF_ENDPOINT,
+  HF_ENDPOINT
 } from "../src/hf-downloader.js";
 import * as path from "node:path";
 import * as os from "node:os";
@@ -23,7 +23,7 @@ describe("hfCacheRoot", () => {
     "HF_HUB_CACHE",
     "HUGGINGFACE_HUB_CACHE",
     "HF_HOME",
-    "XDG_CACHE_HOME",
+    "XDG_CACHE_HOME"
   ];
   const saved: Record<string, string | undefined> = {};
 
@@ -46,7 +46,9 @@ describe("hfCacheRoot", () => {
 
   it("defaults to ~/.cache/huggingface/hub", () => {
     const result = hfCacheRoot();
-    expect(result).toBe(path.join(os.homedir(), ".cache", "huggingface", "hub"));
+    expect(result).toBe(
+      path.join(os.homedir(), ".cache", "huggingface", "hub")
+    );
   });
 
   it("respects HF_HUB_CACHE", () => {
@@ -66,9 +68,7 @@ describe("hfCacheRoot", () => {
 
   it("respects XDG_CACHE_HOME", () => {
     process.env.XDG_CACHE_HOME = "/xdg/cache";
-    expect(hfCacheRoot()).toBe(
-      path.join("/xdg/cache", "huggingface", "hub"),
-    );
+    expect(hfCacheRoot()).toBe(path.join("/xdg/cache", "huggingface", "hub"));
   });
 
   it("HF_HUB_CACHE takes priority over HF_HOME", () => {
@@ -118,23 +118,17 @@ describe("hfRepoCacheDir", () => {
 describe("hfHubFileUrl", () => {
   it("builds model URL", () => {
     const url = hfHubFileUrl("org/model", "config.json");
-    expect(url).toBe(
-      `${HF_ENDPOINT}/org/model/resolve/main/config.json`,
-    );
+    expect(url).toBe(`${HF_ENDPOINT}/org/model/resolve/main/config.json`);
   });
 
   it("builds dataset URL", () => {
     const url = hfHubFileUrl("org/data", "train.csv", "main", "dataset");
-    expect(url).toBe(
-      `${HF_ENDPOINT}/datasets/org/data/resolve/main/train.csv`,
-    );
+    expect(url).toBe(`${HF_ENDPOINT}/datasets/org/data/resolve/main/train.csv`);
   });
 
   it("builds space URL", () => {
     const url = hfHubFileUrl("org/app", "app.py", "main", "space");
-    expect(url).toBe(
-      `${HF_ENDPOINT}/spaces/org/app/resolve/main/app.py`,
-    );
+    expect(url).toBe(`${HF_ENDPOINT}/spaces/org/app/resolve/main/app.py`);
   });
 
   it("uses custom revision", () => {
@@ -148,10 +142,10 @@ describe("hfHubFileUrl", () => {
       "config.json",
       "main",
       "model",
-      "https://custom.endpoint.co",
+      "https://custom.endpoint.co"
     );
     expect(url).toBe(
-      "https://custom.endpoint.co/org/model/resolve/main/config.json",
+      "https://custom.endpoint.co/org/model/resolve/main/config.json"
     );
   });
 
@@ -167,16 +161,14 @@ describe("hfHubFileUrl", () => {
       "file.txt",
       "main",
       "model",
-      "https://example.com///",
+      "https://example.com///"
     );
-    expect(url).toBe(
-      "https://example.com/org/model/resolve/main/file.txt",
-    );
+    expect(url).toBe("https://example.com/org/model/resolve/main/file.txt");
   });
 
   it("throws for unsupported repo type", () => {
     expect(() => hfHubFileUrl("org/repo", "f.txt", "main", "unknown")).toThrow(
-      "Unsupported repoType",
+      "Unsupported repoType"
     );
   });
 });

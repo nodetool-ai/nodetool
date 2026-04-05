@@ -37,7 +37,7 @@ export class MemoryUriCache {
     const ttl = ttlMs != null && ttlMs > 0 ? ttlMs : this._defaultTtlMs;
     this._store.set(key, {
       url,
-      expiresAt: Date.now() + ttl,
+      expiresAt: Date.now() + ttl
     });
   }
 

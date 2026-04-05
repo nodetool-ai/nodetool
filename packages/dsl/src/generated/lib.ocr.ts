@@ -15,5 +15,7 @@ export interface PaddleOCROutputs {
 }
 
 export function paddleOCR(inputs: PaddleOCRInputs): DslNode<PaddleOCROutputs> {
-  return createNode("lib.ocr.PaddleOCR", inputs as Record<string, unknown>, { outputNames: ["boxes", "text"] });
+  return createNode("lib.ocr.PaddleOCR", inputs as Record<string, unknown>, {
+    outputNames: ["boxes", "text"]
+  });
 }

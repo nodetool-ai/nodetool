@@ -71,7 +71,7 @@ class ApiService {
     this.setupMiddleware();
   }
 
-  async getWorkflows(limit: number = 100): Promise<any> {
+  async getWorkflows(limit: number = 100): Promise<paths["/api/workflows/"]["get"]["responses"][200]["content"]["application/json"] | undefined> {
     const { data, error } = await this.client.GET('/api/workflows/', {
       params: {
         query: { limit },
@@ -81,42 +81,41 @@ class ApiService {
     return data;
   }
 
-  async getWorkflow(id: string): Promise<any> {
+  async getWorkflow(id: string): Promise<paths["/api/workflows/{id}"]["get"]["responses"][200]["content"]["application/json"] | undefined> {
     const { data, error } = await this.client.GET('/api/workflows/{id}', {
       params: {
-        path: { id } as any, // Generated types might use different param names, check paths
+        path: { id },
       },
     });
     if (error) {throw error;}
     return data;
   }
 
-  async runWorkflow(id: string, params: Record<string, unknown>): Promise<any> {
+  async runWorkflow(id: string, params: Record<string, unknown>): Promise<paths["/api/workflows/{id}/run"]["post"]["responses"][200]["content"]["application/json"]> {
     const { data, error } = await this.client.POST('/api/workflows/{id}/run', {
       params: {
-        path: { id } as any,
+        path: { id },
       },
-      body: params as any, // Check generated body type
+      body: params as paths["/api/workflows/{id}/run"]["post"]["requestBody"]["content"]["application/json"],
     });
     if (error) {throw error;}
-    return data;
+    return data as paths["/api/workflows/{id}/run"]["post"]["responses"][200]["content"]["application/json"];
   }
 
-  async getLanguageModelProviders(): Promise<any[]> {
+  async getLanguageModelProviders(): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
     const { data, error } = await this.client.GET('/api/models/providers');
     if (error) {throw error;}
-    
+
     // Filter for providers that support 'generate_message'
-    return (data || []).filter((p: any) => 
+    return (data || []).filter((p) =>
       p.capabilities && p.capabilities.includes('generate_message')
     );
   }
 
-  async getLanguageModels(provider: string): Promise<any[]> {
-    // Cast provider to correct enum type or string as needed by generated types
+  async getLanguageModels(provider: string): Promise<paths["/api/models/llm/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
     const { data, error } = await this.client.GET('/api/models/llm/{provider}', {
       params: {
-        path: { provider: provider as any },
+        path: { provider: provider as paths["/api/models/llm/{provider}"]["get"]["parameters"]["path"]["provider"] },
       },
     });
     if (error) {throw error;}

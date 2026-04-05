@@ -4,7 +4,7 @@ import {
   createSimpleFakeProvider,
   createStreamingFakeProvider,
   createToolCallingFakeProvider,
-  createFakeToolCall,
+  createFakeToolCall
 } from "../../src/providers/fake-provider.js";
 import type { ToolCall } from "../../src/providers/types.js";
 
@@ -29,7 +29,7 @@ describe("FakeProvider constructor", () => {
       toolCalls: [{ id: "1", name: "tool1", args: {} }],
       shouldStream: false,
       chunkSize: 20,
-      customResponseFn: fn,
+      customResponseFn: fn
     });
     expect(provider.textResponse).toBe("custom text");
     expect(provider.toolCalls).toHaveLength(1);
@@ -44,7 +44,7 @@ describe("FakeProvider.generateMessage", () => {
     const provider = new FakeProvider({ textResponse: "Hello!" });
     const result = await provider.generateMessage({
       messages: [{ role: "user", content: "Hi" }],
-      model: "fake-model",
+      model: "fake-model"
     });
     expect(result.role).toBe("assistant");
     expect(result.content).toEqual([{ type: "text", text: "Hello!" }]);
@@ -58,7 +58,7 @@ describe("FakeProvider.generateMessage", () => {
     const provider = new FakeProvider({ toolCalls: [tc] });
     const result = await provider.generateMessage({
       messages: [{ role: "user", content: "search" }],
-      model: "m",
+      model: "m"
     });
     expect(result.role).toBe("assistant");
     expect(result.content).toEqual([]);
@@ -67,23 +67,29 @@ describe("FakeProvider.generateMessage", () => {
 
   it("uses customResponseFn", async () => {
     const provider = new FakeProvider({
-      customResponseFn: (msgs, model) => `Model: ${model}, count: ${msgs.length}`,
+      customResponseFn: (msgs, model) =>
+        `Model: ${model}, count: ${msgs.length}`
     });
     const result = await provider.generateMessage({
-      messages: [{ role: "user", content: "a" }, { role: "user", content: "b" }],
-      model: "test-model",
+      messages: [
+        { role: "user", content: "a" },
+        { role: "user", content: "b" }
+      ],
+      model: "test-model"
     });
-    expect(result.content).toEqual([{ type: "text", text: "Model: test-model, count: 2" }]);
+    expect(result.content).toEqual([
+      { type: "text", text: "Model: test-model, count: 2" }
+    ]);
   });
 
   it("uses customResponseFn returning tool calls", async () => {
     const tc: ToolCall = { id: "c1", name: "fn", args: {} };
     const provider = new FakeProvider({
-      customResponseFn: () => [tc],
+      customResponseFn: () => [tc]
     });
     const result = await provider.generateMessage({
       messages: [{ role: "user", content: "x" }],
-      model: "m",
+      model: "m"
     });
     expect(result.toolCalls).toEqual([tc]);
     expect(result.content).toEqual([]);
@@ -94,7 +100,7 @@ describe("FakeProvider.generateMessage", () => {
     await provider.generateMessage({
       messages: [{ role: "user", content: "x" }],
       model: "m",
-      tools: [{ name: "t1", description: "desc" }],
+      tools: [{ name: "t1", description: "desc" }]
     });
     expect(provider.lastTools).toEqual([{ name: "t1", description: "desc" }]);
   });
@@ -105,12 +111,12 @@ describe("FakeProvider.generateMessages (streaming)", () => {
     const provider = new FakeProvider({
       textResponse: "Hello, world! This is a test.",
       shouldStream: true,
-      chunkSize: 10,
+      chunkSize: 10
     });
     const chunks: any[] = [];
     for await (const item of provider.generateMessages({
       messages: [{ role: "user", content: "hi" }],
-      model: "m",
+      model: "m"
     })) {
       chunks.push(item);
     }
@@ -124,12 +130,12 @@ describe("FakeProvider.generateMessages (streaming)", () => {
   it("yields single chunk when not streaming", async () => {
     const provider = new FakeProvider({
       textResponse: "Short",
-      shouldStream: false,
+      shouldStream: false
     });
     const chunks: any[] = [];
     for await (const item of provider.generateMessages({
       messages: [{ role: "user", content: "hi" }],
-      model: "m",
+      model: "m"
     })) {
       chunks.push(item);
     }
@@ -142,12 +148,12 @@ describe("FakeProvider.generateMessages (streaming)", () => {
     const provider = new FakeProvider({
       textResponse: "Hi",
       shouldStream: true,
-      chunkSize: 10,
+      chunkSize: 10
     });
     const chunks: any[] = [];
     for await (const item of provider.generateMessages({
       messages: [{ role: "user", content: "hi" }],
-      model: "m",
+      model: "m"
     })) {
       chunks.push(item);
     }
@@ -163,7 +169,7 @@ describe("FakeProvider.generateMessages (streaming)", () => {
     const items: any[] = [];
     for await (const item of provider.generateMessages({
       messages: [{ role: "user", content: "hi" }],
-      model: "m",
+      model: "m"
     })) {
       items.push(item);
     }
@@ -177,7 +183,7 @@ describe("FakeProvider.generateMessages (streaming)", () => {
     for await (const _ of provider.generateMessages({
       messages: [{ role: "user", content: "x" }],
       model: "m",
-      tools: [{ name: "t1" }],
+      tools: [{ name: "t1" }]
     })) {
       // consume
     }

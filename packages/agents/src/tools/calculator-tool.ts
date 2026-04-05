@@ -25,7 +25,7 @@ const MATH_SCOPE: Record<string, unknown> = {
   PI: Math.PI,
   E: Math.E,
   pi: Math.PI,
-  e: Math.E,
+  e: Math.E
 };
 
 export class CalculatorTool extends Tool {
@@ -36,15 +36,15 @@ export class CalculatorTool extends Tool {
     properties: {
       expression: {
         type: "string" as const,
-        description: "The mathematical expression to evaluate",
-      },
+        description: "The mathematical expression to evaluate"
+      }
     },
-    required: ["expression"],
+    required: ["expression"]
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const expression = params["expression"];
     if (typeof expression !== "string") {
@@ -53,14 +53,16 @@ export class CalculatorTool extends Tool {
 
     try {
       // Use Function constructor with a restricted scope
-       
+
       const fn = new Function(
         "scope",
-        `with(scope) { return (${expression}) }`,
+        `with(scope) { return (${expression}) }`
       );
       const result: unknown = fn(MATH_SCOPE);
       if (typeof result !== "number" || !isFinite(result)) {
-        return { error: `Expression did not evaluate to a finite number: ${String(result)}` };
+        return {
+          error: `Expression did not evaluate to a finite number: ${String(result)}`
+        };
       }
       return { result };
     } catch (e) {

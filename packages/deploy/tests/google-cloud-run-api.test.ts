@@ -8,11 +8,11 @@ const { mockExecAsync } = vi.hoisted(() => {
 // Mock child_process before importing the module under test
 vi.mock("node:child_process", () => ({
   exec: vi.fn(),
-  execFile: vi.fn(),
+  execFile: vi.fn()
 }));
 
 vi.mock("node:util", () => ({
-  promisify: () => mockExecAsync,
+  promisify: () => mockExecAsync
 }));
 
 import {
@@ -32,7 +32,7 @@ import {
   deleteCloudRunService,
   getCloudRunService,
   listCloudRunServices,
-  pushToGcr,
+  pushToGcr
 } from "../src/google-cloud-run-api.js";
 
 beforeEach(() => {
@@ -94,7 +94,10 @@ describe("listCloudRunMemory", () => {
 
 describe("checkGcloudAuth", () => {
   it("returns true when gcloud returns an active account", async () => {
-    mockExecAsync.mockResolvedValueOnce({ stdout: "user@example.com\n", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "user@example.com\n",
+      stderr: ""
+    });
     expect(await checkGcloudAuth()).toBe(true);
   });
 
@@ -116,23 +119,36 @@ describe("checkGcloudAuth", () => {
 describe("ensureGcloudAuth", () => {
   it("succeeds when gcloud is installed and authenticated", async () => {
     // --version succeeds
-    mockExecAsync.mockResolvedValueOnce({ stdout: "Google Cloud SDK 400.0.0", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "Google Cloud SDK 400.0.0",
+      stderr: ""
+    });
     // auth list succeeds
-    mockExecAsync.mockResolvedValueOnce({ stdout: "user@example.com\n", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "user@example.com\n",
+      stderr: ""
+    });
     await expect(ensureGcloudAuth()).resolves.toBeUndefined();
   });
 
   it("throws when gcloud is not installed", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("command not found"));
-    await expect(ensureGcloudAuth()).rejects.toThrow("gcloud CLI not installed");
+    await expect(ensureGcloudAuth()).rejects.toThrow(
+      "gcloud CLI not installed"
+    );
   });
 
   it("throws when not authenticated", async () => {
     // --version succeeds
-    mockExecAsync.mockResolvedValueOnce({ stdout: "Google Cloud SDK 400.0.0", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "Google Cloud SDK 400.0.0",
+      stderr: ""
+    });
     // auth list returns empty
     mockExecAsync.mockResolvedValueOnce({ stdout: "", stderr: "" });
-    await expect(ensureGcloudAuth()).rejects.toThrow("Not authenticated with Google Cloud");
+    await expect(ensureGcloudAuth()).rejects.toThrow(
+      "Not authenticated with Google Cloud"
+    );
   });
 });
 
@@ -172,18 +188,26 @@ describe("ensureProjectSet", () => {
   });
 
   it("falls back to default project when projectId is null", async () => {
-    mockExecAsync.mockResolvedValueOnce({ stdout: "default-project\n", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "default-project\n",
+      stderr: ""
+    });
     expect(await ensureProjectSet(null)).toBe("default-project");
   });
 
   it("falls back to default project when projectId is undefined", async () => {
-    mockExecAsync.mockResolvedValueOnce({ stdout: "default-project\n", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "default-project\n",
+      stderr: ""
+    });
     expect(await ensureProjectSet()).toBe("default-project");
   });
 
   it("throws when no project is configured", async () => {
     mockExecAsync.mockResolvedValueOnce({ stdout: "(unset)\n", stderr: "" });
-    await expect(ensureProjectSet(null)).rejects.toThrow("No Google Cloud project configured");
+    await expect(ensureProjectSet(null)).rejects.toThrow(
+      "No Google Cloud project configured"
+    );
   });
 });
 
@@ -194,7 +218,10 @@ describe("ensureProjectSet", () => {
 describe("ensureCloudRunPermissions", () => {
   it("grants run.admin and serviceAccountUser when no service account", async () => {
     // get account
-    mockExecAsync.mockResolvedValueOnce({ stdout: "user@example.com\n", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "user@example.com\n",
+      stderr: ""
+    });
     // grant roles/run.admin
     mockExecAsync.mockResolvedValueOnce({ stdout: "", stderr: "" });
     // grant roles/iam.serviceAccountUser
@@ -205,32 +232,47 @@ describe("ensureCloudRunPermissions", () => {
   });
 
   it("only grants run.admin when serviceAccount is provided", async () => {
-    mockExecAsync.mockResolvedValueOnce({ stdout: "user@example.com\n", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "user@example.com\n",
+      stderr: ""
+    });
     mockExecAsync.mockResolvedValueOnce({ stdout: "", stderr: "" });
 
-    await ensureCloudRunPermissions("my-project", "sa@proj.iam.gserviceaccount.com");
+    await ensureCloudRunPermissions(
+      "my-project",
+      "sa@proj.iam.gserviceaccount.com"
+    );
     expect(mockExecAsync).toHaveBeenCalledTimes(2);
   });
 
   it("warns when account is (unset)", async () => {
     mockExecAsync.mockResolvedValueOnce({ stdout: "(unset)\n", stderr: "" });
     await ensureCloudRunPermissions("my-project");
-    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Could not determine"));
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("Could not determine")
+    );
   });
 
   it("handles failure to get account gracefully", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("fail"));
     await ensureCloudRunPermissions("my-project");
-    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Could not auto-configure"));
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("Could not auto-configure")
+    );
   });
 
   it("handles permission granting failure gracefully", async () => {
-    mockExecAsync.mockResolvedValueOnce({ stdout: "user@example.com\n", stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: "user@example.com\n",
+      stderr: ""
+    });
     mockExecAsync.mockRejectedValueOnce(new Error("permission denied"));
     mockExecAsync.mockRejectedValueOnce(new Error("permission denied"));
 
     await ensureCloudRunPermissions("my-project");
-    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Could not grant"));
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("Could not grant")
+    );
   });
 });
 
@@ -252,7 +294,9 @@ describe("enableRequiredApis", () => {
     mockExecAsync.mockResolvedValueOnce({ stdout: "", stderr: "" });
 
     await enableRequiredApis("my-project");
-    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to enable"));
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("Failed to enable")
+    );
   });
 });
 
@@ -262,15 +306,29 @@ describe("enableRequiredApis", () => {
 
 describe("getCloudRunService", () => {
   it("returns parsed JSON when service exists", async () => {
-    const svc = { metadata: { name: "my-svc" }, status: { url: "https://my-svc.run.app" } };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(svc), stderr: "" });
-    const result = await getCloudRunService("my-svc", "us-central1", "my-project");
+    const svc = {
+      metadata: { name: "my-svc" },
+      status: { url: "https://my-svc.run.app" }
+    };
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(svc),
+      stderr: ""
+    });
+    const result = await getCloudRunService(
+      "my-svc",
+      "us-central1",
+      "my-project"
+    );
     expect(result).toEqual(svc);
   });
 
   it("returns null when service does not exist", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("not found"));
-    const result = await getCloudRunService("missing", "us-central1", "my-project");
+    const result = await getCloudRunService(
+      "missing",
+      "us-central1",
+      "my-project"
+    );
     expect(result).toBeNull();
   });
 });
@@ -281,8 +339,14 @@ describe("getCloudRunService", () => {
 
 describe("listCloudRunServices", () => {
   it("returns parsed array of services", async () => {
-    const services = [{ metadata: { name: "svc1" } }, { metadata: { name: "svc2" } }];
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(services), stderr: "" });
+    const services = [
+      { metadata: { name: "svc1" } },
+      { metadata: { name: "svc2" } }
+    ];
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(services),
+      stderr: ""
+    });
     const result = await listCloudRunServices("us-central1", "my-project");
     expect(result).toEqual(services);
     expect(result.length).toBe(2);
@@ -302,13 +366,21 @@ describe("listCloudRunServices", () => {
 describe("deleteCloudRunService", () => {
   it("returns true on successful deletion", async () => {
     mockExecAsync.mockResolvedValueOnce({ stdout: "", stderr: "" });
-    const result = await deleteCloudRunService("my-svc", "us-central1", "my-project");
+    const result = await deleteCloudRunService(
+      "my-svc",
+      "us-central1",
+      "my-project"
+    );
     expect(result).toBe(true);
   });
 
   it("returns false on failure", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("fail"));
-    const result = await deleteCloudRunService("my-svc", "us-central1", "my-project");
+    const result = await deleteCloudRunService(
+      "my-svc",
+      "us-central1",
+      "my-project"
+    );
     expect(result).toBe(false);
   });
 });
@@ -322,7 +394,7 @@ describe("deployToCloudRun", () => {
     serviceName: "test-svc",
     imageUrl: "gcr.io/my-project/test:latest",
     region: "us-central1",
-    projectId: "my-project",
+    projectId: "my-project"
   };
 
   it("creates a new service when none exists", async () => {
@@ -330,7 +402,10 @@ describe("deployToCloudRun", () => {
     mockExecAsync.mockRejectedValueOnce(new Error("not found"));
     // deploy succeeds
     const deployResult = { status: { url: "https://test-svc.run.app" } };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(deployResult), stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(deployResult),
+      stderr: ""
+    });
 
     const result = await deployToCloudRun(baseOptions);
     expect(result).toEqual(deployResult);
@@ -340,11 +415,14 @@ describe("deployToCloudRun", () => {
     // getCloudRunService succeeds
     mockExecAsync.mockResolvedValueOnce({
       stdout: JSON.stringify({ metadata: { name: "test-svc" } }),
-      stderr: "",
+      stderr: ""
     });
     // update succeeds
     const updateResult = { status: { url: "https://test-svc.run.app" } };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(updateResult), stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(updateResult),
+      stderr: ""
+    });
     // IAM binding for allowUnauthenticated (default true)
     mockExecAsync.mockResolvedValueOnce({ stdout: "", stderr: "" });
 
@@ -358,27 +436,38 @@ describe("deployToCloudRun", () => {
     // deploy fails
     mockExecAsync.mockRejectedValueOnce(new Error("quota exceeded"));
 
-    await expect(deployToCloudRun(baseOptions)).rejects.toThrow("Cloud Run deployment failed");
+    await expect(deployToCloudRun(baseOptions)).rejects.toThrow(
+      "Cloud Run deployment failed"
+    );
   });
 
   it("throws on update failure for existing service", async () => {
     // service exists
     mockExecAsync.mockResolvedValueOnce({
       stdout: JSON.stringify({ metadata: { name: "test-svc" } }),
-      stderr: "",
+      stderr: ""
     });
     // update fails
     mockExecAsync.mockRejectedValueOnce(new Error("quota exceeded"));
 
-    await expect(deployToCloudRun(baseOptions)).rejects.toThrow("Cloud Run update failed");
+    await expect(deployToCloudRun(baseOptions)).rejects.toThrow(
+      "Cloud Run update failed"
+    );
   });
 
   it("includes GPU flags when gpuType is set", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("not found"));
     const deployResult = { status: { url: "https://test-svc.run.app" } };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(deployResult), stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(deployResult),
+      stderr: ""
+    });
 
-    await deployToCloudRun({ ...baseOptions, gpuType: "nvidia-l4", gpuCount: 2 });
+    await deployToCloudRun({
+      ...baseOptions,
+      gpuType: "nvidia-l4",
+      gpuCount: 2
+    });
 
     const args = mockExecAsync.mock.calls[1][1] as string[];
     const cmdStr = args.join(" ");
@@ -390,9 +479,15 @@ describe("deployToCloudRun", () => {
   it("includes env vars flags when provided", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("not found"));
     const deployResult = { status: { url: "https://test-svc.run.app" } };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(deployResult), stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(deployResult),
+      stderr: ""
+    });
 
-    await deployToCloudRun({ ...baseOptions, envVars: { FOO: "bar", BAZ: "qux" } });
+    await deployToCloudRun({
+      ...baseOptions,
+      envVars: { FOO: "bar", BAZ: "qux" }
+    });
 
     const args = mockExecAsync.mock.calls[1][1] as string[];
     const cmdStr = args.join(" ");
@@ -404,7 +499,10 @@ describe("deployToCloudRun", () => {
   it("includes GCS bucket flags when provided", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("not found"));
     const deployResult = { status: {} };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(deployResult), stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(deployResult),
+      stderr: ""
+    });
 
     await deployToCloudRun({ ...baseOptions, gcsBucket: "my-bucket" });
 
@@ -418,9 +516,15 @@ describe("deployToCloudRun", () => {
   it("includes service account flag when provided", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("not found"));
     const deployResult = { status: {} };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(deployResult), stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(deployResult),
+      stderr: ""
+    });
 
-    await deployToCloudRun({ ...baseOptions, serviceAccount: "sa@proj.iam.gserviceaccount.com" });
+    await deployToCloudRun({
+      ...baseOptions,
+      serviceAccount: "sa@proj.iam.gserviceaccount.com"
+    });
 
     const args = mockExecAsync.mock.calls[1][1] as string[];
     const cmdStr = args.join(" ");
@@ -431,7 +535,10 @@ describe("deployToCloudRun", () => {
   it("includes --allow-unauthenticated for new service when enabled", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("not found"));
     const deployResult = { status: {} };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(deployResult), stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(deployResult),
+      stderr: ""
+    });
 
     await deployToCloudRun({ ...baseOptions, allowUnauthenticated: true });
 
@@ -443,7 +550,10 @@ describe("deployToCloudRun", () => {
   it("does NOT include --allow-unauthenticated for new service when disabled", async () => {
     mockExecAsync.mockRejectedValueOnce(new Error("not found"));
     const deployResult = { status: {} };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(deployResult), stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(deployResult),
+      stderr: ""
+    });
 
     await deployToCloudRun({ ...baseOptions, allowUnauthenticated: false });
 
@@ -455,10 +565,13 @@ describe("deployToCloudRun", () => {
   it("silently handles IAM binding failure on update", async () => {
     mockExecAsync.mockResolvedValueOnce({
       stdout: JSON.stringify({ metadata: { name: "test-svc" } }),
-      stderr: "",
+      stderr: ""
     });
     const updateResult = { status: { url: "https://test-svc.run.app" } };
-    mockExecAsync.mockResolvedValueOnce({ stdout: JSON.stringify(updateResult), stderr: "" });
+    mockExecAsync.mockResolvedValueOnce({
+      stdout: JSON.stringify(updateResult),
+      stderr: ""
+    });
     // IAM binding fails
     mockExecAsync.mockRejectedValueOnce(new Error("already bound"));
 
@@ -502,7 +615,9 @@ describe("pushToGcr", () => {
       "my-project",
       "us-central1-docker.pkg.dev"
     );
-    expect(url).toBe("us-central1-docker.pkg.dev/my-project/nodetool/my-image:v1");
+    expect(url).toBe(
+      "us-central1-docker.pkg.dev/my-project/nodetool/my-image:v1"
+    );
   });
 
   it("handles existing Artifact Registry repo gracefully", async () => {
@@ -517,8 +632,15 @@ describe("pushToGcr", () => {
     // docker push
     mockExecAsync.mockResolvedValueOnce({ stdout: "", stderr: "" });
 
-    const url = await pushToGcr("my-image", "v1", "my-project", "us-central1-docker.pkg.dev");
-    expect(url).toBe("us-central1-docker.pkg.dev/my-project/nodetool/my-image:v1");
+    const url = await pushToGcr(
+      "my-image",
+      "v1",
+      "my-project",
+      "us-central1-docker.pkg.dev"
+    );
+    expect(url).toBe(
+      "us-central1-docker.pkg.dev/my-project/nodetool/my-image:v1"
+    );
   });
 
   it("throws when Docker auth configuration fails", async () => {
@@ -536,6 +658,8 @@ describe("pushToGcr", () => {
     // docker tag fails
     mockExecAsync.mockRejectedValueOnce(new Error("no such image"));
 
-    await expect(pushToGcr("img", "v1", "proj")).rejects.toThrow("Failed to push image");
+    await expect(pushToGcr("img", "v1", "proj")).rejects.toThrow(
+      "Failed to push image"
+    );
   });
 });

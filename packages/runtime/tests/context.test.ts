@@ -11,11 +11,15 @@ import {
   S3StorageAdapter,
   resolveWorkspacePath,
   type S3Client,
-  type MessageCreateRequestLike,
+  type MessageCreateRequestLike
 } from "../src/context.js";
 import type { ProcessingMessage, NodeUpdate } from "@nodetool/protocol";
 import { BaseProvider } from "../src/providers/base-provider.js";
-import type { Message, ProviderStreamItem, StreamingAudioChunk } from "../src/providers/types.js";
+import type {
+  Message,
+  ProviderStreamItem,
+  StreamingAudioChunk
+} from "../src/providers/types.js";
 import { registerProvider } from "../src/providers/provider-registry.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -32,7 +36,7 @@ describe("ProcessingContext – message queue", () => {
       node_id: "n1",
       node_name: "Test",
       node_type: "test.Test",
-      status: "running",
+      status: "running"
     };
     ctx.emit(msg);
 
@@ -44,12 +48,12 @@ describe("ProcessingContext – message queue", () => {
     const received: ProcessingMessage[] = [];
     const ctx = new ProcessingContext({
       jobId: "j1",
-      onMessage: (msg) => received.push(msg),
+      onMessage: (msg) => received.push(msg)
     });
 
     ctx.emit({
       type: "job_update",
-      status: "running",
+      status: "running"
     });
 
     expect(received).toHaveLength(1);
@@ -74,7 +78,10 @@ describe("ProcessingContext – message queue", () => {
 
     const waiter = ctx.popMessageAsync();
     ctx.emit({ type: "job_update", status: "completed" });
-    await expect(waiter).resolves.toMatchObject({ type: "job_update", status: "completed" });
+    await expect(waiter).resolves.toMatchObject({
+      type: "job_update",
+      status: "completed"
+    });
   });
 
   it("tracks latest node and edge statuses", () => {
@@ -84,16 +91,22 @@ describe("ProcessingContext – message queue", () => {
       node_id: "n1",
       node_name: "Test",
       node_type: "test.Node",
-      status: "running",
+      status: "running"
     });
     ctx.emit({
       type: "edge_update",
       workflow_id: "w1",
       edge_id: "e1",
-      status: "active",
+      status: "active"
     });
-    expect(ctx.getNodeStatuses().n1).toMatchObject({ type: "node_update", status: "running" });
-    expect(ctx.getEdgeStatuses().e1).toMatchObject({ type: "edge_update", status: "active" });
+    expect(ctx.getNodeStatuses().n1).toMatchObject({
+      type: "node_update",
+      status: "running"
+    });
+    expect(ctx.getEdgeStatuses().e1).toMatchObject({
+      type: "edge_update",
+      status: "active"
+    });
   });
 
   it("supports Python-style message queue aliases", async () => {
@@ -102,7 +115,7 @@ describe("ProcessingContext – message queue", () => {
     expect(ctx.getMessages()).toHaveLength(1);
     await expect(ctx.pop_message_async()).resolves.toMatchObject({
       type: "job_update",
-      status: "running",
+      status: "running"
     });
     ctx.postMessage({ type: "job_update", status: "completed" });
     ctx.clear_messages();
@@ -114,12 +127,12 @@ describe("ProcessingContext – Python model interfaces", () => {
   it("supports get_job via configured model interfaces", async () => {
     const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
     ctx.setModelInterfaces({
-      getJob: async ({ userId, jobId }) => ({ id: jobId, user_id: userId }),
+      getJob: async ({ userId, jobId }) => ({ id: jobId, user_id: userId })
     });
 
     await expect(ctx.get_job("job-123")).resolves.toEqual({
       id: "job-123",
-      user_id: "u1",
+      user_id: "u1"
     });
   });
 
@@ -138,34 +151,36 @@ describe("ProcessingContext – Python model interfaces", () => {
             thread_id: threadId,
             user_id: userId,
             role: "user",
-            content: "hello",
-          },
+            content: "hello"
+          }
         ],
-        next: startKey ?? (reverse ? "rev" : limit ? `limit:${limit}` : null),
-      }),
+        next: startKey ?? (reverse ? "rev" : limit ? `limit:${limit}` : null)
+      })
     });
 
     await expect(
       ctx.create_message({
         thread_id: "t1",
         role: "user",
-        content: "hello",
+        content: "hello"
       })
     ).resolves.toMatchObject({ id: "m1", thread_id: "t1" });
     expect(created).toHaveLength(1);
 
-    await expect(ctx.get_messages("t1", 25, "cursor-1", true)).resolves.toEqual({
-      messages: [
-        {
-          id: "m1",
-          thread_id: "t1",
-          user_id: "u1",
-          role: "user",
-          content: "hello",
-        },
-      ],
-      next: "cursor-1",
-    });
+    await expect(ctx.get_messages("t1", 25, "cursor-1", true)).resolves.toEqual(
+      {
+        messages: [
+          {
+            id: "m1",
+            thread_id: "t1",
+            user_id: "u1",
+            role: "user",
+            content: "hello"
+          }
+        ],
+        next: "cursor-1"
+      }
+    );
   });
 
   it("supports create_asset and Python-style aliases", async () => {
@@ -180,16 +195,16 @@ describe("ProcessingContext – Python model interfaces", () => {
           size: args.content.byteLength,
           user_id: args.userId,
           workflow_id: args.workflowId,
-          job_id: args.jobId,
-        }),
-      },
+          job_id: args.jobId
+        })
+      }
     });
 
     await expect(
       ctx.create_asset({
         name: "out.txt",
         contentType: "text/plain",
-        content: new Uint8Array([1, 2, 3]),
+        content: new Uint8Array([1, 2, 3])
       })
     ).resolves.toEqual({
       id: "a1",
@@ -197,7 +212,7 @@ describe("ProcessingContext – Python model interfaces", () => {
       size: 3,
       user_id: "u1",
       workflow_id: "w1",
-      job_id: "j1",
+      job_id: "j1"
     });
   });
 
@@ -207,7 +222,9 @@ describe("ProcessingContext – Python model interfaces", () => {
     await expect(
       ctx.create_message({ thread_id: "t1", role: "user", content: "hello" })
     ).rejects.toThrow("model interface 'createMessage'");
-    await expect(ctx.get_messages("t1")).rejects.toThrow("model interface 'getMessages'");
+    await expect(ctx.get_messages("t1")).rejects.toThrow(
+      "model interface 'getMessages'"
+    );
   });
 
   it("copies model interfaces and Python aliases", async () => {
@@ -215,8 +232,8 @@ describe("ProcessingContext – Python model interfaces", () => {
       jobId: "j1",
       userId: "u1",
       modelInterfaces: {
-        getJob: async ({ jobId }) => ({ id: jobId }),
-      },
+        getJob: async ({ jobId }) => ({ id: jobId })
+      }
     });
 
     const cloned = ctx.copy();
@@ -262,7 +279,9 @@ describe("MemoryCache", () => {
 
 describe("ProcessingContext.sanitizeForClient", () => {
   it("does not rewrite plain memory:// strings", () => {
-    expect(ProcessingContext.sanitizeForClient("memory://abc")).toBe("memory://abc");
+    expect(ProcessingContext.sanitizeForClient("memory://abc")).toBe(
+      "memory://abc"
+    );
   });
 
   it("preserves normal strings", () => {
@@ -272,19 +291,16 @@ describe("ProcessingContext.sanitizeForClient", () => {
   it("sanitizes nested objects", () => {
     const result = ProcessingContext.sanitizeForClient({
       url: "memory://img1",
-      name: "test",
+      name: "test"
     });
     expect(result).toEqual({
       url: "memory://img1",
-      name: "test",
+      name: "test"
     });
   });
 
   it("sanitizes arrays", () => {
-    const result = ProcessingContext.sanitizeForClient([
-      "memory://a",
-      "safe",
-    ]);
+    const result = ProcessingContext.sanitizeForClient(["memory://a", "safe"]);
     expect(result).toEqual(["memory://a", "safe"]);
   });
 
@@ -299,14 +315,14 @@ describe("ProcessingContext.sanitizeForClient", () => {
       type: "ImageRef",
       uri: "memory://img-1",
       data: "base64-data",
-      meta: { nested: { type: "TextRef", uri: "memory://txt-1", data: "x" } },
+      meta: { nested: { type: "TextRef", uri: "memory://txt-1", data: "x" } }
     };
     const result = ProcessingContext.sanitizeForClient(value);
     expect(result).toEqual({
       type: "ImageRef",
       uri: "",
       data: "base64-data",
-      meta: { nested: { type: "TextRef", uri: "", data: "x" } },
+      meta: { nested: { type: "TextRef", uri: "", data: "x" } }
     });
   });
 
@@ -315,14 +331,14 @@ describe("ProcessingContext.sanitizeForClient", () => {
       type: "ImageRef",
       uri: "memory://img-1",
       data: null,
-      asset_id: "a123",
+      asset_id: "a123"
     };
     const result = ProcessingContext.sanitizeForClient(value);
     expect(result).toEqual({
       type: "ImageRef",
       uri: "asset://a123",
       data: null,
-      asset_id: "a123",
+      asset_id: "a123"
     });
   });
 });
@@ -330,7 +346,10 @@ describe("ProcessingContext.sanitizeForClient", () => {
 describe("Storage adapters", () => {
   it("InMemoryStorageAdapter stores and retrieves bytes", async () => {
     const storage = new InMemoryStorageAdapter();
-    const uri = await storage.store("assets/test.txt", new Uint8Array([1, 2, 3]));
+    const uri = await storage.store(
+      "assets/test.txt",
+      new Uint8Array([1, 2, 3])
+    );
 
     expect(uri).toBe("memory://assets/test.txt");
     expect(await storage.exists(uri)).toBe(true);
@@ -367,9 +386,9 @@ describe("Storage adapters", () => {
     const root = await mkdtemp(join(tmpdir(), "nodetool-ts-runtime-"));
     try {
       const storage = new FileStorageAdapter(root);
-      await expect(storage.store("../escape.txt", new Uint8Array([1]))).rejects.toThrow(
-        "Invalid storage key"
-      );
+      await expect(
+        storage.store("../escape.txt", new Uint8Array([1]))
+      ).rejects.toThrow("Invalid storage key");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -386,13 +405,13 @@ describe("Storage adapters", () => {
       },
       async headObject(input) {
         return store.has(`${input.bucket}/${input.key}`);
-      },
+      }
     };
 
     const storage = new S3StorageAdapter({
       bucket: "test-bucket",
       prefix: "runs/r1",
-      client,
+      client
     });
     const uri = await storage.store(
       "assets/out.bin",
@@ -413,7 +432,7 @@ describe("Storage adapters", () => {
       },
       async headObject() {
         return true;
-      },
+      }
     };
 
     const storage = new S3StorageAdapter({ bucket: "bucket-a", client });
@@ -449,7 +468,7 @@ describe("workspace path resolution", () => {
   it("context.resolveWorkspacePath delegates to helper", () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
-      workspaceDir: "/tmp/nodetool-workspace",
+      workspaceDir: "/tmp/nodetool-workspace"
     });
     expect(ctx.resolveWorkspacePath("workspace/out.json")).toBe(
       "/tmp/nodetool-workspace/out.json"
@@ -459,19 +478,24 @@ describe("workspace path resolution", () => {
 
 describe("output normalization", () => {
   it("materializes asset refs as data URIs", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = {
       image: {
         type: "ImageRef",
         uri: "memory://img",
-        data: Buffer.from("hello").toString("base64"),
-      },
+        data: Buffer.from("hello").toString("base64")
+      }
     };
 
     const normalized = (await ctx.normalizeOutputValue(value)) as {
       image: { uri: string };
     };
-    expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(true);
+    expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(
+      true
+    );
   });
 
   it("materializes asset refs to storage URLs via adapter", async () => {
@@ -479,14 +503,14 @@ describe("output normalization", () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
       assetOutputMode: "storage_url",
-      storage,
+      storage
     });
     const value = {
       image: {
         type: "ImageRef",
         uri: "memory://img",
-        data: Buffer.from("hello").toString("base64"),
-      },
+        data: Buffer.from("hello").toString("base64")
+      }
     };
 
     const normalized = (await ctx.normalizeOutputValue(value)) as {
@@ -503,14 +527,14 @@ describe("output normalization", () => {
       jobId: "j1",
       assetOutputMode: "temp_url",
       storage,
-      tempUrlResolver: (uri) => `https://temp.local/${encodeURIComponent(uri)}`,
+      tempUrlResolver: (uri) => `https://temp.local/${encodeURIComponent(uri)}`
     });
     const value = {
       image: {
         type: "ImageRef",
         uri: "memory://img",
-        data: Buffer.from("hello").toString("base64"),
-      },
+        data: Buffer.from("hello").toString("base64")
+      }
     };
 
     const normalized = (await ctx.normalizeOutputValue(value)) as {
@@ -526,14 +550,14 @@ describe("output normalization", () => {
       const ctx = new ProcessingContext({
         jobId: "j1",
         assetOutputMode: "workspace",
-        workspaceDir: root,
+        workspaceDir: root
       });
       const value = {
         image: {
           type: "ImageRef",
           uri: "memory://img",
-          data: Buffer.from("hello").toString("base64"),
-        },
+          data: Buffer.from("hello").toString("base64")
+        }
       };
 
       const normalized = (await ctx.normalizeOutputValue(value)) as {
@@ -554,16 +578,23 @@ describe("FileStorageAdapter", () => {
     const dir = await mkdtemp(join(tmpdir(), "nodetool-storage-"));
     try {
       const storage = new FileStorageAdapter(dir);
-      const storedUri = await storage.store("asset-123.png", new Uint8Array([1, 2, 3]));
+      const storedUri = await storage.store(
+        "asset-123.png",
+        new Uint8Array([1, 2, 3])
+      );
       expect(storedUri.startsWith("file://")).toBe(true);
 
       const fromRelative = await storage.retrieve("/api/storage/asset-123.png");
-      expect(Uint8Array.from(fromRelative ?? [])).toEqual(new Uint8Array([1, 2, 3]));
+      expect(Uint8Array.from(fromRelative ?? [])).toEqual(
+        new Uint8Array([1, 2, 3])
+      );
 
       const fromAbsolute = await storage.retrieve(
-        "http://127.0.0.1:7777/api/storage/asset-123.png",
+        "http://127.0.0.1:7777/api/storage/asset-123.png"
       );
-      expect(Uint8Array.from(fromAbsolute ?? [])).toEqual(new Uint8Array([1, 2, 3]));
+      expect(Uint8Array.from(fromAbsolute ?? [])).toEqual(
+        new Uint8Array([1, 2, 3])
+      );
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -575,14 +606,18 @@ describe("ProcessingContext – asset helper methods", () => {
     image: {
       type: "ImageRef",
       uri: "memory://img",
-      data: Buffer.from("hello").toString("base64"),
-    },
+      data: Buffer.from("hello").toString("base64")
+    }
   };
 
   it("assetsToDataUri converts assets to data URIs", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
-    const normalized = (await ctx.assetsToDataUri(assetValue)) as { image: { uri: string } };
-    expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(true);
+    const normalized = (await ctx.assetsToDataUri(assetValue)) as {
+      image: { uri: string };
+    };
+    expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(
+      true
+    );
   });
 
   it("assetsToStorageUrl converts assets to stored URIs", async () => {
@@ -600,7 +635,7 @@ describe("ProcessingContext – asset helper methods", () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
       storage,
-      tempUrlResolver: (uri) => `https://temp.local/${encodeURIComponent(uri)}`,
+      tempUrlResolver: (uri) => `https://temp.local/${encodeURIComponent(uri)}`
     });
     const normalized = (await ctx.uploadAssetsToTemp(assetValue)) as {
       image: { uri: string; data?: unknown };
@@ -629,7 +664,7 @@ class MockProvider extends BaseProvider {
   }): Promise<Message> {
     return {
       role: "assistant",
-      content: "mock-generated-message",
+      content: "mock-generated-message"
     };
   }
 
@@ -667,7 +702,7 @@ describe("ProcessingContext – variables and secrets", () => {
       const ctx = new ProcessingContext({
         jobId: "j1",
         workspaceDir: root,
-        variables: { existing: 1 },
+        variables: { existing: 1 }
       });
 
       expect(ctx.get("existing", 0)).toBe(1);
@@ -677,7 +712,9 @@ describe("ProcessingContext – variables and secrets", () => {
       const outPath = await ctx.storeStepResult("step_a", { n: 42 });
       expect(outPath.endsWith("step_a.json")).toBe(true);
       await expect(ctx.loadStepResult("step_a")).resolves.toEqual({ n: 42 });
-      await expect(readFile(join(root, "var_new_key.json"), "utf8")).resolves.toContain('"ok": true');
+      await expect(
+        readFile(join(root, "var_new_key.json"), "utf8")
+      ).resolves.toContain('"ok": true');
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -686,13 +723,18 @@ describe("ProcessingContext – variables and secrets", () => {
   it("supports getSecret/getSecretRequired", async () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
-      secretResolver: async (key) => (key === "OPENAI_API_KEY" ? "secret-value" : null),
+      secretResolver: async (key) =>
+        key === "OPENAI_API_KEY" ? "secret-value" : null
     });
 
     await expect(ctx.getSecret("OPENAI_API_KEY")).resolves.toBe("secret-value");
     await expect(ctx.getSecret("MISSING")).resolves.toBeNull();
-    await expect(ctx.getSecretRequired("OPENAI_API_KEY")).resolves.toBe("secret-value");
-    await expect(ctx.getSecretRequired("MISSING")).rejects.toThrow("Missing required secret: MISSING");
+    await expect(ctx.getSecretRequired("OPENAI_API_KEY")).resolves.toBe(
+      "secret-value"
+    );
+    await expect(ctx.getSecretRequired("MISSING")).rejects.toThrow(
+      "Missing required secret: MISSING"
+    );
   });
 });
 
@@ -707,20 +749,22 @@ describe("ProcessingContext – HTTP helpers", () => {
           return new Response("retry", { status: 503 });
         }
         return new Response("hello", { status: 200 });
-      },
+      }
     });
 
     const response = await ctx.httpGet("https://example.com", {
-      retry: { maxRetries: 2, backoffMs: 1 },
+      retry: { maxRetries: 2, backoffMs: 1 }
     });
     expect(response.status).toBe(200);
     expect(calls).toBe(2);
 
     const bytes = await ctx.downloadFile("https://example.com/file", {
-      retry: { maxRetries: 1, backoffMs: 1 },
+      retry: { maxRetries: 1, backoffMs: 1 }
     });
     expect(new TextDecoder().decode(bytes)).toBe("hello");
-    await expect(ctx.downloadText("https://example.com/text")).resolves.toBe("hello");
+    await expect(ctx.downloadText("https://example.com/text")).resolves.toBe(
+      "hello"
+    );
   });
 });
 
@@ -734,14 +778,20 @@ describe("ProcessingContext – provider prediction pipeline", () => {
       capability: "generate_message",
       model: "m1",
       nodeId: "n1",
-      params: { messages: [{ role: "user", content: "hi" }] },
+      params: { messages: [{ role: "user", content: "hi" }] }
     });
 
     expect((out as Message).content).toBe("mock-generated-message");
-    const predictionMessages = ctx.getMessages().filter((m) => m.type === "prediction");
+    const predictionMessages = ctx
+      .getMessages()
+      .filter((m) => m.type === "prediction");
     expect(predictionMessages).toHaveLength(2);
-    expect((predictionMessages[0] as { status: string }).status).toBe("running");
-    expect((predictionMessages[1] as { status: string }).status).toBe("completed");
+    expect((predictionMessages[0] as { status: string }).status).toBe(
+      "running"
+    );
+    expect((predictionMessages[1] as { status: string }).status).toBe(
+      "completed"
+    );
   });
 
   it("streams provider capability and emits lifecycle updates", async () => {
@@ -753,15 +803,19 @@ describe("ProcessingContext – provider prediction pipeline", () => {
       provider: "mock",
       capability: "generate_messages",
       model: "m1",
-      params: { messages: [{ role: "user", content: "hi" }] },
+      params: { messages: [{ role: "user", content: "hi" }] }
     })) {
       chunks.push(item as ProviderStreamItem);
     }
 
     expect(chunks).toHaveLength(2);
-    const predictionMessages = ctx.getMessages().filter((m) => m.type === "prediction");
+    const predictionMessages = ctx
+      .getMessages()
+      .filter((m) => m.type === "prediction");
     expect(predictionMessages).toHaveLength(2);
-    expect((predictionMessages[1] as { status: string }).status).toBe("completed");
+    expect((predictionMessages[1] as { status: string }).status).toBe(
+      "completed"
+    );
   });
 });
 
@@ -773,7 +827,7 @@ describe("ProcessingContext – copy and cost tracking", () => {
       userId: "u1",
       variables: { x: 1 },
       environment: { APP_ENV: "test" },
-      secretResolver: async () => "s",
+      secretResolver: async () => "s"
     });
     ctx.registerProvider("mock", new MockProvider());
     ctx.trackOperationCost("op1", 1.25);
@@ -785,7 +839,9 @@ describe("ProcessingContext – copy and cost tracking", () => {
     expect(cloned.get("x")).toBe(1);
     expect(cloned.environment.APP_ENV).toBe("test");
     await expect(cloned.getSecretRequired("any")).resolves.toBe("s");
-    await expect(cloned.getProvider("mock")).resolves.toBeInstanceOf(MockProvider);
+    await expect(cloned.getProvider("mock")).resolves.toBeInstanceOf(
+      MockProvider
+    );
     expect(cloned.getTotalCost()).toBeCloseTo(1.25);
   });
 
@@ -795,7 +851,10 @@ describe("ProcessingContext – copy and cost tracking", () => {
     ctx.addToTotalCost(0.2);
     expect(ctx.getTotalCost()).toBeCloseTo(0.7);
     expect(ctx.getOperationCosts()).toHaveLength(1);
-    expect(ctx.getOperationCosts()[0]).toMatchObject({ operation: "tokens", provider: "openai" });
+    expect(ctx.getOperationCosts()[0]).toMatchObject({
+      operation: "tokens",
+      provider: "openai"
+    });
     ctx.resetTotalCost();
     expect(ctx.getTotalCost()).toBe(0);
     expect(ctx.getOperationCosts()).toHaveLength(0);
@@ -811,7 +870,9 @@ describe("ProcessingContext – node result cache helpers", () => {
     expect(k1).toBe(k2);
 
     await ctx.cacheResult("nodetool.test.Node", props, { out: 123 }, 60);
-    await expect(ctx.getCachedResult("nodetool.test.Node", props)).resolves.toEqual({ out: 123 });
+    await expect(
+      ctx.getCachedResult("nodetool.test.Node", props)
+    ).resolves.toEqual({ out: 123 });
   });
 });
 
@@ -845,10 +906,15 @@ describe("ProcessingContext – setTempUrlResolver", () => {
     const value = {
       type: "ImageRef",
       uri: "memory://img",
-      data: Buffer.from("hello").toString("base64"),
+      data: Buffer.from("hello").toString("base64")
     };
-    const result = (await ctx.normalizeOutputValue(value, "temp_url")) as Record<string, unknown>;
-    expect((result.uri as string).startsWith("https://cdn.example.com/")).toBe(true);
+    const result = (await ctx.normalizeOutputValue(
+      value,
+      "temp_url"
+    )) as Record<string, unknown>;
+    expect((result.uri as string).startsWith("https://cdn.example.com/")).toBe(
+      true
+    );
   });
 });
 
@@ -860,7 +926,7 @@ describe("ProcessingContext – HTTP method variants", () => {
       fetchFn: async (_url, init) => {
         capturedMethod = (init as RequestInit).method ?? "";
         return new Response("ok", { status: 200 });
-      },
+      }
     });
     await ctx.httpPost("https://example.com/api");
     expect(capturedMethod).toBe("POST");
@@ -873,7 +939,7 @@ describe("ProcessingContext – HTTP method variants", () => {
       fetchFn: async (_url, init) => {
         capturedMethod = (init as RequestInit).method ?? "";
         return new Response("ok", { status: 200 });
-      },
+      }
     });
     await ctx.httpPatch("https://example.com/api");
     expect(capturedMethod).toBe("PATCH");
@@ -886,7 +952,7 @@ describe("ProcessingContext – HTTP method variants", () => {
       fetchFn: async (_url, init) => {
         capturedMethod = (init as RequestInit).method ?? "";
         return new Response("ok", { status: 200 });
-      },
+      }
     });
     await ctx.httpDelete("https://example.com/api");
     expect(capturedMethod).toBe("DELETE");
@@ -899,7 +965,7 @@ describe("ProcessingContext – HTTP method variants", () => {
       fetchFn: async (_url, init) => {
         capturedMethod = (init as RequestInit).method ?? "";
         return new Response("ok", { status: 200 });
-      },
+      }
     });
     await ctx.httpPut("https://example.com/api");
     expect(capturedMethod).toBe("PUT");
@@ -912,7 +978,7 @@ describe("ProcessingContext – HTTP method variants", () => {
       fetchFn: async (_url, init) => {
         capturedMethod = (init as RequestInit).method ?? "";
         return new Response("ok", { status: 200 });
-      },
+      }
     });
     await ctx.httpHead("https://example.com/api");
     expect(capturedMethod).toBe("HEAD");
@@ -925,7 +991,7 @@ describe("ProcessingContext – HTTP method variants", () => {
       fetchFn: async (_url, init) => {
         capturedMethod = (init as RequestInit).method ?? "";
         return new Response("ok", { status: 200 });
-      },
+      }
     });
     await ctx.httpGet("https://example.com/api");
     expect(capturedMethod).toBe("GET");
@@ -938,7 +1004,7 @@ describe("ProcessingContext – HTTP method variants", () => {
       fetchFn: async (_url, init) => {
         capturedHeaders = (init as any).headers ?? {};
         return new Response("ok", { status: 200 });
-      },
+      }
     });
     await ctx.httpGet("https://example.com/api");
     expect(capturedHeaders["User-Agent"]).toBe("nodetool-ts-runtime/0.1");
@@ -954,14 +1020,14 @@ describe("ProcessingContext – HTTP method variants", () => {
         if (callCount === 1) {
           return new Response("busy", {
             status: 429,
-            headers: { "Retry-After": "not-a-number" },
+            headers: { "Retry-After": "not-a-number" }
           });
         }
         return new Response("ok", { status: 200 });
-      },
+      }
     });
     const resp = await ctx.httpGet("https://example.com", {
-      retry: { maxRetries: 2, backoffMs: 1 },
+      retry: { maxRetries: 2, backoffMs: 1 }
     });
     expect(callCount).toBe(2);
     expect(resp.status).toBe(200);
@@ -972,10 +1038,12 @@ describe("ProcessingContext – HTTP method variants", () => {
       jobId: "j1",
       fetchFn: async () => {
         throw "string-error";
-      },
+      }
     });
     await expect(
-      ctx.httpGet("https://example.com", { retry: { maxRetries: 1, backoffMs: 1 } })
+      ctx.httpGet("https://example.com", {
+        retry: { maxRetries: 1, backoffMs: 1 }
+      })
     ).rejects.toThrow(/HTTP request failed/);
   });
 });
@@ -1007,7 +1075,7 @@ describe("ProcessingContext – provider prediction error handling", () => {
       ctx.runProviderPrediction({
         provider: "fail",
         capability: "generate_message",
-        model: "m",
+        model: "m"
       })
     ).rejects.toThrow("provider failure");
     const predMsgs = ctx.getMessages().filter((m) => m.type === "prediction");
@@ -1021,7 +1089,7 @@ describe("ProcessingContext – provider prediction error handling", () => {
       for await (const _ of ctx.streamProviderPrediction({
         provider: "mock",
         capability: "text_to_image" as any,
-        model: "m",
+        model: "m"
       })) {
         // consume
       }
@@ -1038,7 +1106,7 @@ describe("ProcessingContext – provider prediction error handling", () => {
       provider: "mock",
       capability: "text_to_speech",
       model: "m",
-      params: { text: "hello" },
+      params: { text: "hello" }
     })) {
       items.push(item);
     }
@@ -1059,7 +1127,7 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       provider: "img",
       capability: "text_to_image",
       model: "m",
-      params: { prompt: "cat" },
+      params: { prompt: "cat" }
     });
     expect(result).toEqual(new Uint8Array([1, 2, 3]));
   });
@@ -1076,7 +1144,7 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       provider: "i2i",
       capability: "image_to_image",
       model: "m",
-      params: { image: new Uint8Array([1]), prompt: "style" },
+      params: { image: new Uint8Array([1]), prompt: "style" }
     });
     expect(result).toEqual(new Uint8Array([4, 5]));
   });
@@ -1093,7 +1161,7 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       provider: "vid",
       capability: "text_to_video",
       model: "m",
-      params: { prompt: "cat running" },
+      params: { prompt: "cat running" }
     });
     expect(result).toEqual(new Uint8Array([6]));
   });
@@ -1110,7 +1178,7 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       provider: "i2v",
       capability: "image_to_video",
       model: "m",
-      params: { image: new Uint8Array([1]) },
+      params: { image: new Uint8Array([1]) }
     });
     expect(result).toEqual(new Uint8Array([7]));
   });
@@ -1127,7 +1195,7 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       provider: "asr",
       capability: "automatic_speech_recognition",
       model: "m",
-      params: { audio: new Uint8Array([1]) },
+      params: { audio: new Uint8Array([1]) }
     });
     expect(result).toBe("recognized text");
   });
@@ -1144,7 +1212,7 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       provider: "embed",
       capability: "generate_embedding",
       model: "m",
-      params: { text: "hello" },
+      params: { text: "hello" }
     });
     expect(result).toEqual([[0.1, 0.2]]);
   });
@@ -1156,7 +1224,7 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       ctx.runProviderPrediction({
         provider: "mock",
         capability: "text_to_speech" as any,
-        model: "m",
+        model: "m"
       })
     ).rejects.toThrow(/requires streaming/);
   });
@@ -1194,15 +1262,21 @@ describe("ProcessingContext – loadStepResult edge cases", () => {
 
 describe("ProcessingContext – workspace path errors", () => {
   it("throws when workspace is null", () => {
-    expect(() => resolveWorkspacePath(null, "file.txt")).toThrow("No workspace is assigned");
+    expect(() => resolveWorkspacePath(null, "file.txt")).toThrow(
+      "No workspace is assigned"
+    );
   });
 
   it("throws when workspace is empty string", () => {
-    expect(() => resolveWorkspacePath("", "file.txt")).toThrow("Workspace directory is required");
+    expect(() => resolveWorkspacePath("", "file.txt")).toThrow(
+      "Workspace directory is required"
+    );
   });
 
   it("handles workspace/ prefix (no leading slash)", () => {
-    expect(resolveWorkspacePath("/tmp/ws", "workspace/foo.txt")).toBe("/tmp/ws/foo.txt");
+    expect(resolveWorkspacePath("/tmp/ws", "workspace/foo.txt")).toBe(
+      "/tmp/ws/foo.txt"
+    );
   });
 
   it("handles absolute paths as workspace-relative", () => {
@@ -1215,8 +1289,12 @@ describe("ProcessingContext – S3 parseUri edge cases", () => {
   it("returns null for s3 uri with no key", async () => {
     const client: S3Client = {
       async putObject() {},
-      async getObject() { return null; },
-      async headObject() { return false; },
+      async getObject() {
+        return null;
+      },
+      async headObject() {
+        return false;
+      }
     };
     const storage = new S3StorageAdapter({ bucket: "b", client });
     expect(await storage.retrieve("s3://b/")).toBeNull();
@@ -1228,102 +1306,170 @@ describe("ProcessingContext – S3 parseUri edge cases", () => {
   it("S3 constructor requires bucket", () => {
     const client: S3Client = {
       async putObject() {},
-      async getObject() { return null; },
-      async headObject() { return false; },
+      async getObject() {
+        return null;
+      },
+      async headObject() {
+        return false;
+      }
     };
-    expect(() => new S3StorageAdapter({ bucket: "", client })).toThrow("S3 bucket is required");
+    expect(() => new S3StorageAdapter({ bucket: "", client })).toThrow(
+      "S3 bucket is required"
+    );
   });
 });
 
 describe("ProcessingContext – guessAssetMime", () => {
   it("materializes audio asset with correct mime", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = {
       type: "AudioRef",
       uri: "memory://aud",
-      data: Buffer.from("audio-data").toString("base64"),
+      data: Buffer.from("audio-data").toString("base64")
     };
-    const result = (await ctx.normalizeOutputValue(value)) as Record<string, unknown>;
-    expect((result.uri as string).startsWith("data:audio/wav;base64,")).toBe(true);
+    const result = (await ctx.normalizeOutputValue(value)) as Record<
+      string,
+      unknown
+    >;
+    expect((result.uri as string).startsWith("data:audio/wav;base64,")).toBe(
+      true
+    );
   });
 
   it("materializes video asset with correct mime", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = {
       type: "VideoRef",
       uri: "memory://vid",
-      data: Buffer.from("video-data").toString("base64"),
+      data: Buffer.from("video-data").toString("base64")
     };
-    const result = (await ctx.normalizeOutputValue(value)) as Record<string, unknown>;
-    expect((result.uri as string).startsWith("data:video/mp4;base64,")).toBe(true);
+    const result = (await ctx.normalizeOutputValue(value)) as Record<
+      string,
+      unknown
+    >;
+    expect((result.uri as string).startsWith("data:video/mp4;base64,")).toBe(
+      true
+    );
   });
 
   it("materializes text asset with correct mime", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = {
       type: "TextRef",
       uri: "memory://txt",
-      data: Buffer.from("text-data").toString("base64"),
+      data: Buffer.from("text-data").toString("base64")
     };
-    const result = (await ctx.normalizeOutputValue(value)) as Record<string, unknown>;
-    expect((result.uri as string).startsWith("data:text/plain;base64,")).toBe(true);
+    const result = (await ctx.normalizeOutputValue(value)) as Record<
+      string,
+      unknown
+    >;
+    expect((result.uri as string).startsWith("data:text/plain;base64,")).toBe(
+      true
+    );
   });
 
   it("materializes model3d asset with correct mime", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = {
       type: "Model3DRef",
       uri: "memory://m3d",
-      data: Buffer.from("model-data").toString("base64"),
+      data: Buffer.from("model-data").toString("base64")
     };
-    const result = (await ctx.normalizeOutputValue(value)) as Record<string, unknown>;
-    expect((result.uri as string).startsWith("data:model/gltf-binary;base64,")).toBe(true);
+    const result = (await ctx.normalizeOutputValue(value)) as Record<
+      string,
+      unknown
+    >;
+    expect(
+      (result.uri as string).startsWith("data:model/gltf-binary;base64,")
+    ).toBe(true);
   });
 
   it("uses explicit mime_type over guessed", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = {
       type: "ImageRef",
       uri: "memory://img",
       data: Buffer.from("data").toString("base64"),
-      mime_type: "image/jpeg",
+      mime_type: "image/jpeg"
     };
-    const result = (await ctx.normalizeOutputValue(value)) as Record<string, unknown>;
-    expect((result.uri as string).startsWith("data:image/jpeg;base64,")).toBe(true);
+    const result = (await ctx.normalizeOutputValue(value)) as Record<
+      string,
+      unknown
+    >;
+    expect((result.uri as string).startsWith("data:image/jpeg;base64,")).toBe(
+      true
+    );
   });
 });
 
 describe("ProcessingContext – decodeAssetData", () => {
   it("handles Uint8Array data in asset", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = {
       type: "ImageRef",
       uri: "memory://img",
-      data: new Uint8Array([72, 101, 108, 108, 111]),
+      data: new Uint8Array([72, 101, 108, 108, 111])
     };
-    const result = (await ctx.normalizeOutputValue(value)) as Record<string, unknown>;
-    expect((result.uri as string).startsWith("data:image/png;base64,")).toBe(true);
+    const result = (await ctx.normalizeOutputValue(value)) as Record<
+      string,
+      unknown
+    >;
+    expect((result.uri as string).startsWith("data:image/png;base64,")).toBe(
+      true
+    );
   });
 
   it("handles numeric array data in asset", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = {
       type: "ImageRef",
       uri: "memory://img",
-      data: [72, 101, 108, 108, 111],
+      data: [72, 101, 108, 108, 111]
     };
-    const result = (await ctx.normalizeOutputValue(value)) as Record<string, unknown>;
-    expect((result.uri as string).startsWith("data:image/png;base64,")).toBe(true);
+    const result = (await ctx.normalizeOutputValue(value)) as Record<
+      string,
+      unknown
+    >;
+    expect((result.uri as string).startsWith("data:image/png;base64,")).toBe(
+      true
+    );
   });
 
   it("returns asset unchanged when data is non-decodable and no storage", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = {
       type: "ImageRef",
       uri: "memory://img",
-      data: { weird: true },
+      data: { weird: true }
     };
-    const result = (await ctx.normalizeOutputValue(value)) as Record<string, unknown>;
+    const result = (await ctx.normalizeOutputValue(value)) as Record<
+      string,
+      unknown
+    >;
     // No bytes can be extracted, returns unchanged
     expect(result.uri).toBe("memory://img");
   });
@@ -1348,27 +1494,32 @@ describe("ProcessingContext – normalizeOutputValue", () => {
     const value = {
       type: "ImageRef",
       uri: "memory://img",
-      data: "base64data",
+      data: "base64data"
     };
     const result = await ctx.normalizeOutputValue(value);
     expect(result).toEqual(value);
   });
 
   it("materializes nested arrays of assets", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const value = [
       {
         type: "ImageRef",
         uri: "memory://img1",
-        data: Buffer.from("a").toString("base64"),
+        data: Buffer.from("a").toString("base64")
       },
       {
         type: "ImageRef",
         uri: "memory://img2",
-        data: Buffer.from("b").toString("base64"),
-      },
+        data: Buffer.from("b").toString("base64")
+      }
     ];
-    const result = (await ctx.normalizeOutputValue(value)) as Array<Record<string, unknown>>;
+    const result = (await ctx.normalizeOutputValue(value)) as Array<
+      Record<string, unknown>
+    >;
     expect(result).toHaveLength(2);
     expect((result[0].uri as string).startsWith("data:")).toBe(true);
     expect((result[1].uri as string).startsWith("data:")).toBe(true);
@@ -1396,13 +1547,18 @@ describe("ProcessingContext – persistVariableIfNeeded", () => {
 
 describe("ProcessingContext – workspace materialization errors", () => {
   it("throws when workspace mode used without workspaceDir", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "workspace" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "workspace"
+    });
     const value = {
       type: "ImageRef",
       uri: "memory://img",
-      data: Buffer.from("hello").toString("base64"),
+      data: Buffer.from("hello").toString("base64")
     };
-    await expect(ctx.normalizeOutputValue(value)).rejects.toThrow("workspace_dir is required");
+    await expect(ctx.normalizeOutputValue(value)).rejects.toThrow(
+      "workspace_dir is required"
+    );
   });
 
   it("returns asset unchanged in storage_url mode without storage", async () => {
@@ -1410,9 +1566,12 @@ describe("ProcessingContext – workspace materialization errors", () => {
     const value = {
       type: "ImageRef",
       uri: "memory://img",
-      data: Buffer.from("hello").toString("base64"),
+      data: Buffer.from("hello").toString("base64")
     };
-    const result = (await ctx.normalizeOutputValue(value, "storage_url")) as Record<string, unknown>;
+    const result = (await ctx.normalizeOutputValue(
+      value,
+      "storage_url"
+    )) as Record<string, unknown>;
     // No storage adapter, returns unchanged
     expect(result.uri).toBe("memory://img");
   });
@@ -1422,9 +1581,12 @@ describe("ProcessingContext – workspace materialization errors", () => {
     const value = {
       type: "ImageRef",
       uri: "memory://img",
-      data: Buffer.from("hello").toString("base64"),
+      data: Buffer.from("hello").toString("base64")
     };
-    const result = (await ctx.normalizeOutputValue(value, "temp_url")) as Record<string, unknown>;
+    const result = (await ctx.normalizeOutputValue(
+      value,
+      "temp_url"
+    )) as Record<string, unknown>;
     expect(result.uri).toBe("memory://img");
   });
 });
@@ -1438,8 +1600,8 @@ describe("ProcessingContext – assetsToWorkspaceFiles", () => {
         image: {
           type: "ImageRef",
           uri: "memory://img",
-          data: Buffer.from("hello").toString("base64"),
-        },
+          data: Buffer.from("hello").toString("base64")
+        }
       };
       const result = (await ctx.assetsToWorkspaceFiles(value)) as {
         image: { uri: string; data?: unknown };
@@ -1456,14 +1618,18 @@ describe("ProcessingContext – getProvider edge cases", () => {
   it("throws for empty providerId", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     await expect(ctx.getProvider("")).rejects.toThrow("providerId is required");
-    await expect(ctx.getProvider("  ")).rejects.toThrow("providerId is required");
+    await expect(ctx.getProvider("  ")).rejects.toThrow(
+      "providerId is required"
+    );
   });
 
   it("uses registered provider before resolver", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     const mock = new MockProvider();
     ctx.registerProvider("mock", mock);
-    ctx.setProviderResolver(async () => { throw new Error("should not call"); });
+    ctx.setProviderResolver(async () => {
+      throw new Error("should not call");
+    });
     const result = await ctx.getProvider("mock");
     expect(result).toBe(mock);
   });
@@ -1522,9 +1688,12 @@ describe("ProcessingContext – sanitizeForClient edge cases", () => {
   it("sanitizes memory uri asset with no data and no asset_id", () => {
     const value = {
       type: "ImageRef",
-      uri: "memory://img-1",
+      uri: "memory://img-1"
     };
-    const result = ProcessingContext.sanitizeForClient(value) as Record<string, unknown>;
+    const result = ProcessingContext.sanitizeForClient(value) as Record<
+      string,
+      unknown
+    >;
     expect(result.uri).toBe("");
   });
 });
@@ -1542,7 +1711,7 @@ describe("ProcessingContext – stream prediction non-Error throw", () => {
       for await (const _ of ctx.streamProviderPrediction({
         provider: "bad",
         capability: "generate_messages",
-        model: "m",
+        model: "m"
       })) {
         // consume
       }
@@ -1555,7 +1724,9 @@ describe("ProcessingContext – storage path escape prevention", () => {
     const { FileStorageAdapter } = await import("../src/context.js");
     const tmpDir = "/tmp/nodetool-test-storage-" + Date.now();
     const adapter = new FileStorageAdapter(tmpDir);
-    await expect(adapter.store("../../etc/passwd", new Uint8Array([1]))).rejects.toThrow("Invalid storage key");
+    await expect(
+      adapter.store("../../etc/passwd", new Uint8Array([1]))
+    ).rejects.toThrow("Invalid storage key");
   });
 });
 
@@ -1612,10 +1783,13 @@ describe("ProcessingContext – get with default value", () => {
 
 describe("ProcessingContext – guessAssetMime fallback", () => {
   it("returns application/octet-stream for unknown asset type", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri"
+    });
     const result = await ctx.normalizeOutputValue({
       type: "unknown_type_xyz",
-      data: Buffer.from("test").toString("base64"),
+      data: Buffer.from("test").toString("base64")
     });
     if (result && typeof result === "object" && "uri" in (result as any)) {
       expect((result as any).uri).toContain("data:application/octet-stream");
@@ -1625,8 +1799,14 @@ describe("ProcessingContext – guessAssetMime fallback", () => {
 
 describe("ProcessingContext – materializeAsset fallback for unknown mode", () => {
   it("returns asset unchanged for unrecognized mode", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "unknown_mode" as any });
-    const asset = { type: "image", data: Buffer.from("test").toString("base64") };
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "unknown_mode" as any
+    });
+    const asset = {
+      type: "image",
+      data: Buffer.from("test").toString("base64")
+    };
     const result = await ctx.normalizeOutputValue(asset);
     expect(result).toBeDefined();
   });
@@ -1649,7 +1829,7 @@ describe("ProcessingContext – memory helpers", () => {
 
     expect(ctx.getMemoryStats()).toEqual({
       total: 3,
-      byPrefix: { assets: 2, tmp: 1 },
+      byPrefix: { assets: 2, tmp: 1 }
     });
   });
 
@@ -1660,7 +1840,7 @@ describe("ProcessingContext – memory helpers", () => {
     ctx.clearMemory("assets");
     expect(ctx.getMemoryStats()).toEqual({
       total: 1,
-      byPrefix: { tmp: 1 },
+      byPrefix: { tmp: 1 }
     });
 
     ctx.clearMemory();

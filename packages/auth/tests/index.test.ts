@@ -32,7 +32,7 @@ import {
   type CreateUserResult,
   type User,
   type MultiUserAuthProviderOptions,
-  type SupabaseAuthProviderOptions,
+  type SupabaseAuthProviderOptions
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -97,7 +97,9 @@ describe("index exports", () => {
   });
 
   it("FileUserManager is exported and instantiable", () => {
-    expect(new FileUserManager("/tmp/nodetool-test-index.json")).toBeInstanceOf(FileUserManager);
+    expect(new FileUserManager("/tmp/nodetool-test-index.json")).toBeInstanceOf(
+      FileUserManager
+    );
   });
 });
 
@@ -134,7 +136,11 @@ describe("isAdmin", () => {
 // ---------------------------------------------------------------------------
 describe("type exports", () => {
   it("AuthResult type can be used as a local type", () => {
-    const r: AuthResult = { ok: true, userId: "1", tokenType: TokenType.STATIC };
+    const r: AuthResult = {
+      ok: true,
+      userId: "1",
+      tokenType: TokenType.STATIC
+    };
     expect(r.ok).toBe(true);
   });
 
@@ -144,17 +150,31 @@ describe("type exports", () => {
   });
 
   it("ManagedUser type can be used as a local type", () => {
-    const u: ManagedUser = { id: "id", username: "n", email: "e@e.com", role: "user" };
+    const u: ManagedUser = {
+      id: "id",
+      username: "n",
+      email: "e@e.com",
+      role: "user"
+    };
     expect(u.role).toBe("user");
   });
 
   it("CreateUserOptions type can be used as a local type", () => {
-    const opts: CreateUserOptions = { username: "test", email: "test@test.com" };
+    const opts: CreateUserOptions = {
+      username: "test",
+      email: "test@test.com"
+    };
     expect(opts.username).toBe("test");
   });
 
   it("UserRecord type can be used as a local type", () => {
-    const r: UserRecord = { id: "id", username: "u", role: "r", tokenHash: "h", createdAt: "now" };
+    const r: UserRecord = {
+      id: "id",
+      username: "u",
+      role: "r",
+      tokenHash: "h",
+      createdAt: "now"
+    };
     expect(r.id).toBe("id");
   });
 
@@ -169,7 +189,7 @@ describe("type exports", () => {
       userId: "id",
       role: "user",
       token: "tok",
-      createdAt: "now",
+      createdAt: "now"
     };
     expect(r.token).toBe("tok");
   });
@@ -192,7 +212,9 @@ describe("type exports", () => {
   });
 
   it("SupabaseAuthProviderOptions type can be used as a local type", () => {
-    const opts: SupabaseAuthProviderOptions = { supabaseJwtSecret: "s".repeat(32) };
+    const opts: SupabaseAuthProviderOptions = {
+      supabaseJwtSecret: "s".repeat(32)
+    };
     expect(opts.supabaseJwtSecret).toBeTruthy();
   });
 });

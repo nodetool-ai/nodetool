@@ -20,9 +20,12 @@ export function isWorkflow(value: unknown): value is Workflow {
 }
 
 export async function runDslFile(
-  filePath: string,
+  filePath: string
 ): Promise<Record<string, Record<string, unknown>>> {
-  const mod = await tsImport(filePath, import.meta.url) as Record<string, unknown>;
+  const mod = (await tsImport(filePath, import.meta.url)) as Record<
+    string,
+    unknown
+  >;
 
   const results: Record<string, Record<string, unknown>> = {};
   let found = false;

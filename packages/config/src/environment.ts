@@ -25,7 +25,7 @@ export function loadEnvironment(rootDir?: string): void {
   const files = [
     resolve(root, ".env"),
     resolve(root, `.env.${nodeEnv}`),
-    resolve(root, `.env.${nodeEnv}.local`),
+    resolve(root, `.env.${nodeEnv}.local`)
   ];
 
   // Start fresh

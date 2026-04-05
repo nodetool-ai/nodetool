@@ -33,7 +33,10 @@ export function extractJSON(text: string): unknown | null {
   }
 
   // Strategy 3: balanced braces or brackets
-  for (const [open, close] of [["{", "}"], ["[", "]"]] as const) {
+  for (const [open, close] of [
+    ["{", "}"],
+    ["[", "]"]
+  ] as const) {
     const startIdx = trimmed.indexOf(open);
     if (startIdx === -1) continue;
     let depth = 0;

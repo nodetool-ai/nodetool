@@ -14,10 +14,10 @@ export class ListProviderModelsTool extends Tool {
     properties: {
       provider: {
         type: "string" as const,
-        description: "Provider ID (e.g. 'openai', 'anthropic')",
-      },
+        description: "Provider ID (e.g. 'openai', 'anthropic')"
+      }
     },
-    required: ["provider"],
+    required: ["provider"]
   };
 
   private providers: Record<string, BaseProvider>;
@@ -29,7 +29,7 @@ export class ListProviderModelsTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const providerId = params.provider;
     if (typeof providerId !== "string") {
@@ -41,15 +41,24 @@ export class ListProviderModelsTool extends Tool {
       return { success: false, error: `Unknown provider: ${providerId}` };
     }
 
-    if (typeof (provider as unknown as Record<string, unknown>).getAvailableLanguageModels !== "function") {
-      return { success: false, error: `Provider ${providerId} does not support model listing` };
+    if (
+      typeof (provider as unknown as Record<string, unknown>)
+        .getAvailableLanguageModels !== "function"
+    ) {
+      return {
+        success: false,
+        error: `Provider ${providerId} does not support model listing`
+      };
     }
 
     try {
       const models = await provider.getAvailableLanguageModels();
       return { success: true, provider: providerId, models };
     } catch (e) {
-      return { success: false, error: `Failed to list models: ${e instanceof Error ? e.message : String(e)}` };
+      return {
+        success: false,
+        error: `Failed to list models: ${e instanceof Error ? e.message : String(e)}`
+      };
     }
   }
 }

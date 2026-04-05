@@ -9,7 +9,7 @@ const KIE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-stream-upload";
 function headers(apiKey: string): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
+    "Content-Type": "application/json"
   };
 }
 
@@ -24,7 +24,7 @@ function checkStatus(data: Record<string, unknown>): void {
     455: "Service Unavailable",
     500: "Server Error",
     501: "Generation Failed",
-    505: "Feature Disabled",
+    505: "Feature Disabled"
   };
   if (map[code]) throw new Error(`${map[code]}: ${JSON.stringify(data)}`);
 }
@@ -37,13 +37,15 @@ async function submitTask(
   const res = await fetch(`${KIE_API_BASE}/api/v1/jobs/createTask`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify({ model, input }),
+    body: JSON.stringify({ model, input })
   });
   const data = (await res.json()) as Record<string, unknown>;
   if (data.code !== undefined) checkStatus(data);
-  if (!res.ok) throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
+  if (!res.ok)
+    throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
   const taskId = (data.data as Record<string, unknown>)?.taskId as string;
-  if (!taskId) throw new Error(`No taskId in response: ${JSON.stringify(data)}`);
+  if (!taskId)
+    throw new Error(`No taskId in response: ${JSON.stringify(data)}`);
   return taskId;
 }
 
@@ -61,7 +63,8 @@ async function pollStatus(
     const state = (data.data as Record<string, unknown>)?.state as string;
     if (state === "success") return data;
     if (state === "failed") {
-      const msg = (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
+      const msg =
+        (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
       throw new Error(`Task failed: ${msg}`);
     }
     await new Promise((r) => setTimeout(r, pollInterval));
@@ -78,7 +81,8 @@ async function downloadResult(
   if (!res.ok) throw new Error(`Failed to get result: ${res.status}`);
   const data = (await res.json()) as Record<string, unknown>;
   if (data.code !== undefined) checkStatus(data);
-  const resultJsonStr = (data.data as Record<string, unknown>)?.resultJson as string;
+  const resultJsonStr = (data.data as Record<string, unknown>)
+    ?.resultJson as string;
   if (!resultJsonStr) throw new Error("No resultJson in response");
   const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
   const resultUrls = resultData.resultUrls as string[];
@@ -102,22 +106,20 @@ export async function uploadFile(
   const res = await fetch(KIE_UPLOAD_URL, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}` },
-    body: form,
+    body: form
   });
   const resData = (await res.json()) as Record<string, unknown>;
   if (resData.code !== undefined) checkStatus(resData);
   if (!res.ok || !resData.success)
     throw new Error(`Upload failed: ${res.status} ${JSON.stringify(resData)}`);
-  const downloadUrl = (resData.data as Record<string, unknown>)?.downloadUrl as string;
+  const downloadUrl = (resData.data as Record<string, unknown>)
+    ?.downloadUrl as string;
   if (!downloadUrl) throw new Error(`No downloadUrl in upload response`);
   return downloadUrl;
 }
 
 export function getApiKey(secrets: Record<string, string>): string {
-  const key =
-    secrets?.KIE_API_KEY ||
-    process.env.KIE_API_KEY ||
-    "";
+  const key = secrets?.KIE_API_KEY || process.env.KIE_API_KEY || "";
   if (!key) throw new Error("KIE_API_KEY is not configured");
   return key;
 }
@@ -134,7 +136,12 @@ export async function uploadImageInput(
   }
   const data = img.data as string | undefined;
   if (!data) throw new Error("Image has no data or URI");
-  return uploadFile(apiKey, Buffer.from(data, "base64"), "images/user-uploads", `upload-${Date.now()}.png`);
+  return uploadFile(
+    apiKey,
+    Buffer.from(data, "base64"),
+    "images/user-uploads",
+    `upload-${Date.now()}.png`
+  );
 }
 
 export async function uploadAudioInput(
@@ -149,7 +156,12 @@ export async function uploadAudioInput(
   }
   const data = a.data as string | undefined;
   if (!data) throw new Error("Audio has no data or URI");
-  return uploadFile(apiKey, Buffer.from(data, "base64"), "audio/user-uploads", `upload-${Date.now()}.mp3`);
+  return uploadFile(
+    apiKey,
+    Buffer.from(data, "base64"),
+    "audio/user-uploads",
+    `upload-${Date.now()}.mp3`
+  );
 }
 
 export async function uploadVideoInput(
@@ -164,7 +176,12 @@ export async function uploadVideoInput(
   }
   const data = v.data as string | undefined;
   if (!data) throw new Error("Video has no data or URI");
-  return uploadFile(apiKey, Buffer.from(data, "base64"), "videos/user-uploads", `upload-${Date.now()}.mp4`);
+  return uploadFile(
+    apiKey,
+    Buffer.from(data, "base64"),
+    "videos/user-uploads",
+    `upload-${Date.now()}.mp4`
+  );
 }
 
 function isRefSet(ref: unknown): boolean {
@@ -174,6 +191,24 @@ function isRefSet(ref: unknown): boolean {
 }
 
 export { isRefSet };
+
+export async function kieImageRef(base64: string): Promise<Record<string, unknown>> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const buf = Buffer.from(base64, "base64");
+    const meta = await sharp(buf).metadata();
+    return {
+      type: "image",
+      uri: "",
+      data: base64,
+      mimeType: meta.format ? `image/${meta.format}` : "image/png",
+      width: meta.width,
+      height: meta.height
+    };
+  } catch {
+    return { type: "image", uri: "", data: base64 };
+  }
+}
 
 export async function kieExecuteTask(
   apiKey: string,
@@ -196,11 +231,12 @@ export async function kieSubmitSuno(
   const res = await fetch(`${KIE_API_BASE}/api/v1/generate`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify(input),
+    body: JSON.stringify(input)
   });
   const data = (await res.json()) as Record<string, unknown>;
   if (data.code !== undefined) checkStatus(data);
-  if (!res.ok) throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
+  if (!res.ok)
+    throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
   const taskId = (data.data as Record<string, unknown>)?.taskId as string;
   if (!taskId) throw new Error(`No taskId: ${JSON.stringify(data)}`);
   return taskId;
@@ -217,7 +253,7 @@ export async function kiePollSuno(
     "CREATE_TASK_FAILED",
     "GENERATE_AUDIO_FAILED",
     "CALLBACK_EXCEPTION",
-    "SENSITIVE_WORD_ERROR",
+    "SENSITIVE_WORD_ERROR"
   ]);
   for (let i = 0; i < maxAttempts; i++) {
     const res = await fetch(url, { headers: headers(apiKey) });

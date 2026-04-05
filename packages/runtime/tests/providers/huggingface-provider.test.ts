@@ -7,10 +7,10 @@ function makeMockHfClient(overrides: Record<string, any> = {}) {
     chatCompletion: vi.fn().mockResolvedValue({
       choices: [
         {
-          message: { content: "hello from hf" },
-        },
+          message: { content: "hello from hf" }
+        }
       ],
-      usage: { prompt_tokens: 10, completion_tokens: 5 },
+      usage: { prompt_tokens: 10, completion_tokens: 5 }
     }),
     chatCompletionStream: vi.fn().mockReturnValue({
       async *[Symbol.asyncIterator]() {
@@ -18,27 +18,27 @@ function makeMockHfClient(overrides: Record<string, any> = {}) {
           choices: [
             {
               delta: { content: "streamed" },
-              finish_reason: null,
-            },
-          ],
+              finish_reason: null
+            }
+          ]
         };
         yield {
           choices: [
             {
               delta: { content: "" },
-              finish_reason: "stop",
-            },
-          ],
+              finish_reason: "stop"
+            }
+          ]
         };
-      },
+      }
     }),
     textToImage: vi.fn().mockResolvedValue({
-      arrayBuffer: async () => new ArrayBuffer(16),
+      arrayBuffer: async () => new ArrayBuffer(16)
     }),
     textToSpeech: vi.fn().mockResolvedValue({
-      arrayBuffer: async () => new ArrayBuffer(16),
+      arrayBuffer: async () => new ArrayBuffer(16)
     }),
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -88,7 +88,7 @@ describe("HuggingFaceProvider", () => {
       const messages: Message[] = [{ role: "user", content: "hello" }];
       const result = await provider.generateMessage({
         messages,
-        model: "meta-llama/Llama-3.1-8B-Instruct",
+        model: "meta-llama/Llama-3.1-8B-Instruct"
       });
 
       expect(result.role).toBe("assistant");
@@ -96,7 +96,7 @@ describe("HuggingFaceProvider", () => {
       expect(mockClient.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "meta-llama/Llama-3.1-8B-Instruct",
-          messages: [{ role: "user", content: "hello" }],
+          messages: [{ role: "user", content: "hello" }]
         })
       );
     });
@@ -109,11 +109,11 @@ describe("HuggingFaceProvider", () => {
       );
 
       const messages: Message[] = [
-        { role: "tool", content: "tool result", toolCallId: "tc_1" },
+        { role: "tool", content: "tool result", toolCallId: "tc_1" }
       ];
       await provider.generateMessage({
         messages,
-        model: "test-model",
+        model: "test-model"
       });
 
       const sentMessages = mockClient.chatCompletion.mock.calls[0][0].messages;
@@ -132,13 +132,13 @@ describe("HuggingFaceProvider", () => {
           role: "user",
           content: [
             { type: "text", text: "first" },
-            { type: "text", text: "second" },
-          ],
-        },
+            { type: "text", text: "second" }
+          ]
+        }
       ];
       await provider.generateMessage({
         messages,
-        model: "test-model",
+        model: "test-model"
       });
 
       const sentMessages = mockClient.chatCompletion.mock.calls[0][0].messages;
@@ -156,13 +156,13 @@ describe("HuggingFaceProvider", () => {
         messages: [{ role: "user", content: "test" }],
         model: "test-model",
         temperature: 0.5,
-        topP: 0.9,
+        topP: 0.9
       });
 
       expect(mockClient.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
           temperature: 0.5,
-          top_p: 0.9,
+          top_p: 0.9
         })
       );
     });
@@ -176,7 +176,7 @@ describe("HuggingFaceProvider", () => {
 
       await provider.generateMessage({
         messages: [{ role: "user", content: "test" }],
-        model: "test-model",
+        model: "test-model"
       });
 
       // cost should have been tracked (exact value depends on cost calculator)
@@ -196,7 +196,7 @@ describe("HuggingFaceProvider", () => {
       const items: unknown[] = [];
       for await (const item of provider.generateMessages({
         messages,
-        model: "test-model",
+        model: "test-model"
       })) {
         items.push(item);
       }
@@ -219,9 +219,9 @@ describe("HuggingFaceProvider", () => {
         model: {
           id: "stabilityai/stable-diffusion-xl-base-1.0",
           name: "SDXL",
-          provider: "huggingface",
+          provider: "huggingface"
         },
-        prompt: "A cute cat",
+        prompt: "A cute cat"
       };
 
       const result = await provider.textToImage(params);
@@ -229,7 +229,7 @@ describe("HuggingFaceProvider", () => {
       expect(mockClient.textToImage).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "stabilityai/stable-diffusion-xl-base-1.0",
-          inputs: "A cute cat",
+          inputs: "A cute cat"
         })
       );
     });
@@ -245,14 +245,14 @@ describe("HuggingFaceProvider", () => {
         model: {
           id: "test-model",
           name: "Test",
-          provider: "huggingface",
+          provider: "huggingface"
         },
         prompt: "A dog",
         negativePrompt: "blurry",
         width: 512,
         height: 768,
         guidanceScale: 7.5,
-        numInferenceSteps: 30,
+        numInferenceSteps: 30
       });
 
       const call = mockClient.textToImage.mock.calls[0][0];
@@ -274,16 +274,16 @@ describe("HuggingFaceProvider", () => {
           model: {
             id: "test-model",
             name: "Test",
-            provider: "huggingface",
+            provider: "huggingface"
           },
-          prompt: "",
+          prompt: ""
         })
       ).rejects.toThrow("The input prompt cannot be empty.");
     });
 
     it("handles Uint8Array result directly", async () => {
       const mockClient = makeMockHfClient({
-        textToImage: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+        textToImage: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]))
       });
       const provider = new HuggingFaceProvider(
         { HF_TOKEN: "hf_test" },
@@ -292,7 +292,7 @@ describe("HuggingFaceProvider", () => {
 
       const result = await provider.textToImage({
         model: { id: "test", name: "Test", provider: "huggingface" },
-        prompt: "test",
+        prompt: "test"
       });
 
       expect(result).toEqual(new Uint8Array([1, 2, 3]));
@@ -302,7 +302,7 @@ describe("HuggingFaceProvider", () => {
       const buf = new ArrayBuffer(4);
       new Uint8Array(buf).set([10, 20, 30, 40]);
       const mockClient = makeMockHfClient({
-        textToImage: vi.fn().mockResolvedValue(buf),
+        textToImage: vi.fn().mockResolvedValue(buf)
       });
       const provider = new HuggingFaceProvider(
         { HF_TOKEN: "hf_test" },
@@ -311,7 +311,7 @@ describe("HuggingFaceProvider", () => {
 
       const result = await provider.textToImage({
         model: { id: "test", name: "Test", provider: "huggingface" },
-        prompt: "test",
+        prompt: "test"
       });
 
       expect(result).toEqual(new Uint8Array([10, 20, 30, 40]));
@@ -329,7 +329,7 @@ describe("HuggingFaceProvider", () => {
       const chunks: unknown[] = [];
       for await (const chunk of provider.textToSpeech({
         text: "Hello world",
-        model: "facebook/mms-tts-eng",
+        model: "facebook/mms-tts-eng"
       })) {
         chunks.push(chunk);
       }
@@ -339,7 +339,7 @@ describe("HuggingFaceProvider", () => {
       expect(mockClient.textToSpeech).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "facebook/mms-tts-eng",
-          inputs: "Hello world",
+          inputs: "Hello world"
         })
       );
     });

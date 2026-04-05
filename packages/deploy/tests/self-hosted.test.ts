@@ -27,7 +27,7 @@ vi.mock("../src/ssh.js", () => ({
     mkdir = vi.fn().mockResolvedValue(undefined);
     connect = vi.fn().mockResolvedValue(undefined);
     disconnect = vi.fn();
-  },
+  }
 }));
 
 vi.mock("../src/docker.js", () => ({
@@ -37,14 +37,16 @@ vi.mock("../src/docker.js", () => ({
       return "'" + s.replace(/'/g, "'\"'\"'") + "'";
     }
     return s;
-  },
+  }
 }));
 
 vi.mock("../src/docker-run.js", () => {
   const mockGenerator = {
-    generateCommand: vi.fn().mockReturnValue("docker run -d --name nodetool-test myimage:latest"),
+    generateCommand: vi
+      .fn()
+      .mockReturnValue("docker run -d --name nodetool-test myimage:latest"),
     generateHash: vi.fn().mockReturnValue("abc123hash"),
-    getContainerName: vi.fn().mockReturnValue("nodetool-test"),
+    getContainerName: vi.fn().mockReturnValue("nodetool-test")
   };
   const DockerRunGenerator = class DockerRunGenerator {
     generateCommand = mockGenerator.generateCommand;
@@ -55,7 +57,7 @@ vi.mock("../src/docker-run.js", () => {
     DockerRunGenerator,
     INTERNAL_API_PORT: 7777,
     APP_ENV_PORT: 8000,
-    __mockGenerator: mockGenerator,
+    __mockGenerator: mockGenerator
   };
 });
 
@@ -78,17 +80,17 @@ vi.mock("../src/deployment-config.js", () => ({
     SERVING: "serving",
     ERROR: "error",
     STOPPED: "stopped",
-    DESTROYED: "destroyed",
+    DESTROYED: "destroyed"
   },
   dockerDeploymentGetServerUrl: vi.fn().mockReturnValue("http://myhost:8000"),
   shellDeploymentGetServerUrl: vi.fn().mockReturnValue("http://localhost:9000"),
-  imageConfigFullName: vi.fn().mockReturnValue("myimage:latest"),
+  imageConfigFullName: vi.fn().mockReturnValue("myimage:latest")
 }));
 
 // Mock child_process, fs, os for LocalExecutor and isLocalhost
 vi.mock("child_process", () => ({
   execSync: vi.fn().mockReturnValue(""),
-  execFileSync: vi.fn().mockReturnValue(""),
+  execFileSync: vi.fn().mockReturnValue("")
 }));
 
 vi.mock("fs", () => ({
@@ -104,13 +106,13 @@ vi.mock("fs", () => ({
     existsSync: vi.fn().mockReturnValue(true),
     readFileSync: vi.fn().mockReturnValue(""),
     copyFileSync: vi.fn(),
-    chmodSync: vi.fn(),
-  },
+    chmodSync: vi.fn()
+  }
 }));
 
 vi.mock("js-yaml", () => ({
   dump: vi.fn().mockReturnValue("mocked: yaml"),
-  default: { dump: vi.fn().mockReturnValue("mocked: yaml") },
+  default: { dump: vi.fn().mockReturnValue("mocked: yaml") }
 }));
 
 // ---------------------------------------------------------------------------
@@ -125,7 +127,7 @@ import {
   type Executor,
   type DeployPlan,
   type DeployResult,
-  type DeployStatus,
+  type DeployStatus
 } from "../src/self-hosted.js";
 import { SSHCommandError } from "../src/ssh.js";
 import { StateManager } from "../src/state.js";
@@ -143,19 +145,25 @@ function makeDockerDeployment(overrides: Record<string, unknown> = {}) {
     host: "localhost",
     paths: {
       workspace: "~/nodetool_data/workspace",
-      hf_cache: "~/nodetool_data/hf-cache",
+      hf_cache: "~/nodetool_data/hf-cache"
     },
     image: { name: "myimage", tag: "latest", registry: "docker.io" },
-    container: { name: "test", port: 8000, gpu: undefined, environment: {}, workflows: [] },
+    container: {
+      name: "test",
+      port: 8000,
+      gpu: undefined,
+      environment: {},
+      workflows: []
+    },
     state: {
       last_deployed: null,
       status: "unknown",
       container_id: null,
       container_name: null,
       url: null,
-      container_hash: null,
+      container_hash: null
     },
-    ...overrides,
+    ...overrides
   } as any;
 }
 
@@ -166,7 +174,7 @@ function makeShellDeployment(overrides: Record<string, unknown> = {}) {
     host: "localhost",
     paths: {
       workspace: "~/nodetool_data/workspace",
-      hf_cache: "~/nodetool_data/hf-cache",
+      hf_cache: "~/nodetool_data/hf-cache"
     },
     port: 9000,
     service_name: "nodetool-test",
@@ -177,9 +185,9 @@ function makeShellDeployment(overrides: Record<string, unknown> = {}) {
       container_id: null,
       container_name: null,
       url: null,
-      container_hash: null,
+      container_hash: null
     },
-    ...overrides,
+    ...overrides
   } as any;
 }
 
@@ -191,7 +199,7 @@ function makeSSHDeployment(overrides: Record<string, unknown> = {}) {
     ssh: { user: "deploy", key_path: "~/.ssh/id_rsa", port: 22 },
     paths: {
       workspace: "~/nodetool_data/workspace",
-      hf_cache: "~/nodetool_data/hf-cache",
+      hf_cache: "~/nodetool_data/hf-cache"
     },
     port: 9000,
     service_name: "nodetool-test",
@@ -202,9 +210,9 @@ function makeSSHDeployment(overrides: Record<string, unknown> = {}) {
       container_id: null,
       container_name: null,
       url: null,
-      container_hash: null,
+      container_hash: null
     },
-    ...overrides,
+    ...overrides
   } as any;
 }
 
@@ -212,7 +220,7 @@ function createMockStateManager() {
   return {
     readState: vi.fn().mockResolvedValue(null),
     writeState: vi.fn(),
-    updateDeploymentStatus: vi.fn().mockResolvedValue(undefined),
+    updateDeploymentStatus: vi.fn().mockResolvedValue(undefined)
   } as unknown as StateManager;
 }
 
@@ -383,7 +391,11 @@ describe("DockerDeployer", () => {
   beforeEach(() => {
     mockStateManager = createMockStateManager();
     const deployment = makeDockerDeployment();
-    deployer = new DockerDeployer("test-deploy", deployment, mockStateManager as any);
+    deployer = new DockerDeployer(
+      "test-deploy",
+      deployment,
+      mockStateManager as any
+    );
     vi.mocked(execSync).mockReset();
     vi.mocked(execSync).mockReturnValue("");
     vi.mocked(execFileSync).mockReset();
@@ -408,12 +420,12 @@ describe("DockerDeployer", () => {
       mockStateManager.readState.mockResolvedValue({
         last_deployed: "2024-01-01",
         container_run_hash: "oldhash",
-        status: "running",
+        status: "running"
       });
       const plan = await deployer.plan();
       expect(plan.changes).toEqual(
         expect.arrayContaining([
-          expect.stringContaining("configuration has changed"),
+          expect.stringContaining("configuration has changed")
         ])
       );
       expect(plan.will_update).toEqual(
@@ -514,9 +526,7 @@ describe("DockerDeployer", () => {
       vi.mocked(execFileSync).mockReturnValue("docker\n");
 
       const result = await deployer.apply();
-      expect(result.steps).toContain(
-        "Deploying to localhost (skipping SSH)"
-      );
+      expect(result.steps).toContain("Deploying to localhost (skipping SSH)");
     });
   });
 
@@ -525,7 +535,7 @@ describe("DockerDeployer", () => {
       mockStateManager.readState.mockResolvedValue({
         status: "running",
         last_deployed: "2024-01-01T00:00:00Z",
-        url: "http://localhost:8000",
+        url: "http://localhost:8000"
       });
       vi.mocked(execSync).mockReturnValue("Up 5 minutes\n");
 
@@ -619,9 +629,7 @@ describe("DockerDeployer", () => {
       const result = await deployer.destroy();
       // The stop throws SSHCommandError (timeout), which is caught and logged as warning
       expect(result.steps).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/Warning.*stop/i),
-        ])
+        expect.arrayContaining([expect.stringMatching(/Warning.*stop/i)])
       );
     });
 
@@ -648,7 +656,7 @@ describe("DockerDeployer", () => {
 describe("DockerDeployer with remote host", () => {
   it("should require SSH config for remote host", () => {
     const deployment = makeDockerDeployment({
-      host: "remote.example.com",
+      host: "remote.example.com"
     });
     const sm = createMockStateManager();
     const deployer = new DockerDeployer("remote-deploy", deployment, sm as any);
@@ -659,7 +667,7 @@ describe("DockerDeployer with remote host", () => {
   it("should report correct host in plan", async () => {
     const deployment = makeDockerDeployment({
       host: "remote.example.com",
-      ssh: { user: "deploy", key_path: "~/.ssh/id_rsa", port: 22 },
+      ssh: { user: "deploy", key_path: "~/.ssh/id_rsa", port: 22 }
     });
     const sm = createMockStateManager();
     const deployer = new DockerDeployer("remote-deploy", deployment, sm as any);
@@ -671,7 +679,7 @@ describe("DockerDeployer with remote host", () => {
 describe("DockerDeployer with port 7777", () => {
   it("should use port 8000 as host port when container port is 7777", () => {
     const deployment = makeDockerDeployment({
-      container: { name: "test", port: 7777, environment: {} },
+      container: { name: "test", port: 7777, environment: {} }
     });
     const sm = createMockStateManager();
     const deployer = new DockerDeployer("test-7777", deployment, sm as any);
@@ -680,7 +688,6 @@ describe("DockerDeployer with port 7777", () => {
     expect((deployer as any).appHostPort()).toBe(8000);
   });
 });
-
 
 describe("BaseSSHDeployer common behavior", () => {
   it("should create state manager when not provided", () => {
@@ -691,20 +698,32 @@ describe("BaseSSHDeployer common behavior", () => {
 
   it("should detect localhost correctly", () => {
     const localDep = makeDockerDeployment({ host: "localhost" });
-    const deployer1 = new DockerDeployer("local", localDep, createMockStateManager() as any);
+    const deployer1 = new DockerDeployer(
+      "local",
+      localDep,
+      createMockStateManager() as any
+    );
     expect(deployer1.isLocalhost).toBe(true);
 
     const remoteDep = makeDockerDeployment({ host: "10.0.0.5" });
     vi.mocked(execFileSync).mockImplementation(() => {
       throw new Error("not found");
     });
-    const deployer2 = new DockerDeployer("remote", remoteDep, createMockStateManager() as any);
+    const deployer2 = new DockerDeployer(
+      "remote",
+      remoteDep,
+      createMockStateManager() as any
+    );
     expect(deployer2.isLocalhost).toBe(false);
   });
 
   it("should store deployment name", () => {
     const deployment = makeDockerDeployment();
-    const deployer = new DockerDeployer("my-name", deployment, createMockStateManager() as any);
+    const deployer = new DockerDeployer(
+      "my-name",
+      deployment,
+      createMockStateManager() as any
+    );
     expect(deployer.deploymentName).toBe("my-name");
   });
 });
@@ -718,15 +737,18 @@ describe("DockerDeployer with persistent paths", () => {
         chroma_path: "/workspace/chroma",
         hf_cache: "/workspace/hf-cache",
         asset_bucket: "/workspace/assets",
-        logs_path: "/workspace/logs",
-      },
+        logs_path: "/workspace/logs"
+      }
     });
     const sm = createMockStateManager();
-    const deployer = new DockerDeployer("persist-deploy", deployment, sm as any);
+    const deployer = new DockerDeployer(
+      "persist-deploy",
+      deployment,
+      sm as any
+    );
     expect(deployer.deployment.persistent_paths).toBeDefined();
   });
 });
-
 
 describe("Interface types", () => {
   it("DeployResult should have required fields", () => {
@@ -734,7 +756,7 @@ describe("Interface types", () => {
       deployment_name: "test",
       status: "success",
       steps: ["step1"],
-      errors: [],
+      errors: []
     };
     expect(result.deployment_name).toBe("test");
     expect(result.steps).toHaveLength(1);
@@ -748,7 +770,7 @@ describe("Interface types", () => {
       changes: [],
       will_create: [],
       will_update: [],
-      will_destroy: [],
+      will_destroy: []
     };
     expect(plan.type).toBe("docker");
   });
@@ -757,7 +779,7 @@ describe("Interface types", () => {
     const status: DeployStatus = {
       deployment_name: "test",
       host: "localhost",
-      type: "docker",
+      type: "docker"
     };
     expect(status.container_name).toBeUndefined();
   });
@@ -765,7 +787,7 @@ describe("Interface types", () => {
   it("Executor interface should define execute and mkdir", async () => {
     const executor: Executor = {
       execute: vi.fn().mockResolvedValue([0, "", ""]),
-      mkdir: vi.fn().mockResolvedValue(undefined),
+      mkdir: vi.fn().mockResolvedValue(undefined)
     };
     const [code] = await executor.execute("test");
     expect(code).toBe(0);

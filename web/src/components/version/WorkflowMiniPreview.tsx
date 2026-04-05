@@ -116,7 +116,22 @@ const calculateNodePositions = (graph: Graph): CalculatedGraph => {
   const queue: string[] = [];
   const positions = new Map<string, { x: number; y: number }>();
 
-  const startNodes = nodes.filter((n) => !edges.some((e) => e.target === n.id));
+  // Optimize O(N*E) filters into O(N+E) map lookups
+  const outgoingEdgesMap = new Map<string, typeof edges[0][]>();
+  const targetNodeIds = new Set<string>();
+
+  edges.forEach((edge) => {
+    targetNodeIds.add(edge.target);
+    const outs = outgoingEdgesMap.get(edge.source);
+
+    if (outs) {
+      outs.push(edge);
+    } else {
+      outgoingEdgesMap.set(edge.source, [edge]);
+    }
+  });
+
+  const startNodes = nodes.filter((n) => !targetNodeIds.has(n.id));
   startNodes.forEach((node, index) => {
     positions.set(node.id, { x: MIN_X, y: MIN_Y + index * (NODE_HEIGHT + PADDING) });
     queue.push(node.id);
@@ -133,7 +148,7 @@ const calculateNodePositions = (graph: Graph): CalculatedGraph => {
     const currentPos = positions.get(currentId);
     if (!currentPos) { continue; }
 
-    const outgoingEdges = edges.filter((e) => e.source === currentId);
+    const outgoingEdges = outgoingEdgesMap.get(currentId) || [];
 
     outgoingEdges.forEach((edge, index) => {
       if (!positions.has(edge.target)) {

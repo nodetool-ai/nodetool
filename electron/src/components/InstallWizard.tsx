@@ -8,7 +8,6 @@ interface InstallWizardProps {
 }
 
 interface RuntimeSelection {
-  ollama: boolean;
   llamacpp: boolean;
 }
 
@@ -22,13 +21,6 @@ const SearchIcon: React.FC = () => (
 const FolderDownloadIcon: React.FC = () => (
   <svg width="16" height="16" aria-hidden>
     <use href="#icon-folder-download" />
-  </svg>
-);
-
-const TerminalIcon: React.FC = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="4 17 10 11 4 5"></polyline>
-    <line x1="12" y1="19" x2="20" y2="19"></line>
   </svg>
 );
 
@@ -58,68 +50,8 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
   >("welcome");
   const [selectedPath, setSelectedPath] = useState(defaultPath);
   const [selectedRuntime, setSelectedRuntime] =
-    useState<RuntimeSelection>({ ollama: true, llamacpp: false });
+    useState<RuntimeSelection>({ llamacpp: false });
   const [pathError, setPathError] = useState<string | null>(null);
-  const [isOllamaRunning, setIsOllamaRunning] = useState(false);
-  const [isOllamaInstalled, setIsOllamaInstalled] = useState(false);
-
-  // Check for running Ollama instance or existing installation
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkOllama = async () => {
-      let running = false;
-      let installed = false;
-
-      // Check for running instance on default Ollama port.
-      try {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), 1000);
-        const res = await fetch("http://127.0.0.1:11434/api/tags", {
-          signal: controller.signal,
-        });
-        clearTimeout(id);
-        running = res.ok;
-      } catch {
-        running = false;
-      }
-
-      // Check for installed binary (available on PATH).
-      try {
-        installed = await window.api.system.checkOllamaInstalled();
-      } catch (e) {
-        console.error("Failed to check for Ollama installation:", e);
-      }
-
-      if (cancelled) {
-        return;
-      }
-
-      setIsOllamaRunning(running);
-      setIsOllamaInstalled(installed);
-    };
-
-    void checkOllama();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Prefer Ollama when it's detected and no runtime has been selected.
-  useEffect(() => {
-    const detected = isOllamaRunning || isOllamaInstalled;
-    const hasAnyRuntime = selectedRuntime.ollama || selectedRuntime.llamacpp;
-    if (currentStep === "runtime" && detected && !hasAnyRuntime) {
-      const nextSelection = { ollama: true, llamacpp: selectedRuntime.llamacpp };
-      setSelectedRuntime(nextSelection);
-      try {
-        localStorage.setItem(RUNTIME_STORAGE_KEY, JSON.stringify(nextSelection));
-      } catch {
-        // ignore
-      }
-    }
-  }, [currentStep, isOllamaRunning, isOllamaInstalled, selectedRuntime]);
 
 
   const validatePath = useCallback((path: string) => {
@@ -140,26 +72,18 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
         return;
       }
 
-      if (saved === "ollama") {
-        setSelectedRuntime({ ollama: true, llamacpp: false });
-        return;
-      }
       if (saved === "llamacpp") {
-        setSelectedRuntime({ ollama: false, llamacpp: true });
+        setSelectedRuntime({ llamacpp: true });
         return;
       }
-      if (saved === "skip") {
-        setSelectedRuntime({ ollama: false, llamacpp: false });
+      if (saved === "skip" || saved === "ollama") {
+        setSelectedRuntime({ llamacpp: false });
         return;
       }
 
       const parsed = JSON.parse(saved) as Partial<RuntimeSelection>;
-      if (
-        typeof parsed.ollama === "boolean" &&
-        typeof parsed.llamacpp === "boolean"
-      ) {
+      if (typeof parsed.llamacpp === "boolean") {
         setSelectedRuntime({
-          ollama: parsed.ollama,
           llamacpp: parsed.llamacpp,
         });
       }
@@ -215,51 +139,20 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
       return;
     }
 
-    // Determine what to install based on runtime selection
-    let ollamaDetected = isOllamaRunning || isOllamaInstalled;
-    if (selectedRuntime.ollama && !ollamaDetected) {
-      try {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), 1000);
-        const res = await fetch("http://127.0.0.1:11434/api/tags", {
-          signal: controller.signal,
-        });
-        clearTimeout(id);
-        ollamaDetected = res.ok;
-      } catch {
-        // ignore
-      }
-
-      if (!ollamaDetected) {
-        try {
-          ollamaDetected = await window.api.system.checkOllamaInstalled();
-        } catch {
-          // ignore
-        }
-      }
-    }
-    const startOllamaOnStartup = selectedRuntime.ollama;
     const startLlamaCppOnStartup = selectedRuntime.llamacpp;
-    const installOllama = selectedRuntime.ollama && !ollamaDetected;
     const installLlamaCpp = selectedRuntime.llamacpp;
 
     // Map UI runtime option to backend type
-    let modelBackend: "ollama" | "llama_cpp" | "none" = "ollama";
-    if (selectedRuntime.ollama && selectedRuntime.llamacpp) {
-      modelBackend = "ollama";
-    } else if (selectedRuntime.llamacpp) {
+    let modelBackend: "ollama" | "llama_cpp" | "none" = "none";
+    if (selectedRuntime.llamacpp) {
       modelBackend = "llama_cpp";
-    } else if (!selectedRuntime.ollama) {
-      modelBackend = "none";
     }
 
     await window.api.installer.install(
       selectedPath,
       [],
       modelBackend,
-      installOllama,
       installLlamaCpp,
-      startOllamaOnStartup,
       startLlamaCppOnStartup
     );
     onComplete();
@@ -446,56 +339,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   className="runtime-grid"
                   style={{ marginTop: "24px" }}
                 >
-                  {/* Ollama Option */}
-                  <div
-                    className={`runtime-card ${
-                      selectedRuntime.ollama ? "selected" : ""
-                    }`}
-                    onClick={() => handleRuntimeToggle("ollama")}
-                  >
-                    <div className="runtime-icon">
-                      <TerminalIcon />
-                    </div>
-                    <div className="runtime-content">
-                      <div className="runtime-header">
-                        <h4 className="runtime-title">Ollama</h4>
-                        <span
-                          className={`runtime-badge ${
-                            isOllamaRunning || isOllamaInstalled
-                              ? "running"
-                              : "recommended"
-                          }`}
-                        >
-                          {isOllamaRunning || isOllamaInstalled
-                            ? "Detected"
-                            : "Recommended"}
-                        </span>
-                      </div>
-                      <p className="runtime-description">
-                        Easy to use, recommended for most users. Includes model management and a simple API.
-                      </p>
-
-                      {(isOllamaRunning || isOllamaInstalled) && (
-                        <div className="runtime-note">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                          </svg>
-                          <span>Ollama detected. NodeTool will use your existing Ollama and will not download it.</span>
-                        </div>
-                      )}
-                    </div>
-                    <input
-                      type="checkbox"
-                      name="runtime-ollama"
-                      value="ollama"
-                      checked={selectedRuntime.ollama}
-                      onChange={() => {}} // Handle click on parent
-                      style={{ marginLeft: "auto", marginRight: 0 }}
-                    />
-                  </div>
-
                   {/* llama.cpp Option */}
                   <div
                     className={`runtime-card ${
@@ -526,13 +369,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                 </div>
 
                 <div className="runtime-selection-help" style={{ marginTop: "14px" }}>
-                  {!selectedRuntime.ollama && !selectedRuntime.llamacpp ? (
+                  {!selectedRuntime.llamacpp ? (
                     <p className="runtime-description">
-                      No local model service selected. You can continue and use external providers only.
-                    </p>
-                  ) : selectedRuntime.ollama && selectedRuntime.llamacpp ? (
-                    <p className="runtime-description">
-                      Both services selected. NodeTool will manage startup for both and install required binaries.
+                      No local model service selected. You can continue and use external providers (e.g. Ollama) directly.
                     </p>
                   ) : (
                     <p className="runtime-description">
@@ -616,30 +455,10 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                       </strong>
                     </p>
                     <p style={{ marginBottom: "12px" }}>
-                      <strong>Ollama</strong> and <strong>llama.cpp</strong>{" "}
-                      are optional AI runtime components that may be installed
-                      with this application. These components are provided
-                      under their respective open source licenses:
-                    </p>
-                    <ul
-                      style={{
-                        margin: "8px 0 16px 20px",
-                        paddingLeft: "20px",
-                      }}
-                    >
-                      <li>
-                        <strong>Ollama:</strong> MIT License (
-                        <a
-                          href="https://github.com/ollama/ollama/blob/main/LICENSE"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          view license
-                        </a>
-                        )
-                      </li>
-                      <li>
-                        <strong>llama.cpp:</strong> MIT License (
+                      <strong>llama.cpp</strong>{" "}
+                      is an optional AI runtime component that may be installed
+                      with this application. It is provided
+                      under the MIT License (
                         <a
                           href="https://github.com/ggerganov/llama.cpp/blob/master/LICENSE"
                           target="_blank"
@@ -647,9 +466,8 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                         >
                           view license
                         </a>
-                        )
-                      </li>
-                    </ul>
+                      ).
+                    </p>
                     <p
                       style={{
                         marginBottom: "16px",
@@ -657,10 +475,10 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                         color: "var(--c_text_tertiary)",
                       }}
                     >
-                      NodeTool does not provide or transfer licenses for
-                      Ollama or llama.cpp. Users are responsible for
-                      compliance with their respective license terms. These
-                      components are optional and may be skipped during
+                      NodeTool does not provide or transfer a license for
+                      llama.cpp. Users are responsible for
+                      compliance with its license terms. This
+                      component is optional and may be skipped during
                       installation if you prefer to use external
                       installations.
                     </p>
@@ -678,9 +496,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                       </li>
                       <li>
                         <strong>NodeTool:</strong> AGPL-3.0 License
-                      </li>
-                      <li>
-                        <strong>Ollama:</strong> MIT License
                       </li>
                       <li>
                         <strong>llama.cpp:</strong> MIT License

@@ -5,14 +5,14 @@ vi.mock("node:fs", () => ({
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
-  existsSync: vi.fn(),
+  existsSync: vi.fn()
 }));
 
 vi.mock("node:crypto", async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>;
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
-    randomBytes: vi.fn(() => Buffer.from("a".repeat(32))),
+    randomBytes: vi.fn(() => Buffer.from("a".repeat(32)))
   };
 });
 
@@ -25,7 +25,7 @@ import {
   getTokenSource,
   verifyServerToken,
   AuthenticationError,
-  AUTH_DEPLOYMENT_CONFIG_FILE,
+  AUTH_DEPLOYMENT_CONFIG_FILE
 } from "../src/auth.js";
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
@@ -160,10 +160,9 @@ describe("auth", () => {
   describe("saveAuthConfig", () => {
     it("should create directory recursively", () => {
       saveAuthConfig({ key: "val" });
-      expect(mockedMkdirSync).toHaveBeenCalledWith(
-        expect.any(String),
-        { recursive: true }
-      );
+      expect(mockedMkdirSync).toHaveBeenCalledWith(expect.any(String), {
+        recursive: true
+      });
     });
 
     it("should write YAML content to file with restrictive permissions", () => {
@@ -367,9 +366,9 @@ describe("auth", () => {
     });
 
     it("should reject when there are too many parts", async () => {
-      await expect(
-        verifyServerToken("Bearer token extra")
-      ).rejects.toThrow(AuthenticationError);
+      await expect(verifyServerToken("Bearer token extra")).rejects.toThrow(
+        AuthenticationError
+      );
     });
   });
 });

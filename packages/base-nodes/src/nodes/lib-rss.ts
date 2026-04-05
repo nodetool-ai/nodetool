@@ -39,12 +39,14 @@ function parseDateTime(value: string): Record<string, unknown> {
     second: dt.getSeconds(),
     millisecond: dt.getMilliseconds(),
     tzinfo: dt.toString().match(/\(([^)]+)\)$/)?.[1] ?? "",
-    utc_offset: `${sign}${hh}${mm}`,
+    utc_offset: `${sign}${hh}${mm}`
   };
 }
 
 function parseFeedItems(xml: string): Array<Record<string, unknown>> {
-  const blocks = [...xml.matchAll(/<(item|entry)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/gi)].map((m) => m[2]);
+  const blocks = [
+    ...xml.matchAll(/<(item|entry)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/gi)
+  ].map((m) => m[2]);
   return blocks.map((block) => {
     const publishedRaw = firstTag(block, ["published", "pubDate", "updated"]);
     return {
@@ -52,7 +54,7 @@ function parseFeedItems(xml: string): Array<Record<string, unknown>> {
       link: firstTag(block, ["link", "id"]),
       published: parseDateTime(publishedRaw),
       summary: firstTag(block, ["summary", "description", "content"]),
-      author: firstTag(block, ["author", "dc:creator"]),
+      author: firstTag(block, ["author", "dc:creator"])
     };
   });
 }
@@ -67,23 +69,26 @@ function feedMetaBlock(xml: string): string {
 
 export class FetchRSSFeedLibNode extends BaseNode {
   static readonly nodeType = "lib.rss.FetchRSSFeed";
-            static readonly title = "Fetch RSS Feed";
-            static readonly description = "Fetches and parses an RSS feed from a URL.\n    rss, feed, network\n\n    Use cases:\n    - Monitor news feeds\n    - Aggregate content from multiple sources\n    - Process blog updates";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Fetch RSS Feed";
+  static readonly description =
+    "Fetches and parses an RSS feed from a URL.\n    rss, feed, network\n\n    Use cases:\n    - Monitor news feeds\n    - Aggregate content from multiple sources\n    - Process blog updates";
+  static readonly metadataOutputTypes = {
     title: "str",
     link: "str",
     published: "datetime",
     summary: "str",
     author: "str"
   };
-          static readonly exposeAsTool = true;
-  
-            static readonly isStreamingOutput = true;
-  @prop({ type: "str", default: "", title: "Url", description: "URL of the RSS feed to fetch" })
+  static readonly exposeAsTool = true;
+
+  static readonly isStreamingOutput = true;
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "URL of the RSS feed to fetch"
+  })
   declare url: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -101,17 +106,20 @@ export class FetchRSSFeedLibNode extends BaseNode {
 
 export class ExtractFeedMetadataLibNode extends BaseNode {
   static readonly nodeType = "lib.rss.ExtractFeedMetadata";
-            static readonly title = "Extract Feed Metadata";
-            static readonly description = "Extracts metadata from an RSS feed.\n    rss, metadata, feed\n\n    Use cases:\n    - Get feed information\n    - Validate feed details\n    - Extract feed metadata";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Extract Feed Metadata";
+  static readonly description =
+    "Extracts metadata from an RSS feed.\n    rss, metadata, feed\n\n    Use cases:\n    - Get feed information\n    - Validate feed details\n    - Extract feed metadata";
+  static readonly metadataOutputTypes = {
     output: "dict"
   };
-  
-  @prop({ type: "str", default: "", title: "Url", description: "URL of the RSS feed" })
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Url",
+    description: "URL of the RSS feed"
+  })
   declare url: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? "");
@@ -135,10 +143,13 @@ export class ExtractFeedMetadataLibNode extends BaseNode {
         language,
         updated,
         generator,
-        entry_count: entryCount,
-      },
+        entry_count: entryCount
+      }
     };
   }
 }
 
-export const LIB_RSS_NODES = [FetchRSSFeedLibNode, ExtractFeedMetadataLibNode] as const;
+export const LIB_RSS_NODES = [
+  FetchRSSFeedLibNode,
+  ExtractFeedMetadataLibNode
+] as const;

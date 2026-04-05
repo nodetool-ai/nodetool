@@ -2,14 +2,16 @@ import { describe, it, expect } from "vitest";
 import { MetadataParser } from "../src/metadata-parser.js";
 import type {
   PackageMetadata,
-  MetadataNodeEntry,
+  MetadataNodeEntry
 } from "../src/metadata-parser.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeEntry(overrides: Partial<MetadataNodeEntry> = {}): MetadataNodeEntry {
+function makeEntry(
+  overrides: Partial<MetadataNodeEntry> = {}
+): MetadataNodeEntry {
   return {
     title: "Sdxl",
     description: "A text-to-image model",
@@ -18,7 +20,7 @@ function makeEntry(overrides: Partial<MetadataNodeEntry> = {}): MetadataNodeEntr
     properties: [],
     outputs: [{ type: { type: "image" }, name: "output" }],
     the_model_info: { owner: "stability-ai", name: "sdxl" },
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -27,7 +29,7 @@ function makeMetadata(nodes: MetadataNodeEntry[]): PackageMetadata {
     name: "nodetool-replicate",
     description: "Replicate AI nodes for NodeTool",
     version: "0.1.0",
-    nodes,
+    nodes
   };
 }
 
@@ -40,7 +42,7 @@ const parser = new MetadataParser();
 describe("MetadataParser.parseNode()", () => {
   it("derives className from node_type last segment", () => {
     const entry = makeEntry({
-      node_type: "replicate.image.generate.StabilityAiSdxl",
+      node_type: "replicate.image.generate.StabilityAiSdxl"
     });
     const spec = parser.parseNode(entry);
     expect(spec.className).toBe("StabilityAiSdxl");
@@ -48,7 +50,7 @@ describe("MetadataParser.parseNode()", () => {
 
   it("derives modelId from the_model_info owner/name", () => {
     const entry = makeEntry({
-      the_model_info: { owner: "stability-ai", name: "sdxl" },
+      the_model_info: { owner: "stability-ai", name: "sdxl" }
     });
     const spec = parser.parseNode(entry);
     expect(spec.endpointId).toBe("stability-ai/sdxl");
@@ -68,7 +70,7 @@ describe("MetadataParser.parseNode()", () => {
 
   it("maps image output type", () => {
     const entry = makeEntry({
-      outputs: [{ type: { type: "image" }, name: "output" }],
+      outputs: [{ type: { type: "image" }, name: "output" }]
     });
     const spec = parser.parseNode(entry);
     expect(spec.outputType).toBe("image");
@@ -76,7 +78,7 @@ describe("MetadataParser.parseNode()", () => {
 
   it("maps video output type", () => {
     const entry = makeEntry({
-      outputs: [{ type: { type: "video" }, name: "output" }],
+      outputs: [{ type: { type: "video" }, name: "output" }]
     });
     const spec = parser.parseNode(entry);
     expect(spec.outputType).toBe("video");
@@ -84,7 +86,7 @@ describe("MetadataParser.parseNode()", () => {
 
   it("maps audio output type", () => {
     const entry = makeEntry({
-      outputs: [{ type: { type: "audio" }, name: "output" }],
+      outputs: [{ type: { type: "audio" }, name: "output" }]
     });
     const spec = parser.parseNode(entry);
     expect(spec.outputType).toBe("audio");
@@ -92,7 +94,7 @@ describe("MetadataParser.parseNode()", () => {
 
   it("maps str output type", () => {
     const entry = makeEntry({
-      outputs: [{ type: { type: "str" }, name: "output" }],
+      outputs: [{ type: { type: "str" }, name: "output" }]
     });
     const spec = parser.parseNode(entry);
     expect(spec.outputType).toBe("str");
@@ -126,9 +128,9 @@ describe("MetadataParser.parseNode()", () => {
           type: { type: "str", optional: false },
           default: "",
           title: "Prompt",
-          description: "Input prompt",
-        },
-      ],
+          description: "Input prompt"
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "prompt")!;
@@ -146,9 +148,9 @@ describe("MetadataParser.parseNode()", () => {
           type: { type: "int", optional: false },
           default: 50,
           title: "Steps",
-          description: "Number of steps",
-        },
-      ],
+          description: "Number of steps"
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "num_steps")!;
@@ -164,9 +166,9 @@ describe("MetadataParser.parseNode()", () => {
           type: { type: "float", optional: false },
           default: 7.5,
           title: "Guidance Scale",
-          description: "",
-        },
-      ],
+          description: ""
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "guidance_scale")!;
@@ -182,9 +184,9 @@ describe("MetadataParser.parseNode()", () => {
           type: { type: "bool", optional: false },
           default: true,
           title: "Apply Watermark",
-          description: "",
-        },
-      ],
+          description: ""
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "apply_watermark")!;
@@ -200,9 +202,9 @@ describe("MetadataParser.parseNode()", () => {
           type: { type: "image", optional: true },
           default: null,
           title: "Image",
-          description: "",
-        },
-      ],
+          description: ""
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "image")!;
@@ -218,9 +220,9 @@ describe("MetadataParser.parseNode()", () => {
           type: { type: "video", optional: true },
           default: null,
           title: "Video",
-          description: "",
-        },
-      ],
+          description: ""
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "video")!;
@@ -236,9 +238,9 @@ describe("MetadataParser.parseNode()", () => {
           type: { type: "audio", optional: true },
           default: null,
           title: "Audio",
-          description: "",
-        },
-      ],
+          description: ""
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "audio")!;
@@ -251,12 +253,16 @@ describe("MetadataParser.parseNode()", () => {
       properties: [
         {
           name: "scheduler",
-          type: { type: "enum", values: ["DDIM", "K_EULER", "PNDM"], optional: false },
+          type: {
+            type: "enum",
+            values: ["DDIM", "K_EULER", "PNDM"],
+            optional: false
+          },
           default: "K_EULER",
           title: "Scheduler",
-          description: "Scheduler type",
-        },
-      ],
+          description: "Scheduler type"
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "scheduler")!;
@@ -279,9 +285,9 @@ describe("MetadataParser.parseNode()", () => {
           type: { type: "str", optional: true },
           default: "",
           title: "Negative Prompt",
-          description: "",
-        },
-      ],
+          description: ""
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "negative_prompt")!;
@@ -296,9 +302,9 @@ describe("MetadataParser.parseNode()", () => {
           type: { type: "str", optional: true },
           default: null,
           title: "LoRA URL",
-          description: "",
-        },
-      ],
+          description: ""
+        }
+      ]
     });
     const spec = parser.parseNode(entry);
     const field = spec.inputFields.find((f) => f.name === "lora_url")!;
@@ -315,15 +321,15 @@ describe("MetadataParser.parseAll()", () => {
     const metadata = makeMetadata([
       makeEntry({
         namespace: "replicate.image.generate",
-        node_type: "replicate.image.generate.Sdxl",
+        node_type: "replicate.image.generate.Sdxl"
       }),
       makeEntry({
         namespace: "replicate.video.generate",
         node_type: "replicate.video.generate.WanT2V",
         title: "WanT2V",
         outputs: [{ type: { type: "video" }, name: "output" }],
-        the_model_info: { owner: "wan-video", name: "wan-t2v" },
-      }),
+        the_model_info: { owner: "wan-video", name: "wan-t2v" }
+      })
     ]);
     const modules = parser.parseAll(metadata);
     expect(modules.has("image-generate")).toBe(true);
@@ -332,7 +338,7 @@ describe("MetadataParser.parseAll()", () => {
 
   it("converts namespace to module name correctly", () => {
     const metadata = makeMetadata([
-      makeEntry({ namespace: "replicate.audio.transcribe" }),
+      makeEntry({ namespace: "replicate.audio.transcribe" })
     ]);
     const modules = parser.parseAll(metadata);
     expect(modules.has("audio-transcribe")).toBe(true);
@@ -340,7 +346,7 @@ describe("MetadataParser.parseAll()", () => {
 
   it("strips replicate. prefix from namespace", () => {
     const metadata = makeMetadata([
-      makeEntry({ namespace: "replicate.image.enhance" }),
+      makeEntry({ namespace: "replicate.image.enhance" })
     ]);
     const modules = parser.parseAll(metadata);
     expect(modules.has("image-enhance")).toBe(true);
@@ -350,7 +356,7 @@ describe("MetadataParser.parseAll()", () => {
   it("deduplicates nodes by className within same module", () => {
     const metadata = makeMetadata([
       makeEntry({ node_type: "replicate.image.generate.Sdxl" }),
-      makeEntry({ node_type: "replicate.image.generate.Sdxl" }), // duplicate
+      makeEntry({ node_type: "replicate.image.generate.Sdxl" }) // duplicate
     ]);
     const modules = parser.parseAll(metadata);
     expect(modules.get("image-generate")?.length).toBe(1);
@@ -362,8 +368,8 @@ describe("MetadataParser.parseAll()", () => {
       makeEntry({
         node_type: "replicate.image.generate.FluxDev",
         the_model_info: { owner: "black-forest-labs", name: "flux-dev" },
-        title: "FluxDev",
-      }),
+        title: "FluxDev"
+      })
     ]);
     const modules = parser.parseAll(metadata);
     expect(modules.get("image-generate")?.length).toBe(2);
@@ -376,15 +382,15 @@ describe("MetadataParser.parseAll()", () => {
         namespace: "replicate.image.upscale",
         node_type: "replicate.image.upscale.RealEsrgan",
         title: "RealEsrgan",
-        the_model_info: { owner: "nightmareai", name: "real-esrgan" },
+        the_model_info: { owner: "nightmareai", name: "real-esrgan" }
       }),
       makeEntry({
         namespace: "replicate.audio.transcribe",
         node_type: "replicate.audio.transcribe.WhisperLargeV3",
         title: "WhisperLargeV3",
         outputs: [{ type: { type: "str" }, name: "output" }],
-        the_model_info: { owner: "openai", name: "whisper" },
-      }),
+        the_model_info: { owner: "openai", name: "whisper" }
+      })
     ]);
     const modules = parser.parseAll(metadata);
     expect(modules.size).toBe(3);
@@ -397,8 +403,8 @@ describe("MetadataParser.parseAll()", () => {
     const metadata = makeMetadata([
       makeEntry({
         namespace: "replicate.image.generate",
-        node_type: "replicate.image.generate.Sdxl",
-      }),
+        node_type: "replicate.image.generate.Sdxl"
+      })
     ]);
     const modules = parser.parseAll(metadata);
     const specs = modules.get("image-generate")!;
@@ -414,7 +420,7 @@ describe("MetadataParser.parseAll()", () => {
 describe("namespace to module name conversion", () => {
   it('"replicate.image.generate" → "image-generate"', () => {
     const metadata = makeMetadata([
-      makeEntry({ namespace: "replicate.image.generate" }),
+      makeEntry({ namespace: "replicate.image.generate" })
     ]);
     const modules = parser.parseAll(metadata);
     expect([...modules.keys()]).toContain("image-generate");
@@ -422,7 +428,7 @@ describe("namespace to module name conversion", () => {
 
   it('"replicate.video.face" → "video-face"', () => {
     const metadata = makeMetadata([
-      makeEntry({ namespace: "replicate.video.face" }),
+      makeEntry({ namespace: "replicate.video.face" })
     ]);
     const modules = parser.parseAll(metadata);
     expect([...modules.keys()]).toContain("video-face");
@@ -432,8 +438,8 @@ describe("namespace to module name conversion", () => {
     const metadata = makeMetadata([
       makeEntry({
         namespace: "replicate.text.generate",
-        outputs: [{ type: { type: "str" }, name: "output" }],
-      }),
+        outputs: [{ type: { type: "str" }, name: "output" }]
+      })
     ]);
     const modules = parser.parseAll(metadata);
     expect([...modules.keys()]).toContain("text-generate");
@@ -443,8 +449,8 @@ describe("namespace to module name conversion", () => {
     const metadata = makeMetadata([
       makeEntry({
         namespace: "replicate.embedding",
-        outputs: [{ type: { type: "str" }, name: "output" }],
-      }),
+        outputs: [{ type: { type: "str" }, name: "output" }]
+      })
     ]);
     const modules = parser.parseAll(metadata);
     expect([...modules.keys()]).toContain("embedding");

@@ -209,8 +209,8 @@ describe("SecretsMenu", () => {
         expect(screen.getByText("ANTHROPIC_API_KEY")).toBeInTheDocument();
       });
 
-      // Click edit button to open dialog
-      const editButton = screen.getByLabelText("Update secret");
+      // Click the edit button (filter for actual button elements)
+      const editButton = screen.getByRole("button", { name: "Update secret ANTHROPIC_API_KEY" });
       await userEvent.click(editButton);
 
       await waitFor(() => {
@@ -235,8 +235,8 @@ describe("SecretsMenu", () => {
         expect(screen.getByText("OPENAI_API_KEY")).toBeInTheDocument();
       });
 
-      // Click edit button to open dialog
-      const editButton = screen.getByLabelText("Update secret");
+      // Click the edit button (filter for actual button elements)
+      const editButton = screen.getByRole("button", { name: "Update secret OPENAI_API_KEY" });
       await userEvent.click(editButton);
 
       await waitFor(() => {
@@ -261,7 +261,7 @@ describe("SecretsMenu", () => {
         expect(screen.getByText("TEST_SECRET")).toBeInTheDocument();
       });
 
-      const editButton = screen.getByLabelText("Set secret");
+      const editButton = screen.getByRole("button", { name: "Set secret TEST_SECRET" });
       await userEvent.click(editButton);
 
       await waitFor(() => {

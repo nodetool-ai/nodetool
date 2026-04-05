@@ -21,27 +21,27 @@ export class SendMessageTool extends Tool {
     properties: {
       to: {
         type: "string",
-        description: "Agent ID of the recipient",
+        description: "Agent ID of the recipient"
       },
       subject: {
         type: "string",
-        description: "Short topic of the message",
+        description: "Short topic of the message"
       },
       body: {
         type: "string",
-        description: "Message content",
+        description: "Message content"
       },
       type: {
         type: "string",
         enum: ["request", "response", "info", "handoff"],
-        description: "Message type (default: info)",
+        description: "Message type (default: info)"
       },
       reply_to: {
         type: "string",
-        description: "Message ID this is replying to (optional)",
-      },
+        description: "Message ID this is replying to (optional)"
+      }
     },
-    required: ["to", "subject", "body"],
+    required: ["to", "subject", "body"]
   };
 
   constructor(
@@ -58,15 +58,18 @@ export class SendMessageTool extends Tool {
   ): Promise<unknown> {
     const to = String(params.to);
     if (to !== "all" && !this.roster.find((a) => a.id === to)) {
-      return { error: `Unknown agent: ${to}. Available: ${this.roster.map((a) => a.id).join(", ")}` };
+      return {
+        error: `Unknown agent: ${to}. Available: ${this.roster.map((a) => a.id).join(", ")}`
+      };
     }
     const msg = this.bus.send({
       from: this.agentId,
       to,
-      type: (params.type as "request" | "response" | "info" | "handoff") ?? "info",
+      type:
+        (params.type as "request" | "response" | "info" | "handoff") ?? "info",
       subject: String(params.subject),
       body: String(params.body),
-      replyTo: params.reply_to ? String(params.reply_to) : undefined,
+      replyTo: params.reply_to ? String(params.reply_to) : undefined
     });
     return { status: "sent", messageId: msg.id };
   }
@@ -85,14 +88,14 @@ export class BroadcastTool extends Tool {
     properties: {
       subject: {
         type: "string",
-        description: "Short topic of the broadcast",
+        description: "Short topic of the broadcast"
       },
       body: {
         type: "string",
-        description: "Message content",
-      },
+        description: "Message content"
+      }
     },
-    required: ["subject", "body"],
+    required: ["subject", "body"]
   };
 
   constructor(
@@ -111,7 +114,7 @@ export class BroadcastTool extends Tool {
       to: "all",
       type: "info",
       subject: String(params.subject),
-      body: String(params.body),
+      body: String(params.body)
     });
     return { status: "broadcast_sent", messageId: msg.id };
   }
@@ -128,7 +131,7 @@ export class CheckMessagesTool extends Tool {
   readonly inputSchema = {
     type: "object" as const,
     properties: {},
-    required: [],
+    required: []
   };
 
   constructor(
@@ -151,8 +154,8 @@ export class CheckMessagesTool extends Tool {
         subject: m.subject,
         body: m.body,
         taskId: m.taskId,
-        timestamp: m.timestamp,
-      })),
+        timestamp: m.timestamp
+      }))
     };
   }
 
@@ -173,24 +176,24 @@ export class CreateTaskTool extends Tool {
       title: { type: "string", description: "Short task title" },
       description: {
         type: "string",
-        description: "Detailed description of what needs to be done",
+        description: "Detailed description of what needs to be done"
       },
       required_skills: {
         type: "array",
         items: { type: "string" },
-        description: "Skill tags needed (matches agent skills)",
+        description: "Skill tags needed (matches agent skills)"
       },
       priority: {
         type: "number",
-        description: "Priority 0-9 (0=highest, default=5)",
+        description: "Priority 0-9 (0=highest, default=5)"
       },
       depends_on: {
         type: "array",
         items: { type: "string" },
-        description: "Task IDs that must complete first",
-      },
+        description: "Task IDs that must complete first"
+      }
     },
-    required: ["title", "description"],
+    required: ["title", "description"]
   };
 
   constructor(
@@ -211,7 +214,7 @@ export class CreateTaskTool extends Tool {
         createdBy: this.agentId,
         requiredSkills: (params.required_skills as string[]) ?? [],
         priority: typeof params.priority === "number" ? params.priority : 5,
-        dependsOn: (params.depends_on as string[]) ?? [],
+        dependsOn: (params.depends_on as string[]) ?? []
       });
       return { status: "created", taskId: task.id, title: task.title };
     } catch (e) {
@@ -234,10 +237,10 @@ export class ListTasksTool extends Tool {
       available_only: {
         type: "boolean",
         description:
-          "If true, only show tasks you can claim (open, dependencies met, skills match)",
-      },
+          "If true, only show tasks you can claim (open, dependencies met, skills match)"
+      }
     },
-    required: [],
+    required: []
   };
 
   constructor(
@@ -265,8 +268,8 @@ export class ListTasksTool extends Tool {
         priority: t.priority,
         requiredSkills: t.requiredSkills,
         dependsOn: t.dependsOn,
-        parentTaskId: t.parentTaskId,
-      })),
+        parentTaskId: t.parentTaskId
+      }))
     };
   }
 
@@ -282,9 +285,9 @@ export class ClaimTaskTool extends Tool {
   readonly inputSchema = {
     type: "object" as const,
     properties: {
-      task_id: { type: "string", description: "ID of the task to claim" },
+      task_id: { type: "string", description: "ID of the task to claim" }
     },
-    required: ["task_id"],
+    required: ["task_id"]
   };
 
   constructor(
@@ -307,11 +310,12 @@ export class ClaimTaskTool extends Tool {
         status: "claimed_and_working",
         task: task
           ? { id: task.id, title: task.title, description: task.description }
-          : undefined,
+          : undefined
       };
     }
     return {
-      error: "Could not claim task. It may already be claimed, not open, or dependencies are not met.",
+      error:
+        "Could not claim task. It may already be claimed, not open, or dependencies are not met."
     };
   }
 
@@ -329,15 +333,13 @@ export class CompleteTaskTool extends Tool {
     properties: {
       task_id: { type: "string", description: "ID of the task to complete" },
       result: {
-        description: "The output/result of the completed task",
-      },
+        description: "The output/result of the completed task"
+      }
     },
-    required: ["task_id", "result"],
+    required: ["task_id", "result"]
   };
 
-  constructor(
-    private board: ITaskBoard
-  ) {
+  constructor(private board: ITaskBoard) {
     super();
   }
 
@@ -346,7 +348,7 @@ export class CompleteTaskTool extends Tool {
     params: Record<string, unknown>
   ): Promise<unknown> {
     const success = this.board.complete(String(params.task_id), {
-      result: params.result,
+      result: params.result
     });
     if (success) {
       this.board.resolveParents();
@@ -367,15 +369,16 @@ export class FailTaskTool extends Tool {
   readonly inputSchema = {
     type: "object" as const,
     properties: {
-      task_id: { type: "string", description: "ID of the task to mark as failed" },
-      reason: { type: "string", description: "Why the task failed" },
+      task_id: {
+        type: "string",
+        description: "ID of the task to mark as failed"
+      },
+      reason: { type: "string", description: "Why the task failed" }
     },
-    required: ["task_id", "reason"],
+    required: ["task_id", "reason"]
   };
 
-  constructor(
-    private board: ITaskBoard
-  ) {
+  constructor(private board: ITaskBoard) {
     super();
   }
 
@@ -414,16 +417,16 @@ export class DecomposeTaskTool extends Tool {
             description: { type: "string" },
             required_skills: {
               type: "array",
-              items: { type: "string" },
+              items: { type: "string" }
             },
-            priority: { type: "number" },
+            priority: { type: "number" }
           },
-          required: ["title", "description"],
+          required: ["title", "description"]
         },
-        description: "List of subtasks to create",
-      },
+        description: "List of subtasks to create"
+      }
     },
-    required: ["task_id", "subtasks"],
+    required: ["task_id", "subtasks"]
   };
 
   constructor(
@@ -438,24 +441,21 @@ export class DecomposeTaskTool extends Tool {
     params: Record<string, unknown>
   ): Promise<unknown> {
     try {
-      const subtaskDefs = (params.subtasks as Array<Record<string, unknown>>).map(
-        (s) => ({
-          title: String(s.title),
-          description: String(s.description),
-          createdBy: this.agentId,
-          requiredSkills: (s.required_skills as string[]) ?? [],
-          priority: typeof s.priority === "number" ? s.priority : 5,
-        })
-      );
+      const subtaskDefs = (
+        params.subtasks as Array<Record<string, unknown>>
+      ).map((s) => ({
+        title: String(s.title),
+        description: String(s.description),
+        createdBy: this.agentId,
+        requiredSkills: (s.required_skills as string[]) ?? [],
+        priority: typeof s.priority === "number" ? s.priority : 5
+      }));
 
-      const created = this.board.decompose(
-        String(params.task_id),
-        subtaskDefs
-      );
+      const created = this.board.decompose(String(params.task_id), subtaskDefs);
 
       return {
         status: "decomposed",
-        subtasks: created.map((t) => ({ id: t.id, title: t.title })),
+        subtasks: created.map((t) => ({ id: t.id, title: t.title }))
       };
     } catch (e) {
       return { error: String(e) };
@@ -484,6 +484,6 @@ export function createTeamTools(
     new ClaimTaskTool(agent.id, board),
     new CompleteTaskTool(board),
     new FailTaskTool(board),
-    new DecomposeTaskTool(agent.id, board),
+    new DecomposeTaskTool(agent.id, board)
   ];
 }

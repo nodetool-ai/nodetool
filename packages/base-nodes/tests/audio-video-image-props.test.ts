@@ -17,7 +17,7 @@ import {
   TrimVideoNode,
   ExtractFrameVideoNode,
   BlurVideoNode,
-  ChromaKeyVideoNode,
+  ChromaKeyVideoNode
 } from "../src/index.js";
 
 // --- Helpers ---
@@ -26,7 +26,7 @@ function audioRef(bytes: number[]) {
   return {
     type: "audio",
     uri: "",
-    data: Buffer.from(new Uint8Array(bytes)).toString("base64"),
+    data: Buffer.from(new Uint8Array(bytes)).toString("base64")
   };
 }
 
@@ -34,7 +34,7 @@ function videoRef(bytes: number[]) {
   return {
     type: "video",
     uri: "",
-    data: Buffer.from(new Uint8Array(bytes)).toString("base64"),
+    data: Buffer.from(new Uint8Array(bytes)).toString("base64")
   };
 }
 
@@ -45,7 +45,7 @@ describe("OverlayAudioNode — uses a/b properties (not audio_a/audio_b)", () =>
     const node = new OverlayAudioNode();
     node.assign({
       a: audioRef([10, 20, 30]),
-      b: audioRef([5, 25, 15]),
+      b: audioRef([5, 25, 15])
     });
     const result = await node.process();
     const output = result.output as { data: string };
@@ -60,7 +60,7 @@ describe("OverlayAudioNode — uses a/b properties (not audio_a/audio_b)", () =>
     const node = new OverlayAudioNode();
     node.assign({
       audio_a: audioRef([99]),
-      audio_b: audioRef([99]),
+      audio_b: audioRef([99])
     });
     const result = await node.process();
     // Without a/b, both inputs are empty → output should be empty
@@ -75,7 +75,7 @@ describe("RepeatAudioNode — uses loops property (not count)", () => {
     const node = new RepeatAudioNode();
     node.assign({
       audio: audioRef([1, 2]),
-      loops: 3,
+      loops: 3
     });
     const result = await node.process();
     const output = result.output as { data: string };
@@ -86,7 +86,7 @@ describe("RepeatAudioNode — uses loops property (not count)", () => {
   it("defaults to 2 loops", async () => {
     const node = new RepeatAudioNode();
     node.assign({
-      audio: audioRef([1, 2, 3]),
+      audio: audioRef([1, 2, 3])
     });
     const result = await node.process();
     const output = result.output as { data: string };
@@ -100,7 +100,7 @@ describe("ConcatAudioNode — uses a/b properties", () => {
     const node = new ConcatAudioNode();
     node.assign({
       a: audioRef([1, 2]),
-      b: audioRef([3, 4]),
+      b: audioRef([3, 4])
     });
     const result = await node.process();
     const output = result.output as { data: string };
@@ -113,7 +113,7 @@ describe("ConcatAudioListNode — uses audio_files property", () => {
   it("concatenates list of audio files", async () => {
     const node = new ConcatAudioListNode();
     node.assign({
-      audio_files: [audioRef([1, 2]), audioRef([3])],
+      audio_files: [audioRef([1, 2]), audioRef([3])]
     });
     const result = await node.process();
     const output = result.output as { data: string };
@@ -126,7 +126,7 @@ describe("NumpyToAudioNode — uses array property (not values)", () => {
   it("converts array to audio bytes", async () => {
     const node = new NumpyToAudioNode();
     node.assign({
-      array: [65, 66, 67],
+      array: [65, 66, 67]
     });
     const result = await node.process();
     const output = result.output as { data: string };
@@ -152,7 +152,7 @@ describe("FpsNode — returns float, not video ref", () => {
   it("returns fps as a number", async () => {
     const node = new FpsNode();
     node.assign({
-      video: videoRef([1, 2, 3]),
+      video: videoRef([1, 2, 3])
     });
     const result = await node.process();
     // FpsNode always returns hardcoded 24 fps (metadata extraction placeholder)
@@ -163,7 +163,7 @@ describe("FpsNode — returns float, not video ref", () => {
   it("defaults to 24 fps", async () => {
     const node = new FpsNode();
     node.assign({
-      video: videoRef([1, 2, 3]),
+      video: videoRef([1, 2, 3])
     });
     const result = await node.process();
     expect(result.output).toBe(24);
@@ -177,7 +177,7 @@ describe("FrameIteratorNode — yields frames correctly", () => {
     const bytes = new Array(2500).fill(0).map((_, i) => i % 256);
     const frames: Record<string, unknown>[] = [];
     node.assign({
-      video: videoRef(bytes),
+      video: videoRef(bytes)
     });
     for await (const frame of node.genProcess()) {
       frames.push(frame);
@@ -208,7 +208,7 @@ describe("TrimVideoNode — uses start_time/end_time (not start/end)", () => {
     node.assign({
       video: videoRef(bytes),
       start_time: 2,
-      end_time: 3, // removes 3 bytes from end
+      end_time: 3 // removes 3 bytes from end
     });
     const result = await node.process();
     const output = result.output as { data: string };
@@ -224,8 +224,8 @@ describe("FrameToVideoNode — uses frame property (not frames)", () => {
     node.assign({
       frame: [
         { data: Buffer.from([1, 2]).toString("base64") },
-        { data: Buffer.from([3, 4]).toString("base64") },
-      ],
+        { data: Buffer.from([3, 4]).toString("base64") }
+      ]
     });
     const result = await node.process();
     const output = result.output as { data: string };
@@ -242,7 +242,7 @@ describe("BlurVideoNode — uses strength property (not radius)", () => {
     // When ffmpeg is not available, it falls back to returning original bytes.
     node.assign({
       video: videoRef([1, 2, 3]),
-      strength: 5,
+      strength: 5
     });
     const result = await node.process();
     expect(result.output).toBeDefined();
@@ -255,7 +255,7 @@ describe("ChromaKeyVideoNode — uses key_color property (not color)", () => {
     node.assign({
       video: videoRef([1, 2, 3]),
       key_color: "0xFF0000",
-      similarity: 0.2,
+      similarity: 0.2
     });
     const result = await node.process();
     expect(result.output).toBeDefined();
@@ -268,7 +268,7 @@ describe("ExtractFrameVideoNode — uses time property (not frame_index)", () =>
     const bytes = new Array(4096).fill(0).map((_, i) => i % 256);
     node.assign({
       video: videoRef(bytes),
-      time: 1, // frame at index 1
+      time: 1 // frame at index 1
     });
     const result = await node.process();
     const output = result.output as { data: string };

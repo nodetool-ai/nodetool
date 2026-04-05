@@ -1,6 +1,11 @@
 import type { Chunk } from "@nodetool/protocol";
 
-export type ProviderId = "openai" | "anthropic" | "ollama" | "llama_cpp" | string;
+export type ProviderId =
+  | "openai"
+  | "anthropic"
+  | "ollama"
+  | "llama_cpp"
+  | string;
 
 export interface LanguageModel {
   id: string;
@@ -35,6 +40,16 @@ export interface ASRModel {
   provider: ProviderId;
 }
 
+export interface AudioChunk {
+  timestamp: [number, number];
+  text: string;
+}
+
+export interface ASRResult {
+  text: string;
+  chunks?: AudioChunk[];
+}
+
 export interface EmbeddingModel {
   id: string;
   name: string;
@@ -46,6 +61,9 @@ export interface ToolCall {
   id: string;
   name: string;
   args: Record<string, unknown>;
+  thought_signature?: string;
+  /** Raw Gemini parts to echo back (preserves thought content). */
+  _rawGeminiParts?: unknown[];
 }
 
 export interface ProviderTool {
@@ -89,6 +107,8 @@ export interface Message {
   toolCalls?: ToolCall[] | null;
   toolCallId?: string | null;
   threadId?: string | null;
+  /** Provider-specific raw parts to echo back (e.g., Gemini thought parts). */
+  _rawGeminiParts?: unknown[];
 }
 
 export interface TextToImageParams {

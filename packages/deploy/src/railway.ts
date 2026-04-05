@@ -38,7 +38,7 @@ async function railwayCli(
   try {
     const { stdout } = await execFileAsync("railway", args, {
       timeout: opts?.timeout ?? 60_000,
-      cwd: opts?.cwd,
+      cwd: opts?.cwd
     });
     return stdout;
   } catch (e: unknown) {
@@ -96,7 +96,7 @@ export class RailwayDeployer {
       changes: [] as string[],
       will_create: [] as string[],
       will_update: [] as string[],
-      will_destroy: [] as string[],
+      will_destroy: [] as string[]
     };
 
     const changes = planResult["changes"] as string[];
@@ -147,7 +147,7 @@ export class RailwayDeployer {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
     if (!/^[\w-]+$/.test(this.deployment.project)) {
@@ -177,10 +177,9 @@ export class RailwayDeployer {
       results.steps.push(
         `Linking to Railway project: ${this.deployment.project}...`
       );
-      await railwayCli(
-        ["link", "--project", this.deployment.project],
-        { cwd: tmpDir }
-      );
+      await railwayCli(["link", "--project", this.deployment.project], {
+        cwd: tmpDir
+      });
       results.steps.push("Linked to Railway project");
 
       // 3. Set environment variables (must be after link)
@@ -197,20 +196,18 @@ export class RailwayDeployer {
       }
 
       // 4. Deploy from temp dir (Railway detects Dockerfile)
-      results.steps.push(
-        `Deploying service: ${this.deployment.service}...`
-      );
-      await railwayCli(
-        ["up", "--service", this.deployment.service],
-        { cwd: tmpDir, timeout: 300_000 }
-      );
+      results.steps.push(`Deploying service: ${this.deployment.service}...`);
+      await railwayCli(["up", "--service", this.deployment.service], {
+        cwd: tmpDir,
+        timeout: 300_000
+      });
       results.steps.push("Railway deployment completed");
 
       // 4. Update state
       await this.stateManager.writeState(this.deploymentName, {
         status: DeploymentStatus.SERVING,
         project: this.deployment.project,
-        service: this.deployment.service,
+        service: this.deployment.service
       });
     } catch (e) {
       results.status = "error";
@@ -237,7 +234,7 @@ export class RailwayDeployer {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
     const tmpDir = await fs.mkdtemp(
@@ -249,13 +246,13 @@ export class RailwayDeployer {
       );
 
       // Link to project first so the CLI knows which project to target
-      await railwayCli(["link", "--project", this.deployment.project], { cwd: tmpDir });
-      await railwayCli([
-        "service",
-        "delete",
-        this.deployment.service,
-        "--yes",
-      ], { cwd: tmpDir });
+      await railwayCli(["link", "--project", this.deployment.project], {
+        cwd: tmpDir
+      });
+      await railwayCli(
+        ["service", "delete", this.deployment.service, "--yes"],
+        { cwd: tmpDir }
+      );
 
       results.steps.push("Service deleted successfully");
 
@@ -286,7 +283,7 @@ export class RailwayDeployer {
       deployment_name: this.deploymentName,
       type: "railway",
       project: this.deployment.project,
-      service: this.deployment.service,
+      service: this.deployment.service
     };
 
     // Get state from state manager
@@ -301,7 +298,9 @@ export class RailwayDeployer {
       path.join(os.tmpdir(), "nodetool-railway-")
     );
     try {
-      await railwayCli(["link", "--project", this.deployment.project], { cwd: tmpDir });
+      await railwayCli(["link", "--project", this.deployment.project], {
+        cwd: tmpDir
+      });
       const output = await railwayCli(["status", "--json"], { cwd: tmpDir });
       statusInfo["live_status"] = JSON.parse(output);
     } catch (e) {
@@ -339,7 +338,9 @@ export class RailwayDeployer {
     );
     try {
       // Link to project so CLI targets the right one
-      await railwayCli(["link", "--project", this.deployment.project], { cwd: tmpDir });
+      await railwayCli(["link", "--project", this.deployment.project], {
+        cwd: tmpDir
+      });
       return await railwayCli(args, { cwd: tmpDir, timeout: 30_000 });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

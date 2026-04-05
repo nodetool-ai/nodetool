@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import { useNodes } from "../../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
 import useDynamicOutput from "../../hooks/nodes/useDynamicOutput";
 import { validateIdentifierName } from "../../utils/identifierValidation";
@@ -24,15 +25,21 @@ export interface NodeOutputsProps {
 }
 
 export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreamingOutput }) => {
-  const node = useNodes((state) => state.findNode(id));
-  const nodeType = node?.type || "";
+  const { nodeType, dynamicOutputs } = useNodes((state) => {
+    const node = state.findNode(id);
+    return {
+      nodeType: node?.type || "",
+      dynamicOutputs: node?.data?.dynamic_outputs
+    };
+  }, shallow);
+
   const metadata = useMetadataStore((state) =>
     nodeType ? state.getMetadata(nodeType) : undefined
   );
 
   const { handleDeleteOutput } = useDynamicOutput(
     id,
-    node?.data?.dynamic_outputs || {}
+    dynamicOutputs || {}
   );
   const updateNodeData = useNodes((state) => state.updateNodeData);
 
@@ -56,9 +63,9 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
     [outputs]
   );
 
-  const dynamicOutputs: OutputItem[] = useMemo(
+  const dynamicOutputsList: OutputItem[] = useMemo(
     () =>
-      Object.entries(node?.data?.dynamic_outputs || {}).map(
+      Object.entries(dynamicOutputs || {}).map(
         ([name, typeMetadata]) => ({
           name,
           type: typeMetadata,
@@ -66,12 +73,12 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
           required: false
         })
       ),
-    [node?.data?.dynamic_outputs]
+    [dynamicOutputs]
   );
 
   const allOutputs: OutputItem[] = useMemo(
-    () => [...staticOutputs, ...dynamicOutputs],
-    [staticOutputs, dynamicOutputs]
+    () => [...staticOutputs, ...dynamicOutputsList],
+    [staticOutputs, dynamicOutputsList]
   );
 
   const onStartEdit = useCallback(
@@ -80,7 +87,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
       setRenameValue(name);
       // derive current type for this dynamic output
       let currentType = "string";
-      const dyn = Object.entries(node?.data?.dynamic_outputs || {}).find(
+      const dyn = Object.entries(dynamicOutputs || {}).find(
         ([n]) => n === name
       );
       if (dyn && dyn[1] && dyn[1].type) {
@@ -89,7 +96,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
       setRenameType(currentType);
       setShowRenameDialog(true);
     },
-    [node?.data?.dynamic_outputs]
+    [dynamicOutputs]
   );
 
   const onSubmitEdit = useCallback(() => {
@@ -103,7 +110,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
     }
 
     const currentDynamic: Record<string, any> = {
-      ...(node?.data?.dynamic_outputs || {})
+      ...(dynamicOutputs || {})
     };
     if (newName !== renameTarget) {
       currentDynamic[newName] = currentDynamic[renameTarget];
@@ -124,7 +131,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
     renameValue,
     renameTarget,
     renameType,
-    node?.data?.dynamic_outputs,
+    dynamicOutputs,
     updateNodeData,
     id
   ]);

@@ -91,6 +91,7 @@ const { values } = parseArgs({
     all: { type: "boolean", default: false },
     "from-platform": { type: "boolean", default: false },
     "dry-run": { type: "boolean", default: false },
+    manifest: { type: "boolean", default: false },
     "no-cache": { type: "boolean", default: false },
     "fal-api-key": { type: "string" },
     "skip-pricing": { type: "boolean", default: false },
@@ -99,11 +100,15 @@ const { values } = parseArgs({
     "pricing-snapshot": { type: "string" },
     "output-dir": {
       type: "string",
-      default: join(process.cwd(), "..", "fal-nodes", "src", "generated"),
+      default: join(process.cwd(), "..", "fal-nodes", "src", "generated")
     },
     "save-models-snapshot": { type: "string" },
     "from-models-snapshot": { type: "string" },
-  },
+    "manifest-output": {
+      type: "string",
+      default: join(process.cwd(), "..", "fal-nodes", "src", "fal-manifest.json")
+    }
+  }
 });
 
 function resolveFalApiKeyFromEnv(): string | undefined {
@@ -123,7 +128,7 @@ function uniquifyClassName(
       .filter(Boolean)
       .pop()
       ?.replace(/[^a-zA-Z0-9]/g, "") ?? "Model";
-  let candidate = `${base}_${tail}`;
+  const candidate = `${base}_${tail}`;
   if (!used.has(candidate)) {
     return candidate;
   }
@@ -214,7 +219,6 @@ async function generateModule(
 
   const specs: NodeSpec[] = [];
   const failedEndpoints: string[] = [];
-
   for (const endpointId of Object.keys(config.configs)) {
     try {
       console.log(`  Fetching ${endpointId}...`);
@@ -634,6 +638,40 @@ async function runModelsOnly(outputDir: string, dryRun: boolean): Promise<void> 
   console.log(`\nWrote models snapshot → ${snapshotPath}`);
 }
 
+async function generateManifest(
+  outputPath: string,
+  useCache: boolean
+): Promise<void> {
+  const fetcher = new SchemaFetcher();
+  const parser = new SchemaParser();
+  const generator = new NodeGenerator();
+
+  const allSpecs: Array<NodeSpec & { moduleName: string }> = [];
+
+  for (const [name, config] of Object.entries(allConfigs)) {
+    const dashName = name.replace(/_/g, "-");
+    console.log(`\n=== ${dashName} ===`);
+
+    for (const endpointId of Object.keys(config.configs)) {
+      try {
+        console.log(`  Fetching ${endpointId}...`);
+        const schema = await fetcher.fetchSchema(endpointId, useCache);
+        const spec = parser.parse(schema);
+        const nodeConfig = config.configs[endpointId];
+        const applied = nodeConfig
+          ? generator.applyConfig(spec, nodeConfig)
+          : spec;
+        allSpecs.push({ ...applied, moduleName: name });
+      } catch (e) {
+        console.error(`  ERROR: ${endpointId}: ${e}`);
+      }
+    }
+  }
+
+  await writeFile(outputPath, JSON.stringify(allSpecs, null, 2));
+  console.log(`\nWrote ${allSpecs.length} specs to ${outputPath}`);
+}
+
 async function main(): Promise<void> {
   const outputDir = values["output-dir"]!;
   const useCache = !values["no-cache"];
@@ -712,6 +750,11 @@ async function main(): Promise<void> {
       pricingSnapshotFile,
       apiKey,
     );
+    return;
+  }
+
+  if (values.manifest) {
+    await generateManifest(values["manifest-output"]!, useCache);
     return;
   }
 
@@ -823,7 +866,7 @@ async function main(): Promise<void> {
   }
 
   console.error(
-    "Usage: --module <name> | --endpoint <id> | --all | --from-platform [--fal-api-key KEY] [--dry-run] [--skip-pricing] [--pricing-snapshot FILE] | --pricing-only (with one of those modes)",
+    "Usage: --module <name> | --endpoint <id> | --all | --manifest [--manifest-output FILE] | --from-platform [--fal-api-key KEY] [--dry-run] [--skip-pricing] [--pricing-snapshot FILE] | --pricing-only (with one of those modes)",
   );
   process.exit(1);
 }

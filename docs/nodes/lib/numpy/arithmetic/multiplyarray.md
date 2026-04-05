@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Multiply Array"
-node_type: "lib.numpy.arithmetic.MultiplyArray"
-namespace: "lib.numpy.arithmetic"
+node_type: "lib.array.arithmetic.MultiplyArray"
+namespace: "lib.array.arithmetic"
 ---
 
-**Type:** `lib.numpy.arithmetic.MultiplyArray`
+**Type:** `lib.array.arithmetic.MultiplyArray`
 
-**Namespace:** `lib.numpy.arithmetic`
+**Namespace:** `lib.array.arithmetic`
 
 ## Description
 
@@ -31,5 +31,5 @@ Multiplies two arrays.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.arithmetic](../) namespace.
+Browse other nodes in the [lib.array.arithmetic](../) namespace.
 

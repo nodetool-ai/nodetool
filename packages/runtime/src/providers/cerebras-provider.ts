@@ -35,9 +35,9 @@ export class CerebrasProvider extends OpenAIProvider {
           ((key) =>
             new OpenAI({
               apiKey: key,
-              baseURL: "https://api.cerebras.ai/v1",
+              baseURL: "https://api.cerebras.ai/v1"
             })),
-        fetchFn,
+        fetchFn
       }
     );
 
@@ -58,8 +58,8 @@ export class CerebrasProvider extends OpenAIProvider {
       "https://api.cerebras.ai/v1/models",
       {
         headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
+          Authorization: `Bearer ${this.apiKey}`
+        }
       }
     );
 
@@ -79,7 +79,7 @@ export class CerebrasProvider extends OpenAIProvider {
       .map((row) => ({
         id: row.id,
         name: row.name ?? row.id,
-        provider: "cerebras",
+        provider: "cerebras"
       }));
   }
 }

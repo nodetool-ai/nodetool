@@ -16,7 +16,7 @@ const OPTIONAL_API_KEYS = [
   "REPLICATE_API_TOKEN",
   "HF_TOKEN",
   "ELEVENLABS_API_KEY",
-  "FAL_API_KEY",
+  "FAL_API_KEY"
 ];
 
 describe("startup-checks edge cases", () => {
@@ -60,8 +60,12 @@ describe("startup-checks edge cases", () => {
 
     const result = await runStartupChecks();
     expect(result.warnings).toHaveLength(4); // 7 - 3 set
-    expect(result.warnings.some((w) => w.includes("OPENAI_API_KEY"))).toBe(false);
-    expect(result.warnings.some((w) => w.includes("ANTHROPIC_API_KEY"))).toBe(false);
+    expect(result.warnings.some((w) => w.includes("OPENAI_API_KEY"))).toBe(
+      false
+    );
+    expect(result.warnings.some((w) => w.includes("ANTHROPIC_API_KEY"))).toBe(
+      false
+    );
     expect(result.warnings.some((w) => w.includes("FAL_API_KEY"))).toBe(false);
   });
 

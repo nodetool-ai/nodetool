@@ -3,32 +3,34 @@ import yaml from "js-yaml";
 import {
   ComposeGenerator,
   generateComposeFile,
-  getComposeHash,
+  getComposeHash
 } from "../src/compose.js";
 import type { DockerDeployment } from "../src/deployment-config.js";
 
 // Mock writeFileSync
 vi.mock("fs", () => ({
-  writeFileSync: vi.fn(),
+  writeFileSync: vi.fn()
 }));
 
-function makeDeployment(overrides: Partial<DockerDeployment> = {}): DockerDeployment {
+function makeDeployment(
+  overrides: Partial<DockerDeployment> = {}
+): DockerDeployment {
   return {
     type: "docker",
     enabled: true,
     host: "192.168.1.100",
     paths: {
       workspace: "/data/workspace",
-      hf_cache: "/data/hf-cache",
+      hf_cache: "/data/hf-cache"
     },
     image: {
       name: "nodetool/server",
       tag: "latest",
-      registry: "docker.io",
+      registry: "docker.io"
     },
     container: {
       name: "worker-1",
-      port: 9000,
+      port: 9000
     },
     state: {
       last_deployed: null,
@@ -36,9 +38,9 @@ function makeDeployment(overrides: Partial<DockerDeployment> = {}): DockerDeploy
       container_id: null,
       container_name: null,
       url: null,
-      container_hash: null,
+      container_hash: null
     },
-    ...overrides,
+    ...overrides
   } as DockerDeployment;
 }
 
@@ -135,7 +137,12 @@ describe("ComposeGenerator", () => {
       const svc = services["worker-1"] as Record<string, unknown>;
       const hc = svc["healthcheck"] as Record<string, unknown>;
       const test = hc["test"] as string[];
-      expect(test).toEqual(["CMD", "curl", "-f", "http://localhost:7777/health"]);
+      expect(test).toEqual([
+        "CMD",
+        "curl",
+        "-f",
+        "http://localhost:7777/health"
+      ]);
     });
 
     it("should set PORT environment variable to 8000", () => {
@@ -168,7 +175,7 @@ describe("ComposeGenerator", () => {
   describe("GPU configuration", () => {
     it("should include deploy section when GPU is specified", () => {
       const dep = makeDeployment({
-        container: { name: "gpu-worker", port: 9000, gpu: "0" },
+        container: { name: "gpu-worker", port: 9000, gpu: "0" }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -179,7 +186,7 @@ describe("ComposeGenerator", () => {
 
     it("should set nvidia driver", () => {
       const dep = makeDeployment({
-        container: { name: "gpu-worker", port: 9000, gpu: "0" },
+        container: { name: "gpu-worker", port: 9000, gpu: "0" }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -194,7 +201,7 @@ describe("ComposeGenerator", () => {
 
     it("should set single GPU device ID", () => {
       const dep = makeDeployment({
-        container: { name: "gpu-worker", port: 9000, gpu: "0" },
+        container: { name: "gpu-worker", port: 9000, gpu: "0" }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -209,7 +216,7 @@ describe("ComposeGenerator", () => {
 
     it("should support multiple GPU device IDs", () => {
       const dep = makeDeployment({
-        container: { name: "gpu-worker", port: 9000, gpu: "0, 1, 2" },
+        container: { name: "gpu-worker", port: 9000, gpu: "0, 1, 2" }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -224,7 +231,7 @@ describe("ComposeGenerator", () => {
 
     it("should set gpu capabilities", () => {
       const dep = makeDeployment({
-        container: { name: "gpu-worker", port: 9000, gpu: "0" },
+        container: { name: "gpu-worker", port: 9000, gpu: "0" }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -244,8 +251,8 @@ describe("ComposeGenerator", () => {
         container: {
           name: "worker-1",
           port: 9000,
-          environment: { MY_VAR: "hello", OTHER: "world" },
-        },
+          environment: { MY_VAR: "hello", OTHER: "world" }
+        }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -261,8 +268,8 @@ describe("ComposeGenerator", () => {
         container: {
           name: "worker-1",
           port: 9000,
-          workflows: ["wf-1", "wf-2"],
-        },
+          workflows: ["wf-1", "wf-2"]
+        }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -274,14 +281,16 @@ describe("ComposeGenerator", () => {
 
     it("should not include NODETOOL_WORKFLOWS when workflows empty", () => {
       const dep = makeDeployment({
-        container: { name: "worker-1", port: 9000, workflows: [] },
+        container: { name: "worker-1", port: 9000, workflows: [] }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
       const services = parsed["services"] as Record<string, unknown>;
       const svc = services["worker-1"] as Record<string, unknown>;
       const env = svc["environment"] as string[];
-      const wfEnv = env.find((e: string) => e.startsWith("NODETOOL_WORKFLOWS="));
+      const wfEnv = env.find((e: string) =>
+        e.startsWith("NODETOOL_WORKFLOWS=")
+      );
       expect(wfEnv).toBeUndefined();
     });
 
@@ -292,7 +301,9 @@ describe("ComposeGenerator", () => {
       const services = parsed["services"] as Record<string, unknown>;
       const svc = services["worker-1"] as Record<string, unknown>;
       const env = svc["environment"] as string[];
-      const wfEnv = env.find((e: string) => e.startsWith("NODETOOL_WORKFLOWS="));
+      const wfEnv = env.find((e: string) =>
+        e.startsWith("NODETOOL_WORKFLOWS=")
+      );
       expect(wfEnv).toBeUndefined();
     });
   });
@@ -300,7 +311,7 @@ describe("ComposeGenerator", () => {
   describe("service name sanitization", () => {
     it("should lowercase service names", () => {
       const dep = makeDeployment({
-        container: { name: "MyWorker", port: 9000 },
+        container: { name: "MyWorker", port: 9000 }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -310,7 +321,7 @@ describe("ComposeGenerator", () => {
 
     it("should replace special characters with hyphens", () => {
       const dep = makeDeployment({
-        container: { name: "worker@node.1", port: 9000 },
+        container: { name: "worker@node.1", port: 9000 }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -320,7 +331,7 @@ describe("ComposeGenerator", () => {
 
     it("should prepend 'c' if name starts with non-alphanumeric", () => {
       const dep = makeDeployment({
-        container: { name: "-worker", port: 9000 },
+        container: { name: "-worker", port: 9000 }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -330,7 +341,7 @@ describe("ComposeGenerator", () => {
 
     it("should handle underscores in names", () => {
       const dep = makeDeployment({
-        container: { name: "my_worker", port: 9000 },
+        container: { name: "my_worker", port: 9000 }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -342,7 +353,7 @@ describe("ComposeGenerator", () => {
   describe("image configuration", () => {
     it("should use custom tag", () => {
       const dep = makeDeployment({
-        image: { name: "nodetool/server", tag: "v2.0.0", registry: "docker.io" },
+        image: { name: "nodetool/server", tag: "v2.0.0", registry: "docker.io" }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -353,7 +364,11 @@ describe("ComposeGenerator", () => {
 
     it("should not double-add tag if image name already has colon", () => {
       const dep = makeDeployment({
-        image: { name: "nodetool/server:beta", tag: "latest", registry: "docker.io" },
+        image: {
+          name: "nodetool/server:beta",
+          tag: "latest",
+          registry: "docker.io"
+        }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -364,7 +379,11 @@ describe("ComposeGenerator", () => {
 
     it("should handle image name with @ digest", () => {
       const dep = makeDeployment({
-        image: { name: "nodetool/server@sha256:abc123", tag: "latest", registry: "docker.io" },
+        image: {
+          name: "nodetool/server@sha256:abc123",
+          tag: "latest",
+          registry: "docker.io"
+        }
       });
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
@@ -396,7 +415,9 @@ describe("ComposeGenerator", () => {
       // Different port means different env var, so hash differs
       expect(gen1.generateHash()).toBe(gen2.generateHash()); // host not in compose output
       // But different port does change it
-      const dep3 = makeDeployment({ container: { name: "worker-1", port: 9001 } });
+      const dep3 = makeDeployment({
+        container: { name: "worker-1", port: 9001 }
+      });
       const gen3 = new ComposeGenerator(dep3);
       expect(gen1.generateHash()).not.toBe(gen3.generateHash());
     });

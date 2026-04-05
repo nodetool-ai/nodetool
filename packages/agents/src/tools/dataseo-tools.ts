@@ -19,7 +19,7 @@ const DEFAULT_LOCATION_CODE = 2840; // United States
 const DEFAULT_LANGUAGE_CODE = "en";
 
 async function getDataForSEOCredentials(
-  context: ProcessingContext,
+  context: ProcessingContext
 ): Promise<{ login: string; password: string }> {
   const login =
     (await context.getSecret("DATA_FOR_SEO_LOGIN")) ??
@@ -30,7 +30,7 @@ async function getDataForSEOCredentials(
 
   if (!login || !password) {
     throw new Error(
-      "DataForSEO credentials (DATA_FOR_SEO_LOGIN, DATA_FOR_SEO_PASSWORD) not found.",
+      "DataForSEO credentials (DATA_FOR_SEO_LOGIN, DATA_FOR_SEO_PASSWORD) not found."
     );
   }
   return { login, password };
@@ -70,7 +70,7 @@ interface DataForSEOResponse {
 async function dataForSEORequest(
   endpoint: string,
   payload: Record<string, unknown>[],
-  auth: string,
+  auth: string
 ): Promise<DataForSEOResponse | { error: string; details?: unknown }> {
   const url = `${API_BASE}${endpoint}`;
   try {
@@ -78,9 +78,9 @@ async function dataForSEORequest(
       method: "POST",
       headers: {
         Authorization: auth,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       let details: unknown;
@@ -91,7 +91,7 @@ async function dataForSEORequest(
       }
       return {
         error: `HTTP error occurred: ${res.status} - ${res.statusText}`,
-        details,
+        details
       };
     }
     return (await res.json()) as DataForSEOResponse;
@@ -101,14 +101,14 @@ async function dataForSEORequest(
 }
 
 function extractItems(
-  result: DataForSEOResponse | { error: string },
+  result: DataForSEOResponse | { error: string }
 ): Array<Record<string, unknown>> | { error: string; details?: unknown } {
   if ("error" in result) return result as { error: string; details?: unknown };
 
   if (result.status_code !== 20000 || result.status_message !== "Ok.") {
     return {
       error: `DataForSEO API Error: ${result.status_code} - ${result.status_message}`,
-      details: result,
+      details: result
     };
   }
 
@@ -132,15 +132,15 @@ export class DataForSEOSearchTool extends Tool {
     properties: {
       keyword: {
         type: "string",
-        description: "The keyword to search for.",
+        description: "The keyword to search for."
       },
       num_results: {
         type: "integer",
         description: "Number of results to retrieve.",
-        default: 10,
-      },
+        default: 10
+      }
     },
-    required: ["keyword"],
+    required: ["keyword"]
   };
 
   private _provider?: SerpProvider;
@@ -152,7 +152,7 @@ export class DataForSEOSearchTool extends Tool {
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const keyword = params.keyword as string | undefined;
     if (!keyword) return { error: "keyword is required" };
@@ -173,14 +173,14 @@ export class DataForSEOSearchTool extends Tool {
         language_code: DEFAULT_LANGUAGE_CODE,
         device: "desktop",
         os: "windows",
-        depth: numResults,
-      },
+        depth: numResults
+      }
     ];
 
     const result = await dataForSEORequest(
       "/v3/serp/google/organic/live/advanced",
       payload,
-      auth,
+      auth
     );
     const items = extractItems(result);
     if (!Array.isArray(items)) return items;
@@ -192,7 +192,7 @@ export class DataForSEOSearchTool extends Tool {
         url: item.url ?? null,
         snippet: item.description ?? null,
         position: item.rank_absolute ?? null,
-        type: "organic",
+        type: "organic"
       }));
 
     return { success: true, results: removeBase64Images(organicResults) };
@@ -218,15 +218,15 @@ export class DataForSEONewsTool extends Tool {
     properties: {
       keyword: {
         type: "string",
-        description: "The keyword to search for in Google News.",
+        description: "The keyword to search for in Google News."
       },
       num_results: {
         type: "integer",
         description: "Number of news results to retrieve.",
-        default: 10,
-      },
+        default: 10
+      }
     },
-    required: ["keyword"],
+    required: ["keyword"]
   };
 
   private _provider?: SerpProvider;
@@ -238,7 +238,7 @@ export class DataForSEONewsTool extends Tool {
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const keyword = params.keyword as string | undefined;
     if (!keyword) return { error: "keyword is required" };
@@ -258,21 +258,21 @@ export class DataForSEONewsTool extends Tool {
         location_code: DEFAULT_LOCATION_CODE,
         language_code: DEFAULT_LANGUAGE_CODE,
         sort_by: "relevance",
-        depth: numResults,
-      },
+        depth: numResults
+      }
     ];
 
     const result = await dataForSEORequest(
       "/v3/serp/google/news/live/advanced",
       payload,
-      auth,
+      auth
     );
     const items = extractItems(result);
     if (!Array.isArray(items)) return items;
 
     const newsResults = items
       .filter(
-        (item) => item.type === "news_search" || item.type === "top_stories",
+        (item) => item.type === "news_search" || item.type === "top_stories"
       )
       .map((item) => {
         const timestamp = item.timestamp as string | undefined;
@@ -283,7 +283,7 @@ export class DataForSEONewsTool extends Tool {
           source: item.source ?? null,
           published_at: publishedAt,
           snippet: item.description ?? null,
-          type: "news",
+          type: "news"
         };
       });
 
@@ -311,19 +311,19 @@ export class DataForSEOImagesTool extends Tool {
       keyword: {
         type: "string",
         description:
-          "Keyword for image search. (Optional if image_url is provided)",
+          "Keyword for image search. (Optional if image_url is provided)"
       },
       image_url: {
         type: "string",
         description:
-          "URL of an image for reverse search. (Optional if keyword is provided)",
+          "URL of an image for reverse search. (Optional if keyword is provided)"
       },
       num_results: {
         type: "integer",
         description: "Number of image results to retrieve.",
-        default: 20,
-      },
-    },
+        default: 20
+      }
+    }
   };
 
   private _provider?: SerpProvider;
@@ -335,7 +335,7 @@ export class DataForSEOImagesTool extends Tool {
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const keyword = params.keyword as string | undefined;
     const imageUrl = params.image_url as string | undefined;
@@ -343,7 +343,7 @@ export class DataForSEOImagesTool extends Tool {
 
     if (!keyword && !imageUrl) {
       return {
-        error: "One of 'keyword' or 'image_url' is required for image search.",
+        error: "One of 'keyword' or 'image_url' is required for image search."
       };
     }
 
@@ -358,7 +358,7 @@ export class DataForSEOImagesTool extends Tool {
     const payloadDict: Record<string, unknown> = {
       location_code: DEFAULT_LOCATION_CODE,
       language_code: DEFAULT_LANGUAGE_CODE,
-      depth: numResults,
+      depth: numResults
     };
     if (keyword) payloadDict.keyword = keyword;
     if (imageUrl) payloadDict.image_url = imageUrl;
@@ -366,7 +366,7 @@ export class DataForSEOImagesTool extends Tool {
     const result = await dataForSEORequest(
       "/v3/serp/google/images/live/advanced",
       [payloadDict],
-      auth,
+      auth
     );
     const items = extractItems(result);
     if (!Array.isArray(items)) return items;
@@ -379,12 +379,9 @@ export class DataForSEOImagesTool extends Tool {
           image_url: item.image_url ?? null,
           source_url: item.source_url ?? null,
           alt_text: item.alt ?? null,
-          type: "image",
+          type: "image"
         });
-      } else if (
-        item.type === "carousel" &&
-        Array.isArray(item.items)
-      ) {
+      } else if (item.type === "carousel" && Array.isArray(item.items)) {
         for (const ci of item.items as Array<Record<string, unknown>>) {
           if (ci.type === "carousel_element" && ci.image_url) {
             imageResults.push({
@@ -392,7 +389,7 @@ export class DataForSEOImagesTool extends Tool {
               image_url: ci.image_url ?? null,
               source_url: ci.url ?? null,
               alt_text: ci.title ?? null,
-              type: "image_carousel_element",
+              type: "image_carousel_element"
             });
           }
         }

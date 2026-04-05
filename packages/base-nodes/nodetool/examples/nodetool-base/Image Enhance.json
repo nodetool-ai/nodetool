@@ -87,7 +87,7 @@
       },
       {
         "id": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
-        "type": "lib.pillow.enhance.Sharpen",
+        "type": "lib.image.enhance.Sharpen",
         "data": {},
         "ui_properties": {
           "selected": false,
@@ -106,7 +106,7 @@
       },
       {
         "id": "4c9c6b63-646a-4da9-8794-abd180c59041",
-        "type": "lib.pillow.enhance.AutoContrast",
+        "type": "lib.image.enhance.AutoContrast",
         "data": {
           "cutoff": 108
         },

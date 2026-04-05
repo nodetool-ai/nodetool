@@ -15,8 +15,14 @@ export interface TextToSpeechOutputs {
   output: AudioRef;
 }
 
-export function textToSpeech(inputs: TextToSpeechInputs): DslNode<TextToSpeechOutputs, "output"> {
-  return createNode("gemini.audio.TextToSpeech", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function textToSpeech(
+  inputs: TextToSpeechInputs
+): DslNode<TextToSpeechOutputs, "output"> {
+  return createNode(
+    "gemini.audio.TextToSpeech",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Transcribe — gemini.audio.Transcribe
@@ -30,6 +36,12 @@ export interface TranscribeOutputs {
   output: string;
 }
 
-export function transcribe(inputs: TranscribeInputs): DslNode<TranscribeOutputs, "output"> {
-  return createNode("gemini.audio.Transcribe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function transcribe(
+  inputs: TranscribeInputs
+): DslNode<TranscribeOutputs, "output"> {
+  return createNode(
+    "gemini.audio.Transcribe",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

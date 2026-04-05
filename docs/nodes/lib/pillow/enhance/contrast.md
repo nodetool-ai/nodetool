@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Contrast"
-node_type: "lib.pillow.enhance.Contrast"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.Contrast"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.Contrast`
+**Type:** `lib.image.enhance.Contrast`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -36,5 +36,5 @@ Adjusts image contrast to modify light-dark differences.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

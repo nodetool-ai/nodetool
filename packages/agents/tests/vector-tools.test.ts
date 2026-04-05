@@ -9,21 +9,21 @@ import {
   VecRecursiveSplitAndIndexTool,
   VecMarkdownSplitAndIndexTool,
   VecBatchIndexTool,
-  type VecCollection,
+  type VecCollection
 } from "../src/tools/vector-tools.js";
 
 const mockContext = {} as any;
 
 function makeMockCollection(
-  overrides: Partial<VecCollection> = {},
+  overrides: Partial<VecCollection> = {}
 ): VecCollection {
   return {
     query: vi.fn().mockResolvedValue({
       ids: [["id1", "id2"]],
-      documents: [["doc one", "doc two"]],
+      documents: [["doc one", "doc two"]]
     }),
     add: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -37,18 +37,18 @@ describe("VecTextSearchTool", () => {
     const tool = new VecTextSearchTool(col);
     const result = await tool.process(mockContext, {
       text: "hello",
-      n_results: 2,
+      n_results: 2
     });
     expect(result).toEqual({ id1: "doc one", id2: "doc two" });
     expect(col.query).toHaveBeenCalledWith({
       queryTexts: ["hello"],
-      nResults: 2,
+      nResults: 2
     });
   });
 
   it("returns empty when no documents", async () => {
     const col = makeMockCollection({
-      query: vi.fn().mockResolvedValue({ ids: [[]], documents: [[]] }),
+      query: vi.fn().mockResolvedValue({ ids: [[]], documents: [[]] })
     });
     const tool = new VecTextSearchTool(col);
     const result = await tool.process(mockContext, { text: "hello" });
@@ -78,7 +78,7 @@ describe("VecIndexTool", () => {
     const tool = new VecIndexTool(col);
     const result = await tool.process(mockContext, {
       text: "some content",
-      source_id: "src-1",
+      source_id: "src-1"
     });
     expect(result).toHaveProperty("status", "success");
     expect(result).toHaveProperty("document_id");
@@ -90,7 +90,7 @@ describe("VecIndexTool", () => {
     const tool = new VecIndexTool(makeMockCollection());
     const result = await tool.process(mockContext, {
       text: "content",
-      source_id: "  ",
+      source_id: "  "
     });
     expect(result).toHaveProperty("error");
   });
@@ -101,12 +101,12 @@ describe("VecIndexTool", () => {
     await tool.process(mockContext, {
       text: "content",
       source_id: "src-1",
-      metadata: { tag: "test" },
+      metadata: { tag: "test" }
     });
     expect(col.add).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadatas: [{ tag: "test" }],
-      }),
+        metadatas: [{ tag: "test" }]
+      })
     );
   });
 
@@ -115,12 +115,12 @@ describe("VecIndexTool", () => {
     const tool = new VecIndexTool(col);
     await tool.process(mockContext, {
       text: "content",
-      source_id: "src-1",
+      source_id: "src-1"
     });
     expect(col.add).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadatas: null,
-      }),
+        metadatas: null
+      })
     );
   });
 });
@@ -136,17 +136,17 @@ describe("VecHybridSearchTool", () => {
         .fn()
         .mockResolvedValueOnce({
           ids: [["a", "b"]],
-          documents: [["doc a", "doc b"]],
+          documents: [["doc a", "doc b"]]
         })
         .mockResolvedValueOnce({
           ids: [["b", "c"]],
-          documents: [["doc b", "doc c"]],
-        }),
+          documents: [["doc b", "doc c"]]
+        })
     });
     const tool = new VecHybridSearchTool(col);
     const result = await tool.process(mockContext, {
       text: "hello world",
-      n_results: 5,
+      n_results: 5
     });
     // "b" should be highest because it appears in both
     const keys = Object.keys(result);
@@ -166,7 +166,7 @@ describe("VecHybridSearchTool", () => {
     const tool = new VecHybridSearchTool(col);
     await tool.process(mockContext, {
       text: "ab",
-      min_keyword_length: 5,
+      min_keyword_length: 5
     });
     // query should be called only once (semantic only)
     expect(col.query).toHaveBeenCalledTimes(1);
@@ -186,7 +186,7 @@ describe("VecRecursiveSplitAndIndexTool", () => {
       text: longText,
       document_id: "doc1",
       chunk_size: 20,
-      chunk_overlap: 0,
+      chunk_overlap: 0
     });
     expect(result).toHaveProperty("status", "success");
     expect((result as any).indexed_count).toBeGreaterThan(0);
@@ -197,7 +197,7 @@ describe("VecRecursiveSplitAndIndexTool", () => {
     const tool = new VecRecursiveSplitAndIndexTool(makeMockCollection());
     const result = await tool.process(mockContext, {
       text: "  ",
-      document_id: "doc1",
+      document_id: "doc1"
     });
     expect(result).toHaveProperty("error");
   });
@@ -206,7 +206,7 @@ describe("VecRecursiveSplitAndIndexTool", () => {
     const tool = new VecRecursiveSplitAndIndexTool(makeMockCollection());
     const result = await tool.process(mockContext, {
       text: "hello",
-      document_id: "  ",
+      document_id: "  "
     });
     expect(result).toHaveProperty("error");
   });
@@ -215,10 +215,10 @@ describe("VecRecursiveSplitAndIndexTool", () => {
     const col = makeMockCollection();
     col.add.mockRejectedValueOnce(new Error("DB write failed"));
     const tool = new VecRecursiveSplitAndIndexTool(col);
-    const result = await tool.process(mockContext, {
+    const result = (await tool.process(mockContext, {
       text: "some content",
-      document_id: "doc1",
-    }) as any;
+      document_id: "doc1"
+    })) as any;
     expect(result.error).toContain("Indexing failed");
   });
 
@@ -228,7 +228,7 @@ describe("VecRecursiveSplitAndIndexTool", () => {
     const result = await tool.process(mockContext, {
       text: "small text",
       document_id: "doc1",
-      chunk_size: 1000,
+      chunk_size: 1000
     });
     expect(result).toHaveProperty("status", "success");
     expect((result as any).indexed_count).toBe(1);
@@ -255,7 +255,8 @@ describe("VecMarkdownSplitAndIndexTool", () => {
   it("splits markdown by headers and indexes", async () => {
     const col = makeMockCollection();
     const tool = new VecMarkdownSplitAndIndexTool(col);
-    const md = "# Title\nSome intro text.\n## Section 1\nContent one.\n## Section 2\nContent two.";
+    const md =
+      "# Title\nSome intro text.\n## Section 1\nContent one.\n## Section 2\nContent two.";
     const result = await tool.process(mockContext, { text: md });
     expect(result).toHaveProperty("status", "success");
     expect((result as any).indexed_ids.length).toBeGreaterThanOrEqual(2);
@@ -271,7 +272,7 @@ describe("VecMarkdownSplitAndIndexTool", () => {
     const col = makeMockCollection();
     const tool = new VecMarkdownSplitAndIndexTool(col);
     const result = await tool.process(mockContext, {
-      text: "# Just one section\nSmall content.",
+      text: "# Just one section\nSmall content."
     });
     expect(result).toHaveProperty("status", "success");
     expect((result as any).indexed_ids).toHaveLength(1);
@@ -284,7 +285,7 @@ describe("VecMarkdownSplitAndIndexTool", () => {
     const largeContent = "x".repeat(5000);
     const result = await tool.process(mockContext, {
       text: `# Large Section\n${largeContent}`,
-      chunk_size: 500,
+      chunk_size: 500
     });
     expect(result).toHaveProperty("status", "success");
     expect((result as any).indexed_ids.length).toBeGreaterThan(1);
@@ -295,9 +296,14 @@ describe("VecMarkdownSplitAndIndexTool", () => {
     const tool = new VecMarkdownSplitAndIndexTool(col);
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chroma-md-test-"));
     const tmpFile = path.join(tmpDir, "doc.md");
-    await fs.writeFile(tmpFile, "# Section A\nContent A.\n## Sub-B\nContent B.");
+    await fs.writeFile(
+      tmpFile,
+      "# Section A\nContent A.\n## Sub-B\nContent B."
+    );
     try {
-      const result = await tool.process(mockContext, { file_path: tmpFile }) as any;
+      const result = (await tool.process(mockContext, {
+        file_path: tmpFile
+      })) as any;
       expect(result.status).toBe("success");
       expect(result.indexed_ids.length).toBeGreaterThanOrEqual(1);
     } finally {
@@ -329,8 +335,8 @@ describe("VecBatchIndexTool", () => {
     const result = await tool.process(mockContext, {
       chunks: [
         { text: "chunk 1", source_id: "s1" },
-        { text: "chunk 2", source_id: "s2" },
-      ],
+        { text: "chunk 2", source_id: "s2" }
+      ]
     });
     expect(result).toHaveProperty("status", "success");
     expect((result as any).indexed_count).toBe(2);
@@ -350,8 +356,8 @@ describe("VecBatchIndexTool", () => {
       chunks: [
         { text: "valid", source_id: "s1" },
         { text: "", source_id: "s2" },
-        { source_id: "s3" },
-      ],
+        { source_id: "s3" }
+      ]
     });
     expect(result).toHaveProperty("status", "success");
     expect((result as any).indexed_count).toBe(1);
@@ -362,7 +368,7 @@ describe("VecBatchIndexTool", () => {
     const tool = new VecBatchIndexTool(col);
     await tool.process(mockContext, {
       chunks: [{ text: "c", source_id: "s1", metadata: { a: 1 } }],
-      base_metadata: { b: 2 },
+      base_metadata: { b: 2 }
     });
     const call = (col.add as any).mock.calls[0][0];
     expect(call.metadatas[0]).toEqual({ a: 1, b: 2 });
@@ -370,11 +376,11 @@ describe("VecBatchIndexTool", () => {
 
   it("handles indexing error gracefully", async () => {
     const col = makeMockCollection({
-      add: vi.fn().mockRejectedValue(new Error("db down")),
+      add: vi.fn().mockRejectedValue(new Error("db down"))
     });
     const tool = new VecBatchIndexTool(col);
     const result = await tool.process(mockContext, {
-      chunks: [{ text: "c", source_id: "s1" }],
+      chunks: [{ text: "c", source_id: "s1" }]
     });
     expect(result).toHaveProperty("error");
     expect((result as any).error).toContain("db down");

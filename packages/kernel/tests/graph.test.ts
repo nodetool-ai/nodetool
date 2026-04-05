@@ -13,7 +13,10 @@ import { describe, it, expect } from "vitest";
 import { Graph, GraphValidationError } from "../src/graph.js";
 import type { NodeDescriptor, Edge } from "@nodetool/protocol";
 
-function makeNode(id: string, overrides: Partial<NodeDescriptor> = {}): NodeDescriptor {
+function makeNode(
+  id: string,
+  overrides: Partial<NodeDescriptor> = {}
+): NodeDescriptor {
   return { id, type: `test.${id}`, ...overrides };
 }
 
@@ -33,7 +36,7 @@ describe("Graph – lookups", () => {
   const nodes = [makeNode("a"), makeNode("b"), makeNode("c")];
   const edges = [
     makeEdge("a", "out", "b", "in"),
-    makeEdge("b", "out", "c", "in"),
+    makeEdge("b", "out", "c", "in")
   ];
   const graph = new Graph({ nodes, edges });
 
@@ -56,7 +59,7 @@ describe("Graph – lookups", () => {
     const nodes2 = [makeNode("x"), makeNode("y")];
     const edges2 = [
       makeEdge("x", "out", "y", "in"),
-      makeEdge("x", "__control__", "y", "__control__", { edge_type: "control" }),
+      makeEdge("x", "__control__", "y", "__control__", { edge_type: "control" })
     ];
     const g2 = new Graph({ nodes: nodes2, edges: edges2 });
     expect(g2.findDataEdges("y")).toHaveLength(1);
@@ -69,7 +72,7 @@ describe("Graph – input/output nodes", () => {
     const nodes = [makeNode("in"), makeNode("mid"), makeNode("out")];
     const edges = [
       makeEdge("in", "out", "mid", "in"),
-      makeEdge("mid", "out", "out", "in"),
+      makeEdge("mid", "out", "out", "in")
     ];
     const graph = new Graph({ nodes, edges });
     const inputs = graph.inputNodes();
@@ -91,7 +94,7 @@ describe("Graph – topological sort", () => {
     const nodes = [makeNode("a"), makeNode("b"), makeNode("c")];
     const edges = [
       makeEdge("a", "out", "b", "in"),
-      makeEdge("b", "out", "c", "in"),
+      makeEdge("b", "out", "c", "in")
     ];
     const graph = new Graph({ nodes, edges });
     const levels = graph.topologicalSort();
@@ -102,12 +105,17 @@ describe("Graph – topological sort", () => {
   });
 
   it("groups parallel nodes into same level", () => {
-    const nodes = [makeNode("a"), makeNode("b1"), makeNode("b2"), makeNode("c")];
+    const nodes = [
+      makeNode("a"),
+      makeNode("b1"),
+      makeNode("b2"),
+      makeNode("c")
+    ];
     const edges = [
       makeEdge("a", "out", "b1", "in"),
       makeEdge("a", "out", "b2", "in"),
       makeEdge("b1", "out", "c", "in1"),
-      makeEdge("b2", "out", "c", "in2"),
+      makeEdge("b2", "out", "c", "in2")
     ];
     const graph = new Graph({ nodes, edges });
     const levels = graph.topologicalSort();
@@ -119,7 +127,7 @@ describe("Graph – topological sort", () => {
     const nodes = [makeNode("a"), makeNode("b")];
     const edges = [
       makeEdge("a", "out", "b", "in"),
-      makeEdge("b", "out", "a", "in"),
+      makeEdge("b", "out", "a", "in")
     ];
     const graph = new Graph({ nodes, edges });
     expect(graph.topologicalSort()).toEqual([]);
@@ -130,7 +138,7 @@ describe("Graph – topological sort", () => {
       makeNode("top", { parent_id: null }),
       makeNode("child1", { parent_id: "group1" }),
       makeNode("child2", { parent_id: "group1" }),
-      makeNode("other", { parent_id: "group2" }),
+      makeNode("other", { parent_id: "group2" })
     ];
     const edges = [makeEdge("child1", "out", "child2", "in")];
     const graph = new Graph({ nodes, edges });
@@ -159,7 +167,9 @@ describe("Graph – validation", () => {
   it("rejects control edge with wrong target handle", () => {
     const nodes = [makeNode("a"), makeNode("b")];
     const edges = [
-      makeEdge("a", "__control__", "b", "wrong_handle", { edge_type: "control" }),
+      makeEdge("a", "__control__", "b", "wrong_handle", {
+        edge_type: "control"
+      })
     ];
     const graph = new Graph({ nodes, edges });
     expect(() => graph.validate()).toThrow("__control__");
@@ -168,7 +178,7 @@ describe("Graph – validation", () => {
   it("accepts valid control edge", () => {
     const nodes = [makeNode("a"), makeNode("b")];
     const edges = [
-      makeEdge("a", "__control__", "b", "__control__", { edge_type: "control" }),
+      makeEdge("a", "__control__", "b", "__control__", { edge_type: "control" })
     ];
     const graph = new Graph({ nodes, edges });
     expect(() => graph.validate()).not.toThrow();
@@ -177,8 +187,10 @@ describe("Graph – validation", () => {
   it("rejects cycle in control edges", () => {
     const nodes = [makeNode("a"), makeNode("b")];
     const edges = [
-      makeEdge("a", "__control__", "b", "__control__", { edge_type: "control" }),
-      makeEdge("b", "__control__", "a", "__control__", { edge_type: "control" }),
+      makeEdge("a", "__control__", "b", "__control__", {
+        edge_type: "control"
+      }),
+      makeEdge("b", "__control__", "a", "__control__", { edge_type: "control" })
     ];
     const graph = new Graph({ nodes, edges });
     expect(() => graph.validate()).toThrow("cycle");
@@ -190,11 +202,11 @@ describe("Graph – streaming upstream", () => {
     const nodes = [
       makeNode("src", { is_streaming_output: true }),
       makeNode("mid"),
-      makeNode("sink"),
+      makeNode("sink")
     ];
     const edges = [
       makeEdge("src", "out", "mid", "in"),
-      makeEdge("mid", "out", "sink", "in"),
+      makeEdge("mid", "out", "sink", "in")
     ];
     const graph = new Graph({ nodes, edges });
     expect(graph.hasStreamingUpstream("mid")).toBe(true);
@@ -205,10 +217,12 @@ describe("Graph – streaming upstream", () => {
   it("control edges do not propagate streaming", () => {
     const nodes = [
       makeNode("src", { is_streaming_output: true }),
-      makeNode("ctrl"),
+      makeNode("ctrl")
     ];
     const edges = [
-      makeEdge("src", "__control__", "ctrl", "__control__", { edge_type: "control" }),
+      makeEdge("src", "__control__", "ctrl", "__control__", {
+        edge_type: "control"
+      })
     ];
     const graph = new Graph({ nodes, edges });
     expect(graph.hasStreamingUpstream("ctrl")).toBe(false);
@@ -219,8 +233,10 @@ describe("Graph – control edge adjacency with multiple targets", () => {
   it("handles controller with multiple control edges (adjacency append)", () => {
     const nodes = [makeNode("a"), makeNode("b"), makeNode("c")];
     const edges = [
-      makeEdge("a", "__control__", "b", "__control__", { edge_type: "control" }),
-      makeEdge("a", "__control__", "c", "__control__", { edge_type: "control" }),
+      makeEdge("a", "__control__", "b", "__control__", {
+        edge_type: "control"
+      }),
+      makeEdge("a", "__control__", "c", "__control__", { edge_type: "control" })
     ];
     const graph = new Graph({ nodes, edges });
     // This exercises the adj.get(edge.source) truthy branch (line 330)
@@ -234,9 +250,13 @@ describe("Graph – control node queries", () => {
   it("getControlEdges returns only control edges targeting the requested node", () => {
     const nodes = [makeNode("a"), makeNode("b"), makeNode("c")];
     const edges = [
-      makeEdge("a", "__control__", "b", "__control__", { edge_type: "control" }),
-      makeEdge("c", "__control__", "b", "__control__", { edge_type: "control" }),
-      makeEdge("a", "out", "c", "in"),
+      makeEdge("a", "__control__", "b", "__control__", {
+        edge_type: "control"
+      }),
+      makeEdge("c", "__control__", "b", "__control__", {
+        edge_type: "control"
+      }),
+      makeEdge("a", "out", "c", "in")
     ];
     const graph = new Graph({ nodes, edges });
     expect(graph.getControlEdges("b")).toHaveLength(2);
@@ -246,18 +266,27 @@ describe("Graph – control node queries", () => {
   it("getControllerNodes(targetId) returns controllers for a specific target", () => {
     const nodes = [makeNode("a"), makeNode("b"), makeNode("c")];
     const edges = [
-      makeEdge("a", "__control__", "b", "__control__", { edge_type: "control" }),
-      makeEdge("c", "__control__", "b", "__control__", { edge_type: "control" }),
+      makeEdge("a", "__control__", "b", "__control__", {
+        edge_type: "control"
+      }),
+      makeEdge("c", "__control__", "b", "__control__", { edge_type: "control" })
     ];
     const graph = new Graph({ nodes, edges });
-    expect(graph.getControllerNodes("b").map((node) => node.id).sort()).toEqual(["a", "c"]);
+    expect(
+      graph
+        .getControllerNodes("b")
+        .map((node) => node.id)
+        .sort()
+    ).toEqual(["a", "c"]);
   });
 
   it("getControlledNodes(sourceId) returns controlled node ids for a specific controller", () => {
     const nodes = [makeNode("a"), makeNode("b"), makeNode("c")];
     const edges = [
-      makeEdge("a", "__control__", "b", "__control__", { edge_type: "control" }),
-      makeEdge("a", "__control__", "c", "__control__", { edge_type: "control" }),
+      makeEdge("a", "__control__", "b", "__control__", {
+        edge_type: "control"
+      }),
+      makeEdge("a", "__control__", "c", "__control__", { edge_type: "control" })
     ];
     const graph = new Graph({ nodes, edges });
     expect(graph.getControlledNodes("a")).toEqual(["b", "c"]);
@@ -266,14 +295,21 @@ describe("Graph – control node queries", () => {
   it("global helpers still return aggregated controller/controlled nodes", () => {
     const nodes = [makeNode("a"), makeNode("b"), makeNode("c")];
     const edges = [
-      makeEdge("a", "__control__", "b", "__control__", { edge_type: "control" }),
-      makeEdge("a", "__control__", "c", "__control__", { edge_type: "control" }),
+      makeEdge("a", "__control__", "b", "__control__", {
+        edge_type: "control"
+      }),
+      makeEdge("a", "__control__", "c", "__control__", { edge_type: "control" })
     ];
     const graph = new Graph({ nodes, edges });
     expect(graph.getControllerNodes()).toHaveLength(1);
     expect(graph.getControllerNodes()[0].id).toBe("a");
     expect(graph.getControlledNodes()).toHaveLength(2);
-    expect(graph.getControlledNodes().map((node) => node.id).sort()).toEqual(["b", "c"]);
+    expect(
+      graph
+        .getControlledNodes()
+        .map((node) => node.id)
+        .sort()
+    ).toEqual(["b", "c"]);
   });
 });
 
@@ -303,7 +339,7 @@ describe("Graph – findEdges", () => {
     const nodes = [makeNode("a"), makeNode("b"), makeNode("c")];
     const edges = [
       makeEdge("a", "out", "b", "in"),
-      makeEdge("a", "out", "c", "in"),
+      makeEdge("a", "out", "c", "in")
     ];
     const graph = new Graph({ nodes, edges });
     const found = graph.findEdges("a", "out");
@@ -329,7 +365,7 @@ describe("Graph – validateEdgeTypes (TypeMetadata)", () => {
   function makeTypedGraph(sourceType: string, targetType: string): Graph {
     const nodes = [
       makeNode("src", { outputs: { out: sourceType } }),
-      makeNode("dst", { properties: { in: { type: targetType } } }),
+      makeNode("dst", { properties: { in: { type: targetType } } })
     ];
     const edges = [makeEdge("src", "out", "dst", "in")];
     return new Graph({ nodes, edges });
@@ -356,8 +392,12 @@ describe("Graph – validateEdgeTypes (TypeMetadata)", () => {
   });
 
   it("passes when either side is 'any'", () => {
-    expect(() => makeTypedGraph("any", "string").validateEdgeTypes()).not.toThrow();
-    expect(() => makeTypedGraph("int", "any").validateEdgeTypes()).not.toThrow();
+    expect(() =>
+      makeTypedGraph("any", "string").validateEdgeTypes()
+    ).not.toThrow();
+    expect(() =>
+      makeTypedGraph("int", "any").validateEdgeTypes()
+    ).not.toThrow();
   });
 
   it("throws for incompatible types (string→int)", () => {
@@ -380,15 +420,18 @@ describe("Graph – validateEdgeTypes (TypeMetadata)", () => {
   it("skips edges with no type information (no throw)", () => {
     // Source has no outputs defined
     const g1 = new Graph({
-      nodes: [makeNode("src"), makeNode("dst", { properties: { in: { type: "int" } } })],
-      edges: [makeEdge("src", "out", "dst", "in")],
+      nodes: [
+        makeNode("src"),
+        makeNode("dst", { properties: { in: { type: "int" } } })
+      ],
+      edges: [makeEdge("src", "out", "dst", "in")]
     });
     expect(() => g1.validateEdgeTypes()).not.toThrow();
 
     // Target has no properties defined
     const g2 = new Graph({
       nodes: [makeNode("src", { outputs: { out: "int" } }), makeNode("dst")],
-      edges: [makeEdge("src", "out", "dst", "in")],
+      edges: [makeEdge("src", "out", "dst", "in")]
     });
     expect(() => g2.validateEdgeTypes()).not.toThrow();
   });

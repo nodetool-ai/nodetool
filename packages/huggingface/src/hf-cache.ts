@@ -48,12 +48,16 @@ interface _RepoState {
 export function getDefaultHfCacheDir(): string {
   const envCache = process.env["HF_HUB_CACHE"];
   if (envCache) {
-    return envCache.startsWith("~") ? envCache.replace("~", os.homedir()) : envCache;
+    return envCache.startsWith("~")
+      ? envCache.replace("~", os.homedir())
+      : envCache;
   }
 
   const hfHome = process.env["HF_HOME"];
   if (hfHome) {
-    const base = hfHome.startsWith("~") ? hfHome.replace("~", os.homedir()) : hfHome;
+    const base = hfHome.startsWith("~")
+      ? hfHome.replace("~", os.homedir())
+      : hfHome;
     return path.join(base, "hub");
   }
 
@@ -95,7 +99,7 @@ export class HfFastCache {
     repoId: string,
     relpath: string,
     repoType?: string,
-    followSymlinks = false,
+    followSymlinks = false
   ): Promise<string | null> {
     const state = await this._ensureRepoState(repoId, repoType);
     if (state == null || state.snapshotDir == null) return null;
@@ -120,7 +124,11 @@ export class HfFastCache {
   /**
    * Return whether a repo-relative path exists in the cache.
    */
-  async exists(repoId: string, relpath: string, repoType?: string): Promise<boolean> {
+  async exists(
+    repoId: string,
+    relpath: string,
+    repoType?: string
+  ): Promise<boolean> {
     return (await this.resolve(repoId, relpath, repoType)) != null;
   }
 
@@ -177,7 +185,10 @@ export class HfFastCache {
   /**
    * Return the active snapshot directory for a given repo, or `null`.
    */
-  async activeSnapshotDir(repoId: string, repoType?: string): Promise<string | null> {
+  async activeSnapshotDir(
+    repoId: string,
+    repoType?: string
+  ): Promise<string | null> {
     const state = await this._ensureRepoState(repoId, repoType);
     return state?.snapshotDir ?? null;
   }
@@ -188,7 +199,7 @@ export class HfFastCache {
    * Lightweight: only lists directories without walking the entire tree.
    */
   async discoverRepos(
-    repoType = "model",
+    repoType = "model"
   ): Promise<Array<{ repoId: string; repoDir: string }>> {
     if (!(await _exists(this.cacheDir))) return [];
 
@@ -222,7 +233,7 @@ export class HfFastCache {
   private async _ensureRepoState(
     repoId: string,
     repoType?: string,
-    createIfMissing = true,
+    createIfMissing = true
   ): Promise<_RepoState | null> {
     const keyCandidates = _candidateRepoKeys(repoId, repoType);
 
@@ -247,7 +258,11 @@ export class HfFastCache {
       const repoTypeNormalized = key.slice(0, colonIdx);
       const normRepoId = key.slice(colonIdx + 1);
 
-      const repoDir = await _findRepoDir(this.cacheDir, normRepoId, repoTypeNormalized);
+      const repoDir = await _findRepoDir(
+        this.cacheDir,
+        normRepoId,
+        repoTypeNormalized
+      );
       if (repoDir == null) continue;
 
       const state: _RepoState = {
@@ -259,7 +274,7 @@ export class HfFastCache {
         snapshotDir: null,
         snapshotMtime: null,
         snapshotFileCount: null,
-        fileIndex: null,
+        fileIndex: null
       };
       await this._populateInitialState(state);
       this._repos.set(key, state);
@@ -271,7 +286,10 @@ export class HfFastCache {
 
   private async _maybeRefreshState(state: _RepoState): Promise<void> {
     const [refsMtimeNow, commitNow] = await _readCurrentRef(state.repoDir);
-    const snapshotDirNow = await _snapshotDirForCommit(state.repoDir, commitNow);
+    const snapshotDirNow = await _snapshotDirForCommit(
+      state.repoDir,
+      commitNow
+    );
 
     if (_changed(refsMtimeNow, state.refsMtime) || commitNow !== state.commit) {
       state.commit = commitNow;
@@ -291,7 +309,10 @@ export class HfFastCache {
       state.snapshotFileCount = null;
     } else if (state.fileIndex != null && snapshotDirNow != null) {
       const currentCount = await _countFiles(snapshotDirNow);
-      if (state.snapshotFileCount == null || currentCount !== state.snapshotFileCount) {
+      if (
+        state.snapshotFileCount == null ||
+        currentCount !== state.snapshotFileCount
+      ) {
         state.fileIndex = null;
       }
       state.snapshotFileCount = currentCount;
@@ -332,11 +353,13 @@ const KNOWN_TYPES = new Set([
   "space",
   "models",
   "datasets",
-  "spaces",
+  "spaces"
 ]);
 
 /** Normalize a repo type string to the internal plural form. */
-export function _normalizeRepoType(repoType: string | undefined | null): string | null {
+export function _normalizeRepoType(
+  repoType: string | undefined | null
+): string | null {
   if (repoType == null) return null;
   const t = repoType.toLowerCase().trim();
   if (t === "model" || t === "models") return "models";
@@ -348,7 +371,7 @@ export function _normalizeRepoType(repoType: string | undefined | null): string 
 /** Normalize repo ID and type into a canonical pair. */
 export function _normalizeRepoIdAndType(
   repoId: string,
-  repoType: string | undefined | null,
+  repoType: string | undefined | null
 ): [normalizedType: string | null, normalizedRepoId: string] {
   repoId = repoId.trim().replace(/^\/+|\/+$/g, "");
   const parts = repoId.split("/");
@@ -366,7 +389,7 @@ export function _normalizeRepoIdAndType(
 /** Return ordered cache keys to try for locating a repo. */
 export function _candidateRepoKeys(
   repoId: string,
-  repoType: string | undefined | null,
+  repoType: string | undefined | null
 ): string[] {
   const [normType, normRepo] = _normalizeRepoIdAndType(repoId, repoType);
   const typesToTry = normType ? [normType] : ["models", "datasets", "spaces"];
@@ -443,7 +466,7 @@ function _changed(now: number | null, old: number | null): boolean {
 export async function _findRepoDir(
   cacheDir: string,
   repoId: string,
-  repoType: string,
+  repoType: string
 ): Promise<string | null> {
   const repoBits = repoId.split("/").filter((b) => b.length > 0);
   if (repoBits.length === 0) return null;
@@ -464,7 +487,7 @@ export async function _findRepoDir(
 
 /** Return the mtime and commit hash for the preferred ref. */
 export async function _readCurrentRef(
-  repoDir: string,
+  repoDir: string
 ): Promise<[mtime: number | null, commit: string | null]> {
   const refsDir = path.join(repoDir, "refs");
   if (!(await _exists(refsDir))) return [null, null];
@@ -498,7 +521,7 @@ export async function _readCurrentRef(
 /** Return the snapshot directory for a given commit hash. */
 export async function _snapshotDirForCommit(
   repoDir: string,
-  commit: string | null,
+  commit: string | null
 ): Promise<string | null> {
   if (!commit) return null;
   const snapshot = path.join(repoDir, "snapshots", commit.trim());
@@ -507,7 +530,7 @@ export async function _snapshotDirForCommit(
 
 /** Return the newest snapshot directory for a repo by mtime. */
 export async function _pickLatestSnapshot(
-  repoDir: string,
+  repoDir: string
 ): Promise<string | null> {
   const snapshotsDir = path.join(repoDir, "snapshots");
   if (!(await _exists(snapshotsDir))) return null;

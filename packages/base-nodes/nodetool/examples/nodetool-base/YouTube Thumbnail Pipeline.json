@@ -196,7 +196,7 @@
       },
       {
         "id": "enhanced",
-        "type": "nodetool.lib.pillow.enhance.Contrast",
+        "type": "nodetool.lib.image.enhance.Contrast",
         "data": {
           "factor": 1.2
         },
@@ -216,7 +216,7 @@
       },
       {
         "id": "brightened",
-        "type": "nodetool.lib.pillow.enhance.Brightness",
+        "type": "nodetool.lib.image.enhance.Brightness",
         "data": {
           "factor": 1.1
         },
@@ -236,7 +236,7 @@
       },
       {
         "id": "with_main_text",
-        "type": "nodetool.lib.pillow.draw.RenderText",
+        "type": "nodetool.lib.image.draw.RenderText",
         "data": {
           "x": 50,
           "y": 100,
@@ -266,7 +266,7 @@
       },
       {
         "id": "final_thumbnail",
-        "type": "nodetool.lib.pillow.draw.RenderText",
+        "type": "nodetool.lib.image.draw.RenderText",
         "data": {
           "x": 50,
           "y": 620,

@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Convert To Markdown"
-node_type: "lib.markitdown.ConvertToMarkdown"
-namespace: "lib.markitdown"
+node_type: "lib.convert.ConvertToMarkdown"
+namespace: "lib.convert"
 ---
 
-**Type:** `lib.markitdown.ConvertToMarkdown`
+**Type:** `lib.convert.ConvertToMarkdown`
 
-**Namespace:** `lib.markitdown`
+**Namespace:** `lib.convert`
 
 ## Description
 
@@ -35,5 +35,5 @@ Converts various document formats to markdown using MarkItDown.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.markitdown](../) namespace.
+Browse other nodes in the [lib.convert](../) namespace.
 

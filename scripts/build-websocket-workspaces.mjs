@@ -3,31 +3,11 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { websocketWorkspaces } from "./websocket-workspaces.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "..");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-
-const workspaces = [
-  "@nodetool/protocol",
-  "@nodetool/config",
-  "@nodetool/runtime",
-  "@nodetool/auth",
-  "@nodetool/security",
-  "@nodetool/kernel",
-  "@nodetool/node-sdk",
-  // models + agents before base-nodes (base-nodes typechecks against agents' dist .d.ts)
-  "@nodetool/models",
-  "@nodetool/agents",
-  "@nodetool/fal-nodes",
-  "@nodetool/replicate-nodes",
-  "@nodetool/base-nodes",
-  "@nodetool/huggingface",
-  "@nodetool/elevenlabs-nodes",
-  "@nodetool/dsl",
-  "@nodetool/websocket",
-];
-
 function run(command, args) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(command, args, {
@@ -48,6 +28,6 @@ function run(command, args) {
   });
 }
 
-for (const workspace of workspaces) {
+for (const workspace of websocketWorkspaces) {
   await run(npmCommand, ["run", "build", "--workspace", workspace]);
 }

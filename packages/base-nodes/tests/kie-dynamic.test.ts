@@ -21,7 +21,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     json: async () => body,
     text: async () => JSON.stringify(body),
-    arrayBuffer: async () => new Uint8Array([116, 101, 115, 116]).buffer,
+    arrayBuffer: async () => new Uint8Array([116, 101, 115, 116]).buffer
   } as unknown as Response;
 }
 
@@ -71,9 +71,7 @@ describe("KieAINode validation", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "k" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("model_info is empty");
+    await expect(node.process()).rejects.toThrow("model_info is empty");
   });
 
   it("throws on whitespace-only model_info", async () => {
@@ -84,9 +82,7 @@ describe("KieAINode validation", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "k" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("model_info is empty");
+    await expect(node.process()).rejects.toThrow("model_info is empty");
   });
 
   it("throws on missing API key", async () => {
@@ -96,9 +92,9 @@ describe("KieAINode validation", () => {
       model_info: "some docs"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("KIE_API_KEY is not configured");
+    await expect(node.process()).rejects.toThrow(
+      "KIE_API_KEY is not configured"
+    );
   });
 
   it("throws when model_info has no model ID", async () => {
@@ -109,9 +105,7 @@ describe("KieAINode validation", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "k" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("Could not find model ID");
+    await expect(node.process()).rejects.toThrow("Could not find model ID");
   });
 });
 
@@ -128,9 +122,9 @@ describe("KieAINode process with mocked API", () => {
           data: {
             state: "success",
             resultJson: JSON.stringify({
-              resultUrls: ["https://cdn.example.com/output.png"],
-            }),
-          },
+              resultUrls: ["https://cdn.example.com/output.png"]
+            })
+          }
         });
       }
       if (urlStr.includes("cdn.example.com")) {
@@ -139,7 +133,7 @@ describe("KieAINode process with mocked API", () => {
           status: 200,
           json: async () => null,
           text: async () => "",
-          arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+          arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
         } as unknown as Response;
       }
       return jsonResponse({ error: "unknown" }, 404);
@@ -286,9 +280,9 @@ describe("KieAINode parseInputParams and full process", () => {
           data: {
             state: "success",
             resultJson: JSON.stringify({
-              resultUrls: ["https://cdn.example.com/output.png"],
-            }),
-          },
+              resultUrls: ["https://cdn.example.com/output.png"]
+            })
+          }
         });
       }
       if (urlStr.includes("cdn.example.com")) {
@@ -297,7 +291,7 @@ describe("KieAINode parseInputParams and full process", () => {
           status: 200,
           json: async () => null,
           text: async () => "",
-          arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+          arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
         } as unknown as Response;
       }
       return jsonResponse({ error: "unknown" }, 404);
@@ -399,9 +393,9 @@ describe("KieAINode parseInputParams and full process", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("Missing required input: prompt");
+    await expect(node.process()).rejects.toThrow(
+      "Missing required input: prompt"
+    );
   });
 
   it("passes file URL params through", async () => {
@@ -541,9 +535,7 @@ describe("KieAINode API error handling", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "bad-key" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("Unauthorized");
+    await expect(node.process()).rejects.toThrow("Unauthorized");
   });
 
   it("throws on task failure", async () => {
@@ -555,7 +547,7 @@ describe("KieAINode API error handling", () => {
       if (urlStr.includes("recordInfo")) {
         return jsonResponse({
           code: 200,
-          data: { state: "failed", failMsg: "Generation error" },
+          data: { state: "failed", failMsg: "Generation error" }
         });
       }
       return jsonResponse({}, 404);
@@ -567,15 +559,11 @@ describe("KieAINode API error handling", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "k" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("Task failed");
+    await expect(node.process()).rejects.toThrow("Task failed");
   });
 
   it("throws on submit HTTP error", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ data: {} }, 500)
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ data: {} }, 500));
     const node = new KieAINode();
 
     node.assign({
@@ -583,15 +571,11 @@ describe("KieAINode API error handling", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "k" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("Submit failed");
+    await expect(node.process()).rejects.toThrow("Submit failed");
   });
 
   it("throws when no taskId returned", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ code: 200, data: {} })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ code: 200, data: {} }));
     const node = new KieAINode();
 
     node.assign({
@@ -599,8 +583,6 @@ describe("KieAINode API error handling", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "k" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("No taskId");
+    await expect(node.process()).rejects.toThrow("No taskId");
   });
 });

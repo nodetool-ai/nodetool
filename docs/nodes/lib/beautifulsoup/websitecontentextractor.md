@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Website Content Extractor"
-node_type: "lib.beautifulsoup.WebsiteContentExtractor"
-namespace: "lib.beautifulsoup"
+node_type: "lib.html.WebsiteContentExtractor"
+namespace: "lib.html"
 ---
 
-**Type:** `lib.beautifulsoup.WebsiteContentExtractor`
+**Type:** `lib.html.WebsiteContentExtractor`
 
-**Namespace:** `lib.beautifulsoup`
+**Namespace:** `lib.html`
 
 ## Description
 
@@ -35,5 +35,5 @@ Extract main content from a website, removing navigation, ads, and other non-ess
 
 ## Related Nodes
 
-Browse other nodes in the [lib.beautifulsoup](../) namespace.
+Browse other nodes in the [lib.html](../) namespace.
 

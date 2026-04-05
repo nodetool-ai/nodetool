@@ -11,7 +11,7 @@ import {
   WhiteNoiseLibNode,
   PinkNoiseLibNode,
   FM_SynthesisLibNode,
-  EnvelopeLibNode,
+  EnvelopeLibNode
 } from "../../src/index.js";
 
 // ── Helper: create a minimal WAV audio ref ──────────────────────────
@@ -86,7 +86,7 @@ describe("DelayNode_", () => {
       audio,
       delay_seconds: 0.01,
       feedback: 0.3,
-      mix: 0.5,
+      mix: 0.5
     });
     const res = await node.process();
     const out = res.output as { uri: string; data: string };
@@ -162,7 +162,7 @@ describe("OscillatorLibNode", () => {
       frequency: 440,
       amplitude: 0.5,
       duration: 0.1,
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const res = await node.process();
     const out = res.output as { uri: string; data: string };
@@ -181,7 +181,7 @@ describe("OscillatorLibNode", () => {
         frequency: 440,
         amplitude: 0.5,
         duration: 0.05,
-        sample_rate: 8000,
+        sample_rate: 8000
       });
       const res = await node.process();
       const out = res.output as { uri: string; data: string };
@@ -235,7 +235,7 @@ describe("FM_SynthesisLibNode", () => {
       modulation_index: 5,
       amplitude: 0.5,
       duration: 0.1,
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const res = await node.process();
     const out = res.output as { uri: string; data: string };
@@ -254,7 +254,7 @@ describe("EnvelopeLibNode", () => {
       frequency: 440,
       amplitude: 1.0,
       duration: 0.1,
-      sample_rate: 8000,
+      sample_rate: 8000
     });
     const oscRes = await oscNode.process();
     const audio = oscRes.output;
@@ -265,7 +265,7 @@ describe("EnvelopeLibNode", () => {
       attack: 0.02,
       decay: 0.03,
       release: 0.05,
-      peak_amplitude: 1.0,
+      peak_amplitude: 1.0
     });
     const res = await node.process();
     const out = res.output as { uri: string; data: string };

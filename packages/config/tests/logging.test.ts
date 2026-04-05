@@ -2,7 +2,12 @@
  * Tests for T-CFG-3: configureLogging and createLogger.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { configureLogging, getLogLevel, createLogger, type LogLevel } from "../src/logging.js";
+import {
+  configureLogging,
+  getLogLevel,
+  createLogger,
+  type LogLevel
+} from "../src/logging.js";
 
 describe("T-CFG-3: configureLogging", () => {
   const savedEnv: Record<string, string | undefined> = {};
@@ -96,7 +101,9 @@ describe("T-CFG-3b: createLogger", () => {
   let stderrSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    stderrSpy = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
     configureLogging({ level: "debug" });
   });
 

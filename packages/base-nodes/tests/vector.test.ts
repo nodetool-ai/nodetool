@@ -16,14 +16,14 @@ const { mockCollection, mockStore, ollamaGenerateMock } = vi.hoisted(() => {
       ids: [["id1", "id2"]],
       documents: [["doc1", "doc2"]],
       metadatas: [[{ key: "val1" }, { key: "val2" }]],
-      distances: [[0.1, 0.5]],
+      distances: [[0.1, 0.5]]
     }),
-    metadata: { embedding_model: "test-model" } as Record<string, unknown>,
+    metadata: { embedding_model: "test-model" } as Record<string, unknown>
   };
 
   const mockStore = {
     getOrCreateCollection: vi.fn().mockResolvedValue(mockCollection),
-    getCollection: vi.fn().mockResolvedValue(mockCollection),
+    getCollection: vi.fn().mockResolvedValue(mockCollection)
   };
 
   // Configurable mock for OllamaEmbeddingFunction.generate
@@ -38,7 +38,7 @@ vi.mock("@nodetool/vectorstore", () => {
     getCollection: vi.fn().mockResolvedValue(mockCollection),
     OllamaEmbeddingFunction: vi.fn().mockImplementation(function () {
       this.generate = ollamaGenerateMock;
-    }),
+    })
   };
 });
 
@@ -75,7 +75,7 @@ import {
   QueryTextNode,
   RemoveOverlapNode,
   HybridSearchNode,
-  VECTOR_NODES,
+  VECTOR_NODES
 } from "../src/nodes/vector.js";
 
 // ---------------------------------------------------------------------------
@@ -95,7 +95,6 @@ function expectMetadataDefaults(NodeCls: any) {
   expect(new NodeCls().serialize()).toEqual(metadataDefaults(NodeCls));
 }
 
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockCollection.metadata = { embedding_model: "test-model" };
@@ -104,7 +103,7 @@ beforeEach(() => {
     ids: [["id1", "id2"]],
     documents: [["doc1", "doc2"]],
     metadatas: [[{ key: "val1" }, { key: "val2" }]],
-    distances: [[0.1, 0.5]],
+    distances: [[0.1, 0.5]]
   });
 });
 
@@ -140,7 +139,7 @@ describe("CollectionNode", () => {
     expect(result).toEqual({ output: { name: "test-collection" } });
     expect(mockStore.getOrCreateCollection).toHaveBeenCalledWith({
       name: "test-collection",
-      metadata: { embedding_model: "" },
+      metadata: { embedding_model: "" }
     });
   });
 
@@ -148,13 +147,13 @@ describe("CollectionNode", () => {
     const node = new CollectionNode();
     node.assign({
       name: "col1",
-      embedding_model: { repo_id: "my-model" },
+      embedding_model: { repo_id: "my-model" }
     });
     const result = await node.process();
     expect(result).toEqual({ output: { name: "col1" } });
     expect(mockStore.getOrCreateCollection).toHaveBeenCalledWith({
       name: "col1",
-      metadata: { embedding_model: "my-model" },
+      metadata: { embedding_model: "my-model" }
     });
   });
 
@@ -242,14 +241,14 @@ describe("GetDocumentsNode", () => {
       collection: { name: "my-col" },
       ids: ["a", "b"],
       limit: 50,
-      offset: 10,
+      offset: 10
     });
     const result = await node.process();
     expect(result).toEqual({ output: ["doc1", "doc2"] });
     expect(mockCollection.get).toHaveBeenCalledWith({
       ids: ["a", "b"],
       limit: 50,
-      offset: 10,
+      offset: 10
     });
   });
 
@@ -260,14 +259,16 @@ describe("GetDocumentsNode", () => {
     expect(mockCollection.get).toHaveBeenCalledWith({
       ids: undefined,
       limit: 100,
-      offset: 0,
+      offset: 0
     });
   });
 
   it("throws on empty collection name", async () => {
     const node = new GetDocumentsNode();
     node.assign({ collection: { name: "" } });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 });
 
@@ -290,7 +291,7 @@ describe("PeekNode", () => {
     const node = new PeekNode();
     node.assign({
       collection: { name: "my-col" },
-      limit: 5,
+      limit: 5
     });
     const result = await node.process();
     expect(result).toEqual({ output: ["peek1"] });
@@ -300,7 +301,9 @@ describe("PeekNode", () => {
   it("throws on empty collection name", async () => {
     const node = new PeekNode();
     node.assign({ collection: { name: "" } });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 });
 
@@ -326,14 +329,14 @@ describe("IndexImageNode", () => {
       image: { uri: "http://example.com/img.png", document_id: "img1" },
       index_id: "",
       metadata: { tag: "test" },
-      upsert: false,
+      upsert: false
     });
     const result = await node.process();
     expect(result).toEqual({ output: null });
     expect(mockCollection.add).toHaveBeenCalledWith({
       ids: ["img1"],
       uris: ["http://example.com/img.png"],
-      metadatas: [{ tag: "test" }],
+      metadatas: [{ tag: "test" }]
     });
   });
 
@@ -343,13 +346,13 @@ describe("IndexImageNode", () => {
       collection: { name: "img-col" },
       image: { uri: "http://example.com/img.png" },
       index_id: "explicit-id",
-      upsert: true,
+      upsert: true
     });
     await node.process();
     expect(mockCollection.upsert).toHaveBeenCalledWith({
       ids: ["explicit-id"],
       uris: ["http://example.com/img.png"],
-      metadatas: [{}],
+      metadatas: [{}]
     });
   });
 
@@ -358,7 +361,7 @@ describe("IndexImageNode", () => {
     node.assign({
       collection: { name: "img-col" },
       image: { uri: "http://x.com/i.png", document_id: "from-image" },
-      index_id: "explicit",
+      index_id: "explicit"
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith(
@@ -371,7 +374,7 @@ describe("IndexImageNode", () => {
     node.assign({
       collection: { name: "img-col" },
       image: { asset_id: "asset-123", document_id: "d1" },
-      index_id: "",
+      index_id: ""
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith(
@@ -382,7 +385,9 @@ describe("IndexImageNode", () => {
   it("throws on empty collection name", async () => {
     const node = new IndexImageNode();
     node.assign({ collection: { name: "" } });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 
   it("throws on empty document_id when no index_id", async () => {
@@ -390,7 +395,7 @@ describe("IndexImageNode", () => {
     node.assign({
       collection: { name: "c" },
       image: { uri: "http://x.com/i.png" },
-      index_id: "",
+      index_id: ""
     });
     await expect(node.process()).rejects.toThrow("document_id cannot be empty");
   });
@@ -400,9 +405,11 @@ describe("IndexImageNode", () => {
     node.assign({
       collection: { name: "c" },
       image: { document_id: "d1" },
-      index_id: "id1",
+      index_id: "id1"
     });
-    await expect(node.process()).rejects.toThrow("Image reference must have a uri or asset_id");
+    await expect(node.process()).rejects.toThrow(
+      "Image reference must have a uri or asset_id"
+    );
   });
 
   it("flattens non-primitive metadata values to strings", async () => {
@@ -411,12 +418,14 @@ describe("IndexImageNode", () => {
       collection: { name: "c" },
       image: { uri: "http://x.com/i.png" },
       index_id: "id1",
-      metadata: { arr: [1, 2], nested: { a: 1 }, num: 42, bool: true },
+      metadata: { arr: [1, 2], nested: { a: 1 }, num: 42, bool: true }
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadatas: [{ arr: "1,2", nested: "[object Object]", num: 42, bool: true }],
+        metadatas: [
+          { arr: "1,2", nested: "[object Object]", num: 42, bool: true }
+        ]
       })
     );
   });
@@ -443,14 +452,14 @@ describe("IndexEmbeddingNode", () => {
       collection: { name: "emb-col" },
       embedding: [0.1, 0.2, 0.3],
       index_id: "emb1",
-      metadata: { source: "test" },
+      metadata: { source: "test" }
     });
     const result = await node.process();
     expect(result).toEqual({ output: null });
     expect(mockCollection.add).toHaveBeenCalledWith({
       ids: ["emb1"],
       embeddings: [[0.1, 0.2, 0.3]],
-      metadatas: [{ source: "test" }],
+      metadatas: [{ source: "test" }]
     });
   });
 
@@ -460,19 +469,19 @@ describe("IndexEmbeddingNode", () => {
       collection: { name: "emb-col" },
       embedding: [
         [0.1, 0.2],
-        [0.3, 0.4],
+        [0.3, 0.4]
       ],
       index_id: ["id-a", "id-b"],
-      metadata: [{ a: "1" }, { b: "2" }],
+      metadata: [{ a: "1" }, { b: "2" }]
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith({
       ids: ["id-a", "id-b"],
       embeddings: [
         [0.1, 0.2],
-        [0.3, 0.4],
+        [0.3, 0.4]
       ],
-      metadatas: [{ a: "1" }, { b: "2" }],
+      metadatas: [{ a: "1" }, { b: "2" }]
     });
   });
 
@@ -481,13 +490,13 @@ describe("IndexEmbeddingNode", () => {
     node.assign({
       collection: { name: "emb-col" },
       embedding: { data: [0.5, 0.6] },
-      index_id: "nd1",
+      index_id: "nd1"
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith(
       expect.objectContaining({
         embeddings: [[0.5, 0.6]],
-        ids: ["nd1"],
+        ids: ["nd1"]
       })
     );
   });
@@ -497,7 +506,7 @@ describe("IndexEmbeddingNode", () => {
     node.assign({
       collection: { name: "emb-col" },
       embedding: { array: [0.7, 0.8] },
-      index_id: "nd2",
+      index_id: "nd2"
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith(
@@ -510,7 +519,7 @@ describe("IndexEmbeddingNode", () => {
     node.assign({
       collection: { name: "emb-col" },
       embedding: { embedding: [0.9, 1.0] },
-      index_id: "nd3",
+      index_id: "nd3"
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith(
@@ -525,19 +534,19 @@ describe("IndexEmbeddingNode", () => {
       embedding: {
         data: [
           [1.0, 2.0],
-          [3.0, 4.0],
-        ],
+          [3.0, 4.0]
+        ]
       },
-      index_id: ["x", "y"],
+      index_id: ["x", "y"]
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith(
       expect.objectContaining({
         embeddings: [
           [1.0, 2.0],
-          [3.0, 4.0],
+          [3.0, 4.0]
         ],
-        ids: ["x", "y"],
+        ids: ["x", "y"]
       })
     );
   });
@@ -548,15 +557,15 @@ describe("IndexEmbeddingNode", () => {
       collection: { name: "emb-col" },
       embedding: [
         [0.1, 0.2],
-        [0.3, 0.4],
+        [0.3, 0.4]
       ],
       index_id: ["id-a", "id-b"],
-      metadata: { shared: "yes" },
+      metadata: { shared: "yes" }
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadatas: [{ shared: "yes" }, { shared: "yes" }],
+        metadatas: [{ shared: "yes" }, { shared: "yes" }]
       })
     );
   });
@@ -564,19 +573,25 @@ describe("IndexEmbeddingNode", () => {
   it("throws on empty collection name", async () => {
     const node = new IndexEmbeddingNode();
     node.assign({ collection: { name: "" }, embedding: [1], index_id: "x" });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 
   it("throws on empty embedding array", async () => {
     const node = new IndexEmbeddingNode();
     node.assign({ collection: { name: "c" }, embedding: [], index_id: "x" });
-    await expect(node.process()).rejects.toThrow("The embedding cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The embedding cannot be empty"
+    );
   });
 
   it("throws on non-array non-object embedding", async () => {
     const node = new IndexEmbeddingNode();
     node.assign({ collection: { name: "c" }, embedding: "bad", index_id: "x" });
-    await expect(node.process()).rejects.toThrow("The embedding cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The embedding cannot be empty"
+    );
   });
 
   it("throws when NdArray-like has no extractable data", async () => {
@@ -584,9 +599,11 @@ describe("IndexEmbeddingNode", () => {
     node.assign({
       collection: { name: "c" },
       embedding: { foo: "bar" },
-      index_id: "x",
+      index_id: "x"
     });
-    await expect(node.process()).rejects.toThrow("Cannot extract embedding data");
+    await expect(node.process()).rejects.toThrow(
+      "Cannot extract embedding data"
+    );
   });
 
   it("throws on empty single ID", async () => {
@@ -594,7 +611,7 @@ describe("IndexEmbeddingNode", () => {
     node.assign({
       collection: { name: "c" },
       embedding: [0.1],
-      index_id: "",
+      index_id: ""
     });
     await expect(node.process()).rejects.toThrow("The ID cannot be empty");
   });
@@ -604,9 +621,11 @@ describe("IndexEmbeddingNode", () => {
     node.assign({
       collection: { name: "c" },
       embedding: [[0.1]],
-      index_id: [],
+      index_id: []
     });
-    await expect(node.process()).rejects.toThrow("The IDs list cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The IDs list cannot be empty"
+    );
   });
 
   it("throws when IDs count mismatches embeddings count", async () => {
@@ -614,12 +633,14 @@ describe("IndexEmbeddingNode", () => {
     node.assign({
       collection: { name: "c" },
       embedding: [
-      [0.1, 0.2],
-      [0.3, 0.4],
+        [0.1, 0.2],
+        [0.3, 0.4]
       ],
-      index_id: ["only-one"],
+      index_id: ["only-one"]
     });
-    await expect(node.process()).rejects.toThrow("Number of IDs (1) must match number of embeddings (2)");
+    await expect(node.process()).rejects.toThrow(
+      "Number of IDs (1) must match number of embeddings (2)"
+    );
   });
 
   it("throws when metadata array count mismatches IDs count", async () => {
@@ -627,13 +648,15 @@ describe("IndexEmbeddingNode", () => {
     node.assign({
       collection: { name: "c" },
       embedding: [
-      [0.1, 0.2],
-      [0.3, 0.4],
+        [0.1, 0.2],
+        [0.3, 0.4]
       ],
       index_id: ["a", "b"],
-      metadata: [{ x: 1 }],
+      metadata: [{ x: 1 }]
     });
-    await expect(node.process()).rejects.toThrow("Number of IDs (2) must match number of metadatas (1)");
+    await expect(node.process()).rejects.toThrow(
+      "Number of IDs (2) must match number of metadatas (1)"
+    );
   });
 
   it("single mode uses first metadata from array", async () => {
@@ -642,12 +665,12 @@ describe("IndexEmbeddingNode", () => {
       collection: { name: "c" },
       embedding: [0.1, 0.2],
       index_id: "single-id",
-      metadata: [{ first: "yes" }, { second: "no" }],
+      metadata: [{ first: "yes" }, { second: "no" }]
     });
     await node.process();
     expect(mockCollection.add).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadatas: [{ first: "yes" }],
+        metadatas: [{ first: "yes" }]
       })
     );
   });
@@ -674,27 +697,31 @@ describe("IndexTextChunkNode", () => {
       collection: { name: "txt-col" },
       document_id: "doc-1",
       text: "hello world",
-      metadata: { page: 1 },
+      metadata: { page: 1 }
     });
     const result = await node.process();
     expect(result).toEqual({ output: null });
     expect(mockCollection.add).toHaveBeenCalledWith({
       ids: ["doc-1"],
       documents: ["hello world"],
-      metadatas: [{ page: 1 }],
+      metadatas: [{ page: 1 }]
     });
   });
 
   it("throws on empty collection name", async () => {
     const node = new IndexTextChunkNode();
     node.assign({ collection: { name: "" }, document_id: "d1", text: "hi" });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 
   it("throws on empty document_id", async () => {
     const node = new IndexTextChunkNode();
     node.assign({ collection: { name: "c" }, document_id: "", text: "hi" });
-    await expect(node.process()).rejects.toThrow("The document ID cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The document ID cannot be empty"
+    );
   });
 });
 
@@ -716,7 +743,7 @@ describe("IndexAggregatedTextNode", () => {
   it("process with mean aggregation", async () => {
     mockOllamaEmbeddings([
       [1.0, 2.0, 3.0],
-      [3.0, 4.0, 5.0],
+      [3.0, 4.0, 5.0]
     ]);
 
     const node = new IndexAggregatedTextNode();
@@ -725,7 +752,7 @@ describe("IndexAggregatedTextNode", () => {
       document: "full doc",
       document_id: "agg-1",
       text_chunks: ["chunk1", "chunk2"],
-      aggregation: "mean",
+      aggregation: "mean"
     });
     const result = await node.process();
     expect(result).toEqual({ output: null });
@@ -735,7 +762,7 @@ describe("IndexAggregatedTextNode", () => {
       expect.objectContaining({
         ids: ["agg-1"],
         documents: ["full doc"],
-        embeddings: [[2.0, 3.0, 4.0]],
+        embeddings: [[2.0, 3.0, 4.0]]
       })
     );
 
@@ -745,7 +772,7 @@ describe("IndexAggregatedTextNode", () => {
   it("process with sum aggregation", async () => {
     mockOllamaEmbeddings([
       [1.0, 2.0],
-      [3.0, 4.0],
+      [3.0, 4.0]
     ]);
 
     const node = new IndexAggregatedTextNode();
@@ -754,14 +781,14 @@ describe("IndexAggregatedTextNode", () => {
       document: "doc",
       document_id: "agg-2",
       text_chunks: ["a", "b"],
-      aggregation: "sum",
+      aggregation: "sum"
     });
     await node.process();
 
     // sum of [1,2] and [3,4] = [4,6]
     expect(mockCollection.add).toHaveBeenCalledWith(
       expect.objectContaining({
-        embeddings: [[4.0, 6.0]],
+        embeddings: [[4.0, 6.0]]
       })
     );
 
@@ -771,7 +798,7 @@ describe("IndexAggregatedTextNode", () => {
   it("process with max aggregation", async () => {
     mockOllamaEmbeddings([
       [1.0, 5.0],
-      [3.0, 2.0],
+      [3.0, 2.0]
     ]);
 
     const node = new IndexAggregatedTextNode();
@@ -780,14 +807,14 @@ describe("IndexAggregatedTextNode", () => {
       document: "doc",
       document_id: "agg-3",
       text_chunks: ["a", "b"],
-      aggregation: "max",
+      aggregation: "max"
     });
     await node.process();
 
     // max of [1,5] and [3,2] = [3,5]
     expect(mockCollection.add).toHaveBeenCalledWith(
       expect.objectContaining({
-        embeddings: [[3.0, 5.0]],
+        embeddings: [[3.0, 5.0]]
       })
     );
 
@@ -797,7 +824,7 @@ describe("IndexAggregatedTextNode", () => {
   it("process with min aggregation", async () => {
     mockOllamaEmbeddings([
       [1.0, 5.0],
-      [3.0, 2.0],
+      [3.0, 2.0]
     ]);
 
     const node = new IndexAggregatedTextNode();
@@ -806,14 +833,14 @@ describe("IndexAggregatedTextNode", () => {
       document: "doc",
       document_id: "agg-4",
       text_chunks: ["a", "b"],
-      aggregation: "min",
+      aggregation: "min"
     });
     await node.process();
 
     // min of [1,5] and [3,2] = [1,2]
     expect(mockCollection.add).toHaveBeenCalledWith(
       expect.objectContaining({
-        embeddings: [[1.0, 2.0]],
+        embeddings: [[1.0, 2.0]]
       })
     );
 
@@ -829,7 +856,7 @@ describe("IndexAggregatedTextNode", () => {
       document: "doc",
       document_id: "agg-5",
       text_chunks: [{ text: "object chunk" }],
-      aggregation: "mean",
+      aggregation: "mean"
     });
     await node.process();
 
@@ -849,7 +876,7 @@ describe("IndexAggregatedTextNode", () => {
       document_id: "agg-6",
       text_chunks: ["x"],
       aggregation: "mean",
-      metadata: {},
+      metadata: {}
     });
     await node.process();
 
@@ -870,7 +897,7 @@ describe("IndexAggregatedTextNode", () => {
       document_id: "agg-7",
       text_chunks: ["x"],
       aggregation: "mean",
-      metadata: { key: "val" },
+      metadata: { key: "val" }
     });
     await node.process();
 
@@ -887,9 +914,11 @@ describe("IndexAggregatedTextNode", () => {
       collection: { name: "" },
       document: "d",
       document_id: "id",
-      text_chunks: ["x"],
+      text_chunks: ["x"]
     });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 
   it("throws on empty document_id", async () => {
@@ -898,9 +927,11 @@ describe("IndexAggregatedTextNode", () => {
       collection: { name: "c" },
       document: "d",
       document_id: "",
-      text_chunks: ["x"],
+      text_chunks: ["x"]
     });
-    await expect(node.process()).rejects.toThrow("The document ID cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The document ID cannot be empty"
+    );
   });
 
   it("throws on empty document", async () => {
@@ -909,9 +940,11 @@ describe("IndexAggregatedTextNode", () => {
       collection: { name: "c" },
       document: "",
       document_id: "id",
-      text_chunks: ["x"],
+      text_chunks: ["x"]
     });
-    await expect(node.process()).rejects.toThrow("The document cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The document cannot be empty"
+    );
   });
 
   it("throws on empty text_chunks", async () => {
@@ -920,9 +953,11 @@ describe("IndexAggregatedTextNode", () => {
       collection: { name: "c" },
       document: "doc",
       document_id: "id",
-      text_chunks: [],
+      text_chunks: []
     });
-    await expect(node.process()).rejects.toThrow("The text chunks cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The text chunks cannot be empty"
+    );
   });
 
   it("throws when collection has no embedding_model", async () => {
@@ -932,9 +967,11 @@ describe("IndexAggregatedTextNode", () => {
       collection: { name: "c" },
       document: "doc",
       document_id: "id",
-      text_chunks: ["x"],
+      text_chunks: ["x"]
     });
-    await expect(node.process()).rejects.toThrow("does not have an embedding_model");
+    await expect(node.process()).rejects.toThrow(
+      "does not have an embedding_model"
+    );
   });
 
   it("throws on invalid aggregation method", async () => {
@@ -946,22 +983,26 @@ describe("IndexAggregatedTextNode", () => {
       document: "doc",
       document_id: "id",
       text_chunks: ["x"],
-      aggregation: "median",
+      aggregation: "median"
     });
-    await expect(node.process()).rejects.toThrow("Invalid aggregation method: median");
+    await expect(node.process()).rejects.toThrow(
+      "Invalid aggregation method: median"
+    );
 
     restoreOllamaEmbeddings();
   });
 
   it("throws when embedding function returns error", async () => {
-    ollamaGenerateMock.mockRejectedValue(new Error("Embedding generation failed"));
+    ollamaGenerateMock.mockRejectedValue(
+      new Error("Embedding generation failed")
+    );
 
     const node = new IndexAggregatedTextNode();
     node.assign({
       collection: { name: "c" },
       document: "doc",
       document_id: "id",
-      text_chunks: ["x"],
+      text_chunks: ["x"]
     });
     await expect(node.process()).rejects.toThrow("Embedding generation failed");
 
@@ -989,26 +1030,30 @@ describe("IndexStringNode", () => {
     node.assign({
       collection: { name: "str-col" },
       text: "hello",
-      document_id: "str-1",
+      document_id: "str-1"
     });
     const result = await node.process();
     expect(result).toEqual({ output: null });
     expect(mockCollection.add).toHaveBeenCalledWith({
       ids: ["str-1"],
-      documents: ["hello"],
+      documents: ["hello"]
     });
   });
 
   it("throws on empty collection name", async () => {
     const node = new IndexStringNode();
     node.assign({ collection: { name: "" }, text: "hi", document_id: "d" });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 
   it("throws on empty document_id", async () => {
     const node = new IndexStringNode();
     node.assign({ collection: { name: "c" }, text: "hi", document_id: "" });
-    await expect(node.process()).rejects.toThrow("The document ID cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "The document ID cannot be empty"
+    );
   });
 });
 
@@ -1033,14 +1078,14 @@ describe("QueryImageNode", () => {
       ids: [["id2", "id1"]],
       documents: [["doc2", "doc1"]],
       metadatas: [[{ k: "v2" }, { k: "v1" }]],
-      distances: [[0.5, 0.1]],
+      distances: [[0.5, 0.1]]
     });
 
     const node = new QueryImageNode();
     node.assign({
       collection: { name: "q-col" },
       image: { uri: "http://x.com/img.png" },
-      n_results: 2,
+      n_results: 2
     });
     const result = await node.process();
 
@@ -1053,7 +1098,7 @@ describe("QueryImageNode", () => {
     expect(mockCollection.query).toHaveBeenCalledWith({
       queryURIs: ["http://x.com/img.png"],
       nResults: 2,
-      include: ["documents", "metadatas", "distances"],
+      include: ["documents", "metadatas", "distances"]
     });
   });
 
@@ -1061,7 +1106,7 @@ describe("QueryImageNode", () => {
     const node = new QueryImageNode();
     node.assign({
       collection: { name: "q-col" },
-      image: { asset_id: "asset-xyz" },
+      image: { asset_id: "asset-xyz" }
     });
     await node.process();
     expect(mockCollection.query).toHaveBeenCalledWith(
@@ -1072,7 +1117,9 @@ describe("QueryImageNode", () => {
   it("throws on empty collection name", async () => {
     const node = new QueryImageNode();
     node.assign({ collection: { name: "" }, image: { uri: "x" } });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 
   it("throws when image has no uri or asset_id", async () => {
@@ -1086,7 +1133,7 @@ describe("QueryImageNode", () => {
       ids: null,
       documents: [["d"]],
       metadatas: [[{}]],
-      distances: [[0]],
+      distances: [[0]]
     });
     const node = new QueryImageNode();
     node.assign({ collection: { name: "c" }, image: { uri: "x" } });
@@ -1098,7 +1145,7 @@ describe("QueryImageNode", () => {
       ids: [["id"]],
       documents: null,
       metadatas: [[{}]],
-      distances: [[0]],
+      distances: [[0]]
     });
     const node = new QueryImageNode();
     node.assign({ collection: { name: "c" }, image: { uri: "x" } });
@@ -1110,7 +1157,7 @@ describe("QueryImageNode", () => {
       ids: [["id"]],
       documents: [["d"]],
       metadatas: null,
-      distances: [[0]],
+      distances: [[0]]
     });
     const node = new QueryImageNode();
     node.assign({ collection: { name: "c" }, image: { uri: "x" } });
@@ -1122,7 +1169,7 @@ describe("QueryImageNode", () => {
       ids: [["id"]],
       documents: [["d"]],
       metadatas: [[{}]],
-      distances: null,
+      distances: null
     });
     const node = new QueryImageNode();
     node.assign({ collection: { name: "c" }, image: { uri: "x" } });
@@ -1150,14 +1197,14 @@ describe("QueryTextNode", () => {
       ids: [["z-id", "a-id"]],
       documents: [["z-doc", "a-doc"]],
       metadatas: [[{ z: 1 }, { a: 1 }]],
-      distances: [[0.9, 0.1]],
+      distances: [[0.9, 0.1]]
     });
 
     const node = new QueryTextNode();
     node.assign({
       collection: { name: "q-col" },
       text: "search query",
-      n_results: 2,
+      n_results: 2
     });
     const result = await node.process();
 
@@ -1168,14 +1215,16 @@ describe("QueryTextNode", () => {
     expect(mockCollection.query).toHaveBeenCalledWith({
       queryTexts: ["search query"],
       nResults: 2,
-      include: ["documents", "metadatas", "distances"],
+      include: ["documents", "metadatas", "distances"]
     });
   });
 
   it("throws on empty collection name", async () => {
     const node = new QueryTextNode();
     node.assign({ collection: { name: "" }, text: "hi" });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 
   it("throws when ids not returned", async () => {
@@ -1183,7 +1232,7 @@ describe("QueryTextNode", () => {
       ids: null,
       documents: [["d"]],
       metadatas: [[{}]],
-      distances: [[0]],
+      distances: [[0]]
     });
     const node = new QueryTextNode();
     node.assign({ collection: { name: "c" }, text: "q" });
@@ -1195,13 +1244,13 @@ describe("QueryTextNode", () => {
       ids: [["id1"]],
       documents: [[null]],
       metadatas: [[null]],
-      distances: [[null]],
+      distances: [[null]]
     });
 
     const node = new QueryTextNode();
     node.assign({
       collection: { name: "c" },
-      text: "q",
+      text: "q"
     });
     const result = await node.process();
 
@@ -1246,15 +1295,15 @@ describe("RemoveOverlapNode", () => {
     node.assign({
       documents: [
         "the quick brown fox jumps",
-        "brown fox jumps over the lazy dog",
+        "brown fox jumps over the lazy dog"
       ],
-      min_overlap_words: 2,
+      min_overlap_words: 2
     });
     const result = await node.process();
     const output = result.output as { documents: string[] };
     expect(output.documents).toEqual([
       "the quick brown fox jumps",
-      "over the lazy dog",
+      "over the lazy dog"
     ]);
   });
 
@@ -1262,7 +1311,7 @@ describe("RemoveOverlapNode", () => {
     const node = new RemoveOverlapNode();
     node.assign({
       documents: ["hello world", "world goodbye"],
-      min_overlap_words: 2,
+      min_overlap_words: 2
     });
     const result = await node.process();
     const output = result.output as { documents: string[] };
@@ -1274,7 +1323,7 @@ describe("RemoveOverlapNode", () => {
     const node = new RemoveOverlapNode();
     node.assign({
       documents: ["hello world", "world goodbye"],
-      min_overlap_words: 1,
+      min_overlap_words: 1
     });
     const result = await node.process();
     const output = result.output as { documents: string[] };
@@ -1284,12 +1333,8 @@ describe("RemoveOverlapNode", () => {
   it("handles multiple consecutive documents", async () => {
     const node = new RemoveOverlapNode();
     node.assign({
-      documents: [
-        "a b c d",
-        "c d e f",
-        "e f g h",
-      ],
-      min_overlap_words: 2,
+      documents: ["a b c d", "c d e f", "e f g h"],
+      min_overlap_words: 2
     });
     const result = await node.process();
     const output = result.output as { documents: string[] };
@@ -1300,7 +1345,7 @@ describe("RemoveOverlapNode", () => {
     const node = new RemoveOverlapNode();
     node.assign({
       documents: ["alpha beta", "gamma delta"],
-      min_overlap_words: 2,
+      min_overlap_words: 2
     });
     const result = await node.process();
     const output = result.output as { documents: string[] };
@@ -1311,7 +1356,7 @@ describe("RemoveOverlapNode", () => {
     const node = new RemoveOverlapNode();
     node.assign({
       documents: ["a b c", "a b c"],
-      min_overlap_words: 2,
+      min_overlap_words: 2
     });
     const result = await node.process();
     const output = result.output as { documents: string[] };
@@ -1323,7 +1368,7 @@ describe("RemoveOverlapNode", () => {
     const node = new RemoveOverlapNode();
     node.assign({
       documents: ["hello   world  foo", "world foo bar"],
-      min_overlap_words: 2,
+      min_overlap_words: 2
     });
     const result = await node.process();
     const output = result.output as { documents: string[] };
@@ -1359,7 +1404,7 @@ describe("HybridSearchNode", () => {
     node.assign({
       collection: { name: "hybrid-col" },
       text: "search query text",
-      n_results: 2,
+      n_results: 2
     });
     const result = await node.process();
 
@@ -1380,7 +1425,7 @@ describe("HybridSearchNode", () => {
       collection: { name: "hybrid-col" },
       text: "ab cd",
       n_results: 2,
-      min_keyword_length: 5,
+      min_keyword_length: 5
     });
     await node.process();
 
@@ -1394,7 +1439,7 @@ describe("HybridSearchNode", () => {
       collection: { name: "hybrid-col" },
       text: "longword ab",
       n_results: 2,
-      min_keyword_length: 3,
+      min_keyword_length: 3
     });
     await node.process();
 
@@ -1402,7 +1447,7 @@ describe("HybridSearchNode", () => {
     expect(mockCollection.query).toHaveBeenCalledTimes(2);
     expect(mockCollection.query).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        whereDocument: { $contains: "longword" },
+        whereDocument: { $contains: "longword" }
       })
     );
   });
@@ -1413,7 +1458,7 @@ describe("HybridSearchNode", () => {
       collection: { name: "hybrid-col" },
       text: "hello world test",
       n_results: 2,
-      min_keyword_length: 3,
+      min_keyword_length: 3
     });
     await node.process();
 
@@ -1423,9 +1468,9 @@ describe("HybridSearchNode", () => {
           $or: [
             { $contains: "hello" },
             { $contains: "world" },
-            { $contains: "test" },
-          ],
-        },
+            { $contains: "test" }
+          ]
+        }
       })
     );
   });
@@ -1436,7 +1481,7 @@ describe("HybridSearchNode", () => {
       collection: { name: "hybrid-col" },
       text: "hello,world!test-case",
       n_results: 2,
-      min_keyword_length: 3,
+      min_keyword_length: 3
     });
     await node.process();
 
@@ -1448,9 +1493,9 @@ describe("HybridSearchNode", () => {
             { $contains: "hello" },
             { $contains: "world" },
             { $contains: "test" },
-            { $contains: "case" },
-          ],
-        },
+            { $contains: "case" }
+          ]
+        }
       })
     );
   });
@@ -1463,13 +1508,13 @@ describe("HybridSearchNode", () => {
         ids: [["id1", "id2"]],
         documents: [["doc1", "doc2"]],
         metadatas: [[{ s: 1 }, { s: 2 }]],
-        distances: [[0.1, 0.2]],
+        distances: [[0.1, 0.2]]
       })
       .mockResolvedValueOnce({
         ids: [["id2", "id3"]],
         documents: [["doc2", "doc3"]],
         metadatas: [[{ k: 2 }, { k: 3 }]],
-        distances: [[0.3, 0.4]],
+        distances: [[0.3, 0.4]]
       });
 
     const node = new HybridSearchNode();
@@ -1477,7 +1522,7 @@ describe("HybridSearchNode", () => {
       collection: { name: "hybrid-col" },
       text: "test query",
       n_results: 10,
-      k_constant: 60,
+      k_constant: 60
     });
     const result = await node.process();
 
@@ -1501,14 +1546,14 @@ describe("HybridSearchNode", () => {
       ids: [["a", "b", "c", "d", "e"]],
       documents: [["da", "db", "dc", "dd", "de"]],
       metadatas: [[{}, {}, {}, {}, {}]],
-      distances: [[0.1, 0.2, 0.3, 0.4, 0.5]],
+      distances: [[0.1, 0.2, 0.3, 0.4, 0.5]]
     });
 
     const node = new HybridSearchNode();
     node.assign({
       collection: { name: "hybrid-col" },
       text: "test query",
-      n_results: 2,
+      n_results: 2
     });
     const result = await node.process();
 
@@ -1519,7 +1564,9 @@ describe("HybridSearchNode", () => {
   it("throws on empty collection name", async () => {
     const node = new HybridSearchNode();
     node.assign({ collection: { name: "" }, text: "hi" });
-    await expect(node.process()).rejects.toThrow("Collection name cannot be empty");
+    await expect(node.process()).rejects.toThrow(
+      "Collection name cannot be empty"
+    );
   });
 
   it("throws on empty search text", async () => {
@@ -1539,7 +1586,7 @@ describe("HybridSearchNode", () => {
       ids: null,
       documents: [["d"]],
       metadatas: [[{}]],
-      distances: [[0]],
+      distances: [[0]]
     });
 
     const node = new HybridSearchNode();
@@ -1552,7 +1599,7 @@ describe("HybridSearchNode", () => {
     node.assign({
       collection: { name: "c" },
       text: "test query",
-      n_results: 3,
+      n_results: 3
     });
     await node.process();
 

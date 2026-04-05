@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Expand"
-node_type: "lib.pillow.filter.Expand"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.Expand"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.Expand`
+**Type:** `lib.image.filter.Expand`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -36,5 +36,5 @@ Add a border around an image to increase its size.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

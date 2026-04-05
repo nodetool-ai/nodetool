@@ -16,7 +16,12 @@ import type { BaseProvider } from "@nodetool/runtime";
 
 const log = createLogger("nodetool.agents.agent");
 import type { ProcessingContext } from "@nodetool/runtime";
-import type { ProcessingMessage, StepResult, LogUpdate, TaskUpdate } from "@nodetool/protocol";
+import type {
+  ProcessingMessage,
+  StepResult,
+  LogUpdate,
+  TaskUpdate
+} from "@nodetool/protocol";
 import { TaskUpdateEvent } from "@nodetool/protocol";
 import { BaseAgent } from "./base-agent.js";
 import { TaskPlanner } from "./task-planner.js";
@@ -53,8 +58,10 @@ export function parseFrontmatter(frontmatter: string): Record<string, string> {
     const key = line.slice(0, colonIdx).trim();
     let value = line.slice(colonIdx + 1).trim();
     // Strip surrounding quotes
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.slice(1, -1);
     }
     parsed[key] = value;
@@ -78,7 +85,9 @@ function isValidSkillDescription(description: string): boolean {
  * Load a single skill from a SKILL.md file.
  * Returns null if the file is invalid or cannot be read.
  */
-async function loadSkillFromFile(skillFile: string): Promise<AgentSkill | null> {
+async function loadSkillFromFile(
+  skillFile: string
+): Promise<AgentSkill | null> {
   let content: string;
   try {
     content = await fs.readFile(skillFile, "utf-8");
@@ -128,7 +137,9 @@ async function findSkillFiles(dir: string): Promise<string[]> {
 /**
  * Load all valid skills from a directory (recursively searches for SKILL.md files).
  */
-export async function loadSkillsFromDirectory(dir: string): Promise<AgentSkill[]> {
+export async function loadSkillsFromDirectory(
+  dir: string
+): Promise<AgentSkill[]> {
   const skillFiles = await findSkillFiles(dir);
   const skills: AgentSkill[] = [];
   for (const file of skillFiles) {
@@ -203,7 +214,7 @@ export class Agent extends BaseAgent {
       tools: opts.tools,
       inputs: opts.inputs,
       systemPrompt: opts.systemPrompt,
-      maxTokenLimit: opts.maxTokenLimit,
+      maxTokenLimit: opts.maxTokenLimit
     });
     this.description = opts.description ?? "";
     this.planningModel = opts.planningModel ?? opts.model;
@@ -237,7 +248,11 @@ export class Agent extends BaseAgent {
       for (const d of envDirs.split(path.delimiter)) {
         const trimmed = d.trim();
         if (trimmed) {
-          resolved.push(trimmed.startsWith("~") ? trimmed.replace("~", os.homedir()) : trimmed);
+          resolved.push(
+            trimmed.startsWith("~")
+              ? trimmed.replace("~", os.homedir())
+              : trimmed
+          );
         }
       }
     }
@@ -246,7 +261,7 @@ export class Agent extends BaseAgent {
     resolved.push(
       path.join(process.cwd(), ".claude", "skills"),
       path.join(os.homedir(), ".claude", "skills"),
-      path.join(os.homedir(), ".codex", "skills"),
+      path.join(os.homedir(), ".codex", "skills")
     );
 
     return dedupePreserveOrder(resolved);
@@ -280,12 +295,18 @@ export class Agent extends BaseAgent {
    */
   private resolveActiveSkills(
     available: Map<string, AgentSkill>,
-    requested: string[] | undefined,
+    requested: string[] | undefined
   ): AgentSkill[] {
     // Merge explicit names from constructor + environment
     const envRequested = process.env["NODETOOL_AGENT_SKILLS"] ?? "";
-    const envNames = envRequested.split(",").map((s) => s.trim()).filter(Boolean);
-    const explicitNames = dedupePreserveOrder([...(requested ?? []), ...envNames]);
+    const envNames = envRequested
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const explicitNames = dedupePreserveOrder([
+      ...(requested ?? []),
+      ...envNames
+    ]);
 
     if (explicitNames.length > 0) {
       const active: AgentSkill[] = [];
@@ -298,19 +319,23 @@ export class Agent extends BaseAgent {
 
     // Auto-select: check if disabled
     const autoEnabled = !["0", "false", "no", "off"].includes(
-      (process.env["NODETOOL_AGENT_AUTO_SKILLS"] ?? "1").toLowerCase(),
+      (process.env["NODETOOL_AGENT_AUTO_SKILLS"] ?? "1").toLowerCase()
     );
     if (!autoEnabled) return [];
 
     // Match objective words against skill description words
     const objectiveWords = new Set(
-      (this.objective.toLowerCase().match(SKILL_WORD_RE) ?? []).filter((w) => w.length >= 4),
+      (this.objective.toLowerCase().match(SKILL_WORD_RE) ?? []).filter(
+        (w) => w.length >= 4
+      )
     );
 
     const active: AgentSkill[] = [];
     for (const skill of available.values()) {
       const descWords = new Set(
-        (skill.description.toLowerCase().match(SKILL_WORD_RE) ?? []).filter((w) => w.length >= 4),
+        (skill.description.toLowerCase().match(SKILL_WORD_RE) ?? []).filter(
+          (w) => w.length >= 4
+        )
       );
       for (const w of descWords) {
         if (objectiveWords.has(w)) {
@@ -329,7 +354,7 @@ export class Agent extends BaseAgent {
     if (skills.length === 0) return null;
     const sections = [
       "# Agent Skills",
-      "Use these Skill instructions when relevant to the objective:",
+      "Use these Skill instructions when relevant to the objective:"
     ];
     for (const skill of skills) {
       sections.push(`\n## ${skill.name}\n${skill.instructions}`);
@@ -342,7 +367,9 @@ export class Agent extends BaseAgent {
    */
   private buildEffectiveObjective(skills: AgentSkill[]): string {
     if (skills.length === 0) return this.objective;
-    const summaries = skills.map((s) => `- ${s.name}: ${s.description}`).join("\n");
+    const summaries = skills
+      .map((s) => `- ${s.name}: ${s.description}`)
+      .join("\n");
     return `${this.objective}\n\nRelevant Skills:\n${summaries}`;
   }
 
@@ -356,18 +383,27 @@ export class Agent extends BaseAgent {
     return this.systemPrompt || skillPrompt || undefined;
   }
 
-  async *execute(context: ProcessingContext): AsyncGenerator<ProcessingMessage> {
-    log.info("Agent started", { name: this.name, objective: this.objective.slice(0, 80) });
+  async *execute(
+    context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage> {
+    log.info("Agent started", {
+      name: this.name,
+      objective: this.objective.slice(0, 80)
+    });
 
     // Discover and resolve skills
     const availableSkills = await this.discoverSkills();
-    const activeSkills = this.resolveActiveSkills(availableSkills, this.requestedSkills);
+    const activeSkills = this.resolveActiveSkills(
+      availableSkills,
+      this.requestedSkills
+    );
     const skillSystemPrompt = this.buildSkillSystemPrompt(activeSkills);
     const effectiveObjective = this.buildEffectiveObjective(activeSkills);
     const mergedSystemPrompt = this.mergeSystemPrompt(skillSystemPrompt);
 
     // Ensure workspace directory exists
-    const workspacePath = this.workspace ??
+    const workspacePath =
+      this.workspace ??
       path.join(os.homedir(), "nodetool_workspace", Date.now().toString());
     await fs.mkdir(workspacePath, { recursive: true });
 
@@ -381,7 +417,7 @@ export class Agent extends BaseAgent {
         node_id: "agent_planner",
         node_name: this.name,
         content: `Planning steps for objective: ${this.objective.slice(0, 100)}...`,
-        severity: "info",
+        severity: "info"
       } satisfies LogUpdate;
 
       const planner = new TaskPlanner({
@@ -391,7 +427,7 @@ export class Agent extends BaseAgent {
         tools: this.tools,
         systemPrompt: mergedSystemPrompt,
         outputSchema: this.outputSchema,
-        inputs: this.inputs,
+        inputs: this.inputs
       });
 
       const planGen = planner.plan(effectiveObjective, context);
@@ -404,24 +440,32 @@ export class Agent extends BaseAgent {
     }
 
     if (!task) {
-      log.error("Agent failed", { name: this.name, error: "TaskPlanner failed to create a task plan." });
+      log.error("Agent failed", {
+        name: this.name,
+        error: "TaskPlanner failed to create a task plan."
+      });
       throw new Error("TaskPlanner failed to create a task plan.");
     }
 
-    log.info("Planning complete", { name: this.name, steps: task.steps.length });
+    log.info("Planning complete", {
+      name: this.name,
+      steps: task.steps.length
+    });
     this.task = task;
 
     if (!this.initialTask) {
       yield {
         type: "task_update",
         event: TaskUpdateEvent.TaskCreated,
-        task: task as unknown as TaskUpdate["task"],
+        task: task as unknown as TaskUpdate["task"]
       } satisfies TaskUpdate;
     }
 
     // Apply output schema to the last step if specified
     if (this.outputSchema && task.steps.length > 0) {
-      task.steps[task.steps.length - 1].outputSchema = JSON.stringify(this.outputSchema);
+      task.steps[task.steps.length - 1].outputSchema = JSON.stringify(
+        this.outputSchema
+      );
     }
 
     log.info("Executing task", { name: this.name, title: task.title });
@@ -431,7 +475,7 @@ export class Agent extends BaseAgent {
       node_id: "agent_executor",
       node_name: this.name,
       content: `Starting execution of ${task.steps.length} steps...`,
-      severity: "info",
+      severity: "info"
     } satisfies LogUpdate;
 
     // Execute: run TaskExecutor over the planned steps
@@ -445,19 +489,21 @@ export class Agent extends BaseAgent {
       inputs: this.inputs,
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,
-      maxTokenLimit: this.maxTokenLimit,
+      maxTokenLimit: this.maxTokenLimit
     });
 
     for await (const item of executor.executeTasks()) {
       if (item.type === "step_result") {
         const stepResult = item as StepResult;
         if (stepResult.is_task_result) {
-          log.info("Setting final results", { objective: this.objective.slice(0, 50) });
+          log.info("Setting final results", {
+            objective: this.objective.slice(0, 50)
+          });
           this.results = stepResult.result;
           yield {
             type: "task_update",
             event: TaskUpdateEvent.TaskCompleted,
-            task: task as unknown as TaskUpdate["task"],
+            task: task as unknown as TaskUpdate["task"]
           } satisfies TaskUpdate;
         }
       }

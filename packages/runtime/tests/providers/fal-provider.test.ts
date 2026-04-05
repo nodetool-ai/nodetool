@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { FalProvider } from "../../src/providers/fal-provider.js";
-import type { TextToImageParams, ImageToImageParams } from "../../src/providers/types.js";
+import type {
+  TextToImageParams,
+  ImageToImageParams
+} from "../../src/providers/types.js";
 
 // Mock the @fal-ai/client module
 vi.mock("@fal-ai/client", () => ({
   createFalClient: vi.fn((_opts: { credentials: string }) => ({
-    subscribe: vi.fn(),
-  })),
+    subscribe: vi.fn()
+  }))
 }));
 
 function createProvider(apiKey = "test-key"): FalProvider {
@@ -68,21 +71,23 @@ describe("FalProvider", () => {
   it("generateMessages throws (not supported)", async () => {
     const p = createProvider();
     const gen = p.generateMessages({ messages: [], model: "test" } as any);
-    await expect(gen.next()).rejects.toThrow("fal_ai does not support chat generation");
+    await expect(gen.next()).rejects.toThrow(
+      "fal_ai does not support chat generation"
+    );
   });
 
   // --- textToImage ---
 
   it("textToImage sends correct params to client.subscribe", async () => {
     const subscribeMock = vi.fn().mockResolvedValue({
-      data: { images: [{ url: "https://fal.ai/result.png" }] },
+      data: { images: [{ url: "https://fal.ai/result.png" }] }
     });
 
     // Replace fetch for image download
     const fakePng = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      arrayBuffer: () => Promise.resolve(fakePng.buffer),
+      arrayBuffer: () => Promise.resolve(fakePng.buffer)
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -98,7 +103,7 @@ describe("FalProvider", () => {
       negativePrompt: "blurry",
       guidanceScale: 7.5,
       numInferenceSteps: 30,
-      seed: 42,
+      seed: 42
     };
 
     const result = await p.textToImage(params);
@@ -112,9 +117,9 @@ describe("FalProvider", () => {
         num_inference_steps: 30,
         image_size: { width: 1024, height: 768 },
         seed: 42,
-        output_format: "png",
+        output_format: "png"
       }),
-      logs: true,
+      logs: true
     });
 
     vi.unstubAllGlobals();
@@ -122,12 +127,15 @@ describe("FalProvider", () => {
 
   it("textToImage skips seed when -1", async () => {
     const subscribeMock = vi.fn().mockResolvedValue({
-      data: { images: [{ url: "https://fal.ai/result.png" }] },
+      data: { images: [{ url: "https://fal.ai/result.png" }] }
     });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: () => Promise.resolve(new ArrayBuffer(4)),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+      })
+    );
 
     const p = createProvider();
     (p as any)._client = { subscribe: subscribeMock };
@@ -135,7 +143,7 @@ describe("FalProvider", () => {
     await p.textToImage({
       prompt: "test",
       model: { id: "fal-ai/flux/schnell", name: "FLUX", provider: "fal_ai" },
-      seed: -1,
+      seed: -1
     });
 
     const input = subscribeMock.mock.calls[0][1].input;
@@ -148,12 +156,15 @@ describe("FalProvider", () => {
 
   it("imageToImage sends image as base64 data URI", async () => {
     const subscribeMock = vi.fn().mockResolvedValue({
-      data: { image: { url: "https://fal.ai/result.png" } },
+      data: { image: { url: "https://fal.ai/result.png" } }
     });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: () => Promise.resolve(new ArrayBuffer(4)),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+      })
+    );
 
     const p = createProvider();
     (p as any)._client = { subscribe: subscribeMock };
@@ -162,7 +173,7 @@ describe("FalProvider", () => {
     const params: ImageToImageParams = {
       prompt: "enhance",
       model: { id: "fal-ai/flux/dev", name: "FLUX", provider: "fal_ai" },
-      strength: 0.8,
+      strength: 0.8
     };
 
     await p.imageToImage(inputImage, params);
@@ -179,19 +190,22 @@ describe("FalProvider", () => {
 
   it("textToImage handles response with result.image.url format", async () => {
     const subscribeMock = vi.fn().mockResolvedValue({
-      data: { image: { url: "https://fal.ai/single.png" } },
+      data: { image: { url: "https://fal.ai/single.png" } }
     });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: () => Promise.resolve(new ArrayBuffer(4)),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+      })
+    );
 
     const p = createProvider();
     (p as any)._client = { subscribe: subscribeMock };
 
     const result = await p.textToImage({
       prompt: "test",
-      model: { id: "fal-ai/recraft-v3", name: "Recraft", provider: "fal_ai" },
+      model: { id: "fal-ai/recraft-v3", name: "Recraft", provider: "fal_ai" }
     });
     expect(result).toBeInstanceOf(Uint8Array);
 
@@ -199,7 +213,9 @@ describe("FalProvider", () => {
   });
 
   it("textToImage throws on unexpected response format", async () => {
-    const subscribeMock = vi.fn().mockResolvedValue({ data: { unexpected: true } });
+    const subscribeMock = vi
+      .fn()
+      .mockResolvedValue({ data: { unexpected: true } });
 
     const p = createProvider();
     (p as any)._client = { subscribe: subscribeMock };
@@ -207,16 +223,19 @@ describe("FalProvider", () => {
     await expect(
       p.textToImage({
         prompt: "test",
-        model: { id: "fal-ai/flux/dev", name: "FLUX", provider: "fal_ai" },
+        model: { id: "fal-ai/flux/dev", name: "FLUX", provider: "fal_ai" }
       })
     ).rejects.toThrow("Unexpected FAL response format");
   });
 
   it("textToImage throws on failed download", async () => {
     const subscribeMock = vi.fn().mockResolvedValue({
-      data: { images: [{ url: "https://fal.ai/result.png" }] },
+      data: { images: [{ url: "https://fal.ai/result.png" }] }
     });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    );
 
     const p = createProvider();
     (p as any)._client = { subscribe: subscribeMock };
@@ -224,7 +243,7 @@ describe("FalProvider", () => {
     await expect(
       p.textToImage({
         prompt: "test",
-        model: { id: "fal-ai/flux/dev", name: "FLUX", provider: "fal_ai" },
+        model: { id: "fal-ai/flux/dev", name: "FLUX", provider: "fal_ai" }
       })
     ).rejects.toThrow("Failed to download FAL result: 500");
 

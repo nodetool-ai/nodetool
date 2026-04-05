@@ -6,8 +6,8 @@ export const audioEnhanceConfig: ModuleConfig = {
       className: "AudioSuperResolution",
       returnType: "audio",
       fieldOverrides: {
-        input_file: { propType: "audio" },
-      },
-    },
-  },
+        input_file: { propType: "audio" }
+      }
+    }
+  }
 };

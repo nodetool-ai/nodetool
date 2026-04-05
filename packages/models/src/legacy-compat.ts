@@ -17,7 +17,6 @@ export interface IndexSpec {
 
 export type AdapterResolver = (schema: TableSchema) => DatabaseAdapter;
 
- 
 export type ModelClass<T extends DBModel = DBModel> = {
   new (data: Record<string, unknown>): T;
   name: string;

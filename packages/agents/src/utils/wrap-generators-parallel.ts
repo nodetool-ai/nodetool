@@ -9,7 +9,7 @@
  * Uses Promise.race to return whichever generator produces a value first.
  */
 export async function* wrapGeneratorsParallel<T>(
-  generators: AsyncGenerator<T>[],
+  generators: AsyncGenerator<T>[]
 ): AsyncGenerator<T> {
   if (generators.length === 0) return;
 
@@ -25,7 +25,7 @@ export async function* wrapGeneratorsParallel<T>(
       gen,
       index,
       done: false,
-      promise: gen.next().then((result) => ({ index, result })),
+      promise: gen.next().then((result) => ({ index, result }))
     };
     return slot;
   });
@@ -35,7 +35,7 @@ export async function* wrapGeneratorsParallel<T>(
     if (activeSlots.length === 0) break;
 
     const { index, result } = await Promise.race(
-      activeSlots.map((s) => s.promise),
+      activeSlots.map((s) => s.promise)
     );
 
     const slot = slots[index];

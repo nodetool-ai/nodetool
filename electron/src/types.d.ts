@@ -84,6 +84,9 @@ declare global {
           packageId: RuntimePackageId,
           installLocation?: string,
         ) => Promise<{ success: boolean; message: string }>;
+        uninstallRuntime: (
+          packageId: RuntimePackageId,
+        ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;
         selectInstallLocation: () => Promise<string | null>;
       };
@@ -104,7 +107,6 @@ declare global {
         ) => Promise<FileExplorerResult>;
         openModelPath: (path: string) => Promise<FileExplorerResult>;
         openExternal: (url: string) => Promise<void>;
-        checkOllamaInstalled: () => Promise<boolean>;
         getSystemInfo: () => Promise<SystemInfo>;
       };
 
@@ -156,9 +158,7 @@ declare global {
           location: string,
           packages: PythonPackages,
           modelBackend?: ModelBackend,
-          installOllama?: boolean,
           installLlamaCpp?: boolean,
-          startOllamaOnStartup?: boolean,
           startLlamaCppOnStartup?: boolean,
         ) => Promise<void>;
         onLocationPrompt: (
@@ -260,6 +260,8 @@ declare global {
         ) => Promise<AgentMessage[]>;
         stopExecution: (sessionId: string) => Promise<void>;
         closeSession: (sessionId: string) => Promise<void>;
+        listSessions: (options?: AgentListSessionsRequest) => Promise<AgentSessionInfoEntry[]>;
+        getSessionMessages: (options: AgentGetSessionMessagesRequest) => Promise<AgentTranscriptMessage[]>;
       };
     };
 
@@ -301,8 +303,6 @@ export interface SystemInfo {
   // Feature availability
   cudaAvailable: boolean;
   cudaVersion: string | null;
-  ollamaInstalled: boolean;
-  ollamaVersion: string | null;
   llamaServerInstalled: boolean;
   llamaServerVersion: string | null;
 }
@@ -555,12 +555,12 @@ export enum IpcChannels {
   // Runtime package channels
   RUNTIME_PACKAGE_STATUSES = "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL = "runtime-package-install",
+  RUNTIME_PACKAGE_UNINSTALL = "runtime-package-uninstall",
   RUNTIME_GET_INSTALL_LOCATION = "runtime-get-install-location",
   RUNTIME_SELECT_INSTALL_LOCATION = "runtime-select-install-location",
   // Log viewer channels
   GET_LOGS = "get-logs",
   CLEAR_LOGS = "clear-logs",
-  CHECK_OLLAMA_INSTALLED = "check-ollama-installed",
   // Shell module channels
   SHELL_SHOW_ITEM_IN_FOLDER = "shell-show-item-in-folder",
   SHELL_OPEN_PATH = "shell-open-path",
@@ -597,6 +597,9 @@ export enum IpcChannels {
   AGENT_SEND_MESSAGE = "agent-send-message",
   AGENT_STOP_EXECUTION = "agent-stop-execution",
   AGENT_CLOSE_SESSION = "agent-close-session",
+  AGENT_LIST_SESSIONS = "agent-list-sessions",
+  AGENT_GET_SESSION_MESSAGES = "agent-get-session-messages",
+  AGENT_START_MCP_SERVER = "agent-start-mcp-server",
   // Claude Agent SDK streaming event (sent from main to renderer)
   AGENT_STREAM_MESSAGE = "agent-stream-message",
   // Frontend tools channels
@@ -621,10 +624,7 @@ export interface InstallToLocationData {
   location: string;
   packages: PythonPackages;
   modelBackend?: ModelBackend;
-  // Deprecated: kept for backward compatibility if needed
-  installOllama?: boolean;
   installLlamaCpp?: boolean;
-  startOllamaOnStartup?: boolean;
   startLlamaCppOnStartup?: boolean;
 }
 
@@ -733,12 +733,12 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_VERSION_CHECK]: void;
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: void;
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { packageId: string; installLocation?: string };
+  [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { packageId: string };
   [IpcChannels.RUNTIME_GET_INSTALL_LOCATION]: void;
   [IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION]: void;
   // Log viewer
   [IpcChannels.GET_LOGS]: void;
   [IpcChannels.CLEAR_LOGS]: void;
-  [IpcChannels.CHECK_OLLAMA_INSTALLED]: void;
   // Shell module
   [IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER]: string; // fullPath
   [IpcChannels.SHELL_OPEN_PATH]: string; // path
@@ -786,6 +786,9 @@ export interface IpcRequest {
   [IpcChannels.AGENT_SEND_MESSAGE]: AgentSendRequest;
   [IpcChannels.AGENT_STOP_EXECUTION]: string; // sessionId
   [IpcChannels.AGENT_CLOSE_SESSION]: string; // sessionId
+  [IpcChannels.AGENT_LIST_SESSIONS]: AgentListSessionsRequest;
+  [IpcChannels.AGENT_GET_SESSION_MESSAGES]: AgentGetSessionMessagesRequest;
+  [IpcChannels.AGENT_START_MCP_SERVER]: void;
   // Frontend tools
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolsGetManifestRequest;
   [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallRequest;
@@ -800,12 +803,10 @@ export interface IpcRequest {
 export type WindowCloseAction = "ask" | "quit" | "background";
 
 export interface ModelServicesStartupSettings {
-  startOllamaOnStartup: boolean;
   startLlamaCppOnStartup: boolean;
 }
 
 export interface ModelServicesStartupSettingsUpdate {
-  startOllamaOnStartup?: boolean;
   startLlamaCppOnStartup?: boolean;
 }
 
@@ -854,12 +855,12 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_VERSION_CHECK]: PackageVersionCheckResult[];
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: RuntimePackageStatus[];
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { success: boolean; message: string };
+  [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { success: boolean; message: string };
   [IpcChannels.RUNTIME_GET_INSTALL_LOCATION]: string;
   [IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION]: string | null;
   // Log viewer
   [IpcChannels.GET_LOGS]: string[];
   [IpcChannels.CLEAR_LOGS]: void;
-  [IpcChannels.CHECK_OLLAMA_INSTALLED]: boolean;
   // Shell module
   [IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER]: void;
   [IpcChannels.SHELL_OPEN_PATH]: string; // error message or empty string
@@ -896,6 +897,9 @@ export interface IpcResponse {
   [IpcChannels.AGENT_SEND_MESSAGE]: AgentMessage[];
   [IpcChannels.AGENT_STOP_EXECUTION]: void;
   [IpcChannels.AGENT_CLOSE_SESSION]: void;
+  [IpcChannels.AGENT_LIST_SESSIONS]: AgentSessionInfoEntry[];
+  [IpcChannels.AGENT_GET_SESSION_MESSAGES]: AgentTranscriptMessage[];
+  [IpcChannels.AGENT_START_MCP_SERVER]: string; // URL
   // Frontend tools
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolManifest[];
   [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallResponse;
@@ -1020,9 +1024,7 @@ export type RuntimePackageId =
   | "lua"
   | "ffmpeg"
   | "pandoc"
-  | "yt-dlp"
-  | "ollama"
-  | "llama-cpp";
+  | "yt-dlp";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;
@@ -1038,14 +1040,29 @@ export interface AgentSessionOptions {
   model: string;
   workspacePath?: string;
   resumeSessionId?: string;
+  modelParams?: AgentModelParams;
 }
 
-export type AgentProvider = "claude" | "codex";
+export type AgentProvider = "claude" | "codex" | "opencode";
 
 export interface AgentModelDescriptor {
   id: string;
   label: string;
   isDefault?: boolean;
+  /** Provider that owns this model */
+  provider?: AgentProvider;
+  /** Supports adjustable reasoning effort (Codex) */
+  supportsReasoningEffort?: boolean;
+  /** Supports max turns setting */
+  supportsMaxTurns?: boolean;
+}
+
+/** Runtime parameters for an agent session */
+export interface AgentModelParams {
+  /** Max agentic turns before stopping */
+  maxTurns?: number;
+  /** Reasoning effort level (Codex only) */
+  reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh";
 }
 
 export interface AgentModelsRequest {
@@ -1056,6 +1073,39 @@ export interface AgentModelsRequest {
 export interface AgentSendRequest {
   sessionId: string;
   message: string;
+}
+
+export interface AgentListSessionsRequest {
+  dir?: string;
+  limit?: number;
+  offset?: number;
+  /** When set, only query this provider. Otherwise queries all providers. */
+  provider?: AgentProvider;
+}
+
+export interface AgentSessionInfoEntry {
+  sessionId: string;
+  summary: string;
+  lastModified: number;
+  cwd?: string;
+  gitBranch?: string;
+  customTitle?: string;
+  firstPrompt?: string;
+  createdAt?: number;
+  /** Which provider owns this session */
+  provider?: AgentProvider;
+}
+
+export interface AgentGetSessionMessagesRequest {
+  sessionId: string;
+  dir?: string;
+}
+
+export interface AgentTranscriptMessage {
+  type: "user" | "assistant";
+  uuid: string;
+  session_id: string;
+  text: string;
 }
 
 // Frontend tools types

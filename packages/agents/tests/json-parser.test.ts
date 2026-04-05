@@ -38,12 +38,13 @@ describe("extractJSON edge cases", () => {
   // --- Markdown code blocks ---
 
   it("extracts JSON from markdown code block with json tag", () => {
-    const text = "Here is the output:\n```json\n{\"name\": \"test\", \"value\": 42}\n```\nEnd.";
+    const text =
+      'Here is the output:\n```json\n{"name": "test", "value": 42}\n```\nEnd.';
     expect(extractJSON(text)).toEqual({ name: "test", value: 42 });
   });
 
   it("extracts JSON from markdown code block without language tag", () => {
-    const text = "Result:\n```\n{\"key\": \"val\"}\n```";
+    const text = 'Result:\n```\n{"key": "val"}\n```';
     expect(extractJSON(text)).toEqual({ key: "val" });
   });
 
@@ -84,11 +85,15 @@ describe("extractJSON edge cases", () => {
   });
 
   it("handles raw unicode characters", () => {
-    expect(extractJSON('{"text": "cafe\\u0301"}')).toEqual({ text: "cafe\u0301" });
+    expect(extractJSON('{"text": "cafe\\u0301"}')).toEqual({
+      text: "cafe\u0301"
+    });
   });
 
   it("handles unicode in keys and values", () => {
-    expect(extractJSON('{"\\u00fc": "\\u00e4"}')).toEqual({ "\u00fc": "\u00e4" });
+    expect(extractJSON('{"\\u00fc": "\\u00e4"}')).toEqual({
+      "\u00fc": "\u00e4"
+    });
   });
 
   // --- Numeric values ---
@@ -178,7 +183,7 @@ describe("extractJSON edge cases", () => {
     // The fenced block has invalid JSON; balanced braces strategy finds the valid object
     const text = 'Some text here. {"fallback": true} more text.';
     // Wrap with a fenced block that has bad JSON first
-    const textWithBadFence = '```json\n{not: valid}\n```\n' + text;
+    const textWithBadFence = "```json\n{not: valid}\n```\n" + text;
     // The balanced braces scanner will find {not: valid} first (invalid),
     // then {fallback: true} which is also inside balanced braces but the
     // scanner only tries the first balanced match per depth-0 close.
@@ -210,7 +215,7 @@ describe("extractJSON edge cases", () => {
       'Based on my analysis, here is the structured output: {"conclusion": "positive", "confidence": 0.95}';
     expect(extractJSON(text)).toEqual({
       conclusion: "positive",
-      confidence: 0.95,
+      confidence: 0.95
     });
   });
 
@@ -218,27 +223,28 @@ describe("extractJSON edge cases", () => {
 
   it("handles strings with nested braces and colons", () => {
     expect(extractJSON('{"url": "http://example.com/{id}"}')).toEqual({
-      url: "http://example.com/{id}",
+      url: "http://example.com/{id}"
     });
   });
 
   it("handles strings with backslashes", () => {
     expect(extractJSON('{"path": "C:\\\\Users\\\\test"}')).toEqual({
-      path: "C:\\Users\\test",
+      path: "C:\\Users\\test"
     });
   });
 
   // --- Mixed types in object ---
 
   it("handles object with mixed types", () => {
-    const json = '{"str": "hello", "num": 42, "bool": true, "nil": null, "arr": [1,2], "obj": {"k": "v"}}';
+    const json =
+      '{"str": "hello", "num": 42, "bool": true, "nil": null, "arr": [1,2], "obj": {"k": "v"}}';
     expect(extractJSON(json)).toEqual({
       str: "hello",
       num: 42,
       bool: true,
       nil: null,
       arr: [1, 2],
-      obj: { k: "v" },
+      obj: { k: "v" }
     });
   });
 });

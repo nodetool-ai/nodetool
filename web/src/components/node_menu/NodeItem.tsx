@@ -13,6 +13,7 @@ import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
+import { findSnippetByNodeType } from "../../config/snippetMetadata";
 
 interface NodeItemProps {
   node: NodeMetadata;
@@ -50,6 +51,7 @@ const NodeItem = memo(
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const hasRuntimeDeps =
         node.required_runtimes && node.required_runtimes.length > 0;
+      const isSnippet = !!findSnippetByNodeType(node.node_type);
       // Combine multiple store selectors into one with shallow comparison to reduce re-renders
       const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
         useShallow((state) => ({
@@ -348,6 +350,26 @@ const NodeItem = memo(
                   {node.required_runtimes!.join(", ")}
                 </Box>
               </Tooltip>
+            )}
+            {isSnippet && (
+              <Box
+                component="span"
+                sx={{
+                  fontSize: "0.55rem",
+                  fontWeight: 700,
+                  fontFamily: "monospace",
+                  letterSpacing: "0.03em",
+                  bgcolor: `color-mix(in srgb, ${theme.vars.palette.info.main} 18%, transparent)`,
+                  color: theme.vars.palette.info.main,
+                  px: 0.5,
+                  py: 0.15,
+                  borderRadius: "3px",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                JS
+              </Box>
             )}
             {showFavoriteButton && (
               <Tooltip

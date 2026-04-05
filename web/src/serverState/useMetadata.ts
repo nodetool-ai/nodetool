@@ -5,6 +5,7 @@ import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
 import { attachBundleFalUnitPricing } from "../utils/attachBundleFalUnitPricing";
+import { generateSnippetMetadata } from "../config/snippetMetadata";
 import log from "loglevel";
 
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
@@ -101,6 +102,10 @@ export const loadMetadata = async () => {
       return acc;
     }, new Map<string, UnifiedModel>()).values()
   );
+
+  // Add snippet virtual nodes to the metadata
+  const snippetMetadata = generateSnippetMetadata();
+  Object.assign(metadataByType, snippetMetadata);
 
   useMetadataStore.getState().setMetadata(metadataByType);
   useMetadataStore.getState().setRecommendedModels(uniqueRecommendedModels);

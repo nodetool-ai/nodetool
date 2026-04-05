@@ -5,7 +5,10 @@ interface ProviderRegistration {
   kwargs: Record<string, unknown>;
 }
 
-type SecretResolver = (key: string, userId: string) => Promise<string | null | undefined> | string | null | undefined;
+type SecretResolver = (
+  key: string,
+  userId: string
+) => Promise<string | null | undefined> | string | null | undefined;
 let _secretResolver: SecretResolver | null = null;
 
 const _PROVIDER_REGISTRY = new Map<string, ProviderRegistration>();
@@ -38,7 +41,10 @@ export function setSecretResolver(resolver: SecretResolver): void {
   _providerCache.clear();
 }
 
-export async function getProvider(providerId: string, userId = "1"): Promise<BaseProvider> {
+export async function getProvider(
+  providerId: string,
+  userId = "1"
+): Promise<BaseProvider> {
   const cacheKey = `${providerId}:${userId}`;
   const cached = _providerCache.get(cacheKey);
   if (cached) {
@@ -90,7 +96,11 @@ export function getProviderSecretKey(providerId: string): string | null {
   if (!reg) return null;
   // The kwargs keys are the secret names; find the first one that looks like a key/token
   for (const key of Object.keys(reg.kwargs)) {
-    if (key.includes("KEY") || key.includes("TOKEN") || key.includes("SECRET")) {
+    if (
+      key.includes("KEY") ||
+      key.includes("TOKEN") ||
+      key.includes("SECRET")
+    ) {
       return key;
     }
   }
@@ -99,7 +109,10 @@ export function getProviderSecretKey(providerId: string): string | null {
 }
 
 /** Check if a provider has credentials available for a given user (DB, env, or is local). */
-export async function isProviderConfigured(providerId: string, userId = "1"): Promise<boolean> {
+export async function isProviderConfigured(
+  providerId: string,
+  userId = "1"
+): Promise<boolean> {
   const secretKey = getProviderSecretKey(providerId);
   if (!secretKey) return true; // Local provider, always available
 

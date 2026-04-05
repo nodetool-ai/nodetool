@@ -16,9 +16,18 @@ export const NOTIFICATION_TIMEOUT_SHORT = 2000; // 2 seconds - brief success mes
 export const NOTIFICATION_TIMEOUT_MEDIUM = 4000; // 4 seconds - warnings and info messages
 export const NOTIFICATION_TIMEOUT_JOB_COMPLETED = 30000; // 30 seconds - job completion notifications
 export const NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED = 10000; // 10 seconds - workflow suspended notifications
+export const NOTIFICATION_TIMEOUT_MIN = 2000; // 2 seconds minimum
+export const NOTIFICATION_TIMEOUT_MAX = 12000; // 12 seconds maximum
+export const NOTIFICATION_READING_WPM = 200; // average reading speed in words per minute
 
 // CHAT
 export const CHAT_HISTORY_AMOUNT = 10;
+
+// LAYOUT
+export const HEADER_HEIGHT = 40; // AppHeader toolbar height in px
+export const TOOLBAR_WIDTH = 50; // Vertical toolbar width in px
+export const PANEL_MIN_WIDTH = 200; // Minimum panel width in px
+export const PANEL_RESIZE_HANDLE_WIDTH = 6; // Resize handle hit area in px
 
 // EDITOR
 export const DUPLICATE_SPACING = 50;

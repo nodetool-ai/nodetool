@@ -29,12 +29,12 @@ import type {
   PlanningUpdate,
   Chunk,
   Prediction,
-  LLMCallUpdate,
+  LLMCallUpdate
 } from "../src/messages.js";
 import {
   TaskUpdateEvent,
   sanitizeMemoryUris,
-  encodeBinaryUpdate,
+  encodeBinaryUpdate
 } from "../src/messages.js";
 
 // ---------------------------------------------------------------------------
@@ -50,7 +50,7 @@ function nodeUpdate(): NodeUpdate {
     node_id: "n1",
     node_name: "Add",
     node_type: "math.Add",
-    status: "running",
+    status: "running"
   };
 }
 function nodeProgress(): NodeProgress {
@@ -61,7 +61,7 @@ function edgeUpdate(): EdgeUpdate {
     type: "edge_update",
     workflow_id: "w1",
     edge_id: "e1",
-    status: "active",
+    status: "active"
   };
 }
 function outputUpdate(): OutputUpdate {
@@ -72,7 +72,7 @@ function outputUpdate(): OutputUpdate {
     output_name: "result",
     value: 42,
     output_type: "int",
-    metadata: {},
+    metadata: {}
   };
 }
 function previewUpdate(): PreviewUpdate {
@@ -85,7 +85,7 @@ function saveUpdate(): SaveUpdate {
     name: "file",
     value: "data",
     output_type: "str",
-    metadata: {},
+    metadata: {}
   };
 }
 function binaryUpdate(): BinaryUpdate {
@@ -93,7 +93,7 @@ function binaryUpdate(): BinaryUpdate {
     type: "binary_update",
     node_id: "n1",
     output_name: "img",
-    binary: new Uint8Array([1, 2, 3]),
+    binary: new Uint8Array([1, 2, 3])
   };
 }
 function logUpdate(): LogUpdate {
@@ -102,7 +102,7 @@ function logUpdate(): LogUpdate {
     node_id: "n1",
     node_name: "Add",
     content: "hello",
-    severity: "info",
+    severity: "info"
   };
 }
 function notification(): Notification {
@@ -110,7 +110,7 @@ function notification(): Notification {
     type: "notification",
     node_id: "n1",
     content: "done",
-    severity: "info",
+    severity: "info"
   };
 }
 function errorMsg(): ErrorMessage {
@@ -120,21 +120,21 @@ function toolCallUpdate(): ToolCallUpdate {
   return {
     type: "tool_call_update",
     name: "search",
-    args: { query: "hello" },
+    args: { query: "hello" }
   };
 }
 function toolResultUpdate(): ToolResultUpdate {
   return {
     type: "tool_result_update",
     node_id: "n1",
-    result: { answer: 42 },
+    result: { answer: 42 }
   };
 }
 function taskUpdate(): TaskUpdate {
   return {
     type: "task_update",
     task: {},
-    event: TaskUpdateEvent.TaskCreated,
+    event: TaskUpdateEvent.TaskCreated
   };
 }
 function stepResult(): StepResult {
@@ -144,7 +144,7 @@ function planningUpdate(): PlanningUpdate {
   return {
     type: "planning_update",
     phase: "init",
-    status: "started",
+    status: "started"
   };
 }
 function chunk(): Chunk {
@@ -156,7 +156,7 @@ function prediction(): Prediction {
     id: "p1",
     user_id: "u1",
     node_id: "n1",
-    status: "completed",
+    status: "completed"
   };
 }
 
@@ -169,7 +169,7 @@ function llmCallUpdate(): LLMCallUpdate {
     messages: [{ role: "user", content: "hello" }],
     response: { text: "hi" },
     duration_ms: 100,
-    timestamp: "2024-01-01T00:00:00Z",
+    timestamp: "2024-01-01T00:00:00Z"
   };
 }
 
@@ -196,7 +196,7 @@ const factories: Array<[MessageType, () => ProcessingMessage]> = [
   ["planning_update", planningUpdate],
   ["chunk", chunk],
   ["prediction", prediction],
-  ["llm_call", llmCallUpdate],
+  ["llm_call", llmCallUpdate]
 ];
 
 // ---------------------------------------------------------------------------
@@ -310,23 +310,23 @@ describe("sanitizeMemoryUris", () => {
     const input = {
       a: "memory://foo",
       b: "safe",
-      nested: { c: "memory://bar", d: "ok" },
+      nested: { c: "memory://bar", d: "ok" }
     };
     expect(sanitizeMemoryUris(input)).toEqual({
       a: "",
       b: "safe",
-      nested: { c: "", d: "ok" },
+      nested: { c: "", d: "ok" }
     });
   });
 
   it("handles mixed nesting (objects with arrays containing memory URIs)", () => {
     const input = {
       items: ["memory://x", "y"],
-      deep: { list: [{ uri: "memory://z" }, { uri: "keep" }] },
+      deep: { list: [{ uri: "memory://z" }, { uri: "keep" }] }
     };
     expect(sanitizeMemoryUris(input)).toEqual({
       items: ["", "y"],
-      deep: { list: [{ uri: "" }, { uri: "keep" }] },
+      deep: { list: [{ uri: "" }, { uri: "keep" }] }
     });
   });
 
@@ -349,7 +349,7 @@ describe("encodeBinaryUpdate", () => {
       type: "binary_update",
       node_id: "n1",
       output_name: "img",
-      binary: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
+      binary: new Uint8Array([0xde, 0xad, 0xbe, 0xef])
     };
     const encoded = encodeBinaryUpdate(update);
 
@@ -363,7 +363,7 @@ describe("encodeBinaryUpdate", () => {
     expect(header).toEqual({
       type: "binary_update",
       node_id: "n1",
-      output_name: "img",
+      output_name: "img"
     });
 
     // Binary payload after null byte should match original
@@ -376,7 +376,7 @@ describe("encodeBinaryUpdate", () => {
       type: "binary_update",
       node_id: "node-42",
       output_name: "audio_out",
-      binary: new Uint8Array([1]),
+      binary: new Uint8Array([1])
     };
     const encoded = encodeBinaryUpdate(update);
     const nullIdx = encoded.indexOf(0);
@@ -387,7 +387,7 @@ describe("encodeBinaryUpdate", () => {
     expect(Object.keys(header).sort()).toEqual([
       "node_id",
       "output_name",
-      "type",
+      "type"
     ]);
     expect(header.type).toBe("binary_update");
     expect(header.node_id).toBe("node-42");
@@ -402,7 +402,7 @@ describe("encodeBinaryUpdate", () => {
       type: "binary_update",
       node_id: "n",
       output_name: "o",
-      binary: binaryData,
+      binary: binaryData
     };
     const encoded = encodeBinaryUpdate(update);
     const nullIdx = encoded.indexOf(0);
@@ -415,7 +415,7 @@ describe("encodeBinaryUpdate", () => {
       type: "binary_update",
       node_id: "n1",
       output_name: "empty",
-      binary: new Uint8Array(0),
+      binary: new Uint8Array(0)
     };
     const encoded = encodeBinaryUpdate(update);
     const nullIdx = encoded.indexOf(0);
@@ -470,7 +470,7 @@ import type {
   ToolResultMessage,
   SystemStatsMessage,
   ResourceChangeMessage,
-  WebSocketCommandEnvelope,
+  WebSocketCommandEnvelope
 } from "../src/messages.js";
 
 describe("WebSocket control messages", () => {
@@ -488,7 +488,7 @@ describe("WebSocket control messages", () => {
   it("ClientToolManifestMessage carries tool list", () => {
     const manifest: ClientToolManifestMessage = {
       type: "client_tools_manifest",
-      tools: [{ name: "search", description: "Search the web" }],
+      tools: [{ name: "search", description: "Search the web" }]
     };
     expect(manifest.type).toBe("client_tools_manifest");
     expect(manifest.tools).toHaveLength(1);
@@ -498,7 +498,7 @@ describe("WebSocket control messages", () => {
     const result: ToolResultMessage = {
       type: "tool_result",
       tool_call_id: "tc1",
-      output: "result text",
+      output: "result text"
     };
     expect(result.type).toBe("tool_result");
     expect(result.tool_call_id).toBe("tc1");
@@ -507,7 +507,7 @@ describe("WebSocket control messages", () => {
   it("SystemStatsMessage carries stats record", () => {
     const stats: SystemStatsMessage = {
       type: "system_stats",
-      stats: { cpu: 42, memory: 80 },
+      stats: { cpu: 42, memory: 80 }
     };
     expect(stats.type).toBe("system_stats");
     expect(stats.stats.cpu).toBe(42);
@@ -519,7 +519,7 @@ describe("WebSocket control messages", () => {
         type: "resource_change",
         event,
         resource_type: "workflow",
-        resource: { id: "w1" },
+        resource: { id: "w1" }
       };
       expect(msg.event).toBe(event);
       expect(msg.resource_type).toBe("workflow");
@@ -527,9 +527,12 @@ describe("WebSocket control messages", () => {
   });
 
   it("WebSocketCommandEnvelope carries command and data", () => {
-    const envelope: WebSocketCommandEnvelope<"run_job", { workflow_id: string }> = {
+    const envelope: WebSocketCommandEnvelope<
+      "run_job",
+      { workflow_id: string }
+    > = {
       command: "run_job",
-      data: { workflow_id: "wf-1" },
+      data: { workflow_id: "wf-1" }
     };
     expect(envelope.command).toBe("run_job");
     expect(envelope.data.workflow_id).toBe("wf-1");

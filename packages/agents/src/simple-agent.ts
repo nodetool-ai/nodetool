@@ -34,20 +34,22 @@ export class SimpleAgent extends BaseAgent {
     this.maxIterations = opts.maxIterations ?? 20;
   }
 
-  async *execute(context: ProcessingContext): AsyncGenerator<ProcessingMessage> {
+  async *execute(
+    context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage> {
     const step: Step = {
       id: randomUUID(),
       instructions: this.objective,
       completed: false,
       dependsOn: [],
       outputSchema: JSON.stringify(this.outputSchema),
-      logs: [],
+      logs: []
     };
 
     const task: Task = {
       id: randomUUID(),
       title: this.objective,
-      steps: [step],
+      steps: [step]
     };
 
     this.task = task;
@@ -61,7 +63,7 @@ export class SimpleAgent extends BaseAgent {
       tools: this.tools,
       systemPrompt: this.systemPrompt || undefined,
       maxTokenLimit: this.maxTokenLimit,
-      maxIterations: this.maxIterations,
+      maxIterations: this.maxIterations
     });
 
     for await (const item of executor.execute()) {

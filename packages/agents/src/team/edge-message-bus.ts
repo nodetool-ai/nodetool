@@ -11,8 +11,11 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { createLogger } from "@nodetool/config";
 import type { ProcessingContext } from "@nodetool/runtime";
 import type { AgentMessage, IMessageBus, MessageType } from "./types.js";
+
+const log = createLogger("agents:edge-message-bus");
 
 /** Maximum number of messages retained in the history log. */
 const MAX_LOG_SIZE = 10_000;
@@ -66,7 +69,7 @@ export class EdgeMessageBus implements IMessageBus {
       body: opts.body,
       replyTo: opts.replyTo,
       taskId: opts.taskId,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     };
 
     this.log.push(msg);
@@ -158,10 +161,14 @@ export class EdgeMessageBus implements IMessageBus {
       this.context
         .sendControlEvent(nodeId, {
           __agent_message__: true,
-          message: msg,
+          message: msg
         })
-        .catch(() => {
-          // If edge delivery fails, fall back to in-memory
+        .catch((err) => {
+          // Intentional: if edge delivery fails, fall back to in-memory buffering
+          log.warn(
+            "Edge message delivery failed, falling back to in-memory buffer",
+            { agentId, error: String(err) }
+          );
           this.bufferMessage(agentId, msg);
         });
     } else {

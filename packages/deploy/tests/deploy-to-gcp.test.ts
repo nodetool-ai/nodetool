@@ -9,13 +9,13 @@ vi.mock("../src/google-cloud-run-api.js", () => ({
   ensureProjectSet: vi.fn(),
   pushToGcr: vi.fn(),
   deleteCloudRunService: vi.fn(),
-  listCloudRunServices: vi.fn(),
+  listCloudRunServices: vi.fn()
 }));
 
 // Mock docker
 vi.mock("../src/docker.js", () => ({
   buildDockerImage: vi.fn(),
-  runCommand: vi.fn(),
+  runCommand: vi.fn()
 }));
 
 import {
@@ -25,7 +25,7 @@ import {
   deployToGcp,
   deleteGcpService,
   listGcpServices,
-  printGcpDeploymentSummary,
+  printGcpDeploymentSummary
 } from "../src/deploy-to-gcp.js";
 
 import type { GCPDeployment } from "../src/deployment-config.js";
@@ -38,7 +38,7 @@ import {
   ensureProjectSet,
   pushToGcr,
   deleteCloudRunService,
-  listCloudRunServices,
+  listCloudRunServices
 } from "../src/google-cloud-run-api.js";
 
 import { buildDockerImage, runCommand } from "../src/docker.js";
@@ -65,7 +65,7 @@ function makeDeployment(overrides?: Partial<GCPDeployment>): GCPDeployment {
       registry: "",
       repository: "my-repo",
       tag: "v1",
-      build: { platform: "linux/amd64" },
+      build: { platform: "linux/amd64" }
     },
     resources: {
       cpu: "4",
@@ -73,19 +73,19 @@ function makeDeployment(overrides?: Partial<GCPDeployment>): GCPDeployment {
       min_instances: 0,
       max_instances: 3,
       concurrency: 80,
-      timeout: 3600,
+      timeout: 3600
     },
     iam: {
-      allow_unauthenticated: true,
+      allow_unauthenticated: true
     },
     workflows: [],
     state: {
       service_url: null,
       last_deployed: null,
       status: "unknown",
-      revision: null,
+      revision: null
     },
-    ...overrides,
+    ...overrides
   } as GCPDeployment;
 }
 
@@ -182,15 +182,21 @@ describe("sanitizeServiceName", () => {
 
 describe("inferRegistryFromRegion", () => {
   it("returns correct Artifact Registry URL for us-central1", () => {
-    expect(inferRegistryFromRegion("us-central1")).toBe("us-central1-docker.pkg.dev");
+    expect(inferRegistryFromRegion("us-central1")).toBe(
+      "us-central1-docker.pkg.dev"
+    );
   });
 
   it("returns correct URL for europe-west1", () => {
-    expect(inferRegistryFromRegion("europe-west1")).toBe("europe-west1-docker.pkg.dev");
+    expect(inferRegistryFromRegion("europe-west1")).toBe(
+      "europe-west1-docker.pkg.dev"
+    );
   });
 
   it("returns correct URL for asia-east1", () => {
-    expect(inferRegistryFromRegion("asia-east1")).toBe("asia-east1-docker.pkg.dev");
+    expect(inferRegistryFromRegion("asia-east1")).toBe(
+      "asia-east1-docker.pkg.dev"
+    );
   });
 });
 
@@ -214,7 +220,7 @@ describe("getGcpDefaultEnv", () => {
 
   it("uses GCS mount paths when GCS bucket is set", () => {
     const dep = makeDeployment({
-      storage: { gcs_bucket: "my-bucket", gcs_mount_path: "/mnt/gcs" },
+      storage: { gcs_bucket: "my-bucket", gcs_mount_path: "/mnt/gcs" }
     } as any);
     const env = getGcpDefaultEnv(dep);
     expect(env.HF_HOME).toBe("/mnt/gcs/.cache/huggingface");
@@ -225,7 +231,7 @@ describe("getGcpDefaultEnv", () => {
 
   it("uses default mount path when gcs_mount_path not provided", () => {
     const dep = makeDeployment({
-      storage: { gcs_bucket: "my-bucket" },
+      storage: { gcs_bucket: "my-bucket" }
     } as any);
     const env = getGcpDefaultEnv(dep);
     expect(env.HF_HOME).toBe("/mnt/gcs/.cache/huggingface");
@@ -245,8 +251,8 @@ describe("getGcpDefaultEnv", () => {
         chroma_path: "/data/chroma",
         hf_cache: "/data/hf",
         asset_bucket: "/data/assets",
-        logs_path: "/data/logs",
-      },
+        logs_path: "/data/logs"
+      }
     } as any);
     const env = getGcpDefaultEnv(dep);
     expect(env.AUTH_PROVIDER).toBe("multi_user");
@@ -266,8 +272,12 @@ describe("deployToGcp", () => {
     const dep = makeDeployment();
     mockRunCommand.mockReturnValue("Docker version 24.0.0");
     mockBuildDockerImage.mockReturnValue(false);
-    mockPushToGcr.mockResolvedValueOnce("us-central1-docker.pkg.dev/my-project/nodetool/my-repo:v1");
-    mockDeployToCloudRun.mockResolvedValueOnce({ status: { url: "https://my-svc.run.app" } });
+    mockPushToGcr.mockResolvedValueOnce(
+      "us-central1-docker.pkg.dev/my-project/nodetool/my-repo:v1"
+    );
+    mockDeployToCloudRun.mockResolvedValueOnce({
+      status: { url: "https://my-svc.run.app" }
+    });
 
     await deployToGcp({ deployment: dep });
 
@@ -380,13 +390,13 @@ describe("deployToGcp", () => {
 
     await deployToGcp({
       deployment: dep,
-      env: { NODETOOL_SERVER_MODE: "custom" },
+      env: { NODETOOL_SERVER_MODE: "custom" }
     });
 
     // The user-provided env should override the default
     expect(mockDeployToCloudRun).toHaveBeenCalledWith(
       expect.objectContaining({
-        envVars: expect.objectContaining({ NODETOOL_SERVER_MODE: "custom" }),
+        envVars: expect.objectContaining({ NODETOOL_SERVER_MODE: "custom" })
       })
     );
   });
@@ -398,7 +408,9 @@ describe("deployToGcp", () => {
     mockPushToGcr.mockResolvedValueOnce("image-url");
     mockDeployToCloudRun.mockRejectedValueOnce(new Error("quota exceeded"));
 
-    await expect(deployToGcp({ deployment: dep })).rejects.toThrow("GCP deployment failed: quota exceeded");
+    await expect(deployToGcp({ deployment: dep })).rejects.toThrow(
+      "GCP deployment failed: quota exceeded"
+    );
   });
 
   it("throws when Docker is not available", async () => {
@@ -407,7 +419,9 @@ describe("deployToGcp", () => {
       throw new Error("not found");
     });
 
-    await expect(deployToGcp({ deployment: dep })).rejects.toThrow("Docker is not installed or not running");
+    await expect(deployToGcp({ deployment: dep })).rejects.toThrow(
+      "Docker is not installed or not running"
+    );
   });
 
   it("uses service name as image name when repository is empty", async () => {
@@ -424,7 +438,7 @@ describe("deployToGcp", () => {
     // The localImageName should use sanitized service name
     expect(mockBuildDockerImage).toHaveBeenCalledWith(
       expect.objectContaining({
-        imageName: expect.stringContaining("my-svc"),
+        imageName: expect.stringContaining("my-svc")
       })
     );
   });
@@ -442,10 +456,14 @@ describe("printGcpDeploymentSummary", () => {
       gcpImageUrl: null,
       serviceName: "my-svc",
       region: "us-central1",
-      projectId: "my-project",
+      projectId: "my-project"
     });
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("my-image:v1"));
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("my-project"));
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining("my-image:v1")
+    );
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining("my-project")
+    );
   });
 
   it("prints GCP image URL when available", () => {
@@ -455,9 +473,11 @@ describe("printGcpDeploymentSummary", () => {
       gcpImageUrl: "gcr.io/my-project/my-image:v1",
       serviceName: "my-svc",
       region: "us-central1",
-      projectId: "my-project",
+      projectId: "my-project"
     });
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("gcr.io/my-project/my-image:v1"));
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining("gcr.io/my-project/my-image:v1")
+    );
   });
 
   it("prints service URL from deployment info", () => {
@@ -468,9 +488,11 @@ describe("printGcpDeploymentSummary", () => {
       serviceName: "my-svc",
       region: "us-central1",
       projectId: "my-project",
-      deploymentInfo: { status: { url: "https://my-svc.run.app" } },
+      deploymentInfo: { status: { url: "https://my-svc.run.app" } }
     });
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("https://my-svc.run.app"));
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining("https://my-svc.run.app")
+    );
   });
 
   it("prints console link from deployment info", () => {
@@ -481,7 +503,7 @@ describe("printGcpDeploymentSummary", () => {
       serviceName: "my-svc",
       region: "us-central1",
       projectId: "my-project",
-      deploymentInfo: { status: { url: "https://my-svc.run.app" } },
+      deploymentInfo: { status: { url: "https://my-svc.run.app" } }
     });
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining("console.cloud.google.com")
@@ -496,9 +518,11 @@ describe("printGcpDeploymentSummary", () => {
       serviceName: "my-svc",
       region: "us-central1",
       projectId: "my-project",
-      deploymentInfo: null,
+      deploymentInfo: null
     });
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Deployment ready for use"));
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining("Deployment ready for use")
+    );
   });
 });
 
@@ -510,7 +534,11 @@ describe("deleteGcpService", () => {
   it("authenticates, resolves project, sanitizes name, and deletes", async () => {
     mockDeleteCloudRunService.mockResolvedValueOnce(true);
 
-    const result = await deleteGcpService("My_Service", "us-central1", "my-project");
+    const result = await deleteGcpService(
+      "My_Service",
+      "us-central1",
+      "my-project"
+    );
     expect(result).toBe(true);
     expect(mockEnsureGcloudAuth).toHaveBeenCalledOnce();
     expect(mockDeleteCloudRunService).toHaveBeenCalledWith(
@@ -563,6 +591,9 @@ describe("listGcpServices", () => {
     mockListCloudRunServices.mockResolvedValueOnce([]);
 
     await listGcpServices();
-    expect(mockListCloudRunServices).toHaveBeenCalledWith("us-central1", "default-proj");
+    expect(mockListCloudRunServices).toHaveBeenCalledWith(
+      "us-central1",
+      "default-proj"
+    );
   });
 });

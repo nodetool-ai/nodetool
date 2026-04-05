@@ -25,15 +25,15 @@ export class OpenAIWebSearchTool extends Tool {
     properties: {
       query: {
         type: "string" as const,
-        description: "The search query to execute",
-      },
+        description: "The search query to execute"
+      }
     },
-    required: ["query"],
+    required: ["query"]
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const query = params["query"];
     if (typeof query !== "string" || !query) {
@@ -45,13 +45,13 @@ export class OpenAIWebSearchTool extends Tool {
       const completion = await client.chat.completions.create({
         model: "gpt-4o-search-preview",
         web_search_options: {},
-        messages: [{ role: "user", content: query }],
+        messages: [{ role: "user", content: query }]
       });
 
       return {
         query,
         results: completion.choices[0]?.message?.content ?? "",
-        status: "success",
+        status: "success"
       };
     } catch (e) {
       return { error: `Web search failed: ${String(e)}` };
@@ -67,38 +67,41 @@ export class OpenAIWebSearchTool extends Tool {
 
 export class OpenAIImageGenerationTool extends Tool {
   readonly name = "openai_image_generation";
-  readonly description = "Generate an image from a text prompt using OpenAI DALL-E";
+  readonly description =
+    "Generate an image from a text prompt using OpenAI DALL-E";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
       prompt: {
         type: "string" as const,
-        description: "A text description of the desired image.",
+        description: "A text description of the desired image."
       },
       output_file: {
         type: "string" as const,
-        description: "The path to save the generated image as a PNG file.",
-      },
+        description: "The path to save the generated image as a PNG file."
+      }
     },
-    required: ["prompt", "output_file"],
+    required: ["prompt", "output_file"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const prompt = params["prompt"];
     const outputFile = params["output_file"];
 
-    if (typeof prompt !== "string" || !prompt) return { error: "Image generation prompt is required" };
-    if (typeof outputFile !== "string" || !outputFile) return { error: "Output file is required" };
+    if (typeof prompt !== "string" || !prompt)
+      return { error: "Image generation prompt is required" };
+    if (typeof outputFile !== "string" || !outputFile)
+      return { error: "Output file is required" };
 
     try {
       const client = await getOpenAIClient();
       const response = await client.images.generate({
         model: "gpt-image-1",
         prompt,
-        n: 1,
+        n: 1
       });
 
       const imageData = response.data?.[0];
@@ -107,12 +110,21 @@ export class OpenAIImageGenerationTool extends Tool {
       const b64Image = imageData.b64_json as string | undefined;
       if (!b64Image) return { error: "No image data received from OpenAI" };
 
-      const workspace = (context as unknown as Record<string, unknown>)["workspace"] as string | undefined;
-      const filePath = workspace ? path.join(workspace, outputFile) : outputFile;
+      const workspace = (context as unknown as Record<string, unknown>)[
+        "workspace"
+      ] as string | undefined;
+      const filePath = workspace
+        ? path.join(workspace, outputFile)
+        : outputFile;
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, Buffer.from(b64Image, "base64"));
 
-      return { type: "image", prompt, output_file: outputFile, status: "success" };
+      return {
+        type: "image",
+        prompt,
+        output_file: outputFile,
+        status: "success"
+      };
     } catch (e) {
       return { error: `Image generation failed: ${String(e)}` };
     }
@@ -133,37 +145,41 @@ export class OpenAITextToSpeechTool extends Tool {
     properties: {
       input: {
         type: "string" as const,
-        description: "The text to synthesize speech from (max 4096 characters).",
+        description: "The text to synthesize speech from (max 4096 characters)."
       },
       output_file: {
         type: "string" as const,
-        description: "The path to save the generated audio as an mp3 file.",
+        description: "The path to save the generated audio as an mp3 file."
       },
       voice: {
         type: "string" as const,
-        description: "The voice to use (e.g., 'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer').",
+        description:
+          "The voice to use (e.g., 'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer')."
       },
       speed: {
         type: "number" as const,
         description: "The speed of the speech (0.25 to 4.0).",
-        default: 1.0,
-      },
+        default: 1.0
+      }
     },
-    required: ["input", "voice", "output_file"],
+    required: ["input", "voice", "output_file"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const textInput = params["input"];
     const voice = (params["voice"] as string | undefined) ?? "alloy";
     const speed = (params["speed"] as number | undefined) ?? 1.0;
     const outputFile = params["output_file"];
 
-    if (typeof textInput !== "string" || !textInput) return { error: "Input text is required" };
-    if (typeof outputFile !== "string" || !outputFile) return { error: "Output file is required" };
-    if (textInput.length > 4096) return { error: "Input text exceeds maximum length of 4096 characters" };
+    if (typeof textInput !== "string" || !textInput)
+      return { error: "Input text is required" };
+    if (typeof outputFile !== "string" || !outputFile)
+      return { error: "Output file is required" };
+    if (textInput.length > 4096)
+      return { error: "Input text exceeds maximum length of 4096 characters" };
 
     try {
       const client = await getOpenAIClient();
@@ -172,12 +188,16 @@ export class OpenAITextToSpeechTool extends Tool {
         voice,
         input: textInput,
         response_format: "mp3",
-        speed,
+        speed
       });
 
       const buffer = Buffer.from(await response.arrayBuffer());
-      const workspace = (context as unknown as Record<string, unknown>)["workspace"] as string | undefined;
-      const filePath = workspace ? path.join(workspace, outputFile) : outputFile;
+      const workspace = (context as unknown as Record<string, unknown>)[
+        "workspace"
+      ] as string | undefined;
+      const filePath = workspace
+        ? path.join(workspace, outputFile)
+        : outputFile;
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, buffer);
 
@@ -189,7 +209,7 @@ export class OpenAITextToSpeechTool extends Tool {
         format: "mp3",
         speed,
         output_file: outputFile,
-        status: "success",
+        status: "success"
       };
     } catch (e) {
       return { error: `Text-to-speech failed: ${String(e)}` };

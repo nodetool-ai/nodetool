@@ -29,7 +29,10 @@ export class MultiUserAuthProvider extends AuthProvider {
 
       const userId = payload[this.userIdClaim];
       if (typeof userId !== "string" || !userId) {
-        return { ok: false, error: `Missing user ID claim: ${this.userIdClaim}` };
+        return {
+          ok: false,
+          error: `Missing user ID claim: ${this.userIdClaim}`
+        };
       }
 
       const role = typeof payload.role === "string" ? payload.role : undefined;
@@ -38,7 +41,7 @@ export class MultiUserAuthProvider extends AuthProvider {
         ok: true,
         userId,
         tokenType: TokenType.USER,
-        role,
+        role
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

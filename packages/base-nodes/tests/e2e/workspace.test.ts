@@ -27,10 +27,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("write", "nodetool.workspace.WriteTextFile", {
             name: "out",
-            properties: { path: "hello.txt", content: "Hello E2E!" },
-          }),
+            properties: { path: "hello.txt", content: "Hello E2E!" }
+          })
         ],
-        edges: [de("ws", "output", "write", "workspace_dir")],
+        edges: [de("ws", "output", "write", "workspace_dir")]
       }
     );
     expect(writeResult.status).toBe("completed");
@@ -45,10 +45,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("read", "nodetool.workspace.ReadTextFile", {
             name: "out",
-            properties: { path: "hello.txt" },
-          }),
+            properties: { path: "hello.txt" }
+          })
         ],
-        edges: [de("ws", "output", "read", "workspace_dir")],
+        edges: [de("ws", "output", "read", "workspace_dir")]
       }
     );
     expect(readResult.status).toBe("completed");
@@ -64,10 +64,10 @@ describe("workspace e2e", () => {
         nodes: [
           inp("ws", "ws"),
           nd("write", "nodetool.workspace.WriteTextFile", {
-            properties: { path: "exists.txt", content: "data" },
-          }),
+            properties: { path: "exists.txt", content: "data" }
+          })
         ],
-        edges: [de("ws", "output", "write", "workspace_dir")],
+        edges: [de("ws", "output", "write", "workspace_dir")]
       }
     );
 
@@ -80,10 +80,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("check", "nodetool.workspace.WorkspaceFileExists", {
             name: "out",
-            properties: { path: "exists.txt" },
-          }),
+            properties: { path: "exists.txt" }
+          })
         ],
-        edges: [de("ws", "output", "check", "workspace_dir")],
+        edges: [de("ws", "output", "check", "workspace_dir")]
       }
     );
     expect(existsResult.status).toBe("completed");
@@ -98,10 +98,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("check", "nodetool.workspace.WorkspaceFileExists", {
             name: "out",
-            properties: { path: "nope.txt" },
-          }),
+            properties: { path: "nope.txt" }
+          })
         ],
-        edges: [de("ws", "output", "check", "workspace_dir")],
+        edges: [de("ws", "output", "check", "workspace_dir")]
       }
     );
     expect(missingResult.status).toBe("completed");
@@ -117,10 +117,10 @@ describe("workspace e2e", () => {
         nodes: [
           inp("ws", "ws"),
           nd("write", "nodetool.workspace.WriteTextFile", {
-            properties: { path: "doomed.txt", content: "bye" },
-          }),
+            properties: { path: "doomed.txt", content: "bye" }
+          })
         ],
-        edges: [de("ws", "output", "write", "workspace_dir")],
+        edges: [de("ws", "output", "write", "workspace_dir")]
       }
     );
 
@@ -133,10 +133,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("del", "nodetool.workspace.DeleteWorkspaceFile", {
             name: "out",
-            properties: { path: "doomed.txt" },
-          }),
+            properties: { path: "doomed.txt" }
+          })
         ],
-        edges: [de("ws", "output", "del", "workspace_dir")],
+        edges: [de("ws", "output", "del", "workspace_dir")]
       }
     );
     expect(delResult.status).toBe("completed");
@@ -150,10 +150,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("read", "nodetool.workspace.ReadTextFile", {
             name: "out",
-            properties: { path: "doomed.txt" },
-          }),
+            properties: { path: "doomed.txt" }
+          })
         ],
-        edges: [de("ws", "output", "read", "workspace_dir")],
+        edges: [de("ws", "output", "read", "workspace_dir")]
       }
     );
     // Node errors are caught by the actor; overall run still "completes"
@@ -170,10 +170,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("mkdir", "nodetool.workspace.CreateWorkspaceDirectory", {
             name: "out",
-            properties: { path: "subdir" },
-          }),
+            properties: { path: "subdir" }
+          })
         ],
-        edges: [de("ws", "output", "mkdir", "workspace_dir")],
+        edges: [de("ws", "output", "mkdir", "workspace_dir")]
       }
     );
     expect(mkdirResult.status).toBe("completed");
@@ -188,10 +188,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("check", "nodetool.workspace.WorkspaceFileExists", {
             name: "out",
-            properties: { path: "subdir" },
-          }),
+            properties: { path: "subdir" }
+          })
         ],
-        edges: [de("ws", "output", "check", "workspace_dir")],
+        edges: [de("ws", "output", "check", "workspace_dir")]
       }
     );
     expect(existsResult.status).toBe("completed");
@@ -207,10 +207,10 @@ describe("workspace e2e", () => {
         nodes: [
           inp("ws", "ws"),
           nd("write", "nodetool.workspace.WriteTextFile", {
-            properties: { path: "info.txt", content: "some content here" },
-          }),
+            properties: { path: "info.txt", content: "some content here" }
+          })
         ],
-        edges: [de("ws", "output", "write", "workspace_dir")],
+        edges: [de("ws", "output", "write", "workspace_dir")]
       }
     );
 
@@ -223,10 +223,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("info", "nodetool.workspace.GetWorkspaceFileInfo", {
             name: "out",
-            properties: { path: "info.txt" },
-          }),
+            properties: { path: "info.txt" }
+          })
         ],
-        edges: [de("ws", "output", "info", "workspace_dir")],
+        edges: [de("ws", "output", "info", "workspace_dir")]
       }
     );
     expect(infoResult.status).toBe("completed");
@@ -244,9 +244,9 @@ describe("workspace e2e", () => {
       {
         nodes: [
           inp("ws", "ws"),
-          nd("dir", "nodetool.workspace.GetWorkspaceDir", { name: "out" }),
+          nd("dir", "nodetool.workspace.GetWorkspaceDir", { name: "out" })
         ],
-        edges: [de("ws", "output", "dir", "workspace_dir")],
+        edges: [de("ws", "output", "dir", "workspace_dir")]
       }
     );
     expect(result.status).toBe("completed");
@@ -261,10 +261,10 @@ describe("workspace e2e", () => {
         nodes: [
           inp("ws", "ws"),
           nd("write", "nodetool.workspace.WriteTextFile", {
-            properties: { path: "append.txt", content: "first" },
-          }),
+            properties: { path: "append.txt", content: "first" }
+          })
         ],
-        edges: [de("ws", "output", "write", "workspace_dir")],
+        edges: [de("ws", "output", "write", "workspace_dir")]
       }
     );
 
@@ -276,10 +276,10 @@ describe("workspace e2e", () => {
         nodes: [
           inp("ws", "ws"),
           nd("write", "nodetool.workspace.WriteTextFile", {
-            properties: { path: "append.txt", content: " second", append: true },
-          }),
+            properties: { path: "append.txt", content: " second", append: true }
+          })
         ],
-        edges: [de("ws", "output", "write", "workspace_dir")],
+        edges: [de("ws", "output", "write", "workspace_dir")]
       }
     );
 
@@ -292,10 +292,10 @@ describe("workspace e2e", () => {
           inp("ws", "ws"),
           nd("read", "nodetool.workspace.ReadTextFile", {
             name: "out",
-            properties: { path: "append.txt" },
-          }),
+            properties: { path: "append.txt" }
+          })
         ],
-        edges: [de("ws", "output", "read", "workspace_dir")],
+        edges: [de("ws", "output", "read", "workspace_dir")]
       }
     );
     expect(readResult.status).toBe("completed");

@@ -4,8 +4,8 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     server: {
       deps: {
-        external: ["better-sqlite3", "sqlite-vec"],
-      },
-    },
-  },
+        external: ["better-sqlite3", "sqlite-vec"]
+      }
+    }
+  }
 });

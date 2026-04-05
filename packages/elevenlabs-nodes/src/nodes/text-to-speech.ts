@@ -1,6 +1,10 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
-import { getElevenLabsApiKey, VOICE_ID_MAP, VOICE_NAMES } from "../elevenlabs-base.js";
+import {
+  getElevenLabsApiKey,
+  VOICE_ID_MAP,
+  VOICE_NAMES
+} from "../elevenlabs-base.js";
 
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "elevenlabs.TextToSpeech";
@@ -21,7 +25,7 @@ export class TextToSpeechNode extends BaseNode {
     default: "Aria",
     title: "Voice",
     description: "Voice to use for generation.",
-    values: VOICE_NAMES,
+    values: VOICE_NAMES
   })
   declare voice: any;
 
@@ -29,7 +33,7 @@ export class TextToSpeechNode extends BaseNode {
     type: "str",
     default: "Hello, how are you?",
     title: "Text",
-    description: "The text to convert to speech.",
+    description: "The text to convert to speech."
   })
   declare text: any;
 
@@ -47,8 +51,8 @@ export class TextToSpeechNode extends BaseNode {
       "eleven_multilingual_sts_v2",
       "eleven_english_sts_v2",
       "eleven_monolingual_v1",
-      "eleven_multilingual_v1",
-    ],
+      "eleven_multilingual_v1"
+    ]
   })
   declare model_id: any;
 
@@ -58,10 +62,40 @@ export class TextToSpeechNode extends BaseNode {
     title: "Language",
     description: "Language code to enforce (works with Turbo v2.5+).",
     values: [
-      "none", "en", "ja", "zh", "de", "hi", "fr", "ko", "pt", "it", "es",
-      "ru", "id", "nl", "tr", "fil", "pl", "sv", "bg", "ro", "ar", "cs",
-      "el", "fi", "hr", "ms", "sk", "da", "ta", "uk", "vi", "no", "hu",
-    ],
+      "none",
+      "en",
+      "ja",
+      "zh",
+      "de",
+      "hi",
+      "fr",
+      "ko",
+      "pt",
+      "it",
+      "es",
+      "ru",
+      "id",
+      "nl",
+      "tr",
+      "fil",
+      "pl",
+      "sv",
+      "bg",
+      "ro",
+      "ar",
+      "cs",
+      "el",
+      "fi",
+      "hr",
+      "ms",
+      "sk",
+      "da",
+      "ta",
+      "uk",
+      "vi",
+      "no",
+      "hu"
+    ]
   })
   declare language_code: any;
 
@@ -71,7 +105,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Stability",
     description: "Voice stability (0-1). Higher = more consistent.",
     min: 0.0,
-    max: 1.0,
+    max: 1.0
   })
   declare stability: any;
 
@@ -81,7 +115,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Similarity Boost",
     description: "Similarity to original voice (0-1).",
     min: 0.0,
-    max: 1.0,
+    max: 1.0
   })
   declare similarity_boost: any;
 
@@ -91,7 +125,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Style",
     description: "Speaking style emphasis (0-1).",
     min: 0.0,
-    max: 1.0,
+    max: 1.0
   })
   declare style: any;
 
@@ -99,7 +133,7 @@ export class TextToSpeechNode extends BaseNode {
     type: "bool",
     default: false,
     title: "Speaker Boost",
-    description: "Use speaker boost for clearer output.",
+    description: "Use speaker boost for clearer output."
   })
   declare use_speaker_boost: any;
 
@@ -109,7 +143,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Seed",
     description: "Seed for deterministic generation (-1 = random).",
     min: -1,
-    max: 4294967295,
+    max: 4294967295
   })
   declare seed: any;
 
@@ -120,7 +154,7 @@ export class TextToSpeechNode extends BaseNode {
     description:
       "Latency optimization level (0-4). Higher values trade quality for speed.",
     min: 0,
-    max: 4,
+    max: 4
   })
   declare optimize_streaming_latency: any;
 
@@ -129,7 +163,7 @@ export class TextToSpeechNode extends BaseNode {
     default: "auto",
     title: "Text Normalization",
     description: "Controls text normalization behavior.",
-    values: ["auto", "on", "off"],
+    values: ["auto", "on", "off"]
   })
   declare text_normalization: any;
 
@@ -159,9 +193,7 @@ export class TextToSpeechNode extends BaseNode {
     );
     const seed = Number(this.seed ?? this.seed ?? -1);
     const optimizeStreamingLatency = Number(
-      this.optimize_streaming_latency ??
-        this.optimize_streaming_latency ??
-        2
+      this.optimize_streaming_latency ?? this.optimize_streaming_latency ?? 2
     );
     const textNormalization = String(
       this.text_normalization ?? this.text_normalization ?? "auto"
@@ -171,7 +203,7 @@ export class TextToSpeechNode extends BaseNode {
     const payload: Record<string, unknown> = {
       text,
       model_id: modelId,
-      optimize_streaming_latency: optimizeStreamingLatency,
+      optimize_streaming_latency: optimizeStreamingLatency
     };
 
     if (languageCode !== "none") {
@@ -208,9 +240,9 @@ export class TextToSpeechNode extends BaseNode {
       method: "POST",
       headers: {
         "xi-api-key": apiKey,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
@@ -224,8 +256,8 @@ export class TextToSpeechNode extends BaseNode {
     return {
       output: {
         type: "audio",
-        data: `data:audio/mpeg;base64,${base64}`,
-      },
+        data: `data:audio/mpeg;base64,${base64}`
+      }
     };
   }
 }

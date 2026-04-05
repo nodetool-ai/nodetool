@@ -25,7 +25,9 @@ export function countTextTokens(text: string | null | undefined): number {
 /**
  * Count tokens consumed by an array of tool calls.
  */
-function countToolCallsTokens(toolCalls: ToolCall[] | null | undefined): number {
+function countToolCallsTokens(
+  toolCalls: ToolCall[] | null | undefined
+): number {
   if (!toolCalls) return 0;
   let count = 0;
   for (const tc of toolCalls) {

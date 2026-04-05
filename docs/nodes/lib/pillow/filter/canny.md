@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Canny"
-node_type: "lib.pillow.filter.Canny"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.Canny"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.Canny`
+**Type:** `lib.image.filter.Canny`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -36,5 +36,5 @@ Apply Canny edge detection to an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

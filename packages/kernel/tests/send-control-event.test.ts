@@ -13,14 +13,14 @@ describe("T-K-11: sendControlEvent", () => {
         id: "ctrl",
         type: "test.Controller",
         is_streaming_output: true,
-        outputs: { __control__: "control" },
+        outputs: { __control__: "control" }
       },
       {
         id: "worker",
         type: "test.Worker",
         is_controlled: true,
-        outputs: { result: "int" },
-      },
+        outputs: { result: "int" }
+      }
     ];
     const edges: Edge[] = [
       {
@@ -29,8 +29,8 @@ describe("T-K-11: sendControlEvent", () => {
         sourceHandle: "__control__",
         target: "worker",
         targetHandle: "__control__",
-        edge_type: "control",
-      },
+        edge_type: "control"
+      }
     ];
     return { nodes, edges };
   }
@@ -40,7 +40,9 @@ describe("T-K-11: sendControlEvent", () => {
 
     let resolveCtrl!: () => void;
     const cancelledRef = { cancelled: false };
-    const ctrlStarted = new Promise<void>((r) => { resolveCtrl = r; });
+    const ctrlStarted = new Promise<void>((r) => {
+      resolveCtrl = r;
+    });
 
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: (node) => {
@@ -49,7 +51,9 @@ describe("T-K-11: sendControlEvent", () => {
             async *genProcess() {
               resolveCtrl();
               // Yield initial event
-              yield { __control__: { event_type: "run", properties: { x: 1 } } };
+              yield {
+                __control__: { event_type: "run", properties: { x: 1 } }
+              };
               // Wait until test signals done (poll, don't block)
               while (!cancelledRef.cancelled) {
                 await new Promise((r) => setTimeout(r, 10));
@@ -57,16 +61,16 @@ describe("T-K-11: sendControlEvent", () => {
               // Send stop event
               yield { __control__: { event_type: "stop" } };
             },
-            process: async () => ({}),
+            process: async () => ({})
           } as unknown as NodeExecutor;
         }
         return {
           process: async (inputs) => {
             const x = (inputs.x as number) ?? 0;
             return { result: x * 2 };
-          },
+          }
         };
-      },
+      }
     });
 
     const runPromise = runner.run({ job_id: "job1" }, { nodes, edges });
@@ -87,11 +91,13 @@ describe("T-K-11: sendControlEvent", () => {
   it("rejects if target node inbox not found", async () => {
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: () => ({
-        process: async () => ({ output: 1 }),
-      }),
+        process: async () => ({ output: 1 })
+      })
     });
 
-    await expect(runner.sendControlEvent("nonexistent", { x: 1 })).rejects.toThrow();
+    await expect(
+      runner.sendControlEvent("nonexistent", { x: 1 })
+    ).rejects.toThrow();
   });
 
   it("multiple control events resolve independently", async () => {
@@ -99,7 +105,9 @@ describe("T-K-11: sendControlEvent", () => {
 
     let resolveCtrl!: () => void;
     const cancelledRef = { cancelled: false };
-    const ctrlStarted = new Promise<void>((r) => { resolveCtrl = r; });
+    const ctrlStarted = new Promise<void>((r) => {
+      resolveCtrl = r;
+    });
 
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: (node) => {
@@ -107,22 +115,24 @@ describe("T-K-11: sendControlEvent", () => {
           return {
             async *genProcess() {
               resolveCtrl();
-              yield { __control__: { event_type: "run", properties: { x: 0 } } };
+              yield {
+                __control__: { event_type: "run", properties: { x: 0 } }
+              };
               while (!cancelledRef.cancelled) {
                 await new Promise((r) => setTimeout(r, 10));
               }
               yield { __control__: { event_type: "stop" } };
             },
-            process: async () => ({}),
+            process: async () => ({})
           } as unknown as NodeExecutor;
         }
         return {
           process: async (inputs) => {
             const x = (inputs.x as number) ?? 0;
             return { result: x + 1 };
-          },
+          }
         };
-      },
+      }
     });
 
     const runPromise = runner.run({ job_id: "job1" }, { nodes, edges });

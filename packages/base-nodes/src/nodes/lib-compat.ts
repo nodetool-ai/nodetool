@@ -69,7 +69,10 @@ except Exception as exc:
     sys.stdout.write(json.dumps({"ok": False, "error": str(exc), "type": type(exc).__name__}))
 `;
 
-async function runPythonBridge(nodeType: string, props: Record<string, unknown>): Promise<unknown> {
+async function runPythonBridge(
+  nodeType: string,
+  props: Record<string, unknown>
+): Promise<unknown> {
   const candidates = [
     process.env.NODETOOL_BASE_SRC,
     process.env.NODETOOL_LIB_AUDIO_SRC,
@@ -80,44 +83,64 @@ async function runPythonBridge(nodeType: string, props: Record<string, unknown>)
     resolve(process.cwd(), "../../nodetool-lib-audio/src"),
     resolve(process.cwd(), "../../../nodetool-lib-audio/src"),
     "/Users/mg/workspace/nodetool-base/src",
-    "/Users/mg/workspace/nodetool-lib-audio/src",
+    "/Users/mg/workspace/nodetool-lib-audio/src"
   ].filter((p): p is string => Boolean(p));
 
-  const pythonPaths = candidates.filter((p, i, arr) => arr.indexOf(p) === i && existsSync(p));
+  const pythonPaths = candidates.filter(
+    (p, i, arr) => arr.indexOf(p) === i && existsSync(p)
+  );
 
   return await new Promise((resolvePromise, rejectPromise) => {
     const child = spawn("python3", ["-c", PYTHON_BRIDGE_SCRIPT], {
       stdio: "pipe",
       env: {
         ...process.env,
-        PYTHONUNBUFFERED: "1",
-      },
+        PYTHONUNBUFFERED: "1"
+      }
     });
 
     let stdout = "";
     let stderr = "";
 
-    child.stdout.on("data", (d) => { stdout += String(d); });
-    child.stderr.on("data", (d) => { stderr += String(d); });
+    child.stdout.on("data", (d) => {
+      stdout += String(d);
+    });
+    child.stderr.on("data", (d) => {
+      stderr += String(d);
+    });
     child.on("error", (err) => rejectPromise(err));
     child.on("close", (code) => {
       if (code !== 0) {
-        rejectPromise(new Error(`Python bridge failed for ${nodeType} (exit ${code}): ${stderr || stdout}`));
+        rejectPromise(
+          new Error(
+            `Python bridge failed for ${nodeType} (exit ${code}): ${stderr || stdout}`
+          )
+        );
         return;
       }
       try {
         const parsed = JSON.parse(stdout || "{}");
         if (!parsed.ok) {
-          rejectPromise(new Error(`Python node ${nodeType} failed: ${String(parsed.error ?? "unknown error")}`));
+          rejectPromise(
+            new Error(
+              `Python node ${nodeType} failed: ${String(parsed.error ?? "unknown error")}`
+            )
+          );
           return;
         }
         resolvePromise(parsed.result);
       } catch (error) {
-        rejectPromise(new Error(`Invalid Python bridge response for ${nodeType}: ${String(error)} :: ${stdout || stderr}`));
+        rejectPromise(
+          new Error(
+            `Invalid Python bridge response for ${nodeType}: ${String(error)} :: ${stdout || stderr}`
+          )
+        );
       }
     });
 
-    child.stdin.write(JSON.stringify({ node_type: nodeType, props, python_paths: pythonPaths }));
+    child.stdin.write(
+      JSON.stringify({ node_type: nodeType, props, python_paths: pythonPaths })
+    );
     child.stdin.end();
   });
 }
@@ -145,6 +168,5 @@ function createLibCompatNode(descriptor: LibCompatDescriptor): NodeClass {
 
 const LIB_COMPAT_DESCRIPTORS: readonly LibCompatDescriptor[] = [];
 
-export const LIB_COMPAT_PY_NODES: readonly NodeClass[] = LIB_COMPAT_DESCRIPTORS.map((d) =>
-  createLibCompatNode(d)
-);
+export const LIB_COMPAT_PY_NODES: readonly NodeClass[] =
+  LIB_COMPAT_DESCRIPTORS.map((d) => createLibCompatNode(d));

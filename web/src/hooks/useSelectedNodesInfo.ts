@@ -76,7 +76,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
   // Subscribe selectively to only the results/errors for selected nodes
   // to avoid re-renders when other nodes' results change
   const results = useResultsStore((state) => {
-    const relevantResults: Record<string, any> = {};
+    const relevantResults: Record<string, unknown> = {};
     for (const node of selectedNodes) {
       const result = state.results[node.id];
       if (result !== undefined) {
@@ -86,7 +86,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
     return relevantResults;
   });
   const errors = useErrorStore((state) => {
-    const relevantErrors: Record<string, any> = {};
+    const relevantErrors: Record<string, Error | string | null | Record<string, unknown>> = {};
     for (const node of selectedNodes) {
       const errorKey = currentWorkflowId ? `${currentWorkflowId}:${node.id}` : "";
       if (errorKey && state.errors[errorKey] !== undefined) {

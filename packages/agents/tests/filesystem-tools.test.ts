@@ -4,7 +4,7 @@ import {
   rmSync,
   readFileSync,
   writeFileSync,
-  mkdirSync,
+  mkdirSync
 } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -15,7 +15,7 @@ import {
   registerTool,
   resolveTool,
   listTools,
-  getAllTools,
+  getAllTools
 } from "../src/tools/tool-registry.js";
 import type { ProcessingContext } from "@nodetool/runtime";
 
@@ -27,11 +27,11 @@ function makeMockContext(workspaceDir: string): ProcessingContext {
       const resolved = resolve(join(workspaceDir, path));
       if (!resolved.startsWith(resolve(workspaceDir))) {
         throw new Error(
-          `Resolved path '${resolved}' is outside the workspace directory.`,
+          `Resolved path '${resolved}' is outside the workspace directory.`
         );
       }
       return resolved;
-    },
+    }
   } as unknown as ProcessingContext;
 }
 
@@ -66,7 +66,7 @@ describe("ReadFileTool", () => {
     writeFileSync(join(tempDir, "hello.txt"), "hello world", "utf-8");
 
     const result = (await tool.process(mockContext, {
-      path: "hello.txt",
+      path: "hello.txt"
     })) as any;
     expect(result.success).toBe(true);
     expect(result.content).toBe("hello world");
@@ -92,13 +92,13 @@ describe("ReadFileTool", () => {
     writeFileSync(
       join(tempDir, "lines.txt"),
       "line1\nline2\nline3\nline4\nline5",
-      "utf-8",
+      "utf-8"
     );
 
     const result = (await tool.process(mockContext, {
       path: "lines.txt",
       start_line: 2,
-      end_line: 4,
+      end_line: 4
     })) as any;
     expect(result.success).toBe(true);
     expect(result.content).toBe("line2\nline3\nline4");
@@ -112,7 +112,7 @@ describe("ReadFileTool", () => {
 
     const result = (await tool.process(mockContext, {
       path: "lines_end.txt",
-      end_line: 3,
+      end_line: 3
     })) as any;
     expect(result.success).toBe(true);
     expect(result.content).toBe("a\nb\nc");
@@ -123,7 +123,7 @@ describe("ReadFileTool", () => {
 
     const result = (await tool.process(mockContext, {
       path: "lines2.txt",
-      start_line: 3,
+      start_line: 3
     })) as any;
     expect(result.success).toBe(true);
     expect(result.content).toBe("c\nd");
@@ -140,7 +140,7 @@ describe("ReadFileTool", () => {
     writeFileSync(join(tempDir, "big.txt"), bigContent, "utf-8");
 
     const result = (await tool.process(mockContext, {
-      path: "big.txt",
+      path: "big.txt"
     })) as any;
     expect(result.success).toBe(false);
     expect(result.error).toContain("Token count");
@@ -156,7 +156,7 @@ describe("ReadFileTool", () => {
     writeFileSync(join(tempDir, "image.png"), binaryBuf);
 
     const result = (await tool.process(mockContext, {
-      path: "image.png",
+      path: "image.png"
     })) as any;
     expect(result.success).toBe(false);
     expect(result.is_binary).toBe(true);
@@ -165,7 +165,7 @@ describe("ReadFileTool", () => {
 
   it("returns error when path is not a string", async () => {
     const result = (await tool.process(mockContext, {
-      path: 123,
+      path: 123
     })) as Record<string, unknown>;
     expect(result).toHaveProperty("error");
     expect(result.error).toBe("path must be a string");
@@ -173,7 +173,7 @@ describe("ReadFileTool", () => {
 
   it("returns error message for non-existent file", async () => {
     const result = (await tool.process(mockContext, {
-      path: "does-not-exist.txt",
+      path: "does-not-exist.txt"
     })) as Record<string, unknown>;
     expect(result.success).toBe(false);
     expect(result.error).toContain("does not exist");
@@ -185,7 +185,7 @@ describe("ReadFileTool", () => {
     const result = (await tool.process(mockContext, {
       path: "small.txt",
       start_line: 10,
-      end_line: 20,
+      end_line: 20
     })) as any;
     expect(result.success).toBe(false);
     expect(result.error).toContain("Invalid line range");
@@ -194,7 +194,7 @@ describe("ReadFileTool", () => {
 
   it("prevents path traversal outside workspace", async () => {
     const result = (await tool.process(mockContext, {
-      path: "../../etc/passwd",
+      path: "../../etc/passwd"
     })) as any;
     expect(result.success).toBe(false);
     expect(result.error).toContain("outside the workspace");
@@ -214,20 +214,20 @@ describe("WriteFileTool", () => {
     expect(pt.name).toBe("write_file");
     expect(pt.inputSchema).toBeDefined();
     expect((pt.inputSchema as any).required).toEqual(
-      expect.arrayContaining(["path", "content"]),
+      expect.arrayContaining(["path", "content"])
     );
   });
 
   it("writes content to a new file and reports created=true", async () => {
     const result = (await tool.process(mockContext, {
       path: "new-file.txt",
-      content: "new content",
+      content: "new content"
     })) as any;
     expect(result.success).toBe(true);
     expect(result.created).toBe(true);
     expect(result.append).toBe(false);
     expect(readFileSync(join(tempDir, "new-file.txt"), "utf-8")).toBe(
-      "new content",
+      "new content"
     );
   });
 
@@ -236,11 +236,13 @@ describe("WriteFileTool", () => {
 
     const result = (await tool.process(mockContext, {
       path: "existing.txt",
-      content: "updated",
+      content: "updated"
     })) as any;
     expect(result.success).toBe(true);
     expect(result.created).toBe(false);
-    expect(readFileSync(join(tempDir, "existing.txt"), "utf-8")).toBe("updated");
+    expect(readFileSync(join(tempDir, "existing.txt"), "utf-8")).toBe(
+      "updated"
+    );
   });
 
   it("appends content when append=true", async () => {
@@ -249,13 +251,13 @@ describe("WriteFileTool", () => {
     const result = (await tool.process(mockContext, {
       path: "appendable.txt",
       content: " world",
-      append: true,
+      append: true
     })) as any;
     expect(result.success).toBe(true);
     expect(result.append).toBe(true);
     expect(result.created).toBe(false);
     expect(readFileSync(join(tempDir, "appendable.txt"), "utf-8")).toBe(
-      "hello world",
+      "hello world"
     );
   });
 
@@ -263,19 +265,19 @@ describe("WriteFileTool", () => {
     const result = (await tool.process(mockContext, {
       path: "new-append.txt",
       content: "first line",
-      append: true,
+      append: true
     })) as any;
     expect(result.success).toBe(true);
     expect(result.created).toBe(true);
     expect(result.append).toBe(true);
     expect(readFileSync(join(tempDir, "new-append.txt"), "utf-8")).toBe(
-      "first line",
+      "first line"
     );
   });
 
   it("userMessage reflects append mode", () => {
     expect(tool.userMessage({ path: "f.txt", append: true })).toContain(
-      "Appending to",
+      "Appending to"
     );
     expect(tool.userMessage({ path: "f.txt" })).toContain("Writing to");
   });
@@ -283,7 +285,7 @@ describe("WriteFileTool", () => {
   it("returns error when path is not a string", async () => {
     const result = (await tool.process(mockContext, {
       path: 42,
-      content: "test",
+      content: "test"
     })) as Record<string, unknown>;
     expect(result).toHaveProperty("error");
     expect(result.error).toBe("path must be a string");
@@ -292,7 +294,7 @@ describe("WriteFileTool", () => {
   it("returns error when content is not a string", async () => {
     const result = (await tool.process(mockContext, {
       path: "test.txt",
-      content: 123,
+      content: 123
     })) as Record<string, unknown>;
     expect(result).toHaveProperty("error");
     expect(result.error).toBe("content must be a string");
@@ -301,18 +303,18 @@ describe("WriteFileTool", () => {
   it("creates parent directories if needed", async () => {
     const result = (await tool.process(mockContext, {
       path: "a/b/c/deep.txt",
-      content: "deep file",
+      content: "deep file"
     })) as any;
     expect(result.success).toBe(true);
-    expect(readFileSync(join(tempDir, "a", "b", "c", "deep.txt"), "utf-8")).toBe(
-      "deep file",
-    );
+    expect(
+      readFileSync(join(tempDir, "a", "b", "c", "deep.txt"), "utf-8")
+    ).toBe("deep file");
   });
 
   it("prevents path traversal outside workspace", async () => {
     const result = (await tool.process(mockContext, {
       path: "../../etc/evil",
-      content: "bad",
+      content: "bad"
     })) as any;
     expect(result.success).toBe(false);
     expect(result.error).toContain("outside the workspace");
@@ -340,7 +342,7 @@ describe("ListDirectoryTool", () => {
     mkdirSync(join(tempDir, "subdir"));
 
     const result = (await tool.process(mockContext, {
-      path: ".",
+      path: "."
     })) as { entries: Array<{ name: string; isDirectory: boolean }> };
 
     expect(result.entries).toBeDefined();
@@ -356,7 +358,7 @@ describe("ListDirectoryTool", () => {
 
   it("returns error when path is not a string", async () => {
     const result = (await tool.process(mockContext, {
-      path: 42,
+      path: 42
     })) as Record<string, unknown>;
     expect(result).toHaveProperty("error");
     expect(result.error).toBe("path must be a string");
@@ -364,7 +366,7 @@ describe("ListDirectoryTool", () => {
 
   it("returns error for non-existent directory", async () => {
     const result = (await tool.process(mockContext, {
-      path: "nope",
+      path: "nope"
     })) as Record<string, unknown>;
     expect(result).toHaveProperty("error");
     expect(typeof result.error).toBe("string");
@@ -378,7 +380,7 @@ describe("ListDirectoryTool", () => {
 
     const result = (await tool.process(mockContext, {
       path: ".",
-      recursive: true,
+      recursive: true
     })) as {
       entries: Array<{ name: string; isDirectory: boolean; size: number }>;
     };
@@ -405,11 +407,11 @@ describe("ListDirectoryTool", () => {
     const { symlinkSync } = await import("node:fs");
     symlinkSync(
       join(tempDir, "nonexistent-target"),
-      join(tempDir, "broken-link"),
+      join(tempDir, "broken-link")
     );
 
     const result = (await tool.process(mockContext, {
-      path: ".",
+      path: "."
     })) as {
       entries: Array<{ name: string; size: number; isDirectory: boolean }>;
     };
@@ -422,7 +424,7 @@ describe("ListDirectoryTool", () => {
 
   it("prevents path traversal outside workspace", async () => {
     const result = (await tool.process(mockContext, {
-      path: "../../",
+      path: "../../"
     })) as any;
     expect(result.success).toBe(false);
     expect(result.error).toContain("outside the workspace");

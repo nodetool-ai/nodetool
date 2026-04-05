@@ -11,7 +11,12 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { NodeDescriptor, Edge, NodeUpdate, EdgeUpdate } from "@nodetool/protocol";
+import type {
+  NodeDescriptor,
+  Edge,
+  NodeUpdate,
+  EdgeUpdate
+} from "@nodetool/protocol";
 import { WorkflowRunner } from "../../src/runner.js";
 import {
   makeRegistry,
@@ -24,7 +29,7 @@ import {
   Multiply,
   Constant,
   ErrorNode,
-  StreamingCounter,
+  StreamingCounter
 } from "./helpers.js";
 
 // ---------------------------------------------------------------------------
@@ -43,13 +48,13 @@ describe("COMPLEX-001: Diamond topology", () => {
       inp("a_in", "val"),
       nd("B", Add.nodeType, {}, { b: 1 }),
       nd("C", Multiply.nodeType, {}, { b: 3 }),
-      nd("D", Add.nodeType, { name: "result" }),
+      nd("D", Add.nodeType, { name: "result" })
     ];
     const edges: Edge[] = [
       de("a_in", "value", "B", "a"),
       de("a_in", "value", "C", "a"),
       de("B", "result", "D", "a"),
-      de("C", "result", "D", "b"),
+      de("C", "result", "D", "b")
     ];
 
     const result = await runner.run(
@@ -145,11 +150,11 @@ describe("COMPLEX-006: Two disconnected subgraphs both execute", () => {
       inp("a1", "val1"),
       nd("add1", Add.nodeType, { name: "result1" }, { b: 10 }),
       inp("a2", "val2"),
-      nd("mul2", Multiply.nodeType, { name: "result2" }, { b: 3 }),
+      nd("mul2", Multiply.nodeType, { name: "result2" }, { b: 3 })
     ];
     const edges: Edge[] = [
       de("a1", "value", "add1", "a"),
-      de("a2", "value", "mul2", "a"),
+      de("a2", "value", "mul2", "a")
     ];
 
     const result = await runner.run(
@@ -173,11 +178,14 @@ describe("COMPLEX-007: Single source node, no edges", () => {
     const runner = makeRunner(registry);
 
     const nodes: NodeDescriptor[] = [
-      nd("const", Constant.nodeType, { name: "val" }, { value: 99 }),
+      nd("const", Constant.nodeType, { name: "val" }, { value: 99 })
     ];
     const edges: Edge[] = [];
 
-    const result = await runner.run({ job_id: "complex-007" }, { nodes, edges });
+    const result = await runner.run(
+      { job_id: "complex-007" },
+      { nodes, edges }
+    );
 
     expect(result.status).toBe("completed");
     expect(result.outputs["val"]).toContain(99);
@@ -195,28 +203,36 @@ describe("COMPLEX-008: Error in middle node stops downstream processing", () => 
     const runner = new WorkflowRunner("test", {
       resolveExecutor: (node) => {
         if (node.id === "B") {
-          return { async process() { throw new Error("B failed"); } };
+          return {
+            async process() {
+              throw new Error("B failed");
+            }
+          };
         }
         if (node.id === "C") {
           return {
             async process() {
               cCallCount++;
               return { result: "c ran" };
-            },
+            }
           };
         }
-        return { async process(inputs) { return inputs; } };
-      },
+        return {
+          async process(inputs) {
+            return inputs;
+          }
+        };
+      }
     });
 
     const nodes: NodeDescriptor[] = [
       inp("in", "x"),
       nd("B", "test.B"),
-      nd("C", "test.C"),
+      nd("C", "test.C")
     ];
     const edges: Edge[] = [
       de("in", "value", "B", "value"),
-      de("B", "result", "C", "input"),
+      de("B", "result", "C", "input")
     ];
 
     const result = await runner.run(
@@ -249,12 +265,17 @@ describe("COMPLEX-010: Static constant + streaming counter feeds Add", () => {
 
     const nodes: NodeDescriptor[] = [
       inp("static", "b_val"),
-      nd("sc", StreamingCounter.nodeType, { is_streaming_output: true }, { count: 3, start: 10 }),
-      nd("add", Add.nodeType, { name: "result" }),
+      nd(
+        "sc",
+        StreamingCounter.nodeType,
+        { is_streaming_output: true },
+        { count: 3, start: 10 }
+      ),
+      nd("add", Add.nodeType, { name: "result" })
     ];
     const edges: Edge[] = [
       de("static", "value", "add", "b"),
-      de("sc", "value", "add", "a", "e-sc-add"),
+      de("sc", "value", "add", "a", "e-sc-add")
     ];
 
     const result = await runner.run(
@@ -281,10 +302,17 @@ describe("COMPLEX-010: Static constant + streaming counter feeds Add", () => {
 describe("COMPLEX-011: Empty graph completes immediately", () => {
   it("run() with no nodes returns completed status", async () => {
     const runner = new WorkflowRunner("test", {
-      resolveExecutor: () => ({ async process() { return {}; } }),
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      })
     });
 
-    const result = await runner.run({ job_id: "complex-011" }, { nodes: [], edges: [] });
+    const result = await runner.run(
+      { job_id: "complex-011" },
+      { nodes: [], edges: [] }
+    );
     expect(result.status).toBe("completed");
   });
 });
@@ -302,14 +330,17 @@ describe("COMPLEX-012: Fan-in with zip_all waits for all inputs", () => {
     const nodes: NodeDescriptor[] = [
       nd("c1", Constant.nodeType, {}, { value: 3 }),
       nd("c2", Constant.nodeType, {}, { value: 4 }),
-      nd("add", Add.nodeType, { sync_mode: "zip_all", name: "result" }),
+      nd("add", Add.nodeType, { sync_mode: "zip_all", name: "result" })
     ];
     const edges: Edge[] = [
       de("c1", "value", "add", "a"),
-      de("c2", "value", "add", "b"),
+      de("c2", "value", "add", "b")
     ];
 
-    const result = await runner.run({ job_id: "complex-012" }, { nodes, edges });
+    const result = await runner.run(
+      { job_id: "complex-012" },
+      { nodes, edges }
+    );
 
     expect(result.status).toBe("completed");
     expect(result.outputs["result"]).toContain(7);

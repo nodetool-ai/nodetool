@@ -17,11 +17,11 @@ import {
   formatImageName,
   generateImageTag,
   pushToRegistry,
-  runCommand,
+  runCommand
 } from "./docker.js";
 import {
   createOrUpdateRunpodTemplate,
-  createRunpodEndpointGraphql,
+  createRunpodEndpointGraphql
 } from "./runpod-api.js";
 
 // ---------------------------------------------------------------------------
@@ -55,8 +55,7 @@ function getDockerUsername(
   skipBuild: boolean,
   skipPush: boolean
 ): string | undefined {
-  const username =
-    dockerUsername ?? process.env.DOCKER_USERNAME ?? undefined;
+  const username = dockerUsername ?? process.env.DOCKER_USERNAME ?? undefined;
 
   if (!username && !(skipBuild && skipPush)) {
     console.error(
@@ -64,9 +63,7 @@ function getDockerUsername(
     );
     console.error("Provide it via one of these methods:");
     console.error("1. Pass dockerUsername option");
-    console.error(
-      "2. Environment variable: export DOCKER_USERNAME=myusername"
-    );
+    console.error("2. Environment variable: export DOCKER_USERNAME=myusername");
     console.error(
       "3. Docker login: docker login (will be read from ~/.docker/config.json)"
     );
@@ -145,29 +142,24 @@ export async function deployToRunpod(
     opts.dockerUsername ?? deployment.docker.username ?? undefined;
   const dockerRegistry: string =
     opts.dockerRegistry ?? deployment.docker.registry ?? "docker.io";
-  const imageName: string | undefined =
-    opts.imageName ?? deployment.image.name;
-  const platform: string = opts.platform ?? deployment.platform ?? "linux/amd64";
+  const imageName: string | undefined = opts.imageName ?? deployment.image.name;
+  const platform: string =
+    opts.platform ?? deployment.platform ?? "linux/amd64";
   let templateName: string | undefined =
     opts.templateName ?? opts.name ?? deployment.template_name ?? undefined;
   const computeType: string = deployment.compute_type ?? "GPU";
 
-  const gpuTypes: string[] =
-    opts.gpuTypes ?? deployment.gpu_types ?? [];
+  const gpuTypes: string[] = opts.gpuTypes ?? deployment.gpu_types ?? [];
   const gpuCount: number | undefined =
     opts.gpuCount ?? deployment.gpu_count ?? undefined;
   const dataCenters: string[] =
     opts.dataCenters ?? deployment.data_centers ?? [];
-  const workersMin: number =
-    opts.workersMin ?? deployment.workers_min ?? 0;
-  const workersMax: number =
-    opts.workersMax ?? deployment.workers_max ?? 3;
-  const idleTimeout: number =
-    opts.idleTimeout ?? deployment.idle_timeout ?? 5;
+  const workersMin: number = opts.workersMin ?? deployment.workers_min ?? 0;
+  const workersMax: number = opts.workersMax ?? deployment.workers_max ?? 3;
+  const idleTimeout: number = opts.idleTimeout ?? deployment.idle_timeout ?? 5;
   const executionTimeout: number | undefined =
     opts.executionTimeout ?? deployment.execution_timeout ?? undefined;
-  const flashboot: boolean =
-    opts.flashboot ?? deployment.flashboot ?? false;
+  const flashboot: boolean = opts.flashboot ?? deployment.flashboot ?? false;
   const networkVolumeId: string | undefined =
     deployment.network_volume_id ?? undefined;
 
@@ -236,7 +228,7 @@ export async function deployToRunpod(
         tag: imageTag,
         platform,
         useCache: !noCache,
-        autoPush: !noAutoPush,
+        autoPush: !noAutoPush
       });
     }
 
@@ -264,8 +256,7 @@ export async function deployToRunpod(
         if (!env.DB_PATH) env.DB_PATH = persistentPaths.db_path;
         if (!env.CHROMA_PATH) env.CHROMA_PATH = persistentPaths.chroma_path;
         if (!env.HF_HOME) env.HF_HOME = persistentPaths.hf_cache;
-        if (!env.ASSET_BUCKET)
-          env.ASSET_BUCKET = persistentPaths.asset_bucket;
+        if (!env.ASSET_BUCKET) env.ASSET_BUCKET = persistentPaths.asset_bucket;
         if (!env.AUTH_PROVIDER) env.AUTH_PROVIDER = "multi_user";
       } else {
         if (!env.AUTH_PROVIDER) env.AUTH_PROVIDER = "static";
@@ -300,7 +291,7 @@ export async function deployToRunpod(
         idleTimeout,
         executionTimeoutMs: executionTimeout,
         flashboot,
-        networkVolumeId,
+        networkVolumeId
       });
     }
 

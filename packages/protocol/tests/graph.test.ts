@@ -13,7 +13,7 @@ describe("Edge helpers", () => {
     sourceHandle: "output",
     target: "n2",
     targetHandle: "input",
-    edge_type: "data",
+    edge_type: "data"
   };
 
   const controlEdge: Edge = {
@@ -22,14 +22,14 @@ describe("Edge helpers", () => {
     sourceHandle: "__control__",
     target: "n2",
     targetHandle: "__control__",
-    edge_type: "control",
+    edge_type: "control"
   };
 
   const defaultEdge: Edge = {
     source: "n1",
     sourceHandle: "out",
     target: "n2",
-    targetHandle: "in",
+    targetHandle: "in"
   };
 
   it("isControlEdge returns true for control edges", () => {
@@ -52,7 +52,7 @@ describe("NodeDescriptor", () => {
   it("supports minimal descriptor", () => {
     const node: NodeDescriptor = {
       id: "n1",
-      type: "math.Add",
+      type: "math.Add"
     };
     expect(node.id).toBe("n1");
     expect(node.is_streaming_input).toBeUndefined();
@@ -73,7 +73,7 @@ describe("NodeDescriptor", () => {
       is_dynamic: false,
       ui_properties: { x: 1 },
       dynamic_properties: { mode: "fast" },
-      dynamic_outputs: { extra: { type: "string" } as any },
+      dynamic_outputs: { extra: { type: "string" } as any }
     };
     expect(node.sync_mode).toBe("zip_all");
     expect(node.ui_properties).toEqual({ x: 1 });
@@ -87,7 +87,7 @@ describe("GraphData", () => {
     const graph: GraphData = {
       nodes: [
         { id: "n1", type: "input.FloatInput" },
-        { id: "n2", type: "output.FloatOutput" },
+        { id: "n2", type: "output.FloatOutput" }
       ],
       edges: [
         {
@@ -96,22 +96,27 @@ describe("GraphData", () => {
           sourceHandle: "value",
           target: "n2",
           targetHandle: "value",
-          edge_type: "data",
-        },
-      ],
+          edge_type: "data"
+        }
+      ]
     };
     expect(graph.nodes).toHaveLength(2);
     expect(graph.edges).toHaveLength(1);
   });
 });
 
-import type { ControlEvent, RunEvent, StopEvent, SyncMode } from "../src/graph.js";
+import type {
+  ControlEvent,
+  RunEvent,
+  StopEvent,
+  SyncMode
+} from "../src/graph.js";
 
 describe("ControlEvent", () => {
   it("RunEvent has event_type 'run' and carries properties", () => {
     const runEvt: RunEvent = {
       event_type: "run",
-      properties: { input: 42, mode: "fast" },
+      properties: { input: 42, mode: "fast" }
     };
     expect(runEvt.event_type).toBe("run");
     expect(runEvt.properties.input).toBe(42);
@@ -125,7 +130,7 @@ describe("ControlEvent", () => {
   it("ControlEvent union can be narrowed by event_type", () => {
     const events: ControlEvent[] = [
       { event_type: "run", properties: {} },
-      { event_type: "stop" },
+      { event_type: "stop" }
     ];
     for (const evt of events) {
       if (evt.event_type === "run") {
@@ -146,8 +151,16 @@ describe("SyncMode", () => {
   });
 
   it("NodeDescriptor sync_mode is applied correctly", () => {
-    const nodeOnAny = { id: "n1", type: "math.Add", sync_mode: "on_any" as SyncMode };
-    const nodeZipAll = { id: "n2", type: "math.Mul", sync_mode: "zip_all" as SyncMode };
+    const nodeOnAny = {
+      id: "n1",
+      type: "math.Add",
+      sync_mode: "on_any" as SyncMode
+    };
+    const nodeZipAll = {
+      id: "n2",
+      type: "math.Mul",
+      sync_mode: "zip_all" as SyncMode
+    };
     expect(nodeOnAny.sync_mode).toBe("on_any");
     expect(nodeZipAll.sync_mode).toBe("zip_all");
   });
@@ -158,7 +171,7 @@ describe("NodeDescriptor property metadata", () => {
     const node = {
       id: "n1",
       type: "math.Add",
-      propertyTypes: { a: "int", b: "int", values: "list[int]" },
+      propertyTypes: { a: "int", b: "int", values: "list[int]" }
     };
     expect(node.propertyTypes.a).toBe("int");
     expect(node.propertyTypes.values).toBe("list[int]");
@@ -169,8 +182,8 @@ describe("NodeDescriptor property metadata", () => {
       id: "n1",
       type: "math.Clamp",
       propertyMeta: {
-        value: { description: "Input value", min: 0, max: 1 },
-      },
+        value: { description: "Input value", min: 0, max: 1 }
+      }
     };
     expect(node.propertyMeta.value.min).toBe(0);
     expect(node.propertyMeta.value.max).toBe(1);

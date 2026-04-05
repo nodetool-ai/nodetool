@@ -14,8 +14,7 @@ export async function bridge(
   handler: (request: Request) => Promise<Response>
 ): Promise<void> {
   const proto =
-    (req.headers["x-forwarded-proto"] as string | undefined) ??
-    "http";
+    (req.headers["x-forwarded-proto"] as string | undefined) ?? "http";
   const host = req.headers.host ?? "localhost";
   const url = new URL(req.url, `${proto}://${host}`);
 
@@ -46,9 +45,8 @@ export async function bridge(
   const request = new Request(url.toString(), {
     method,
     headers,
-    body: rawBody && rawBody.byteLength > 0
-      ? new Uint8Array(rawBody)
-      : undefined,
+    body:
+      rawBody && rawBody.byteLength > 0 ? new Uint8Array(rawBody) : undefined
   });
 
   const response = await handler(request);
@@ -70,7 +68,9 @@ export async function bridge(
   }
 
   const acceptEncoding = req.headers["accept-encoding"] ?? "";
-  const enc = Array.isArray(acceptEncoding) ? acceptEncoding.join(", ") : acceptEncoding;
+  const enc = Array.isArray(acceptEncoding)
+    ? acceptEncoding.join(", ")
+    : acceptEncoding;
   if (bodyBuffer.length > GZIP_THRESHOLD && enc.includes("gzip")) {
     const compressed = gzipSync(bodyBuffer);
     reply.header("content-encoding", "gzip");

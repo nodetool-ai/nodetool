@@ -17,8 +17,14 @@ export interface SummarizerOutputs {
   chunk: unknown;
 }
 
-export function summarizer(inputs: SummarizerInputs): DslNode<SummarizerOutputs> {
-  return createNode("nodetool.agents.Summarizer", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true });
+export function summarizer(
+  inputs: SummarizerInputs
+): DslNode<SummarizerOutputs> {
+  return createNode(
+    "nodetool.agents.Summarizer",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text", "chunk"], streaming: true }
+  );
 }
 
 // Create Thread — nodetool.agents.CreateThread
@@ -31,8 +37,14 @@ export interface CreateThreadOutputs {
   thread_id: string;
 }
 
-export function createThread(inputs: CreateThreadInputs): DslNode<CreateThreadOutputs, "thread_id"> {
-  return createNode("nodetool.agents.CreateThread", inputs as Record<string, unknown>, { outputNames: ["thread_id"], defaultOutput: "thread_id" });
+export function createThread(
+  inputs: CreateThreadInputs
+): DslNode<CreateThreadOutputs, "thread_id"> {
+  return createNode(
+    "nodetool.agents.CreateThread",
+    inputs as Record<string, unknown>,
+    { outputNames: ["thread_id"], defaultOutput: "thread_id" }
+  );
 }
 
 // Extractor — nodetool.agents.Extractor
@@ -44,11 +56,14 @@ export interface ExtractorInputs {
   audio?: Connectable<AudioRef>;
 }
 
-export interface ExtractorOutputs {
-}
+export interface ExtractorOutputs {}
 
 export function extractor(inputs: ExtractorInputs): DslNode<ExtractorOutputs> {
-  return createNode("nodetool.agents.Extractor", inputs as Record<string, unknown>, { outputNames: [] });
+  return createNode(
+    "nodetool.agents.Extractor",
+    inputs as Record<string, unknown>,
+    { outputNames: [] }
+  );
 }
 
 // Classifier — nodetool.agents.Classifier
@@ -65,8 +80,14 @@ export interface ClassifierOutputs {
   output: string;
 }
 
-export function classifier(inputs: ClassifierInputs): DslNode<ClassifierOutputs, "output"> {
-  return createNode("nodetool.agents.Classifier", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function classifier(
+  inputs: ClassifierInputs
+): DslNode<ClassifierOutputs, "output"> {
+  return createNode(
+    "nodetool.agents.Classifier",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Agent — nodetool.agents.Agent
@@ -90,7 +111,11 @@ export interface AgentOutputs {
 }
 
 export function agent(inputs: AgentInputs): DslNode<AgentOutputs> {
-  return createNode("nodetool.agents.Agent", inputs as Record<string, unknown>, { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true });
+  return createNode(
+    "nodetool.agents.Agent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true }
+  );
 }
 
 // Research Agent — nodetool.agents.ResearchAgent
@@ -102,11 +127,16 @@ export interface ResearchAgentInputs {
   max_tokens?: Connectable<number>;
 }
 
-export interface ResearchAgentOutputs {
-}
+export interface ResearchAgentOutputs {}
 
-export function researchAgent(inputs: ResearchAgentInputs): DslNode<ResearchAgentOutputs> {
-  return createNode("nodetool.agents.ResearchAgent", inputs as Record<string, unknown>, { outputNames: [] });
+export function researchAgent(
+  inputs: ResearchAgentInputs
+): DslNode<ResearchAgentOutputs> {
+  return createNode(
+    "nodetool.agents.ResearchAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: [] }
+  );
 }
 
 // Shell Agent — nodetool.agents.ShellAgent
@@ -121,8 +151,14 @@ export interface ShellAgentOutputs {
   text: string;
 }
 
-export function shellAgent(inputs: ShellAgentInputs): DslNode<ShellAgentOutputs, "text"> {
-  return createNode("nodetool.agents.ShellAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function shellAgent(
+  inputs: ShellAgentInputs
+): DslNode<ShellAgentOutputs, "text"> {
+  return createNode(
+    "nodetool.agents.ShellAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text"], defaultOutput: "text" }
+  );
 }
 
 // Browser Agent — nodetool.agents.BrowserAgent
@@ -137,8 +173,14 @@ export interface BrowserAgentOutputs {
   text: string;
 }
 
-export function browserAgent(inputs: BrowserAgentInputs): DslNode<BrowserAgentOutputs, "text"> {
-  return createNode("nodetool.agents.BrowserAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function browserAgent(
+  inputs: BrowserAgentInputs
+): DslNode<BrowserAgentOutputs, "text"> {
+  return createNode(
+    "nodetool.agents.BrowserAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text"], defaultOutput: "text" }
+  );
 }
 
 // SQLite Agent — nodetool.agents.SQLiteAgent
@@ -157,8 +199,14 @@ export interface SQLiteAgentOutputs {
   dataframe: DataframeRef;
 }
 
-export function sqLiteAgent(inputs: SQLiteAgentInputs): DslNode<SQLiteAgentOutputs> {
-  return createNode("nodetool.agents.SQLiteAgent", inputs as Record<string, unknown>, { outputNames: ["text", "json", "dataframe"] });
+export function sqLiteAgent(
+  inputs: SQLiteAgentInputs
+): DslNode<SQLiteAgentOutputs> {
+  return createNode(
+    "nodetool.agents.SQLiteAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text", "json", "dataframe"] }
+  );
 }
 
 // Supabase Agent — nodetool.agents.SupabaseAgent
@@ -175,8 +223,14 @@ export interface SupabaseAgentOutputs {
   dataframe: DataframeRef;
 }
 
-export function supabaseAgent(inputs: SupabaseAgentInputs): DslNode<SupabaseAgentOutputs> {
-  return createNode("nodetool.agents.SupabaseAgent", inputs as Record<string, unknown>, { outputNames: ["text", "json", "dataframe"] });
+export function supabaseAgent(
+  inputs: SupabaseAgentInputs
+): DslNode<SupabaseAgentOutputs> {
+  return createNode(
+    "nodetool.agents.SupabaseAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text", "json", "dataframe"] }
+  );
 }
 
 // Document Agent — nodetool.agents.DocumentAgent
@@ -192,8 +246,14 @@ export interface DocumentAgentOutputs {
   document: unknown;
 }
 
-export function documentAgent(inputs: DocumentAgentInputs): DslNode<DocumentAgentOutputs> {
-  return createNode("nodetool.agents.DocumentAgent", inputs as Record<string, unknown>, { outputNames: ["text", "document"] });
+export function documentAgent(
+  inputs: DocumentAgentInputs
+): DslNode<DocumentAgentOutputs> {
+  return createNode(
+    "nodetool.agents.DocumentAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text", "document"] }
+  );
 }
 
 // DOCX Agent — nodetool.agents.DocxAgent
@@ -210,7 +270,11 @@ export interface DocxAgentOutputs {
 }
 
 export function docxAgent(inputs: DocxAgentInputs): DslNode<DocxAgentOutputs> {
-  return createNode("nodetool.agents.DocxAgent", inputs as Record<string, unknown>, { outputNames: ["document", "text"] });
+  return createNode(
+    "nodetool.agents.DocxAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["document", "text"] }
+  );
 }
 
 // Email Agent — nodetool.agents.EmailAgent
@@ -225,8 +289,14 @@ export interface EmailAgentOutputs {
   text: string;
 }
 
-export function emailAgent(inputs: EmailAgentInputs): DslNode<EmailAgentOutputs, "text"> {
-  return createNode("nodetool.agents.EmailAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function emailAgent(
+  inputs: EmailAgentInputs
+): DslNode<EmailAgentOutputs, "text"> {
+  return createNode(
+    "nodetool.agents.EmailAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text"], defaultOutput: "text" }
+  );
 }
 
 // FFmpeg Agent — nodetool.agents.FfmpegAgent
@@ -245,8 +315,14 @@ export interface FfmpegAgentOutputs {
   text: string;
 }
 
-export function ffmpegAgent(inputs: FfmpegAgentInputs): DslNode<FfmpegAgentOutputs> {
-  return createNode("nodetool.agents.FfmpegAgent", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "text"] });
+export function ffmpegAgent(
+  inputs: FfmpegAgentInputs
+): DslNode<FfmpegAgentOutputs> {
+  return createNode(
+    "nodetool.agents.FfmpegAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["video", "audio", "text"] }
+  );
 }
 
 // Filesystem Agent — nodetool.agents.FilesystemAgent
@@ -261,8 +337,14 @@ export interface FilesystemAgentOutputs {
   text: string;
 }
 
-export function filesystemAgent(inputs: FilesystemAgentInputs): DslNode<FilesystemAgentOutputs, "text"> {
-  return createNode("nodetool.agents.FilesystemAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function filesystemAgent(
+  inputs: FilesystemAgentInputs
+): DslNode<FilesystemAgentOutputs, "text"> {
+  return createNode(
+    "nodetool.agents.FilesystemAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text"], defaultOutput: "text" }
+  );
 }
 
 // Git Agent — nodetool.agents.GitAgent
@@ -277,8 +359,14 @@ export interface GitAgentOutputs {
   text: string;
 }
 
-export function gitAgent(inputs: GitAgentInputs): DslNode<GitAgentOutputs, "text"> {
-  return createNode("nodetool.agents.GitAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function gitAgent(
+  inputs: GitAgentInputs
+): DslNode<GitAgentOutputs, "text"> {
+  return createNode(
+    "nodetool.agents.GitAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text"], defaultOutput: "text" }
+  );
 }
 
 // HTML Agent — nodetool.agents.HtmlAgent
@@ -295,7 +383,11 @@ export interface HtmlAgentOutputs {
 }
 
 export function htmlAgent(inputs: HtmlAgentInputs): DslNode<HtmlAgentOutputs> {
-  return createNode("nodetool.agents.HtmlAgent", inputs as Record<string, unknown>, { outputNames: ["html", "text"] });
+  return createNode(
+    "nodetool.agents.HtmlAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["html", "text"] }
+  );
 }
 
 // HTTP API Agent — nodetool.agents.HttpApiAgent
@@ -310,8 +402,14 @@ export interface HttpApiAgentOutputs {
   text: string;
 }
 
-export function httpApiAgent(inputs: HttpApiAgentInputs): DslNode<HttpApiAgentOutputs, "text"> {
-  return createNode("nodetool.agents.HttpApiAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function httpApiAgent(
+  inputs: HttpApiAgentInputs
+): DslNode<HttpApiAgentOutputs, "text"> {
+  return createNode(
+    "nodetool.agents.HttpApiAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text"], defaultOutput: "text" }
+  );
 }
 
 // Image Agent — nodetool.agents.ImageAgent
@@ -328,8 +426,14 @@ export interface ImageAgentOutputs {
   text: string;
 }
 
-export function imageAgent(inputs: ImageAgentInputs): DslNode<ImageAgentOutputs> {
-  return createNode("nodetool.agents.ImageAgent", inputs as Record<string, unknown>, { outputNames: ["image", "text"] });
+export function imageAgent(
+  inputs: ImageAgentInputs
+): DslNode<ImageAgentOutputs> {
+  return createNode(
+    "nodetool.agents.ImageAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["image", "text"] }
+  );
 }
 
 // Media Agent — nodetool.agents.MediaAgent
@@ -348,8 +452,14 @@ export interface MediaAgentOutputs {
   text: string;
 }
 
-export function mediaAgent(inputs: MediaAgentInputs): DslNode<MediaAgentOutputs> {
-  return createNode("nodetool.agents.MediaAgent", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "text"] });
+export function mediaAgent(
+  inputs: MediaAgentInputs
+): DslNode<MediaAgentOutputs> {
+  return createNode(
+    "nodetool.agents.MediaAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["video", "audio", "text"] }
+  );
 }
 
 // PDF-lib Agent — nodetool.agents.PdfLibAgent
@@ -366,8 +476,14 @@ export interface PdfLibAgentOutputs {
   text: string;
 }
 
-export function pdfLibAgent(inputs: PdfLibAgentInputs): DslNode<PdfLibAgentOutputs> {
-  return createNode("nodetool.agents.PdfLibAgent", inputs as Record<string, unknown>, { outputNames: ["document", "text"] });
+export function pdfLibAgent(
+  inputs: PdfLibAgentInputs
+): DslNode<PdfLibAgentOutputs> {
+  return createNode(
+    "nodetool.agents.PdfLibAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["document", "text"] }
+  );
 }
 
 // PPTX Agent — nodetool.agents.PptxAgent
@@ -385,7 +501,11 @@ export interface PptxAgentOutputs {
 }
 
 export function pptxAgent(inputs: PptxAgentInputs): DslNode<PptxAgentOutputs> {
-  return createNode("nodetool.agents.PptxAgent", inputs as Record<string, unknown>, { outputNames: ["document", "text"] });
+  return createNode(
+    "nodetool.agents.PptxAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["document", "text"] }
+  );
 }
 
 // Spreadsheet Agent — nodetool.agents.SpreadsheetAgent
@@ -400,8 +520,14 @@ export interface SpreadsheetAgentOutputs {
   text: string;
 }
 
-export function spreadsheetAgent(inputs: SpreadsheetAgentInputs): DslNode<SpreadsheetAgentOutputs, "text"> {
-  return createNode("nodetool.agents.SpreadsheetAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function spreadsheetAgent(
+  inputs: SpreadsheetAgentInputs
+): DslNode<SpreadsheetAgentOutputs, "text"> {
+  return createNode(
+    "nodetool.agents.SpreadsheetAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text"], defaultOutput: "text" }
+  );
 }
 
 // Vector Store Agent — nodetool.agents.VectorStoreAgent
@@ -416,8 +542,14 @@ export interface VectorStoreAgentOutputs {
   text: string;
 }
 
-export function vectorStoreAgent(inputs: VectorStoreAgentInputs): DslNode<VectorStoreAgentOutputs, "text"> {
-  return createNode("nodetool.agents.VectorStoreAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function vectorStoreAgent(
+  inputs: VectorStoreAgentInputs
+): DslNode<VectorStoreAgentOutputs, "text"> {
+  return createNode(
+    "nodetool.agents.VectorStoreAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["text"], defaultOutput: "text" }
+  );
 }
 
 // yt-dlp Downloader Agent — nodetool.agents.YtDlpDownloaderAgent
@@ -435,6 +567,12 @@ export interface YtDlpDownloaderAgentOutputs {
   text: string;
 }
 
-export function ytDlpDownloaderAgent(inputs: YtDlpDownloaderAgentInputs): DslNode<YtDlpDownloaderAgentOutputs> {
-  return createNode("nodetool.agents.YtDlpDownloaderAgent", inputs as Record<string, unknown>, { outputNames: ["video", "text"] });
+export function ytDlpDownloaderAgent(
+  inputs: YtDlpDownloaderAgentInputs
+): DslNode<YtDlpDownloaderAgentOutputs> {
+  return createNode(
+    "nodetool.agents.YtDlpDownloaderAgent",
+    inputs as Record<string, unknown>,
+    { outputNames: ["video", "text"] }
+  );
 }

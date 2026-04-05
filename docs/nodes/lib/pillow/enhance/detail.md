@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Detail"
-node_type: "lib.pillow.enhance.Detail"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.Detail"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.Detail`
+**Type:** `lib.image.enhance.Detail`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -35,5 +35,5 @@ Enhances fine details in images.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

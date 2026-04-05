@@ -5,7 +5,7 @@ import {
   getProvider,
   clearProviderCache,
   listRegisteredProviderIds,
-  setSecretResolver,
+  setSecretResolver
 } from "../../src/providers/provider-registry.js";
 import { FakeProvider } from "../../src/providers/fake-provider.js";
 
@@ -22,7 +22,8 @@ class SecretAwareFakeProvider extends FakeProvider {
 // We'll use unique IDs per test to avoid cross-contamination.
 
 describe("provider-registry", () => {
-  const uniqueId = () => `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const uniqueId = () =>
+    `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   beforeEach(() => {
     clearProviderCache();
@@ -85,11 +86,19 @@ describe("provider-registry", () => {
 
   it("scopes provider cache and secret resolution by user id", async () => {
     const id = uniqueId();
-    registerProvider(id, SecretAwareFakeProvider as any, { TEST_SECRET: undefined });
+    registerProvider(id, SecretAwareFakeProvider as any, {
+      TEST_SECRET: undefined
+    });
     setSecretResolver((key, userId) => `${key}-${userId}`);
 
-    const provider1 = await getProvider(id, "user-1") as SecretAwareFakeProvider;
-    const provider2 = await getProvider(id, "user-2") as SecretAwareFakeProvider;
+    const provider1 = (await getProvider(
+      id,
+      "user-1"
+    )) as SecretAwareFakeProvider;
+    const provider2 = (await getProvider(
+      id,
+      "user-2"
+    )) as SecretAwareFakeProvider;
 
     expect(provider1).toBeInstanceOf(SecretAwareFakeProvider);
     expect(provider2).toBeInstanceOf(SecretAwareFakeProvider);

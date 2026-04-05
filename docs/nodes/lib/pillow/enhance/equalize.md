@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Equalize"
-node_type: "lib.pillow.enhance.Equalize"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.Equalize"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.Equalize`
+**Type:** `lib.image.enhance.Equalize`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -35,5 +35,5 @@ Enhances image contrast by equalizing intensity distribution.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

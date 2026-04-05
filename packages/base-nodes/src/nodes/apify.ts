@@ -10,9 +10,7 @@ const MAX_RESULTS_PER_PAGE = 100;
 const APIFY_API_BASE = "https://api.apify.com/v2";
 
 function getApifyApiKey(secrets: Record<string, string>): string {
-  const key =
-    secrets.APIFY_API_KEY ||
-    process.env.APIFY_API_KEY;
+  const key = secrets.APIFY_API_KEY || process.env.APIFY_API_KEY;
   if (!key) throw new Error("APIFY_API_KEY not configured");
   return key;
 }
@@ -38,9 +36,9 @@ async function runActor(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify(input)
   });
 
   if (!response.ok) {
@@ -54,7 +52,7 @@ async function runActor(
 
   const datasetUrl = `${APIFY_API_BASE}/datasets/${datasetId}/items?format=json`;
   const datasetResponse = await fetch(datasetUrl, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: { Authorization: `Bearer ${apiKey}` }
   });
 
   if (!datasetResponse.ok) return [];
@@ -66,33 +64,55 @@ async function runActor(
 // ---------------------------------------------------------------------------
 export class ApifyWebScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyWebScraper";
-            static readonly title = "Apify Web Scraper";
-            static readonly description = "Scrape websites using Apify's Web Scraper actor.\n    Extracts data from web pages using CSS selectors or custom JavaScript.\n    apify, scraping, web, data, extraction, crawler";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Apify Web Scraper";
+  static readonly description =
+    "Scrape websites using Apify's Web Scraper actor.\n    Extracts data from web pages using CSS selectors or custom JavaScript.\n    apify, scraping, web, data, extraction, crawler";
+  static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-          static readonly requiredSettings = [
-  "APIFY_API_KEY"
-];
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "list[str]", default: null, title: "Start Urls", description: "List of URLs to scrape", required: true })
+  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Start Urls",
+    description: "List of URLs to scrape",
+    required: true
+  })
   declare start_urls: any;
 
-  @prop({ type: "str", default: "a[href]", title: "Link Selector", description: "CSS selector for links to follow" })
+  @prop({
+    type: "str",
+    default: "a[href]",
+    title: "Link Selector",
+    description: "CSS selector for links to follow"
+  })
   declare link_selector: any;
 
-  @prop({ type: "str", default: "", title: "Page Function", description: "JavaScript function to execute on each page" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Page Function",
+    description: "JavaScript function to execute on each page"
+  })
   declare page_function: any;
 
-  @prop({ type: "int", default: 10, title: "Max Pages", description: "Maximum number of pages to scrape" })
+  @prop({
+    type: "int",
+    default: 10,
+    title: "Max Pages",
+    description: "Maximum number of pages to scrape"
+  })
   declare max_pages: any;
 
-  @prop({ type: "int", default: 300, title: "Wait For Finish", description: "Maximum time to wait for scraping to complete (seconds)" })
+  @prop({
+    type: "int",
+    default: 300,
+    title: "Wait For Finish",
+    description: "Maximum time to wait for scraping to complete (seconds)"
+  })
   declare wait_for_finish: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApifyApiKey(this._secrets);
@@ -106,7 +126,7 @@ export class ApifyWebScraperNode extends BaseNode {
       startUrls: startUrls.map((url: string) => ({ url })),
       linkSelector: String(this.link_selector ?? "a[href]"),
       pageFunction,
-      maxPagesPerCrawl: Number(this.max_pages ?? 10),
+      maxPagesPerCrawl: Number(this.max_pages ?? 10)
     };
 
     const items = await runActor(
@@ -124,36 +144,63 @@ export class ApifyWebScraperNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class ApifyGoogleSearchScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyGoogleSearchScraper";
-            static readonly title = "Apify Google Search Scraper";
-            static readonly description = "Scrape Google Search results using Apify's Google Search Scraper.\n    Extract organic results, ads, related searches, and more.\n    apify, google, search, serp, scraping, seo";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Apify Google Search Scraper";
+  static readonly description =
+    "Scrape Google Search results using Apify's Google Search Scraper.\n    Extract organic results, ads, related searches, and more.\n    apify, google, search, serp, scraping, seo";
+  static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-          static readonly requiredSettings = [
-  "APIFY_API_KEY"
-];
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "list[str]", default: null, title: "Queries", description: "List of search queries to execute", required: true })
+  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Queries",
+    description: "List of search queries to execute",
+    required: true
+  })
   declare queries: any;
 
-  @prop({ type: "str", default: "us", title: "Country Code", description: "Country code for Google search (e.g., 'us', 'uk', 'de')" })
+  @prop({
+    type: "str",
+    default: "us",
+    title: "Country Code",
+    description: "Country code for Google search (e.g., 'us', 'uk', 'de')"
+  })
   declare country_code: any;
 
-  @prop({ type: "str", default: "en", title: "Language Code", description: "Language code for results (e.g., 'en', 'es', 'fr')" })
+  @prop({
+    type: "str",
+    default: "en",
+    title: "Language Code",
+    description: "Language code for results (e.g., 'en', 'es', 'fr')"
+  })
   declare language_code: any;
 
-  @prop({ type: "int", default: 1, title: "Max Pages", description: "Maximum number of result pages per query" })
+  @prop({
+    type: "int",
+    default: 1,
+    title: "Max Pages",
+    description: "Maximum number of result pages per query"
+  })
   declare max_pages: any;
 
-  @prop({ type: "int", default: 100, title: "Results Per Page", description: "Number of results per page (10-100)" })
+  @prop({
+    type: "int",
+    default: 100,
+    title: "Results Per Page",
+    description: "Number of results per page (10-100)"
+  })
   declare results_per_page: any;
 
-  @prop({ type: "int", default: 300, title: "Wait For Finish", description: "Maximum time to wait for scraping to complete (seconds)" })
+  @prop({
+    type: "int",
+    default: 300,
+    title: "Wait For Finish",
+    description: "Maximum time to wait for scraping to complete (seconds)"
+  })
   declare wait_for_finish: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApifyApiKey(this._secrets);
@@ -170,7 +217,7 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
       countryCode: String(this.country_code ?? "us"),
       languageCode: String(this.language_code ?? "en"),
       maxPagesPerQuery: Number(this.max_pages ?? 1),
-      resultsPerPage,
+      resultsPerPage
     };
 
     const items = await runActor(
@@ -188,36 +235,64 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class ApifyInstagramScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyInstagramScraper";
-            static readonly title = "Apify Instagram Scraper";
-            static readonly description = "Scrape Instagram profiles, posts, comments, and hashtags.\n    Extract user data, post details, engagement metrics, and more.\n    apify, instagram, social, media, scraping, posts, profiles";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Apify Instagram Scraper";
+  static readonly description =
+    "Scrape Instagram profiles, posts, comments, and hashtags.\n    Extract user data, post details, engagement metrics, and more.\n    apify, instagram, social, media, scraping, posts, profiles";
+  static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-          static readonly requiredSettings = [
-  "APIFY_API_KEY"
-];
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "list[str]", default: null, title: "Usernames", description: "List of Instagram usernames to scrape", required: true })
+  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Usernames",
+    description: "List of Instagram usernames to scrape",
+    required: true
+  })
   declare usernames: any;
 
-  @prop({ type: "list[str]", default: null, title: "Hashtags", description: "List of hashtags to scrape", required: true })
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Hashtags",
+    description: "List of hashtags to scrape",
+    required: true
+  })
   declare hashtags: any;
 
-  @prop({ type: "int", default: 50, title: "Results Limit", description: "Maximum number of posts to scrape per profile/hashtag" })
+  @prop({
+    type: "int",
+    default: 50,
+    title: "Results Limit",
+    description: "Maximum number of posts to scrape per profile/hashtag"
+  })
   declare results_limit: any;
 
-  @prop({ type: "bool", default: false, title: "Scrape Comments", description: "Whether to scrape comments on posts" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Scrape Comments",
+    description: "Whether to scrape comments on posts"
+  })
   declare scrape_comments: any;
 
-  @prop({ type: "bool", default: false, title: "Scrape Likes", description: "Whether to scrape likes on posts" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Scrape Likes",
+    description: "Whether to scrape likes on posts"
+  })
   declare scrape_likes: any;
 
-  @prop({ type: "int", default: 600, title: "Wait For Finish", description: "Maximum time to wait for scraping to complete (seconds)" })
+  @prop({
+    type: "int",
+    default: 600,
+    title: "Wait For Finish",
+    description: "Maximum time to wait for scraping to complete (seconds)"
+  })
   declare wait_for_finish: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApifyApiKey(this._secrets);
@@ -230,7 +305,7 @@ export class ApifyInstagramScraperNode extends BaseNode {
     const runInput: Record<string, unknown> = {
       resultsLimit: Number(this.results_limit ?? 50),
       scrapeComments: Boolean(this.scrape_comments ?? false),
-      scrapeLikes: Boolean(this.scrape_likes ?? false),
+      scrapeLikes: Boolean(this.scrape_likes ?? false)
     };
 
     if (usernames.length > 0) runInput.usernames = usernames;
@@ -251,36 +326,64 @@ export class ApifyInstagramScraperNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class ApifyAmazonScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyAmazonScraper";
-            static readonly title = "Apify Amazon Scraper";
-            static readonly description = "Scrape Amazon product data including prices, reviews, and ratings.\n    Extract product details, seller information, and customer reviews.\n    apify, amazon, ecommerce, products, scraping, prices, reviews";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Apify Amazon Scraper";
+  static readonly description =
+    "Scrape Amazon product data including prices, reviews, and ratings.\n    Extract product details, seller information, and customer reviews.\n    apify, amazon, ecommerce, products, scraping, prices, reviews";
+  static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-          static readonly requiredSettings = [
-  "APIFY_API_KEY"
-];
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "list[str]", default: null, title: "Search Queries", description: "List of search queries to execute on Amazon", required: true })
+  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Search Queries",
+    description: "List of search queries to execute on Amazon",
+    required: true
+  })
   declare search_queries: any;
 
-  @prop({ type: "list[str]", default: null, title: "Product Urls", description: "List of Amazon product URLs to scrape", required: true })
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Product Urls",
+    description: "List of Amazon product URLs to scrape",
+    required: true
+  })
   declare product_urls: any;
 
-  @prop({ type: "str", default: "US", title: "Country Code", description: "Amazon country code (US, UK, DE, FR, ES, IT, etc.)" })
+  @prop({
+    type: "str",
+    default: "US",
+    title: "Country Code",
+    description: "Amazon country code (US, UK, DE, FR, ES, IT, etc.)"
+  })
   declare country_code: any;
 
-  @prop({ type: "int", default: 20, title: "Max Items", description: "Maximum number of products to scrape per search" })
+  @prop({
+    type: "int",
+    default: 20,
+    title: "Max Items",
+    description: "Maximum number of products to scrape per search"
+  })
   declare max_items: any;
 
-  @prop({ type: "bool", default: false, title: "Scrape Reviews", description: "Whether to scrape product reviews" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Scrape Reviews",
+    description: "Whether to scrape product reviews"
+  })
   declare scrape_reviews: any;
 
-  @prop({ type: "int", default: 600, title: "Wait For Finish", description: "Maximum time to wait for scraping to complete (seconds)" })
+  @prop({
+    type: "int",
+    default: 600,
+    title: "Wait For Finish",
+    description: "Maximum time to wait for scraping to complete (seconds)"
+  })
   declare wait_for_finish: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApifyApiKey(this._secrets);
@@ -293,7 +396,7 @@ export class ApifyAmazonScraperNode extends BaseNode {
     const runInput: Record<string, unknown> = {
       countryCode: String(this.country_code ?? "US"),
       maxItems: Number(this.max_items ?? 20),
-      scrapeReviews: Boolean(this.scrape_reviews ?? false),
+      scrapeReviews: Boolean(this.scrape_reviews ?? false)
     };
 
     if (searchQueries.length > 0) runInput.searchQueries = searchQueries;
@@ -314,36 +417,65 @@ export class ApifyAmazonScraperNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class ApifyYouTubeScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyYouTubeScraper";
-            static readonly title = "Apify You Tube Scraper";
-            static readonly description = "Scrape YouTube videos, channels, and playlists.\n    Extract video metadata, comments, channel info, and statistics.\n    apify, youtube, video, scraping, social, media, channels";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Apify You Tube Scraper";
+  static readonly description =
+    "Scrape YouTube videos, channels, and playlists.\n    Extract video metadata, comments, channel info, and statistics.\n    apify, youtube, video, scraping, social, media, channels";
+  static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-          static readonly requiredSettings = [
-  "APIFY_API_KEY"
-];
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "list[str]", default: null, title: "Search Queries", description: "List of search queries to execute on YouTube", required: true })
+  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Search Queries",
+    description: "List of search queries to execute on YouTube",
+    required: true
+  })
   declare search_queries: any;
 
-  @prop({ type: "list[str]", default: null, title: "Video Urls", description: "List of YouTube video URLs to scrape", required: true })
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Video Urls",
+    description: "List of YouTube video URLs to scrape",
+    required: true
+  })
   declare video_urls: any;
 
-  @prop({ type: "list[str]", default: null, title: "Channel Urls", description: "List of YouTube channel URLs to scrape", required: true })
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Channel Urls",
+    description: "List of YouTube channel URLs to scrape",
+    required: true
+  })
   declare channel_urls: any;
 
-  @prop({ type: "int", default: 50, title: "Max Results", description: "Maximum number of videos to scrape" })
+  @prop({
+    type: "int",
+    default: 50,
+    title: "Max Results",
+    description: "Maximum number of videos to scrape"
+  })
   declare max_results: any;
 
-  @prop({ type: "bool", default: false, title: "Scrape Comments", description: "Whether to scrape video comments" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Scrape Comments",
+    description: "Whether to scrape video comments"
+  })
   declare scrape_comments: any;
 
-  @prop({ type: "int", default: 600, title: "Wait For Finish", description: "Maximum time to wait for scraping to complete (seconds)" })
+  @prop({
+    type: "int",
+    default: 600,
+    title: "Wait For Finish",
+    description: "Maximum time to wait for scraping to complete (seconds)"
+  })
   declare wait_for_finish: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApifyApiKey(this._secrets);
@@ -363,7 +495,7 @@ export class ApifyYouTubeScraperNode extends BaseNode {
     const startUrls: { url: string }[] = [];
     for (const query of searchQueries) {
       startUrls.push({
-        url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+        url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
       });
     }
     for (const url of videoUrls) {
@@ -376,7 +508,7 @@ export class ApifyYouTubeScraperNode extends BaseNode {
     const runInput = {
       startUrls,
       maxResults: Number(this.max_results ?? 50),
-      scrapeComments: Boolean(this.scrape_comments ?? false),
+      scrapeComments: Boolean(this.scrape_comments ?? false)
     };
 
     const items = await runActor(
@@ -394,33 +526,57 @@ export class ApifyYouTubeScraperNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class ApifyTwitterScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyTwitterScraper";
-            static readonly title = "Apify Twitter Scraper";
-            static readonly description = "Scrape Twitter/X posts, profiles, and followers.\n    Extract tweets, user information, and engagement metrics.\n    apify, twitter, x, social, media, scraping, tweets, posts";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Apify Twitter Scraper";
+  static readonly description =
+    "Scrape Twitter/X posts, profiles, and followers.\n    Extract tweets, user information, and engagement metrics.\n    apify, twitter, x, social, media, scraping, tweets, posts";
+  static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-          static readonly requiredSettings = [
-  "APIFY_API_KEY"
-];
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "list[str]", default: null, title: "Search Terms", description: "List of search terms to find tweets", required: true })
+  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Search Terms",
+    description: "List of search terms to find tweets",
+    required: true
+  })
   declare search_terms: any;
 
-  @prop({ type: "list[str]", default: null, title: "Usernames", description: "List of Twitter usernames to scrape", required: true })
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Usernames",
+    description: "List of Twitter usernames to scrape",
+    required: true
+  })
   declare usernames: any;
 
-  @prop({ type: "list[str]", default: null, title: "Tweet Urls", description: "List of specific tweet URLs to scrape", required: true })
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Tweet Urls",
+    description: "List of specific tweet URLs to scrape",
+    required: true
+  })
   declare tweet_urls: any;
 
-  @prop({ type: "int", default: 100, title: "Max Tweets", description: "Maximum number of tweets to scrape" })
+  @prop({
+    type: "int",
+    default: 100,
+    title: "Max Tweets",
+    description: "Maximum number of tweets to scrape"
+  })
   declare max_tweets: any;
 
-  @prop({ type: "int", default: 600, title: "Wait For Finish", description: "Maximum time to wait for scraping to complete (seconds)" })
+  @prop({
+    type: "int",
+    default: 600,
+    title: "Wait For Finish",
+    description: "Maximum time to wait for scraping to complete (seconds)"
+  })
   declare wait_for_finish: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApifyApiKey(this._secrets);
@@ -450,7 +606,7 @@ export class ApifyTwitterScraperNode extends BaseNode {
 
     const runInput = {
       startUrls,
-      maxItems: Number(this.max_tweets ?? 100),
+      maxItems: Number(this.max_tweets ?? 100)
     };
 
     const items = await runActor(
@@ -468,33 +624,57 @@ export class ApifyTwitterScraperNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class ApifyLinkedInScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyLinkedInScraper";
-            static readonly title = "Apify Linked In Scraper";
-            static readonly description = "Scrape LinkedIn profiles, company pages, and job postings.\n    Extract professional information, connections, and company data.\n    apify, linkedin, professional, social, scraping, profiles, jobs";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Apify Linked In Scraper";
+  static readonly description =
+    "Scrape LinkedIn profiles, company pages, and job postings.\n    Extract professional information, connections, and company data.\n    apify, linkedin, professional, social, scraping, profiles, jobs";
+  static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-          static readonly requiredSettings = [
-  "APIFY_API_KEY"
-];
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "list[str]", default: null, title: "Profile Urls", description: "List of LinkedIn profile URLs to scrape", required: true })
+  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Profile Urls",
+    description: "List of LinkedIn profile URLs to scrape",
+    required: true
+  })
   declare profile_urls: any;
 
-  @prop({ type: "list[str]", default: null, title: "Company Urls", description: "List of LinkedIn company page URLs to scrape", required: true })
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Company Urls",
+    description: "List of LinkedIn company page URLs to scrape",
+    required: true
+  })
   declare company_urls: any;
 
-  @prop({ type: "list[str]", default: null, title: "Job Search Urls", description: "List of LinkedIn job search URLs", required: true })
+  @prop({
+    type: "list[str]",
+    default: null,
+    title: "Job Search Urls",
+    description: "List of LinkedIn job search URLs",
+    required: true
+  })
   declare job_search_urls: any;
 
-  @prop({ type: "int", default: 50, title: "Max Results", description: "Maximum number of results to scrape" })
+  @prop({
+    type: "int",
+    default: 50,
+    title: "Max Results",
+    description: "Maximum number of results to scrape"
+  })
   declare max_results: any;
 
-  @prop({ type: "int", default: 600, title: "Wait For Finish", description: "Maximum time to wait for scraping to complete (seconds)" })
+  @prop({
+    type: "int",
+    default: 600,
+    title: "Wait For Finish",
+    description: "Maximum time to wait for scraping to complete (seconds)"
+  })
   declare wait_for_finish: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApifyApiKey(this._secrets);
@@ -515,7 +695,7 @@ export class ApifyLinkedInScraperNode extends BaseNode {
 
     const runInput = {
       startUrls: allUrls.map((url: string) => ({ url })),
-      maxResults: Number(this.max_results ?? 50),
+      maxResults: Number(this.max_results ?? 50)
     };
 
     const items = await runActor(
@@ -538,5 +718,5 @@ export const APIFY_NODES: readonly NodeClass[] = [
   ApifyAmazonScraperNode,
   ApifyYouTubeScraperNode,
   ApifyTwitterScraperNode,
-  ApifyLinkedInScraperNode,
+  ApifyLinkedInScraperNode
 ] as const;

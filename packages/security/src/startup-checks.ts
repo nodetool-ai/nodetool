@@ -18,7 +18,7 @@ const OPTIONAL_API_KEYS = [
   "REPLICATE_API_TOKEN",
   "HF_TOKEN",
   "ELEVENLABS_API_KEY",
-  "FAL_API_KEY",
+  "FAL_API_KEY"
 ];
 
 /**
@@ -45,7 +45,9 @@ export async function runStartupChecks(): Promise<StartupCheckResult> {
   // Check optional API keys
   for (const envVar of OPTIONAL_API_KEYS) {
     if (!process.env[envVar]) {
-      warnings.push(`${envVar} is not set — related features will be unavailable`);
+      warnings.push(
+        `${envVar} is not set — related features will be unavailable`
+      );
     }
   }
 

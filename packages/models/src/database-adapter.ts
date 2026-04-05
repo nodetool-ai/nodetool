@@ -6,13 +6,12 @@
 
 import type { ConditionBuilder } from "./condition-builder.js";
 
- 
 export type Row = Record<string, any>;
 
 export interface TableSchema {
   table_name: string;
   primary_key?: string; // defaults to "id"
-   
+
   columns: Record<string, FieldDef>;
 }
 
@@ -67,7 +66,7 @@ export interface DatabaseAdapter {
   createIndex(
     indexName: string,
     columns: string[],
-    unique?: boolean,
+    unique?: boolean
   ): Promise<void>;
 
   /** Drop an index. */

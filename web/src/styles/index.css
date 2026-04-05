@@ -22,6 +22,15 @@ html, body, #root {
 
 /* Mobile viewport containment moved to mobile.css */
 
+@keyframes page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page-enter {
+  animation: page-enter 300ms ease-out both;
+}
+
 @property --gradient-angle {
   syntax: '<angle>';
   initial-value: 90deg;

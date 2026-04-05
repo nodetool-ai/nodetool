@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Invert"
-node_type: "lib.pillow.filter.Invert"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.Invert"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.Invert`
+**Type:** `lib.image.filter.Invert`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -34,5 +34,5 @@ Invert the colors of an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

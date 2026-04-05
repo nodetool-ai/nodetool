@@ -39,7 +39,7 @@ describe("CalculatorTool", () => {
 
     it("evaluates complex expressions", async () => {
       const result = await tool.process(ctx, {
-        expression: "(2 + 3) * 4 - 1",
+        expression: "(2 + 3) * 4 - 1"
       });
       expect(result).toEqual({ result: 19 });
     });
@@ -109,12 +109,14 @@ describe("CalculatorTool", () => {
     it("returns error for syntax errors", async () => {
       const result = await tool.process(ctx, { expression: "2 +" });
       expect(result).toHaveProperty("error");
-      expect((result as { error: string }).error).toContain("Failed to evaluate");
+      expect((result as { error: string }).error).toContain(
+        "Failed to evaluate"
+      );
     });
 
     it("returns error for undefined variables", async () => {
       const result = await tool.process(ctx, {
-        expression: "unknownVar + 1",
+        expression: "unknownVar + 1"
       });
       expect(result).toHaveProperty("error");
     });

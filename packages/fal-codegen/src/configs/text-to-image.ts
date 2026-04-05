@@ -10,10 +10,10 @@ export const config: ModuleConfig = {
         ["PORTRAIT_4_3", "portrait_4_3"],
         ["PORTRAIT_16_9", "portrait_16_9"],
         ["LANDSCAPE_4_3", "landscape_4_3"],
-        ["LANDSCAPE_16_9", "landscape_16_9"],
+        ["LANDSCAPE_16_9", "landscape_16_9"]
       ],
-      description: "Preset sizes for image generation",
-    },
+      description: "Preset sizes for image generation"
+    }
   },
   configs: {
     "fal-ai/flux/dev": {
@@ -26,143 +26,128 @@ export const config: ModuleConfig = {
         "Create detailed illustrations with precise control",
         "Produce professional artwork and designs",
         "Generate multiple variations from one prompt",
-        "Create safe-for-work content with built-in safety checker",
+        "Create safe-for-work content with built-in safety checker"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         image_size: {
           propType: "enum",
           enumRef: "ImageSizePreset",
           default: "landscape_4_3",
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         num_inference_steps: {
           description:
-            "Number of denoising steps. More steps typically improve quality",
+            "Number of denoising steps. More steps typically improve quality"
         },
         guidance_scale: {
           description:
-            "How strictly to follow the prompt. Higher values are more literal",
+            "How strictly to follow the prompt. Higher values are more literal"
         },
         num_images: {
-          description: "Number of images to generate",
+          description: "Number of images to generate"
         },
         seed: {
           propType: "int",
           default: -1,
-          description: "Seed for reproducible results. Use -1 for random",
+          description: "Seed for reproducible results. Use -1 for random"
         },
         enable_safety_checker: {
-          description: "Enable safety checker to filter unsafe content",
-        },
+          description: "Enable safety checker to filter unsafe content"
+        }
       },
       enumOverrides: { ImageSize: "ImageSizePreset" },
-      basicFields: ["prompt", "image_size", "num_inference_steps"],
+      basicFields: ["prompt", "image_size", "num_inference_steps"]
     },
 
     "fal-ai/flux/schnell": {
       className: "FluxSchnell",
       docstring:
         "FLUX.1 [schnell] is a fast distilled version of FLUX.1 optimized for speed. Can generate high-quality images in 1-4 steps.",
-      tags: [
-        "image",
-        "generation",
-        "flux",
-        "fast",
-        "text-to-image",
-        "txt2img",
-      ],
+      tags: ["image", "generation", "flux", "fast", "text-to-image", "txt2img"],
       useCases: [
         "Generate images quickly for rapid iteration",
         "Create concept art with minimal latency",
         "Produce preview images before final generation",
         "Generate multiple variations efficiently",
-        "Real-time image generation applications",
+        "Real-time image generation applications"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         image_size: {
           propType: "enum",
           enumRef: "ImageSizePreset",
           default: "landscape_4_3",
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         num_inference_steps: {
-          description:
-            "Number of denoising steps (1-4 recommended for schnell)",
+          description: "Number of denoising steps (1-4 recommended for schnell)"
         },
         num_images: {
-          description: "Number of images to generate",
+          description: "Number of images to generate"
         },
         seed: {
           propType: "int",
           default: -1,
-          description: "Seed for reproducible results. Use -1 for random",
+          description: "Seed for reproducible results. Use -1 for random"
         },
         enable_safety_checker: {
-          description: "Enable safety checker to filter unsafe content",
-        },
+          description: "Enable safety checker to filter unsafe content"
+        }
       },
       enumOverrides: { ImageSize: "ImageSizePreset" },
-      basicFields: ["prompt", "image_size", "num_inference_steps"],
+      basicFields: ["prompt", "image_size", "num_inference_steps"]
     },
 
     "fal-ai/flux-pro/v1.1": {
       className: "FluxV1Pro",
       docstring:
         "FLUX.1 Pro is a state-of-the-art image generation model with superior prompt following and image quality.",
-      tags: [
-        "image",
-        "generation",
-        "flux",
-        "pro",
-        "text-to-image",
-        "txt2img",
-      ],
+      tags: ["image", "generation", "flux", "pro", "text-to-image", "txt2img"],
       useCases: [
         "Generate professional-grade images for commercial use",
         "Create highly detailed artwork with complex prompts",
         "Produce marketing materials and brand assets",
         "Generate photorealistic images",
-        "Create custom visual content with precise control",
+        "Create custom visual content with precise control"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         image_size: {
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         guidance_scale: {
           description:
-            "How strictly to follow the prompt. Higher values are more literal",
+            "How strictly to follow the prompt. Higher values are more literal"
         },
         num_inference_steps: {
           description:
-            "Number of denoising steps. More steps typically improve quality",
+            "Number of denoising steps. More steps typically improve quality"
         },
         seed: {
-          description: "Seed for reproducible results. Use -1 for random",
+          description: "Seed for reproducible results. Use -1 for random"
         },
         num_images: {
-          description: "Number of images to generate",
+          description: "Number of images to generate"
         },
         enable_safety_checker: {
-          description: "Enable safety checker to filter unsafe content",
+          description: "Enable safety checker to filter unsafe content"
         },
         safety_tolerance: {
           description:
-            "Safety checker tolerance level (1-6). Higher is more permissive",
+            "Safety checker tolerance level (1-6). Higher is more permissive"
         },
         output_format: {
-          description: "Output image format (jpeg or png)",
-        },
+          description: "Output image format (jpeg or png)"
+        }
       },
-      basicFields: ["prompt", "image_size", "guidance_scale"],
+      basicFields: ["prompt", "image_size", "guidance_scale"]
     },
 
     "fal-ai/flux-pro/v1.1-ultra": {
@@ -176,45 +161,45 @@ export const config: ModuleConfig = {
         "pro",
         "ultra",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Generate ultra-high quality photorealistic images",
         "Create professional photography-grade visuals",
         "Produce detailed product renders",
         "Generate premium marketing materials",
-        "Create artistic masterpieces with fine details",
+        "Create artistic masterpieces with fine details"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         image_size: {
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         guidance_scale: {
-          description: "How strictly to follow the prompt",
+          description: "How strictly to follow the prompt"
         },
         num_inference_steps: {
-          description: "Number of denoising steps",
+          description: "Number of denoising steps"
         },
         seed: {
-          description: "Seed for reproducible results. Use -1 for random",
+          description: "Seed for reproducible results. Use -1 for random"
         },
         num_images: {
-          description: "Number of images to generate",
+          description: "Number of images to generate"
         },
         raw: {
-          description: "Generate less processed, more natural results",
+          description: "Generate less processed, more natural results"
         },
         aspect_ratio: {
-          description: "Aspect ratio for the generated image",
+          description: "Aspect ratio for the generated image"
         },
         image_prompt_strength: {
-          description: "Strength of image prompt influence (0-1)",
-        },
+          description: "Strength of image prompt influence (0-1)"
+        }
       },
-      basicFields: ["prompt", "image_size", "aspect_ratio"],
+      basicFields: ["prompt", "image_size", "aspect_ratio"]
     },
 
     "fal-ai/flux-lora": {
@@ -228,39 +213,39 @@ export const config: ModuleConfig = {
         "lora",
         "fine-tuning",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Generate images with custom artistic styles",
         "Create consistent characters across images",
         "Apply brand-specific visual styles",
         "Generate images with specialized subjects",
-        "Combine multiple LoRA models for unique results",
+        "Combine multiple LoRA models for unique results"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         image_size: {
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         num_inference_steps: {
-          description: "Number of denoising steps",
+          description: "Number of denoising steps"
         },
         guidance_scale: {
-          description: "How strictly to follow the prompt",
+          description: "How strictly to follow the prompt"
         },
         loras: {
-          description: "List of LoRA models to apply with their weights",
+          description: "List of LoRA models to apply with their weights"
         },
         seed: {
-          description: "Seed for reproducible results. Use -1 for random",
+          description: "Seed for reproducible results. Use -1 for random"
         },
         enable_safety_checker: {
-          description: "Enable safety checker to filter unsafe content",
-        },
+          description: "Enable safety checker to filter unsafe content"
+        }
       },
-      basicFields: ["prompt", "loras", "image_size"],
+      basicFields: ["prompt", "loras", "image_size"]
     },
 
     "fal-ai/ideogram/v2": {
@@ -274,37 +259,37 @@ export const config: ModuleConfig = {
         "typography",
         "realistic",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Create commercial artwork and designs",
         "Generate realistic product visualizations",
         "Design marketing materials with text",
         "Produce high-quality illustrations",
-        "Create brand assets and logos",
+        "Create brand assets and logos"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         aspect_ratio: {
-          description: "The aspect ratio of the generated image",
+          description: "The aspect ratio of the generated image"
         },
         expand_prompt: {
           description:
-            "Whether to expand the prompt with MagicPrompt functionality",
+            "Whether to expand the prompt with MagicPrompt functionality"
         },
         style: {
-          description: "The style of the generated image",
+          description: "The style of the generated image"
         },
         negative_prompt: {
-          description: "A negative prompt to avoid in the generated image",
+          description: "A negative prompt to avoid in the generated image"
         },
         seed: {
-          description: "Seed for reproducible results. Use -1 for random",
-        },
+          description: "Seed for reproducible results. Use -1 for random"
+        }
       },
-      basicFields: ["prompt", "aspect_ratio", "style"],
+      basicFields: ["prompt", "aspect_ratio", "style"]
     },
 
     "fal-ai/ideogram/v2/turbo": {
@@ -319,37 +304,37 @@ export const config: ModuleConfig = {
         "realistic",
         "fast",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Rapidly generate commercial designs",
         "Quick iteration on marketing materials",
         "Fast prototyping of visual concepts",
         "Real-time design exploration",
-        "Efficient batch generation of branded content",
+        "Efficient batch generation of branded content"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         aspect_ratio: {
-          description: "The aspect ratio of the generated image",
+          description: "The aspect ratio of the generated image"
         },
         expand_prompt: {
           description:
-            "Whether to expand the prompt with MagicPrompt functionality",
+            "Whether to expand the prompt with MagicPrompt functionality"
         },
         style: {
-          description: "The style of the generated image",
+          description: "The style of the generated image"
         },
         negative_prompt: {
-          description: "A negative prompt to avoid in the generated image",
+          description: "A negative prompt to avoid in the generated image"
         },
         seed: {
-          description: "Seed for reproducible results. Use -1 for random",
-        },
+          description: "Seed for reproducible results. Use -1 for random"
+        }
       },
-      basicFields: ["prompt", "aspect_ratio", "style"],
+      basicFields: ["prompt", "aspect_ratio", "style"]
     },
 
     "fal-ai/recraft-v3": {
@@ -363,34 +348,34 @@ export const config: ModuleConfig = {
         "branding",
         "style",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Create brand-consistent visual assets",
         "Generate designs with specific color palettes",
         "Produce stylized illustrations and artwork",
         "Design marketing materials with brand colors",
-        "Create cohesive visual content series",
+        "Create cohesive visual content series"
       ],
       enumOverrides: { Style: "RecraftV3Style" },
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         image_size: {
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         style: {
-          description: "Visual style preset for the generated image",
+          description: "Visual style preset for the generated image"
         },
         colors: {
-          description: "Specific color palette to use in the generation",
+          description: "Specific color palette to use in the generation"
         },
         style_id: {
-          description: "Custom style ID for brand-specific styles",
-        },
+          description: "Custom style ID for brand-specific styles"
+        }
       },
-      basicFields: ["prompt", "style", "colors"],
+      basicFields: ["prompt", "style", "colors"]
     },
 
     "fal-ai/stable-diffusion-v35-large": {
@@ -403,27 +388,27 @@ export const config: ModuleConfig = {
         "stable-diffusion",
         "open-source",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Generate diverse artistic styles",
         "Create high-quality illustrations",
         "Produce photorealistic images",
         "Generate concept art and designs",
-        "Create custom visual content",
+        "Create custom visual content"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         negative_prompt: {
-          description: "Elements to avoid in the generated image",
+          description: "Elements to avoid in the generated image"
         },
         aspect_ratio: {
-          description: "The aspect ratio of the generated image",
-        },
+          description: "The aspect ratio of the generated image"
+        }
       },
-      basicFields: ["prompt", "negative_prompt", "aspect_ratio"],
+      basicFields: ["prompt", "negative_prompt", "aspect_ratio"]
     },
 
     "fal-ai/flux-pro/new": {
@@ -436,32 +421,32 @@ export const config: ModuleConfig = {
         "flux",
         "professional",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Generate professional-grade marketing visuals",
         "Create high-quality product renders",
         "Produce detailed architectural visualizations",
         "Design premium brand assets",
-        "Generate photorealistic commercial imagery",
+        "Generate photorealistic commercial imagery"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         image_size: {
           propType: "enum",
           enumRef: "ImageSizePreset",
           default: "landscape_4_3",
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         seed: {
           propType: "int",
           default: -1,
-          description: "Seed for reproducible results. Use -1 for random",
-        },
+          description: "Seed for reproducible results. Use -1 for random"
+        }
       },
-      basicFields: ["prompt", "image_size"],
+      basicFields: ["prompt", "image_size"]
     },
 
     "fal-ai/flux-2/turbo": {
@@ -475,35 +460,35 @@ export const config: ModuleConfig = {
         "fast",
         "turbo",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Real-time image generation for interactive apps",
         "Rapid prototyping of visual concepts",
         "Generate multiple variations instantly",
         "Live visual effects and augmented reality",
-        "High-throughput batch image processing",
+        "High-throughput batch image processing"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         image_size: {
           propType: "enum",
           enumRef: "ImageSizePreset",
           default: "landscape_4_3",
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         num_images: {
-          description: "Number of images to generate",
+          description: "Number of images to generate"
         },
         seed: {
           propType: "int",
           default: -1,
-          description: "Seed for reproducible results. Use -1 for random",
-        },
+          description: "Seed for reproducible results. Use -1 for random"
+        }
       },
-      basicFields: ["prompt", "image_size", "num_images"],
+      basicFields: ["prompt", "image_size", "num_images"]
     },
 
     "fal-ai/flux-2/flash": {
@@ -517,32 +502,32 @@ export const config: ModuleConfig = {
         "ultra-fast",
         "flash",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Instant preview generation for user interfaces",
         "Real-time collaborative design tools",
         "Lightning-fast concept exploration",
         "High-speed batch processing",
-        "Interactive gaming and entertainment applications",
+        "Interactive gaming and entertainment applications"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         image_size: {
           propType: "enum",
           enumRef: "ImageSizePreset",
           default: "landscape_4_3",
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         seed: {
           propType: "int",
           default: -1,
-          description: "Seed for reproducible results. Use -1 for random",
-        },
+          description: "Seed for reproducible results. Use -1 for random"
+        }
       },
-      basicFields: ["prompt", "image_size"],
+      basicFields: ["prompt", "image_size"]
     },
 
     "fal-ai/ideogram/v3": {
@@ -556,30 +541,30 @@ export const config: ModuleConfig = {
         "typography",
         "text-rendering",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Create professional graphics with embedded text",
         "Design social media posts with perfect typography",
         "Generate logos and brand identities",
         "Produce marketing materials with text overlays",
-        "Create educational content with clear text",
+        "Create educational content with clear text"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         aspect_ratio: {
-          description: "The aspect ratio of the generated image",
+          description: "The aspect ratio of the generated image"
         },
         style: {
-          description: "The style preset for the generated image",
+          description: "The style preset for the generated image"
         },
         expand_prompt: {
-          description: "Automatically enhance the prompt for better results",
-        },
+          description: "Automatically enhance the prompt for better results"
+        }
       },
-      basicFields: ["prompt", "aspect_ratio", "style"],
+      basicFields: ["prompt", "aspect_ratio", "style"]
     },
 
     "fal-ai/omnigen-v1": {
@@ -593,32 +578,32 @@ export const config: ModuleConfig = {
         "editing",
         "unified",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Generate images with multiple input modalities",
         "Edit existing images with text instructions",
         "Create complex compositional scenes",
         "Combine text and image inputs for generation",
-        "Perform advanced image manipulations",
+        "Perform advanced image manipulations"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate or edit an image",
+          description: "The prompt to generate or edit an image"
         },
         guidance_scale: {
-          description: "How strictly to follow the prompt and inputs",
+          description: "How strictly to follow the prompt and inputs"
         },
         num_inference_steps: {
-          description: "Number of denoising steps for generation quality",
+          description: "Number of denoising steps for generation quality"
         },
         seed: {
           propType: "int",
           default: -1,
-          description: "Seed for reproducible results. Use -1 for random",
-        },
+          description: "Seed for reproducible results. Use -1 for random"
+        }
       },
-      basicFields: ["prompt", "guidance_scale", "num_inference_steps"],
+      basicFields: ["prompt", "guidance_scale", "num_inference_steps"]
     },
 
     "fal-ai/sana": {
@@ -631,36 +616,36 @@ export const config: ModuleConfig = {
         "efficient",
         "high-resolution",
         "text-to-image",
-        "txt2img",
+        "txt2img"
       ],
       useCases: [
         "Generate high-resolution images efficiently",
         "Create detailed artwork with good performance",
         "Produce quality visuals with limited compute",
         "Generate images for web and mobile applications",
-        "Balanced quality-speed image production",
+        "Balanced quality-speed image production"
       ],
       fieldOverrides: {
         prompt: {
-          description: "The prompt to generate an image from",
+          description: "The prompt to generate an image from"
         },
         negative_prompt: {
-          description: "Elements to avoid in the generated image",
+          description: "Elements to avoid in the generated image"
         },
         image_size: {
           propType: "enum",
           enumRef: "ImageSizePreset",
           default: "landscape_4_3",
-          description: "Size preset for the generated image",
+          description: "Size preset for the generated image"
         },
         guidance_scale: {
-          description: "How strictly to follow the prompt",
+          description: "How strictly to follow the prompt"
         },
         num_inference_steps: {
-          description: "Number of denoising steps",
-        },
+          description: "Number of denoising steps"
+        }
       },
-      basicFields: ["prompt", "image_size", "guidance_scale"],
+      basicFields: ["prompt", "image_size", "guidance_scale"]
     },
 
     "fal-ai/hunyuan-image/v3/instruct/text-to-image": {
@@ -673,38 +658,31 @@ export const config: ModuleConfig = {
         "hunyuan",
         "v3",
         "instruct",
-        "text-to-image",
+        "text-to-image"
       ],
       useCases: [
         "Generate images with detailed instructions",
         "Create artwork with precise text control",
         "Produce high-quality visual content",
         "Generate images with advanced understanding",
-        "Create professional visuals from text",
+        "Create professional visuals from text"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/qwen-image-max/text-to-image": {
       className: "QwenImageMaxTextToImage",
       docstring:
         "Qwen Image Max generates premium quality images from text with superior detail and accuracy.",
-      tags: [
-        "image",
-        "generation",
-        "qwen",
-        "max",
-        "premium",
-        "text-to-image",
-      ],
+      tags: ["image", "generation", "qwen", "max", "premium", "text-to-image"],
       useCases: [
         "Generate premium quality images",
         "Create detailed artwork from text",
         "Produce high-fidelity visual content",
         "Generate professional-grade images",
-        "Create superior quality visuals",
+        "Create superior quality visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/qwen-image-2512": {
@@ -717,16 +695,16 @@ export const config: ModuleConfig = {
         "qwen",
         "2512",
         "high-resolution",
-        "text-to-image",
+        "text-to-image"
       ],
       useCases: [
         "Generate high-resolution images",
         "Create detailed visual content",
         "Produce quality artwork from text",
         "Generate images with fine details",
-        "Create high-quality visuals",
+        "Create high-quality visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/qwen-image-2512/lora": {
@@ -739,9 +717,9 @@ export const config: ModuleConfig = {
         "Create specialized visual content",
         "Produce domain-specific artwork",
         "Generate images with fine-tuned models",
-        "Create customized visuals",
+        "Create customized visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/z-image/base": {
@@ -754,16 +732,16 @@ export const config: ModuleConfig = {
         "z-image",
         "base",
         "efficient",
-        "text-to-image",
+        "text-to-image"
       ],
       useCases: [
         "Generate images efficiently",
         "Create quality artwork from text",
         "Produce visual content quickly",
         "Generate images with good performance",
-        "Create efficient visuals",
+        "Create efficient visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/z-image/base/lora": {
@@ -776,9 +754,9 @@ export const config: ModuleConfig = {
         "Create specialized content quickly",
         "Produce domain-specific visuals",
         "Generate with fine-tuned base model",
-        "Create efficient custom visuals",
+        "Create efficient custom visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/z-image/turbo": {
@@ -791,16 +769,16 @@ export const config: ModuleConfig = {
         "z-image",
         "turbo",
         "fast",
-        "text-to-image",
+        "text-to-image"
       ],
       useCases: [
         "Generate images at maximum speed",
         "Create rapid prototypes from text",
         "Produce quick visual iterations",
         "Generate images for fast workflows",
-        "Create instant visual content",
+        "Create instant visual content"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/z-image/turbo/lora": {
@@ -813,31 +791,24 @@ export const config: ModuleConfig = {
         "Create specialized content rapidly",
         "Produce quick domain-specific visuals",
         "Generate with fast fine-tuned models",
-        "Create instant custom visuals",
+        "Create instant custom visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/flux-2/klein/4b": {
       className: "Flux2Klein4B",
       docstring:
         "FLUX-2 Klein 4B generates images with the efficient 4-billion parameter model for balanced quality and speed.",
-      tags: [
-        "image",
-        "generation",
-        "flux-2",
-        "klein",
-        "4b",
-        "text-to-image",
-      ],
+      tags: ["image", "generation", "flux-2", "klein", "4b", "text-to-image"],
       useCases: [
         "Generate images with 4B model",
         "Create balanced quality-speed content",
         "Produce efficient visual artwork",
         "Generate images with good performance",
-        "Create optimized visuals",
+        "Create optimized visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/flux-2/klein/4b/base": {
@@ -850,54 +821,39 @@ export const config: ModuleConfig = {
         "Create foundation quality content",
         "Produce standard visual artwork",
         "Generate images with base model",
-        "Create baseline visuals",
+        "Create baseline visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/flux-2/klein/4b/base/lora": {
       className: "Flux2Klein4BBaseLora",
       docstring:
         "FLUX-2 Klein 4B Base with LoRA enables custom-trained 4B models for specialized generation.",
-      tags: [
-        "image",
-        "generation",
-        "flux-2",
-        "klein",
-        "4b",
-        "base",
-        "lora",
-      ],
+      tags: ["image", "generation", "flux-2", "klein", "4b", "base", "lora"],
       useCases: [
         "Generate with custom 4B base model",
         "Create specialized foundation content",
         "Produce domain-specific visuals",
         "Generate with fine-tuned 4B model",
-        "Create customized baseline visuals",
+        "Create customized baseline visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/flux-2/klein/9b": {
       className: "Flux2Klein9B",
       docstring:
         "FLUX-2 Klein 9B generates high-quality images with the powerful 9-billion parameter model.",
-      tags: [
-        "image",
-        "generation",
-        "flux-2",
-        "klein",
-        "9b",
-        "text-to-image",
-      ],
+      tags: ["image", "generation", "flux-2", "klein", "9b", "text-to-image"],
       useCases: [
         "Generate high-quality images with 9B model",
         "Create superior visual content",
         "Produce detailed artwork",
         "Generate images with powerful model",
-        "Create premium quality visuals",
+        "Create premium quality visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/flux-2/klein/9b/base": {
@@ -910,32 +866,24 @@ export const config: ModuleConfig = {
         "Create high-quality foundation content",
         "Produce superior baseline artwork",
         "Generate images with powerful base",
-        "Create premium baseline visuals",
+        "Create premium baseline visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/flux-2/klein/9b/base/lora": {
       className: "Flux2Klein9BBaseLora",
       docstring:
         "FLUX-2 Klein 9B Base with LoRA combines powerful generation with custom-trained models.",
-      tags: [
-        "image",
-        "generation",
-        "flux-2",
-        "klein",
-        "9b",
-        "base",
-        "lora",
-      ],
+      tags: ["image", "generation", "flux-2", "klein", "9b", "base", "lora"],
       useCases: [
         "Generate with custom 9B base model",
         "Create specialized high-quality content",
         "Produce custom superior visuals",
         "Generate with fine-tuned 9B model",
-        "Create advanced customized visuals",
+        "Create advanced customized visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/flux-2-max": {
@@ -948,16 +896,16 @@ export const config: ModuleConfig = {
         "flux-2",
         "max",
         "premium",
-        "text-to-image",
+        "text-to-image"
       ],
       useCases: [
         "Generate maximum quality images",
         "Create premium visual content",
         "Produce professional-grade artwork",
         "Generate images with best model",
-        "Create superior quality visuals",
+        "Create superior quality visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/glm-image": {
@@ -970,52 +918,39 @@ export const config: ModuleConfig = {
         "Create intelligent visual content",
         "Produce AI-powered artwork",
         "Generate images with understanding",
-        "Create smart visuals from text",
+        "Create smart visuals from text"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/gpt-image-1.5": {
       className: "GptImage15",
       docstring:
         "GPT Image 1.5 generates images from text with GPT-powered language understanding and visual creation.",
-      tags: [
-        "image",
-        "generation",
-        "gpt",
-        "language-ai",
-        "text-to-image",
-      ],
+      tags: ["image", "generation", "gpt", "language-ai", "text-to-image"],
       useCases: [
         "Generate images with GPT understanding",
         "Create language-aware visual content",
         "Produce intelligent artwork",
         "Generate images with natural language",
-        "Create GPT-powered visuals",
+        "Create GPT-powered visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "wan/v2.6/text-to-image": {
       className: "WanV26TextToImage",
       docstring:
         "Wan v2.6 generates high-quality images from text with advanced capabilities and consistent results.",
-      tags: [
-        "image",
-        "generation",
-        "wan",
-        "v2.6",
-        "quality",
-        "text-to-image",
-      ],
+      tags: ["image", "generation", "wan", "v2.6", "quality", "text-to-image"],
       useCases: [
         "Generate quality images with Wan v2.6",
         "Create consistent visual content",
         "Produce reliable artwork from text",
         "Generate images with advanced model",
-        "Create high-quality visuals",
+        "Create high-quality visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/longcat-image": {
@@ -1028,9 +963,9 @@ export const config: ModuleConfig = {
         "Create unique visual content",
         "Produce distinctive artwork",
         "Generate images with character",
-        "Create artistic visuals",
+        "Create artistic visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/bytedance/seedream/v4.5/text-to-image": {
@@ -1043,38 +978,31 @@ export const config: ModuleConfig = {
         "bytedance",
         "seedream",
         "v4.5",
-        "text-to-image",
+        "text-to-image"
       ],
       useCases: [
         "Generate images with SeeDream v4.5",
         "Create cutting-edge visual content",
         "Produce advanced AI artwork",
         "Generate images with latest tech",
-        "Create modern AI visuals",
+        "Create modern AI visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "fal-ai/vidu/q2/text-to-image": {
       className: "ViduQ2TextToImage",
       docstring:
         "Vidu Q2 generates quality images from text with optimized performance and consistent results.",
-      tags: [
-        "image",
-        "generation",
-        "vidu",
-        "q2",
-        "optimized",
-        "text-to-image",
-      ],
+      tags: ["image", "generation", "vidu", "q2", "optimized", "text-to-image"],
       useCases: [
         "Generate optimized quality images",
         "Create consistent visual content",
         "Produce balanced artwork",
         "Generate images efficiently",
-        "Create reliable visuals",
+        "Create reliable visuals"
       ],
-      basicFields: ["prompt"],
+      basicFields: ["prompt"]
     },
 
     "imagineart/imagineart-1.5-pro-preview/text-to-image": {
@@ -1085,15 +1013,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "professional",
+        "professional"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "bria/fibo-lite/generate": {
@@ -1105,8 +1033,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/ovis-image": {
@@ -1118,8 +1046,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-2-lora-gallery/sepia-vintage": {
@@ -1131,15 +1059,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-2-lora-gallery/satellite-view-style": {
@@ -1151,15 +1079,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-2-lora-gallery/realism": {
@@ -1171,15 +1099,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-2-lora-gallery/hdr-style": {
@@ -1191,15 +1119,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-2-lora-gallery/digital-comic-art": {
@@ -1211,15 +1139,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-2-lora-gallery/ballpoint-pen-sketch": {
@@ -1231,15 +1159,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-2-flex": {
@@ -1251,8 +1179,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/gemini-3-pro-image-preview": {
@@ -1263,15 +1191,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "professional",
+        "professional"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/nano-banana-pro": {
@@ -1282,15 +1210,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "professional",
+        "professional"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "imagineart/imagineart-1.5-preview/text-to-image": {
@@ -1302,8 +1230,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/emu-3.5-image/text-to-image": {
@@ -1315,8 +1243,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "bria/fibo/generate": {
@@ -1328,8 +1256,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/piflow": {
@@ -1341,8 +1269,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/gpt-image-1-mini": {
@@ -1354,8 +1282,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/reve/text-to-image": {
@@ -1367,8 +1295,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/hunyuan-image/v3/text-to-image": {
@@ -1380,8 +1308,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/wan-25-preview/text-to-image": {
@@ -1393,8 +1321,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux/srpo": {
@@ -1406,8 +1334,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-1/srpo": {
@@ -1419,8 +1347,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/hunyuan-image/v2.1/text-to-image": {
@@ -1432,8 +1360,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/bytedance/seedream/v4/text-to-image": {
@@ -1445,8 +1373,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/gemini-25-flash-image": {
@@ -1458,8 +1386,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/nano-banana": {
@@ -1471,8 +1399,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/bytedance/dreamina/v3.1/text-to-image": {
@@ -1484,8 +1412,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/wan/v2.2-a14b/text-to-image/lora": {
@@ -1497,8 +1425,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/wan/v2.2-5b/text-to-image": {
@@ -1510,8 +1438,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/wan/v2.2-a14b/text-to-image": {
@@ -1523,8 +1451,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/qwen-image": {
@@ -1536,8 +1464,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-krea-lora/stream": {
@@ -1549,15 +1477,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-krea-lora": {
@@ -1569,15 +1497,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux/krea": {
@@ -1589,8 +1517,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-1/krea": {
@@ -1602,8 +1530,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/sky-raccoon": {
@@ -1615,8 +1543,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-kontext-lora/text-to-image": {
@@ -1628,15 +1556,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/omnigen-v2": {
@@ -1648,8 +1576,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/bytedance/seedream/v3/text-to-image": {
@@ -1661,8 +1589,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-1/schnell": {
@@ -1675,8 +1603,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-1/dev": {
@@ -1689,8 +1617,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-pro/kontext/max/text-to-image": {
@@ -1703,8 +1631,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-pro/kontext/text-to-image": {
@@ -1717,8 +1645,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/bagel": {
@@ -1731,8 +1659,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/imagen4/preview/ultra": {
@@ -1744,8 +1672,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/dreamo": {
@@ -1758,8 +1686,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-lora/stream": {
@@ -1772,15 +1700,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/minimax/image-01": {
@@ -1793,8 +1721,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/pony-v7": {
@@ -1807,8 +1735,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/f-lite/standard": {
@@ -1821,8 +1749,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/f-lite/texture": {
@@ -1835,8 +1763,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/gpt-image-1/text-to-image": {
@@ -1849,8 +1777,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/sana/v1.5/1.6b": {
@@ -1863,8 +1791,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/sana/v1.5/4.8b": {
@@ -1877,8 +1805,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/sana/sprint": {
@@ -1891,8 +1819,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "rundiffusion-fal/juggernaut-flux-lora": {
@@ -1905,15 +1833,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "rundiffusion-fal/juggernaut-flux/base": {
@@ -1926,8 +1854,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "rundiffusion-fal/juggernaut-flux/lightning": {
@@ -1940,8 +1868,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "rundiffusion-fal/juggernaut-flux/pro": {
@@ -1954,8 +1882,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "rundiffusion-fal/rundiffusion-photo-flux": {
@@ -1968,8 +1896,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/cogview4": {
@@ -1982,8 +1910,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/ideogram/v2a": {
@@ -1996,8 +1924,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/ideogram/v2a/turbo": {
@@ -2010,8 +1938,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-control-lora-canny": {
@@ -2024,15 +1952,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-control-lora-depth": {
@@ -2045,15 +1973,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/imagen3/fast": {
@@ -2066,8 +1994,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/imagen3": {
@@ -2080,8 +2008,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/lumina-image/v2": {
@@ -2094,8 +2022,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/janus": {
@@ -2108,8 +2036,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-pro/v1.1-ultra-finetuned": {
@@ -2122,8 +2050,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/switti": {
@@ -2136,8 +2064,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/switti/512": {
@@ -2150,8 +2078,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/bria/text-to-image/base": {
@@ -2164,8 +2092,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/bria/text-to-image/fast": {
@@ -2178,8 +2106,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/bria/text-to-image/hd": {
@@ -2192,8 +2120,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/recraft-20b": {
@@ -2205,8 +2133,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/luma-photon/flash": {
@@ -2219,8 +2147,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/aura-flow": {
@@ -2233,8 +2161,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/stable-diffusion-v35-medium": {
@@ -2247,8 +2175,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-lora/inpainting": {
@@ -2261,15 +2189,15 @@ export const config: ModuleConfig = {
         "text-to-image",
         "txt2img",
         "ai-art",
-        "lora",
+        "lora"
       ],
       useCases: [
         "AI-powered art generation",
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/stable-diffusion-v3-medium": {
@@ -2282,8 +2210,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/fooocus/upscale-or-vary": {
@@ -2296,8 +2224,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/pixart-sigma": {
@@ -2310,8 +2238,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/flux-subject": {
@@ -2324,8 +2252,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/sdxl-controlnet-union": {
@@ -2337,8 +2265,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/kolors": {
@@ -2350,8 +2278,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/stable-cascade": {
@@ -2364,8 +2292,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/fast-sdxl": {
@@ -2377,8 +2305,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/stable-cascade/sote-diffusion": {
@@ -2390,8 +2318,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/lightning-models": {
@@ -2403,8 +2331,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/playground-v25": {
@@ -2416,8 +2344,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/realistic-vision": {
@@ -2429,8 +2357,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/dreamshaper": {
@@ -2442,8 +2370,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/stable-diffusion-v15": {
@@ -2455,8 +2383,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/layer-diffusion": {
@@ -2468,8 +2396,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/fast-lightning-sdxl": {
@@ -2481,8 +2409,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/fast-fooocus-sdxl/image-to-image": {
@@ -2494,8 +2422,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/fast-sdxl-controlnet-canny": {
@@ -2507,8 +2435,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/hyper-sdxl": {
@@ -2520,8 +2448,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/fast-lcm-diffusion": {
@@ -2533,8 +2461,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/fast-fooocus-sdxl": {
@@ -2546,8 +2474,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/illusion-diffusion": {
@@ -2559,8 +2487,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/fooocus/image-prompt": {
@@ -2573,8 +2501,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/fooocus/inpaint": {
@@ -2587,8 +2515,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/lcm": {
@@ -2600,8 +2528,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/diffusion-edge": {
@@ -2613,30 +2541,23 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/kling-image/o3/text-to-image": {
       className: "KlingImageO3TextToImage",
       docstring:
         "Kling Image O3 generates high-quality images from text prompts with refined detail.",
-      tags: [
-        "image",
-        "generation",
-        "kling",
-        "o3",
-        "text-to-image",
-        "txt2img",
-      ],
+      tags: ["image", "generation", "kling", "o3", "text-to-image", "txt2img"],
       useCases: [
         "Generate images from detailed text prompts",
         "Create high-fidelity concept art",
         "Produce marketing visuals from descriptions",
         "Generate creative illustrations from ideas",
-        "Create polished images for presentations",
+        "Create polished images for presentations"
       ],
-      basicFields: ["prompt", "resolution", "aspect_ratio"],
+      basicFields: ["prompt", "resolution", "aspect_ratio"]
     },
 
     "fal-ai/fooocus": {
@@ -2649,8 +2570,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
+        "Rapid prototyping and mockups"
+      ]
     },
 
     "fal-ai/lora": {
@@ -2663,8 +2584,8 @@ export const config: ModuleConfig = {
         "Marketing and advertising visuals",
         "Concept art and ideation",
         "Social media content creation",
-        "Rapid prototyping and mockups",
-      ],
-    },
-  },
+        "Rapid prototyping and mockups"
+      ]
+    }
+  }
 };

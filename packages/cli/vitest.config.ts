@@ -32,7 +32,7 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool/config",
     // Direct CLI dependencies not installed at the workspace root
     "marked",
-    "marked-terminal",
+    "marked-terminal"
   ]);
 
   return {
@@ -52,13 +52,13 @@ function nodetoolStubPlugin(): Plugin {
         return `export * from ${JSON.stringify(stubPath)};`;
       }
       return null;
-    },
+    }
   };
 }
 
 export default defineConfig({
   plugins: [nodetoolStubPlugin()],
   test: {
-    include: ["tests/**/*.test.ts"],
-  },
+    include: ["tests/**/*.test.ts"]
+  }
 });

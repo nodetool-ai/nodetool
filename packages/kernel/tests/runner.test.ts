@@ -12,7 +12,13 @@
 
 import { describe, it, expect } from "vitest";
 import { WorkflowRunner, type RunJobRequest } from "../src/runner.js";
-import type { NodeDescriptor, Edge, JobUpdate, NodeUpdate, EdgeUpdate } from "@nodetool/protocol";
+import type {
+  NodeDescriptor,
+  Edge,
+  JobUpdate,
+  NodeUpdate,
+  EdgeUpdate
+} from "@nodetool/protocol";
 import type { NodeExecutor } from "../src/actor.js";
 import type { ProcessingContext } from "@nodetool/runtime";
 
@@ -26,7 +32,7 @@ function simpleExecutor(
   return {
     async process(inputs) {
       return fn(inputs);
-    },
+    }
   };
 }
 
@@ -42,7 +48,7 @@ function makeRunner(
       }
       return exec;
     },
-    executionContext,
+    executionContext
   });
 }
 
@@ -55,20 +61,30 @@ describe("WorkflowRunner – simple pipeline", () => {
     const nodes: NodeDescriptor[] = [
       { id: "input", type: "test.Input", name: "x" },
       { id: "double", type: "test.Double" },
-      { id: "output", type: "test.Output", name: "result" },
+      { id: "output", type: "test.Output", name: "result" }
     ];
     const edges: Edge[] = [
-      { source: "input", sourceHandle: "value", target: "double", targetHandle: "a" },
-      { source: "double", sourceHandle: "result", target: "output", targetHandle: "value" },
+      {
+        source: "input",
+        sourceHandle: "value",
+        target: "double",
+        targetHandle: "a"
+      },
+      {
+        source: "double",
+        sourceHandle: "result",
+        target: "output",
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner({
       "test.Double": simpleExecutor((inputs) => ({
-        result: (inputs.a as number) * 2,
+        result: (inputs.a as number) * 2
       })),
       "test.Output": simpleExecutor((inputs) => ({
-        value: inputs.value,
-      })),
+        value: inputs.value
+      }))
     });
 
     const result = await runner.run(
@@ -86,14 +102,19 @@ describe("WorkflowRunner – job status messages", () => {
   it("emits running and completed job updates", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "in", type: "test.Input", name: "val" },
-      { id: "out", type: "test.Output" },
+      { id: "out", type: "test.Output" }
     ];
     const edges: Edge[] = [
-      { source: "in", sourceHandle: "value", target: "out", targetHandle: "value" },
+      {
+        source: "in",
+        sourceHandle: "value",
+        target: "out",
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner({
-      "test.Output": simpleExecutor((inputs) => inputs),
+      "test.Output": simpleExecutor((inputs) => inputs)
     });
 
     const result = await runner.run(
@@ -114,18 +135,18 @@ describe("WorkflowRunner – error handling", () => {
   it("reports failed status on executor error", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "in", type: "test.Input", name: "val" },
-      { id: "bad", type: "test.Bad" },
+      { id: "bad", type: "test.Bad" }
     ];
     const edges: Edge[] = [
-      { source: "in", sourceHandle: "value", target: "bad", targetHandle: "a" },
+      { source: "in", sourceHandle: "value", target: "bad", targetHandle: "a" }
     ];
 
     const runner = makeRunner({
       "test.Bad": {
         async process() {
           throw new Error("node exploded");
-        },
-      },
+        }
+      }
     });
 
     const result = await runner.run(
@@ -146,7 +167,12 @@ describe("WorkflowRunner – dangling edges are filtered (Python parity)", () =>
   it("silently removes dangling edges and completes successfully", async () => {
     const nodes: NodeDescriptor[] = [{ id: "a", type: "test.A" }];
     const edges: Edge[] = [
-      { source: "missing", sourceHandle: "out", target: "a", targetHandle: "in" },
+      {
+        source: "missing",
+        sourceHandle: "out",
+        target: "a",
+        targetHandle: "in"
+      }
     ];
 
     const runner = makeRunner({});
@@ -162,7 +188,7 @@ describe("WorkflowRunner – edge counters", () => {
     const nodes: NodeDescriptor[] = [
       { id: "in", type: "test.Input", name: "x" },
       { id: "mid", type: "test.Pass" },
-      { id: "out", type: "test.Output" },
+      { id: "out", type: "test.Output" }
     ];
     const edges: Edge[] = [
       {
@@ -170,20 +196,20 @@ describe("WorkflowRunner – edge counters", () => {
         source: "in",
         sourceHandle: "value",
         target: "mid",
-        targetHandle: "value",
+        targetHandle: "value"
       },
       {
         id: "e2",
         source: "mid",
         sourceHandle: "value",
         target: "out",
-        targetHandle: "value",
-      },
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner({
       "test.Pass": simpleExecutor((inputs) => ({ value: inputs.value })),
-      "test.Output": simpleExecutor((inputs) => inputs),
+      "test.Output": simpleExecutor((inputs) => inputs)
     });
 
     const result = await runner.run(
@@ -195,10 +221,16 @@ describe("WorkflowRunner – edge counters", () => {
       (m) => m.type === "edge_update"
     ) as EdgeUpdate[];
     expect(edgeMsgs.length).toBeGreaterThanOrEqual(1);
-    expect(edgeMsgs.some((m) => m.edge_id === "e2" && m.status === "active")).toBe(true);
-    expect(edgeMsgs.some((m) => m.edge_id === "e2" && m.status === "completed")).toBe(true);
-    const active = edgeMsgs.find((m) => m.edge_id === "e2" && m.status === "active");
-    expect((active?.counter ?? 0)).toBeGreaterThanOrEqual(1);
+    expect(
+      edgeMsgs.some((m) => m.edge_id === "e2" && m.status === "active")
+    ).toBe(true);
+    expect(
+      edgeMsgs.some((m) => m.edge_id === "e2" && m.status === "completed")
+    ).toBe(true);
+    const active = edgeMsgs.find(
+      (m) => m.edge_id === "e2" && m.status === "active"
+    );
+    expect(active?.counter ?? 0).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -206,10 +238,10 @@ describe("WorkflowRunner – cancellation", () => {
   it("marks job as cancelled", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "in", type: "test.Input", name: "x" },
-      { id: "slow", type: "test.Slow" },
+      { id: "slow", type: "test.Slow" }
     ];
     const edges: Edge[] = [
-      { source: "in", sourceHandle: "value", target: "slow", targetHandle: "a" },
+      { source: "in", sourceHandle: "value", target: "slow", targetHandle: "a" }
     ];
 
     const runner = makeRunner({
@@ -218,8 +250,8 @@ describe("WorkflowRunner – cancellation", () => {
           // Simulate slow processing
           await new Promise((r) => setTimeout(r, 500));
           return { result: 1 };
-        },
-      },
+        }
+      }
     });
 
     // Start and cancel
@@ -241,15 +273,25 @@ describe("WorkflowRunner – multiple output nodes", () => {
     const nodes: NodeDescriptor[] = [
       { id: "in", type: "test.Input", name: "x" },
       { id: "out1", type: "test.Out", name: "result1" },
-      { id: "out2", type: "test.Out", name: "result2" },
+      { id: "out2", type: "test.Out", name: "result2" }
     ];
     const edges: Edge[] = [
-      { source: "in", sourceHandle: "value", target: "out1", targetHandle: "value" },
-      { source: "in", sourceHandle: "value", target: "out2", targetHandle: "value" },
+      {
+        source: "in",
+        sourceHandle: "value",
+        target: "out1",
+        targetHandle: "value"
+      },
+      {
+        source: "in",
+        sourceHandle: "value",
+        target: "out2",
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner({
-      "test.Out": simpleExecutor((inputs) => ({ value: inputs.value })),
+      "test.Out": simpleExecutor((inputs) => ({ value: inputs.value }))
     });
 
     const result = await runner.run(
@@ -267,14 +309,19 @@ describe("WorkflowRunner – stream input", () => {
   it("accepts runtime streamed input and finishes input stream", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "stream_input", type: "test.Input", name: "stream_input" },
-      { id: "sink", type: "test.Sink", name: "sink" },
+      { id: "sink", type: "test.Sink", name: "sink" }
     ];
     const edges: Edge[] = [
-      { source: "stream_input", sourceHandle: "value", target: "sink", targetHandle: "value" },
+      {
+        source: "stream_input",
+        sourceHandle: "value",
+        target: "sink",
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner({
-      "test.Sink": simpleExecutor((inputs) => ({ value: inputs.value })),
+      "test.Sink": simpleExecutor((inputs) => ({ value: inputs.value }))
     });
 
     const runPromise = runner.run(
@@ -296,30 +343,58 @@ describe("WorkflowRunner – execution context forwarding", () => {
   it("forwards emitted processing messages to executionContext.emit", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "in", type: "test.Input", name: "val" },
-      { id: "out", type: "test.Output", name: "result" },
+      { id: "out", type: "test.Output", name: "result" }
     ];
     const edges: Edge[] = [
-      { source: "in", sourceHandle: "value", target: "out", targetHandle: "value" },
+      {
+        source: "in",
+        sourceHandle: "value",
+        target: "out",
+        targetHandle: "value"
+      }
     ];
-    const forwarded: Array<{ type?: string; status?: string; node_id?: string }> = [];
+    const forwarded: Array<{
+      type?: string;
+      status?: string;
+      node_id?: string;
+    }> = [];
     const executionContext = {
       emit(msg: { type?: string; status?: string; node_id?: string }) {
         forwarded.push(msg);
-      },
+      }
     } as unknown as ProcessingContext;
 
     const runner = makeRunner(
       {
-        "test.Output": simpleExecutor((inputs) => ({ value: inputs.value })),
+        "test.Output": simpleExecutor((inputs) => ({ value: inputs.value }))
       },
       executionContext
     );
 
-    await runner.run({ job_id: "ctx-forward", params: { val: 7 } }, { nodes, edges });
+    await runner.run(
+      { job_id: "ctx-forward", params: { val: 7 } },
+      { nodes, edges }
+    );
 
-    expect(forwarded.some((m) => m.type === "node_update" && m.node_id === "out" && m.status === "running")).toBe(true);
-    expect(forwarded.some((m) => m.type === "node_update" && m.node_id === "out" && m.status === "completed")).toBe(true);
-    expect(forwarded.some((m) => m.type === "job_update" && m.status === "completed")).toBe(true);
+    expect(
+      forwarded.some(
+        (m) =>
+          m.type === "node_update" &&
+          m.node_id === "out" &&
+          m.status === "running"
+      )
+    ).toBe(true);
+    expect(
+      forwarded.some(
+        (m) =>
+          m.type === "node_update" &&
+          m.node_id === "out" &&
+          m.status === "completed"
+      )
+    ).toBe(true);
+    expect(
+      forwarded.some((m) => m.type === "job_update" && m.status === "completed")
+    ).toBe(true);
   });
 });
 
@@ -330,14 +405,14 @@ describe("WorkflowRunner – source nodes that are not external inputs", () => {
         id: "n1",
         type: "nodetool.constant.String",
         name: "nodetool.constant.String",
-        properties: { value: "Hello World" },
+        properties: { value: "Hello World" }
       },
       {
         id: "n2",
         type: "nodetool.text.FilterString",
         name: "nodetool.text.FilterString",
-        properties: { criteria: "world" },
-      },
+        properties: { criteria: "world" }
+      }
     ];
     const edges: Edge[] = [
       {
@@ -345,16 +420,18 @@ describe("WorkflowRunner – source nodes that are not external inputs", () => {
         source: "n1",
         sourceHandle: "output",
         target: "n2",
-        targetHandle: "value",
-      },
+        targetHandle: "value"
+      }
     ];
 
     const runner = makeRunner({
-      "nodetool.constant.String": simpleExecutor(() => ({ output: "Hello World" })),
+      "nodetool.constant.String": simpleExecutor(() => ({
+        output: "Hello World"
+      })),
       "nodetool.text.FilterString": simpleExecutor((inputs) => {
         const value = String(inputs.value ?? "");
         return { output: value.toLowerCase().includes("world") ? value : "" };
-      }),
+      })
     });
 
     const result = await runner.run(
@@ -366,6 +443,8 @@ describe("WorkflowRunner – source nodes that are not external inputs", () => {
     const edgeMsgs = result.messages.filter(
       (m) => m.type === "edge_update"
     ) as EdgeUpdate[];
-    expect(edgeMsgs.some((m) => m.edge_id === "e1" && (m.counter ?? 0) > 0)).toBe(true);
+    expect(
+      edgeMsgs.some((m) => m.edge_id === "e1" && (m.counter ?? 0) > 0)
+    ).toBe(true);
   });
 });

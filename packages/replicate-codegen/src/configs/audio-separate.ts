@@ -6,8 +6,8 @@ export const audioSeparateConfig: ModuleConfig = {
       className: "Demucs",
       returnType: "audio",
       fieldOverrides: {
-        audio: { propType: "audio" },
-      },
-    },
-  },
+        audio: { propType: "audio" }
+      }
+    }
+  }
 };

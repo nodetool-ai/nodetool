@@ -12,7 +12,7 @@ import {
   DEFAULT_TIMEOUT_MS,
   MAX_LOOP_ITERATIONS,
   MAX_FETCH_CALLS,
-  runInSandbox,
+  runInSandbox
 } from "../js-sandbox.js";
 
 export class MiniJSAgentTool extends Tool {
@@ -109,10 +109,10 @@ API pagination, conditional logic, or batch operations`;
       code: {
         type: "string" as const,
         description:
-          "JavaScript code to execute. Use `return` for the final result. Top-level `await` is supported.",
-      },
+          "JavaScript code to execute. Use `return` for the final result. Top-level `await` is supported."
+      }
     },
-    required: ["code"],
+    required: ["code"]
   };
 
   private readonly timeoutMs: number;
@@ -124,7 +124,7 @@ API pagination, conditional logic, or batch operations`;
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     const code = params.code;
     if (typeof code !== "string" || !code.trim()) {
@@ -134,7 +134,7 @@ API pagination, conditional logic, or batch operations`;
     return runInSandbox({
       code,
       context,
-      timeoutMs: this.timeoutMs,
+      timeoutMs: this.timeoutMs
     });
   }
 

@@ -30,7 +30,9 @@ let cachedSdk: S3SdkModule | null = null;
 async function loadSdk(): Promise<S3SdkModule> {
   if (cachedSdk) return cachedSdk;
   const moduleName = "@aws-sdk/client-s3";
-  cachedSdk = (await import(/* webpackIgnore: true */ moduleName)) as S3SdkModule;
+  cachedSdk = (await import(
+    /* webpackIgnore: true */ moduleName
+  )) as S3SdkModule;
   return cachedSdk;
 }
 
@@ -56,13 +58,17 @@ export class S3Storage implements AbstractStorage {
     return this.client;
   }
 
-  async upload(key: string, data: Buffer | Uint8Array, contentType?: string): Promise<void> {
+  async upload(
+    key: string,
+    data: Buffer | Uint8Array,
+    contentType?: string
+  ): Promise<void> {
     const sdk = await loadSdk();
     const client = await this.getClient();
     const params: Record<string, unknown> = {
       Bucket: this.bucketName,
       Key: key,
-      Body: data,
+      Body: data
     };
     if (contentType) {
       params.ContentType = contentType;

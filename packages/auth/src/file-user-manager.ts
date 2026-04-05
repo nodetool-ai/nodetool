@@ -36,7 +36,8 @@ function defaultUsersFilePath(): string {
   if (envPath) return envPath;
   const platform = process.platform;
   if (platform === "win32") {
-    const appdata = process.env.APPDATA ?? join(homedir(), "AppData", "Roaming");
+    const appdata =
+      process.env.APPDATA ?? join(homedir(), "AppData", "Roaming");
     return join(appdata, "nodetool", "users.json");
   }
   return join(homedir(), ".config", "nodetool", "users.json");
@@ -54,7 +55,9 @@ export class FileUserManager {
   /** Serialize write operations to prevent lost updates from concurrent access. */
   private async withLock<T>(fn: () => Promise<T>): Promise<T> {
     let release: () => void;
-    const next = new Promise<void>((resolve) => { release = resolve; });
+    const next = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     const prev = this.writeLock;
     this.writeLock = next;
     await prev;
@@ -100,7 +103,13 @@ export class FileUserManager {
       const token = this.generateToken();
       const userId = this.generateUserId(username);
       const createdAt = new Date().toISOString();
-      data.users[username] = { id: userId, username, role, tokenHash: this.hashToken(token), createdAt };
+      data.users[username] = {
+        id: userId,
+        username,
+        role,
+        tokenHash: this.hashToken(token),
+        createdAt
+      };
       await this.save(data);
       return { username, userId, role, token, createdAt };
     });
@@ -126,9 +135,19 @@ export class FileUserManager {
       }
       const token = this.generateToken();
       const createdAt = new Date().toISOString();
-      data.users[username] = { ...existing, tokenHash: this.hashToken(token), createdAt };
+      data.users[username] = {
+        ...existing,
+        tokenHash: this.hashToken(token),
+        createdAt
+      };
       await this.save(data);
-      return { username, userId: existing.id, role: existing.role, token, createdAt };
+      return {
+        username,
+        userId: existing.id,
+        role: existing.role,
+        token,
+        createdAt
+      };
     });
   }
 

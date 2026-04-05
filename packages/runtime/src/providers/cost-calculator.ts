@@ -22,7 +22,7 @@ export enum CostType {
   CHARACTER_BASED = "character_based",
   DURATION_BASED = "duration_based",
   IMAGE_BASED = "image_based",
-  VIDEO_BASED = "video_based",
+  VIDEO_BASED = "video_based"
 }
 
 export interface PricingTier {
@@ -45,174 +45,174 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.002625,
     outputPer1kTokens: 0.021,
-    cachedPer1kTokens: 0.0002625,
+    cachedPer1kTokens: 0.0002625
   },
   gpt5ProTier: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0315,
-    outputPer1kTokens: 0.252,
+    outputPer1kTokens: 0.252
   },
   gpt5MiniTier: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.000375,
     outputPer1kTokens: 0.003,
-    cachedPer1kTokens: 0.0000375,
+    cachedPer1kTokens: 0.0000375
   },
   // GPT-4.1 family
   gpt41Tier: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0045,
     outputPer1kTokens: 0.018,
-    cachedPer1kTokens: 0.001125,
+    cachedPer1kTokens: 0.001125
   },
   gpt41MiniTier: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0012,
     outputPer1kTokens: 0.0048,
-    cachedPer1kTokens: 0.0003,
+    cachedPer1kTokens: 0.0003
   },
   gpt41NanoTier: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0003,
     outputPer1kTokens: 0.0012,
-    cachedPer1kTokens: 0.000075,
+    cachedPer1kTokens: 0.000075
   },
   // O4-mini (reasoning)
   o4MiniTier: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.006,
     outputPer1kTokens: 0.024,
-    cachedPer1kTokens: 0.0015,
+    cachedPer1kTokens: 0.0015
   },
   // O1 Series (existing reasoning models)
   o1Tier: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 2.25,
-    outputPer1kTokens: 9.0,
+    outputPer1kTokens: 9.0
   },
   o1MiniTier: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.45,
-    outputPer1kTokens: 1.8,
+    outputPer1kTokens: 1.8
   },
   // GPT-4o Series
   topTierChat: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.375,
-    outputPer1kTokens: 1.5,
+    outputPer1kTokens: 1.5
   },
   lowTierChat: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0225,
-    outputPer1kTokens: 0.09,
+    outputPer1kTokens: 0.09
   },
   // GPT-4 Turbo
   gpt4Turbo: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 1.5,
-    outputPer1kTokens: 6.0,
+    outputPer1kTokens: 6.0
   },
   // Image generation - gpt-image-1
   imageGptLow: {
     costType: CostType.IMAGE_BASED,
-    perImage: 1.5,
+    perImage: 1.5
   },
   imageGptMedium: {
     costType: CostType.IMAGE_BASED,
-    perImage: 6.0,
+    perImage: 6.0
   },
   imageGptHigh: {
     costType: CostType.IMAGE_BASED,
-    perImage: 25.0,
+    perImage: 25.0
   },
   // Image generation GPT-image-1.5
   imageGpt15: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0075,
-    outputPer1kTokens: 0.015,
+    outputPer1kTokens: 0.015
   },
   // Whisper / Speech-to-Text
   whisperStandard: {
     costType: CostType.DURATION_BASED,
-    perMinute: 0.9,
+    perMinute: 0.9
   },
   whisperLowCost: {
     costType: CostType.DURATION_BASED,
-    perMinute: 0.45,
+    perMinute: 0.45
   },
   // TTS / Text-to-Speech
   ttsStandard: {
     costType: CostType.CHARACTER_BASED,
-    per1kChars: 0.09,
+    per1kChars: 0.09
   },
   ttsHd: {
     costType: CostType.CHARACTER_BASED,
-    per1kChars: 2.25,
+    per1kChars: 2.25
   },
   ttsUltraHd: {
     costType: CostType.CHARACTER_BASED,
-    per1kChars: 4.5,
+    per1kChars: 4.5
   },
   // Embeddings
   embeddingSmall: {
     costType: CostType.EMBEDDING,
-    inputPer1kTokens: 0.003,
+    inputPer1kTokens: 0.003
   },
   embeddingLarge: {
     costType: CostType.EMBEDDING,
-    inputPer1kTokens: 0.0195,
+    inputPer1kTokens: 0.0195
   },
   // Anthropic Claude 4 family (2025)
   claudeOpus4: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.045,
-    outputPer1kTokens: 0.15,
+    outputPer1kTokens: 0.15
   },
   claudeSonnet4: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0075,
-    outputPer1kTokens: 0.0375,
+    outputPer1kTokens: 0.0375
   },
   claudeHaiku4: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.00225,
-    outputPer1kTokens: 0.0075,
+    outputPer1kTokens: 0.0075
   },
   // Claude 3.7 family
   claude37Sonnet: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.009,
-    outputPer1kTokens: 0.027,
+    outputPer1kTokens: 0.027
   },
   // Claude 3.5 family
   claude35Sonnet: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0075,
-    outputPer1kTokens: 0.0225,
+    outputPer1kTokens: 0.0225
   },
   claude35Haiku: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0015,
-    outputPer1kTokens: 0.006,
+    outputPer1kTokens: 0.006
   },
   // Claude 3 Opus
   claude3Opus: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.045,
-    outputPer1kTokens: 0.15,
+    outputPer1kTokens: 0.15
   },
   // Claude 3 Sonnet
   claude3Sonnet: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.0075,
-    outputPer1kTokens: 0.0225,
+    outputPer1kTokens: 0.0225
   },
   // Claude 3 Haiku
   claude3Haiku: {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.000375,
-    outputPer1kTokens: 0.0015,
-  },
+    outputPer1kTokens: 0.0015
+  }
 };
 
 /**
@@ -291,7 +291,7 @@ export const MODEL_TO_TIER: Record<string, string> = {
   "anthropic:claude-3-sonnet-20240229": "claude3Sonnet",
   "anthropic:claude-3-sonnet-latest": "claude3Sonnet",
   "anthropic:claude-3-haiku-20240307": "claude3Haiku",
-  "anthropic:claude-3-haiku-latest": "claude3Haiku",
+  "anthropic:claude-3-haiku-latest": "claude3Haiku"
 };
 
 export interface UsageInfo {
@@ -364,7 +364,9 @@ export class CostCalculator {
   ): number {
     const tierName = CostCalculator.getTier(modelId, provider);
     if (tierName === null) {
-      log.warn(`No pricing tier found for model: ${modelId} (provider: ${provider})`);
+      log.warn(
+        `No pricing tier found for model: ${modelId} (provider: ${provider})`
+      );
       return 0.0;
     }
 
@@ -380,7 +382,10 @@ export class CostCalculator {
   /**
    * Calculate cost based on tier type.
    */
-  private static _calculateForTier(tier: PricingTier, usage: UsageInfo): number {
+  private static _calculateForTier(
+    tier: PricingTier,
+    usage: UsageInfo
+  ): number {
     const inputTokens = usage.inputTokens ?? 0;
     const outputTokens = usage.outputTokens ?? 0;
     const cachedTokens = usage.cachedTokens ?? 0;
@@ -402,8 +407,7 @@ export class CostCalculator {
         cachedCost = 0.0;
       }
 
-      const outputCost =
-        (outputTokens / 1000) * (tier.outputPer1kTokens ?? 0);
+      const outputCost = (outputTokens / 1000) * (tier.outputPer1kTokens ?? 0);
       return inputCost + outputCost + cachedCost;
     } else if (tier.costType === CostType.EMBEDDING) {
       return (inputTokens / 1000) * (tier.inputPer1kTokens ?? 0);
@@ -484,14 +488,11 @@ export function calculateImageCost(
   provider: string = "openai"
 ): number {
   // Adjust tier based on quality for gpt-image models
-  if (
-    modelId.toLowerCase().includes("gpt-image") &&
-    !modelId.includes("1.5")
-  ) {
+  if (modelId.toLowerCase().includes("gpt-image") && !modelId.includes("1.5")) {
     const qualityMap: Record<string, string> = {
       low: "imageGptLow",
       medium: "imageGptMedium",
-      high: "imageGptHigh",
+      high: "imageGptHigh"
     };
     const tierOverride = qualityMap[quality.toLowerCase()] ?? "imageGptMedium";
     const tier = PRICING_TIERS[tierOverride];

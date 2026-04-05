@@ -16,7 +16,7 @@ describe.skipIf(process.env.RUN_PYTHON_E2E !== "1")("PythonBridge E2E", () => {
   beforeAll(async () => {
     bridge = new PythonBridge({
       pythonPath: process.env.NODETOOL_PYTHON ?? "python",
-      workerArgs: ["--namespaces", "test"],
+      workerArgs: ["--namespaces", "test"]
     });
     await bridge.connect();
   }, 30_000);

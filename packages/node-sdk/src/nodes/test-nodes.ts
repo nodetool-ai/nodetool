@@ -24,8 +24,6 @@ export class Add extends BaseNode {
   @prop({ type: "int", default: 0 })
   declare b: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     const a = (this.a ?? 0) as number;
     const b = (this.b ?? 0) as number;
@@ -43,8 +41,6 @@ export class Multiply extends BaseNode {
   @prop({ type: "int", default: 1 })
   declare b: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     const a = (this.a ?? 1) as number;
     const b = (this.b ?? 1) as number;
@@ -58,8 +54,6 @@ export class Constant extends BaseNode {
   static readonly description = "Outputs a constant value";
   @prop({ type: "any", default: null })
   declare value: any;
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return { value: this.value };
@@ -79,8 +73,6 @@ export class StringConcat extends BaseNode {
   @prop({ type: "str", default: "" })
   declare separator: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     const a = String(this.a ?? "");
     const b = String(this.b ?? "");
@@ -92,19 +84,16 @@ export class StringConcat extends BaseNode {
 export class FormatText extends BaseNode {
   static readonly nodeType = "nodetool.test.FormatText";
   static readonly title = "Format Text";
-  static readonly description = "Formats text by replacing {{ text }} in a template";
+  static readonly description =
+    "Formats text by replacing {{ text }} in a template";
   @prop({ type: "str", default: "Hello, {{ text }}" })
   declare template: any;
 
   @prop({ type: "str", default: "" })
   declare text: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
-    const template = String(
-      this.template ?? "{{ text }}"
-    );
+    const template = String(this.template ?? "{{ text }}");
     const text = String(this.text ?? "");
     return { result: template.replace(/\{\{\s*text\s*\}\}/g, text) };
   }
@@ -124,15 +113,13 @@ export class ThresholdProcessor extends BaseNode {
   @prop({ type: "str", default: "normal" })
   declare mode: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     const value = (this.value ?? 0) as number;
     const threshold = (this.threshold ?? 0.5) as number;
     const mode = String(this.mode ?? "normal");
     const exceeds = mode === "strict" ? value > threshold : value >= threshold;
     return {
-      result: `value=${value}, threshold=${threshold}, mode=${mode}, exceeds=${exceeds}`,
+      result: `value=${value}, threshold=${threshold}, mode=${mode}, exceeds=${exceeds}`
     };
   }
 }
@@ -143,8 +130,6 @@ export class ErrorNode extends BaseNode {
   static readonly description = "Always throws an error";
   @prop({ type: "str", default: "Node error" })
   declare message: any;
-
-
 
   async process(): Promise<Record<string, unknown>> {
     throw new Error(String(this.message ?? "Node error"));
@@ -158,12 +143,8 @@ export class SlowNode extends BaseNode {
   @prop({ type: "int", default: 100 })
   declare delayMs: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
-    await new Promise((r) =>
-      setTimeout(r, (this.delayMs as number) ?? 100)
-    );
+    await new Promise((r) => setTimeout(r, (this.delayMs as number) ?? 100));
     return { result: "completed" };
   }
 }
@@ -178,8 +159,6 @@ export class StreamingCounter extends BaseNode {
 
   @prop({ type: "int", default: 0 })
   declare start: any;
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -205,8 +184,6 @@ export class IntAccumulator extends BaseNode {
   @prop({ type: "int", default: 0 })
   declare value: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     this._execCount++;
     const value = (this.value ?? 0) as number;
@@ -214,7 +191,7 @@ export class IntAccumulator extends BaseNode {
     return {
       count: this._execCount,
       value,
-      values: [...this._accumulated],
+      values: [...this._accumulated]
     };
   }
 }
@@ -238,8 +215,6 @@ export class SimpleController extends BaseNode {
   @prop({ type: "str", default: "normal" })
   declare mode: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     return {};
   }
@@ -250,9 +225,9 @@ export class SimpleController extends BaseNode {
         event_type: "run",
         properties: {
           threshold: this.threshold ?? 0.8,
-          mode: this.mode ?? "normal",
-        },
-      },
+          mode: this.mode ?? "normal"
+        }
+      }
     };
   }
 }
@@ -271,8 +246,6 @@ export class MultiTriggerController extends BaseNode {
   @prop({ type: "float", default: 0.5 })
   declare threshold: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     return {};
   }
@@ -285,9 +258,9 @@ export class MultiTriggerController extends BaseNode {
           event_type: "run",
           properties: {
             threshold: this.threshold ?? 0.5,
-            index: i,
-          },
-        },
+            index: i
+          }
+        }
       };
     }
   }
@@ -323,7 +296,8 @@ export class StopEventController extends BaseNode {
 export class StreamingInputProcessor extends BaseNode {
   static readonly nodeType = "nodetool.test.StreamingInputProcessor";
   static readonly title = "Streaming Input Processor";
-  static readonly description = "Streaming input node – called once with empty inputs";
+  static readonly description =
+    "Streaming input node – called once with empty inputs";
   static readonly isStreamingInput = true;
 
   async process(): Promise<Record<string, unknown>> {
@@ -343,8 +317,6 @@ export class FullStreamingNode extends BaseNode {
   static readonly isStreamingOutput = true;
   @prop({ type: "int", default: 2 })
   declare count: any;
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return { result: "full-streaming" };
@@ -395,8 +367,6 @@ export class ConditionalErrorProcessor extends BaseNode {
   @prop({ type: "str", default: "conditional error" })
   declare message: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     const shouldFail = (this.shouldFail ?? false) as boolean;
     if (shouldFail) {
@@ -430,8 +400,6 @@ export class IntInput extends BaseNode {
   @prop({ type: "int", default: 0 })
   declare value: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? 0 };
   }
@@ -444,8 +412,6 @@ export class FloatInput extends BaseNode {
   @prop({ type: "int", default: 0.0 })
   declare value: any;
 
-
-
   async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? 0.0 };
   }
@@ -457,8 +423,6 @@ export class StringInput extends BaseNode {
   static readonly description = "Source node that emits a string";
   @prop({ type: "str", default: "" })
   declare value: any;
-
-
 
   async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? "" };
@@ -481,7 +445,7 @@ export const ALL_TEST_NODES = [
   ErrorNode,
   SlowNode,
   StreamingCounter,
-  IntAccumulator,
+  IntAccumulator
 ] as const;
 
 /** Additional E2E-focused test nodes */
@@ -496,8 +460,11 @@ export const ALL_CONTROLLER_NODES = [
   SilentNode,
   IntInput,
   FloatInput,
-  StringInput,
+  StringInput
 ] as const;
 
 /** Combined: all test nodes including controller/e2e nodes */
-export const ALL_E2E_NODES = [...ALL_TEST_NODES, ...ALL_CONTROLLER_NODES] as const;
+export const ALL_E2E_NODES = [
+  ...ALL_TEST_NODES,
+  ...ALL_CONTROLLER_NODES
+] as const;

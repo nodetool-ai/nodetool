@@ -32,7 +32,13 @@ afterEach(() => {
 describe("Python metadata loader", () => {
   it("loads metadata files from src/nodetool/package_metadata", () => {
     const root = makeTmpRoot();
-    const metadataDir = path.join(root, "pkg-a", "src", "nodetool", "package_metadata");
+    const metadataDir = path.join(
+      root,
+      "pkg-a",
+      "src",
+      "nodetool",
+      "package_metadata"
+    );
     fs.mkdirSync(metadataDir, { recursive: true });
     const metadataPath = path.join(metadataDir, "pkg-a.json");
     fs.writeFileSync(
@@ -48,9 +54,9 @@ describe("Python metadata loader", () => {
               namespace: "nodetool.test",
               node_type: "nodetool.test.Sample",
               properties: [],
-              outputs: [{ name: "output", type: { type: "str" } }],
-            },
-          ],
+              outputs: [{ name: "output", type: { type: "str" } }]
+            }
+          ]
         },
         null,
         2
@@ -65,7 +71,12 @@ describe("Python metadata loader", () => {
 
   it("loads metadata files from nodetool/package_metadata (pip layout)", () => {
     const root = makeTmpRoot();
-    const metadataDir = path.join(root, "site-packages", "nodetool", "package_metadata");
+    const metadataDir = path.join(
+      root,
+      "site-packages",
+      "nodetool",
+      "package_metadata"
+    );
     fs.mkdirSync(metadataDir, { recursive: true });
     const metadataPath = path.join(metadataDir, "pkg-pip.json");
     fs.writeFileSync(
@@ -81,9 +92,9 @@ describe("Python metadata loader", () => {
               namespace: "nodetool.test",
               node_type: "nodetool.test.Sample",
               properties: [],
-              outputs: [{ name: "output", type: { type: "str" } }],
-            },
-          ],
+              outputs: [{ name: "output", type: { type: "str" } }]
+            }
+          ]
         },
         null,
         2
@@ -100,7 +111,13 @@ describe("Python metadata loader", () => {
 describe("NodeRegistry metadata integration", () => {
   it("register() resolves metadata loaded from Python JSON", () => {
     const root = makeTmpRoot();
-    const metadataDir = path.join(root, "pkg-b", "src", "nodetool", "package_metadata");
+    const metadataDir = path.join(
+      root,
+      "pkg-b",
+      "src",
+      "nodetool",
+      "package_metadata"
+    );
     fs.mkdirSync(metadataDir, { recursive: true });
     fs.writeFileSync(
       path.join(metadataDir, "pkg-b.json"),
@@ -115,9 +132,9 @@ describe("NodeRegistry metadata integration", () => {
               namespace: "nodetool.test",
               node_type: "nodetool.test.Sample",
               properties: [],
-              outputs: [{ name: "output", type: { type: "str" } }],
-            },
-          ],
+              outputs: [{ name: "output", type: { type: "str" } }]
+            }
+          ]
         },
         null,
         2
@@ -127,7 +144,9 @@ describe("NodeRegistry metadata integration", () => {
     const registry = new NodeRegistry();
     registry.loadPythonMetadata({ roots: [root] });
     registry.register(SampleNode);
-    expect(registry.getMetadata(SampleNode.nodeType)?.node_type).toBe(SampleNode.nodeType);
+    expect(registry.getMetadata(SampleNode.nodeType)?.node_type).toBe(
+      SampleNode.nodeType
+    );
   });
 
   it("strictMetadata mode accepts TS-derived metadata (auto-generated from class)", () => {
@@ -142,9 +161,13 @@ describe("NodeRegistry metadata integration", () => {
       static readonly nodeType = "nodetool.test.NoMetadata";
       static readonly title = "NoMetadata";
       static readonly description = "";
-      async process() { return {}; }
+      async process() {
+        return {};
+      }
     }
     const registry = new NodeRegistry({ strictMetadata: true });
-    expect(() => registry.register(NoMetadataNode as unknown as typeof SampleNode)).not.toThrow();
+    expect(() =>
+      registry.register(NoMetadataNode as unknown as typeof SampleNode)
+    ).not.toThrow();
   });
 });

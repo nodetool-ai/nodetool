@@ -22,9 +22,10 @@ export const DeploymentType = {
   GCP: "gcp",
   FLY: "fly",
   RAILWAY: "railway",
-  HUGGINGFACE: "huggingface",
+  HUGGINGFACE: "huggingface"
 } as const;
-export type DeploymentType = (typeof DeploymentType)[keyof typeof DeploymentType];
+export type DeploymentType =
+  (typeof DeploymentType)[keyof typeof DeploymentType];
 
 export const DeploymentStatus = {
   UNKNOWN: "unknown",
@@ -35,7 +36,7 @@ export const DeploymentStatus = {
   SERVING: "serving",
   ERROR: "error",
   STOPPED: "stopped",
-  DESTROYED: "destroyed",
+  DESTROYED: "destroyed"
 } as const;
 export type DeploymentStatus =
   (typeof DeploymentStatus)[keyof typeof DeploymentStatus];
@@ -49,7 +50,7 @@ const DeploymentStatusEnum = z.enum([
   "serving",
   "error",
   "stopped",
-  "destroyed",
+  "destroyed"
 ]);
 
 // ============================================================================
@@ -69,7 +70,6 @@ function expandUser(p: string): string {
  * because every field in the object schema already carries its own default.
  */
 function withEmptyDefault<T extends z.ZodTypeAny>(schema: T): z.ZodDefault<T> {
-   
   return schema.default({} as any);
 }
 
@@ -84,7 +84,7 @@ export const SSHConfigSchema = z.object({
     .optional()
     .transform((v) => (v ? expandUser(v) : v)),
   password: z.string().optional(),
-  port: z.number().int().default(22),
+  port: z.number().int().default(22)
 });
 export type SSHConfig = z.infer<typeof SSHConfigSchema>;
 
@@ -93,13 +93,13 @@ export const ContainerConfigSchema = z.object({
   port: z.number().int(),
   gpu: z.string().optional(),
   environment: z.record(z.string(), z.string()).optional(),
-  workflows: z.array(z.string()).optional(),
+  workflows: z.array(z.string()).optional()
 });
 export type ContainerConfig = z.infer<typeof ContainerConfigSchema>;
 
 export const ServerPathsSchema = z.object({
   workspace: z.string().default("~/nodetool_data/workspace"),
-  hf_cache: z.string().default("~/nodetool_data/hf-cache"),
+  hf_cache: z.string().default("~/nodetool_data/hf-cache")
 });
 export type ServerPaths = z.infer<typeof ServerPathsSchema>;
 
@@ -109,7 +109,7 @@ export const PersistentPathsSchema = z.object({
   chroma_path: z.string().default("/workspace/chroma"),
   hf_cache: z.string().default("/workspace/hf-cache"),
   asset_bucket: z.string().default("/workspace/assets"),
-  logs_path: z.string().optional().default("/workspace/logs"),
+  logs_path: z.string().optional().default("/workspace/logs")
 });
 export type PersistentPaths = z.infer<typeof PersistentPathsSchema>;
 
@@ -120,14 +120,14 @@ export const SelfHostedStateSchema = z.object({
   container_name: z.string().nullable().optional().default(null),
   url: z.string().nullable().optional().default(null),
   container_hash: z.string().nullable().optional().default(null),
-  container_run_hash: z.string().nullable().optional().default(null),
+  container_run_hash: z.string().nullable().optional().default(null)
 });
 export type SelfHostedState = z.infer<typeof SelfHostedStateSchema>;
 
 export const ImageConfigSchema = z.object({
   name: z.string(),
   tag: z.string().default("latest"),
-  registry: z.string().default("docker.io"),
+  registry: z.string().default("docker.io")
 });
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;
 
@@ -159,7 +159,7 @@ export const NginxConfigSchema = z
     custom_config_path: z
       .string()
       .optional()
-      .transform((v) => (v ? expandUser(v) : v)),
+      .transform((v) => (v ? expandUser(v) : v))
   })
   .refine(
     (data) => {
@@ -168,7 +168,7 @@ export const NginxConfigSchema = z
       return true;
     },
     {
-      message: "Both ssl_cert_path and ssl_key_path must be provided together",
+      message: "Both ssl_cert_path and ssl_key_path must be provided together"
     }
   );
 export type NginxConfig = z.infer<typeof NginxConfigSchema>;
@@ -183,7 +183,7 @@ export const DockerDeploymentSchema = z.object({
   image: ImageConfigSchema,
   container: ContainerConfigSchema,
   server_auth_token: z.string().optional(),
-  state: withEmptyDefault(SelfHostedStateSchema),
+  state: withEmptyDefault(SelfHostedStateSchema)
 });
 export type DockerDeployment = z.infer<typeof DockerDeploymentSchema>;
 
@@ -204,7 +204,7 @@ export const FlyStateSchema = z.object({
   status: DeploymentStatusEnum.default("unknown"),
   url: z.string().nullable().optional().default(null),
   app: z.string().nullable().optional().default(null),
-  region: z.string().nullable().optional().default(null),
+  region: z.string().nullable().optional().default(null)
 });
 export type FlyState = z.infer<typeof FlyStateSchema>;
 
@@ -214,7 +214,7 @@ export const RailwayStateSchema = z.object({
   url: z.string().nullable().optional().default(null),
   project: z.string().nullable().optional().default(null),
   service: z.string().nullable().optional().default(null),
-  image_tag: z.string().nullable().optional().default(null),
+  image_tag: z.string().nullable().optional().default(null)
 });
 export type RailwayState = z.infer<typeof RailwayStateSchema>;
 
@@ -222,7 +222,7 @@ export const HuggingFaceStateSchema = z.object({
   last_deployed: z.string().nullable().optional().default(null),
   status: DeploymentStatusEnum.default("unknown"),
   repo: z.string().nullable().optional().default(null),
-  space_url: z.string().nullable().optional().default(null),
+  space_url: z.string().nullable().optional().default(null)
 });
 export type HuggingFaceState = z.infer<typeof HuggingFaceStateSchema>;
 
@@ -237,12 +237,16 @@ export const FlyDeploymentSchema = z.object({
   region: z.string().default("iad"),
   image: z.string(), // path to nodetool-image.yaml
   environment: z.record(z.string(), z.string()).optional(),
-  volumes: z.array(z.object({
-    name: z.string(),
-    mount: z.string(),
-    size: z.number().int().default(10),
-  })).optional(),
-  state: withEmptyDefault(FlyStateSchema),
+  volumes: z
+    .array(
+      z.object({
+        name: z.string(),
+        mount: z.string(),
+        size: z.number().int().default(10)
+      })
+    )
+    .optional(),
+  state: withEmptyDefault(FlyStateSchema)
 });
 export type FlyDeployment = z.infer<typeof FlyDeploymentSchema>;
 
@@ -257,7 +261,7 @@ export const RailwayDeploymentSchema = z.object({
   service: z.string(),
   image: z.string(),
   environment: z.record(z.string(), z.string()).optional(),
-  state: withEmptyDefault(RailwayStateSchema),
+  state: withEmptyDefault(RailwayStateSchema)
 });
 export type RailwayDeployment = z.infer<typeof RailwayDeploymentSchema>;
 
@@ -273,7 +277,7 @@ export const HuggingFaceDeploymentSchema = z.object({
   hardware: z.string().optional(),
   image: z.string(),
   environment: z.record(z.string(), z.string()).optional(),
-  state: withEmptyDefault(HuggingFaceStateSchema),
+  state: withEmptyDefault(HuggingFaceStateSchema)
 });
 export type HuggingFaceDeployment = z.infer<typeof HuggingFaceDeploymentSchema>;
 
@@ -283,7 +287,7 @@ export type HuggingFaceDeployment = z.infer<typeof HuggingFaceDeploymentSchema>;
 
 export const RunPodBuildConfigSchema = z.object({
   platform: z.string().default("linux/amd64"),
-  no_cache: z.boolean().default(false),
+  no_cache: z.boolean().default(false)
 });
 export type RunPodBuildConfig = z.infer<typeof RunPodBuildConfigSchema>;
 
@@ -291,7 +295,7 @@ export const RunPodImageConfigSchema = z.object({
   name: z.string(),
   tag: z.string(),
   registry: z.string().default("docker.io"),
-  build: withEmptyDefault(RunPodBuildConfigSchema),
+  build: withEmptyDefault(RunPodBuildConfigSchema)
 });
 export type RunPodImageConfig = z.infer<typeof RunPodImageConfigSchema>;
 
@@ -304,7 +308,7 @@ export const RunPodTemplateConfigSchema = z.object({
   gpu_types: z.array(z.string()).default([]),
   data_centers: z.array(z.string()).default([]),
   network_volume_id: z.string().optional(),
-  allowed_cuda_versions: z.array(z.string()).default([]),
+  allowed_cuda_versions: z.array(z.string()).default([])
 });
 export type RunPodTemplateConfig = z.infer<typeof RunPodTemplateConfigSchema>;
 
@@ -315,7 +319,7 @@ export const RunPodEndpointConfigSchema = z.object({
   idle_timeout: z.number().int().default(60),
   execution_timeout: z.number().int().optional(),
   flashboot: z.boolean().default(false),
-  gpu_count: z.number().int().optional(),
+  gpu_count: z.number().int().optional()
 });
 export type RunPodEndpointConfig = z.infer<typeof RunPodEndpointConfigSchema>;
 
@@ -325,13 +329,13 @@ export const RunPodStateSchema = z.object({
   endpoint_url: z.string().nullable().optional().default(null),
   last_deployed: z.string().nullable().optional().default(null),
   status: DeploymentStatusEnum.default("unknown"),
-  last_build_hash: z.string().nullable().optional().default(null),
+  last_build_hash: z.string().nullable().optional().default(null)
 });
 export type RunPodState = z.infer<typeof RunPodStateSchema>;
 
 export const RunPodDockerConfigSchema = z.object({
   username: z.string().optional(),
-  registry: z.string().default("docker.io"),
+  registry: z.string().default("docker.io")
 });
 export type RunPodDockerConfig = z.infer<typeof RunPodDockerConfigSchema>;
 
@@ -358,7 +362,7 @@ export const RunPodDeploymentSchema = z.object({
   environment: z.record(z.string(), z.string()).optional(),
   persistent_paths: PersistentPathsSchema.optional(),
   workflows: z.array(z.string()).default([]),
-  state: withEmptyDefault(RunPodStateSchema),
+  state: withEmptyDefault(RunPodStateSchema)
 });
 export type RunPodDeployment = z.infer<typeof RunPodDeploymentSchema>;
 
@@ -373,7 +377,7 @@ export function runPodDeploymentGetServerUrl(
 // ============================================================================
 
 export const GCPBuildConfigSchema = z.object({
-  platform: z.string().default("linux/amd64"),
+  platform: z.string().default("linux/amd64")
 });
 export type GCPBuildConfig = z.infer<typeof GCPBuildConfigSchema>;
 
@@ -381,7 +385,7 @@ export const GCPImageConfigSchema = z.object({
   registry: z.string().default("us-docker.pkg.dev"),
   repository: z.string(),
   tag: z.string(),
-  build: withEmptyDefault(GCPBuildConfigSchema),
+  build: withEmptyDefault(GCPBuildConfigSchema)
 });
 export type GCPImageConfig = z.infer<typeof GCPImageConfigSchema>;
 
@@ -397,19 +401,19 @@ export const GCPResourceConfigSchema = z.object({
   concurrency: z.number().int().default(80),
   timeout: z.number().int().default(3600),
   gpu_type: z.string().optional(),
-  gpu_count: z.number().int().optional(),
+  gpu_count: z.number().int().optional()
 });
 export type GCPResourceConfig = z.infer<typeof GCPResourceConfigSchema>;
 
 export const GCPStorageConfigSchema = z.object({
   gcs_bucket: z.string().optional(),
-  gcs_mount_path: z.string().default("/mnt/gcs"),
+  gcs_mount_path: z.string().default("/mnt/gcs")
 });
 export type GCPStorageConfig = z.infer<typeof GCPStorageConfigSchema>;
 
 export const GCPIAMConfigSchema = z.object({
   service_account: z.string().optional(),
-  allow_unauthenticated: z.boolean().default(false),
+  allow_unauthenticated: z.boolean().default(false)
 });
 export type GCPIAMConfig = z.infer<typeof GCPIAMConfigSchema>;
 
@@ -417,7 +421,7 @@ export const GCPStateSchema = z.object({
   service_url: z.string().nullable().optional().default(null),
   last_deployed: z.string().nullable().optional().default(null),
   status: DeploymentStatusEnum.default("unknown"),
-  revision: z.string().nullable().optional().default(null),
+  revision: z.string().nullable().optional().default(null)
 });
 export type GCPState = z.infer<typeof GCPStateSchema>;
 
@@ -433,7 +437,7 @@ export const GCPDeploymentSchema = z.object({
   iam: withEmptyDefault(GCPIAMConfigSchema),
   persistent_paths: PersistentPathsSchema.optional(),
   workflows: z.array(z.string()).default([]),
-  state: withEmptyDefault(GCPStateSchema),
+  state: withEmptyDefault(GCPStateSchema)
 });
 export type GCPDeployment = z.infer<typeof GCPDeploymentSchema>;
 
@@ -452,8 +456,8 @@ export const DefaultsConfigSchema = z.object({
   default_model: z.string().default(""),
   log_level: z.string().default("INFO"),
   auth_provider: z.string().default("local"),
-   
-  extra: z.record(z.string(), z.unknown()).default({} as any),
+
+  extra: z.record(z.string(), z.unknown()).default({} as any)
 });
 export type DefaultsConfig = z.infer<typeof DefaultsConfigSchema>;
 
@@ -466,15 +470,15 @@ const AnyDeploymentSchema = z.discriminatedUnion("type", [
   GCPDeploymentSchema,
   FlyDeploymentSchema,
   RailwayDeploymentSchema,
-  HuggingFaceDeploymentSchema,
+  HuggingFaceDeploymentSchema
 ]);
 export type AnyDeployment = z.infer<typeof AnyDeploymentSchema>;
 
 export const DeploymentConfigSchema = z.object({
   version: z.string().default("2.0"),
   defaults: withEmptyDefault(DefaultsConfigSchema),
-   
-  deployments: z.record(z.string(), AnyDeploymentSchema).default({} as any),
+
+  deployments: z.record(z.string(), AnyDeploymentSchema).default({} as any)
 });
 export type DeploymentConfig = z.infer<typeof DeploymentConfigSchema>;
 
@@ -497,7 +501,12 @@ export const DEPLOYMENT_CONFIG_FILE = "deployment.yaml";
 function getDefaultConfigDir(): string {
   const plat = process.platform;
   if (plat === "darwin") {
-    return path.join(os.homedir(), "Library", "Application Support", "nodetool");
+    return path.join(
+      os.homedir(),
+      "Library",
+      "Application Support",
+      "nodetool"
+    );
   }
   if (plat === "win32") {
     return process.env.APPDATA
@@ -581,11 +590,15 @@ export async function saveDeploymentConfig(
   await fs.mkdir(dir, { recursive: true });
 
   // Serialize — strip undefined and null values via JSON round-trip
-  const data = JSON.parse(JSON.stringify(config, (_key, value) => value === null ? undefined : value));
+  const data = JSON.parse(
+    JSON.stringify(config, (_key, value) =>
+      value === null ? undefined : value
+    )
+  );
   const yamlStr = yaml.dump(data, {
     flowLevel: -1,
     sortKeys: false,
-    noCompatMode: true,
+    noCompatMode: true
   });
 
   const tempPath = configPath + ".tmp";
@@ -616,9 +629,7 @@ export async function initDeploymentConfig(): Promise<DeploymentConfig> {
     // file does not exist
   }
   if (exists) {
-    throw new Error(
-      `Deployment configuration already exists at ${configPath}`
-    );
+    throw new Error(`Deployment configuration already exists at ${configPath}`);
   }
 
   const config = parseDeploymentConfig({});

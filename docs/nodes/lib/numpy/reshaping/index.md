@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.numpy.reshaping Nodes"
+title: "lib.array.reshaping Nodes"
 ---
 
 

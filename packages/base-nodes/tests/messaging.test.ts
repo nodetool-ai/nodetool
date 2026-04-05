@@ -5,13 +5,12 @@ import {
   DiscordSendMessage,
   TelegramBotTrigger,
   TelegramSendMessage,
-  MESSAGING_NODES,
+  MESSAGING_NODES
 } from "../src/nodes/messaging.js";
 
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
-
 
 function metadataDefaults(NodeCls: any) {
   const metadata = getNodeMetadata(NodeCls);
@@ -50,13 +49,13 @@ describe("DiscordBotTrigger", () => {
   it("validates token via Discord API", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ id: "123", username: "TestBot" }),
+      json: async () => ({ id: "123", username: "TestBot" })
     });
 
     const node = new DiscordBotTrigger();
     node.assign({
       token: "test-token",
-      channel_id: "ch-456",
+      channel_id: "ch-456"
     });
     const result = await node.process();
 
@@ -74,7 +73,7 @@ describe("DiscordBotTrigger", () => {
   it("reads token from secrets", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ id: "1", username: "Bot" }),
+      json: async () => ({ id: "1", username: "Bot" })
     });
 
     const node = new DiscordBotTrigger();
@@ -89,12 +88,14 @@ describe("DiscordBotTrigger", () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 401,
-      text: async () => "Unauthorized",
+      text: async () => "Unauthorized"
     });
 
     const node = new DiscordBotTrigger();
     node.assign({ token: "bad-token" });
-    await expect(node.process()).rejects.toThrow(/token validation failed.*401/i);
+    await expect(node.process()).rejects.toThrow(
+      /token validation failed.*401/i
+    );
   });
 });
 
@@ -124,22 +125,20 @@ describe("DiscordSendMessage", () => {
   it("sends message and returns message_id", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ id: "msg-789" }),
+      json: async () => ({ id: "msg-789" })
     });
 
     const node = new DiscordSendMessage();
     node.assign({
       token: "test-token",
       channel_id: "ch-123",
-      content: "Hello!",
+      content: "Hello!"
     });
     const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, opts] = mockFetch.mock.calls[0];
-    expect(url).toBe(
-      "https://discord.com/api/v10/channels/ch-123/messages"
-    );
+    expect(url).toBe("https://discord.com/api/v10/channels/ch-123/messages");
     expect(opts.method).toBe("POST");
 
     const body = JSON.parse(opts.body);
@@ -152,7 +151,7 @@ describe("DiscordSendMessage", () => {
   it("includes embeds in payload when provided", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ id: "msg-1" }),
+      json: async () => ({ id: "msg-1" })
     });
 
     const embeds = [{ title: "Test", description: "Desc" }];
@@ -161,7 +160,7 @@ describe("DiscordSendMessage", () => {
       token: "tok",
       channel_id: "ch",
       content: "hi",
-      embeds,
+      embeds
     });
     await node.process();
 
@@ -173,7 +172,7 @@ describe("DiscordSendMessage", () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 404,
-      text: async () => "Unknown Channel",
+      text: async () => "Unknown Channel"
     });
 
     const node = new DiscordSendMessage();
@@ -204,14 +203,14 @@ describe("TelegramBotTrigger", () => {
       ok: true,
       json: async () => ({
         ok: true,
-        result: { id: 111, username: "TestBot" },
-      }),
+        result: { id: 111, username: "TestBot" }
+      })
     });
 
     const node = new TelegramBotTrigger();
     node.assign({
       token: "tg-token",
-      chat_id: 42,
+      chat_id: 42
     });
     const result = await node.process();
 
@@ -229,8 +228,8 @@ describe("TelegramBotTrigger", () => {
       ok: true,
       json: async () => ({
         ok: true,
-        result: { id: 1, username: "B" },
-      }),
+        result: { id: 1, username: "B" }
+      })
     });
 
     const node = new TelegramBotTrigger();
@@ -245,18 +244,20 @@ describe("TelegramBotTrigger", () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 401,
-      text: async () => "Unauthorized",
+      text: async () => "Unauthorized"
     });
 
     const node = new TelegramBotTrigger();
     node.assign({ token: "bad" });
-    await expect(node.process()).rejects.toThrow(/token validation failed.*401/i);
+    await expect(node.process()).rejects.toThrow(
+      /token validation failed.*401/i
+    );
   });
 
   it("handles getMe failure (ok: false in response)", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ ok: false, description: "Invalid token" }),
+      json: async () => ({ ok: false, description: "Invalid token" })
     });
 
     const node = new TelegramBotTrigger();
@@ -296,16 +297,16 @@ describe("TelegramSendMessage", () => {
         result: {
           message_id: 99,
           date: 1700000000,
-          chat: { id: 42 },
-        },
-      }),
+          chat: { id: 42 }
+        }
+      })
     });
 
     const node = new TelegramSendMessage();
     node.assign({
       token: "tg-token",
       chat_id: 42,
-      text: "Hello Telegram!",
+      text: "Hello Telegram!"
     });
     const result = await node.process();
 
@@ -326,8 +327,8 @@ describe("TelegramSendMessage", () => {
       ok: true,
       json: async () => ({
         ok: true,
-        result: { message_id: 1, date: 0, chat: { id: 1 } },
-      }),
+        result: { message_id: 1, date: 0, chat: { id: 1 } }
+      })
     });
 
     const node = new TelegramSendMessage();
@@ -336,7 +337,7 @@ describe("TelegramSendMessage", () => {
       chat_id: 1,
       text: "hi",
       parse_mode: "HTML",
-      reply_to_message_id: 55,
+      reply_to_message_id: 55
     });
     await node.process();
 
@@ -350,8 +351,8 @@ describe("TelegramSendMessage", () => {
       ok: true,
       json: async () => ({
         ok: false,
-        description: "Chat not found",
-      }),
+        description: "Chat not found"
+      })
     });
 
     const node = new TelegramSendMessage();

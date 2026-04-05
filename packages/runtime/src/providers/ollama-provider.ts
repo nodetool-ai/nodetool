@@ -12,7 +12,7 @@ import type {
   MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
-  ToolCall,
+  ToolCall
 } from "./types.js";
 
 interface OllamaProviderOptions {
@@ -47,7 +47,7 @@ function parseDataUri(uri: string): { mime: string; base64: string } {
   }
   return {
     mime,
-    base64: Buffer.from(decodeURIComponent(payload), "utf8").toString("base64"),
+    base64: Buffer.from(decodeURIComponent(payload), "utf8").toString("base64")
   };
 }
 
@@ -85,7 +85,10 @@ export class OllamaProvider extends BaseProvider {
   readonly apiUrl: string;
   private _fetch: typeof fetch;
 
-  constructor(secrets: { OLLAMA_API_URL?: string }, options: OllamaProviderOptions = {}) {
+  constructor(
+    secrets: { OLLAMA_API_URL?: string },
+    options: OllamaProviderOptions = {}
+  ) {
     super("ollama");
     const apiUrl = secrets.OLLAMA_API_URL ?? process.env.OLLAMA_API_URL;
     if (!apiUrl || !apiUrl.trim()) {
@@ -112,10 +115,13 @@ export class OllamaProvider extends BaseProvider {
         const response = await this._fetch(`${this.apiUrl}/api/show`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model }),
+          body: JSON.stringify({ model })
         });
         if (!response.ok) {
-          log.warn("Failed to fetch model info, assuming tool support", { model, status: response.status });
+          log.warn("Failed to fetch model info, assuming tool support", {
+            model,
+            status: response.status
+          });
           return true;
         }
         info = (await response.json()) as Record<string, unknown>;
@@ -129,7 +135,10 @@ export class OllamaProvider extends BaseProvider {
       // No capabilities field — assume supported for backward compatibility
       return true;
     } catch (err) {
-      log.warn("Error checking tool support, defaulting to true", { model, error: String(err) });
+      log.warn("Error checking tool support, defaulting to true", {
+        model,
+        error: String(err)
+      });
       return true;
     }
   }
@@ -141,7 +150,12 @@ export class OllamaProvider extends BaseProvider {
     const lines: string[] = [];
     for (const tool of tools) {
       const params = tool.inputSchema?.properties
-        ? Object.entries(tool.inputSchema.properties as Record<string, { type?: string; description?: string }>)
+        ? Object.entries(
+            tool.inputSchema.properties as Record<
+              string,
+              { type?: string; description?: string }
+            >
+          )
             .map(([name, prop]) => `${name}: ${prop.type ?? "any"}`)
             .join(", ")
         : "";
@@ -156,7 +170,7 @@ export class OllamaProvider extends BaseProvider {
    */
   private _parseEmulatedToolCalls(
     content: string,
-    tools: ProviderTool[],
+    tools: ProviderTool[]
   ): [ToolCall[], string] {
     const toolNames = new Set(tools.map((t) => t.name));
     const calls: ToolCall[] = [];
@@ -181,7 +195,8 @@ export class OllamaProvider extends BaseProvider {
         // Try to parse as number or boolean
         if (value === "true") args[key] = true;
         else if (value === "false") args[key] = false;
-        else if (!isNaN(Number(value)) && value !== "") args[key] = Number(value);
+        else if (!isNaN(Number(value)) && value !== "")
+          args[key] = Number(value);
         else args[key] = value;
       }
 
@@ -192,7 +207,9 @@ export class OllamaProvider extends BaseProvider {
     return [calls, cleaned];
   }
 
-  private async imageToBase64(image: MessageImageContent["image"]): Promise<string> {
+  private async imageToBase64(
+    image: MessageImageContent["image"]
+  ): Promise<string> {
     if (typeof image.data === "string" && image.data.startsWith("data:")) {
       return parseDataUri(image.data).base64;
     }
@@ -228,7 +245,7 @@ export class OllamaProvider extends BaseProvider {
     if (message.role === "assistant") {
       const out: Record<string, unknown> = {
         role: "assistant",
-        content: typeof message.content === "string" ? message.content : "",
+        content: typeof message.content === "string" ? message.content : ""
       };
 
       const toolCalls = message.toolCalls ?? [];
@@ -236,8 +253,8 @@ export class OllamaProvider extends BaseProvider {
         out.tool_calls = toolCalls.map((tc) => ({
           function: {
             name: tc.name,
-            arguments: tc.args,
-          },
+            arguments: tc.args
+          }
         }));
       }
       return out;
@@ -271,7 +288,7 @@ export class OllamaProvider extends BaseProvider {
 
     const out: Record<string, unknown> = {
       role: "user",
-      content: text,
+      content: text
     };
     if (images.length > 0) {
       out.images = images;
@@ -285,16 +302,19 @@ export class OllamaProvider extends BaseProvider {
       function: {
         name: tool.name,
         description: tool.description ?? "",
-        parameters: tool.inputSchema ?? { type: "object", properties: {} },
-      },
+        parameters: tool.inputSchema ?? { type: "object", properties: {} }
+      }
     }));
   }
 
-  private async postJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  private async postJson<T>(
+    path: string,
+    body: Record<string, unknown>
+  ): Promise<T> {
     const response = await this._fetch(`${this.apiUrl}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
     if (!response.ok) {
       throw new Error(`Ollama API request failed (${response.status})`);
@@ -315,7 +335,7 @@ export class OllamaProvider extends BaseProvider {
       .map((id) => ({
         id,
         name: id,
-        provider: "ollama",
+        provider: "ollama"
       }));
   }
 
@@ -325,7 +345,7 @@ export class OllamaProvider extends BaseProvider {
       id: m.id,
       name: m.name,
       provider: "ollama",
-      dimensions: 0,
+      dimensions: 0
     }));
   }
 
@@ -339,7 +359,7 @@ export class OllamaProvider extends BaseProvider {
         return {
           id: `tool_${idx + 1}`,
           name,
-          args: normalizeToolArgs(fn.arguments),
+          args: normalizeToolArgs(fn.arguments)
         } satisfies ToolCall;
       })
       .filter((tc): tc is ToolCall => tc !== null);
@@ -354,18 +374,25 @@ export class OllamaProvider extends BaseProvider {
   }): Promise<Record<string, unknown>> {
     const request: Record<string, unknown> = {
       model: args.model,
-      messages: await Promise.all(args.messages.map((m) => this.convertMessage(m))),
+      messages: await Promise.all(
+        args.messages.map((m) => this.convertMessage(m))
+      ),
       options: {
-        num_predict: args.maxTokens ?? 8192,
-      },
+        num_predict: args.maxTokens ?? 8192
+      }
     };
 
-    if ((args.tools ?? []).length > 0 && (await this.hasToolSupport(args.model))) {
+    if (
+      (args.tools ?? []).length > 0 &&
+      (await this.hasToolSupport(args.model))
+    ) {
       request.tools = this.formatTools(args.tools ?? []);
     }
 
     if (args.responseFormat?.type === "json_schema") {
-      const schema = (args.responseFormat.json_schema as { schema?: unknown } | undefined)?.schema;
+      const schema = (
+        args.responseFormat.json_schema as { schema?: unknown } | undefined
+      )?.schema;
       if (!schema) {
         throw new Error("schema is required in json_schema response format");
       }
@@ -388,11 +415,14 @@ export class OllamaProvider extends BaseProvider {
     frequencyPenalty?: number;
   }): Promise<Message> {
     if (args.jsonSchema) {
-      throw new Error("Ollama provider expects responseFormat; jsonSchema is not supported directly");
+      throw new Error(
+        "Ollama provider expects responseFormat; jsonSchema is not supported directly"
+      );
     }
 
     const tools = args.tools ?? [];
-    const useToolEmulation = tools.length > 0 && !(await this.hasToolSupport(args.model));
+    const useToolEmulation =
+      tools.length > 0 && !(await this.hasToolSupport(args.model));
 
     // For emulation, inject tool descriptions into messages and strip tools from request
     let messages = args.messages;
@@ -407,13 +437,16 @@ export class OllamaProvider extends BaseProvider {
       model: args.model,
       tools: requestTools,
       maxTokens: args.maxTokens,
-      responseFormat: args.responseFormat,
+      responseFormat: args.responseFormat
     });
     request.stream = false;
 
     log.debug("Ollama request", { model: args.model });
 
-    const response = await this.postJson<{ message?: OllamaChatMessage }>("/api/chat", request);
+    const response = await this.postJson<{ message?: OllamaChatMessage }>(
+      "/api/chat",
+      request
+    );
     const message = response.message ?? {};
     const content = typeof message.content === "string" ? message.content : "";
 
@@ -428,7 +461,7 @@ export class OllamaProvider extends BaseProvider {
     return {
       role: "assistant",
       content,
-      toolCalls,
+      toolCalls
     };
   }
 
@@ -436,10 +469,12 @@ export class OllamaProvider extends BaseProvider {
    * Inject tool emulation instructions into the message list.
    * Prepends/appends tool descriptions to system message and converts tool messages to user messages.
    */
-  private _injectToolEmulationPrompt(messages: Message[], tools: ProviderTool[]): Message[] {
+  private _injectToolEmulationPrompt(
+    messages: Message[],
+    tools: ProviderTool[]
+  ): Message[] {
     const toolDescriptions = this._formatToolsForEmulation(tools);
-    const emulationSuffix =
-      `\n\nYou have access to these functions. Call them by writing: function_name(param='value')\n\n${toolDescriptions}\n\nWhen you need a function, write ONLY the function call. After receiving a result, use it in your answer.`;
+    const emulationSuffix = `\n\nYou have access to these functions. Call them by writing: function_name(param='value')\n\n${toolDescriptions}\n\nWhen you need a function, write ONLY the function call. After receiving a result, use it in your answer.`;
 
     const result: Message[] = [];
     let systemFound = false;
@@ -447,12 +482,19 @@ export class OllamaProvider extends BaseProvider {
     for (const msg of messages) {
       if (msg.role === "system" && !systemFound) {
         systemFound = true;
-        const existingContent = typeof msg.content === "string" ? msg.content : "";
+        const existingContent =
+          typeof msg.content === "string" ? msg.content : "";
         result.push({ ...msg, content: existingContent + emulationSuffix });
       } else if (msg.role === "tool") {
         // Convert tool result to user message
-        const toolContent = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content ?? null);
-        result.push({ role: "user", content: `Function result: ${toolContent}` });
+        const toolContent =
+          typeof msg.content === "string"
+            ? msg.content
+            : JSON.stringify(msg.content ?? null);
+        result.push({
+          role: "user",
+          content: `Function result: ${toolContent}`
+        });
       } else {
         result.push(msg);
       }
@@ -480,11 +522,14 @@ export class OllamaProvider extends BaseProvider {
     audio?: Record<string, unknown>;
   }): AsyncGenerator<ProviderStreamItem> {
     if (args.jsonSchema) {
-      throw new Error("Ollama provider expects responseFormat; jsonSchema is not supported directly");
+      throw new Error(
+        "Ollama provider expects responseFormat; jsonSchema is not supported directly"
+      );
     }
 
     const tools = args.tools ?? [];
-    const useToolEmulation = tools.length > 0 && !(await this.hasToolSupport(args.model));
+    const useToolEmulation =
+      tools.length > 0 && !(await this.hasToolSupport(args.model));
 
     // For emulation, inject tool descriptions into messages and strip tools from request
     let messages = args.messages;
@@ -499,7 +544,7 @@ export class OllamaProvider extends BaseProvider {
       model: args.model,
       tools: requestTools,
       maxTokens: args.maxTokens,
-      responseFormat: args.responseFormat,
+      responseFormat: args.responseFormat
     });
     request.stream = true;
 
@@ -508,7 +553,7 @@ export class OllamaProvider extends BaseProvider {
     const response = await this._fetch(`${this.apiUrl}/api/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(request),
+      body: JSON.stringify(request)
     });
 
     if (!response.ok || !response.body) {
@@ -545,7 +590,8 @@ export class OllamaProvider extends BaseProvider {
             }
           }
 
-          const content = typeof message.content === "string" ? message.content : "";
+          const content =
+            typeof message.content === "string" ? message.content : "";
           if (useToolEmulation) {
             accumulatedText += content;
           }
@@ -554,14 +600,17 @@ export class OllamaProvider extends BaseProvider {
             const chunk: Chunk = {
               type: "chunk",
               content,
-              done: event.done ?? false,
+              done: event.done ?? false
             };
             yield chunk;
           }
 
           // When done and using emulation, parse accumulated text for tool calls
           if (event.done && useToolEmulation) {
-            const [emulatedCalls] = this._parseEmulatedToolCalls(accumulatedText, tools);
+            const [emulatedCalls] = this._parseEmulatedToolCalls(
+              accumulatedText,
+              tools
+            );
             for (const tc of emulatedCalls) {
               yield tc;
             }
@@ -579,14 +628,17 @@ export class OllamaProvider extends BaseProvider {
     dimensions?: number;
   }): Promise<number[][]> {
     const values = Array.isArray(args.text) ? args.text : [args.text];
-    if (values.length === 0 || values.some((v) => typeof v !== "string" || v.length === 0)) {
+    if (
+      values.length === 0 ||
+      values.some((v) => typeof v !== "string" || v.length === 0)
+    ) {
       throw new Error("text must not be empty");
     }
     const response = await this.postJson<{ embeddings?: number[][] }>(
       "/api/embed",
       {
         model: args.model,
-        input: values,
+        input: values
       }
     );
     return response.embeddings ?? [];
@@ -603,4 +655,3 @@ export class OllamaProvider extends BaseProvider {
     );
   }
 }
-

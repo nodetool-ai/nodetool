@@ -17,11 +17,13 @@ const MIME_TYPES: Record<string, string> = {
   ".wav": "audio/wav",
   ".json": "application/json",
   ".txt": "text/plain",
-  ".pdf": "application/pdf",
+  ".pdf": "application/pdf"
 };
 
 function getMimeType(filePath: string): string {
-  return MIME_TYPES[extname(filePath).toLowerCase()] ?? "application/octet-stream";
+  return (
+    MIME_TYPES[extname(filePath).toLowerCase()] ?? "application/octet-stream"
+  );
 }
 
 // ── Key validation ────────────────────────────────────────────────
@@ -29,8 +31,12 @@ function getMimeType(filePath: string): string {
 function validateStorageKey(key: string): string | null {
   if (!key) return "Key is required";
   if (key.startsWith("/")) return "Key must not be absolute path";
-  const parts = key.replace(/\\/g, "/").split("/").filter((p) => p && p !== ".");
-  if (parts.some((p) => p === "..")) return "Key must not contain path traversal";
+  const parts = key
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter((p) => p && p !== ".");
+  if (parts.some((p) => p === ".."))
+    return "Key must not contain path traversal";
   return null; // valid
 }
 
@@ -50,7 +56,10 @@ interface ParsedRange {
   end: number;
 }
 
-function parseRangeHeader(rangeHeader: string, fileSize: number): ParsedRange | null {
+function parseRangeHeader(
+  rangeHeader: string,
+  fileSize: number
+): ParsedRange | null {
   const match = rangeHeader.match(/^bytes=(\d*)-(\d*)$/);
   if (!match) return null;
   const startStr = match[1];
@@ -100,7 +109,7 @@ function nodeStreamToWebStream(
     },
     cancel() {
       nodeStream.destroy();
-    },
+    }
   });
 }
 
@@ -115,7 +124,7 @@ async function handleStorageRequest(
   if (validationError) {
     return new Response(JSON.stringify({ detail: validationError }), {
       status: 400,
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json" }
     });
   }
 
@@ -134,8 +143,8 @@ async function handleStorageRequest(
       headers: {
         "Last-Modified": fileStat.mtime.toUTCString(),
         "Content-Length": String(fileStat.size),
-        "Content-Type": getMimeType(filePath),
-      },
+        "Content-Type": getMimeType(filePath)
+      }
     });
   }
 
@@ -147,7 +156,7 @@ async function handleStorageRequest(
     } catch {
       return new Response(JSON.stringify({ detail: "Not found" }), {
         status: 404,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json" }
       });
     }
 
@@ -160,7 +169,10 @@ async function handleStorageRequest(
     const ifModifiedSince = request.headers.get("If-Modified-Since");
     if (ifModifiedSince) {
       const ifModifiedSinceDate = new Date(ifModifiedSince);
-      if (!Number.isNaN(ifModifiedSinceDate.getTime()) && mtime <= ifModifiedSinceDate) {
+      if (
+        !Number.isNaN(ifModifiedSinceDate.getTime()) &&
+        mtime <= ifModifiedSinceDate
+      ) {
         return new Response(null, { status: 304 });
       }
     }
@@ -170,13 +182,16 @@ async function handleStorageRequest(
     if (rangeHeader) {
       const range = parseRangeHeader(rangeHeader, fileSize);
       if (!range) {
-        return new Response(JSON.stringify({ detail: "Range Not Satisfiable" }), {
-          status: 416,
-          headers: {
-            "content-type": "application/json",
-            "Content-Range": `bytes */${fileSize}`,
-          },
-        });
+        return new Response(
+          JSON.stringify({ detail: "Range Not Satisfiable" }),
+          {
+            status: 416,
+            headers: {
+              "content-type": "application/json",
+              "Content-Range": `bytes */${fileSize}`
+            }
+          }
+        );
       }
       const { start, end } = range;
       const chunkSize = end - start + 1;
@@ -188,8 +203,8 @@ async function handleStorageRequest(
           "Content-Length": String(chunkSize),
           "Content-Range": `bytes ${start}-${end}/${fileSize}`,
           "Last-Modified": lastModified,
-          "Accept-Ranges": "bytes",
-        },
+          "Accept-Ranges": "bytes"
+        }
       });
     }
 
@@ -201,8 +216,8 @@ async function handleStorageRequest(
         "Content-Type": contentType,
         "Content-Length": String(fileSize),
         "Last-Modified": lastModified,
-        "Accept-Ranges": "bytes",
-      },
+        "Accept-Ranges": "bytes"
+      }
     });
   }
 
@@ -221,7 +236,7 @@ async function handleStorageRequest(
     } catch {
       return new Response(JSON.stringify({ detail: "Not found" }), {
         status: 404,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json" }
       });
     }
     await unlink(filePath);
@@ -230,7 +245,7 @@ async function handleStorageRequest(
 
   return new Response(JSON.stringify({ detail: "Method not allowed" }), {
     status: 405,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json" }
   });
 }
 
@@ -270,7 +285,7 @@ export function createStorageHandler(
 
     return new Response(JSON.stringify({ detail: "Not found" }), {
       status: 404,
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json" }
     });
   };
 }

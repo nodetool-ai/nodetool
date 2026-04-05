@@ -4,7 +4,10 @@ import { WebSocketServer } from "ws";
 import * as msgpack from "@msgpack/msgpack";
 
 // Mock Python server for testing
-function createMockServer(port: number): { wss: WebSocketServer; close: () => void } {
+function createMockServer(port: number): {
+  wss: WebSocketServer;
+  close: () => void;
+} {
   const wss = new WebSocketServer({ port });
   wss.on("connection", (ws) => {
     ws.on("message", (data: Buffer) => {
@@ -24,10 +27,10 @@ function createMockServer(port: number): { wss: WebSocketServer; close: () => vo
                 description: "Echoes input",
                 properties: [{ name: "text", type: { type: "str" } }],
                 outputs: [{ name: "output", type: { type: "str" } }],
-                required_settings: [],
-              },
-            ],
-          },
+                required_settings: []
+              }
+            ]
+          }
         });
         ws.send(response);
       } else if (type === "execute") {
@@ -38,8 +41,8 @@ function createMockServer(port: number): { wss: WebSocketServer; close: () => vo
           request_id: requestId,
           data: {
             outputs: { output: fields.text ?? "default" },
-            blobs: {},
-          },
+            blobs: {}
+          }
         });
         ws.send(response);
       }

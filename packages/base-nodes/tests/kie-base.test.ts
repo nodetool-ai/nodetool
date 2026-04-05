@@ -7,7 +7,7 @@ import {
   uploadVideoInput,
   uploadFile,
   kieExecuteTask,
-  kieExecuteSunoTask,
+  kieExecuteSunoTask
 } from "../src/nodes/kie-base.js";
 import { KieAINode } from "../src/nodes/kie-dynamic.js";
 
@@ -35,7 +35,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     json: async () => body,
     text: async () => JSON.stringify(body),
-    arrayBuffer: async () => new Uint8Array([116, 101, 115, 116]).buffer, // "test"
+    arrayBuffer: async () => new Uint8Array([116, 101, 115, 116]).buffer // "test"
   } as unknown as Response;
 }
 
@@ -123,7 +123,7 @@ describe("uploadImageInput", () => {
 
   it("returns URL directly for external HTTP URIs", async () => {
     const url = await uploadImageInput(apiKey, {
-      uri: "http://example.com/image.png",
+      uri: "http://example.com/image.png"
     });
     expect(url).toBe("http://example.com/image.png");
     expect(mockFetch).not.toHaveBeenCalled();
@@ -131,7 +131,7 @@ describe("uploadImageInput", () => {
 
   it("returns URL directly for HTTPS URIs", async () => {
     const url = await uploadImageInput(apiKey, {
-      uri: "https://cdn.example.com/image.jpg",
+      uri: "https://cdn.example.com/image.jpg"
     });
     expect(url).toBe("https://cdn.example.com/image.jpg");
     expect(mockFetch).not.toHaveBeenCalled();
@@ -179,7 +179,7 @@ describe("uploadImageInput", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         success: true,
-        data: { downloadUrl: "https://cdn.kie.ai/uploaded.png" },
+        data: { downloadUrl: "https://cdn.kie.ai/uploaded.png" }
       })
     );
     const url = await uploadImageInput(apiKey, { data: base64Data });
@@ -197,7 +197,7 @@ describe("uploadAudioInput", () => {
 
   it("returns URL directly for external HTTP URIs", async () => {
     const url = await uploadAudioInput(apiKey, {
-      uri: "http://example.com/audio.mp3",
+      uri: "http://example.com/audio.mp3"
     });
     expect(url).toBe("http://example.com/audio.mp3");
     expect(mockFetch).not.toHaveBeenCalled();
@@ -205,7 +205,7 @@ describe("uploadAudioInput", () => {
 
   it("returns URL directly for HTTPS URIs", async () => {
     const url = await uploadAudioInput(apiKey, {
-      uri: "https://cdn.example.com/audio.wav",
+      uri: "https://cdn.example.com/audio.wav"
     });
     expect(url).toBe("https://cdn.example.com/audio.wav");
     expect(mockFetch).not.toHaveBeenCalled();
@@ -240,7 +240,7 @@ describe("uploadAudioInput", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         success: true,
-        data: { downloadUrl: "https://cdn.kie.ai/uploaded.mp3" },
+        data: { downloadUrl: "https://cdn.kie.ai/uploaded.mp3" }
       })
     );
     const url = await uploadAudioInput(apiKey, { data: base64Data });
@@ -258,7 +258,7 @@ describe("uploadVideoInput", () => {
 
   it("returns URL directly for external HTTP URIs", async () => {
     const url = await uploadVideoInput(apiKey, {
-      uri: "http://example.com/video.mp4",
+      uri: "http://example.com/video.mp4"
     });
     expect(url).toBe("http://example.com/video.mp4");
     expect(mockFetch).not.toHaveBeenCalled();
@@ -266,7 +266,7 @@ describe("uploadVideoInput", () => {
 
   it("returns URL directly for HTTPS URIs", async () => {
     const url = await uploadVideoInput(apiKey, {
-      uri: "https://cdn.example.com/video.webm",
+      uri: "https://cdn.example.com/video.webm"
     });
     expect(url).toBe("https://cdn.example.com/video.webm");
     expect(mockFetch).not.toHaveBeenCalled();
@@ -301,7 +301,7 @@ describe("uploadVideoInput", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         success: true,
-        data: { downloadUrl: "https://cdn.kie.ai/uploaded.mp4" },
+        data: { downloadUrl: "https://cdn.kie.ai/uploaded.mp4" }
       })
     );
     const url = await uploadVideoInput(apiKey, { data: base64Data });
@@ -322,7 +322,7 @@ describe("uploadFile", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         success: true,
-        data: { downloadUrl: "https://cdn.kie.ai/result.png" },
+        data: { downloadUrl: "https://cdn.kie.ai/result.png" }
       })
     );
     const url = await uploadFile(apiKey, data, "images/uploads", "test.png");
@@ -355,9 +355,7 @@ describe("uploadFile", () => {
   });
 
   it("missing downloadUrl in response throws", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ success: true, data: {} })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ success: true, data: {} }));
     await expect(
       uploadFile(apiKey, data, "images/uploads", "test.png")
     ).rejects.toThrow("No downloadUrl");
@@ -379,7 +377,7 @@ describe("kieExecuteTask", () => {
       if (urlStr.includes("createTask")) {
         return jsonResponse({
           code: 200,
-          data: { taskId: "task_123" },
+          data: { taskId: "task_123" }
         });
       }
       if (urlStr.includes("recordInfo")) {
@@ -388,9 +386,9 @@ describe("kieExecuteTask", () => {
           data: {
             state: "success",
             resultJson: JSON.stringify({
-              resultUrls: ["https://cdn.example.com/result.png"],
-            }),
-          },
+              resultUrls: ["https://cdn.example.com/result.png"]
+            })
+          }
         });
       }
       if (urlStr.includes("cdn.example.com")) {
@@ -399,8 +397,7 @@ describe("kieExecuteTask", () => {
           status: 200,
           json: async () => null,
           text: async () => "",
-          arrayBuffer: async () =>
-            new Uint8Array([1, 2, 3, 4]).buffer,
+          arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer
         } as unknown as Response;
       }
       return jsonResponse({ error: "unknown" }, 404);
@@ -434,7 +431,7 @@ describe("kieExecuteTask", () => {
       if (urlStr.includes("recordInfo")) {
         return jsonResponse({
           code: 200,
-          data: { state: "failed", failMsg: "Model crashed" },
+          data: { state: "failed", failMsg: "Model crashed" }
         });
       }
       return jsonResponse({}, 404);
@@ -453,7 +450,7 @@ describe("kieExecuteTask", () => {
       if (urlStr.includes("recordInfo")) {
         return jsonResponse({
           code: 200,
-          data: { state: "success" },
+          data: { state: "success" }
         });
       }
       return jsonResponse({}, 404);
@@ -464,18 +461,14 @@ describe("kieExecuteTask", () => {
   });
 
   it("no taskId in submit response -> throws", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ code: 200, data: {} })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ code: 200, data: {} }));
     await expect(kieExecuteTask(apiKey, model, input, 0, 1)).rejects.toThrow(
       "No taskId"
     );
   });
 
   it("submit returns non-ok HTTP status -> throws", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ data: {} }, 500)
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ data: {} }, 500));
     await expect(kieExecuteTask(apiKey, model, input, 0, 1)).rejects.toThrow(
       "Submit failed"
     );
@@ -490,7 +483,7 @@ describe("kieExecuteTask", () => {
       if (urlStr.includes("recordInfo")) {
         return jsonResponse({
           code: 200,
-          data: { state: "processing" },
+          data: { state: "processing" }
         });
       }
       return jsonResponse({}, 404);
@@ -512,9 +505,9 @@ describe("kieExecuteTask", () => {
           data: {
             state: "success",
             resultJson: JSON.stringify({
-              resultUrls: ["https://cdn.example.com/fail.png"],
-            }),
-          },
+              resultUrls: ["https://cdn.example.com/fail.png"]
+            })
+          }
         });
       }
       if (urlStr.includes("cdn.example.com")) {
@@ -523,7 +516,7 @@ describe("kieExecuteTask", () => {
           status: 404,
           json: async () => null,
           text: async () => "Not found",
-          arrayBuffer: async () => new ArrayBuffer(0),
+          arrayBuffer: async () => new ArrayBuffer(0)
         } as unknown as Response;
       }
       return jsonResponse({}, 404);
@@ -544,8 +537,8 @@ describe("kieExecuteTask", () => {
           code: 200,
           data: {
             state: "success",
-            resultJson: JSON.stringify({}),
-          },
+            resultJson: JSON.stringify({})
+          }
         });
       }
       return jsonResponse({}, 404);
@@ -568,11 +561,16 @@ describe("kieExecuteTask", () => {
           // pollStatus call - success
           return jsonResponse({
             code: 200,
-            data: { state: "success" },
+            data: { state: "success" }
           });
         }
         // downloadResult call - fails
-        return { ok: false, status: 500, json: async () => ({}), text: async () => "err" } as unknown as Response;
+        return {
+          ok: false,
+          status: 500,
+          json: async () => ({}),
+          text: async () => "err"
+        } as unknown as Response;
       }
       return jsonResponse({}, 404);
     });
@@ -593,10 +591,13 @@ describe("kieExecuteSunoTask", () => {
   it("successful Suno flow: submit -> poll (SUCCESS) -> download clip", async () => {
     mockFetch.mockImplementation(async (url: string | URL) => {
       const urlStr = String(url);
-      if (urlStr.includes("/api/v1/generate") && !urlStr.includes("record-info")) {
+      if (
+        urlStr.includes("/api/v1/generate") &&
+        !urlStr.includes("record-info")
+      ) {
         return jsonResponse({
           code: 200,
-          data: { taskId: "suno_123" },
+          data: { taskId: "suno_123" }
         });
       }
       if (urlStr.includes("record-info")) {
@@ -605,19 +606,16 @@ describe("kieExecuteSunoTask", () => {
           data: {
             status: "SUCCESS",
             response: {
-              clips: [
-                { audioUrl: "https://cdn.example.com/song.mp3" },
-              ],
-            },
-          },
+              clips: [{ audioUrl: "https://cdn.example.com/song.mp3" }]
+            }
+          }
         });
       }
       if (urlStr.includes("cdn.example.com")) {
         return {
           ok: true,
           status: 200,
-          arrayBuffer: async () =>
-            new Uint8Array([10, 20, 30]).buffer,
+          arrayBuffer: async () => new Uint8Array([10, 20, 30]).buffer
         } as unknown as Response;
       }
       return jsonResponse({ error: "unknown" }, 404);
@@ -634,26 +632,32 @@ describe("kieExecuteSunoTask", () => {
   it("failed Suno status throws", async () => {
     mockFetch.mockImplementation(async (url: string | URL) => {
       const urlStr = String(url);
-      if (urlStr.includes("/api/v1/generate") && !urlStr.includes("record-info")) {
+      if (
+        urlStr.includes("/api/v1/generate") &&
+        !urlStr.includes("record-info")
+      ) {
         return jsonResponse({ code: 200, data: { taskId: "suno_fail" } });
       }
       if (urlStr.includes("record-info")) {
         return jsonResponse({
           code: 200,
-          data: { status: "GENERATE_AUDIO_FAILED" },
+          data: { status: "GENERATE_AUDIO_FAILED" }
         });
       }
       return jsonResponse({}, 404);
     });
-    await expect(
-      kieExecuteSunoTask(apiKey, input, 0, 5)
-    ).rejects.toThrow("Suno task failed: GENERATE_AUDIO_FAILED");
+    await expect(kieExecuteSunoTask(apiKey, input, 0, 5)).rejects.toThrow(
+      "Suno task failed: GENERATE_AUDIO_FAILED"
+    );
   });
 
   it("no clips in response throws", async () => {
     mockFetch.mockImplementation(async (url: string | URL) => {
       const urlStr = String(url);
-      if (urlStr.includes("/api/v1/generate") && !urlStr.includes("record-info")) {
+      if (
+        urlStr.includes("/api/v1/generate") &&
+        !urlStr.includes("record-info")
+      ) {
         return jsonResponse({ code: 200, data: { taskId: "suno_nc" } });
       }
       if (urlStr.includes("record-info")) {
@@ -661,43 +665,46 @@ describe("kieExecuteSunoTask", () => {
           code: 200,
           data: {
             status: "SUCCESS",
-            response: { clips: [] },
-          },
+            response: { clips: [] }
+          }
         });
       }
       return jsonResponse({}, 404);
     });
-    await expect(
-      kieExecuteSunoTask(apiKey, input, 0, 5)
-    ).rejects.toThrow("No clips");
+    await expect(kieExecuteSunoTask(apiKey, input, 0, 5)).rejects.toThrow(
+      "No clips"
+    );
   });
 
   it("Suno submit error code throws", async () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ code: 429, message: "Rate limited" })
     );
-    await expect(
-      kieExecuteSunoTask(apiKey, input, 0, 1)
-    ).rejects.toThrow("Rate Limited");
+    await expect(kieExecuteSunoTask(apiKey, input, 0, 1)).rejects.toThrow(
+      "Rate Limited"
+    );
   });
 
   it("Suno poll timeout throws", async () => {
     mockFetch.mockImplementation(async (url: string | URL) => {
       const urlStr = String(url);
-      if (urlStr.includes("/api/v1/generate") && !urlStr.includes("record-info")) {
+      if (
+        urlStr.includes("/api/v1/generate") &&
+        !urlStr.includes("record-info")
+      ) {
         return jsonResponse({ code: 200, data: { taskId: "suno_to" } });
       }
       if (urlStr.includes("record-info")) {
         return jsonResponse({
           code: 200,
-          data: { status: "GENERATING" },
+          data: { status: "GENERATING" }
         });
       }
       return jsonResponse({}, 404);
     });
-    await expect(
-      kieExecuteSunoTask(apiKey, input, 0, 2)
-    ).rejects.toThrow("Suno task timed out");
+    await expect(kieExecuteSunoTask(apiKey, input, 0, 2)).rejects.toThrow(
+      "Suno task timed out"
+    );
   });
 });
 
@@ -731,9 +738,7 @@ describe("KieAINode", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "k" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("model_info is empty");
+    await expect(node.process()).rejects.toThrow("model_info is empty");
   });
 
   it("throws on whitespace-only model_info", async () => {
@@ -744,9 +749,7 @@ describe("KieAINode", () => {
     });
 
     node.setDynamic("_secrets", { KIE_API_KEY: "k" });
-    await expect(
-      node.process()
-    ).rejects.toThrow("model_info is empty");
+    await expect(node.process()).rejects.toThrow("model_info is empty");
   });
 
   it("throws on missing API key", async () => {
@@ -756,8 +759,8 @@ describe("KieAINode", () => {
       model_info: "some docs"
     });
 
-    await expect(
-      node.process()
-    ).rejects.toThrow("KIE_API_KEY is not configured");
+    await expect(node.process()).rejects.toThrow(
+      "KIE_API_KEY is not configured"
+    );
   });
 });

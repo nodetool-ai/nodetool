@@ -7,7 +7,7 @@ import {
   registerTool,
   resolveTool,
   listTools,
-  getAllTools,
+  getAllTools
 } from "../../src/tools/tool-registry.js";
 import { Tool } from "../../src/tools/base-tool.js";
 import type { ProcessingContext } from "@nodetool/runtime";
@@ -24,7 +24,7 @@ function makeTool(name: string): Tool {
 
     async process(
       _context: ProcessingContext,
-      _params: Record<string, unknown>,
+      _params: Record<string, unknown>
     ): Promise<unknown> {
       return { tool: name };
     }

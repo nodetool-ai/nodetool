@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Exp Array"
-node_type: "lib.numpy.math.ExpArray"
-namespace: "lib.numpy.math"
+node_type: "lib.array.math.ExpArray"
+namespace: "lib.array.math"
 ---
 
-**Type:** `lib.numpy.math.ExpArray`
+**Type:** `lib.array.math.ExpArray`
 
-**Namespace:** `lib.numpy.math`
+**Namespace:** `lib.array.math`
 
 ## Description
 
@@ -35,5 +35,5 @@ Calculate the exponential of each element in a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.math](../) namespace.
+Browse other nodes in the [lib.array.math](../) namespace.
 

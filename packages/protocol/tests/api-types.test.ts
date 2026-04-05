@@ -69,7 +69,7 @@ import type {
   WorkflowVersion,
   WorkflowVersionSaveType,
   SettingWithValue,
-  SettingsResponse,
+  SettingsResponse
 } from "../src/api-types.js";
 
 // ---------------------------------------------------------------------------
@@ -85,13 +85,21 @@ describe("Media Refs", () => {
   });
 
   it("AudioRef has optional duration", () => {
-    const ref: AudioRef = { type: "audio", uri: "s3://bucket/audio.mp3", duration: 3.5 };
+    const ref: AudioRef = {
+      type: "audio",
+      uri: "s3://bucket/audio.mp3",
+      duration: 3.5
+    };
     expect(ref.type).toBe("audio");
     expect(ref.duration).toBe(3.5);
   });
 
   it("VideoRef has optional format and duration", () => {
-    const ref: VideoRef = { type: "video", uri: "s3://bucket/video.mp4", format: "mp4" };
+    const ref: VideoRef = {
+      type: "video",
+      uri: "s3://bucket/video.mp4",
+      format: "mp4"
+    };
     expect(ref.format).toBe("mp4");
     expect(ref.duration).toBeUndefined();
   });
@@ -107,7 +115,7 @@ describe("Media Refs", () => {
       type: "dataframe",
       uri: "s3://bucket/data.csv",
       columns: [col],
-      data: [[1], [2]],
+      data: [[1], [2]]
     };
     expect(ref.columns).toHaveLength(1);
     expect(ref.columns![0].name).toBe("age");
@@ -149,7 +157,7 @@ describe("Media Refs", () => {
       type: "np_array",
       uri: "s3://bucket/tensor.npy",
       dtype: "float32",
-      shape: [3, 224, 224],
+      shape: [3, 224, 224]
     };
     expect(arr.shape).toEqual([3, 224, 224]);
     expect(arr.dtype).toBe("float32");
@@ -161,7 +169,7 @@ describe("Media Refs", () => {
       type: "svg",
       name: "svg",
       children: [child],
-      attributes: { width: "100", height: "100" },
+      attributes: { width: "100", height: "100" }
     };
     expect(root.children).toHaveLength(1);
     expect(root.attributes?.width).toBe("100");
@@ -171,7 +179,7 @@ describe("Media Refs", () => {
     const config: PlotlyConfig = {
       type: "plotly_config",
       data: [{ type: "scatter", x: [1, 2], y: [3, 4] }],
-      layout: { title: "My Chart" },
+      layout: { title: "My Chart" }
     };
     expect(config.data).toHaveLength(1);
     expect(config.layout?.title).toBe("My Chart");
@@ -198,7 +206,7 @@ describe("Datetime", () => {
       hour: 12,
       minute: 30,
       second: 0,
-      tzinfo: "UTC",
+      tzinfo: "UTC"
     };
     expect(dt.tzinfo).toBe("UTC");
   });
@@ -216,7 +224,7 @@ describe("CalendarEvent", () => {
       type: "calendar_event",
       title: "Holiday",
       all_day: true,
-      location: "Office",
+      location: "Office"
     };
     expect(evt.all_day).toBe(true);
     expect(evt.location).toBe("Office");
@@ -238,7 +246,7 @@ describe("Asset", () => {
       workflow_id: null,
       created_at: "2024-01-01T00:00:00Z",
       get_url: "https://cdn.example.com/photo.jpg",
-      thumb_url: "https://cdn.example.com/thumb.jpg",
+      thumb_url: "https://cdn.example.com/thumb.jpg"
     };
     expect(asset.id).toBe("a1");
     expect(asset.content_type).toBe("image/jpeg");
@@ -257,7 +265,7 @@ describe("Asset", () => {
       workflow_id: null,
       created_at: "2024-01-01T00:00:00Z",
       get_url: null,
-      thumb_url: null,
+      thumb_url: null
     };
     expect(asset.size).toBe(1024000);
     expect(asset.duration).toBe(120.5);
@@ -266,7 +274,7 @@ describe("Asset", () => {
   it("AssetList wraps assets array with cursor", () => {
     const list: AssetList = {
       next: "cursor-token",
-      assets: [],
+      assets: []
     };
     expect(list.assets).toHaveLength(0);
     expect(list.next).toBe("cursor-token");
@@ -286,7 +294,7 @@ describe("Workflow", () => {
       graph: { nodes: [], edges: [] },
       access: "private",
       created_at: "2024-01-01T00:00:00Z",
-      updated_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z"
     };
     expect(wf.id).toBe("wf-1");
     expect(wf.graph.nodes).toHaveLength(0);
@@ -297,11 +305,11 @@ describe("Workflow", () => {
     const node: Node = {
       id: "n1",
       type: "math.Add",
-      sync_mode: "on_any",
+      sync_mode: "on_any"
     };
     const graph: WorkflowGraph = {
       nodes: [node],
-      edges: [],
+      edges: []
     };
     expect(graph.nodes).toHaveLength(1);
     expect(graph.nodes[0].type).toBe("math.Add");
@@ -310,7 +318,7 @@ describe("Workflow", () => {
   it("WorkflowRequest with required access field", () => {
     const req: WorkflowRequest = {
       name: "New Workflow",
-      access: "public",
+      access: "public"
     };
     expect(req.access).toBe("public");
     expect(req.tags).toBeUndefined();
@@ -321,7 +329,7 @@ describe("Workflow", () => {
       id: "wf-1",
       name: "My Tool",
       tool_name: "my_tool",
-      description: "Does something useful",
+      description: "Does something useful"
     };
     expect(tool.tool_name).toBe("my_tool");
   });
@@ -338,7 +346,7 @@ describe("Thread", () => {
       user_id: "u1",
       title: null,
       created_at: "2024-01-01T00:00:00Z",
-      updated_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z"
     };
     expect(thread.id).toBe("t1");
     expect(thread.title).toBeNull();
@@ -355,7 +363,7 @@ describe("MessageContent discriminated union", () => {
   it("MessageImageContent", () => {
     const content: MessageImageContent = {
       type: "image",
-      image: { type: "image", uri: "s3://bucket/img.png" },
+      image: { type: "image", uri: "s3://bucket/img.png" }
     };
     expect(content.type).toBe("image");
     expect(content.image.uri).toBe("s3://bucket/img.png");
@@ -364,7 +372,7 @@ describe("MessageContent discriminated union", () => {
   it("MessageVideoContent", () => {
     const content: MessageVideoContent = {
       type: "video",
-      video: { type: "video", uri: "s3://bucket/video.mp4" },
+      video: { type: "video", uri: "s3://bucket/video.mp4" }
     };
     expect(content.type).toBe("video");
   });
@@ -372,7 +380,7 @@ describe("MessageContent discriminated union", () => {
   it("MessageAudioContent", () => {
     const content: MessageAudioContent = {
       type: "audio",
-      audio: { type: "audio", uri: "s3://bucket/audio.mp3" },
+      audio: { type: "audio", uri: "s3://bucket/audio.mp3" }
     };
     expect(content.type).toBe("audio");
   });
@@ -380,7 +388,7 @@ describe("MessageContent discriminated union", () => {
   it("MessageDocumentContent", () => {
     const content: MessageDocumentContent = {
       type: "document",
-      document: { type: "document", uri: "s3://bucket/doc.pdf" },
+      document: { type: "document", uri: "s3://bucket/doc.pdf" }
     };
     expect(content.type).toBe("document");
   });
@@ -389,7 +397,7 @@ describe("MessageContent discriminated union", () => {
     const content: MessageThoughtContent = {
       type: "thought",
       text: "I am thinking...",
-      thought_signature: "sig123",
+      thought_signature: "sig123"
     };
     expect(content.type).toBe("thought");
     expect(content.thought_signature).toBe("sig123");
@@ -398,7 +406,7 @@ describe("MessageContent discriminated union", () => {
   it("MessageContent union narrows correctly", () => {
     const contents: MessageContent[] = [
       { type: "text", text: "hello" },
-      { type: "thought", text: "thinking" },
+      { type: "thought", text: "thinking" }
     ];
     for (const c of contents) {
       if (c.type === "text") {
@@ -422,11 +430,11 @@ describe("Message", () => {
       id: "tc1",
       name: "search",
       args: { query: "cats" },
-      result: "Found cats",
+      result: "Found cats"
     };
     const msg: Message = {
       role: "assistant",
-      tool_calls: [toolCall],
+      tool_calls: [toolCall]
     };
     expect(msg.tool_calls).toHaveLength(1);
     expect(msg.tool_calls![0].name).toBe("search");
@@ -435,7 +443,7 @@ describe("Message", () => {
   it("message with array content (multi-modal)", () => {
     const content: MessageContent[] = [
       { type: "text", text: "Look at this image:" },
-      { type: "image", image: { type: "image", uri: "s3://bucket/img.png" } },
+      { type: "image", image: { type: "image", uri: "s3://bucket/img.png" } }
     ];
     const msg: Message = { role: "user", content };
     expect(Array.isArray(msg.content)).toBe(true);
@@ -454,7 +462,7 @@ describe("PropertyTypeMetadata", () => {
     const meta: PropertyTypeMetadata = {
       type: "list",
       optional: false,
-      type_args: [{ type: "int", optional: false, type_args: [] }],
+      type_args: [{ type: "int", optional: false, type_args: [] }]
     };
     expect(meta.type).toBe("list");
     expect(meta.type_args).toHaveLength(1);
@@ -467,7 +475,7 @@ describe("Property", () => {
     const prop: Property = {
       name: "value",
       type: { type: "int", optional: false, type_args: [] },
-      required: true,
+      required: true
     };
     expect(prop.name).toBe("value");
     expect(prop.required).toBe(true);
@@ -480,7 +488,7 @@ describe("Property", () => {
       required: false,
       default: 0,
       min: 0,
-      max: 100,
+      max: 100
     };
     expect(prop.min).toBe(0);
     expect(prop.max).toBe(100);
@@ -504,7 +512,7 @@ describe("NodeMetadata", () => {
       is_dynamic: false,
       is_streaming_output: false,
       expose_as_tool: false,
-      supports_dynamic_outputs: false,
+      supports_dynamic_outputs: false
     };
     expect(meta.node_type).toBe("math.Add");
     expect(meta.is_dynamic).toBe(false);
@@ -522,7 +530,7 @@ describe("JobResponse", () => {
       user_id: "u1",
       job_type: "workflow",
       workflow_id: "wf-1",
-      status: "running",
+      status: "running"
     };
     expect(job.id).toBe("j1");
     expect(job.status).toBe("running");
@@ -537,7 +545,7 @@ describe("JobResponse", () => {
       workflow_id: "wf-1",
       status: "failed",
       is_resumable: true,
-      suspension_reason: "user_input_required",
+      suspension_reason: "user_input_required"
     };
     expect(job.is_resumable).toBe(true);
     expect(job.suspension_reason).toBe("user_input_required");
@@ -555,7 +563,7 @@ describe("RunJobRequest", () => {
     const limits: ResourceLimits = { max_jobs: 5, max_duration_seconds: 3600 };
     const req: RunJobRequest = {
       workflow_id: "wf-1",
-      resource_limits: limits,
+      resource_limits: limits
     };
     expect(req.resource_limits?.max_jobs).toBe(5);
   });
@@ -571,7 +579,7 @@ describe("Model types", () => {
       type: "language_model",
       id: "gpt-4",
       name: "GPT-4",
-      provider: "openai",
+      provider: "openai"
     };
     expect(model.provider).toBe("openai");
   });
@@ -582,7 +590,7 @@ describe("Model types", () => {
       id: "text-embedding-3-small",
       name: "Text Embedding",
       provider: "openai",
-      dimensions: 1536,
+      dimensions: 1536
     };
     expect(model.dimensions).toBe(1536);
   });
@@ -593,7 +601,7 @@ describe("Model types", () => {
       name: "LLaMA 3",
       provider: "huggingface",
       downloaded: false,
-      size_on_disk: null,
+      size_on_disk: null
     };
     expect(model.downloaded).toBe(false);
     expect(model.size_on_disk).toBeNull();
@@ -606,8 +614,8 @@ describe("Model types", () => {
       name: "Vision Pack",
       models: [
         { id: "model-1", name: "CLIP" },
-        { id: "model-2", name: "BLIP" },
-      ],
+        { id: "model-2", name: "BLIP" }
+      ]
     };
     expect(pack.models).toHaveLength(2);
   });
@@ -621,7 +629,7 @@ describe("SystemStats", () => {
   it("has required cpu and memory fields", () => {
     const stats: SystemStats = {
       cpu_percent: 45.2,
-      memory_percent: 70.1,
+      memory_percent: 70.1
     };
     expect(stats.cpu_percent).toBe(45.2);
     expect(stats.gpu_percent).toBeUndefined();
@@ -634,7 +642,7 @@ describe("SystemStats", () => {
       gpu_percent: 85,
       vram_total_gb: 8,
       vram_used_gb: 4.2,
-      vram_percent: 52.5,
+      vram_percent: 52.5
     };
     expect(stats.vram_total_gb).toBe(8);
     expect(stats.vram_percent).toBeCloseTo(52.5);
@@ -645,7 +653,7 @@ describe("SecretResponse", () => {
   it("has required key and is_configured fields", () => {
     const secret: SecretResponse = {
       key: "OPENAI_API_KEY",
-      is_configured: true,
+      is_configured: true
     };
     expect(secret.key).toBe("OPENAI_API_KEY");
     expect(secret.is_configured).toBe(true);
@@ -664,13 +672,13 @@ describe("Task and Step", () => {
       id: "s1",
       name: "fetch_data",
       status: "completed",
-      result: { rows: 42 },
+      result: { rows: 42 }
     };
     const task: Task = {
       id: "t1",
       name: "process",
       steps: [step],
-      status: "running",
+      status: "running"
     };
     expect(task.steps).toHaveLength(1);
     expect(task.steps![0].result).toEqual({ rows: 42 });
@@ -682,7 +690,7 @@ describe("Task and Step", () => {
       completed: true,
       start_time: 1700000000,
       // The index signature allows arbitrary extra properties, e.g. metadata from the agent layer
-      agent_context: { session: "abc" },
+      agent_context: { session: "abc" }
     };
     expect(step.agent_context).toEqual({ session: "abc" });
   });
@@ -691,7 +699,7 @@ describe("Task and Step", () => {
     const plan: TaskPlan = {
       type: "task_plan",
       title: "My Plan",
-      tasks: [{ id: "t1", name: "task1" }],
+      tasks: [{ id: "t1", name: "task1" }]
     };
     expect(plan.tasks).toHaveLength(1);
     expect(plan.title).toBe("My Plan");
@@ -709,7 +717,7 @@ describe("FileInfo", () => {
       path: "/workspace/README.md",
       is_dir: false,
       size: 2048,
-      modified_at: "2024-01-01T00:00:00Z",
+      modified_at: "2024-01-01T00:00:00Z"
     };
     expect(file.is_dir).toBe(false);
     expect(file.size).toBe(2048);
@@ -729,7 +737,7 @@ describe("CollectionResponse", () => {
   it("CollectionList wraps collections", () => {
     const list: CollectionList = {
       collections: [{ name: "col1", count: 10 }],
-      count: 1,
+      count: 1
     };
     expect(list.collections).toHaveLength(1);
   });
@@ -749,14 +757,19 @@ describe("WorkflowVersion", () => {
       name: "Initial version",
       description: "First save",
       save_type: "manual",
-      graph: { nodes: [], edges: [] },
+      graph: { nodes: [], edges: [] }
     };
     expect(version.version).toBe(1);
     expect(version.save_type).toBe("manual");
   });
 
   it("WorkflowVersionSaveType covers all valid types", () => {
-    const types: WorkflowVersionSaveType[] = ["manual", "autosave", "checkpoint", "restore"];
+    const types: WorkflowVersionSaveType[] = [
+      "manual",
+      "autosave",
+      "checkpoint",
+      "restore"
+    ];
     expect(types).toHaveLength(4);
     expect(types).toContain("manual");
     expect(types).toContain("autosave");
@@ -776,7 +789,7 @@ describe("SettingWithValue", () => {
       env_var: "OPENAI_API_KEY",
       group: "api_keys",
       description: "OpenAI API key",
-      is_secret: true,
+      is_secret: true
     };
     expect(setting.env_var).toBe("OPENAI_API_KEY");
     expect(setting.is_secret).toBe(true);
@@ -790,9 +803,9 @@ describe("SettingWithValue", () => {
           env_var: "KEY",
           group: "auth",
           description: "A key",
-          is_secret: false,
-        },
-      ],
+          is_secret: false
+        }
+      ]
     };
     expect(response.settings).toHaveLength(1);
   });
@@ -810,7 +823,7 @@ describe("WorkspaceResponse", () => {
       name: "My Workspace",
       path: "/home/user/workspace",
       created_at: "2024-01-01T00:00:00Z",
-      updated_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z"
     };
     expect(ws.name).toBe("My Workspace");
     expect(ws.is_default).toBeUndefined();

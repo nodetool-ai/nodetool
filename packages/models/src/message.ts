@@ -80,17 +80,19 @@ export class Message extends DBModel {
   /** Paginate messages in a thread. */
   static async paginate(
     threadId: string,
-    opts: { limit?: number; startKey?: string; reverse?: boolean } = {},
+    opts: { limit?: number; startKey?: string; reverse?: boolean } = {}
   ): Promise<[Message[], string]> {
     const { limit = 50, reverse = false } = opts;
     const db = getDb();
-    const rows = db.select().from(messages)
+    const rows = db
+      .select()
+      .from(messages)
       .where(eq(messages.thread_id, threadId))
       .orderBy(reverse ? desc(messages.created_at) : asc(messages.created_at))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Message(r as Record<string, unknown>));
+    const items = rows.map((r) => new Message(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";

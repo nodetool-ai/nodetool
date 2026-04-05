@@ -47,7 +47,7 @@ describe("method restriction", () => {
   it("rejects non-GET methods", async () => {
     const res = await handleFileRequest(
       makeRequest("/api/files/list?path=.", "POST"),
-      { rootDir: tmpDir },
+      { rootDir: tmpDir }
     );
     expect(res.status).toBe(405);
   });
@@ -61,7 +61,7 @@ describe("path traversal protection", () => {
   it("blocks ../../../etc/passwd traversal", async () => {
     const res = await handleFileRequest(
       makeRequest("/api/files/list?path=../../../etc/passwd"),
-      { rootDir: tmpDir },
+      { rootDir: tmpDir }
     );
     expect(res.status).toBe(403);
     const body = await res.json();
@@ -71,7 +71,7 @@ describe("path traversal protection", () => {
   it("blocks absolute path outside root", async () => {
     const res = await handleFileRequest(
       makeRequest("/api/files/info?path=/etc/passwd"),
-      { rootDir: tmpDir },
+      { rootDir: tmpDir }
     );
     // The sandbox resolution should catch this
     expect([403, 404]).toContain(res.status);
@@ -83,7 +83,7 @@ describe("path traversal protection", () => {
 
     const res = await handleFileRequest(
       makeRequest("/api/files/info?path=subdir/file.txt"),
-      { rootDir: tmpDir },
+      { rootDir: tmpDir }
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -98,10 +98,9 @@ describe("path traversal protection", () => {
 
 describe("/api/files/list", () => {
   it("requires path parameter", async () => {
-    const res = await handleFileRequest(
-      makeRequest("/api/files/list"),
-      { rootDir: tmpDir },
-    );
+    const res = await handleFileRequest(makeRequest("/api/files/list"), {
+      rootDir: tmpDir
+    });
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.detail).toContain("path parameter");
@@ -111,10 +110,9 @@ describe("/api/files/list", () => {
     await fs.writeFile(path.join(tmpDir, "a.txt"), "hello");
     await fs.mkdir(path.join(tmpDir, "subdir"));
 
-    const res = await handleFileRequest(
-      makeRequest("/api/files/list?path=."),
-      { rootDir: tmpDir },
-    );
+    const res = await handleFileRequest(makeRequest("/api/files/list?path=."), {
+      rootDir: tmpDir
+    });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
@@ -134,7 +132,7 @@ describe("/api/files/list", () => {
   it("returns 404 for non-existent directory", async () => {
     const res = await handleFileRequest(
       makeRequest("/api/files/list?path=nonexistent"),
-      { rootDir: tmpDir },
+      { rootDir: tmpDir }
     );
     expect(res.status).toBe(404);
   });
@@ -150,7 +148,7 @@ describe("/api/files/info", () => {
 
     const res = await handleFileRequest(
       makeRequest("/api/files/info?path=info-test.txt"),
-      { rootDir: tmpDir },
+      { rootDir: tmpDir }
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -163,7 +161,7 @@ describe("/api/files/info", () => {
   it("returns 404 for missing file", async () => {
     const res = await handleFileRequest(
       makeRequest("/api/files/info?path=nope.txt"),
-      { rootDir: tmpDir },
+      { rootDir: tmpDir }
     );
     expect(res.status).toBe(404);
   });
@@ -180,7 +178,7 @@ describe("/api/files/download", () => {
 
     const res = await handleFileRequest(
       makeRequest("/api/files/download?path=dl.txt"),
-      { rootDir: tmpDir },
+      { rootDir: tmpDir }
     );
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("application/octet-stream");
@@ -193,7 +191,7 @@ describe("/api/files/download", () => {
 
     const res = await handleFileRequest(
       makeRequest("/api/files/download?path=mydir"),
-      { rootDir: tmpDir },
+      { rootDir: tmpDir }
     );
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -207,10 +205,9 @@ describe("/api/files/download", () => {
 
 describe("unknown route", () => {
   it("returns 404 for unknown file API route", async () => {
-    const res = await handleFileRequest(
-      makeRequest("/api/files/unknown"),
-      { rootDir: tmpDir },
-    );
+    const res = await handleFileRequest(makeRequest("/api/files/unknown"), {
+      rootDir: tmpDir
+    });
     expect(res.status).toBe(404);
   });
 });

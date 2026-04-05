@@ -66,7 +66,9 @@ describe("Channel – basic publish/subscribe", () => {
     const ch = new Channel("closed");
     await ch.close();
 
-    await expect(ch.publish("fail")).rejects.toThrow("Channel closed is closed");
+    await expect(ch.publish("fail")).rejects.toThrow(
+      "Channel closed is closed"
+    );
   });
 
   it("subscribe on closed channel returns empty", async () => {
@@ -119,9 +121,9 @@ describe("Channel – type checking", () => {
     }
     const ch = new Channel<Msg>("typed", 100, Msg);
 
-    await expect(
-      ch.publish("not a Msg" as unknown as Msg)
-    ).rejects.toThrow(TypeError);
+    await expect(ch.publish("not a Msg" as unknown as Msg)).rejects.toThrow(
+      TypeError
+    );
   });
 
   it("accepts messages of correct type", async () => {
@@ -196,9 +198,9 @@ describe("ChannelManager – getOrCreateChannel", () => {
     const mgr = new ChannelManager();
     await mgr.getOrCreateChannel("typed", 100, TypeA);
 
-    await expect(
-      mgr.getOrCreateChannel("typed", 100, TypeB)
-    ).rejects.toThrow(TypeError);
+    await expect(mgr.getOrCreateChannel("typed", 100, TypeB)).rejects.toThrow(
+      TypeError
+    );
   });
 });
 

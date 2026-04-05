@@ -188,7 +188,7 @@ describe("HfFastCache", () => {
 
   it("discoverRepos finds repos in a fake cache", async () => {
     await buildFakeHfCache(tmpDir, "org/mymodel", "abc123", {
-      "config.json": JSON.stringify({ model_type: "bert" }),
+      "config.json": JSON.stringify({ model_type: "bert" })
     });
 
     const cache = new HfFastCache(tmpDir);
@@ -199,7 +199,7 @@ describe("HfFastCache", () => {
 
   it("resolve returns correct path for an existing file", async () => {
     await buildFakeHfCache(tmpDir, "org/mymodel", "abc123", {
-      "config.json": JSON.stringify({ model_type: "bert" }),
+      "config.json": JSON.stringify({ model_type: "bert" })
     });
 
     const cache = new HfFastCache(tmpDir);
@@ -210,7 +210,7 @@ describe("HfFastCache", () => {
 
   it("resolve returns null for a file that does not exist in snapshot", async () => {
     await buildFakeHfCache(tmpDir, "org/mymodel", "abc123", {
-      "config.json": "{}",
+      "config.json": "{}"
     });
 
     const cache = new HfFastCache(tmpDir);
@@ -221,7 +221,7 @@ describe("HfFastCache", () => {
   it("listFiles returns files in the snapshot", async () => {
     await buildFakeHfCache(tmpDir, "org/mymodel", "abc123", {
       "config.json": "{}",
-      "model.safetensors": "fake-weights",
+      "model.safetensors": "fake-weights"
     });
 
     const cache = new HfFastCache(tmpDir);
@@ -232,7 +232,7 @@ describe("HfFastCache", () => {
 
   it("activeSnapshotDir returns the snapshot path", async () => {
     await buildFakeHfCache(tmpDir, "org/mymodel", "abc123", {
-      "config.json": "{}",
+      "config.json": "{}"
     });
 
     const cache = new HfFastCache(tmpDir);

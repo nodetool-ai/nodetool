@@ -13,7 +13,7 @@ const DEFAULT_HEADERS: Record<string, string> = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
   Accept: "*/*",
-  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Language": "en-US,en;q=0.9"
 };
 
 export class DownloadFileTool extends Tool {
@@ -25,19 +25,19 @@ export class DownloadFileTool extends Tool {
     properties: {
       url: {
         type: "string" as const,
-        description: "URL of the file to download",
+        description: "URL of the file to download"
       },
       output_file: {
         type: "string" as const,
-        description: "Workspace relative path where to save the file",
-      },
+        description: "Workspace relative path where to save the file"
+      }
     },
-    required: ["url", "output_file"],
+    required: ["url", "output_file"]
   };
 
   async process(
     context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       const url = params["url"];
@@ -68,7 +68,7 @@ export class DownloadFileTool extends Tool {
       try {
         response = await fetch(url, {
           headers: mergedHeaders,
-          signal: controller.signal,
+          signal: controller.signal
         });
       } finally {
         clearTimeout(timer);
@@ -80,7 +80,7 @@ export class DownloadFileTool extends Tool {
           output_file: outputFile,
           success: false,
           error: `HTTP request failed with status ${response.status}`,
-          status_code: response.status,
+          status_code: response.status
         };
       }
 
@@ -100,7 +100,7 @@ export class DownloadFileTool extends Tool {
         output_file: outputFile,
         success: true,
         content_type: contentType,
-        file_size_bytes: fileSizeBytes,
+        file_size_bytes: fileSizeBytes
       };
     } catch (e) {
       return { error: `Error in download process: ${String(e)}` };
@@ -130,28 +130,28 @@ export class HttpRequestTool extends Tool {
     properties: {
       url: {
         type: "string" as const,
-        description: "URL to send the request to",
+        description: "URL to send the request to"
       },
       method: {
         type: "string" as const,
         description:
-          "HTTP method (GET, POST, PUT, DELETE, PATCH). Defaults to GET.",
+          "HTTP method (GET, POST, PUT, DELETE, PATCH). Defaults to GET."
       },
       headers: {
         type: "object" as const,
-        description: "Optional HTTP headers",
+        description: "Optional HTTP headers"
       },
       body: {
         type: "string" as const,
-        description: "Optional request body (for POST/PUT/PATCH)",
-      },
+        description: "Optional request body (for POST/PUT/PATCH)"
+      }
     },
-    required: ["url"],
+    required: ["url"]
   };
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       const url = params["url"];
@@ -186,7 +186,7 @@ export class HttpRequestTool extends Tool {
           method,
           headers: mergedHeaders,
           body: ["POST", "PUT", "PATCH"].includes(method) ? body : undefined,
-          signal: controller.signal,
+          signal: controller.signal
         });
       } finally {
         clearTimeout(timer);
@@ -200,7 +200,7 @@ export class HttpRequestTool extends Tool {
         status_code: response.status,
         success: response.ok,
         content_type: contentType,
-        body: text,
+        body: text
       };
     } catch (e) {
       return { error: `Error in HTTP request: ${String(e)}` };

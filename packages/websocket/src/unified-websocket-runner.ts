@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { getSecret } from "@nodetool/security";
+import { getSetting } from "./settings-api.js";
 import { pack, unpack } from "msgpackr";
 import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 import {
   Graph,
   WorkflowRunner,
   type NodeExecutor,
-  type NodeTypeResolver,
+  type NodeTypeResolver
 } from "@nodetool/kernel";
 import {
+  Asset,
   Job,
   Message,
   ModelChangeEvent,
@@ -16,7 +18,7 @@ import {
   Prediction,
   Thread,
   Workflow,
-  type DBModel,
+  type DBModel
 } from "@nodetool/models";
 import type {
   ProviderTool,
@@ -24,17 +26,20 @@ import type {
   MessageContent,
   BaseProvider,
   ProcessingContext,
-  ToolCall as ProviderToolCall,
+  ToolCall as ProviderToolCall
 } from "@nodetool/runtime";
 import {
   FileStorageAdapter,
   ProcessingContext as RuntimeProcessingContext,
+  executeComfy,
+  type ComfyProgressEvent,
+  type ComfyExecutionHandle
 } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
-  WebSocketMode,
+  WebSocketMode
 } from "@nodetool/protocol";
 import { Tool } from "@nodetool/agents";
 
@@ -42,9 +47,13 @@ const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
 
-function sanitizeLargeText(text: string, maxLength = MAX_ERROR_TEXT_LENGTH): string {
+function sanitizeLargeText(
+  text: string,
+  maxLength = MAX_ERROR_TEXT_LENGTH
+): string {
   const sanitized = text.replace(DATA_URI_PATTERN, (match, mimeType) => {
-    const mime = typeof mimeType === "string" && mimeType !== "" ? mimeType : "data";
+    const mime =
+      typeof mimeType === "string" && mimeType !== "" ? mimeType : "data";
     return `[${mime} base64 omitted, ${match.length} chars]`;
   });
 
@@ -56,7 +65,10 @@ function sanitizeLargeText(text: string, maxLength = MAX_ERROR_TEXT_LENGTH): str
   return `${sanitized.slice(0, maxLength)}... (truncated ${truncatedChars} chars)`;
 }
 
-function sanitizeErrorValue(value: unknown, seen = new WeakSet<object>()): unknown {
+function sanitizeErrorValue(
+  value: unknown,
+  seen = new WeakSet<object>()
+): unknown {
   if (typeof value === "string") {
     return sanitizeLargeText(value);
   }
@@ -76,7 +88,9 @@ function sanitizeErrorValue(value: unknown, seen = new WeakSet<object>()): unkno
 
     seen.add(value);
     const result: Record<string, unknown> = {};
-    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    for (const [key, nested] of Object.entries(
+      value as Record<string, unknown>
+    )) {
       result[key] = sanitizeErrorValue(nested, seen);
     }
     return result;
@@ -110,18 +124,142 @@ function getAssetStoragePath(): string {
   return getDefaultAssetsPath();
 }
 
+/**
+ * Returns true if every node in the graph has a type starting with "comfy.".
+ */
+function isComfyGraph(graph: {
+  nodes: Array<Record<string, unknown>>;
+}): boolean {
+  return (
+    graph.nodes.length > 0 &&
+    graph.nodes.every(
+      (n) =>
+        typeof n.type === "string" && (n.type as string).startsWith("comfy.")
+    )
+  );
+}
+
+/**
+ * Converts a NodeTool graph (with comfy.* nodes) into a ComfyUI API prompt dict.
+ */
+function graphToComfyPrompt(graph: {
+  nodes: Array<Record<string, unknown>>;
+  edges: Array<Record<string, unknown>>;
+}): Record<string, { class_type: string; inputs: Record<string, unknown> }> {
+  const prompt: Record<
+    string,
+    { class_type: string; inputs: Record<string, unknown> }
+  > = {};
+
+  for (const node of graph.nodes) {
+    const id = String(node.id);
+    const classType = (node.type as string).replace(/^comfy\./, "");
+    const props: Record<string, unknown> =
+      (node.properties as Record<string, unknown>) ??
+      (node.data as Record<string, unknown>) ??
+      {};
+    const inputs: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(props)) {
+      if (key.startsWith("_") || key === "workflow_id") continue;
+      // MsgPack may decode large integers as BigInt; ComfyUI expects plain numbers
+      inputs[key] = typeof value === "bigint" ? Number(value) : value;
+    }
+    prompt[id] = { class_type: classType, inputs };
+  }
+
+  // Wire edges: set inputs to [sourceId, slotIndex]
+  for (const edge of graph.edges) {
+    const sourceId = String(edge.source);
+    const targetId = String(edge.target);
+    const sourceHandle = edge.sourceHandle as string;
+    const targetHandle = edge.targetHandle as string;
+
+    if (!prompt[targetId]) continue;
+
+    // Determine output slot index from source handle name.
+    // Handles may be "output_0", "output_1", etc. (generic indexed format)
+    // or named like "MODEL", "CLIP", "VAE" (resolved via _comfy_metadata).
+    let slotIndex = 0;
+    const outputMatch = /^output_(\d+)$/.exec(sourceHandle);
+    if (outputMatch) {
+      slotIndex = parseInt(outputMatch[1], 10);
+    } else {
+      const sourceNode = graph.nodes.find((n) => String(n.id) === sourceId);
+      if (sourceNode) {
+        const nodeProps =
+          (sourceNode.properties as Record<string, unknown>) ??
+          (sourceNode.data as Record<string, unknown>) ??
+          {};
+        const meta = (nodeProps._comfy_metadata ??
+          sourceNode._comfy_metadata) as { outputs?: string[] } | undefined;
+        if (meta?.outputs) {
+          const idx = meta.outputs.indexOf(sourceHandle);
+          if (idx >= 0) slotIndex = idx;
+        }
+      }
+    }
+
+    prompt[targetId].inputs[targetHandle] = [sourceId, slotIndex];
+  }
+
+  return prompt;
+}
+
 function createRuntimeContext(opts: {
   jobId: string;
   workflowId?: string | null;
   userId: string;
   workspaceDir: string | null;
-  assetOutputMode?: "python" | "data_uri" | "temp_url" | "storage_url" | "workspace" | "raw";
+  assetOutputMode?:
+    | "python"
+    | "data_uri"
+    | "temp_url"
+    | "storage_url"
+    | "workspace"
+    | "raw";
 }): RuntimeProcessingContext {
-  return new RuntimeProcessingContext({
+  const storagePath = getAssetStoragePath();
+  const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
-    storage: new FileStorageAdapter(getAssetStoragePath()),
+    storage: new FileStorageAdapter(storagePath)
   });
+
+  const MIME_TO_EXT: Record<string, string> = {
+    "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif",
+    "image/webp": "webp", "image/bmp": "bmp", "image/svg+xml": "svg",
+    "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav",
+    "audio/ogg": "ogg", "video/mp4": "mp4", "video/webm": "webm",
+    "application/pdf": "pdf", "text/plain": "txt", "text/html": "html",
+    "model/gltf-binary": "glb"
+  };
+
+  ctx.setModelInterfaces({
+    createAsset: async (args) => {
+      const { join } = await import("node:path");
+      const { writeFile, mkdir } = await import("node:fs/promises");
+      const asset = new Asset({
+        user_id: args.userId,
+        workflow_id: args.workflowId ?? null,
+        node_id: args.nodeId ?? null,
+        job_id: args.jobId ?? null,
+        name: args.name,
+        content_type: args.contentType,
+        parent_id: args.parentId ?? null
+      });
+      if (args.content) {
+        const ext = MIME_TO_EXT[args.contentType] ?? "bin";
+        const fileName = `${asset.id}.${ext}`;
+        await mkdir(storagePath, { recursive: true });
+        await writeFile(join(storagePath, fileName), args.content);
+        asset.size = args.content.length;
+      }
+      await asset.save();
+      return asset;
+    }
+  });
+
+  return ctx;
 }
 
 /**
@@ -161,8 +299,12 @@ export interface RunJobRequest {
   user_id?: string;
   auth_token?: string;
   params?: Record<string, unknown>;
-  graph?: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+  graph?: {
+    nodes: Array<Record<string, unknown>>;
+    edges: Array<Record<string, unknown>>;
+  };
   explicit_types?: boolean;
+  settings?: Record<string, unknown>;
 }
 
 interface ActiveJob {
@@ -170,20 +312,31 @@ interface ActiveJob {
   workflowId: string | null;
   context: ProcessingContext;
   runner: WorkflowRunner;
-  graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+  graph: {
+    nodes: Array<Record<string, unknown>>;
+    edges: Array<Record<string, unknown>>;
+  };
   finished: boolean;
   status: "running" | "completed" | "failed" | "cancelled";
   error?: string;
   streamTask?: Promise<void>;
+  /** For ComfyUI jobs: handle to cancel the underlying execution. */
+  comfyHandle?: ComfyExecutionHandle;
 }
 
 class ToolBridge {
-  private waiters = new Map<string, {
-    resolve: (value: Record<string, unknown>) => void;
-    reject: (reason: Error) => void;
-  }>();
+  private waiters = new Map<
+    string,
+    {
+      resolve: (value: Record<string, unknown>) => void;
+      reject: (reason: Error) => void;
+    }
+  >();
 
-  createWaiter(toolCallId: string, timeoutMs = 300_000): Promise<Record<string, unknown>> {
+  createWaiter(
+    toolCallId: string,
+    timeoutMs = 300_000
+  ): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
       let timer: ReturnType<typeof setTimeout> | null = null;
       const cleanup = () => {
@@ -198,11 +351,18 @@ class ToolBridge {
         cleanup();
         reject(reason);
       };
-      this.waiters.set(toolCallId, { resolve: wrappedResolve, reject: wrappedReject });
+      this.waiters.set(toolCallId, {
+        resolve: wrappedResolve,
+        reject: wrappedReject
+      });
       if (timeoutMs > 0) {
         timer = setTimeout(() => {
           if (this.waiters.has(toolCallId)) {
-            wrappedReject(new Error(`Tool call ${toolCallId} timed out after ${timeoutMs}ms`));
+            wrappedReject(
+              new Error(
+                `Tool call ${toolCallId} timed out after ${timeoutMs}ms`
+              )
+            );
           }
         }, timeoutMs);
       }
@@ -239,11 +399,14 @@ class UIToolProxy extends Tool {
   constructor(
     manifest: Record<string, unknown>,
     bridge: ToolBridge,
-    sendMsg: (msg: Record<string, unknown>) => Promise<void>,
+    sendMsg: (msg: Record<string, unknown>) => Promise<void>
   ) {
     super();
     this.name = typeof manifest.name === "string" ? manifest.name : "";
-    this.description = typeof manifest.description === "string" ? manifest.description : "UI tool";
+    this.description =
+      typeof manifest.description === "string"
+        ? manifest.description
+        : "UI tool";
     this.inputSchema =
       typeof manifest.parameters === "object" && manifest.parameters !== null
         ? (manifest.parameters as Record<string, unknown>)
@@ -252,13 +415,16 @@ class UIToolProxy extends Tool {
     this.sendMsg = sendMsg;
   }
 
-  async process(_context: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
+  async process(
+    _context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
     const toolCallId = randomUUID();
     await this.sendMsg({
       type: "tool_call",
       tool_call_id: toolCallId,
       name: this.name,
-      args: params,
+      args: params
     });
 
     try {
@@ -266,7 +432,9 @@ class UIToolProxy extends Tool {
       if ((payload as Record<string, unknown>).ok) {
         return (payload as Record<string, unknown>).result ?? {};
       }
-      return { error: `Frontend tool execution failed: ${(payload as Record<string, unknown>).error ?? "Unknown error"}` };
+      return {
+        error: `Frontend tool execution failed: ${(payload as Record<string, unknown>).error ?? "Unknown error"}`
+      };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };
     }
@@ -282,15 +450,27 @@ export interface UnifiedWebSocketRunnerOptions {
   authToken?: string;
   defaultModel?: string;
   defaultProvider?: string;
-  resolveExecutor: (node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor;
+  resolveExecutor: (node: {
+    id: string;
+    type: string;
+    [key: string]: unknown;
+  }) => NodeExecutor;
   resolveNodeType?: NodeTypeResolver;
-  resolveProvider?: (providerId: string, userId: string) => Promise<BaseProvider>;
+  resolveProvider?: (
+    providerId: string,
+    userId: string
+  ) => Promise<BaseProvider>;
   /** Resolve server-side Tool instances by name (for tool execution in chat). */
   resolveTools?: (toolNames: string[], userId: string) => Promise<Tool[]>;
   getSystemStats?: () => Record<string, unknown>;
-  workspaceResolver?: (workflowId: string, userId: string) => Promise<string | null>;
+  workspaceResolver?: (
+    workflowId: string,
+    userId: string
+  ) => Promise<string | null>;
   /** Called before a workflow job starts — used to lazily connect the Python bridge. */
-  beforeRunJob?: (graph: { nodes: Array<Record<string, unknown>> }) => Promise<void>;
+  beforeRunJob?: (graph: {
+    nodes: Array<Record<string, unknown>>;
+  }) => Promise<void>;
 }
 
 export class UnifiedWebSocketRunner {
@@ -341,14 +521,18 @@ export class UnifiedWebSocketRunner {
   private inferOutputType(value: unknown): string {
     if (value === null || value === undefined) return "any";
     if (typeof value === "string") return "str";
-    if (typeof value === "number") return Number.isInteger(value) ? "int" : "float";
+    if (typeof value === "number")
+      return Number.isInteger(value) ? "int" : "float";
     if (typeof value === "boolean") return "bool";
     if (Array.isArray(value)) return "list";
     if (value && typeof value === "object") return "dict";
     return "any";
   }
 
-  private resolveOutputNodeForKey(active: ActiveJob, outputKey: string): { id: string; name: string } | null {
+  private resolveOutputNodeForKey(
+    active: ActiveJob,
+    outputKey: string
+  ): { id: string; name: string } | null {
     let fallback: { id: string; name: string } | null = null;
     for (const raw of active.graph.nodes) {
       const node = raw as { id?: unknown; name?: unknown; type?: unknown };
@@ -357,14 +541,21 @@ export class UnifiedWebSocketRunner {
       const name = typeof node.name === "string" ? node.name : id;
       const type = typeof node.type === "string" ? node.type : "";
       if (name === outputKey || id === outputKey) return { id, name };
-      if (type === "nodetool.output.Output" && !fallback) fallback = { id, name };
+      if (type === "nodetool.output.Output" && !fallback)
+        fallback = { id, name };
     }
     return fallback;
   }
 
-  private async sendOutputUpdates(active: ActiveJob, outputs: Record<string, unknown[]>): Promise<void> {
+  private async sendOutputUpdates(
+    active: ActiveJob,
+    outputs: Record<string, unknown[]>
+  ): Promise<void> {
     for (const [outputKey, values] of Object.entries(outputs)) {
-      const nodeRef = this.resolveOutputNodeForKey(active, outputKey) ?? { id: outputKey, name: outputKey };
+      const nodeRef = this.resolveOutputNodeForKey(active, outputKey) ?? {
+        id: outputKey,
+        name: outputKey
+      };
       const seq = Array.isArray(values) ? values : [];
       for (const rawValue of seq) {
         const value = await active.context.normalizeOutputValue(rawValue);
@@ -377,7 +568,7 @@ export class UnifiedWebSocketRunner {
           output_type: this.inferOutputType(value),
           metadata: {},
           workflow_id: active.workflowId,
-          job_id: active.jobId,
+          job_id: active.jobId
         });
       }
     }
@@ -399,11 +590,15 @@ export class UnifiedWebSocketRunner {
       (() => ({
         timestamp: Date.now(),
         process_uptime_sec: process.uptime(),
-        memory: process.memoryUsage(),
+        memory: process.memoryUsage()
       }));
   }
 
-  async connect(websocket: WebSocketConnection, userId?: string, authToken?: string): Promise<void> {
+  async connect(
+    websocket: WebSocketConnection,
+    userId?: string,
+    authToken?: string
+  ): Promise<void> {
     if (userId) this.userId = userId;
     if (authToken) this.authToken = authToken;
     this.userId = this.userId ?? "1";
@@ -426,7 +621,11 @@ export class UnifiedWebSocketRunner {
 
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
-      job.runner.cancel();
+      if (job.comfyHandle) {
+        job.comfyHandle.cancel();
+      } else if (job.runner) {
+        job.runner.cancel();
+      }
       this.activeJobs.delete(jobId);
     }
 
@@ -456,11 +655,17 @@ export class UnifiedWebSocketRunner {
 
   async sendMessage(message: Record<string, unknown>): Promise<void> {
     if (!this.websocket) return;
-    if (this.websocket.clientState === "disconnected" || this.websocket.applicationState === "disconnected") {
+    if (
+      this.websocket.clientState === "disconnected" ||
+      this.websocket.applicationState === "disconnected"
+    ) {
       return;
     }
 
-    const payload = this.mode === "text" ? (this.serializeForJson(message) as Record<string, unknown>) : message;
+    const payload =
+      this.mode === "text"
+        ? (this.serializeForJson(message) as Record<string, unknown>)
+        : message;
 
     const prev = this.sendLock;
     let release!: () => void;
@@ -502,7 +707,13 @@ export class UnifiedWebSocketRunner {
    * The web-UI / Python serialisation stores node properties under `data`;
    * the kernel expects them under `properties`.
    */
-  private normalizeGraph(graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> }): { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } {
+  private normalizeGraph(graph: {
+    nodes: Array<Record<string, unknown>>;
+    edges: Array<Record<string, unknown>>;
+  }): {
+    nodes: Array<Record<string, unknown>>;
+    edges: Array<Record<string, unknown>>;
+  } {
     const nodes = graph.nodes.map((n) => {
       if (n.properties === undefined && n.data !== undefined) {
         const { data, ...rest } = n;
@@ -519,60 +730,126 @@ export class UnifiedWebSocketRunner {
     return { nodes, edges };
   }
 
-  private async hydrateGraph(
-    graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> }
-  ): Promise<{ nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> }> {
+  private async hydrateGraph(graph: {
+    nodes: Array<Record<string, unknown>>;
+    edges: Array<Record<string, unknown>>;
+  }): Promise<{
+    nodes: Array<Record<string, unknown>>;
+    edges: Array<Record<string, unknown>>;
+  }> {
     const normalized = this.normalizeGraph(graph);
     if (!this.resolveNodeType) {
       return normalized;
     }
 
     const hydrated = await Graph.loadFromDict(normalized, {
-      resolver: this.resolveNodeType,
+      resolver: this.resolveNodeType
     });
     return {
       nodes: [...hydrated.nodes] as unknown as Array<Record<string, unknown>>,
-      edges: [...hydrated.edges] as unknown as Array<Record<string, unknown>>,
+      edges: [...hydrated.edges] as unknown as Array<Record<string, unknown>>
     };
   }
 
-  private async getWorkflowGraph(req: RunJobRequest): Promise<{ nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> }> {
-    let graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+  private getRawGraph(req: RunJobRequest):
+    | Promise<{
+        nodes: Array<Record<string, unknown>>;
+        edges: Array<Record<string, unknown>>;
+      }>
+    | {
+        nodes: Array<Record<string, unknown>>;
+        edges: Array<Record<string, unknown>>;
+      } {
     if (req.graph) {
-      graph = req.graph;
-    } else if (req.workflow_id && this.userId) {
-      const workflow = await Workflow.find(this.userId, req.workflow_id);
-      if (!workflow) throw new Error(`Workflow not found: ${req.workflow_id}`);
-      graph = workflow.graph as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
-    } else {
-      throw new Error("workflow_id or graph is required");
+      return this.normalizeGraph(req.graph);
     }
-    return this.hydrateGraph(graph);
+    if (req.workflow_id && this.userId) {
+      const userId = this.userId;
+      const workflowId = req.workflow_id;
+      return (async () => {
+        const workflow = await Workflow.find(userId, workflowId);
+        if (!workflow) throw new Error(`Workflow not found: ${workflowId}`);
+        return this.normalizeGraph(
+          workflow.graph as {
+            nodes: Array<Record<string, unknown>>;
+            edges: Array<Record<string, unknown>>;
+          }
+        );
+      })();
+    }
+    throw new Error("workflow_id or graph is required");
   }
 
   async runJob(req: RunJobRequest): Promise<void> {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
-    const graph = await this.getWorkflowGraph(req);
+
+    // Get the normalized (but not hydrated) graph first so we can check
+    // for comfy nodes before hydration strips unregistered node types.
+    const rawGraph = await this.getRawGraph(req);
+
+    // Route ComfyUI workflows to the dedicated comfy executor
+    if (isComfyGraph(rawGraph)) {
+      if (this.beforeRunJob) {
+        await this.beforeRunJob(rawGraph);
+      }
+      await this.runComfyJob(
+        jobId,
+        workflowId,
+        userId,
+        rawGraph,
+        req.settings ?? {}
+      );
+      return;
+    }
+
+    // Hydrate non-comfy graphs (resolves node types from the registry)
+    const graph = await this.hydrateGraph(rawGraph);
 
     if (this.beforeRunJob) {
       await this.beforeRunJob(graph);
     }
 
-    const workspaceDir = workflowId && this.workspaceResolver ? await this.workspaceResolver(workflowId, userId) : null;
+    const workspaceDir =
+      workflowId && this.workspaceResolver
+        ? await this.workspaceResolver(workflowId, userId)
+        : null;
 
     const context = createRuntimeContext({
       jobId,
       workflowId,
       userId,
       workspaceDir,
-      assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
+      assetOutputMode: this.mode === "text" ? "data_uri" : "raw"
     });
 
+    // Expose executor/node-type resolution on the context so that
+    // sub-workflow nodes (WorkflowNode) can create child runners.
+    context.setResolveExecutor((node) => this.resolveExecutor(node));
+    if (this.resolveNodeType) {
+      const resolverObj =
+        typeof this.resolveNodeType === "function"
+          ? { resolveNodeType: this.resolveNodeType }
+          : this.resolveNodeType;
+      context.setResolveNodeType(
+        (nodeType) =>
+          resolverObj.resolveNodeType(nodeType) as Promise<{
+            nodeType: string;
+            propertyTypes?: Record<string, string>;
+            outputs?: Record<string, string>;
+            isDynamic?: boolean;
+            descriptorDefaults?: Record<string, unknown>;
+          } | null>
+      );
+    }
+
     const runner = new WorkflowRunner(jobId, {
-      resolveExecutor: (node) => this.resolveExecutor(node as { id: string; type: string; [key: string]: unknown }),
-      executionContext: context,
+      resolveExecutor: (node) =>
+        this.resolveExecutor(
+          node as { id: string; type: string; [key: string]: unknown }
+        ),
+      executionContext: context
     });
 
     const active: ActiveJob = {
@@ -582,7 +859,7 @@ export class UnifiedWebSocketRunner {
       runner,
       graph,
       finished: false,
-      status: "running",
+      status: "running"
     };
     this.activeJobs.set(jobId, active);
     log.info("Job started", { jobId, workflowId });
@@ -596,7 +873,7 @@ export class UnifiedWebSocketRunner {
           user_id: userId,
           status: "running",
           params: req.params ?? {},
-          graph,
+          graph
         });
       }
     } catch (error) {
@@ -608,33 +885,230 @@ export class UnifiedWebSocketRunner {
       {
         job_id: jobId,
         workflow_id: workflowId ?? undefined,
-        params: req.params ?? {},
+        params: req.params ?? {}
       },
-        graph as unknown as {
-          nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
-          edges: Array<{
-            id?: string | null;
-            source: string;
-            target: string;
-            sourceHandle: string;
-            targetHandle: string;
-            edge_type: "data" | "control";
-          }>;
-        },
+      graph as unknown as {
+        nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
+        edges: Array<{
+          id?: string | null;
+          source: string;
+          target: string;
+          sourceHandle: string;
+          targetHandle: string;
+          edge_type: "data" | "control";
+        }>;
+      }
     );
 
     active.streamTask = this.streamJobMessages(active, executePromise);
   }
 
+  /**
+   * Execute a ComfyUI workflow via the comfy executor (local or RunPod).
+   */
+  private async runComfyJob(
+    jobId: string,
+    workflowId: string | null,
+    _userId: string,
+    graph: {
+      nodes: Array<Record<string, unknown>>;
+      edges: Array<Record<string, unknown>>;
+    },
+    _settings: Record<string, unknown>
+  ): Promise<void> {
+    const active: ActiveJob = {
+      jobId,
+      workflowId,
+      context: null as unknown as ProcessingContext,
+      runner: null as unknown as WorkflowRunner,
+      graph,
+      finished: false,
+      status: "running"
+    };
+    this.activeJobs.set(jobId, active);
+
+    // Build node metadata lookup for status messages
+    const nodeLookup = new Map<string, { name: string; type: string }>();
+    for (const node of graph.nodes) {
+      const id = String(node.id);
+      const type = (node.type as string) ?? "comfy.unknown";
+      const props = (node.properties ?? node.data ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const name = (props.title as string) ?? type;
+      nodeLookup.set(id, { name, type });
+    }
+    const getNode = (id: string) =>
+      nodeLookup.get(id) ?? { name: `Node ${id}`, type: "comfy.unknown" };
+
+    try {
+      await this.sendMessage({
+        type: "job_update",
+        status: "running",
+        job_id: jobId,
+        workflow_id: workflowId
+      });
+
+      const prompt = graphToComfyPrompt(graph);
+      const host = await getSetting("COMFYUI_ADDR");
+      if (!host) {
+        throw new Error("COMFYUI_ADDR is not configured. Set it in Settings.");
+      }
+
+      // Track active node so we can mark it completed when the next one starts
+      let activeNodeId: string | null = null;
+      const completeNode = (nodeId: string) => {
+        const n = getNode(nodeId);
+        void this.sendMessage({
+          type: "node_update",
+          node_id: nodeId,
+          node_name: n.name,
+          node_type: n.type,
+          status: "completed",
+          workflow_id: workflowId
+        });
+      };
+
+      const onProgress = (event: ComfyProgressEvent) => {
+        switch (event.type) {
+          case "executing": {
+            // When a new node starts, the previous one is implicitly done
+            if (activeNodeId && activeNodeId !== event.node) {
+              completeNode(activeNodeId);
+              activeNodeId = null;
+            }
+            if (event.node) {
+              activeNodeId = event.node;
+              const n = getNode(event.node);
+              void this.sendMessage({
+                type: "node_update",
+                node_id: event.node,
+                node_name: n.name,
+                node_type: n.type,
+                status: "running",
+                workflow_id: workflowId
+              });
+            } else {
+              // null node = execution finished, complete any lingering active node
+              if (activeNodeId) {
+                completeNode(activeNodeId);
+                activeNodeId = null;
+              }
+            }
+            break;
+          }
+          case "progress":
+            if (event.node) {
+              void this.sendMessage({
+                type: "node_progress",
+                node_id: event.node,
+                progress: event.progress ?? 0,
+                total: event.total ?? 1,
+                workflow_id: workflowId
+              });
+            }
+            break;
+          case "executed":
+            if (event.node) {
+              // Explicit completion with output — mark done and clear active
+              if (activeNodeId === event.node) activeNodeId = null;
+              const n = getNode(event.node);
+              void this.sendMessage({
+                type: "node_update",
+                node_id: event.node,
+                node_name: n.name,
+                node_type: n.type,
+                status: "completed",
+                result: event.output ?? null,
+                workflow_id: workflowId
+              });
+            }
+            break;
+          case "execution_cached":
+            if (event.cached_nodes) {
+              for (const nodeId of event.cached_nodes) {
+                completeNode(nodeId);
+              }
+            }
+            break;
+          case "execution_error":
+            if (event.node) {
+              activeNodeId = null;
+              const n = getNode(event.node);
+              void this.sendMessage({
+                type: "node_update",
+                node_id: event.node,
+                node_name: n.name,
+                node_type: n.type,
+                status: "error",
+                error: event.error ?? "Execution error",
+                workflow_id: workflowId
+              });
+            }
+            break;
+        }
+      };
+
+      const handle = executeComfy(prompt, host, onProgress);
+      active.comfyHandle = handle;
+      const result = await handle.result;
+
+      if (result.status === "completed") {
+        if (result.images && result.images.length > 0) {
+          await this.sendMessage({
+            type: "output_update",
+            job_id: jobId,
+            workflow_id: workflowId,
+            result: { images: result.images }
+          });
+        }
+        active.status = "completed";
+        active.finished = true;
+        await this.sendMessage({
+          type: "job_update",
+          status: "completed",
+          job_id: jobId,
+          workflow_id: workflowId
+        });
+      } else {
+        throw new Error(result.error ?? "ComfyUI execution failed");
+      }
+    } catch (err) {
+      active.status = "failed";
+      active.finished = true;
+      active.error = err instanceof Error ? err.message : String(err);
+      log.error("ComfyUI job failed", { jobId, error: active.error });
+      await this.sendMessage({
+        type: "job_update",
+        status: "failed",
+        job_id: jobId,
+        workflow_id: workflowId,
+        error: active.error
+      });
+    } finally {
+      this.activeJobs.delete(jobId);
+    }
+  }
+
   private async streamJobMessages(
     active: ActiveJob,
-    executePromise: Promise<{ status: "completed" | "failed" | "cancelled"; error?: string; outputs?: Record<string, unknown[]> }>
+    executePromise: Promise<{
+      status: "completed" | "failed" | "cancelled";
+      error?: string;
+      outputs?: Record<string, unknown[]>;
+    }>
   ): Promise<void> {
     let terminalSeen = false;
     let terminalWithResultSeen = false;
     let outputUpdateSeen = false;
     let finalOutputs: Record<string, unknown[]> = {};
-    await this.sendMessage({ type: "job_update", status: "running", job_id: active.jobId, workflow_id: active.workflowId });
+    await this.sendMessage({
+      type: "job_update",
+      status: "running",
+      job_id: active.jobId,
+      workflow_id: active.workflowId
+    });
 
     void executePromise
       .then((result) => {
@@ -657,36 +1131,75 @@ export class UnifiedWebSocketRunner {
         if (!msg) break;
         const outbound: Record<string, unknown> = {
           ...(msg as unknown as Record<string, unknown>),
-          job_id: (msg as unknown as Record<string, unknown>).job_id ?? active.jobId,
-          workflow_id: (msg as unknown as Record<string, unknown>).workflow_id ?? active.workflowId,
+          job_id:
+            (msg as unknown as Record<string, unknown>).job_id ?? active.jobId,
+          workflow_id:
+            (msg as unknown as Record<string, unknown>).workflow_id ??
+            active.workflowId
         };
         if (outbound.error !== undefined) {
           outbound.error = formatSanitizedError(outbound.error);
         }
-        if (outbound.type === "notification" && typeof outbound.content === "string") {
+        if (
+          outbound.type === "notification" &&
+          typeof outbound.content === "string"
+        ) {
           outbound.content = sanitizeLargeText(outbound.content);
         }
         if (outbound.type === "node_update" && outbound.status === "error") {
-          log.error("Node error", { jobId: active.jobId, nodeId: outbound.node_id, error: outbound.error });
-        } else if (outbound.type === "job_update" && outbound.status === "failed") {
-          log.error("Job failed", { jobId: active.jobId, error: outbound.error });
+          log.error("Node error", {
+            jobId: active.jobId,
+            nodeId: outbound.node_id,
+            error: outbound.error
+          });
+        } else if (
+          outbound.type === "job_update" &&
+          outbound.status === "failed"
+        ) {
+          log.error("Job failed", {
+            jobId: active.jobId,
+            error: outbound.error
+          });
         }
 
-        // Only relay output_update messages for actual output-type nodes.
-        // The kernel emits output_update for all nodes; the WebSocket API
-        // should only forward them for final output nodes (type contains "Output").
-        if (outbound.type === "output_update") {
+        // Skip messages for constant/input nodes — they produce trivial
+        // outputs that don't need to be relayed to the frontend.
+        if (
+          outbound.type === "output_update" ||
+          outbound.type === "node_update"
+        ) {
           const nodeId = String(outbound.node_id ?? "");
-          const graphNodes = (active.graph as { nodes?: Array<{ id?: unknown; type?: unknown }> }).nodes ?? [];
+          const graphNodes =
+            (
+              active.graph as {
+                nodes?: Array<{ id?: unknown; type?: unknown }>;
+              }
+            ).nodes ?? [];
           const node = graphNodes.find((n) => n.id === nodeId);
           const nodeType = typeof node?.type === "string" ? node.type : "";
-          if (!nodeType.includes("Output")) continue;
-          outputUpdateSeen = true;
+
+          // Skip constant and input nodes entirely
+          if (
+            nodeType.startsWith("nodetool.constant.") ||
+            nodeType.startsWith("nodetool.input.")
+          ) {
+            continue;
+          }
+
+          // Only relay output_update for Output-type nodes
+          if (outbound.type === "output_update") {
+            if (!nodeType.includes("Output")) continue;
+            outputUpdateSeen = true;
+          }
         }
         await this.sendMessage(outbound);
         if (outbound.type === "job_update") {
           const status = String(outbound.status ?? "");
-          if (["completed", "failed", "cancelled", "error", "suspended"].includes(status)) {
+          if (
+            ["completed", "failed", "cancelled", "error", "suspended"].includes(
+              status
+            )
+          ) {
             terminalSeen = true;
             if (outbound.result !== undefined) {
               terminalWithResultSeen = true;
@@ -705,14 +1218,17 @@ export class UnifiedWebSocketRunner {
 
     log.info("Job completed", { jobId: active.jobId, status: active.status });
 
-    if (!terminalSeen || (!terminalWithResultSeen && Object.keys(finalOutputs).length > 0)) {
+    if (
+      !terminalSeen ||
+      (!terminalWithResultSeen && Object.keys(finalOutputs).length > 0)
+    ) {
       await this.sendMessage({
         type: "job_update",
         status: active.status,
         job_id: active.jobId,
         workflow_id: active.workflowId,
         error: active.error,
-        result: { outputs: finalOutputs },
+        result: { outputs: finalOutputs }
       });
     }
 
@@ -746,14 +1262,22 @@ export class UnifiedWebSocketRunner {
       type: "job_update",
       status: active.status,
       job_id: jobId,
-      workflow_id: workflowId ?? active.workflowId,
+      workflow_id: workflowId ?? active.workflowId
     });
 
     for (const status of Object.values(active.context.getNodeStatuses())) {
-      await this.sendMessage({ ...(status as unknown as Record<string, unknown>), job_id: jobId, workflow_id: workflowId ?? active.workflowId });
+      await this.sendMessage({
+        ...(status as unknown as Record<string, unknown>),
+        job_id: jobId,
+        workflow_id: workflowId ?? active.workflowId
+      });
     }
     for (const status of Object.values(active.context.getEdgeStatuses())) {
-      await this.sendMessage({ ...(status as unknown as Record<string, unknown>), job_id: jobId, workflow_id: workflowId ?? active.workflowId });
+      await this.sendMessage({
+        ...(status as unknown as Record<string, unknown>),
+        job_id: jobId,
+        workflow_id: workflowId ?? active.workflowId
+      });
     }
   }
 
@@ -761,17 +1285,28 @@ export class UnifiedWebSocketRunner {
     await this.reconnectJob(jobId, workflowId);
   }
 
-  async cancelJob(jobId: string, workflowId?: string): Promise<Record<string, unknown>> {
+  async cancelJob(
+    jobId: string,
+    workflowId?: string
+  ): Promise<Record<string, unknown>> {
     if (!jobId) {
       return { error: "No job_id provided" };
     }
 
     const active = this.activeJobs.get(jobId);
     if (!active) {
-      return { error: "Job not found or already completed", job_id: jobId, workflow_id: workflowId ?? "" };
+      return {
+        error: "Job not found or already completed",
+        job_id: jobId,
+        workflow_id: workflowId ?? ""
+      };
     }
 
-    active.runner.cancel();
+    if (active.comfyHandle) {
+      active.comfyHandle.cancel();
+    } else if (active.runner) {
+      active.runner.cancel();
+    }
     active.status = "cancelled";
     // Do NOT set active.finished = true here. Let the runner's cancellation
     // propagate through executePromise's .finally() callback so that
@@ -779,7 +1314,7 @@ export class UnifiedWebSocketRunner {
     return {
       message: "Job cancellation requested",
       job_id: jobId,
-      workflow_id: workflowId ?? active.workflowId ?? "",
+      workflow_id: workflowId ?? active.workflowId ?? ""
     };
   }
 
@@ -792,7 +1327,7 @@ export class UnifiedWebSocketRunner {
       return {
         status: active.status,
         job_id: active.jobId,
-        workflow_id: active.workflowId,
+        workflow_id: active.workflowId
       };
     }
 
@@ -800,13 +1335,16 @@ export class UnifiedWebSocketRunner {
       active_jobs: Array.from(this.activeJobs.values()).map((job) => ({
         job_id: job.jobId,
         workflow_id: job.workflowId,
-        status: job.status,
-      })),
+        status: job.status
+      }))
     };
   }
 
   async clearModels(): Promise<Record<string, unknown>> {
-    return { message: "Model clearing is managed by provider implementations in TS runtime" };
+    return {
+      message:
+        "Model clearing is managed by provider implementations in TS runtime"
+    };
   }
 
   private async ensureThreadExists(threadId?: string): Promise<string> {
@@ -817,7 +1355,11 @@ export class UnifiedWebSocketRunner {
     }
     const existing = await Thread.find(userId, threadId);
     if (existing) return existing.id;
-    const thread = await Thread.create({ id: threadId, user_id: userId, title: "" });
+    const thread = await Thread.create({
+      id: threadId,
+      user_id: userId,
+      title: ""
+    });
     return thread.id;
   }
 
@@ -829,10 +1371,19 @@ export class UnifiedWebSocketRunner {
     }
     return {
       role,
-      content: (Array.isArray(m.content) ? (m.content as MessageContent[]) : m.content as string | null) ?? "",
+      content:
+        (Array.isArray(m.content)
+          ? (m.content as MessageContent[])
+          : (m.content as string | null)) ?? "",
       toolCallId: typeof m.tool_call_id === "string" ? m.tool_call_id : null,
-      toolCalls: Array.isArray(m.tool_calls) ? (m.tool_calls as Array<{ id: string; name: string; args: Record<string, unknown> }>) : null,
-      threadId: m.thread_id,
+      toolCalls: Array.isArray(m.tool_calls)
+        ? (m.tool_calls as Array<{
+            id: string;
+            name: string;
+            args: Record<string, unknown>;
+          }>)
+        : null,
+      threadId: m.thread_id
     };
   }
 
@@ -840,7 +1391,9 @@ export class UnifiedWebSocketRunner {
    * Save a message dict to the database.
    * Mirrors Python's _save_message_to_db_async: pops id, type, user_id before create.
    */
-  private async saveMessageToDb(messageData: Record<string, unknown>): Promise<void> {
+  private async saveMessageToDb(
+    messageData: Record<string, unknown>
+  ): Promise<void> {
     const data = { ...messageData };
     delete data.id;
     delete data.type;
@@ -852,7 +1405,7 @@ export class UnifiedWebSocketRunner {
     await Message.create({
       thread_id: threadId,
       user_id: userId,
-      ...data,
+      ...data
     });
   }
 
@@ -865,7 +1418,10 @@ export class UnifiedWebSocketRunner {
    * - Arrays/objects: recursed into
    * - Primitives: returned as-is
    */
-  private async processToolResult(obj: unknown, ctx: ProcessingContext): Promise<unknown> {
+  private async processToolResult(
+    obj: unknown,
+    ctx: ProcessingContext
+  ): Promise<unknown> {
     if (obj === null || obj === undefined) return obj;
 
     // Asset-like objects: { type: "image"|"audio"|"video"|..., uri?: string, data?: ... }
@@ -873,7 +1429,10 @@ export class UnifiedWebSocketRunner {
       const record = obj as Record<string, unknown>;
 
       // Check if it's an asset-like object (has type + uri or data)
-      if ("type" in record && ("uri" in record || "data" in record || "asset_id" in record)) {
+      if (
+        "type" in record &&
+        ("uri" in record || "data" in record || "asset_id" in record)
+      ) {
         // Use ProcessingContext's normalizeOutputValue to handle asset materialization
         return ctx.normalizeOutputValue(record, "storage_url");
       }
@@ -912,7 +1471,11 @@ export class UnifiedWebSocketRunner {
    * Query vector store collections and return concatenated context string.
    * Mirrors Python's RegularChatProcessor._query_collections().
    */
-  private async queryCollections(collections: string[], queryText: string, nResults = 5): Promise<string> {
+  private async queryCollections(
+    collections: string[],
+    queryText: string,
+    nResults = 5
+  ): Promise<string> {
     if (!collections.length || !queryText) return "";
 
     try {
@@ -923,30 +1486,38 @@ export class UnifiedWebSocketRunner {
 
       for (const collectionName of collections) {
         try {
-          const collection = await store.getCollection({ name: collectionName });
+          const collection = await store.getCollection({
+            name: collectionName
+          });
           const results = await collection.query({
             queryTexts: [queryText],
             nResults,
-            include: ["documents", "metadatas"],
+            include: ["documents", "metadatas"]
           });
 
           if (results.documents?.[0]?.length) {
             let collectionResults = `\n\n### Results from ${collectionName}:\n`;
             for (const doc of results.documents[0]) {
               if (!doc) continue;
-              const preview = doc.length > 200 ? `${doc.slice(0, 200)}...` : doc;
+              const preview =
+                doc.length > 200 ? `${doc.slice(0, 200)}...` : doc;
               collectionResults += `\n- ${preview}`;
             }
             allResults.push(collectionResults);
           }
         } catch (err) {
-          log.warn("Collection query failed", { collection: collectionName, error: err instanceof Error ? err.message : String(err) });
+          log.warn("Collection query failed", {
+            collection: collectionName,
+            error: err instanceof Error ? err.message : String(err)
+          });
         }
       }
 
       return allResults.join("\n");
     } catch (err) {
-      log.warn("Vector store init failed", { error: err instanceof Error ? err.message : String(err) });
+      log.warn("Vector store init failed", {
+        error: err instanceof Error ? err.message : String(err)
+      });
       return "";
     }
   }
@@ -955,7 +1526,10 @@ export class UnifiedWebSocketRunner {
    * Add collection context as a system message before the last user message.
    * Mirrors Python's RegularChatProcessor._add_collection_context().
    */
-  private addCollectionContext(messages: ProviderMessage[], collectionContext: string): ProviderMessage[] {
+  private addCollectionContext(
+    messages: ProviderMessage[],
+    collectionContext: string
+  ): ProviderMessage[] {
     // Find the last user message index
     let lastUserIndex = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -971,12 +1545,12 @@ export class UnifiedWebSocketRunner {
         content: `Context from knowledge base:\n${collectionContext}`,
         toolCallId: null,
         toolCalls: null,
-        threadId: null,
+        threadId: null
       };
       return [
         ...messages.slice(0, lastUserIndex),
         contextMessage,
-        ...messages.slice(lastUserIndex),
+        ...messages.slice(lastUserIndex)
       ];
     }
     return messages;
@@ -1002,8 +1576,13 @@ export class UnifiedWebSocketRunner {
    *   5. If unprocessed_messages empty, break
    *   6. Send done chunk + final assistant Message
    */
-  async handleChatMessage(data: Record<string, unknown>, requestSeq?: number): Promise<void> {
-    const threadId = await this.ensureThreadExists(typeof data.thread_id === "string" ? data.thread_id : undefined);
+  async handleChatMessage(
+    data: Record<string, unknown>,
+    requestSeq?: number
+  ): Promise<void> {
+    const threadId = await this.ensureThreadExists(
+      typeof data.thread_id === "string" ? data.thread_id : undefined
+    );
     data.thread_id = threadId;
 
     // Apply defaults — matches Python's handle_chat_message
@@ -1012,7 +1591,8 @@ export class UnifiedWebSocketRunner {
 
     const providerId = data.provider as string;
     const model = data.model as string;
-    const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const workflowId =
+      typeof data.workflow_id === "string" ? data.workflow_id : null;
     const userId = this.userId ?? "1";
     log.debug("Chat message", { threadId, model, provider: providerId });
 
@@ -1022,13 +1602,18 @@ export class UnifiedWebSocketRunner {
     if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
 
     if (!this.resolveProvider) {
-      await this.sendMessage({ type: "error", message: "No provider resolver configured", thread_id: threadId });
+      await this.sendMessage({
+        type: "error",
+        message: "No provider resolver configured",
+        thread_id: threadId
+      });
       return;
     }
 
     // Route to workflow processor when workflow_target or workflow_id is set — matches Python's handle_message_impl
     // This check comes BEFORE agent_mode, matching Python's routing priority.
-    const workflowTarget = typeof data.workflow_target === "string" ? data.workflow_target : null;
+    const workflowTarget =
+      typeof data.workflow_target === "string" ? data.workflow_target : null;
     if (workflowTarget === "workflow" || workflowId) {
       await this.handleWorkflowMessage(data, requestSeq);
       return;
@@ -1058,8 +1643,12 @@ export class UnifiedWebSocketRunner {
         const tool = t as Record<string, unknown>;
         return {
           name: typeof tool.name === "string" ? tool.name : "",
-          description: typeof tool.description === "string" ? tool.description : undefined,
-          inputSchema: typeof tool.inputSchema === "object" ? (tool.inputSchema as Record<string, unknown>) : undefined,
+          description:
+            typeof tool.description === "string" ? tool.description : undefined,
+          inputSchema:
+            typeof tool.inputSchema === "object"
+              ? (tool.inputSchema as Record<string, unknown>)
+              : undefined
         };
       })
       .filter((t) => t.name.length > 0);
@@ -1076,7 +1665,7 @@ export class UnifiedWebSocketRunner {
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
-      workspaceDir: null,
+      workspaceDir: null
     });
 
     // Prepend system prompt if first message isn't system role — matches Python
@@ -1086,18 +1675,22 @@ export class UnifiedWebSocketRunner {
         content: REGULAR_SYSTEM_PROMPT,
         toolCallId: null,
         toolCalls: null,
-        threadId: null,
+        threadId: null
       });
     }
 
     // Query collections for RAG context — matches Python's _query_collections()
-    const collections = Array.isArray(data.collections) ? (data.collections as string[]).filter((c) => typeof c === "string") : [];
+    const collections = Array.isArray(data.collections)
+      ? (data.collections as string[]).filter((c) => typeof c === "string")
+      : [];
     const userContent = this.extractTextContent(data.content);
     let collectionContext = "";
     if (collections.length > 0 && userContent) {
       collectionContext = await this.queryCollections(collections, userContent);
       if (collectionContext) {
-        log.debug("Retrieved collection context", { chars: collectionContext.length });
+        log.debug("Retrieved collection context", {
+          chars: collectionContext.length
+        });
       }
     }
 
@@ -1110,22 +1703,29 @@ export class UnifiedWebSocketRunner {
     const shouldIncludeTools = true;
     try {
       while (true) {
-        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
+        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+          return;
 
         let messagesToSend = [...chatHistory, ...unprocessedMessages];
         unprocessedMessages = [];
 
         // Add collection context on first iteration — matches Python
         if (collectionContext) {
-          messagesToSend = this.addCollectionContext(messagesToSend, collectionContext);
+          messagesToSend = this.addCollectionContext(
+            messagesToSend,
+            collectionContext
+          );
           collectionContext = ""; // Clear after first use
         }
 
         const stream = provider.generateMessagesTraced({
           messages: messagesToSend,
           model,
-          tools: shouldIncludeTools && providerToolSchemas.length > 0 ? providerToolSchemas : undefined,
-          threadId,
+          tools:
+            shouldIncludeTools && providerToolSchemas.length > 0
+              ? providerToolSchemas
+              : undefined,
+          threadId
         });
 
         // Phase 1: Stream chunks and collect tool calls
@@ -1135,7 +1735,8 @@ export class UnifiedWebSocketRunner {
         const pendingToolCalls: PendingToolCall[] = [];
 
         for await (const item of stream) {
-          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
+          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+            return;
 
           if ("type" in item && (item as Chunk).type === "chunk") {
             // --- Text chunk --- forward to client (not persisted)
@@ -1154,11 +1755,13 @@ export class UnifiedWebSocketRunner {
             const assistantMsgData: Record<string, unknown> = {
               type: "message",
               role: "assistant",
-              tool_calls: [{ id: tc.id, name: tc.name, args: tc.args, result: null }],
+              tool_calls: [
+                { id: tc.id, name: tc.name, args: tc.args, result: null }
+              ],
               thread_id: threadId,
               workflow_id: workflowId,
               provider: providerId,
-              model,
+              model
             };
             await this.saveMessageToDb(assistantMsgData);
             await this.sendMessage(assistantMsgData);
@@ -1169,7 +1772,7 @@ export class UnifiedWebSocketRunner {
               content: null,
               toolCalls: [{ id: tc.id, name: tc.name, args: tc.args }],
               toolCallId: null,
-              threadId,
+              threadId
             });
 
             pendingToolCalls.push({ tc });
@@ -1186,7 +1789,10 @@ export class UnifiedWebSocketRunner {
                 toolResult = await serverTool.process(ctx, tc.args);
               } catch (err) {
                 const errMsg = err instanceof Error ? err.message : String(err);
-                log.error("Tool execution failed", { tool: tc.name, error: errMsg });
+                log.error("Tool execution failed", {
+                  tool: tc.name,
+                  error: errMsg
+                });
                 toolResult = { error: errMsg };
               }
             } else if (this.clientToolsManifest[tc.name]) {
@@ -1196,16 +1802,23 @@ export class UnifiedWebSocketRunner {
                 thread_id: threadId,
                 tool_call_id: tc.id,
                 name: tc.name,
-                args: tc.args,
+                args: tc.args
               });
-              const clientResult = await this.toolBridge.createWaiter(tc.id, 300_000);
-              toolResult = clientResult.result ?? clientResult.content ?? clientResult;
+              const clientResult = await this.toolBridge.createWaiter(
+                tc.id,
+                300_000
+              );
+              toolResult =
+                clientResult.result ?? clientResult.content ?? clientResult;
             } else {
               toolResult = { error: `Tool "${tc.name}" not available` };
             }
 
             // Process tool result — handle asset-like objects, dates, etc.
-            const processedResult = await this.processToolResult(toolResult, ctx);
+            const processedResult = await this.processToolResult(
+              toolResult,
+              ctx
+            );
             const toolResultJson = JSON.stringify(processedResult);
 
             return { tc, toolResultJson };
@@ -1224,7 +1837,7 @@ export class UnifiedWebSocketRunner {
               thread_id: threadId,
               workflow_id: workflowId,
               provider: providerId,
-              model,
+              model
             };
             await this.saveMessageToDb(toolMsgData);
             await this.sendMessage(toolMsgData);
@@ -1235,7 +1848,7 @@ export class UnifiedWebSocketRunner {
               content: toolResultJson,
               toolCallId: tc.id,
               toolCalls: null,
-              threadId,
+              threadId
             });
           }
         }
@@ -1249,21 +1862,32 @@ export class UnifiedWebSocketRunner {
         content = "";
         toolRound++;
         if (toolRound >= MAX_TOOL_ROUNDS) {
-          log.warn("Max tool rounds reached, stopping tool loop", { rounds: toolRound });
+          log.warn("Max tool rounds reached, stopping tool loop", {
+            rounds: toolRound
+          });
           break;
         }
-        log.debug("Unprocessed messages", { count: unprocessedMessages.length, round: toolRound });
+        log.debug("Unprocessed messages", {
+          count: unprocessedMessages.length,
+          round: toolRound
+        });
       }
 
       // Log provider call for cost tracking — matches Python's _log_provider_call()
-      await this._logProviderCall(userId, provider, providerId, model, workflowId);
+      await this._logProviderCall(
+        userId,
+        provider,
+        providerId,
+        model,
+        workflowId
+      );
 
       // Signal completion — matches Python's done chunk + final assistant Message
       await this.sendMessage({
         type: "chunk",
         content: "",
         done: true,
-        thread_id: threadId,
+        thread_id: threadId
       });
 
       // Final assistant message — persisted and forwarded (type: "message")
@@ -1274,7 +1898,7 @@ export class UnifiedWebSocketRunner {
         thread_id: threadId,
         workflow_id: workflowId,
         provider: providerId,
-        model,
+        model
       };
       await this.saveMessageToDb(finalMsgData);
       await this.sendMessage(finalMsgData);
@@ -1290,10 +1914,19 @@ export class UnifiedWebSocketRunner {
       let formattedMsg = errMsg;
 
       // Connection errors (ECONNREFUSED, ENOTFOUND, etc.)
-      if (errMsg.includes("ECONNREFUSED") || errMsg.includes("ENOTFOUND") || errMsg.includes("fetch failed") || errMsg.includes("nodename nor servname")) {
+      if (
+        errMsg.includes("ECONNREFUSED") ||
+        errMsg.includes("ENOTFOUND") ||
+        errMsg.includes("fetch failed") ||
+        errMsg.includes("nodename nor servname")
+      ) {
         errorType = "connection_error";
-        if (errMsg.includes("ENOTFOUND") || errMsg.includes("nodename nor servname")) {
-          formattedMsg = "Connection error: Unable to resolve hostname. Please check your network connection and API endpoint configuration.";
+        if (
+          errMsg.includes("ENOTFOUND") ||
+          errMsg.includes("nodename nor servname")
+        ) {
+          formattedMsg =
+            "Connection error: Unable to resolve hostname. Please check your network connection and API endpoint configuration.";
         } else {
           formattedMsg = `Connection error: ${errMsg}`;
         }
@@ -1311,12 +1944,18 @@ export class UnifiedWebSocketRunner {
             const body = (err as any).body ?? (err as any).response;
             if (body && typeof body === "object" && "error" in body) {
               const errorDetail = body.error;
-              if (typeof errorDetail === "object" && errorDetail && "message" in errorDetail) {
+              if (
+                typeof errorDetail === "object" &&
+                errorDetail &&
+                "message" in errorDetail
+              ) {
                 bodyMsg = String(errorDetail.message);
               }
             }
           }
-        } catch {}
+        } catch {
+          // Intentional: best-effort extraction of error message from response body
+        }
 
         if (bodyMsg) {
           formattedMsg = bodyMsg;
@@ -1325,7 +1964,8 @@ export class UnifiedWebSocketRunner {
         } else if (status === 401) {
           formattedMsg = "Authentication failed: Invalid API key or token";
         } else if (status === 403) {
-          formattedMsg = "Access forbidden: You don't have permission for this resource";
+          formattedMsg =
+            "Access forbidden: You don't have permission for this resource";
         } else if (status === 404) {
           formattedMsg = "Not found: The requested resource was not found";
         } else if (status === 429) {
@@ -1343,27 +1983,28 @@ export class UnifiedWebSocketRunner {
         error_type: errorType,
         ...(statusCode !== undefined ? { status_code: statusCode } : {}),
         thread_id: threadId,
-        workflow_id: workflowId,
+        workflow_id: workflowId
       });
       // Signal completion even on error — matches Python
       await this.sendMessage({
         type: "chunk",
         content: "",
         done: true,
-        thread_id: threadId,
+        thread_id: threadId
       });
       const errorMsgData: Record<string, unknown> = {
         type: "message",
         role: "assistant",
-        content: errorType === "connection_error"
-          ? `I encountered a connection error: ${formattedMsg}. Please check your network connection and try again.`
-          : errorType === "http_status_error"
-            ? `I encountered an API error (HTTP ${statusCode}): ${formattedMsg}`
-            : `I encountered an error: ${formattedMsg}`,
+        content:
+          errorType === "connection_error"
+            ? `I encountered a connection error: ${formattedMsg}. Please check your network connection and try again.`
+            : errorType === "http_status_error"
+              ? `I encountered an API error (HTTP ${statusCode}): ${formattedMsg}`
+              : `I encountered an error: ${formattedMsg}`,
         thread_id: threadId,
         workflow_id: workflowId,
         provider: providerId,
-        model,
+        model
       };
       await this.saveMessageToDb(errorMsgData);
       await this.sendMessage(errorMsgData);
@@ -1379,7 +2020,7 @@ export class UnifiedWebSocketRunner {
     provider: BaseProvider,
     providerId: string,
     model: string,
-    workflowId: string | null,
+    workflowId: string | null
   ): Promise<void> {
     if (!providerId || !model) {
       log.warn("Cannot log provider call: missing provider or model");
@@ -1394,20 +2035,17 @@ export class UnifiedWebSocketRunner {
         cost,
         workflow_id: workflowId,
         status: "completed",
-        node_id: "",
+        node_id: ""
       });
       log.debug("Logged provider call", { provider: providerId, model, cost });
     } catch (err) {
-      if (
-        err instanceof TypeError ||
-        err instanceof ReferenceError
-      ) {
+      if (err instanceof TypeError || err instanceof ReferenceError) {
         log.warn("Failed to log provider call due to invalid data", {
-          error: err instanceof Error ? err.message : String(err),
+          error: err instanceof Error ? err.message : String(err)
         });
       } else {
         log.error("Unexpected error logging provider call", {
-          error: err instanceof Error ? err.message : String(err),
+          error: err instanceof Error ? err.message : String(err)
         });
       }
     }
@@ -1420,27 +2058,33 @@ export class UnifiedWebSocketRunner {
    * Scans graph nodes for types ending in .MessageInput / .MessageListInput
    * and returns their data.name values.
    */
-  private detectMessageInputNames(
-    graph: { nodes: Array<Record<string, unknown>>; edges: unknown[] },
-  ): { messageName: string | null; messagesName: string | null } {
+  private detectMessageInputNames(graph: {
+    nodes: Array<Record<string, unknown>>;
+    edges: unknown[];
+  }): { messageName: string | null; messagesName: string | null } {
     let messageName: string | null = null;
     let messagesName: string | null = null;
 
     for (const node of graph.nodes) {
       const nodeType = typeof node.type === "string" ? node.type : "";
-      const data = typeof node.data === "object" && node.data !== null ? (node.data as Record<string, unknown>) : {};
+      const data =
+        typeof node.data === "object" && node.data !== null
+          ? (node.data as Record<string, unknown>)
+          : {};
       const nodeName = typeof data.name === "string" ? data.name.trim() : "";
       if (!nodeName) continue;
 
       if (
         messageName === null &&
-        (nodeType === "nodetool.input.MessageInput" || nodeType.endsWith(".MessageInput"))
+        (nodeType === "nodetool.input.MessageInput" ||
+          nodeType.endsWith(".MessageInput"))
       ) {
         messageName = nodeName;
       }
       if (
         messagesName === null &&
-        (nodeType === "nodetool.input.MessageListInput" || nodeType.endsWith(".MessageListInput"))
+        (nodeType === "nodetool.input.MessageListInput" ||
+          nodeType.endsWith(".MessageListInput"))
       ) {
         messagesName = nodeName;
       }
@@ -1460,7 +2104,7 @@ export class UnifiedWebSocketRunner {
    *  - other → { type: "text", text: stringified }
    */
   private createWorkflowResponseContent(
-    result: Record<string, unknown>,
+    result: Record<string, unknown>
   ): Array<Record<string, unknown>> {
     const content: Array<Record<string, unknown>> = [];
 
@@ -1475,11 +2119,20 @@ export class UnifiedWebSocketRunner {
         const obj = value as Record<string, unknown>;
         const assetType = typeof obj.type === "string" ? obj.type : "";
         if (assetType === "image") {
-          content.push({ type: "image", image: { uri: obj.uri, asset_id: obj.asset_id, data: obj.data } });
+          content.push({
+            type: "image",
+            image: { uri: obj.uri, asset_id: obj.asset_id, data: obj.data }
+          });
         } else if (assetType === "video") {
-          content.push({ type: "video", video: { uri: obj.uri, asset_id: obj.asset_id, data: obj.data } });
+          content.push({
+            type: "video",
+            video: { uri: obj.uri, asset_id: obj.asset_id, data: obj.data }
+          });
         } else if (assetType === "audio") {
-          content.push({ type: "audio", audio: { uri: obj.uri, asset_id: obj.asset_id, data: obj.data } });
+          content.push({
+            type: "audio",
+            audio: { uri: obj.uri, asset_id: obj.asset_id, data: obj.data }
+          });
         } else {
           content.push({ type: "text", text: JSON.stringify(obj) });
         }
@@ -1508,11 +2161,17 @@ export class UnifiedWebSocketRunner {
    *   6. Collect output_update results
    *   7. Send done chunk + response message with typed content
    */
-  private async handleWorkflowMessage(data: Record<string, unknown>, _requestSeq?: number): Promise<void> {
+  private async handleWorkflowMessage(
+    data: Record<string, unknown>,
+    _requestSeq?: number
+  ): Promise<void> {
     const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
-    const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : null;
-    const providerId = typeof data.provider === "string" ? data.provider : this.defaultProvider;
-    const model = typeof data.model === "string" ? data.model : this.defaultModel;
+    const workflowId =
+      typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const providerId =
+      typeof data.provider === "string" ? data.provider : this.defaultProvider;
+    const model =
+      typeof data.model === "string" ? data.model : this.defaultModel;
     const userId = this.userId ?? "1";
     const jobId = randomUUID();
 
@@ -1529,19 +2188,31 @@ export class UnifiedWebSocketRunner {
         throw new Error(`Workflow ${workflowId} not found`);
       }
 
-      const rawGraph = workflow.graph as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+      const rawGraph = workflow.graph as {
+        nodes: Array<Record<string, unknown>>;
+        edges: Array<Record<string, unknown>>;
+      };
 
       if (this.beforeRunJob) {
         await this.beforeRunJob(rawGraph);
       }
 
       // Detect message input names from raw graph (reads node.data) — matches Python
-      const { messageName, messagesName } = this.detectMessageInputNames(rawGraph);
+      const { messageName, messagesName } =
+        this.detectMessageInputNames(rawGraph);
       const graph = await this.hydrateGraph(rawGraph);
-      const messageInputName = (typeof data.workflow_message_input_name === "string" ? data.workflow_message_input_name : null)
-        ?? messageName ?? "message";
-      const messagesInputName = (typeof data.workflow_messages_input_name === "string" ? data.workflow_messages_input_name : null)
-        ?? messagesName ?? "messages";
+      const messageInputName =
+        (typeof data.workflow_message_input_name === "string"
+          ? data.workflow_message_input_name
+          : null) ??
+        messageName ??
+        "message";
+      const messagesInputName =
+        (typeof data.workflow_messages_input_name === "string"
+          ? data.workflow_messages_input_name
+          : null) ??
+        messagesName ??
+        "messages";
 
       // Build chat history for params — matches Python
       const [dbMessages] = await Message.paginate(threadId, { limit: 1000 });
@@ -1549,7 +2220,7 @@ export class UnifiedWebSocketRunner {
         role: m.role,
         content: m.content,
         created_at: m.created_at,
-        thread_id: m.thread_id,
+        thread_id: m.thread_id
       }));
 
       // Serialize current message
@@ -1559,14 +2230,16 @@ export class UnifiedWebSocketRunner {
         thread_id: threadId,
         workflow_id: workflowId,
         provider: providerId,
-        model,
+        model
       };
 
       // Prepare params — matches Python's WorkflowMessageProcessor
       const params: Record<string, unknown> = {
         [messageInputName]: currentMessage,
         [messagesInputName]: [...chatHistorySerialized, currentMessage],
-        ...(typeof data.params === "object" && data.params !== null ? data.params as Record<string, unknown> : {}),
+        ...(typeof data.params === "object" && data.params !== null
+          ? (data.params as Record<string, unknown>)
+          : {})
       };
 
       // If chat workflow, add legacy params — matches Python's ChatWorkflowMessageProcessor
@@ -1574,7 +2247,7 @@ export class UnifiedWebSocketRunner {
         const legacyChatInput = chatHistorySerialized.map((m) => ({
           role: m.role,
           content: this.extractTextContent(m.content),
-          created_at: m.created_at,
+          created_at: m.created_at
         }));
         params["chat_input"] = legacyChatInput;
         if (messagesInputName !== "messages") {
@@ -1583,19 +2256,43 @@ export class UnifiedWebSocketRunner {
       }
 
       // Create processing context
-      const workspaceDir = this.workspaceResolver ? await this.workspaceResolver(workflowId, userId) : null;
+      const workspaceDir = this.workspaceResolver
+        ? await this.workspaceResolver(workflowId, userId)
+        : null;
       const context = createRuntimeContext({
         jobId,
         workflowId,
         userId,
         workspaceDir,
-        assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
+        assetOutputMode: this.mode === "text" ? "data_uri" : "raw"
       });
+
+      // Expose executor/node-type resolution for sub-workflow nodes
+      context.setResolveExecutor((node) => this.resolveExecutor(node));
+      if (this.resolveNodeType) {
+        const resolverObj =
+          typeof this.resolveNodeType === "function"
+            ? { resolveNodeType: this.resolveNodeType }
+            : this.resolveNodeType;
+        context.setResolveNodeType(
+          (nodeType) =>
+            resolverObj.resolveNodeType(nodeType) as Promise<{
+              nodeType: string;
+              propertyTypes?: Record<string, string>;
+              outputs?: Record<string, string>;
+              isDynamic?: boolean;
+              descriptorDefaults?: Record<string, unknown>;
+            } | null>
+        );
+      }
 
       // Create and run workflow
       const runner = new WorkflowRunner(jobId, {
-        resolveExecutor: (node) => this.resolveExecutor(node as { id: string; type: string; [key: string]: unknown }),
-        executionContext: context,
+        resolveExecutor: (node) =>
+          this.resolveExecutor(
+            node as { id: string; type: string; [key: string]: unknown }
+          ),
+        executionContext: context
       });
 
       const active: ActiveJob = {
@@ -1605,7 +2302,7 @@ export class UnifiedWebSocketRunner {
         runner,
         graph,
         finished: false,
-        status: "running",
+        status: "running"
       };
       this.activeJobs.set(jobId, active);
 
@@ -1617,7 +2314,7 @@ export class UnifiedWebSocketRunner {
           user_id: userId,
           status: "running",
           params,
-          graph,
+          graph
         });
       } catch (error) {
         this.logError("workflow job persistence failed", error);
@@ -1636,18 +2333,32 @@ export class UnifiedWebSocketRunner {
             targetHandle: string;
             edge_type: "data" | "control";
           }>;
-        },
+        }
       );
 
       // Stream events, collect output_update results
       const result: Record<string, unknown> = {};
-      await this.sendMessage({ type: "job_update", status: "running", job_id: jobId, workflow_id: workflowId });
+      await this.sendMessage({
+        type: "job_update",
+        status: "running",
+        job_id: jobId,
+        workflow_id: workflowId
+      });
 
       let finalOutputs: Record<string, unknown[]> = {};
       void executePromise
-        .then((r) => { active.status = r.status; active.error = r.error; finalOutputs = r.outputs ?? {}; })
-        .catch((err) => { active.status = "failed"; active.error = err instanceof Error ? err.message : String(err); })
-        .finally(() => { active.finished = true; });
+        .then((r) => {
+          active.status = r.status;
+          active.error = r.error;
+          finalOutputs = r.outputs ?? {};
+        })
+        .catch((err) => {
+          active.status = "failed";
+          active.error = err instanceof Error ? err.message : String(err);
+        })
+        .finally(() => {
+          active.finished = true;
+        });
 
       while (!active.finished || active.context.hasMessages()) {
         while (active.context.hasMessages()) {
@@ -1656,7 +2367,9 @@ export class UnifiedWebSocketRunner {
           const outbound: Record<string, unknown> = {
             ...(msg as unknown as Record<string, unknown>),
             job_id: (msg as unknown as Record<string, unknown>).job_id ?? jobId,
-            workflow_id: (msg as unknown as Record<string, unknown>).workflow_id ?? workflowId,
+            workflow_id:
+              (msg as unknown as Record<string, unknown>).workflow_id ??
+              workflowId
           };
 
           // Capture output_update values for the response message
@@ -1666,7 +2379,10 @@ export class UnifiedWebSocketRunner {
             const node = graphNodes.find((n) => n.id === nodeId);
             const nodeType = typeof node?.type === "string" ? node.type : "";
             if (nodeType.includes("Output")) {
-              const nodeName = typeof outbound.node_name === "string" ? outbound.node_name : nodeType;
+              const nodeName =
+                typeof outbound.node_name === "string"
+                  ? outbound.node_name
+                  : nodeType;
               result[nodeName] = outbound.value;
             } else {
               continue; // Skip non-output node output_updates
@@ -1698,7 +2414,7 @@ export class UnifiedWebSocketRunner {
         job_id: jobId,
         workflow_id: workflowId,
         error: active.error,
-        result: { outputs: finalOutputs },
+        result: { outputs: finalOutputs }
       });
 
       // Persist final job status
@@ -1706,7 +2422,8 @@ export class UnifiedWebSocketRunner {
         const job = (await Job.get(jobId)) as Job | null;
         if (job) {
           if (active.status === "completed") job.markCompleted();
-          else if (active.status === "failed") job.markFailed(active.error ?? "Unknown error");
+          else if (active.status === "failed")
+            job.markFailed(active.error ?? "Unknown error");
           else if (active.status === "cancelled") job.markCancelled();
           await job.save();
         }
@@ -1723,7 +2440,7 @@ export class UnifiedWebSocketRunner {
         done: true,
         job_id: jobId,
         workflow_id: workflowId,
-        thread_id: threadId,
+        thread_id: threadId
       });
 
       // Create response message from workflow outputs — matches Python's _create_response_message
@@ -1736,7 +2453,7 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId,
         provider: providerId,
         model,
-        job_id: jobId,
+        job_id: jobId
       };
       await this.saveMessageToDb(responseMsg);
       await this.sendMessage(responseMsg);
@@ -1744,14 +2461,18 @@ export class UnifiedWebSocketRunner {
       log.debug("Workflow message complete", { threadId, workflowId, jobId });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      log.error("Workflow message error", { threadId, workflowId, error: errMsg });
+      log.error("Workflow message error", {
+        threadId,
+        workflowId,
+        error: errMsg
+      });
 
       await this.sendMessage({
         type: "error",
         message: `Error processing workflow: ${errMsg}`,
         job_id: jobId,
         workflow_id: workflowId,
-        thread_id: threadId,
+        thread_id: threadId
       });
 
       // Send done chunk even on error — matches Python
@@ -1761,7 +2482,7 @@ export class UnifiedWebSocketRunner {
         done: true,
         job_id: jobId,
         workflow_id: workflowId,
-        thread_id: threadId,
+        thread_id: threadId
       });
     }
   }
@@ -1774,17 +2495,24 @@ export class UnifiedWebSocketRunner {
    * (Chunk, ToolCallUpdate, TaskUpdate, PlanningUpdate, LogUpdate, StepResult)
    * to the client. Messages with type "message" are persisted to DB.
    */
-  private async handleAgentMessage(data: Record<string, unknown>, requestSeq?: number): Promise<void> {
+  private async handleAgentMessage(
+    data: Record<string, unknown>,
+    requestSeq?: number
+  ): Promise<void> {
     const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
     const providerId = data.provider as string;
     const model = data.model as string;
-    const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const workflowId =
+      typeof data.workflow_id === "string" ? data.workflow_id : null;
     const userId = this.userId ?? "1";
 
     const provider = await this.resolveProvider!(providerId, userId);
 
     // Extract objective from content
-    const objective = this.extractTextContent(data.content, "Complete the requested task");
+    const objective = this.extractTextContent(
+      data.content,
+      "Complete the requested task"
+    );
 
     // Generate unique execution ID — matches Python
     const agentExecutionId = randomUUID();
@@ -1797,11 +2525,13 @@ export class UnifiedWebSocketRunner {
       BrowserTool,
       GoogleSearchTool,
       getAllMcpTools,
-      resolveTool,
+      resolveTool
     } = await import("@nodetool/agents");
 
     let selectedTools: Tool[] = [];
-    const rawToolNames = Array.isArray(data.tools) ? (data.tools as string[]).filter((t) => typeof t === "string") : [];
+    const rawToolNames = Array.isArray(data.tools)
+      ? (data.tools as string[]).filter((t) => typeof t === "string")
+      : [];
 
     if (rawToolNames.length > 0) {
       // User explicitly specified tools — resolve by name
@@ -1809,7 +2539,9 @@ export class UnifiedWebSocketRunner {
         const tool = resolveTool(name);
         if (tool) selectedTools.push(tool);
       }
-      log.debug("Selected tools for agent", { tools: selectedTools.map((t) => t.name) });
+      log.debug("Selected tools for agent", {
+        tools: selectedTools.map((t) => t.name)
+      });
     } else {
       // No tools specified — use defaults + MCP tools for omnipotent mode
       selectedTools = [
@@ -1817,9 +2549,11 @@ export class UnifiedWebSocketRunner {
         new WriteFileTool(),
         new BrowserTool(),
         new GoogleSearchTool(),
-        ...getAllMcpTools(),
+        ...getAllMcpTools()
       ];
-      log.debug("Using default + MCP tools for agent", { count: selectedTools.length });
+      log.debug("Using default + MCP tools for agent", {
+        count: selectedTools.length
+      });
     }
 
     // Server-side tools from resolveTools option
@@ -1837,15 +2571,17 @@ export class UnifiedWebSocketRunner {
       const sendMsg = this.sendMessage.bind(this);
       for (const [, manifest] of Object.entries(this.clientToolsManifest)) {
         try {
-          selectedTools.push(new UIToolProxy(manifest, this.toolBridge, sendMsg));
+          selectedTools.push(
+            new UIToolProxy(manifest, this.toolBridge, sendMsg)
+          );
         } catch (err) {
           log.warn("Failed to register UI tool proxy", {
-            error: err instanceof Error ? err.message : String(err),
+            error: err instanceof Error ? err.message : String(err)
           });
         }
       }
       log.debug("Added UI tool proxies to agent", {
-        count: Object.keys(this.clientToolsManifest).length,
+        count: Object.keys(this.clientToolsManifest).length
       });
     }
 
@@ -1853,7 +2589,7 @@ export class UnifiedWebSocketRunner {
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
-      workspaceDir: null,
+      workspaceDir: null
     });
 
     try {
@@ -1868,31 +2604,43 @@ export class UnifiedWebSocketRunner {
           properties: {
             markdown: {
               type: "string",
-              description: "The markdown content of the response",
-            },
+              description: "The markdown content of the response"
+            }
           },
-          required: ["markdown"],
-        },
+          required: ["markdown"]
+        }
       });
 
       for await (const item of agent.execute(ctx)) {
-        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
+        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+          return;
 
         const msgType = (item as { type?: string }).type;
 
         if (msgType === "chunk") {
           // Stream text chunks to client
-          const chunk = item as { type: string; content?: string; done?: boolean; thinking?: boolean; thread_id?: string };
+          const chunk = item as {
+            type: string;
+            content?: string;
+            done?: boolean;
+            thinking?: boolean;
+            thread_id?: string;
+          };
           await this.sendMessage({
             type: "chunk",
             content: chunk.content ?? "",
             done: chunk.done ?? false,
             thinking: chunk.thinking ?? false,
-            thread_id: chunk.thread_id ?? threadId,
+            thread_id: chunk.thread_id ?? threadId
           });
         } else if (msgType === "tool_call_update") {
           // Forward tool call updates
-          const tc = item as { name: string; args: Record<string, unknown>; tool_call_id?: string; step_id?: string };
+          const tc = item as {
+            name: string;
+            args: Record<string, unknown>;
+            tool_call_id?: string;
+            step_id?: string;
+          };
           await this.sendMessage({
             type: "tool_call_update",
             thread_id: threadId,
@@ -1902,7 +2650,7 @@ export class UnifiedWebSocketRunner {
             message: `Calling ${tc.name}...`,
             args: tc.args,
             step_id: tc.step_id ?? null,
-            agent_execution_id: agentExecutionId,
+            agent_execution_id: agentExecutionId
           });
         } else if (msgType === "task_update") {
           // Send task update as agent_execution message — persisted by _run_processor pattern
@@ -1911,7 +2659,7 @@ export class UnifiedWebSocketRunner {
             type: "task_update",
             event: tu.event,
             task: tu.task ?? null,
-            step: tu.step ?? null,
+            step: tu.step ?? null
           };
           const msg: Record<string, unknown> = {
             type: "message",
@@ -1923,19 +2671,24 @@ export class UnifiedWebSocketRunner {
             workflow_id: workflowId,
             provider: providerId,
             model,
-            agent_mode: true,
+            agent_mode: true
           };
           await this.saveMessageToDb(msg);
           await this.sendMessage(msg);
         } else if (msgType === "planning_update") {
           // Send planning update as agent_execution message
-          const pu = item as { phase?: string; status?: string; content?: string; node_id?: string };
+          const pu = item as {
+            phase?: string;
+            status?: string;
+            content?: string;
+            node_id?: string;
+          };
           const contentDict = {
             type: "planning_update",
             phase: pu.phase,
             status: pu.status,
             content: pu.content,
-            node_id: pu.node_id,
+            node_id: pu.node_id
           };
           const msg: Record<string, unknown> = {
             type: "message",
@@ -1947,7 +2700,7 @@ export class UnifiedWebSocketRunner {
             workflow_id: workflowId,
             provider: providerId,
             model,
-            agent_mode: true,
+            agent_mode: true
           };
           await this.saveMessageToDb(msg);
           await this.sendMessage(msg);
@@ -1964,20 +2717,25 @@ export class UnifiedWebSocketRunner {
                 node_id: pu.node_id ?? "agent",
                 node_name: "Agent",
                 content: `${pu.phase}: ${pu.content ?? ""}`,
-                severity: pu.status === "Failed" ? "error" : "info",
+                severity: pu.status === "Failed" ? "error" : "info"
               },
               thread_id: threadId,
               workflow_id: workflowId,
               provider: providerId,
               model,
-              agent_mode: true,
+              agent_mode: true
             };
             await this.saveMessageToDb(logMsg);
             await this.sendMessage(logMsg);
           }
         } else if (msgType === "log_update") {
           // Forward log updates as agent_execution messages
-          const lu = item as { node_id?: string; node_name?: string; content?: string; severity?: string };
+          const lu = item as {
+            node_id?: string;
+            node_name?: string;
+            content?: string;
+            severity?: string;
+          };
           const msg: Record<string, unknown> = {
             type: "message",
             role: "agent_execution",
@@ -1988,18 +2746,23 @@ export class UnifiedWebSocketRunner {
               node_id: lu.node_id,
               node_name: lu.node_name,
               content: lu.content,
-              severity: lu.severity,
+              severity: lu.severity
             },
             thread_id: threadId,
             workflow_id: workflowId,
             provider: providerId,
             model,
-            agent_mode: true,
+            agent_mode: true
           };
           await this.saveMessageToDb(msg);
           await this.sendMessage(msg);
         } else if (msgType === "step_result") {
-          const sr = item as { step?: unknown; result?: unknown; error?: string; is_task_result?: boolean };
+          const sr = item as {
+            step?: unknown;
+            result?: unknown;
+            error?: string;
+            is_task_result?: boolean;
+          };
           // Only forward non-task step results — task result handled via agent.results
           if (!sr.is_task_result) {
             const contentDict = {
@@ -2007,7 +2770,7 @@ export class UnifiedWebSocketRunner {
               result: sr.result,
               step: sr.step ?? null,
               error: sr.error,
-              is_task_result: sr.is_task_result,
+              is_task_result: sr.is_task_result
             };
             const msg: Record<string, unknown> = {
               type: "message",
@@ -2019,7 +2782,7 @@ export class UnifiedWebSocketRunner {
               workflow_id: workflowId,
               provider: providerId,
               model,
-              agent_mode: true,
+              agent_mode: true
             };
             await this.saveMessageToDb(msg);
             await this.sendMessage(msg);
@@ -2032,7 +2795,11 @@ export class UnifiedWebSocketRunner {
       let content: string;
       if (typeof results === "string") {
         content = results;
-      } else if (results && typeof results === "object" && "markdown" in results) {
+      } else if (
+        results &&
+        typeof results === "object" &&
+        "markdown" in results
+      ) {
         const md = (results as Record<string, unknown>).markdown;
         content = typeof md === "string" ? md : String(results);
       } else {
@@ -2048,7 +2815,7 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId,
         provider: providerId,
         model,
-        agent_mode: true,
+        agent_mode: true
       };
       await this.saveMessageToDb(finalMsg);
       await this.sendMessage(finalMsg);
@@ -2059,7 +2826,7 @@ export class UnifiedWebSocketRunner {
         content: "",
         done: true,
         thread_id: threadId,
-        workflow_id: workflowId,
+        workflow_id: workflowId
       });
 
       log.debug("Agent execution complete", { threadId });
@@ -2072,7 +2839,7 @@ export class UnifiedWebSocketRunner {
         message: `Agent execution error: ${errMsg}`,
         error_type: "agent_error",
         thread_id: threadId,
-        workflow_id: workflowId,
+        workflow_id: workflowId
       });
 
       // Signal completion even on error
@@ -2081,7 +2848,7 @@ export class UnifiedWebSocketRunner {
         content: "",
         done: true,
         thread_id: threadId,
-        workflow_id: workflowId,
+        workflow_id: workflowId
       });
 
       // Return error assistant message
@@ -2093,38 +2860,57 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId,
         provider: providerId,
         model,
-        agent_mode: true,
+        agent_mode: true
       };
       await this.saveMessageToDb(errorFinalMsg);
       await this.sendMessage(errorFinalMsg);
     }
   }
 
-  async handleInference(data: Record<string, unknown>, requestSeq: number): Promise<void> {
-    const providerId = typeof data.provider === "string" ? data.provider : this.defaultProvider;
-    const model = typeof data.model === "string" ? data.model : this.defaultModel;
+  async handleInference(
+    data: Record<string, unknown>,
+    requestSeq: number
+  ): Promise<void> {
+    const providerId =
+      typeof data.provider === "string" ? data.provider : this.defaultProvider;
+    const model =
+      typeof data.model === "string" ? data.model : this.defaultModel;
     const rawMessages = Array.isArray(data.messages) ? data.messages : [];
-    log.debug("Inference request", { model, provider: providerId, messages: rawMessages.length });
+    log.debug("Inference request", {
+      model,
+      provider: providerId,
+      messages: rawMessages.length
+    });
 
     const messages: ProviderMessage[] = rawMessages.map((m) => {
       const msg = m as Record<string, unknown>;
       return {
-        role: (typeof msg.role === "string" ? msg.role : "user") as ProviderMessage["role"],
-        content: typeof msg.content === "string"
-          ? msg.content
-          : Array.isArray(msg.content)
-            ? (msg.content as MessageContent[])
-            : "",
+        role: (typeof msg.role === "string"
+          ? msg.role
+          : "user") as ProviderMessage["role"],
+        content:
+          typeof msg.content === "string"
+            ? msg.content
+            : Array.isArray(msg.content)
+              ? (msg.content as MessageContent[])
+              : "",
         toolCallId: typeof msg.toolCallId === "string" ? msg.toolCallId : null,
         toolCalls: Array.isArray(msg.toolCalls)
-          ? (msg.toolCalls as Array<{ id: string; name: string; args: Record<string, unknown> }>)
+          ? (msg.toolCalls as Array<{
+              id: string;
+              name: string;
+              args: Record<string, unknown>;
+            }>)
           : null,
-        threadId: null,
+        threadId: null
       };
     });
 
     if (!this.resolveProvider) {
-      await this.sendMessage({ type: "error", message: "No provider resolver configured" });
+      await this.sendMessage({
+        type: "error",
+        message: "No provider resolver configured"
+      });
       return;
     }
 
@@ -2134,21 +2920,42 @@ export class UnifiedWebSocketRunner {
         const tool = t as Record<string, unknown>;
         return {
           name: typeof tool.name === "string" ? tool.name : "",
-          description: typeof tool.description === "string" ? tool.description : undefined,
-          inputSchema: typeof tool.inputSchema === "object" ? (tool.inputSchema as Record<string, unknown>) : undefined,
+          description:
+            typeof tool.description === "string" ? tool.description : undefined,
+          inputSchema:
+            typeof tool.inputSchema === "object"
+              ? (tool.inputSchema as Record<string, unknown>)
+              : undefined
         };
       })
       .filter((t) => t.name.length > 0);
 
     const provider = await this.resolveProvider(providerId, this.userId ?? "1");
-    for await (const item of provider.generateMessagesTraced({ messages, model, tools: tools.length > 0 ? tools : undefined })) {
+    for await (const item of provider.generateMessagesTraced({
+      messages,
+      model,
+      tools: tools.length > 0 ? tools : undefined
+    })) {
       if (requestSeq !== this.chatRequestSeq) break; // cancelled
       if ("type" in item && item.type === "chunk") {
-        await this.sendMessage({ ...(item as unknown as Record<string, unknown>), seq: requestSeq });
+        await this.sendMessage({
+          ...(item as unknown as Record<string, unknown>),
+          seq: requestSeq
+        });
       } else if ("name" in item) {
-        const toolItem = item as { id: string; name: string; args: Record<string, unknown> };
+        const toolItem = item as {
+          id: string;
+          name: string;
+          args: Record<string, unknown>;
+        };
         log.info("Tool call", { tool: toolItem.name, args: toolItem.args });
-        await this.sendMessage({ type: "tool_call", id: toolItem.id, name: toolItem.name, args: toolItem.args, seq: requestSeq });
+        await this.sendMessage({
+          type: "tool_call",
+          id: toolItem.id,
+          name: toolItem.name,
+          args: toolItem.args,
+          seq: requestSeq
+        });
       }
     }
 
@@ -2158,10 +2965,13 @@ export class UnifiedWebSocketRunner {
     }
   }
 
-  async handleCommand(command: WebSocketCommandEnvelope): Promise<Record<string, unknown>> {
+  async handleCommand(
+    command: WebSocketCommandEnvelope
+  ): Promise<Record<string, unknown>> {
     const data = command.data ?? {};
     const jobId = typeof data.job_id === "string" ? data.job_id : undefined;
-    const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : undefined;
+    const workflowId =
+      typeof data.workflow_id === "string" ? data.workflow_id : undefined;
     log.debug("Command", { command: command.command });
 
     switch (command.command as UnifiedCommandType) {
@@ -2173,11 +2983,19 @@ export class UnifiedWebSocketRunner {
       case "reconnect_job":
         if (!jobId) return { error: "job_id is required" };
         void this.reconnectJob(jobId, workflowId);
-        return { message: `Reconnecting to job ${jobId}`, job_id: jobId, workflow_id: workflowId ?? null };
+        return {
+          message: `Reconnecting to job ${jobId}`,
+          job_id: jobId,
+          workflow_id: workflowId ?? null
+        };
       case "resume_job":
         if (!jobId) return { error: "job_id is required" };
         void this.resumeJob(jobId, workflowId);
-        return { message: `Resumption initiated for job ${jobId}`, job_id: jobId, workflow_id: workflowId ?? null };
+        return {
+          message: `Resumption initiated for job ${jobId}`,
+          job_id: jobId,
+          workflow_id: workflowId ?? null
+        };
       case "stream_input":
         if (!jobId) return { error: "job_id is required" };
         {
@@ -2188,26 +3006,29 @@ export class UnifiedWebSocketRunner {
             inputName: data.input,
             handle: data.handle,
             hasValue: data.value !== undefined,
-            activeJobIds: [...this.activeJobs.keys()],
+            activeJobIds: [...this.activeJobs.keys()]
           });
           if (!active) return { error: "No active job/context" };
           const inputName = typeof data.input === "string" ? data.input : "";
           if (!inputName.trim()) return { error: "Invalid input name" };
           const value = data.value;
-          const handle = typeof data.handle === "string" ? data.handle : undefined;
+          const handle =
+            typeof data.handle === "string" ? data.handle : undefined;
           try {
             await active.runner.pushInputValue(inputName, value, handle);
             return {
               message: "Input item streamed",
               job_id: jobId,
-              workflow_id: workflowId ?? active.workflowId,
+              workflow_id: workflowId ?? active.workflowId
             };
           } catch (err) {
-            log.error("stream_input failed", { error: err instanceof Error ? err.message : String(err) });
+            log.error("stream_input failed", {
+              error: err instanceof Error ? err.message : String(err)
+            });
             return {
               error: err instanceof Error ? err.message : String(err),
               job_id: jobId,
-              workflow_id: workflowId ?? active.workflowId,
+              workflow_id: workflowId ?? active.workflowId
             };
           }
         }
@@ -2218,19 +3039,20 @@ export class UnifiedWebSocketRunner {
           if (!active) return { error: "No active job/context" };
           const inputName = typeof data.input === "string" ? data.input : "";
           if (!inputName.trim()) return { error: "Invalid input name" };
-          const handle = typeof data.handle === "string" ? data.handle : undefined;
+          const handle =
+            typeof data.handle === "string" ? data.handle : undefined;
           try {
             active.runner.finishInputStream(inputName, handle);
             return {
               message: "Input stream ended",
               job_id: jobId,
-              workflow_id: workflowId ?? active.workflowId,
+              workflow_id: workflowId ?? active.workflowId
             };
           } catch (err) {
             return {
               error: err instanceof Error ? err.message : String(err),
               job_id: jobId,
-              workflow_id: workflowId ?? active.workflowId,
+              workflow_id: workflowId ?? active.workflowId
             };
           }
         }
@@ -2257,9 +3079,15 @@ export class UnifiedWebSocketRunner {
         this.currentTask = this.handleChatMessage(data, seq);
         void this.currentTask.catch(async (err) => {
           this.logError("chat_message processing failed", err);
-          await this.sendMessage({ type: "error", message: err instanceof Error ? err.message : String(err) });
+          await this.sendMessage({
+            type: "error",
+            message: err instanceof Error ? err.message : String(err)
+          });
         });
-        return { message: "Chat message processing started", thread_id: threadId };
+        return {
+          message: "Chat message processing started",
+          thread_id: threadId
+        };
       }
       case "inference": {
         this.chatRequestSeq += 1;
@@ -2267,12 +3095,16 @@ export class UnifiedWebSocketRunner {
         this.currentTask = this.handleInference(data, seq);
         void this.currentTask.catch(async (err) => {
           this.logError("inference processing failed", err);
-          await this.sendMessage({ type: "error", message: err instanceof Error ? err.message : String(err) });
+          await this.sendMessage({
+            type: "error",
+            message: err instanceof Error ? err.message : String(err)
+          });
         });
         return { message: "Inference started" };
       }
       case "stop": {
-        const threadId = typeof data.thread_id === "string" ? data.thread_id : undefined;
+        const threadId =
+          typeof data.thread_id === "string" ? data.thread_id : undefined;
         // Always increment seq to cancel any in-progress chat or inference
         this.chatRequestSeq += 1;
         this.currentTask = null;
@@ -2289,9 +3121,13 @@ export class UnifiedWebSocketRunner {
           type: "generation_stopped",
           message: "Generation stopped by user",
           job_id: jobId ?? null,
-          thread_id: threadId ?? null,
+          thread_id: threadId ?? null
         });
-        return { message: "Stop command processed", job_id: jobId ?? null, thread_id: threadId ?? null };
+        return {
+          message: "Stop command processed",
+          job_id: jobId ?? null,
+          thread_id: threadId ?? null
+        };
       }
       default:
         return { error: "Unknown command" };
@@ -2301,7 +3137,9 @@ export class UnifiedWebSocketRunner {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     this.heartbeatTimer = setInterval(() => {
-      this.sendMessage({ type: "ping", ts: Date.now() / 1000 }).catch(() => {});
+      this.sendMessage({ type: "ping", ts: Date.now() / 1000 }).catch((err) => {
+        log.warn("Failed to send heartbeat ping", { error: String(err) });
+      });
     }, 25_000);
   }
 
@@ -2315,7 +3153,12 @@ export class UnifiedWebSocketRunner {
   private startStatsBroadcast(): void {
     this.stopStatsBroadcast();
     this.statsTimer = setInterval(() => {
-      this.sendMessage({ type: "system_stats", stats: this.getSystemStats() }).catch(() => {});
+      this.sendMessage({
+        type: "system_stats",
+        stats: this.getSystemStats()
+      }).catch((err) => {
+        log.warn("Failed to send system stats", { error: String(err) });
+      });
     }, 1_000);
   }
 
@@ -2338,7 +3181,10 @@ export class UnifiedWebSocketRunner {
     this.observerRegistered = false;
   }
 
-  private onModelChange = (instance: DBModel, event: ModelChangeEvent): void => {
+  private onModelChange = (
+    instance: DBModel,
+    event: ModelChangeEvent
+  ): void => {
     if (!this.websocket) return;
     void this.sendMessage({
       type: "resource_change",
@@ -2346,13 +3192,17 @@ export class UnifiedWebSocketRunner {
       resource_type: instance.constructor.name.toLowerCase(),
       resource: {
         id: instance.partitionValue(),
-        etag: instance.getEtag(),
-      },
+        etag: instance.getEtag()
+      }
     });
   };
 
   async run(websocket: WebSocketConnection): Promise<void> {
-    await this.connect(websocket, this.userId ?? undefined, this.authToken ?? undefined);
+    await this.connect(
+      websocket,
+      this.userId ?? undefined,
+      this.authToken ?? undefined
+    );
     try {
       await this.receiveMessages();
     } finally {
@@ -2370,7 +3220,11 @@ export class UnifiedWebSocketRunner {
         const tools = Array.isArray(data.tools) ? data.tools : [];
         this.clientToolsManifest = {};
         for (const tool of tools) {
-          if (tool && typeof tool === "object" && typeof (tool as Record<string, unknown>).name === "string") {
+          if (
+            tool &&
+            typeof tool === "object" &&
+            typeof (tool as Record<string, unknown>).name === "string"
+          ) {
             const name = (tool as Record<string, unknown>).name as string;
             this.clientToolsManifest[name] = tool as Record<string, unknown>;
           }
@@ -2379,7 +3233,8 @@ export class UnifiedWebSocketRunner {
       }
 
       if (msgType === "tool_result") {
-        const toolCallId = typeof data.tool_call_id === "string" ? data.tool_call_id : null;
+        const toolCallId =
+          typeof data.tool_call_id === "string" ? data.tool_call_id : null;
         if (toolCallId) {
           this.toolBridge.resolveResult(toolCallId, data);
         }
@@ -2398,14 +3253,18 @@ export class UnifiedWebSocketRunner {
           await this.sendMessage(response);
         } catch (err) {
           this.logError("invalid_command handling failed", err);
-          await this.sendMessage({ error: "invalid_command", details: err instanceof Error ? err.message : String(err) });
+          await this.sendMessage({
+            error: "invalid_command",
+            details: err instanceof Error ? err.message : String(err)
+          });
         }
         continue;
       }
 
       await this.sendMessage({
         error: "invalid_message",
-        message: "All messages must include a 'command' field. Use 'chat_message' command for chat.",
+        message:
+          "All messages must include a 'command' field. Use 'chat_message' command for chat."
       });
     }
   }

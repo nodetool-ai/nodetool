@@ -6,7 +6,7 @@ import {
   decrypt,
   encryptFernet,
   decryptFernet,
-  isValidMasterKey,
+  isValidMasterKey
 } from "../src/crypto.js";
 import {
   getMasterKey,
@@ -18,7 +18,7 @@ import {
   isUsingEnvKey,
   isUsingAwsKey,
   setKeytarLoader,
-  resetKeytarLoader,
+  resetKeytarLoader
 } from "../src/master-key.js";
 import {
   getSecret,
@@ -28,7 +28,7 @@ import {
   clearSecretCache,
   clearAllSecretCache,
   setSecretModelLoader,
-  resetSecretModelLoader,
+  resetSecretModelLoader
 } from "../src/secret-helper.js";
 
 describe("crypto", () => {
@@ -109,7 +109,8 @@ describe("crypto", () => {
     it("should handle unicode content", () => {
       const masterKey = generateMasterKey();
       const userId = "user-1";
-      const plaintext = "secret with unicode: \u00e9\u00e0\u00fc\u00f1 \ud83d\udd10";
+      const plaintext =
+        "secret with unicode: \u00e9\u00e0\u00fc\u00f1 \ud83d\udd10";
 
       const encrypted = encrypt(masterKey, userId, plaintext);
       const decrypted = decrypt(masterKey, userId, encrypted);
@@ -204,7 +205,11 @@ describe("crypto", () => {
   describe("encryptFernet/decryptFernet", () => {
     /** Convert a Buffer to a base64url string (no + / = characters). */
     function toBase64Url(buf: Buffer): string {
-      return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+      return buf
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
     }
 
     /**
@@ -214,8 +219,11 @@ describe("crypto", () => {
      * which is equivalent to slicing "==" by the needed amount.
      */
     function fromBase64Url(token: string): Buffer {
-      const padded = token + "==".slice((token.length % 4) || 4);
-      return Buffer.from(padded.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+      const padded = token + "==".slice(token.length % 4 || 4);
+      return Buffer.from(
+        padded.replace(/-/g, "+").replace(/_/g, "/"),
+        "base64"
+      );
     }
 
     it("should round-trip encrypt and decrypt", () => {
@@ -288,14 +296,18 @@ describe("crypto", () => {
       const userId = "user-fernet";
       const token = encryptFernet(masterKey1, userId, "secret");
 
-      expect(() => decryptFernet(masterKey2, userId, token)).toThrow("HMAC mismatch");
+      expect(() => decryptFernet(masterKey2, userId, token)).toThrow(
+        "HMAC mismatch"
+      );
     });
 
     it("should fail to decrypt with wrong userId (HMAC mismatch)", () => {
       const masterKey = generateMasterKey();
       const token = encryptFernet(masterKey, "user-1", "secret");
 
-      expect(() => decryptFernet(masterKey, "user-2", token)).toThrow("HMAC mismatch");
+      expect(() => decryptFernet(masterKey, "user-2", token)).toThrow(
+        "HMAC mismatch"
+      );
     });
 
     it("should fail to decrypt a truncated token (too short)", () => {
@@ -304,7 +316,9 @@ describe("crypto", () => {
       // 20 bytes is less than minimum (1 + 8 + 16 + 32 = 57)
       const shortToken = toBase64Url(Buffer.alloc(20));
 
-      expect(() => decryptFernet(masterKey, userId, shortToken)).toThrow("too short");
+      expect(() => decryptFernet(masterKey, userId, shortToken)).toThrow(
+        "too short"
+      );
     });
 
     it("should fail to decrypt a token with wrong version byte", () => {
@@ -317,7 +331,9 @@ describe("crypto", () => {
       decoded[0] = 0x00; // Wrong version byte
       const corrupted = toBase64Url(decoded);
 
-      expect(() => decryptFernet(masterKey, userId, corrupted)).toThrow("version");
+      expect(() => decryptFernet(masterKey, userId, corrupted)).toThrow(
+        "version"
+      );
     });
 
     it("encryptFernet and native encrypt should produce interoperable keys with same PBKDF2", () => {
@@ -439,9 +455,9 @@ describe("master-key", () => {
     it("should throw when keytar is not available", async () => {
       setKeytarLoader(async () => null);
 
-      await expect(setMasterKeyPersistent("test-key-persistent")).rejects.toThrow(
-        "keytar is not available"
-      );
+      await expect(
+        setMasterKeyPersistent("test-key-persistent")
+      ).rejects.toThrow("keytar is not available");
     });
 
     it("should set password in keytar and cache the key", async () => {
@@ -449,25 +465,33 @@ describe("master-key", () => {
       const mockKeytar = {
         getPassword: vi.fn(async () => null),
         setPassword: mockSetPassword,
-        deletePassword: vi.fn(async () => true),
+        deletePassword: vi.fn(async () => true)
       };
       setKeytarLoader(async () => mockKeytar);
 
       await setMasterKeyPersistent("my-persistent-key");
 
-      expect(mockSetPassword).toHaveBeenCalledWith("nodetool", "secrets_master_key", "my-persistent-key");
+      expect(mockSetPassword).toHaveBeenCalledWith(
+        "nodetool",
+        "secrets_master_key",
+        "my-persistent-key"
+      );
       expect(getMasterKey()).toBe("my-persistent-key");
     });
 
     it("should propagate keytar setPassword errors", async () => {
       const mockKeytar = {
         getPassword: vi.fn(async () => null),
-        setPassword: vi.fn().mockRejectedValue(new Error("Keychain write denied")),
-        deletePassword: vi.fn(async () => true),
+        setPassword: vi
+          .fn()
+          .mockRejectedValue(new Error("Keychain write denied")),
+        deletePassword: vi.fn(async () => true)
       };
       setKeytarLoader(async () => mockKeytar);
 
-      await expect(setMasterKeyPersistent("test-key")).rejects.toThrow("Keychain write denied");
+      await expect(setMasterKeyPersistent("test-key")).rejects.toThrow(
+        "Keychain write denied"
+      );
     });
   });
 
@@ -484,7 +508,7 @@ describe("master-key", () => {
       const mockKeytar = {
         getPassword: vi.fn(async () => null),
         setPassword: vi.fn(async () => undefined),
-        deletePassword: mockDeletePassword,
+        deletePassword: mockDeletePassword
       };
       setKeytarLoader(async () => mockKeytar);
 
@@ -495,7 +519,10 @@ describe("master-key", () => {
       const result = await deleteMasterKey();
 
       expect(result).toBe(true);
-      expect(mockDeletePassword).toHaveBeenCalledWith("nodetool", "secrets_master_key");
+      expect(mockDeletePassword).toHaveBeenCalledWith(
+        "nodetool",
+        "secrets_master_key"
+      );
       // Cache should be cleared after deletion
       // (next getMasterKey call will auto-generate or read from env)
     });
@@ -504,7 +531,7 @@ describe("master-key", () => {
       const mockKeytar = {
         getPassword: vi.fn(async () => null),
         setPassword: vi.fn(async () => undefined),
-        deletePassword: vi.fn(async () => false),
+        deletePassword: vi.fn(async () => false)
       };
       setKeytarLoader(async () => mockKeytar);
 
@@ -518,13 +545,16 @@ describe("master-key", () => {
       const mockKeytar = {
         getPassword: vi.fn(async () => "keychain-stored-key"),
         setPassword: vi.fn(async () => undefined),
-        deletePassword: vi.fn(async () => true),
+        deletePassword: vi.fn(async () => true)
       };
       setKeytarLoader(async () => mockKeytar);
 
       const key = await initMasterKey();
       expect(key).toBe("keychain-stored-key");
-      expect(mockKeytar.getPassword).toHaveBeenCalledWith("nodetool", "secrets_master_key");
+      expect(mockKeytar.getPassword).toHaveBeenCalledWith(
+        "nodetool",
+        "secrets_master_key"
+      );
     });
 
     it("should generate and persist new key when keychain is empty", async () => {
@@ -532,7 +562,7 @@ describe("master-key", () => {
       const mockKeytar = {
         getPassword: vi.fn(async () => null),
         setPassword: mockSetPassword,
-        deletePassword: vi.fn(async () => true),
+        deletePassword: vi.fn(async () => true)
       };
       setKeytarLoader(async () => mockKeytar);
 
@@ -540,14 +570,18 @@ describe("master-key", () => {
       expect(typeof key).toBe("string");
       expect(key.length).toBeGreaterThan(0);
       // Should have persisted the new key
-      expect(mockSetPassword).toHaveBeenCalledWith("nodetool", "secrets_master_key", key);
+      expect(mockSetPassword).toHaveBeenCalledWith(
+        "nodetool",
+        "secrets_master_key",
+        key
+      );
     });
 
     it("should continue gracefully when keychain getPassword throws", async () => {
       const mockKeytar = {
         getPassword: vi.fn().mockRejectedValue(new Error("Keychain locked")),
         setPassword: vi.fn(async () => undefined),
-        deletePassword: vi.fn(async () => true),
+        deletePassword: vi.fn(async () => true)
       };
       setKeytarLoader(async () => mockKeytar);
 
@@ -613,13 +647,13 @@ describe("secret-helper", () => {
     it("should find secret from database when env is not set", async () => {
       // Mock a Secret model that returns a value
       const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "db-secret-value"),
+        getDecryptedValue: vi.fn(async () => "db-secret-value")
       };
       const mockSecretModel = {
         find: vi.fn(async (userId: string, key: string) => {
           if (userId === "user-1" && key === "DB_SECRET") return mockSecret;
           return null;
-        }),
+        })
       };
       setSecretModelLoader(Promise.resolve(mockSecretModel));
 
@@ -630,10 +664,10 @@ describe("secret-helper", () => {
 
     it("should cache database results", async () => {
       const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "cached-db-value"),
+        getDecryptedValue: vi.fn(async () => "cached-db-value")
       };
       const mockSecretModel = {
-        find: vi.fn(async () => mockSecret),
+        find: vi.fn(async () => mockSecret)
       };
       setSecretModelLoader(Promise.resolve(mockSecretModel));
 
@@ -648,7 +682,7 @@ describe("secret-helper", () => {
 
     it("should fall through to env when database returns null", async () => {
       const mockSecretModel = {
-        find: vi.fn(async () => null),
+        find: vi.fn(async () => null)
       };
       setSecretModelLoader(Promise.resolve(mockSecretModel));
 
@@ -661,7 +695,7 @@ describe("secret-helper", () => {
       const mockSecretModel = {
         find: vi.fn(async () => {
           throw new Error("DB connection failed");
-        }),
+        })
       };
       setSecretModelLoader(Promise.resolve(mockSecretModel));
 
@@ -672,7 +706,7 @@ describe("secret-helper", () => {
 
     it("should skip database when no userId provided", async () => {
       const mockSecretModel = {
-        find: vi.fn(async () => null),
+        find: vi.fn(async () => null)
       };
       setSecretModelLoader(Promise.resolve(mockSecretModel));
 
@@ -707,10 +741,10 @@ describe("secret-helper", () => {
 
     it("should return database value when env is not set", async () => {
       const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "required-db-value"),
+        getDecryptedValue: vi.fn(async () => "required-db-value")
       };
       const mockSecretModel = {
-        find: vi.fn(async () => mockSecret),
+        find: vi.fn(async () => mockSecret)
       };
       setSecretModelLoader(Promise.resolve(mockSecretModel));
 
@@ -731,10 +765,10 @@ describe("secret-helper", () => {
 
     it("should return true when found in database", async () => {
       const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "db-exists-value"),
+        getDecryptedValue: vi.fn(async () => "db-exists-value")
       };
       const mockSecretModel = {
-        find: vi.fn(async () => mockSecret),
+        find: vi.fn(async () => mockSecret)
       };
       setSecretModelLoader(Promise.resolve(mockSecretModel));
 
@@ -745,7 +779,7 @@ describe("secret-helper", () => {
       const mockSecretModel = {
         find: vi.fn(async () => {
           throw new Error("DB error");
-        }),
+        })
       };
       setSecretModelLoader(Promise.resolve(mockSecretModel));
 

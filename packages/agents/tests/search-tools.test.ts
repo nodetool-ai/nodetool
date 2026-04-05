@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   GoogleSearchTool,
   GoogleNewsTool,
-  GoogleImagesTool,
+  GoogleImagesTool
 } from "../src/tools/search-tools.js";
 
 /* ------------------------------------------------------------------ */
@@ -12,7 +12,7 @@ import {
 /** Build a mock ProcessingContext whose getSecret returns the given map. */
 function makeContext(secrets: Record<string, string | null> = {}) {
   return {
-    getSecret: vi.fn(async (key: string) => secrets[key] ?? null),
+    getSecret: vi.fn(async (key: string) => secrets[key] ?? null)
   } as any;
 }
 
@@ -22,7 +22,7 @@ function stubFetch(body: unknown, status = 200) {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   } as Response);
 }
 
@@ -44,22 +44,22 @@ describe("GoogleSearchTool", () => {
     fetchSpy = stubFetch({
       organic_results: [
         { title: "Result 1", link: "https://a.com", snippet: "Snippet 1" },
-        { title: "Result 2", link: "https://b.com", snippet: "Snippet 2" },
-      ],
+        { title: "Result 2", link: "https://b.com", snippet: "Snippet 2" }
+      ]
     });
 
     const result = (await tool.process(ctx, {
-      keyword: "test query",
+      keyword: "test query"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
     expect(result.results).toEqual([
       { title: "Result 1", link: "https://a.com", snippet: "Snippet 1" },
-      { title: "Result 2", link: "https://b.com", snippet: "Snippet 2" },
+      { title: "Result 2", link: "https://b.com", snippet: "Snippet 2" }
     ]);
 
     // Verify the URL contains the correct engine and query
-    const calledUrl = (fetchSpy.mock.calls[0][0] as string);
+    const calledUrl = fetchSpy.mock.calls[0][0] as string;
     expect(calledUrl).toContain("engine=google");
     expect(calledUrl).toContain("q=test+query");
     expect(calledUrl).toContain("api_key=test-key");
@@ -74,7 +74,7 @@ describe("GoogleSearchTool", () => {
   it("throws when API key is missing", async () => {
     const ctx = makeContext({});
     await expect(tool.process(ctx, { keyword: "test" })).rejects.toThrow(
-      "SERPAPI_API_KEY",
+      "SERPAPI_API_KEY"
     );
   });
 
@@ -84,11 +84,11 @@ describe("GoogleSearchTool", () => {
     fetchSpy = stubFetch({ organic_results: [] });
 
     const result = (await tool.process(ctx, {
-      keyword: "test",
+      keyword: "test"
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
 
-    const calledUrl = (fetchSpy.mock.calls[0][0] as string);
+    const calledUrl = fetchSpy.mock.calls[0][0] as string;
     expect(calledUrl).toContain("api_key=env-key");
   });
 
@@ -97,7 +97,7 @@ describe("GoogleSearchTool", () => {
     fetchSpy = stubFetch({ organic_results: [] });
 
     const result = (await tool.process(ctx, {
-      keyword: "nothing",
+      keyword: "nothing"
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.results).toEqual([]);
@@ -105,22 +105,24 @@ describe("GoogleSearchTool", () => {
 
   it("userMessage returns search description", () => {
     expect(tool.userMessage({ keyword: "cats" })).toBe(
-      "Searching Google for 'cats'...",
+      "Searching Google for 'cats'..."
     );
   });
 
   it("userMessage truncates long queries", () => {
     const longQuery = "a".repeat(200);
-    expect(tool.userMessage({ keyword: longQuery })).toBe("Searching Google...");
+    expect(tool.userMessage({ keyword: longQuery })).toBe(
+      "Searching Google..."
+    );
   });
 
   it("throws when SerpAPI returns non-OK response", async () => {
     const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
     fetchSpy = stubFetch({ error: "bad request" }, 400);
 
-    await expect(
-      tool.process(ctx, { keyword: "test" }),
-    ).rejects.toThrow("SerpAPI request failed (400)");
+    await expect(tool.process(ctx, { keyword: "test" })).rejects.toThrow(
+      "SerpAPI request failed (400)"
+    );
   });
 
   it("has correct provider tool shape", () => {
@@ -153,13 +155,13 @@ describe("GoogleNewsTool", () => {
           link: "https://n1.com",
           snippet: "Breaking news",
           date: "2 hours ago",
-          source: { name: "CNN" },
-        },
-      ],
+          source: { name: "CNN" }
+        }
+      ]
     });
 
     const result = (await tool.process(ctx, {
-      keyword: "AI",
+      keyword: "AI"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -169,8 +171,8 @@ describe("GoogleNewsTool", () => {
         link: "https://n1.com",
         snippet: "Breaking news",
         date: "2 hours ago",
-        source: "CNN",
-      },
+        source: "CNN"
+      }
     ]);
 
     const calledUrl = fetchSpy.mock.calls[0][0] as string;
@@ -186,20 +188,20 @@ describe("GoogleNewsTool", () => {
   it("throws when API key is missing", async () => {
     const ctx = makeContext({});
     await expect(tool.process(ctx, { keyword: "test" })).rejects.toThrow(
-      "SERPAPI_API_KEY",
+      "SERPAPI_API_KEY"
     );
   });
 
   it("userMessage returns news search description", () => {
     expect(tool.userMessage({ keyword: "AI" })).toBe(
-      "Searching Google News for 'AI'...",
+      "Searching Google News for 'AI'..."
     );
   });
 
   it("userMessage truncates long queries", () => {
     const longQuery = "a".repeat(200);
     expect(tool.userMessage({ keyword: longQuery })).toBe(
-      "Searching Google News...",
+      "Searching Google News..."
     );
   });
 
@@ -232,19 +234,19 @@ describe("GoogleImagesTool", () => {
           title: "Cat photo",
           link: "https://cats.com/1",
           original: "https://cats.com/1.jpg",
-          thumbnail: "https://cats.com/1_thumb.jpg",
+          thumbnail: "https://cats.com/1_thumb.jpg"
         },
         {
           title: "Dog photo",
           link: "https://dogs.com/1",
           original: "https://dogs.com/1.jpg",
-          thumbnail: "https://dogs.com/1_thumb.jpg",
-        },
-      ],
+          thumbnail: "https://dogs.com/1_thumb.jpg"
+        }
+      ]
     });
 
     const result = (await tool.process(ctx, {
-      keyword: "cute animals",
+      keyword: "cute animals"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -254,7 +256,7 @@ describe("GoogleImagesTool", () => {
       title: "Cat photo",
       link: "https://cats.com/1",
       original: "https://cats.com/1.jpg",
-      thumbnail: "https://cats.com/1_thumb.jpg",
+      thumbnail: "https://cats.com/1_thumb.jpg"
     });
 
     const calledUrl = fetchSpy.mock.calls[0][0] as string;
@@ -269,9 +271,9 @@ describe("GoogleImagesTool", () => {
 
   it("throws when API key is missing", async () => {
     const ctx = makeContext({});
-    await expect(
-      tool.process(ctx, { keyword: "test" }),
-    ).rejects.toThrow("SERPAPI_API_KEY");
+    await expect(tool.process(ctx, { keyword: "test" })).rejects.toThrow(
+      "SERPAPI_API_KEY"
+    );
   });
 
   it("handles empty images_results", async () => {
@@ -279,7 +281,7 @@ describe("GoogleImagesTool", () => {
     fetchSpy = stubFetch({ images_results: [] });
 
     const result = (await tool.process(ctx, {
-      keyword: "nothing",
+      keyword: "nothing"
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.results).toEqual([]);
@@ -287,14 +289,14 @@ describe("GoogleImagesTool", () => {
 
   it("userMessage returns image search description", () => {
     expect(tool.userMessage({ keyword: "sunset" })).toBe(
-      "Searching Google Images for 'sunset'...",
+      "Searching Google Images for 'sunset'..."
     );
   });
 
   it("userMessage truncates long queries", () => {
     const longQuery = "a".repeat(200);
     expect(tool.userMessage({ keyword: longQuery })).toBe(
-      "Searching Google Images...",
+      "Searching Google Images..."
     );
   });
 

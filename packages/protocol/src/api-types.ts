@@ -244,8 +244,6 @@ export interface WorkflowGraph {
   edges: Edge[];
 }
 
-
-
 export interface Workflow {
   id: string;
   user_id?: string;
@@ -866,7 +864,11 @@ export interface WorkspaceUpdateRequest {
 // Workflow Version
 // ---------------------------------------------------------------------------
 
-export type WorkflowVersionSaveType = "manual" | "autosave" | "checkpoint" | "restore";
+export type WorkflowVersionSaveType =
+  | "manual"
+  | "autosave"
+  | "checkpoint"
+  | "restore";
 
 export interface WorkflowVersion {
   id: string;

@@ -15,7 +15,7 @@ import type {
   NodeMetadata,
   PropertyMetadata,
   TypeMetadata,
-  OutputSlotMetadata,
+  OutputSlotMetadata
 } from "@nodetool/node-sdk";
 
 // ---------------------------------------------------------------------------
@@ -30,24 +30,75 @@ const GENERATED_DIR = path.resolve(
 const HEADER = "// Auto-generated — do not edit manually\n";
 
 const JS_RESERVED = new Set([
-  "break", "case", "catch", "continue", "debugger", "default", "delete",
-  "do", "else", "finally", "for", "function", "if", "in", "instanceof",
-  "new", "return", "switch", "this", "throw", "try", "typeof", "var",
-  "void", "while", "with", "class", "const", "enum", "export", "extends",
-  "import", "super", "implements", "interface", "let", "package", "private",
-  "protected", "public", "static", "yield", "await", "async",
+  "break",
+  "case",
+  "catch",
+  "continue",
+  "debugger",
+  "default",
+  "delete",
+  "do",
+  "else",
+  "finally",
+  "for",
+  "function",
+  "if",
+  "in",
+  "instanceof",
+  "new",
+  "return",
+  "switch",
+  "this",
+  "throw",
+  "try",
+  "typeof",
+  "var",
+  "void",
+  "while",
+  "with",
+  "class",
+  "const",
+  "enum",
+  "export",
+  "extends",
+  "import",
+  "super",
+  "implements",
+  "interface",
+  "let",
+  "package",
+  "private",
+  "protected",
+  "public",
+  "static",
+  "yield",
+  "await",
+  "async"
 ]);
 
 /** Built-in names that shadow Object.prototype or TS keywords when used as identifiers. */
 const BUILTIN_NAMES = new Set([
-  "toString", "valueOf", "constructor", "hasOwnProperty", "isPrototypeOf",
-  "propertyIsEnumerable", "toLocaleString",
+  "toString",
+  "valueOf",
+  "constructor",
+  "hasOwnProperty",
+  "isPrototypeOf",
+  "propertyIsEnumerable",
+  "toLocaleString"
 ]);
 
 /** TypeScript type keywords that shouldn't be used as barrel export names. */
 const TS_TYPE_KEYWORDS = new Set([
-  "string", "number", "boolean", "any", "void", "never", "unknown",
-  "object", "symbol", "bigint",
+  "string",
+  "number",
+  "boolean",
+  "any",
+  "void",
+  "never",
+  "unknown",
+  "object",
+  "symbol",
+  "bigint"
 ]);
 
 // ---------------------------------------------------------------------------
@@ -66,11 +117,16 @@ const MEDIA_TYPES: Record<string, string> = {
   dataframe: "DataframeRef",
   dataframeref: "DataframeRef",
   folder: "FolderRef",
-  folderref: "FolderRef",
+  folderref: "FolderRef"
 };
 
 const ALL_MEDIA_IMPORTS = [
-  "ImageRef", "AudioRef", "VideoRef", "TextRef", "DataframeRef", "FolderRef",
+  "ImageRef",
+  "AudioRef",
+  "VideoRef",
+  "TextRef",
+  "DataframeRef",
+  "FolderRef"
 ];
 
 function mapType(tm: TypeMetadata): string {
@@ -118,7 +174,8 @@ function mapType(tm: TypeMetadata): string {
 
   // Scalars
   if (t === "str" || t === "string") return "string";
-  if (t === "int" || t === "integer" || t === "float" || t === "number") return "number";
+  if (t === "int" || t === "integer" || t === "float" || t === "number")
+    return "number";
   if (t === "bool" || t === "boolean") return "boolean";
 
   // Media refs
@@ -155,7 +212,11 @@ function toCamelCase(s: string): string {
   if (s.length === 0) return s;
   // Handle leading uppercase runs (acronyms): "JSON" → "json", "ASRModel" → "asrModel"
   let i = 0;
-  while (i < s.length && s[i] === s[i].toUpperCase() && s[i] !== s[i].toLowerCase()) {
+  while (
+    i < s.length &&
+    s[i] === s[i].toUpperCase() &&
+    s[i] !== s[i].toLowerCase()
+  ) {
     i++;
   }
   if (i === 0) return s;
@@ -213,9 +274,7 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
 
   // Core imports
   const coreImports = ["createNode", "Connectable", "DslNode"];
-  lines.push(
-    `import { ${coreImports.join(", ")} } from "../core.js";`
-  );
+  lines.push(`import { ${coreImports.join(", ")} } from "../core.js";`);
 
   // Types imports
   const usedMediaRefs = ALL_MEDIA_IMPORTS.filter((r) => mediaRefs.has(r));
@@ -264,10 +323,15 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
     for (const prop of meta.properties) {
       const tsType = mapType(prop.type);
       const hasDefault = Object.prototype.hasOwnProperty.call(prop, "default");
-      const isOptionalType = prop.type.optional || prop.type.type === "optional";
+      const isOptionalType =
+        prop.type.optional || prop.type.type === "optional";
       const optional = hasDefault || isOptionalType;
-      const propName = isValidIdentifier(prop.name) ? prop.name : JSON.stringify(prop.name);
-      lines.push(`  ${propName}${optional ? "?" : ""}: Connectable<${tsType}>;`);
+      const propName = isValidIdentifier(prop.name)
+        ? prop.name
+        : JSON.stringify(prop.name);
+      lines.push(
+        `  ${propName}${optional ? "?" : ""}: Connectable<${tsType}>;`
+      );
     }
     lines.push("}");
     lines.push("");
@@ -276,7 +340,9 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
     lines.push(`export interface ${className}Outputs {`);
     for (const out of meta.outputs) {
       const tsType = mapType(out.type);
-      const outName = isValidIdentifier(out.name) ? out.name : JSON.stringify(out.name);
+      const outName = isValidIdentifier(out.name)
+        ? out.name
+        : JSON.stringify(out.name);
       lines.push(`  ${outName}: ${tsType};`);
     }
     lines.push("}");
@@ -296,7 +362,9 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
 
     // Options
     const opts: string[] = [];
-    const outputNames = meta.outputs.map((out) => JSON.stringify(out.name)).join(", ");
+    const outputNames = meta.outputs
+      .map((out) => JSON.stringify(out.name))
+      .join(", ");
     opts.push(`outputNames: [${outputNames}]`);
     if (defaultOutput) opts.push(`defaultOutput: ${defaultOutput}`);
     if (meta.is_streaming_output) opts.push("streaming: true");

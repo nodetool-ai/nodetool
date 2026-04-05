@@ -17,26 +17,40 @@ describe("CodeNode — dynamic inputs", () => {
   });
 
   it("handles string inputs", async () => {
-    const r = await run("return { upper: text.toUpperCase() }", { text: "hello" });
+    const r = await run("return { upper: text.toUpperCase() }", {
+      text: "hello"
+    });
     expect(r).toEqual({ upper: "HELLO" });
   });
 
   it("handles many input types", async () => {
     const r = await run(
       "return { a: typeof n, b: typeof s, c: typeof b, d: Array.isArray(arr), e: typeof obj }",
-      { n: 42, s: "hi", b: true, arr: [1, 2], obj: { k: 1 } },
+      { n: 42, s: "hi", b: true, arr: [1, 2], obj: { k: 1 } }
     );
-    expect(r).toEqual({ a: "number", b: "string", c: "boolean", d: true, e: "object" });
+    expect(r).toEqual({
+      a: "number",
+      b: "string",
+      c: "boolean",
+      d: true,
+      e: "object"
+    });
   });
 
   it("filters out reserved keys (code, timeout)", async () => {
     // code and timeout should not leak as variables
-    const r = await run("return { ok: true }", { code: "return { ok: true }", timeout: 5 });
+    const r = await run("return { ok: true }", {
+      code: "return { ok: true }",
+      timeout: 5
+    });
     expect(r).toEqual({ ok: true });
   });
 
   it("filters out underscore-prefixed framework keys", async () => {
-    const r = await run("return { ok: true }", { _secrets: { key: "val" }, __node_id: "n1" });
+    const r = await run("return { ok: true }", {
+      _secrets: { key: "val" },
+      __node_id: "n1"
+    });
     expect(r).toEqual({ ok: true });
   });
 
@@ -239,9 +253,7 @@ describe("CodeNode — errors", () => {
 describe("CodeNode — timeout", () => {
   it("times out on slow code (async delay)", async () => {
     // Use sleep (available in sandbox) since setTimeout is blocked
-    await expect(
-      run("await sleep(10000)", { timeout: 0.1 }),
-    ).rejects.toThrow();
+    await expect(run("await sleep(10000)", { timeout: 0.1 })).rejects.toThrow();
   });
 
   it("completes fast code within timeout", async () => {
@@ -269,7 +281,7 @@ describe("CodeNode — real-world patterns", () => {
       const total = lengths.reduce((a, b) => a + b, 0);
       return { wordCount: words.length, avgLength: total / words.length };
       `,
-      { text: "hello world foo" },
+      { text: "hello world foo" }
     );
     expect(r.wordCount).toBe(3);
     expect(r.avgLength).toBeCloseTo(13 / 3);
@@ -282,7 +294,7 @@ describe("CodeNode — real-world patterns", () => {
       const names = parsed.map(p => p.name);
       return { names, count: names.length };
       `,
-      { jsonStr: '[{"name":"alice"},{"name":"bob"}]' },
+      { jsonStr: '[{"name":"alice"},{"name":"bob"}]' }
     );
     expect(r).toEqual({ names: ["alice", "bob"], count: 2 });
   });
@@ -290,7 +302,7 @@ describe("CodeNode — real-world patterns", () => {
   it("math operations", async () => {
     const r = await run(
       "return { hyp: Math.sqrt(a*a + b*b), rounded: Math.round(a/b * 100) / 100 }",
-      { a: 3, b: 4 },
+      { a: 3, b: 4 }
     );
     expect(r).toEqual({ hyp: 5, rounded: 0.75 });
   });
@@ -298,16 +310,19 @@ describe("CodeNode — real-world patterns", () => {
   it("string formatting with template literals", async () => {
     const r = await run(
       "return { greeting: `Hello, ${name}! You have ${count} items.` }",
-      { name: "Alice", count: 5 },
+      { name: "Alice", count: 5 }
     );
     expect(r).toEqual({ greeting: "Hello, Alice! You have 5 items." });
   });
 
   it("pure JS string manipulation", async () => {
-    const r = await run(`
+    const r = await run(
+      `
       const reversed = text.split("").reverse().join("");
       return { reversed };
-    `, { text: "hello" });
+    `,
+      { text: "hello" }
+    );
     expect(r).toEqual({ reversed: "olleh" });
   });
 });
@@ -360,7 +375,9 @@ async function collect(code: string, inputs: Record<string, unknown> = {}) {
 
 describe("CodeNode — genProcess streaming", () => {
   it("yields multiple plain objects", async () => {
-    const results = await collect("yield({ a: 1 }); yield({ b: 2 }); yield({ c: 3 });");
+    const results = await collect(
+      "yield({ a: 1 }); yield({ b: 2 }); yield({ c: 3 });"
+    );
     expect(results).toEqual([{ a: 1 }, { b: 2 }, { c: 3 }]);
   });
 
@@ -375,17 +392,21 @@ describe("CodeNode — genProcess streaming", () => {
   });
 
   it("yields mixed types", async () => {
-    const results = await collect('yield({ a: 1 }); yield(42); yield([1]); yield("hello");');
+    const results = await collect(
+      'yield({ a: 1 }); yield(42); yield([1]); yield("hello");'
+    );
     expect(results).toEqual([
       { a: 1 },
       { output: 42 },
       { output: [1] },
-      { output: "hello" },
+      { output: "hello" }
     ]);
   });
 
   it("skips null and undefined yields", async () => {
-    const results = await collect("yield(null); yield({ a: 1 }); yield(undefined); yield({ b: 2 });");
+    const results = await collect(
+      "yield(null); yield({ a: 1 }); yield(undefined); yield({ b: 2 });"
+    );
     expect(results).toEqual([{ a: 1 }, { b: 2 }]);
   });
 
@@ -402,14 +423,14 @@ describe("CodeNode — genProcess streaming", () => {
   it("passes dynamic inputs to generator", async () => {
     const results = await collect(
       "yield({ sum: x + y }); yield({ product: x * y });",
-      { x: 3, y: 7 },
+      { x: 3, y: 7 }
     );
     expect(results).toEqual([{ sum: 10 }, { product: 21 }]);
   });
 
   it("async yields with await", async () => {
     const results = await collect(
-      "yield({ a: await Promise.resolve(1) }); yield({ b: await Promise.resolve(2) });",
+      "yield({ a: await Promise.resolve(1) }); yield({ b: await Promise.resolve(2) });"
     );
     expect(results).toEqual([{ a: 1 }, { b: 2 }]);
   });
@@ -457,7 +478,9 @@ describe("CodeNode — genProcess timeout", () => {
   });
 
   it("completes fast generator within timeout", async () => {
-    const results = await collect("yield({ a: 1 }); yield({ b: 2 });", { timeout: 5 });
+    const results = await collect("yield({ a: 1 }); yield({ b: 2 });", {
+      timeout: 5
+    });
     expect(results).toEqual([{ a: 1 }, { b: 2 }]);
   });
 });
@@ -472,12 +495,14 @@ describe("CodeNode — genProcess errors", () => {
   });
 
   it("throws on runtime error in generator", async () => {
-    await expect(collect("yield({ a: 1 }); undeclaredVar.foo;")).rejects.toThrow();
+    await expect(
+      collect("yield({ a: 1 }); undeclaredVar.foo;")
+    ).rejects.toThrow();
   });
 
   it("propagates thrown error", async () => {
     await expect(
-      collect('yield({ a: 1 }); throw new Error("boom");'),
+      collect('yield({ a: 1 }); throw new Error("boom");')
     ).rejects.toThrow("boom");
   });
 });
@@ -492,13 +517,13 @@ describe("CodeNode — genProcess yield detection", () => {
     expect(results).toEqual([{ x: 1 }]);
   });
 
-  it('ignores yield in double-quoted string', async () => {
+  it("ignores yield in double-quoted string", async () => {
     const results = await collect('const s = "yield something"; return { s }');
     expect(results).toHaveLength(1);
     expect(results[0]).toEqual({ s: "yield something" });
   });
 
-  it('ignores yield in single-quoted string', async () => {
+  it("ignores yield in single-quoted string", async () => {
     const results = await collect("const s = 'yield something'; return { s }");
     expect(results).toHaveLength(1);
     expect(results[0]).toEqual({ s: "yield something" });
@@ -573,7 +598,9 @@ describe("CodeNode — input type coverage", () => {
   });
 
   it("handles unicode string input", async () => {
-    const r = await run("return { v: s }", { s: "Hello \u{1F600} \u00E9\u00E8" });
+    const r = await run("return { v: s }", {
+      s: "Hello \u{1F600} \u00E9\u00E8"
+    });
     expect(r).toEqual({ v: "Hello \u{1F600} \u00E9\u00E8" });
   });
 
@@ -612,7 +639,12 @@ describe("CodeNode — input type coverage", () => {
   });
 
   it("handles nested array input", async () => {
-    const r = await run("return { v: arr[1][0] }", { arr: [[1, 2], [3, 4]] });
+    const r = await run("return { v: arr[1][0] }", {
+      arr: [
+        [1, 2],
+        [3, 4]
+      ]
+    });
     expect(r).toEqual({ v: 3 });
   });
 
@@ -630,13 +662,22 @@ describe("CodeNode — input type coverage", () => {
   });
 
   it("handles nested object input", async () => {
-    const r = await run("return { v: obj.a.b.c }", { obj: { a: { b: { c: 42 } } } });
+    const r = await run("return { v: obj.a.b.c }", {
+      obj: { a: { b: { c: 42 } } }
+    });
     expect(r).toEqual({ v: 42 });
   });
 
   it("handles object with methods input (methods stripped by JSON)", async () => {
-    const obj = { x: 10, double() { return this.x * 2; } };
-    const r = await run("return { v: obj.x, hasDouble: typeof obj.double }", { obj });
+    const obj = {
+      x: 10,
+      double() {
+        return this.x * 2;
+      }
+    };
+    const r = await run("return { v: obj.x, hasDouble: typeof obj.double }", {
+      obj
+    });
     expect(r).toEqual({ v: 10, hasDouble: "undefined" });
   });
 
@@ -657,7 +698,10 @@ describe("CodeNode — input type coverage", () => {
 
   // Map
   it("handles Map input (becomes {} via JSON)", async () => {
-    const m = new Map([["a", 1], ["b", 2]]);
+    const m = new Map([
+      ["a", 1],
+      ["b", 2]
+    ]);
     const r = await run("return { v: m }", { m });
     expect(r.v).toEqual({});
   });
@@ -799,7 +843,9 @@ describe("CodeNode — edge cases", () => {
   });
 
   it("handles very large return array", async () => {
-    const r = await run("return { data: Array.from({length: 10000}, (_, i) => i) }");
+    const r = await run(
+      "return { data: Array.from({length: 10000}, (_, i) => i) }"
+    );
     expect((r.data as number[]).length).toBe(10000);
     expect((r.data as number[])[0]).toBe(0);
     expect((r.data as number[])[9999]).toBe(9999);

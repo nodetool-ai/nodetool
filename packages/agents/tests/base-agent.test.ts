@@ -18,13 +18,15 @@ class ConcreteAgent extends BaseAgent {
 
   constructor(
     opts: ConstructorParameters<typeof BaseAgent>[0],
-    yieldItems: ProcessingMessage[] = [],
+    yieldItems: ProcessingMessage[] = []
   ) {
     super(opts);
     this.yieldItems = yieldItems;
   }
 
-  async *execute(_context: ProcessingContext): AsyncGenerator<ProcessingMessage> {
+  async *execute(
+    _context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage> {
     for (const item of this.yieldItems) {
       yield item;
     }
@@ -42,7 +44,7 @@ function makeMockProvider(): BaseProvider {
     hasToolSupport: vi.fn().mockResolvedValue(true),
     generateMessages: vi.fn(),
     generateMessage: vi.fn(),
-    getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
+    getAvailableLanguageModels: vi.fn().mockResolvedValue([])
   } as unknown as BaseProvider;
 }
 
@@ -58,7 +60,7 @@ describe("BaseAgent constructor", () => {
       name: "test-agent",
       objective: "do something",
       provider,
-      model: "gpt-4",
+      model: "gpt-4"
     });
 
     expect(agent.name).toBe("test-agent");
@@ -72,7 +74,7 @@ describe("BaseAgent constructor", () => {
       name: "a",
       objective: "b",
       provider,
-      model: "m",
+      model: "m"
     });
     expect(agent.tools).toEqual([]);
   });
@@ -82,7 +84,7 @@ describe("BaseAgent constructor", () => {
       name: "a",
       objective: "b",
       provider,
-      model: "m",
+      model: "m"
     });
     expect(agent.inputs).toEqual({});
   });
@@ -92,7 +94,7 @@ describe("BaseAgent constructor", () => {
       name: "a",
       objective: "b",
       provider,
-      model: "m",
+      model: "m"
     });
     expect(agent.systemPrompt).toBe("");
   });
@@ -102,7 +104,7 @@ describe("BaseAgent constructor", () => {
       name: "a",
       objective: "b",
       provider,
-      model: "m",
+      model: "m"
     });
     expect(agent.maxTokenLimit).toBe(128000);
   });
@@ -117,7 +119,7 @@ describe("BaseAgent constructor", () => {
       tools: [tool],
       inputs: { key: "value" },
       systemPrompt: "Be helpful",
-      maxTokenLimit: 4096,
+      maxTokenLimit: 4096
     });
 
     expect(agent.tools).toHaveLength(1);
@@ -131,7 +133,7 @@ describe("BaseAgent constructor", () => {
       name: "a",
       objective: "b",
       provider,
-      model: "m",
+      model: "m"
     });
     expect(agent.results).toBeNull();
     expect(agent.task).toBeNull();
@@ -147,10 +149,14 @@ describe("BaseAgent execute / getResults", () => {
   const context = {} as ProcessingContext;
 
   it("yields messages from concrete subclass", async () => {
-    const msg: ProcessingMessage = { type: "chunk", content: "hello", done: false } as any;
+    const msg: ProcessingMessage = {
+      type: "chunk",
+      content: "hello",
+      done: false
+    } as any;
     const agent = new ConcreteAgent(
       { name: "a", objective: "b", provider, model: "m" },
-      [msg],
+      [msg]
     );
 
     const collected: ProcessingMessage[] = [];
@@ -167,7 +173,7 @@ describe("BaseAgent execute / getResults", () => {
       name: "a",
       objective: "b",
       provider,
-      model: "m",
+      model: "m"
     });
     expect(agent.getResults()).toBeNull();
   });
@@ -177,11 +183,13 @@ describe("BaseAgent execute / getResults", () => {
       name: "a",
       objective: "b",
       provider,
-      model: "m",
+      model: "m"
     });
 
     // Drain the generator
-    for await (const message of agent.execute(context)) { void message; }
+    for await (const message of agent.execute(context)) {
+      void message;
+    }
 
     expect(agent.getResults()).toEqual({ done: true });
   });

@@ -14,17 +14,22 @@ import * as yaml from "js-yaml";
 // ============================================================================
 
 const PythonConfigSchema = z.object({
-  version: z.string().regex(/^\d+\.\d+$/, "Python version must be 'X.Y' format (e.g. '3.11')"),
+  version: z
+    .string()
+    .regex(/^\d+\.\d+$/, "Python version must be 'X.Y' format (e.g. '3.11')"),
   packages: z.array(z.string()).default([]),
   index_url: z.string().default("https://pypi.org/simple"),
-  extra_index_urls: z.array(z.string()).default([]),
+  extra_index_urls: z.array(z.string()).default([])
 });
 
 export const ImageBuildSpecSchema = z.object({
   mode: z.enum(["fullstack", "backend"]).default("fullstack"),
   apt_packages: z.array(z.string()).default([]),
   python: PythonConfigSchema.optional(),
-  cuda: z.string().regex(/^\d+\.\d+(\.\d+)?$/, "CUDA version must be 'X.Y' or 'X.Y.Z' format").optional(),
+  cuda: z
+    .string()
+    .regex(/^\d+\.\d+(\.\d+)?$/, "CUDA version must be 'X.Y' or 'X.Y.Z' format")
+    .optional()
 });
 
 // ============================================================================

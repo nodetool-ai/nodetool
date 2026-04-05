@@ -8,14 +8,17 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getVecStore,
   getCollection,
-  OllamaEmbeddingFunction,
+  OllamaEmbeddingFunction
 } from "@nodetool/vectorstore";
 
 // ---------------------------------------------------------------------------
 // Client helpers
 // ---------------------------------------------------------------------------
 
-async function getOllamaEmbedding(model: string, text: string): Promise<number[]> {
+async function getOllamaEmbedding(
+  model: string,
+  text: string
+): Promise<number[]> {
   const ef = new OllamaEmbeddingFunction(model);
   const result = await ef.generate([text]);
   return result[0];
@@ -27,32 +30,42 @@ async function getOllamaEmbedding(model: string, text: string): Promise<number[]
 
 export class CollectionNode extends BaseNode {
   static readonly nodeType = "vector.Collection";
-            static readonly title = "Collection";
-            static readonly description = "Get or create a named vector database collection for storing embeddings.\n    vector, embedding, collection, RAG, get, create";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Collection";
+  static readonly description =
+    "Get or create a named vector database collection for storing embeddings.\n    vector, embedding, collection, RAG, get, create";
+  static readonly metadataOutputTypes = {
     output: "collection"
   };
-  
-  @prop({ type: "str", default: "", title: "Name", description: "The name of the collection to create" })
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Name",
+    description: "The name of the collection to create"
+  })
   declare name: any;
 
-  @prop({ type: "llama_model", default: {
-  "type": "llama_model",
-  "name": "",
-  "repo_id": "",
-  "modified_at": "",
-  "size": 0,
-  "digest": "",
-  "details": {}
-}, title: "Embedding Model", description: "Model to use for embedding, search for nomic-embed-text and download it" })
+  @prop({
+    type: "llama_model",
+    default: {
+      type: "llama_model",
+      name: "",
+      repo_id: "",
+      modified_at: "",
+      size: 0,
+      digest: "",
+      details: {}
+    },
+    title: "Embedding Model",
+    description:
+      "Model to use for embedding, search for nomic-embed-text and download it"
+  })
   declare embedding_model: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const name = String(this.name ?? this.name ?? "");
-    const embeddingModel = (this.embedding_model ?? this.embedding_model ?? { repo_id: "" }) as {
+    const embeddingModel = (this.embedding_model ??
+      this.embedding_model ?? { repo_id: "" }) as {
       repo_id: string;
     };
 
@@ -63,7 +76,7 @@ export class CollectionNode extends BaseNode {
     const store = await getVecStore();
     await store.getOrCreateCollection({
       name,
-      metadata: { embedding_model: embeddingModel.repo_id ?? "" },
+      metadata: { embedding_model: embeddingModel.repo_id ?? "" }
     });
 
     return { output: { name } };
@@ -76,23 +89,27 @@ export class CollectionNode extends BaseNode {
 
 export class CountNode extends BaseNode {
   static readonly nodeType = "vector.Count";
-            static readonly title = "Count";
-            static readonly description = "Count the number of documents in a collection.\n    vector, embedding, collection, RAG";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Count";
+  static readonly description =
+    "Count the number of documents in a collection.\n    vector, embedding, collection, RAG";
+  static readonly metadataOutputTypes = {
     output: "int"
   };
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to count" })
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to count"
+  })
   declare collection: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -110,32 +127,51 @@ export class CountNode extends BaseNode {
 
 export class GetDocumentsNode extends BaseNode {
   static readonly nodeType = "vector.GetDocuments";
-            static readonly title = "Get Documents";
-            static readonly description = "Get documents from a collection.\n    vector, embedding, collection, RAG, retrieve";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Get Documents";
+  static readonly description =
+    "Get documents from a collection.\n    vector, embedding, collection, RAG, retrieve";
+  static readonly metadataOutputTypes = {
     output: "list[str]"
   };
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to get" })
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to get"
+  })
   declare collection: any;
 
-  @prop({ type: "list[str]", default: [], title: "Ids", description: "The ids of the documents to get" })
+  @prop({
+    type: "list[str]",
+    default: [],
+    title: "Ids",
+    description: "The ids of the documents to get"
+  })
   declare ids: any;
 
-  @prop({ type: "int", default: 100, title: "Limit", description: "The limit of the documents to get" })
+  @prop({
+    type: "int",
+    default: 100,
+    title: "Limit",
+    description: "The limit of the documents to get"
+  })
   declare limit: any;
 
-  @prop({ type: "int", default: 0, title: "Offset", description: "The offset of the documents to get" })
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Offset",
+    description: "The offset of the documents to get"
+  })
   declare offset: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -149,7 +185,7 @@ export class GetDocumentsNode extends BaseNode {
     const result = await collection.get({
       ids: ids.length > 0 ? ids : undefined,
       limit,
-      offset,
+      offset
     });
 
     return { output: result.documents };
@@ -162,26 +198,35 @@ export class GetDocumentsNode extends BaseNode {
 
 export class PeekNode extends BaseNode {
   static readonly nodeType = "vector.Peek";
-            static readonly title = "Peek";
-            static readonly description = "Peek at the documents in a collection.\n    vector, embedding, collection, RAG, preview";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Peek";
+  static readonly description =
+    "Peek at the documents in a collection.\n    vector, embedding, collection, RAG, preview";
+  static readonly metadataOutputTypes = {
     output: "list[str]"
   };
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to peek" })
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to peek"
+  })
   declare collection: any;
 
-  @prop({ type: "int", default: 100, title: "Limit", description: "The limit of the documents to peek" })
+  @prop({
+    type: "int",
+    default: 100,
+    title: "Limit",
+    description: "The limit of the documents to peek"
+  })
   declare limit: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -201,32 +246,57 @@ export class PeekNode extends BaseNode {
 
 export class IndexImageNode extends BaseNode {
   static readonly nodeType = "vector.IndexImage";
-            static readonly title = "Index Image";
-            static readonly description = "Index a list of image assets or files.\n    vector, embedding, collection, RAG, index, image, batch";
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to index" })
+  static readonly title = "Index Image";
+  static readonly description =
+    "Index a list of image assets or files.\n    vector, embedding, collection, RAG, index, image, batch";
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to index"
+  })
   declare collection: any;
 
-  @prop({ type: "image", default: [], title: "Image", description: "List of image assets to index" })
+  @prop({
+    type: "image",
+    default: [],
+    title: "Image",
+    description: "List of image assets to index"
+  })
   declare image: any;
 
-  @prop({ type: "str", default: "", title: "Index Id", description: "The ID to associate with the image, defaults to the URI of the image" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Index Id",
+    description:
+      "The ID to associate with the image, defaults to the URI of the image"
+  })
   declare index_id: any;
 
-  @prop({ type: "dict", default: {}, title: "Metadata", description: "The metadata to associate with the image" })
+  @prop({
+    type: "dict",
+    default: {},
+    title: "Metadata",
+    description: "The metadata to associate with the image"
+  })
   declare metadata: any;
 
-  @prop({ type: "bool", default: false, title: "Upsert", description: "Whether to upsert the images" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Upsert",
+    description: "Whether to upsert the images"
+  })
   declare upsert: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -246,7 +316,9 @@ export class IndexImageNode extends BaseNode {
       String((image as Record<string, unknown>).document_id ?? "").trim();
 
     if (!resolvedId) {
-      throw new Error("document_id cannot be empty for image. Provide index_id or ensure image has a document_id.");
+      throw new Error(
+        "document_id cannot be empty for image. Provide index_id or ensure image has a document_id."
+      );
     }
 
     // Obtain image URI — TS environment does not have PIL; pass uri as document
@@ -258,7 +330,11 @@ export class IndexImageNode extends BaseNode {
     // Flatten metadata to Record<string, string | number | boolean>
     const metadata: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries(metadataRaw)) {
-      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+      if (
+        typeof v === "string" ||
+        typeof v === "number" ||
+        typeof v === "boolean"
+      ) {
         metadata[k] = v;
       } else {
         metadata[k] = String(v);
@@ -271,13 +347,13 @@ export class IndexImageNode extends BaseNode {
       await collection.upsert({
         ids: [resolvedId],
         uris: [uri],
-        metadatas: [metadata],
+        metadatas: [metadata]
       });
     } else {
       await collection.add({
         ids: [resolvedId],
         uris: [uri],
-        metadatas: [metadata],
+        metadatas: [metadata]
       });
     }
 
@@ -291,36 +367,53 @@ export class IndexImageNode extends BaseNode {
 
 export class IndexEmbeddingNode extends BaseNode {
   static readonly nodeType = "vector.IndexEmbedding";
-            static readonly title = "Index Embedding";
-            static readonly description = "Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching.\n    vector, index, embedding, storage, RAG";
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to index" })
+  static readonly title = "Index Embedding";
+  static readonly description =
+    "Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching.\n    vector, index, embedding, storage, RAG";
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to index"
+  })
   declare collection: any;
 
-  @prop({ type: "np_array", default: {
-  "type": "np_array",
-  "value": null,
-  "dtype": "<i8",
-  "shape": [
-    1
-  ]
-}, title: "Embedding", description: "The embedding to index" })
+  @prop({
+    type: "np_array",
+    default: {
+      type: "np_array",
+      value: null,
+      dtype: "<i8",
+      shape: [1]
+    },
+    title: "Embedding",
+    description: "The embedding to index"
+  })
   declare embedding: any;
 
-  @prop({ type: "union[str, list[str]]", default: "", title: "Index Id", description: "The ID to associate with the embedding" })
+  @prop({
+    type: "union[str, list[str]]",
+    default: "",
+    title: "Index Id",
+    description: "The ID to associate with the embedding"
+  })
   declare index_id: any;
 
-  @prop({ type: "union[dict, list[dict]]", default: {}, title: "Metadata", description: "The metadata to associate with the embedding" })
+  @prop({
+    type: "union[dict, list[dict]]",
+    default: {},
+    title: "Metadata",
+    description: "The metadata to associate with the embedding"
+  })
   declare metadata: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -334,7 +427,8 @@ export class IndexEmbeddingNode extends BaseNode {
     // or an NPArray-like object with a `data` field
     let embeddings: number[][];
     if (Array.isArray(embeddingRaw)) {
-      if (embeddingRaw.length === 0) throw new Error("The embedding cannot be empty");
+      if (embeddingRaw.length === 0)
+        throw new Error("The embedding cannot be empty");
       if (typeof embeddingRaw[0] === "number") {
         // single 1-D array
         embeddings = [embeddingRaw as number[]];
@@ -377,14 +471,17 @@ export class IndexEmbeddingNode extends BaseNode {
         metadatas = metadataRaw.map(flattenMetadata);
       } else {
         const flat = flattenMetadata(metadataRaw as Record<string, unknown>);
-        metadatas = Array(indexId.length).fill(flat) as Record<string, string | number | boolean>[];
+        metadatas = Array(indexId.length).fill(flat) as Record<
+          string,
+          string | number | boolean
+        >[];
       }
 
       const collection = await getCollection(name);
       await collection.add({
         ids: indexId,
         embeddings,
-        metadatas,
+        metadatas
       });
     } else {
       // Single mode
@@ -392,14 +489,17 @@ export class IndexEmbeddingNode extends BaseNode {
       if (!idStr.trim()) throw new Error("The ID cannot be empty");
 
       const flat = flattenMetadata(
-        (Array.isArray(metadataRaw) ? metadataRaw[0] : metadataRaw) as Record<string, unknown>
+        (Array.isArray(metadataRaw) ? metadataRaw[0] : metadataRaw) as Record<
+          string,
+          unknown
+        >
       );
 
       const collection = await getCollection(name);
       await collection.add({
         ids: [idStr],
         embeddings: [embeddings[0]],
-        metadatas: [flat],
+        metadatas: [flat]
       });
     }
 
@@ -407,10 +507,16 @@ export class IndexEmbeddingNode extends BaseNode {
   }
 }
 
-function flattenMetadata(obj: Record<string, unknown>): Record<string, string | number | boolean> {
+function flattenMetadata(
+  obj: Record<string, unknown>
+): Record<string, string | number | boolean> {
   const result: Record<string, string | number | boolean> = {};
   for (const [k, v] of Object.entries(obj ?? {})) {
-    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+    if (
+      typeof v === "string" ||
+      typeof v === "number" ||
+      typeof v === "boolean"
+    ) {
       result[k] = v;
     } else if (v !== null && v !== undefined) {
       result[k] = String(v);
@@ -425,29 +531,48 @@ function flattenMetadata(obj: Record<string, unknown>): Record<string, string | 
 
 export class IndexTextChunkNode extends BaseNode {
   static readonly nodeType = "vector.IndexTextChunk";
-            static readonly title = "Index Text Chunk";
-            static readonly description = "Index a single text chunk.\n    vector, embedding, collection, RAG, index, text, chunk";
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to index" })
+  static readonly title = "Index Text Chunk";
+  static readonly description =
+    "Index a single text chunk.\n    vector, embedding, collection, RAG, index, text, chunk";
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to index"
+  })
   declare collection: any;
 
-  @prop({ type: "str", default: "", title: "Document Id", description: "The document ID to associate with the text chunk" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Document Id",
+    description: "The document ID to associate with the text chunk"
+  })
   declare document_id: any;
 
-  @prop({ type: "str", default: "", title: "Text", description: "The text to index" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Text",
+    description: "The text to index"
+  })
   declare text: any;
 
-  @prop({ type: "dict", default: {}, title: "Metadata", description: "The metadata to associate with the text chunk" })
+  @prop({
+    type: "dict",
+    default: {},
+    title: "Metadata",
+    description: "The metadata to associate with the text chunk"
+  })
   declare metadata: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -457,13 +582,16 @@ export class IndexTextChunkNode extends BaseNode {
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
 
     const text = String(this.text ?? this.text ?? "");
-    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<string, unknown>;
+    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<
+      string,
+      unknown
+    >;
 
     const collection = await getCollection(name);
     await collection.add({
       ids: [documentId],
       documents: [text],
-      metadatas: [flattenMetadata(metadataRaw)],
+      metadatas: [flattenMetadata(metadataRaw)]
     });
 
     return { output: null };
@@ -478,40 +606,65 @@ type AggregationMethod = "mean" | "max" | "min" | "sum";
 
 export class IndexAggregatedTextNode extends BaseNode {
   static readonly nodeType = "vector.IndexAggregatedText";
-            static readonly title = "Index Aggregated Text";
-            static readonly description = "Index multiple text chunks at once with aggregated embeddings from Ollama.\n    vector, embedding, collection, RAG, index, text, chunk, batch, ollama";
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to index" })
+  static readonly title = "Index Aggregated Text";
+  static readonly description =
+    "Index multiple text chunks at once with aggregated embeddings from Ollama.\n    vector, embedding, collection, RAG, index, text, chunk, batch, ollama";
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to index"
+  })
   declare collection: any;
 
-  @prop({ type: "str", default: "", title: "Document", description: "The document to index" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Document",
+    description: "The document to index"
+  })
   declare document: any;
 
-  @prop({ type: "str", default: "", title: "Document Id", description: "The document ID to associate with the text" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Document Id",
+    description: "The document ID to associate with the text"
+  })
   declare document_id: any;
 
-  @prop({ type: "dict", default: {}, title: "Metadata", description: "The metadata to associate with the text" })
+  @prop({
+    type: "dict",
+    default: {},
+    title: "Metadata",
+    description: "The metadata to associate with the text"
+  })
   declare metadata: any;
 
-  @prop({ type: "list[union[text_chunk, str]]", default: [], title: "Text Chunks", description: "List of text chunks to index" })
+  @prop({
+    type: "list[union[text_chunk, str]]",
+    default: [],
+    title: "Text Chunks",
+    description: "List of text chunks to index"
+  })
   declare text_chunks: any;
 
-  @prop({ type: "enum", default: "mean", title: "Aggregation", description: "The aggregation method to use for the embeddings.", values: [
-  "mean",
-  "max",
-  "min",
-  "sum"
-] })
+  @prop({
+    type: "enum",
+    default: "mean",
+    title: "Aggregation",
+    description: "The aggregation method to use for the embeddings.",
+    values: ["mean", "max", "min", "sum"]
+  })
   declare aggregation: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -519,23 +672,31 @@ export class IndexAggregatedTextNode extends BaseNode {
 
     const document = String(this.document ?? this.document ?? "");
     const documentId = String(this.document_id ?? this.document_id ?? "");
-    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<string, unknown>;
+    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<
+      string,
+      unknown
+    >;
     const textChunksRaw = (this.text_chunks ?? this.text_chunks ?? []) as (
       | string
       | { text: string }
     )[];
-    const aggregation = String(this.aggregation ?? this.aggregation ?? "mean") as AggregationMethod;
+    const aggregation = String(
+      this.aggregation ?? this.aggregation ?? "mean"
+    ) as AggregationMethod;
 
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
     if (!document.trim()) throw new Error("The document cannot be empty");
-    if (textChunksRaw.length === 0) throw new Error("The text chunks cannot be empty");
+    if (textChunksRaw.length === 0)
+      throw new Error("The text chunks cannot be empty");
 
     // Retrieve the collection to get the embedding model name
     const collection = await getCollection(name);
-    const model = (collection.metadata as Record<string, unknown> | undefined)?.embedding_model as
-      | string
-      | undefined;
-    if (!model) throw new Error("The collection does not have an embedding_model in its metadata");
+    const model = (collection.metadata as Record<string, unknown> | undefined)
+      ?.embedding_model as string | undefined;
+    if (!model)
+      throw new Error(
+        "The collection does not have an embedding_model in its metadata"
+      );
 
     // Extract plain text from each chunk
     const texts = textChunksRaw.map((chunk) =>
@@ -592,7 +753,7 @@ export class IndexAggregatedTextNode extends BaseNode {
       ids: [documentId],
       documents: [document],
       embeddings: [aggregated],
-      metadatas: Object.keys(flat).length > 0 ? [flat] : undefined,
+      metadatas: Object.keys(flat).length > 0 ? [flat] : undefined
     });
 
     return { output: null };
@@ -605,29 +766,48 @@ export class IndexAggregatedTextNode extends BaseNode {
 
 export class IndexStringNode extends BaseNode {
   static readonly nodeType = "vector.IndexString";
-            static readonly title = "Index String";
-            static readonly description = "Index a string with a Document ID to a collection.\n    vector, embedding, collection, RAG, index, text, string";
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to index" })
+  static readonly title = "Index String";
+  static readonly description =
+    "Index a string with a Document ID to a collection.\n    vector, embedding, collection, RAG, index, text, string";
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to index"
+  })
   declare collection: any;
 
-  @prop({ type: "str", default: "", title: "Text", description: "Text content to index" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Text",
+    description: "Text content to index"
+  })
   declare text: any;
 
-  @prop({ type: "str", default: "", title: "Document Id", description: "Document ID to associate with the text content" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Document Id",
+    description: "Document ID to associate with the text content"
+  })
   declare document_id: any;
 
-  @prop({ type: "dict", default: {}, title: "Metadata", description: "The metadata to associate with the text" })
+  @prop({
+    type: "dict",
+    default: {},
+    title: "Metadata",
+    description: "The metadata to associate with the text"
+  })
   declare metadata: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -641,7 +821,7 @@ export class IndexStringNode extends BaseNode {
     const collection = await getCollection(name);
     await collection.add({
       ids: [documentId],
-      documents: [text],
+      documents: [text]
     });
 
     return { output: null };
@@ -654,38 +834,52 @@ export class IndexStringNode extends BaseNode {
 
 export class QueryImageNode extends BaseNode {
   static readonly nodeType = "vector.QueryImage";
-            static readonly title = "Query Image";
-            static readonly description = "Query the index for similar images.\n    vector, RAG, query, image, search, similarity";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Query Image";
+  static readonly description =
+    "Query the index for similar images.\n    vector, RAG, query, image, search, similarity";
+  static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
     metadatas: "list[dict]",
     distances: "list[float]"
   };
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to query" })
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to query"
+  })
   declare collection: any;
 
-  @prop({ type: "image", default: {
-  "type": "image",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Image", description: "The image to query" })
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to query"
+  })
   declare image: any;
 
-  @prop({ type: "int", default: 1, title: "N Results", description: "The number of results to return" })
+  @prop({
+    type: "int",
+    default: 1,
+    title: "N Results",
+    description: "The number of results to return"
+  })
   declare n_results: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -701,7 +895,7 @@ export class QueryImageNode extends BaseNode {
     const result = await collection.query({
       queryURIs: [uri],
       nResults,
-      include: ["documents", "metadatas", "distances"],
+      include: ["documents", "metadatas", "distances"]
     });
 
     if (!result.ids) throw new Error("Ids are not returned");
@@ -714,7 +908,7 @@ export class QueryImageNode extends BaseNode {
       id: String(id),
       document: result.documents[0][idx] ?? "",
       metadata: (result.metadatas[0][idx] ?? {}) as Record<string, unknown>,
-      distance: result.distances[0][idx] ?? 0,
+      distance: result.distances[0][idx] ?? 0
     }));
     combined.sort((a, b) => a.id.localeCompare(b.id));
 
@@ -723,8 +917,8 @@ export class QueryImageNode extends BaseNode {
         ids: combined.map((r) => r.id),
         documents: combined.map((r) => r.document),
         metadatas: combined.map((r) => r.metadata),
-        distances: combined.map((r) => r.distance),
-      },
+        distances: combined.map((r) => r.distance)
+      }
     };
   }
 }
@@ -735,32 +929,46 @@ export class QueryImageNode extends BaseNode {
 
 export class QueryTextNode extends BaseNode {
   static readonly nodeType = "vector.QueryText";
-            static readonly title = "Query Text";
-            static readonly description = "Query the index for similar text.\n    vector, RAG, query, text, search, similarity";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Query Text";
+  static readonly description =
+    "Query the index for similar text.\n    vector, RAG, query, text, search, similarity";
+  static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
     metadatas: "list[dict]",
     distances: "list[float]"
   };
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to query" })
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to query"
+  })
   declare collection: any;
 
-  @prop({ type: "str", default: "", title: "Text", description: "The text to query" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Text",
+    description: "The text to query"
+  })
   declare text: any;
 
-  @prop({ type: "int", default: 1, title: "N Results", description: "The number of results to return" })
+  @prop({
+    type: "int",
+    default: 1,
+    title: "N Results",
+    description: "The number of results to return"
+  })
   declare n_results: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -773,7 +981,7 @@ export class QueryTextNode extends BaseNode {
     const result = await collection.query({
       queryTexts: [text],
       nResults,
-      include: ["documents", "metadatas", "distances"],
+      include: ["documents", "metadatas", "distances"]
     });
 
     if (!result.ids) throw new Error("Ids are not returned");
@@ -786,7 +994,7 @@ export class QueryTextNode extends BaseNode {
       id: String(id),
       document: result.documents[0][idx] ?? "",
       metadata: (result.metadatas[0][idx] ?? {}) as Record<string, unknown>,
-      distance: result.distances[0][idx] ?? 0,
+      distance: result.distances[0][idx] ?? 0
     }));
     combined.sort((a, b) => a.id.localeCompare(b.id));
 
@@ -795,8 +1003,8 @@ export class QueryTextNode extends BaseNode {
         ids: combined.map((r) => r.id),
         documents: combined.map((r) => r.document),
         metadatas: combined.map((r) => r.metadata),
-        distances: combined.map((r) => r.distance),
-      },
+        distances: combined.map((r) => r.distance)
+      }
     };
   }
 }
@@ -807,26 +1015,38 @@ export class QueryTextNode extends BaseNode {
 
 export class RemoveOverlapNode extends BaseNode {
   static readonly nodeType = "vector.RemoveOverlap";
-            static readonly title = "Remove Overlap";
-            static readonly description = "Removes overlapping words between consecutive strings in a list. Splits text into words and matches word sequences for more accurate overlap detection.\n    vector, RAG, query, text, processing, overlap, deduplication";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Remove Overlap";
+  static readonly description =
+    "Removes overlapping words between consecutive strings in a list. Splits text into words and matches word sequences for more accurate overlap detection.\n    vector, RAG, query, text, processing, overlap, deduplication";
+  static readonly metadataOutputTypes = {
     documents: "list[str]"
   };
-  
-  @prop({ type: "list[str]", default: [], title: "Documents", description: "List of strings to process for overlap removal" })
+
+  @prop({
+    type: "list[str]",
+    default: [],
+    title: "Documents",
+    description: "List of strings to process for overlap removal"
+  })
   declare documents: any;
 
-  @prop({ type: "int", default: 2, title: "Min Overlap Words", description: "Minimum number of words that must overlap to be considered" })
+  @prop({
+    type: "int",
+    default: 2,
+    title: "Min Overlap Words",
+    description: "Minimum number of words that must overlap to be considered"
+  })
   declare min_overlap_words: any;
-
-
-
 
   private _splitIntoWords(text: string): string[] {
     return text.split(/\s+/).filter((w) => w.length > 0);
   }
 
-  private _findWordOverlap(words1: string[], words2: string[], minOverlap: number): number {
+  private _findWordOverlap(
+    words1: string[],
+    words2: string[],
+    minOverlap: number
+  ): number {
     if (words1.length < minOverlap || words2.length < minOverlap) return 0;
 
     const maxCheck = Math.min(words1.length, words2.length);
@@ -842,7 +1062,9 @@ export class RemoveOverlapNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const documents = (this.documents ?? this.documents ?? []) as string[];
-    const minOverlapWords = Number(this.min_overlap_words ?? this.min_overlap_words ?? 2);
+    const minOverlapWords = Number(
+      this.min_overlap_words ?? this.min_overlap_words ?? 2
+    );
 
     if (documents.length === 0) {
       return { output: { documents: [] } };
@@ -854,7 +1076,11 @@ export class RemoveOverlapNode extends BaseNode {
       const prevWords = this._splitIntoWords(result[result.length - 1]);
       const currWords = this._splitIntoWords(documents[i]);
 
-      const overlapWordCount = this._findWordOverlap(prevWords, currWords, minOverlapWords);
+      const overlapWordCount = this._findWordOverlap(
+        prevWords,
+        currWords,
+        minOverlapWords
+      );
 
       if (overlapWordCount > 0) {
         const newText = currWords.slice(overlapWordCount).join(" ");
@@ -876,38 +1102,64 @@ export class RemoveOverlapNode extends BaseNode {
 
 export class HybridSearchNode extends BaseNode {
   static readonly nodeType = "vector.HybridSearch";
-            static readonly title = "Hybrid Search";
-            static readonly description = "Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.\n    vector, RAG, query, semantic, text, similarity";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Hybrid Search";
+  static readonly description =
+    "Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.\n    vector, RAG, query, semantic, text, similarity";
+  static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
     metadatas: "list[dict]",
     distances: "list[float]",
     scores: "list[float]"
   };
-  
-  @prop({ type: "collection", default: {
-  "type": "collection",
-  "name": ""
-}, title: "Collection", description: "The collection to query" })
+
+  @prop({
+    type: "collection",
+    default: {
+      type: "collection",
+      name: ""
+    },
+    title: "Collection",
+    description: "The collection to query"
+  })
   declare collection: any;
 
-  @prop({ type: "str", default: "", title: "Text", description: "The text to query" })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Text",
+    description: "The text to query"
+  })
   declare text: any;
 
-  @prop({ type: "int", default: 5, title: "N Results", description: "The number of final results to return" })
+  @prop({
+    type: "int",
+    default: 5,
+    title: "N Results",
+    description: "The number of final results to return"
+  })
   declare n_results: any;
 
-  @prop({ type: "float", default: 60, title: "K Constant", description: "Constant for reciprocal rank fusion (default: 60.0)" })
+  @prop({
+    type: "float",
+    default: 60,
+    title: "K Constant",
+    description: "Constant for reciprocal rank fusion (default: 60.0)"
+  })
   declare k_constant: any;
 
-  @prop({ type: "int", default: 3, title: "Min Keyword Length", description: "Minimum length for keyword tokens" })
+  @prop({
+    type: "int",
+    default: 3,
+    title: "Min Keyword Length",
+    description: "Minimum length for keyword tokens"
+  })
   declare min_keyword_length: any;
 
-
-
-
-  private _getKeywordQuery(text: string, minKeywordLength: number): Record<string, unknown> | null {
+  private _getKeywordQuery(
+    text: string,
+    minKeywordLength: number
+  ): Record<string, unknown> | null {
     const pattern = /[ ,.!?\-_=|]+/;
     const queryTokens = text
       .toLowerCase()
@@ -923,7 +1175,8 @@ export class HybridSearchNode extends BaseNode {
   }
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
+    const collectionInput = (this.collection ??
+      this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -934,7 +1187,9 @@ export class HybridSearchNode extends BaseNode {
 
     const nResults = Number(this.n_results ?? this.n_results ?? 5);
     const kConstant = Number(this.k_constant ?? this.k_constant ?? 60.0);
-    const minKeywordLength = Number(this.min_keyword_length ?? this.min_keyword_length ?? 3);
+    const minKeywordLength = Number(
+      this.min_keyword_length ?? this.min_keyword_length ?? 3
+    );
 
     const collection = await getCollection(name);
 
@@ -942,7 +1197,7 @@ export class HybridSearchNode extends BaseNode {
     const semanticResult = await collection.query({
       queryTexts: [text],
       nResults: nResults * 2,
-      include: ["documents", "metadatas", "distances"],
+      include: ["documents", "metadatas", "distances"]
     });
 
     // Keyword search
@@ -953,7 +1208,7 @@ export class HybridSearchNode extends BaseNode {
         queryTexts: [text],
         nResults: nResults * 2,
         whereDocument: keywordQuery as Record<string, unknown>,
-        include: ["documents", "metadatas", "distances"],
+        include: ["documents", "metadatas", "distances"]
       });
     }
 
@@ -968,7 +1223,12 @@ export class HybridSearchNode extends BaseNode {
     // Reciprocal rank fusion
     const combinedScores = new Map<
       string,
-      { doc: string; meta: Record<string, unknown>; distance: number; score: number }
+      {
+        doc: string;
+        meta: Record<string, unknown>;
+        distance: number;
+        score: number;
+      }
     >();
 
     const processResults = (
@@ -987,7 +1247,7 @@ export class HybridSearchNode extends BaseNode {
             doc: docs[rank] ?? "",
             meta: (metas[rank] ?? {}) as Record<string, unknown>,
             distance: distances[rank] ?? 0,
-            score,
+            score
           });
         }
       });
@@ -1031,8 +1291,8 @@ export class HybridSearchNode extends BaseNode {
         documents: resultDocs,
         metadatas: resultMetas,
         distances: resultDistances,
-        scores: resultScores,
-      },
+        scores: resultScores
+      }
     };
   }
 }
@@ -1054,5 +1314,5 @@ export const VECTOR_NODES: readonly NodeClass[] = [
   QueryImageNode as unknown as NodeClass,
   QueryTextNode as unknown as NodeClass,
   RemoveOverlapNode as unknown as NodeClass,
-  HybridSearchNode as unknown as NodeClass,
+  HybridSearchNode as unknown as NodeClass
 ];

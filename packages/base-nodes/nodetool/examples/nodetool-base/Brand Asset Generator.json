@@ -111,7 +111,7 @@
       },
       {
         "id": "2",
-        "type": "lib.pillow.draw.RenderText",
+        "type": "lib.image.draw.RenderText",
         "data": {
           "font": {
             "type": "font",
@@ -167,7 +167,7 @@
       },
       {
         "id": "4",
-        "type": "lib.pillow.draw.RenderText",
+        "type": "lib.image.draw.RenderText",
         "data": {
           "font": {
             "type": "font",

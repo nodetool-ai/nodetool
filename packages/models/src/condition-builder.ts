@@ -24,12 +24,12 @@ export enum Operator {
   LIKE = "LIKE",
   CONTAINS = "CONTAINS",
   IS_NULL = "IS NULL",
-  IS_NOT_NULL = "IS NOT NULL",
+  IS_NOT_NULL = "IS NOT NULL"
 }
 
 export enum LogicalOperator {
   AND = "AND",
-  OR = "OR",
+  OR = "OR"
 }
 
 // ── Value Types ──────────────────────────────────────────────────────
@@ -39,7 +39,6 @@ export class Variable {
   constructor(public readonly name: string) {}
 }
 
- 
 export type ConditionValue = any;
 
 // ── Condition Nodes ──────────────────────────────────────────────────
@@ -49,7 +48,7 @@ export class Condition {
   constructor(
     public readonly field: string,
     public readonly operator: Operator,
-    public readonly value: ConditionValue,
+    public readonly value: ConditionValue
   ) {}
 }
 
@@ -60,11 +59,11 @@ export class ConditionGroup {
 
   constructor(
     conditions: Array<Condition | ConditionGroup | ConditionBuilder>,
-    operator: LogicalOperator,
+    operator: LogicalOperator
   ) {
     this.operator = operator;
     this.conditions = conditions.map((c) =>
-      c instanceof ConditionBuilder ? c.build() : c,
+      c instanceof ConditionBuilder ? c.build() : c
     );
   }
 }
@@ -128,10 +127,7 @@ export class ConditionBuilder {
     }
   }
 
-  private _add(
-    other: ConditionBuilder,
-    op: LogicalOperator,
-  ): ConditionBuilder {
+  private _add(other: ConditionBuilder, op: LogicalOperator): ConditionBuilder {
     const selfIsSingle =
       this.root.conditions.length === 1 &&
       this.root.conditions[0] instanceof Condition &&
@@ -142,18 +138,10 @@ export class ConditionBuilder {
       other.root.operator === LogicalOperator.AND;
 
     if (selfIsSingle) {
-      const otherCond = otherIsSingle
-        ? other.root.conditions[0]
-        : other.root;
-      this.root = new ConditionGroup(
-        [this.root.conditions[0], otherCond],
-        op,
-      );
+      const otherCond = otherIsSingle ? other.root.conditions[0] : other.root;
+      this.root = new ConditionGroup([this.root.conditions[0], otherCond], op);
     } else if (otherIsSingle) {
-      this.root = new ConditionGroup(
-        [this.root, other.root.conditions[0]],
-        op,
-      );
+      this.root = new ConditionGroup([this.root, other.root.conditions[0]], op);
     } else {
       this.root = new ConditionGroup([this.root, other.root], op);
     }
@@ -181,7 +169,7 @@ export class ConditionBuilder {
 
   private _collectVars(
     node: Condition | ConditionGroup,
-    vars: Record<string, null>,
+    vars: Record<string, null>
   ): void {
     if (node instanceof Condition) {
       if (node.value instanceof Variable) {

@@ -3,7 +3,7 @@ import {
   extractBearerToken,
   authenticateRequest,
   requireAuth,
-  type HttpAuthOptions,
+  type HttpAuthOptions
 } from "../src/http-auth.js";
 import { AuthProvider, AuthResult, TokenType } from "../src/auth-provider.js";
 

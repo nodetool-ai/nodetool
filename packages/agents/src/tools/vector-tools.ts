@@ -45,10 +45,10 @@ export class VecTextSearchTool extends Tool {
       n_results: {
         type: "integer",
         description: "Number of results to return",
-        default: 10,
-      },
+        default: 10
+      }
     },
-    required: ["text"],
+    required: ["text"]
   };
 
   private collection: VecCollection;
@@ -60,14 +60,14 @@ export class VecTextSearchTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<Record<string, string>> {
     const text = params.text as string;
     const nResults = (params.n_results as number) ?? 10;
 
     const result = await this.collection.query({
       queryTexts: [text],
-      nResults,
+      nResults
     });
 
     if (!result.documents || !result.documents[0]) return {};
@@ -100,15 +100,15 @@ export class VecIndexTool extends Tool {
       text: { type: "string", description: "The text content to index" },
       source_id: {
         type: "string",
-        description: "Unique identifier for the source of the text",
+        description: "Unique identifier for the source of the text"
       },
       metadata: {
         type: "object",
         description: "Metadata to associate with the text chunk",
-        default: {},
-      },
+        default: {}
+      }
     },
-    required: ["text", "source_id"],
+    required: ["text", "source_id"]
   };
 
   private collection: VecCollection;
@@ -120,7 +120,7 @@ export class VecIndexTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<Record<string, string>> {
     const text = params.text as string;
     const sourceId = params.source_id as string;
@@ -133,13 +133,13 @@ export class VecIndexTool extends Tool {
     await this.collection.add({
       ids: [documentId],
       documents: [text],
-      metadatas: Object.keys(metadata).length > 0 ? [metadata] : null,
+      metadatas: Object.keys(metadata).length > 0 ? [metadata] : null
     });
 
     return {
       status: "success",
       document_id: documentId,
-      message: `Successfully indexed text chunk with ID ${documentId}`,
+      message: `Successfully indexed text chunk with ID ${documentId}`
     };
   }
 
@@ -165,20 +165,20 @@ export class VecHybridSearchTool extends Tool {
       n_results: {
         type: "integer",
         description: "Number of results to return per collection",
-        default: 5,
+        default: 5
       },
       k_constant: {
         type: "number",
         description: "Constant for reciprocal rank fusion",
-        default: 60.0,
+        default: 60.0
       },
       min_keyword_length: {
         type: "integer",
         description: "Minimum length for keyword tokens",
-        default: 3,
-      },
+        default: 3
+      }
     },
-    required: ["text"],
+    required: ["text"]
   };
 
   private collection: VecCollection;
@@ -190,7 +190,7 @@ export class VecHybridSearchTool extends Tool {
 
   private getKeywordQuery(
     text: string,
-    minLength: number,
+    minLength: number
   ): Record<string, unknown> | null {
     const tokens = text
       .toLowerCase()
@@ -206,7 +206,7 @@ export class VecHybridSearchTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<Record<string, string>> {
     try {
       const text = params.text as string;
@@ -220,7 +220,7 @@ export class VecHybridSearchTool extends Tool {
       const semanticResults = await this.collection.query({
         queryTexts: [text],
         nResults: nResults * 2,
-        include: ["documents"],
+        include: ["documents"]
       });
 
       // Keyword search
@@ -231,7 +231,7 @@ export class VecHybridSearchTool extends Tool {
           queryTexts: [text],
           nResults: nResults * 2,
           whereDocument: keywordQuery,
-          include: ["documents"],
+          include: ["documents"]
         });
       }
 
@@ -295,7 +295,7 @@ function splitTextRecursive(
   text: string,
   separators: string[],
   chunkSize: number,
-  chunkOverlap: number,
+  chunkOverlap: number
 ): string[] {
   if (text.length <= chunkSize) return [text];
 
@@ -341,7 +341,7 @@ function splitTextRecursive(
           split,
           remainingSeparators,
           chunkSize,
-          chunkOverlap,
+          chunkOverlap
         );
         chunks.push(...subChunks);
         current = "";
@@ -369,9 +369,7 @@ function splitTextRecursive(
     const overlapped: string[] = [chunks[0]];
     for (let i = 1; i < chunks.length; i++) {
       const prev = chunks[i - 1];
-      const overlapText = prev.slice(
-        Math.max(0, prev.length - chunkOverlap),
-      );
+      const overlapText = prev.slice(Math.max(0, prev.length - chunkOverlap));
       const merged = overlapText + sep + chunks[i];
       if (merged.length <= chunkSize) {
         overlapped.push(merged);
@@ -398,35 +396,35 @@ export class VecRecursiveSplitAndIndexTool extends Tool {
     properties: {
       text: {
         type: "string",
-        description: "The text content to split and index",
+        description: "The text content to split and index"
       },
       document_id: {
         type: "string",
-        description: "Base identifier for the source document",
+        description: "Base identifier for the source document"
       },
       chunk_size: {
         type: "integer",
         description: "Maximum size of each chunk in characters",
-        default: 1000,
+        default: 1000
       },
       chunk_overlap: {
         type: "integer",
         description: "Number of characters to overlap between chunks",
-        default: 200,
+        default: 200
       },
       separators: {
         type: "array",
         items: { type: "string" },
         description: "List of separators for recursive splitting",
-        default: ["\n\n", "\n", "."],
+        default: ["\n\n", "\n", "."]
       },
       metadata: {
         type: "object",
         description: "Additional metadata to associate with all chunks",
-        default: {},
-      },
+        default: {}
+      }
     },
-    required: ["text", "document_id"],
+    required: ["text", "document_id"]
   };
 
   private collection: VecCollection;
@@ -438,20 +436,18 @@ export class VecRecursiveSplitAndIndexTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const text = params.text as string;
     const documentId = params.document_id as string;
-    const baseMetadata =
-      (params.metadata as Record<string, unknown>) ?? {};
+    const baseMetadata = (params.metadata as Record<string, unknown>) ?? {};
     const chunkSize = (params.chunk_size as number) ?? 1000;
     const chunkOverlap = (params.chunk_overlap as number) ?? 200;
     let separators = (params.separators as string[]) ?? ["\n\n", "\n", "."];
     if (typeof separators === "string") separators = [separators];
 
     if (!text.trim()) return { error: "The text cannot be empty" };
-    if (!documentId.trim())
-      return { error: "The document ID cannot be empty" };
+    if (!documentId.trim()) return { error: "The document ID cannot be empty" };
 
     let rawChunks: string[];
     try {
@@ -470,7 +466,7 @@ export class VecRecursiveSplitAndIndexTool extends Tool {
         await this.collection.add({
           ids: [uniqueId],
           documents: [rawChunks[i]],
-          metadatas: [metadata],
+          metadatas: [metadata]
         });
         indexedIds.push(uniqueId);
       }
@@ -478,7 +474,7 @@ export class VecRecursiveSplitAndIndexTool extends Tool {
       return {
         error: `Indexing failed: ${String(e)}`,
         indexed_count: indexedIds.length,
-        total_chunks: rawChunks.length,
+        total_chunks: rawChunks.length
       };
     }
 
@@ -486,16 +482,14 @@ export class VecRecursiveSplitAndIndexTool extends Tool {
       status: "success",
       indexed_count: indexedIds.length,
       document_id: documentId,
-      message: `Successfully indexed ${indexedIds.length} chunks from document ${documentId}`,
+      message: `Successfully indexed ${indexedIds.length} chunks from document ${documentId}`
     };
   }
 
   userMessage(params: Record<string, unknown>): string {
     const sourceId = (params.source_id as string) ?? "a source";
     const msg = `Recursively splitting and indexing text from ${sourceId}...`;
-    return msg.length > 80
-      ? "Recursively splitting and indexing text..."
-      : msg;
+    return msg.length > 80 ? "Recursively splitting and indexing text..." : msg;
   }
 }
 
@@ -530,24 +524,24 @@ export class VecMarkdownSplitAndIndexTool extends Tool {
     properties: {
       file_path: {
         type: "string",
-        description: "The path to the markdown file to split and index",
+        description: "The path to the markdown file to split and index"
       },
       text: {
         type: "string",
-        description: "Raw markdown content if no file_path provided",
+        description: "Raw markdown content if no file_path provided"
       },
       chunk_size: {
         type: "integer",
         description: "Maximum size of each chunk in characters",
-        default: 1000,
+        default: 1000
       },
       chunk_overlap: {
         type: "integer",
         description: "Number of characters to overlap between chunks",
-        default: 200,
-      },
+        default: 200
+      }
     },
-    required: [],
+    required: []
   };
 
   private collection: VecCollection;
@@ -559,7 +553,7 @@ export class VecMarkdownSplitAndIndexTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const filePath = params.file_path as string | undefined;
     let text: string | undefined;
@@ -590,7 +584,7 @@ export class VecMarkdownSplitAndIndexTool extends Tool {
           section,
           ["\n\n", "\n", "."],
           chunkSize,
-          chunkOverlap,
+          chunkOverlap
         );
         allChunks.push(...sub);
       }
@@ -601,7 +595,7 @@ export class VecMarkdownSplitAndIndexTool extends Tool {
       const uniqueId = `${docId}:${i}`;
       await this.collection.add({
         ids: [uniqueId],
-        documents: [allChunks[i]],
+        documents: [allChunks[i]]
       });
       indexedIds.push(uniqueId);
     }
@@ -609,7 +603,7 @@ export class VecMarkdownSplitAndIndexTool extends Tool {
     return {
       status: "success",
       indexed_ids: indexedIds,
-      message: `Successfully indexed ${indexedIds.length} chunks`,
+      message: `Successfully indexed ${indexedIds.length} chunks`
     };
   }
 
@@ -638,19 +632,19 @@ export class VecBatchIndexTool extends Tool {
           properties: {
             text: { type: "string" },
             source_id: { type: "string" },
-            metadata: { type: "object", default: {} },
+            metadata: { type: "object", default: {} }
           },
-          required: ["text", "source_id"],
+          required: ["text", "source_id"]
         },
-        description: "List of text chunks to index",
+        description: "List of text chunks to index"
       },
       base_metadata: {
         type: "object",
         description: "Base metadata to add to all chunks",
-        default: {},
-      },
+        default: {}
+      }
     },
-    required: ["chunks"],
+    required: ["chunks"]
   };
 
   private collection: VecCollection;
@@ -662,19 +656,19 @@ export class VecBatchIndexTool extends Tool {
 
   async process(
     _context: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     let chunks = params.chunks as Array<{
       text?: string;
       source_id?: string;
       metadata?: Record<string, unknown>;
     }>;
-    if (typeof chunks === "string") chunks = [chunks as unknown as typeof chunks[0]];
+    if (typeof chunks === "string")
+      chunks = [chunks as unknown as (typeof chunks)[0]];
     const baseMetadata =
       (params.base_metadata as Record<string, unknown>) ?? {};
 
-    if (!chunks || chunks.length === 0)
-      return { error: "No chunks provided" };
+    if (!chunks || chunks.length === 0) return { error: "No chunks provided" };
 
     const ids: string[] = [];
     const documents: string[] = [];
@@ -695,13 +689,13 @@ export class VecBatchIndexTool extends Tool {
       await this.collection.add({
         ids,
         documents,
-        metadatas: metadatas.length > 0 ? metadatas : null,
+        metadatas: metadatas.length > 0 ? metadatas : null
       });
 
       return {
         status: "success",
         indexed_count: ids.length,
-        message: `Successfully indexed ${ids.length} chunks`,
+        message: `Successfully indexed ${ids.length} chunks`
       };
     } catch (e: unknown) {
       return { error: `Indexing failed: ${String(e)}` };

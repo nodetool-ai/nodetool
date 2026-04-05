@@ -3,7 +3,9 @@ import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
 import { createStorageHandler } from "../storage-api.js";
 
-interface RouteOptions { apiOptions: HttpApiOptions }
+interface RouteOptions {
+  apiOptions: HttpApiOptions;
+}
 
 const storageRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;

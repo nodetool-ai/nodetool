@@ -3,7 +3,7 @@ import {
   RunPodDeployer,
   type DeploymentPlan,
   type DeploymentResult,
-  type StatusInfo,
+  type StatusInfo
 } from "../src/runpod.js";
 import type { RunPodDeployment } from "../src/deployment-config.js";
 
@@ -12,11 +12,11 @@ import type { RunPodDeployment } from "../src/deployment-config.js";
 // ---------------------------------------------------------------------------
 
 vi.mock("../src/deploy-to-runpod.js", () => ({
-  deployToRunpod: vi.fn().mockResolvedValue(undefined),
+  deployToRunpod: vi.fn().mockResolvedValue(undefined)
 }));
 
 vi.mock("../src/runpod-api.js", () => ({
-  getRunpodEndpointByName: vi.fn().mockResolvedValue(null),
+  getRunpodEndpointByName: vi.fn().mockResolvedValue(null)
 }));
 
 import { deployToRunpod } from "../src/deploy-to-runpod.js";
@@ -33,11 +33,13 @@ function makeStateManager(state: Record<string, unknown> | null = null) {
   return {
     readState: vi.fn().mockResolvedValue(state),
     writeState: vi.fn().mockResolvedValue(undefined),
-    updateDeploymentStatus: vi.fn().mockResolvedValue(undefined),
+    updateDeploymentStatus: vi.fn().mockResolvedValue(undefined)
   } as any;
 }
 
-function makeDeployment(overrides: Partial<RunPodDeployment> = {}): RunPodDeployment {
+function makeDeployment(
+  overrides: Partial<RunPodDeployment> = {}
+): RunPodDeployment {
   return {
     type: "runpod" as const,
     enabled: true,
@@ -51,7 +53,7 @@ function makeDeployment(overrides: Partial<RunPodDeployment> = {}): RunPodDeploy
     idle_timeout: 5,
     flashboot: false,
     state: { status: "unknown" },
-    ...overrides,
+    ...overrides
   } as RunPodDeployment;
 }
 
@@ -109,7 +111,7 @@ describe("RunPodDeployer.plan()", () => {
   it("returns update plan when already deployed", async () => {
     const sm = makeStateManager({
       status: "active",
-      last_deployed: "2025-01-01T00:00:00Z",
+      last_deployed: "2025-01-01T00:00:00Z"
     });
     const deployer = new RunPodDeployer("test", makeDeployment(), sm);
     const plan = await deployer.plan();
@@ -144,7 +146,7 @@ describe("RunPodDeployer.apply()", () => {
     const dep = makeDeployment({
       template_name: "custom-template",
       environment: { MY_VAR: "hello" },
-      execution_timeout: 600000,
+      execution_timeout: 600000
     } as any);
     const deployer = new RunPodDeployer("my-deploy", dep, sm);
     await deployer.apply();
@@ -178,7 +180,7 @@ describe("RunPodDeployer.apply()", () => {
     await deployer.apply();
     expect(sm.writeState).toHaveBeenCalledWith("test", {
       status: "active",
-      template_name: "test",
+      template_name: "test"
     });
   });
 
@@ -219,7 +221,7 @@ describe("RunPodDeployer.apply()", () => {
       workers_min: 1,
       workers_max: 5,
       idle_timeout: 10,
-      flashboot: true,
+      flashboot: true
     } as any);
     const deployer = new RunPodDeployer("test", dep, sm);
     await deployer.apply();
@@ -253,7 +255,7 @@ describe("RunPodDeployer.status()", () => {
       status: "active",
       last_deployed: "2025-06-01T00:00:00Z",
       template_name: "my-tpl",
-      pod_id: "pod-123",
+      pod_id: "pod-123"
     });
     mockedGetEndpoint.mockResolvedValueOnce(null);
     const deployer = new RunPodDeployer("test", makeDeployment(), sm);
@@ -270,7 +272,7 @@ describe("RunPodDeployer.status()", () => {
       id: "ep-1",
       gpuIds: "ADA_24",
       workersMin: 0,
-      workersMax: 3,
+      workersMax: 3
     });
     const deployer = new RunPodDeployer("test", makeDeployment(), sm);
     const info = await deployer.status();
@@ -316,7 +318,7 @@ describe("RunPodDeployer.status()", () => {
       id: undefined,
       gpuIds: "ADA_24",
       workersMin: 0,
-      workersMax: 3,
+      workersMax: 3
     } as any);
     const deployer = new RunPodDeployer("test", makeDeployment(), sm);
     const info = await deployer.status();

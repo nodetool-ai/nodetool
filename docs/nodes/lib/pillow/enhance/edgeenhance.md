@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Edge Enhance"
-node_type: "lib.pillow.enhance.EdgeEnhance"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.EdgeEnhance"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.EdgeEnhance`
+**Type:** `lib.image.enhance.EdgeEnhance`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -35,5 +35,5 @@ Enhances edge visibility by increasing contrast along boundaries.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

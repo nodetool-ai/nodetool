@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Subtract Array"
-node_type: "lib.numpy.arithmetic.SubtractArray"
-namespace: "lib.numpy.arithmetic"
+node_type: "lib.array.arithmetic.SubtractArray"
+namespace: "lib.array.arithmetic"
 ---
 
-**Type:** `lib.numpy.arithmetic.SubtractArray`
+**Type:** `lib.array.arithmetic.SubtractArray`
 
-**Namespace:** `lib.numpy.arithmetic`
+**Namespace:** `lib.array.arithmetic`
 
 ## Description
 
@@ -31,5 +31,5 @@ Subtracts the second array from the first.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.arithmetic](../) namespace.
+Browse other nodes in the [lib.array.arithmetic](../) namespace.
 

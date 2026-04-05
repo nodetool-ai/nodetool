@@ -1,4 +1,4 @@
-import { paletteDark, paletteLight, Theme, ThemeColors } from './theme';
+import { paletteDark, paletteLight, ThemeColors } from './theme';
 
 describe('theme', () => {
   describe('paletteDark', () => {
@@ -75,52 +75,6 @@ describe('theme', () => {
       const hexOrRgbaRegex = /^(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|rgba?\([^)]+\))$/;
       Object.values(paletteLight).forEach((color) => {
         expect(color).toMatch(hexOrRgbaRegex);
-      });
-    });
-  });
-
-  describe('Theme', () => {
-    it('has spacing values', () => {
-      expect(Theme.spacing).toBeDefined();
-      expect(Theme.spacing.xs).toBe(4);
-      expect(Theme.spacing.sm).toBe(8);
-      expect(Theme.spacing.md).toBe(16);
-      expect(Theme.spacing.lg).toBe(24);
-      expect(Theme.spacing.xl).toBe(32);
-    });
-
-    it('has borderRadius values', () => {
-      expect(Theme.borderRadius).toBeDefined();
-      expect(Theme.borderRadius.sm).toBe(4);
-      expect(Theme.borderRadius.md).toBe(8);
-      expect(Theme.borderRadius.lg).toBe(12);
-      expect(Theme.borderRadius.xl).toBe(16);
-    });
-
-    it('spacing values are in ascending order', () => {
-      const { xs, sm, md, lg, xl } = Theme.spacing;
-      expect(xs).toBeLessThan(sm);
-      expect(sm).toBeLessThan(md);
-      expect(md).toBeLessThan(lg);
-      expect(lg).toBeLessThan(xl);
-    });
-
-    it('borderRadius values are in ascending order', () => {
-      const { sm, md, lg, xl } = Theme.borderRadius;
-      expect(sm).toBeLessThan(md);
-      expect(md).toBeLessThan(lg);
-      expect(lg).toBeLessThan(xl);
-    });
-
-    it('all spacing values are numbers', () => {
-      Object.values(Theme.spacing).forEach((value) => {
-        expect(typeof value).toBe('number');
-      });
-    });
-
-    it('all borderRadius values are numbers', () => {
-      Object.values(Theme.borderRadius).forEach((value) => {
-        expect(typeof value).toBe('number');
       });
     });
   });

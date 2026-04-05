@@ -37,10 +37,13 @@ export interface TelemetryOptions {
  * Call once at startup before any LLM calls. Returns true if telemetry was
  * enabled, false if skipped (no configuration present).
  */
-export async function initTelemetry(options: TelemetryOptions = {}): Promise<boolean> {
+export async function initTelemetry(
+  options: TelemetryOptions = {}
+): Promise<boolean> {
   const apiKey = process.env["TRACELOOP_API_KEY"];
   const otlpEndpoint = process.env["OTEL_EXPORTER_OTLP_ENDPOINT"];
-  const consoleMode = options.console || process.env["OTEL_TRACES_EXPORTER"] === "console";
+  const consoleMode =
+    options.console || process.env["OTEL_TRACES_EXPORTER"] === "console";
 
   if (!apiKey && !otlpEndpoint && !consoleMode) {
     return false;
@@ -48,25 +51,29 @@ export async function initTelemetry(options: TelemetryOptions = {}): Promise<boo
 
   const { NodeSDK } = await import("@opentelemetry/sdk-node");
   const { resourceFromAttributes } = await import("@opentelemetry/resources");
-  const { ATTR_SERVICE_NAME } = await import("@opentelemetry/semantic-conventions");
+  const { ATTR_SERVICE_NAME } =
+    await import("@opentelemetry/semantic-conventions");
   const otelApi = await import("@opentelemetry/api");
 
   const serviceName =
     options.serviceName ?? process.env["OTEL_SERVICE_NAME"] ?? "nodetool";
 
   const disableBatch =
-    (options.disableBatch ?? process.env["TRACELOOP_DISABLE_BATCH"] === "true") ||
+    (options.disableBatch ??
+      process.env["TRACELOOP_DISABLE_BATCH"] === "true") ||
     consoleMode;
 
   let exporter: unknown;
   let destination: string;
 
   if (consoleMode) {
-    const { ConsoleSpanExporter } = await import("@opentelemetry/sdk-trace-base");
+    const { ConsoleSpanExporter } =
+      await import("@opentelemetry/sdk-trace-base");
     exporter = new ConsoleSpanExporter();
     destination = "console";
   } else if (apiKey || otlpEndpoint) {
-    const { OTLPTraceExporter } = await import("@opentelemetry/exporter-trace-otlp-proto");
+    const { OTLPTraceExporter } =
+      await import("@opentelemetry/exporter-trace-otlp-proto");
     const url = otlpEndpoint
       ? `${otlpEndpoint}/v1/traces`
       : "https://api.traceloop.com/v1/traces";
@@ -79,12 +86,13 @@ export async function initTelemetry(options: TelemetryOptions = {}): Promise<boo
     return false;
   }
 
-  const { BatchSpanProcessor, SimpleSpanProcessor } = await import("@opentelemetry/sdk-trace-base");
+  const { BatchSpanProcessor, SimpleSpanProcessor } =
+    await import("@opentelemetry/sdk-trace-base");
   const SpanProcessor = disableBatch ? SimpleSpanProcessor : BatchSpanProcessor;
 
   const sdk = new NodeSDK({
     resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: serviceName }),
-    spanProcessors: [new SpanProcessor(exporter as never)],
+    spanProcessors: [new SpanProcessor(exporter as never)]
   });
 
   sdk.start();

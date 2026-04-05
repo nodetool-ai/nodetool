@@ -17,7 +17,7 @@ describe("MessageBus", () => {
       to: "bob",
       type: "info",
       subject: "hello",
-      body: "Hi Bob!",
+      body: "Hi Bob!"
     });
 
     const bobMessages = bus.receive("bob");
@@ -36,7 +36,7 @@ describe("MessageBus", () => {
       to: "all",
       type: "info",
       subject: "announcement",
-      body: "Team meeting!",
+      body: "Team meeting!"
     });
 
     expect(bus.receive("bob")).toHaveLength(1);
@@ -50,14 +50,14 @@ describe("MessageBus", () => {
       to: "bob",
       type: "info",
       subject: "test",
-      body: "msg1",
+      body: "msg1"
     });
     bus.send({
       from: "carol",
       to: "bob",
       type: "info",
       subject: "test",
-      body: "msg2",
+      body: "msg2"
     });
 
     const first = bus.receive("bob");
@@ -73,7 +73,7 @@ describe("MessageBus", () => {
       to: "bob",
       type: "info",
       subject: "test",
-      body: "msg",
+      body: "msg"
     });
 
     expect(bus.peek("bob")).toHaveLength(1);
@@ -91,7 +91,7 @@ describe("MessageBus", () => {
       to: "bob",
       type: "request",
       subject: "help",
-      body: "Need help",
+      body: "Need help"
     });
 
     expect(handler).toHaveBeenCalledTimes(1);
@@ -108,7 +108,7 @@ describe("MessageBus", () => {
       to: "bob",
       type: "info",
       subject: "test",
-      body: "msg",
+      body: "msg"
     });
 
     expect(handler).not.toHaveBeenCalled();
@@ -120,7 +120,7 @@ describe("MessageBus", () => {
       to: "bob",
       type: "request",
       subject: "question",
-      body: "What's the status?",
+      body: "What's the status?"
     });
 
     const msg2 = bus.send({
@@ -129,7 +129,7 @@ describe("MessageBus", () => {
       type: "response",
       subject: "re: question",
       body: "All good!",
-      replyTo: msg1.id,
+      replyTo: msg1.id
     });
 
     const msg3 = bus.send({
@@ -138,7 +138,7 @@ describe("MessageBus", () => {
       type: "response",
       subject: "re: re: question",
       body: "Great!",
-      replyTo: msg2.id,
+      replyTo: msg2.id
     });
 
     const thread = bus.getThread(msg3.id);
@@ -155,14 +155,14 @@ describe("MessageBus", () => {
       to: "bob",
       type: "info",
       subject: "test",
-      body: "msg1",
+      body: "msg1"
     });
     bus.send({
       from: "carol",
       to: "bob",
       type: "info",
       subject: "test",
-      body: "msg2",
+      body: "msg2"
     });
 
     expect(bus.pendingCount("bob")).toBe(2);
@@ -171,8 +171,20 @@ describe("MessageBus", () => {
   });
 
   it("getHistory returns all messages", () => {
-    bus.send({ from: "alice", to: "bob", type: "info", subject: "s1", body: "b1" });
-    bus.send({ from: "bob", to: "carol", type: "info", subject: "s2", body: "b2" });
+    bus.send({
+      from: "alice",
+      to: "bob",
+      type: "info",
+      subject: "s1",
+      body: "b1"
+    });
+    bus.send({
+      from: "bob",
+      to: "carol",
+      type: "info",
+      subject: "s2",
+      body: "b2"
+    });
 
     const history = bus.getHistory();
     expect(history).toHaveLength(2);
@@ -184,7 +196,7 @@ describe("MessageBus", () => {
       to: "unknown_agent",
       type: "info",
       subject: "test",
-      body: "msg",
+      body: "msg"
     });
 
     // Message was created

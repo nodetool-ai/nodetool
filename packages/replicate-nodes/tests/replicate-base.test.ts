@@ -7,7 +7,7 @@ import {
   outputToImageRef,
   outputToVideoRef,
   outputToAudioRef,
-  outputToString,
+  outputToString
 } from "../src/replicate-base.js";
 
 /* ------------------------------------------------------------------ */
@@ -29,7 +29,7 @@ afterEach(() => {
 describe("getReplicateApiKey", () => {
   it("returns key from secrets.REPLICATE_API_TOKEN", () => {
     const key = getReplicateApiKey({
-      REPLICATE_API_TOKEN: "secret-from-secrets",
+      REPLICATE_API_TOKEN: "secret-from-secrets"
     });
     expect(key).toBe("secret-from-secrets");
   });
@@ -43,7 +43,7 @@ describe("getReplicateApiKey", () => {
   it("prefers secrets over process.env", () => {
     process.env.REPLICATE_API_TOKEN = "env-key";
     const key = getReplicateApiKey({
-      REPLICATE_API_TOKEN: "secrets-key",
+      REPLICATE_API_TOKEN: "secrets-key"
     });
     expect(key).toBe("secrets-key");
   });
@@ -55,9 +55,9 @@ describe("getReplicateApiKey", () => {
   });
 
   it("throws when secrets.REPLICATE_API_TOKEN is empty string", () => {
-    expect(() =>
-      getReplicateApiKey({ REPLICATE_API_TOKEN: "" })
-    ).toThrow("REPLICATE_API_TOKEN is not configured");
+    expect(() => getReplicateApiKey({ REPLICATE_API_TOKEN: "" })).toThrow(
+      "REPLICATE_API_TOKEN is not configured"
+    );
   });
 });
 
@@ -83,7 +83,7 @@ describe("removeNulls", () => {
   it("removes null values from nested objects", () => {
     const obj: Record<string, unknown> = {
       a: 1,
-      nested: { x: "keep", y: null, z: undefined },
+      nested: { x: "keep", y: null, z: undefined }
     };
     removeNulls(obj);
     expect(obj.a).toBe(1);
@@ -159,9 +159,9 @@ describe("assetToUrl", () => {
   });
 
   it("prefers uri over data", async () => {
-    expect(
-      await assetToUrl({ uri: "https://x.com/a.png", data: "abc" })
-    ).toBe("https://x.com/a.png");
+    expect(await assetToUrl({ uri: "https://x.com/a.png", data: "abc" })).toBe(
+      "https://x.com/a.png"
+    );
   });
 
   it("passes through replicate delivery URLs", async () => {
@@ -183,16 +183,19 @@ describe("outputToImageRef", () => {
   it("extracts URL from string output", () => {
     expect(outputToImageRef("https://replicate.com/img.png")).toEqual({
       type: "image",
-      uri: "https://replicate.com/img.png",
+      uri: "https://replicate.com/img.png"
     });
   });
 
   it("extracts first URL from array output", () => {
     expect(
-      outputToImageRef(["https://replicate.com/img1.png", "https://replicate.com/img2.png"])
+      outputToImageRef([
+        "https://replicate.com/img1.png",
+        "https://replicate.com/img2.png"
+      ])
     ).toEqual({
       type: "image",
-      uri: "https://replicate.com/img1.png",
+      uri: "https://replicate.com/img1.png"
     });
   });
 
@@ -201,9 +204,10 @@ describe("outputToImageRef", () => {
   });
 
   it("extracts URL from object with url field", () => {
-    expect(
-      outputToImageRef({ url: "https://replicate.com/img.png" })
-    ).toEqual({ type: "image", uri: "https://replicate.com/img.png" });
+    expect(outputToImageRef({ url: "https://replicate.com/img.png" })).toEqual({
+      type: "image",
+      uri: "https://replicate.com/img.png"
+    });
   });
 });
 
@@ -211,7 +215,7 @@ describe("outputToVideoRef", () => {
   it("extracts URL from string output", () => {
     expect(outputToVideoRef("https://replicate.com/vid.mp4")).toEqual({
       type: "video",
-      uri: "https://replicate.com/vid.mp4",
+      uri: "https://replicate.com/vid.mp4"
     });
   });
 
@@ -224,7 +228,7 @@ describe("outputToAudioRef", () => {
   it("extracts URL from string output", () => {
     expect(outputToAudioRef("https://replicate.com/audio.wav")).toEqual({
       type: "audio",
-      uri: "https://replicate.com/audio.wav",
+      uri: "https://replicate.com/audio.wav"
     });
   });
 

@@ -8,7 +8,9 @@ type Row = Record<string, unknown>;
 function asRows(value: unknown): Row[] {
   if (Array.isArray(value)) {
     return value
-      .filter((x): x is Row => !!x && typeof x === "object" && !Array.isArray(x))
+      .filter(
+        (x): x is Row => !!x && typeof x === "object" && !Array.isArray(x)
+      )
       .map((x) => ({ ...x }));
   }
   if (value && typeof value === "object") {
@@ -51,17 +53,20 @@ function getWorkbook(input: unknown): ExcelJS.Workbook {
 
 export class CreateWorkbookLibNode extends BaseNode {
   static readonly nodeType = "lib.excel.CreateWorkbook";
-            static readonly title = "Create Workbook";
-            static readonly description = "Creates a new Excel workbook.\n    excel, workbook, create\n\n    Use cases:\n    - Initialize new Excel files\n    - Start spreadsheet creation workflows";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Create Workbook";
+  static readonly description =
+    "Creates a new Excel workbook.\n    excel, workbook, create\n\n    Use cases:\n    - Initialize new Excel files\n    - Start spreadsheet creation workflows";
+  static readonly metadataOutputTypes = {
     output: "excel"
   };
-  
-  @prop({ type: "str", default: "Sheet1", title: "Sheet Name", description: "Name for the first worksheet" })
+
+  @prop({
+    type: "str",
+    default: "Sheet1",
+    title: "Sheet Name",
+    description: "Name for the first worksheet"
+  })
   declare sheet_name: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const sheetName = String(this.sheet_name ?? "Sheet1");
@@ -73,29 +78,42 @@ export class CreateWorkbookLibNode extends BaseNode {
 
 export class ExcelToDataFrameLibNode extends BaseNode {
   static readonly nodeType = "lib.excel.ExcelToDataFrame";
-            static readonly title = "Excel To Data Frame";
-            static readonly description = "Reads an Excel worksheet into a pandas DataFrame.\n    excel, dataframe, import\n\n    Use cases:\n    - Import Excel data for analysis\n    - Process spreadsheet contents";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Excel To Data Frame";
+  static readonly description =
+    "Reads an Excel worksheet into a pandas DataFrame.\n    excel, dataframe, import\n\n    Use cases:\n    - Import Excel data for analysis\n    - Process spreadsheet contents";
+  static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  
-  @prop({ type: "excel", default: {
-  "type": "excel",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Workbook", description: "The Excel workbook to read from" })
+
+  @prop({
+    type: "excel",
+    default: {
+      type: "excel",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Workbook",
+    description: "The Excel workbook to read from"
+  })
   declare workbook: any;
 
-  @prop({ type: "str", default: "Sheet1", title: "Sheet Name", description: "Source worksheet name" })
+  @prop({
+    type: "str",
+    default: "Sheet1",
+    title: "Sheet Name",
+    description: "Source worksheet name"
+  })
   declare sheet_name: any;
 
-  @prop({ type: "bool", default: true, title: "Has Header", description: "First row contains headers" })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Has Header",
+    description: "First row contains headers"
+  })
   declare has_header: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const wb = getWorkbook(this.workbook);
@@ -137,42 +155,65 @@ export class ExcelToDataFrameLibNode extends BaseNode {
 
 export class DataFrameToExcelLibNode extends BaseNode {
   static readonly nodeType = "lib.excel.DataFrameToExcel";
-            static readonly title = "Data Frame To Excel";
-            static readonly description = "Writes a DataFrame to an Excel worksheet.\n    excel, dataframe, export\n\n    Use cases:\n    - Export data analysis results\n    - Create reports from data";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Data Frame To Excel";
+  static readonly description =
+    "Writes a DataFrame to an Excel worksheet.\n    excel, dataframe, export\n\n    Use cases:\n    - Export data analysis results\n    - Create reports from data";
+  static readonly metadataOutputTypes = {
     output: "any"
   };
-  
-  @prop({ type: "excel", default: {
-  "type": "excel",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Workbook", description: "The Excel workbook to write to" })
+
+  @prop({
+    type: "excel",
+    default: {
+      type: "excel",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Workbook",
+    description: "The Excel workbook to write to"
+  })
   declare workbook: any;
 
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Dataframe", description: "DataFrame to write" })
+  @prop({
+    type: "dataframe",
+    default: {
+      type: "dataframe",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      columns: null
+    },
+    title: "Dataframe",
+    description: "DataFrame to write"
+  })
   declare dataframe: any;
 
-  @prop({ type: "str", default: "Sheet1", title: "Sheet Name", description: "Target worksheet name" })
+  @prop({
+    type: "str",
+    default: "Sheet1",
+    title: "Sheet Name",
+    description: "Target worksheet name"
+  })
   declare sheet_name: any;
 
-  @prop({ type: "str", default: "A1", title: "Start Cell", description: "Starting cell for data" })
+  @prop({
+    type: "str",
+    default: "A1",
+    title: "Start Cell",
+    description: "Starting cell for data"
+  })
   declare start_cell: any;
 
-  @prop({ type: "bool", default: true, title: "Include Header", description: "Include column headers" })
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Include Header",
+    description: "Include column headers"
+  })
   declare include_header: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const wb = getWorkbook(this.workbook);
@@ -211,38 +252,66 @@ export class DataFrameToExcelLibNode extends BaseNode {
 
 export class FormatCellsLibNode extends BaseNode {
   static readonly nodeType = "lib.excel.FormatCells";
-            static readonly title = "Format Cells";
-            static readonly description = "Applies formatting to a range of cells.\n    excel, format, style\n\n    Use cases:\n    - Highlight important data\n    - Create professional looking reports";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Format Cells";
+  static readonly description =
+    "Applies formatting to a range of cells.\n    excel, format, style\n\n    Use cases:\n    - Highlight important data\n    - Create professional looking reports";
+  static readonly metadataOutputTypes = {
     output: "any"
   };
-  
-  @prop({ type: "excel", default: {
-  "type": "excel",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Workbook", description: "The Excel workbook to format" })
+
+  @prop({
+    type: "excel",
+    default: {
+      type: "excel",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Workbook",
+    description: "The Excel workbook to format"
+  })
   declare workbook: any;
 
-  @prop({ type: "str", default: "Sheet1", title: "Sheet Name", description: "Target worksheet name" })
+  @prop({
+    type: "str",
+    default: "Sheet1",
+    title: "Sheet Name",
+    description: "Target worksheet name"
+  })
   declare sheet_name: any;
 
-  @prop({ type: "str", default: "A1:B10", title: "Cell Range", description: "Cell range to format (e.g. 'A1:B10')" })
+  @prop({
+    type: "str",
+    default: "A1:B10",
+    title: "Cell Range",
+    description: "Cell range to format (e.g. 'A1:B10')"
+  })
   declare cell_range: any;
 
-  @prop({ type: "bool", default: false, title: "Bold", description: "Make text bold" })
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Bold",
+    description: "Make text bold"
+  })
   declare bold: any;
 
-  @prop({ type: "str", default: "FFFF00", title: "Background Color", description: "Background color in hex format (e.g. 'FFFF00' for yellow)" })
+  @prop({
+    type: "str",
+    default: "FFFF00",
+    title: "Background Color",
+    description: "Background color in hex format (e.g. 'FFFF00' for yellow)"
+  })
   declare background_color: any;
 
-  @prop({ type: "str", default: "000000", title: "Text Color", description: "Text color in hex format" })
+  @prop({
+    type: "str",
+    default: "000000",
+    title: "Text Color",
+    description: "Text color in hex format"
+  })
   declare text_color: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const wb = getWorkbook(this.workbook);
@@ -259,7 +328,9 @@ export class FormatCellsLibNode extends BaseNode {
     const [start, end] = cellRange.split(":");
     const startCol = columnNameToNumber(start.replace(/[0-9]/g, ""));
     const startRow = parseInt(start.replace(/[A-Za-z]/g, ""), 10);
-    const endCol = end ? columnNameToNumber(end.replace(/[0-9]/g, "")) : startCol;
+    const endCol = end
+      ? columnNameToNumber(end.replace(/[0-9]/g, ""))
+      : startCol;
     const endRow = end ? parseInt(end.replace(/[A-Za-z]/g, ""), 10) : startRow;
 
     for (let r = startRow; r <= endRow; r++) {
@@ -270,7 +341,7 @@ export class FormatCellsLibNode extends BaseNode {
           cell.fill = {
             type: "pattern",
             pattern: "solid",
-            fgColor: { argb: "FF" + bgColor },
+            fgColor: { argb: "FF" + bgColor }
           };
         }
       }
@@ -290,26 +361,34 @@ function columnNameToNumber(name: string): number {
 
 export class AutoFitColumnsLibNode extends BaseNode {
   static readonly nodeType = "lib.excel.AutoFitColumns";
-            static readonly title = "Auto Fit Columns";
-            static readonly description = "Automatically adjusts column widths to fit content.\n    excel, format, columns\n\n    Use cases:\n    - Improve spreadsheet readability\n    - Professional presentation";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Auto Fit Columns";
+  static readonly description =
+    "Automatically adjusts column widths to fit content.\n    excel, format, columns\n\n    Use cases:\n    - Improve spreadsheet readability\n    - Professional presentation";
+  static readonly metadataOutputTypes = {
     output: "any"
   };
-  
-  @prop({ type: "excel", default: {
-  "type": "excel",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Workbook", description: "The Excel workbook to format" })
+
+  @prop({
+    type: "excel",
+    default: {
+      type: "excel",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Workbook",
+    description: "The Excel workbook to format"
+  })
   declare workbook: any;
 
-  @prop({ type: "str", default: "Sheet1", title: "Sheet Name", description: "Target worksheet name" })
+  @prop({
+    type: "str",
+    default: "Sheet1",
+    title: "Sheet Name",
+    description: "Target worksheet name"
+  })
   declare sheet_name: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const wb = getWorkbook(this.workbook);
@@ -333,29 +412,43 @@ export class AutoFitColumnsLibNode extends BaseNode {
 
 export class SaveWorkbookLibNode extends BaseNode {
   static readonly nodeType = "lib.excel.SaveWorkbook";
-            static readonly title = "Save Workbook";
-            static readonly description = "Saves an Excel workbook to disk.\n    excel, save, export\n\n    Use cases:\n    - Export final spreadsheet\n    - Save work in progress";
-  
-  @prop({ type: "excel", default: {
-  "type": "excel",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Workbook", description: "The Excel workbook to save" })
+  static readonly title = "Save Workbook";
+  static readonly description =
+    "Saves an Excel workbook to disk.\n    excel, save, export\n\n    Use cases:\n    - Export final spreadsheet\n    - Save work in progress";
+
+  @prop({
+    type: "excel",
+    default: {
+      type: "excel",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Workbook",
+    description: "The Excel workbook to save"
+  })
   declare workbook: any;
 
-  @prop({ type: "file_path", default: {
-  "type": "file_path",
-  "path": ""
-}, title: "Folder", description: "The folder to save the file to." })
+  @prop({
+    type: "file_path",
+    default: {
+      type: "file_path",
+      path: ""
+    },
+    title: "Folder",
+    description: "The folder to save the file to."
+  })
   declare folder: any;
 
-  @prop({ type: "str", default: "", title: "Filename", description: "\n        The filename to save the file to.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        " })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Filename",
+    description:
+      "\n        The filename to save the file to.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
+  })
   declare filename: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const wb = getWorkbook(this.workbook);
@@ -363,7 +456,7 @@ export class SaveWorkbookLibNode extends BaseNode {
     const folderPath =
       typeof folderInput === "string"
         ? folderInput
-        : (folderInput as { path?: string })?.path ?? "";
+        : ((folderInput as { path?: string })?.path ?? "");
     if (!folderPath) throw new Error("Path is not set");
 
     const filenameTemplate = String(this.filename ?? "");
@@ -381,5 +474,5 @@ export const LIB_EXCEL_NODES = [
   DataFrameToExcelLibNode,
   FormatCellsLibNode,
   AutoFitColumnsLibNode,
-  SaveWorkbookLibNode,
+  SaveWorkbookLibNode
 ];

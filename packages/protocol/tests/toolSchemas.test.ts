@@ -24,7 +24,7 @@ import {
   uiSwitchTabParams,
   uiCopyParams,
   uiPasteParams,
-  uiToolSchemas,
+  uiToolSchemas
 } from "../src/toolSchemas.js";
 
 // ---------------------------------------------------------------------------
@@ -123,7 +123,7 @@ describe("uiSearchNodesParams", () => {
       strict_match: false,
       include_properties: true,
       include_outputs: true,
-      limit: 10,
+      limit: 10
     });
     expect(result.success).toBe(true);
   });
@@ -149,7 +149,7 @@ describe("uiAddNodeParams", () => {
     const result = schema.safeParse({
       type: "math.Add",
       position: { x: 100, y: 200 },
-      properties: { a: 1 },
+      properties: { a: 1 }
     });
     expect(result.success).toBe(true);
   });
@@ -168,7 +168,7 @@ describe("uiConnectNodesParams", () => {
       source_id: "n1",
       source_handle: "output",
       target_id: "n2",
-      target_handle: "input",
+      target_handle: "input"
     });
     expect(result.success).toBe(true);
   });
@@ -184,7 +184,7 @@ describe("uiUpdateNodeDataParams", () => {
   it("accepts valid update", () => {
     const result = schema.safeParse({
       node_id: "n1",
-      data: { value: 42, label: "test" },
+      data: { value: 42, label: "test" }
     });
     expect(result.success).toBe(true);
   });
@@ -200,7 +200,7 @@ describe("uiMoveNodeParams", () => {
   it("accepts node move with position", () => {
     const result = schema.safeParse({
       node_id: "n1",
-      position: { x: 50, y: 75 },
+      position: { x: 50, y: 75 }
     });
     expect(result.success).toBe(true);
   });
@@ -287,11 +287,13 @@ describe("uiToolSchemas registry", () => {
     "ui_run_workflow",
     "ui_switch_tab",
     "ui_copy",
-    "ui_paste",
+    "ui_paste"
   ];
 
   it("contains all expected tool names and nothing extra", () => {
-    expect(Object.keys(uiToolSchemas).sort()).toEqual(expectedTools.slice().sort());
+    expect(Object.keys(uiToolSchemas).sort()).toEqual(
+      expectedTools.slice().sort()
+    );
   });
 
   it("has exactly 15 tools registered", () => {

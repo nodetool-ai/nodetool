@@ -6,14 +6,8 @@
  *         pruneExpiredStates, and method-not-allowed branches.
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import {
-  initTestDb,
-  OAuthCredential,
-} from "@nodetool/models";
-import {
-  oauthStateStore,
-  handleOAuthRequest,
-} from "../src/oauth-api.js";
+import { initTestDb, OAuthCredential } from "@nodetool/models";
+import { oauthStateStore, handleOAuthRequest } from "../src/oauth-api.js";
 
 function getUserId(): string {
   return "test-user-1";
@@ -50,7 +44,7 @@ describe("OAuth API: HuggingFace refresh", () => {
 
   it("POST /api/oauth/hf/refresh returns 400 without account_id", async () => {
     const request = new Request("http://localhost:7777/api/oauth/hf/refresh", {
-      method: "POST",
+      method: "POST"
     });
     const response = await handleOAuthRequest(
       request,
@@ -86,7 +80,7 @@ describe("OAuth API: HuggingFace refresh", () => {
       access_token: "tok",
       refresh_token: null,
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     const request = new Request(
@@ -114,7 +108,7 @@ describe("OAuth API: HuggingFace refresh", () => {
       refresh_token: "refresh-tok",
       token_type: "Bearer",
       scope: "openid",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -124,7 +118,7 @@ describe("OAuth API: HuggingFace refresh", () => {
           refresh_token: "new-refresh-token",
           token_type: "Bearer",
           scope: "openid read-repos",
-          expires_in: 3600,
+          expires_in: 3600
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       )
@@ -141,7 +135,10 @@ describe("OAuth API: HuggingFace refresh", () => {
     );
     expect(response).not.toBeNull();
     expect(response!.status).toBe(200);
-    const body = (await jsonBody(response!)) as { success: boolean; message: string };
+    const body = (await jsonBody(response!)) as {
+      success: boolean;
+      message: string;
+    };
     expect(body.success).toBe(true);
   });
 
@@ -154,7 +151,7 @@ describe("OAuth API: HuggingFace refresh", () => {
       access_token: "tok",
       refresh_token: "refresh-tok",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -185,13 +182,13 @@ describe("OAuth API: HuggingFace refresh", () => {
       access_token: "tok",
       refresh_token: "refresh-tok",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify({ refresh_token: "new-rt" }), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json" }
       })
     );
 
@@ -219,10 +216,12 @@ describe("OAuth API: HuggingFace refresh", () => {
       access_token: "tok",
       refresh_token: "refresh-tok",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("Network error"));
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
+      new Error("Network error")
+    );
 
     const request = new Request(
       "http://localhost:7777/api/oauth/hf/refresh?account_id=acc-net-error",
@@ -297,7 +296,7 @@ describe("OAuth API: HuggingFace whoami", () => {
       account_id: "acc-whoami",
       access_token: "valid-token",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -307,7 +306,7 @@ describe("OAuth API: HuggingFace whoami", () => {
           name: "TestUser",
           email: "test@example.com",
           type: "user",
-          orgs: [],
+          orgs: []
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       )
@@ -337,7 +336,7 @@ describe("OAuth API: HuggingFace whoami", () => {
       account_id: "acc-expired",
       access_token: "expired-token",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -364,7 +363,7 @@ describe("OAuth API: HuggingFace whoami", () => {
       account_id: "acc-servererr",
       access_token: "tok",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -393,10 +392,12 @@ describe("OAuth API: HuggingFace whoami", () => {
       account_id: "acc-net",
       access_token: "tok",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("DNS failure"));
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
+      new Error("DNS failure")
+    );
 
     const request = new Request(
       "http://localhost:7777/api/oauth/hf/whoami?account_id=acc-net"
@@ -430,7 +431,7 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
       userId: "test-user-1",
       codeVerifier: "test-verifier",
       redirectUri: "http://localhost:7777/api/oauth/hf/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     const fetchMock = vi.spyOn(globalThis, "fetch");
@@ -442,7 +443,7 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
           refresh_token: "hf-refresh-tok",
           token_type: "Bearer",
           scope: "openid read-repos",
-          expires_in: 3600,
+          expires_in: 3600
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       )
@@ -452,7 +453,7 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
       new Response(
         JSON.stringify({
           id: "hf-user-id",
-          name: "HfUser",
+          name: "HfUser"
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       )
@@ -478,7 +479,7 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
       userId: "test-user-1",
       codeVerifier: "test-verifier",
       redirectUri: "http://localhost:7777/api/oauth/hf/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -505,13 +506,13 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
       userId: "test-user-1",
       codeVerifier: "test-verifier",
       redirectUri: "http://localhost:7777/api/oauth/hf/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify({}), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json" }
       })
     );
 
@@ -534,7 +535,7 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
       userId: "test-user-1",
       codeVerifier: "test-verifier",
       redirectUri: "http://localhost:7777/api/oauth/hf/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     const fetchMock = vi.spyOn(globalThis, "fetch");
@@ -542,7 +543,7 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
       new Response(
         JSON.stringify({
           access_token: "hf-access-token-value",
-          token_type: "Bearer",
+          token_type: "Bearer"
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       )
@@ -570,10 +571,12 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
       userId: "test-user-1",
       codeVerifier: "test-verifier",
       redirectUri: "http://localhost:7777/api/oauth/hf/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("Network down"));
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
+      new Error("Network down")
+    );
 
     const request = new Request(
       `http://localhost:7777/api/oauth/hf/callback?code=code&state=${state}`
@@ -595,7 +598,7 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
       userId: "test-user-1",
       codeVerifier: "test-verifier",
       redirectUri: "http://localhost:7777/api/oauth/hf/callback",
-      createdAt: Date.now() - 6 * 60 * 1000, // 6 minutes ago
+      createdAt: Date.now() - 6 * 60 * 1000 // 6 minutes ago
     });
 
     const request = new Request(
@@ -615,7 +618,6 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
 describe("OAuth API: HuggingFace tokens with toTokenMetadata", () => {
   beforeEach(() => {
     initTestDb();
-
   });
 
   it("GET /api/oauth/hf/tokens returns token metadata fields", async () => {
@@ -630,7 +632,7 @@ describe("OAuth API: HuggingFace tokens with toTokenMetadata", () => {
       token_type: "Bearer",
       scope: "openid",
       received_at: now,
-      expires_at: now,
+      expires_at: now
     });
 
     const response = await handleOAuthRequest(
@@ -713,7 +715,7 @@ describe("OAuth API: GitHub callback", () => {
       userId: "test-user-1",
       codeVerifier: "verifier",
       redirectUri: "http://localhost:7777/api/oauth/github/callback",
-      createdAt: Date.now() - 6 * 60 * 1000,
+      createdAt: Date.now() - 6 * 60 * 1000
     });
 
     const response = await handleOAuthRequest(
@@ -737,7 +739,7 @@ describe("OAuth API: GitHub callback", () => {
       userId: "test-user-1",
       codeVerifier: "verifier",
       redirectUri: "http://localhost:7777/api/oauth/github/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     const response = await handleOAuthRequest(
@@ -761,7 +763,7 @@ describe("OAuth API: GitHub callback", () => {
       userId: "test-user-1",
       codeVerifier: "verifier",
       redirectUri: "http://localhost:7777/api/oauth/github/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     const fetchMock = vi.spyOn(globalThis, "fetch");
@@ -770,16 +772,16 @@ describe("OAuth API: GitHub callback", () => {
         JSON.stringify({
           access_token: "gh-access-token",
           token_type: "bearer",
-          scope: "user:email",
+          scope: "user:email"
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       )
     );
     fetchMock.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({ id: 12345, login: "ghuser" }),
-        { status: 200, headers: { "content-type": "application/json" } }
-      )
+      new Response(JSON.stringify({ id: 12345, login: "ghuser" }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      })
     );
 
     const response = await handleOAuthRequest(
@@ -804,7 +806,7 @@ describe("OAuth API: GitHub callback", () => {
       userId: "test-user-1",
       codeVerifier: "verifier",
       redirectUri: "http://localhost:7777/api/oauth/github/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -832,13 +834,13 @@ describe("OAuth API: GitHub callback", () => {
       userId: "test-user-1",
       codeVerifier: "verifier",
       redirectUri: "http://localhost:7777/api/oauth/github/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify({}), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json" }
       })
     );
 
@@ -863,7 +865,7 @@ describe("OAuth API: GitHub callback", () => {
       userId: "test-user-1",
       codeVerifier: "verifier",
       redirectUri: "http://localhost:7777/api/oauth/github/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     const fetchMock = vi.spyOn(globalThis, "fetch");
@@ -871,7 +873,7 @@ describe("OAuth API: GitHub callback", () => {
       new Response(
         JSON.stringify({
           access_token: "gh-at",
-          token_type: "bearer",
+          token_type: "bearer"
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       )
@@ -901,10 +903,12 @@ describe("OAuth API: GitHub callback", () => {
       userId: "test-user-1",
       codeVerifier: "verifier",
       redirectUri: "http://localhost:7777/api/oauth/github/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("Connection refused"));
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
+      new Error("Connection refused")
+    );
 
     const response = await handleOAuthRequest(
       new Request(
@@ -921,7 +925,7 @@ describe("OAuth API: GitHub callback", () => {
   it("GET /api/oauth/github/callback returns 405 for POST", async () => {
     const response = await handleOAuthRequest(
       new Request("http://localhost:7777/api/oauth/github/callback", {
-        method: "POST",
+        method: "POST"
       }),
       "/api/oauth/github/callback",
       getUserId
@@ -985,7 +989,7 @@ describe("OAuth API: GitHub user", () => {
       account_id: "gh-acc",
       access_token: "gh-tok",
       token_type: "bearer",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -1016,7 +1020,7 @@ describe("OAuth API: GitHub user", () => {
       account_id: "gh-expired",
       access_token: "expired",
       token_type: "bearer",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -1042,7 +1046,7 @@ describe("OAuth API: GitHub user", () => {
       account_id: "gh-500",
       access_token: "tok",
       token_type: "bearer",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -1070,7 +1074,7 @@ describe("OAuth API: GitHub user", () => {
       account_id: "gh-net",
       access_token: "tok",
       token_type: "bearer",
-      received_at: now,
+      received_at: now
     });
 
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("Timeout"));
@@ -1098,7 +1102,9 @@ describe("OAuth API: method not allowed and trailing slash", () => {
 
   it("POST /api/oauth/hf/start returns 405", async () => {
     const response = await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/hf/start", { method: "POST" }),
+      new Request("http://localhost:7777/api/oauth/hf/start", {
+        method: "POST"
+      }),
       "/api/oauth/hf/start",
       getUserId
     );
@@ -1108,7 +1114,9 @@ describe("OAuth API: method not allowed and trailing slash", () => {
 
   it("POST /api/oauth/hf/callback returns 405", async () => {
     const response = await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/hf/callback", { method: "POST" }),
+      new Request("http://localhost:7777/api/oauth/hf/callback", {
+        method: "POST"
+      }),
       "/api/oauth/hf/callback",
       getUserId
     );
@@ -1119,7 +1127,7 @@ describe("OAuth API: method not allowed and trailing slash", () => {
   it("POST /api/oauth/github/start returns 405", async () => {
     const response = await handleOAuthRequest(
       new Request("http://localhost:7777/api/oauth/github/start", {
-        method: "POST",
+        method: "POST"
       }),
       "/api/oauth/github/start",
       getUserId
@@ -1148,7 +1156,7 @@ describe("OAuth API: HuggingFace start host handling", () => {
 
   it("handles host with protocol prefix", async () => {
     const request = new Request("http://localhost:7777/api/oauth/hf/start", {
-      headers: { host: "http://example.com" },
+      headers: { host: "http://example.com" }
     });
     const response = await handleOAuthRequest(
       request,
@@ -1163,7 +1171,7 @@ describe("OAuth API: HuggingFace start host handling", () => {
 
   it("handles 127.0.0.1 host (replaces with localhost)", async () => {
     const request = new Request("http://127.0.0.1:7777/api/oauth/hf/start", {
-      headers: { host: "127.0.0.1:7777" },
+      headers: { host: "127.0.0.1:7777" }
     });
     const response = await handleOAuthRequest(
       request,
@@ -1180,9 +1188,12 @@ describe("OAuth API: HuggingFace start host handling", () => {
   });
 
   it("uses https for non-localhost host", async () => {
-    const request = new Request("https://myapp.example.com/api/oauth/hf/start", {
-      headers: { host: "myapp.example.com" },
-    });
+    const request = new Request(
+      "https://myapp.example.com/api/oauth/hf/start",
+      {
+        headers: { host: "myapp.example.com" }
+      }
+    );
     const response = await handleOAuthRequest(
       request,
       "/api/oauth/hf/start",
@@ -1210,11 +1221,11 @@ describe("OAuth API: pruneExpiredStates", () => {
       userId: "u1",
       codeVerifier: "v",
       redirectUri: "http://localhost/cb",
-      createdAt: Date.now() - 10 * 60 * 1000, // 10 minutes ago
+      createdAt: Date.now() - 10 * 60 * 1000 // 10 minutes ago
     });
 
     const request = new Request("http://localhost:7777/api/oauth/hf/start", {
-      headers: { host: "localhost:7777" },
+      headers: { host: "localhost:7777" }
     });
     await handleOAuthRequest(request, "/api/oauth/hf/start", getUserId);
 

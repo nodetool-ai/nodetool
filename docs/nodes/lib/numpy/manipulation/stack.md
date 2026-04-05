@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Stack"
-node_type: "lib.numpy.manipulation.Stack"
-namespace: "lib.numpy.manipulation"
+node_type: "lib.array.manipulation.Stack"
+namespace: "lib.array.manipulation"
 ---
 
-**Type:** `lib.numpy.manipulation.Stack`
+**Type:** `lib.array.manipulation.Stack`
 
-**Namespace:** `lib.numpy.manipulation`
+**Namespace:** `lib.array.manipulation`
 
 ## Description
 
@@ -36,5 +36,5 @@ Stack multiple arrays along a specified axis.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.manipulation](../) namespace.
+Browse other nodes in the [lib.array.manipulation](../) namespace.
 

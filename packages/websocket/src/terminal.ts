@@ -60,7 +60,9 @@ interface TerminalMessage {
  * The caller is responsible for error-handling on the socket before calling
  * this function (e.g. registering a top-level "error" listener).
  */
-export async function handleTerminalConnection(socket: WsSocket): Promise<void> {
+export async function handleTerminalConnection(
+  socket: WsSocket
+): Promise<void> {
   let pty: typeof import("node-pty");
   try {
     pty = await getPty();
@@ -71,8 +73,8 @@ export async function handleTerminalConnection(socket: WsSocket): Promise<void> 
       socket.send(
         JSON.stringify({
           type: "error",
-          message: "Terminal unavailable: node-pty failed to load.",
-        }),
+          message: "Terminal unavailable: node-pty failed to load."
+        })
       );
       socket.close(1011, "node-pty unavailable");
     } catch {
@@ -92,7 +94,7 @@ export async function handleTerminalConnection(socket: WsSocket): Promise<void> 
     cols: defaultCols,
     rows: defaultRows,
     cwd: process.cwd(),
-    env: process.env as Record<string, string>,
+    env: process.env as Record<string, string>
   });
 
   // PTY → WebSocket
@@ -167,9 +169,7 @@ export async function handleTerminalConnection(socket: WsSocket): Promise<void> 
 
   // Send initial greeting
   try {
-    socket.send(
-      JSON.stringify({ type: "output", data: "" }),
-    );
+    socket.send(JSON.stringify({ type: "output", data: "" }));
   } catch {
     // socket may already be gone
   }

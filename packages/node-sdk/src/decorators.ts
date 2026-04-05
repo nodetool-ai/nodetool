@@ -15,9 +15,14 @@ export interface DeclaredPropertyMetadata {
   options: PropOptions;
 }
 
-const declaredPropsByClass = new WeakMap<Function, Map<string, DeclaredPropertyMetadata>>();
+const declaredPropsByClass = new WeakMap<
+  Function,
+  Map<string, DeclaredPropertyMetadata>
+>();
 
-function getOrCreatePropMap(ctor: Function): Map<string, DeclaredPropertyMetadata> {
+function getOrCreatePropMap(
+  ctor: Function
+): Map<string, DeclaredPropertyMetadata> {
   const existing = declaredPropsByClass.get(ctor);
   if (existing) return existing;
   const created = new Map<string, DeclaredPropertyMetadata>();
@@ -45,12 +50,18 @@ function collectDeclaredProps(ctor: Function): DeclaredPropertyMetadata[] {
   return [...merged.values()];
 }
 
-export function registerDeclaredProperty(ctor: Function, name: string, options: PropOptions): void {
+export function registerDeclaredProperty(
+  ctor: Function,
+  name: string,
+  options: PropOptions
+): void {
   const map = getOrCreatePropMap(ctor);
   map.set(name, { name, options: { ...options } });
 }
 
-export function getDeclaredPropertiesForClass(ctor: Function): DeclaredPropertyMetadata[] {
+export function getDeclaredPropertiesForClass(
+  ctor: Function
+): DeclaredPropertyMetadata[] {
   return collectDeclaredProps(ctor);
 }
 

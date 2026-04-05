@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
 import { Tooltip, Toolbar, Box, Button } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -32,8 +32,8 @@ const styles = (theme: Theme) =>
       backgroundColor: "transparent",
       overflow: "visible",
       position: "relative",
-      height: "40px",
-      minHeight: "40px",
+      height: `${HEADER_HEIGHT}px`,
+      minHeight: `${HEADER_HEIGHT}px`,
       padding: "0 2px 0 12px",
       border: "0"
     },
@@ -102,11 +102,11 @@ const styles = (theme: Theme) =>
         justifyContent: "center"
       },
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.primary
       },
       "&.active": {
-        backgroundColor: "rgba(255, 255, 255, 0.12)",
+        backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.text.primary,
         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.15)",
         "& svg, & .icon-container svg": {
@@ -193,7 +193,6 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
           tabIndex={-1}
           aria-current={isEditorActive ? "page" : undefined}
         >
-          {/* <EditIcon /> */}
           <span>Editor</span>
         </button>
       </Tooltip>
@@ -204,22 +203,25 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
           tabIndex={-1}
           aria-current={isChatActive ? "page" : undefined}
         >
-          {/* <IconForType iconName="message" showTooltip={false} /> */}
           <span>Chat</span>
         </button>
       </Tooltip>
       <Tooltip title={currentWorkflowId ? "Run as App" : "Open a workflow first"} enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          className={`mode-pill ${isAppActive ? "active" : ""}`}
-          onClick={handleAppClick}
-          tabIndex={-1}
-          aria-current={isAppActive ? "page" : undefined}
-          disabled={!currentWorkflowId}
-          style={{ opacity: currentWorkflowId ? 1 : 0.5 }}
-        >
-          {/* <RocketLaunchIcon /> */}
-          <span>App</span>
-        </button>
+        <span style={{ display: "inline-flex" }}>
+          <button
+            className={`mode-pill ${isAppActive ? "active" : ""}`}
+            onClick={handleAppClick}
+            tabIndex={-1}
+            aria-current={isAppActive ? "page" : undefined}
+            disabled={!currentWorkflowId}
+            style={{
+              opacity: currentWorkflowId ? 1 : 0.4,
+              cursor: currentWorkflowId ? "pointer" : "default"
+            }}
+          >
+            <span>App</span>
+          </button>
+        </span>
       </Tooltip>
     </div>
   );
@@ -251,7 +253,7 @@ const TemplatesButton = memo(function TemplatesButton({
           color: "var(--palette-text-default)",
           border: "1px solid transparent",
           "&:hover": {
-            backgroundColor: "rgba(255, 255, 255, 0.08)",
+            backgroundColor: "var(--palette-action-hover)",
             color: "var(--palette-text-primary)",
             borderColor: "transparent",
           },

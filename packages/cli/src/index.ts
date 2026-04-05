@@ -27,14 +27,25 @@ await initTelemetry();
 
 program
   .name("nodetool-chat")
-  .description("NodeTool interactive chat CLI with multi-provider LLM support and agent mode")
-  .option("-p, --provider <provider>", "LLM provider (anthropic, openai, ollama, gemini, mistral, groq)")
+  .description(
+    "NodeTool interactive chat CLI with multi-provider LLM support and agent mode"
+  )
+  .option(
+    "-p, --provider <provider>",
+    "LLM provider (anthropic, openai, ollama, gemini, mistral, groq)"
+  )
   .option("-m, --model <model>", "Model ID")
   .option("-a, --agent", "Start in agent mode")
   .option("--no-agent", "Disable agent mode (overrides saved settings)")
-  .option("-w, --workspace <path>", "Workspace directory (default: current directory)")
+  .option(
+    "-w, --workspace <path>",
+    "Workspace directory (default: current directory)"
+  )
   .option("--tools <tools>", "Comma-separated list of enabled tools")
-  .option("-u, --url <url>", "NodeTool server WebSocket URL (e.g. ws://localhost:7777/ws)")
+  .option(
+    "-u, --url <url>",
+    "NodeTool server WebSocket URL (e.g. ws://localhost:7777/ws)"
+  )
   .helpOption("-h, --help", "Show help")
   .version("0.1.0")
   .parse();
@@ -64,17 +75,24 @@ const model = opts.model ?? settings.model;
 const agentMode = opts.agent ?? (opts.url ? false : settings.agentMode);
 const workspace = opts.workspace ?? settings.workspace;
 const enabledTools = opts.tools
-  ? opts.tools.split(",").map(t => t.trim())
+  ? opts.tools.split(",").map((t) => t.trim())
   : settings.enabledTools;
 
 // Always-on tools (no credentials needed)
-for (const tool of ["statistics", "geometry", "conversion", "extract_pdf_text", "convert_pdf_to_markdown", "convert_document"]) {
+for (const tool of [
+  "statistics",
+  "geometry",
+  "conversion",
+  "extract_pdf_text",
+  "convert_pdf_to_markdown",
+  "convert_document"
+]) {
   if (!enabledTools.includes(tool)) enabledTools.push(tool);
 }
 
 // Auto-enable based on available secrets (env or encrypted DB)
 async function autoEnable(key: string, tools: string[]): Promise<void> {
-  const val = process.env[key] ?? await getSecret(key, "1");
+  const val = process.env[key] ?? (await getSecret(key, "1"));
   if (val) {
     for (const tool of tools) {
       if (!enabledTools.includes(tool)) enabledTools.push(tool);
@@ -83,10 +101,18 @@ async function autoEnable(key: string, tools: string[]): Promise<void> {
 }
 
 await Promise.all([
-  autoEnable("SERPAPI_API_KEY",      ["google_search", "google_news", "google_images"]),
-  autoEnable("OPENAI_API_KEY",       ["openai_web_search", "openai_image_generation", "openai_text_to_speech"]),
-  autoEnable("DATA_FOR_SEO_LOGIN",   ["dataseo_search", "dataseo_news"]),
-  autoEnable("IMAP_USERNAME",        ["search_email", "archive_email"]),
+  autoEnable("SERPAPI_API_KEY", [
+    "google_search",
+    "google_news",
+    "google_images"
+  ]),
+  autoEnable("OPENAI_API_KEY", [
+    "openai_web_search",
+    "openai_image_generation",
+    "openai_text_to_speech"
+  ]),
+  autoEnable("DATA_FOR_SEO_LOGIN", ["dataseo_search", "dataseo_news"]),
+  autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
 ]);
 
 // Stdin mode: activated when stdin is piped (not a TTY)
@@ -96,7 +122,7 @@ if (!process.stdin.isTTY) {
     model,
     workspaceDir: workspace,
     agentMode,
-    wsUrl: opts.url,
+    wsUrl: opts.url
   });
   process.exit(0);
 }
@@ -108,9 +134,9 @@ const { waitUntilExit } = render(
     initialAgentMode: agentMode,
     enabledTools,
     workspaceDir: workspace,
-    wsUrl: opts.url,
+    wsUrl: opts.url
   }),
-  { exitOnCtrlC: false },
+  { exitOnCtrlC: false }
 );
 
 await waitUntilExit();

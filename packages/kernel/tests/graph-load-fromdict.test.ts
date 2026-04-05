@@ -1,10 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { Graph, GraphValidationError, type ResolvedNodeType } from "../src/graph.js";
+import {
+  Graph,
+  GraphValidationError,
+  type ResolvedNodeType
+} from "../src/graph.js";
 
 describe("Graph.loadFromDict", () => {
   it("hydrates nodes with resolver-provided metadata", async () => {
     const resolver = {
-      async resolveNodeType(nodeType: string): Promise<ResolvedNodeType | null> {
+      async resolveNodeType(
+        nodeType: string
+      ): Promise<ResolvedNodeType | null> {
         if (nodeType !== "test.Input") return null;
         return {
           nodeType,
@@ -13,18 +19,18 @@ describe("Graph.loadFromDict", () => {
           descriptorDefaults: {
             name: "Resolved Input",
             sync_mode: "on_any",
-            is_streaming_output: false,
-          },
+            is_streaming_output: false
+          }
         };
-      },
+      }
     };
 
     const graph = await Graph.loadFromDict(
       {
         nodes: [{ id: "n1", type: "test.Input", data: { value: 5 } }],
-        edges: [],
+        edges: []
       },
-      { resolver },
+      { resolver }
     );
 
     const node = graph.findNode("n1");
@@ -40,20 +46,32 @@ describe("Graph.loadFromDict", () => {
       {
         nodes: [
           { id: "ok", type: "test.Known" },
-          { id: "bad", type: "test.Unknown" },
+          { id: "bad", type: "test.Unknown" }
         ],
         edges: [
-          { source: "ok", sourceHandle: "out", target: "bad", targetHandle: "in" },
-          { source: "bad", sourceHandle: "out", target: "ok", targetHandle: "in" },
-        ],
+          {
+            source: "ok",
+            sourceHandle: "out",
+            target: "bad",
+            targetHandle: "in"
+          },
+          {
+            source: "bad",
+            sourceHandle: "out",
+            target: "ok",
+            targetHandle: "in"
+          }
+        ]
       },
       {
         resolver: {
           resolveNodeType: async (nodeType) =>
-            nodeType === "test.Known" ? { nodeType, descriptorDefaults: {} } : null,
+            nodeType === "test.Known"
+              ? { nodeType, descriptorDefaults: {} }
+              : null
         },
-        skipErrors: true,
-      },
+        skipErrors: true
+      }
     );
 
     expect(graph.nodes.map((node) => node.id)).toEqual(["ok"]);
@@ -65,15 +83,15 @@ describe("Graph.loadFromDict", () => {
       Graph.loadFromDict(
         {
           nodes: [{ id: "bad", type: "test.Unknown" }],
-          edges: [],
+          edges: []
         },
         {
           resolver: {
-            resolveNodeType: async () => null,
+            resolveNodeType: async () => null
           },
-          skipErrors: false,
-        },
-      ),
+          skipErrors: false
+        }
+      )
     ).rejects.toThrow(GraphValidationError);
   });
 
@@ -81,39 +99,43 @@ describe("Graph.loadFromDict", () => {
     await expect(
       Graph.loadFromDict(
         {
-          nodes: [{ id: "n1", type: "test.Strict", data: { allowed: 1, extra: 2 } }],
-          edges: [],
+          nodes: [
+            { id: "n1", type: "test.Strict", data: { allowed: 1, extra: 2 } }
+          ],
+          edges: []
         },
         {
           resolver: {
             resolveNodeType: async (nodeType) => ({
               nodeType,
-              propertyTypes: { allowed: "int" },
-            }),
+              propertyTypes: { allowed: "int" }
+            })
           },
           allowUndefinedProperties: false,
-          skipErrors: false,
-        },
-      ),
+          skipErrors: false
+        }
+      )
     ).rejects.toThrow("Property extra does not exist");
   });
 
   it("strips unknown properties when allowUndefinedProperties is false and skipErrors is true", async () => {
     const graph = await Graph.loadFromDict(
       {
-        nodes: [{ id: "n1", type: "test.Strict", data: { allowed: 1, extra: 2 } }],
-        edges: [],
+        nodes: [
+          { id: "n1", type: "test.Strict", data: { allowed: 1, extra: 2 } }
+        ],
+        edges: []
       },
       {
         resolver: {
           resolveNodeType: async (nodeType) => ({
             nodeType,
-            propertyTypes: { allowed: "int" },
-          }),
+            propertyTypes: { allowed: "int" }
+          })
         },
         allowUndefinedProperties: false,
-        skipErrors: true,
-      },
+        skipErrors: true
+      }
     );
 
     expect(graph.findNode("n1")?.properties).toEqual({ allowed: 1 });

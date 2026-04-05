@@ -38,7 +38,7 @@ export interface DurableInboxStore {
     nodeId: string,
     handle: string,
     limit: number,
-    minSeq?: number,
+    minSeq?: number
   ): Promise<DurableMessage[]>;
   getMaxSeq(runId: string, nodeId: string, handle: string): Promise<number>;
   markConsumed(messageId: string): Promise<void>;
@@ -46,7 +46,7 @@ export interface DurableInboxStore {
     runId: string,
     nodeId: string,
     handle: string,
-    olderThanSeq: number,
+    olderThanSeq: number
   ): Promise<number>;
 }
 
@@ -70,7 +70,7 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
     nodeId: string,
     handle: string,
     limit: number,
-    minSeq = 0,
+    minSeq = 0
   ): Promise<DurableMessage[]> {
     return this.messages
       .filter(
@@ -79,16 +79,25 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
           m.nodeId === nodeId &&
           m.handle === handle &&
           m.status === "pending" &&
-          m.seq >= minSeq,
+          m.seq >= minSeq
       )
       .sort((a, b) => a.seq - b.seq)
       .slice(0, limit);
   }
 
-  async getMaxSeq(runId: string, nodeId: string, handle: string): Promise<number> {
+  async getMaxSeq(
+    runId: string,
+    nodeId: string,
+    handle: string
+  ): Promise<number> {
     let max = 0;
     for (const m of this.messages) {
-      if (m.runId === runId && m.nodeId === nodeId && m.handle === handle && m.seq > max) {
+      if (
+        m.runId === runId &&
+        m.nodeId === nodeId &&
+        m.handle === handle &&
+        m.seq > max
+      ) {
         max = m.seq;
       }
     }
@@ -107,7 +116,7 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
     runId: string,
     nodeId: string,
     handle: string,
-    olderThanSeq: number,
+    olderThanSeq: number
   ): Promise<number> {
     const before = this.messages.length;
     this.messages = this.messages.filter(
@@ -118,7 +127,7 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
           m.handle === handle &&
           m.status === "consumed" &&
           m.seq < olderThanSeq
-        ),
+        )
     );
     return before - this.messages.length;
   }
@@ -142,7 +151,12 @@ export class DurableInbox {
   /**
    * Generate a deterministic message ID from the addressing tuple.
    */
-  static generateMessageId(runId: string, nodeId: string, handle: string, seq: number): string {
+  static generateMessageId(
+    runId: string,
+    nodeId: string,
+    handle: string,
+    seq: number
+  ): string {
     const key = `${runId}:${nodeId}:${handle}:${seq}`;
     return createHash("sha256").update(key).digest("hex").slice(0, 16);
   }
@@ -155,11 +169,14 @@ export class DurableInbox {
     handle: string,
     payload: unknown,
     messageId?: string,
-    payloadRef?: string,
+    payloadRef?: string
   ): Promise<DurableMessage> {
-    const nextSeq = (await this.store.getMaxSeq(this.runId, this.nodeId, handle)) + 1;
+    const nextSeq =
+      (await this.store.getMaxSeq(this.runId, this.nodeId, handle)) + 1;
 
-    const finalId = messageId ?? DurableInbox.generateMessageId(this.runId, this.nodeId, handle, nextSeq);
+    const finalId =
+      messageId ??
+      DurableInbox.generateMessageId(this.runId, this.nodeId, handle, nextSeq);
 
     const existing = await this.store.findByMessageId(finalId);
     if (existing) {
@@ -177,7 +194,7 @@ export class DurableInbox {
       payload,
       payloadRef,
       status: "pending",
-      createdAt: new Date(),
+      createdAt: new Date()
     };
 
     await this.store.save(message);
@@ -186,7 +203,7 @@ export class DurableInbox {
       runId: this.runId,
       nodeId: this.nodeId,
       handle,
-      seq: nextSeq,
+      seq: nextSeq
     });
 
     return message;
@@ -195,8 +212,18 @@ export class DurableInbox {
   /**
    * Get pending messages for a handle in sequence order.
    */
-  async getPending(handle: string, limit = 100, minSeq = 0): Promise<DurableMessage[]> {
-    return this.store.findPending(this.runId, this.nodeId, handle, limit, minSeq);
+  async getPending(
+    handle: string,
+    limit = 100,
+    minSeq = 0
+  ): Promise<DurableMessage[]> {
+    return this.store.findPending(
+      this.runId,
+      this.nodeId,
+      handle,
+      limit,
+      minSeq
+    );
   }
 
   /**
@@ -207,7 +234,7 @@ export class DurableInbox {
     log.debug("Marked message as consumed", {
       messageId: message.messageId,
       handle: message.handle,
-      seq: message.seq,
+      seq: message.seq
     });
   }
 
@@ -222,13 +249,18 @@ export class DurableInbox {
    * Clean up consumed messages older than a given sequence.
    */
   async cleanupConsumed(handle: string, olderThanSeq: number): Promise<number> {
-    const count = await this.store.deleteConsumed(this.runId, this.nodeId, handle, olderThanSeq);
+    const count = await this.store.deleteConsumed(
+      this.runId,
+      this.nodeId,
+      handle,
+      olderThanSeq
+    );
     if (count > 0) {
       log.info("Cleaned up consumed messages", {
         count,
         runId: this.runId,
         nodeId: this.nodeId,
-        handle,
+        handle
       });
     }
     return count;

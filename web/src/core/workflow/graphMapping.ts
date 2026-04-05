@@ -103,16 +103,17 @@ export const sanitizeGraph = (
       const sourceMetadata = metadata[sourceNode.type];
       const targetMetadata = metadata[targetNode.type];
 
-      if (
-        !sourceMetadata ||
-        !targetMetadata ||
-        !edge.sourceHandle ||
-        !edge.targetHandle
-      ) {
+      if (!edge.sourceHandle || !edge.targetHandle) {
         log.warn(
-          `Edge ${edge.id} references invalid source or target handle. Source: ${edge.sourceHandle}, Target: ${edge.targetHandle}. Removing edge.`
+          `Edge ${edge.id} missing handle. Source: ${edge.sourceHandle}, Target: ${edge.targetHandle}. Removing edge.`
         );
         return false;
+      }
+
+      // Keep edges when metadata is missing (e.g. ComfyUI not running) —
+      // the nodes are still on the canvas as placeholders.
+      if (!sourceMetadata || !targetMetadata) {
+        return true;
       }
 
       const sourceHasValidHandle = hasOutputHandle(

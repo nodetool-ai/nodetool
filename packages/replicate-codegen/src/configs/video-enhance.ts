@@ -6,15 +6,15 @@ export const videoEnhanceConfig: ModuleConfig = {
       className: "Runway_Upscale_V1",
       returnType: "video",
       fieldOverrides: {
-        video: { propType: "video" },
-      },
+        video: { propType: "video" }
+      }
     },
     "topazlabs/video-upscale": {
       className: "Topaz_Video_Upscale",
       returnType: "video",
       fieldOverrides: {
-        video: { propType: "video" },
-      },
-    },
-  },
+        video: { propType: "video" }
+      }
+    }
+  }
 };

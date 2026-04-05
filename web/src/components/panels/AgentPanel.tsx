@@ -15,7 +15,9 @@ import {
   DialogTitle,
   DialogContent,
   InputLabel,
-  CircularProgress
+  CircularProgress,
+  ToggleButtonGroup,
+  ToggleButton
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -29,7 +31,12 @@ import ChatView from "../chat/containers/ChatView";
 import useAgentStore from "../../stores/AgentStore";
 import type { Message, WorkspaceResponse } from "../../stores/ApiTypes";
 import type { AgentProvider, AgentModelDescriptor } from "../../stores/AgentStore";
-import PanelHeadline from "../ui/PanelHeadline";
+
+const PROVIDER_LABELS: Record<AgentProvider, string> = {
+  claude: "Claude",
+  codex: "Codex",
+  opencode: "OpenCode",
+};
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 
 import { useQuery } from "@tanstack/react-query";
@@ -217,6 +224,9 @@ const AgentPanel: React.FC = () => {
     setProvider,
     model,
     setModel,
+    availableModels,
+    modelsLoading,
+    loadModels,
   } = useAgentStore(
     useMemo(
       () => (state) => ({
@@ -239,6 +249,9 @@ const AgentPanel: React.FC = () => {
         setProvider: state.setProvider,
         model: state.model,
         setModel: state.setModel,
+        availableModels: state.availableModels,
+        modelsLoading: state.modelsLoading,
+        loadModels: state.loadModels,
       }),
       []
     )
@@ -248,6 +261,11 @@ const AgentPanel: React.FC = () => {
     queryFn: fetchWorkspaces
   });
   const hasRunningSession = Boolean(sessionId);
+
+  useEffect(() => {
+    useAgentStore.getState().loadSessions();
+    useAgentStore.getState().loadModels();
+  }, []);
 
   useEffect(() => {
     if (!workspaces || workspaceId) {
@@ -360,8 +378,8 @@ const AgentPanel: React.FC = () => {
     }
   }, [status]);
 
-  const providerLabel = provider === "codex" ? "Codex" : "Claude";
-  const draftProviderLabel = draftProvider === "codex" ? "Codex" : "Claude";
+  const providerLabel = PROVIDER_LABELS[provider];
+  const draftProviderLabel = PROVIDER_LABELS[draftProvider];
   const canCreateSession =
     Boolean(draftWorkspacePath) &&
     Boolean(draftModel) &&
@@ -503,14 +521,6 @@ const AgentPanel: React.FC = () => {
     () => sessionHistory.filter((entry) => entry.id !== sessionId),
     [sessionHistory, sessionId]
   );
-  const activeSessionEntry = useMemo(
-    () => sessionHistory.find((entry) => entry.id === sessionId) ?? null,
-    [sessionHistory, sessionId]
-  );
-  const activeProviderLabel = useMemo(() => {
-    const resolvedProvider = activeSessionEntry?.provider ?? provider;
-    return resolvedProvider === "codex" ? "Codex" : "Claude";
-  }, [activeSessionEntry?.provider, provider]);
   const resumeMenuOpen = Boolean(resumeAnchorEl);
 
   // Stable handler for opening resume menu
@@ -546,31 +556,43 @@ const AgentPanel: React.FC = () => {
 
   // Stable handler for provider change in dialog
   const handleProviderSelectChange = useCallback(
-    (_event: unknown, value: unknown) => {
-      const nextProvider = value as "claude" | "codex";
-      if (nextProvider === "claude" || nextProvider === "codex") {
+    (event: { target: { value: string } }) => {
+      const nextProvider = event.target.value as AgentProvider;
+      if (nextProvider === "claude" || nextProvider === "codex" || nextProvider === "opencode") {
         setDraftProvider(nextProvider);
       }
     },
     []
   );
 
+  const handleProviderToggle = useCallback(
+    (_event: React.MouseEvent, value: string | null) => {
+      if (value === "claude" || value === "codex" || value === "opencode") {
+        setProvider(value);
+      }
+    },
+    [setProvider]
+  );
+
+  const handleHeaderModelChange = useCallback(
+    (event: { target: { value: string } }) => {
+      setModel(event.target.value);
+    },
+    [setModel]
+  );
+
   // Stable handler for model change in dialog
   const handleModelSelectChange = useCallback(
-    (_event: unknown, value: unknown) => {
-      const stringValue = value as string;
-      if (typeof stringValue === "string") {
-        setDraftModel(stringValue);
-      }
+    (event: { target: { value: string } }) => {
+      setDraftModel(event.target.value);
     },
     []
   );
 
   // Stable handler for workspace change in dialog
   const handleWorkspaceSelectChange = useCallback(
-    (_event: unknown, value: unknown) => {
-      const stringValue = value as string;
-      const val = stringValue === "" ? undefined : stringValue;
+    (event: { target: { value: string } }) => {
+      const val = event.target.value === "" ? undefined : event.target.value;
       handleDialogWorkspaceChange(val);
     },
     [handleDialogWorkspaceChange]
@@ -586,93 +608,151 @@ const AgentPanel: React.FC = () => {
     void handleConfirmNewSession();
   }, [handleConfirmNewSession]);
 
+  const toolbarButtonSx = {
+    borderRadius: "6px",
+    border: `1px solid ${theme.vars.palette.divider}`,
+    padding: "4px 10px",
+    gap: "4px",
+    fontSize: theme.fontSizeSmaller,
+    fontFamily: theme.fontFamily2,
+    color: theme.vars.palette.text.secondary,
+    textTransform: "none" as const,
+    "&:hover": {
+      borderColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.light,
+      backgroundColor: `${theme.vars.palette.primary.main}0a`,
+    },
+  };
+
   return (
     <Box css={containerStyles(theme)} className="agent-panel">
-      <PanelHeadline
-        title={`${activeProviderLabel} Agent`}
-        actions={
-          <Box sx={{ display: "flex", gap: "6px", alignItems: "center" }}>
-            <Tooltip title="Resume a previous session">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={handleResumeMenuOpen}
-                  disabled={!isAvailable || previousSessions.length === 0}
-                  aria-label="Resume session"
-                  sx={{
-                    borderRadius: "8px",
-                    border: `1px solid ${theme.vars.palette.divider}`,
-                    padding: "4px 8px",
-                    gap: "4px",
-                    fontSize: theme.fontSizeSmaller,
-                    color: theme.vars.palette.text.secondary,
-                    transition: "all 0.2s ease",
-                    "&:hover": {
-                      borderColor: theme.vars.palette.primary.main,
-                      color: theme.vars.palette.primary.light,
-                      backgroundColor: `${theme.vars.palette.primary.main}0a`
-                    }
-                  }}
-                >
-                  <ReplayIcon sx={{ fontSize: "15px" }} />
-                  <span>Resume</span>
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Tooltip
-              title={`Create a new ${providerLabel} session in this workspace`}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          padding: "6px 8px",
+          borderBottom: `1px solid ${theme.vars.palette.divider}`,
+          flexShrink: 0,
+        }}
+      >
+        <ToggleButtonGroup
+          value={provider}
+          exclusive
+          onChange={handleProviderToggle}
+          size="small"
+          disabled={hasRunningSession}
+          sx={{
+            height: "28px",
+            "& .MuiToggleButton-root": {
+              fontSize: theme.fontSizeSmaller,
+              fontFamily: theme.fontFamily2,
+              padding: "2px 10px",
+              textTransform: "none",
+              border: `1px solid ${theme.vars.palette.divider}`,
+              color: theme.vars.palette.text.secondary,
+              "&.Mui-selected": {
+                backgroundColor: `${theme.vars.palette.primary.main}18`,
+                color: theme.vars.palette.primary.light,
+                borderColor: theme.vars.palette.primary.main,
+              },
+            },
+          }}
+        >
+          <ToggleButton value="claude">Claude</ToggleButton>
+          <ToggleButton value="codex">Codex</ToggleButton>
+          <ToggleButton value="opencode">OpenCode</ToggleButton>
+        </ToggleButtonGroup>
+
+        <Select
+          value={availableModels.some((m) => m.id === model) ? model : ""}
+          onChange={handleHeaderModelChange}
+          size="small"
+          disabled={hasRunningSession || modelsLoading || availableModels.length === 0}
+          displayEmpty
+          variant="outlined"
+          sx={{
+            height: "28px",
+            minWidth: "100px",
+            maxWidth: "200px",
+            fontSize: theme.fontSizeSmaller,
+            fontFamily: theme.fontFamily2,
+            "& .MuiSelect-select": {
+              padding: "2px 24px 2px 8px",
+            },
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.vars.palette.divider,
+            },
+          }}
+        >
+          {availableModels.map((entry) => (
+            <MenuItem
+              key={entry.id}
+              value={entry.id}
+              sx={{ fontSize: theme.fontSizeSmaller, fontFamily: theme.fontFamily2 }}
             >
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={handleCreateNewSession}
-                  disabled={!isAvailable || !workspacePath}
-                  aria-label="New session"
-                  sx={{
-                    borderRadius: "8px",
-                    border: `1px solid ${theme.vars.palette.divider}`,
-                    padding: "4px 10px",
-                    gap: "4px",
-                    fontSize: theme.fontSizeSmaller,
-                    color: theme.vars.palette.text.secondary,
-                    transition: "all 0.2s ease",
-                    "&:hover": {
-                      borderColor: theme.vars.palette.primary.main,
-                      color: theme.vars.palette.primary.light,
-                      backgroundColor: `${theme.vars.palette.primary.main}0a`
-                    }
-                  }}
-                >
-                  <AddIcon sx={{ fontSize: "16px" }} />
-                  <span>New</span>
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Menu
-              anchorEl={resumeAnchorEl}
-              open={resumeMenuOpen}
-              onClose={handleResumeMenuClose}
+              {entry.label}
+            </MenuItem>
+          ))}
+        </Select>
+
+        <Box sx={{ flex: 1 }} />
+
+        <Tooltip title="Resume a previous session">
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleResumeMenuOpen}
+              disabled={!isAvailable || previousSessions.length === 0}
+              aria-label="Resume session"
+              sx={toolbarButtonSx}
             >
-              {previousSessions.map((entry) => (
-                <MenuItem
-                  key={entry.id}
-                  onClick={handleResumeSessionWithError(entry.id)}
-                >
-                  <span
-                    style={{
-                      fontFamily: theme.fontFamily2,
-                      fontSize: theme.fontSizeSmaller
-                    }}
-                  >
-                    {entry.provider === "codex" ? "Codex" : "Claude"} •{" "}
-                    {entry.id.slice(0, 12)}…
-                  </span>
-                </MenuItem>
-              ))}
-            </Menu>
-          </Box>
-        }
-      />
+              <ReplayIcon sx={{ fontSize: "14px" }} />
+              <span>Resume</span>
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={`Create a new ${providerLabel} session`}>
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleCreateNewSession}
+              disabled={!isAvailable || !workspacePath}
+              aria-label="New session"
+              sx={toolbarButtonSx}
+            >
+              <AddIcon sx={{ fontSize: "14px" }} />
+              <span>New</span>
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Menu
+          anchorEl={resumeAnchorEl}
+          open={resumeMenuOpen}
+          onClose={handleResumeMenuClose}
+        >
+          {previousSessions.map((entry) => (
+            <MenuItem
+              key={entry.id}
+              onClick={handleResumeSessionWithError(entry.id)}
+            >
+              <span
+                style={{
+                  fontFamily: theme.fontFamily2,
+                  fontSize: theme.fontSizeSmaller,
+                }}
+              >
+                {PROVIDER_LABELS[entry.provider]} •{" "}
+                {entry.summary
+                  ? entry.summary.length > 40
+                    ? entry.summary.slice(0, 40) + "…"
+                    : entry.summary
+                  : entry.id.slice(0, 12) + "…"}
+              </span>
+            </MenuItem>
+          ))}
+        </Menu>
+      </Box>
 
       <Dialog
         open={newSessionDialogOpen}
@@ -696,6 +776,7 @@ const AgentPanel: React.FC = () => {
             >
               <MenuItem value="claude">Claude</MenuItem>
               <MenuItem value="codex">Codex</MenuItem>
+              <MenuItem value="opencode">OpenCode</MenuItem>
             </Select>
           </FormControl>
 

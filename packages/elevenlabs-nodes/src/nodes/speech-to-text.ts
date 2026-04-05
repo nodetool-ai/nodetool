@@ -19,7 +19,7 @@ export class SpeechToTextNode extends BaseNode {
     language_code: "str",
     language_probability: "float",
     words: "list",
-    transcription_id: "str",
+    transcription_id: "str"
   };
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
 
@@ -27,7 +27,7 @@ export class SpeechToTextNode extends BaseNode {
     type: "audio",
     default: { type: "audio" },
     title: "Audio",
-    description: "The audio or video file to transcribe.",
+    description: "The audio or video file to transcribe."
   })
   declare audio: any;
 
@@ -36,7 +36,7 @@ export class SpeechToTextNode extends BaseNode {
     default: "scribe_v2",
     title: "Model",
     description: "The transcription model to use.",
-    values: ["scribe_v1", "scribe_v2"],
+    values: ["scribe_v1", "scribe_v2"]
   })
   declare model_id: any;
 
@@ -45,7 +45,7 @@ export class SpeechToTextNode extends BaseNode {
     default: "",
     title: "Language Code",
     description:
-      "ISO-639-1 or ISO-639-3 language code (e.g. 'en', 'es'). Leave empty for auto-detection.",
+      "ISO-639-1 or ISO-639-3 language code (e.g. 'en', 'es'). Leave empty for auto-detection."
   })
   declare language_code: any;
 
@@ -53,7 +53,7 @@ export class SpeechToTextNode extends BaseNode {
     type: "bool",
     default: true,
     title: "Tag Audio Events",
-    description: "Tag audio events like (laughter), (footsteps), etc.",
+    description: "Tag audio events like (laughter), (footsteps), etc."
   })
   declare tag_audio_events: any;
 
@@ -63,7 +63,7 @@ export class SpeechToTextNode extends BaseNode {
     title: "Num Speakers",
     description: "Maximum number of speakers (0 = auto-detect, max 32).",
     min: 0,
-    max: 32,
+    max: 32
   })
   declare num_speakers: any;
 
@@ -72,7 +72,7 @@ export class SpeechToTextNode extends BaseNode {
     default: "word",
     title: "Timestamps",
     description: "Granularity of timestamps: none, word, or character.",
-    values: ["none", "word", "character"],
+    values: ["none", "word", "character"]
   })
   declare timestamps_granularity: any;
 
@@ -80,7 +80,7 @@ export class SpeechToTextNode extends BaseNode {
     type: "bool",
     default: false,
     title: "Diarize",
-    description: "Annotate which speaker is talking.",
+    description: "Annotate which speaker is talking."
   })
   declare diarize: any;
 
@@ -90,7 +90,7 @@ export class SpeechToTextNode extends BaseNode {
     title: "File Format",
     description:
       "Audio format: pcm_s16le_16 for lower latency or other for all formats.",
-    values: ["pcm_s16le_16", "other"],
+    values: ["pcm_s16le_16", "other"]
   })
   declare file_format: any;
 
@@ -103,9 +103,7 @@ export class SpeechToTextNode extends BaseNode {
     }
 
     const modelId = String(this.model_id ?? this.model_id ?? "scribe_v2");
-    const languageCode = String(
-      this.language_code ?? this.language_code ?? ""
-    );
+    const languageCode = String(this.language_code ?? this.language_code ?? "");
     const tagAudioEvents = Boolean(
       this.tag_audio_events ?? this.tag_audio_events ?? true
     );
@@ -114,9 +112,7 @@ export class SpeechToTextNode extends BaseNode {
       this.timestamps_granularity ?? this.timestamps_granularity ?? "word"
     );
     const diarize = Boolean(this.diarize ?? this.diarize ?? false);
-    const fileFormat = String(
-      this.file_format ?? this.file_format ?? "other"
-    );
+    const fileFormat = String(this.file_format ?? this.file_format ?? "other");
 
     // Get audio bytes from data URI or fetch from URI
     let audioBytes: Buffer;
@@ -164,7 +160,7 @@ export class SpeechToTextNode extends BaseNode {
       {
         method: "POST",
         headers: { "xi-api-key": apiKey },
-        body: formData,
+        body: formData
       }
     );
 
@@ -180,7 +176,7 @@ export class SpeechToTextNode extends BaseNode {
       language_code: String(result.language_code ?? ""),
       language_probability: Number(result.language_probability ?? 0),
       words: (result.words as unknown[]) ?? [],
-      transcription_id: result.transcription_id ?? null,
+      transcription_id: result.transcription_id ?? null
     };
   }
 }

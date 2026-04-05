@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Sqrt Array"
-node_type: "lib.numpy.math.SqrtArray"
-namespace: "lib.numpy.math"
+node_type: "lib.array.math.SqrtArray"
+namespace: "lib.array.math"
 ---
 
-**Type:** `lib.numpy.math.SqrtArray`
+**Type:** `lib.array.math.SqrtArray`
 
-**Namespace:** `lib.numpy.math`
+**Namespace:** `lib.array.math`
 
 ## Description
 
@@ -35,5 +35,5 @@ Calculates the square root of the input array element-wise.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.math](../) namespace.
+Browse other nodes in the [lib.array.math](../) namespace.
 

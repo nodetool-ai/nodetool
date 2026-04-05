@@ -14,7 +14,7 @@ function makeField(overrides: Partial<FieldDef> & { name: string }): FieldDef {
     description: "",
     fieldType: "input",
     required: false,
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -30,7 +30,7 @@ function makeSpec(overrides: Partial<NodeSpec> = {}): NodeSpec {
     outputType: "image",
     outputFields: [],
     enums: [],
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -45,7 +45,7 @@ describe("NodeGenerator.generate()", () => {
     const spec = makeSpec();
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `static readonly nodeType = "replicate.image.generate.StabilityAiSdxl"`,
+      `static readonly nodeType = "replicate.image.generate.StabilityAiSdxl"`
     );
   });
 
@@ -65,7 +65,7 @@ describe("NodeGenerator.generate()", () => {
     const spec = makeSpec({ className: "BlackForestLabsFluxSchnell" });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `static readonly title = "Black Forest Labs Flux Schnell"`,
+      `static readonly title = "Black Forest Labs Flux Schnell"`
     );
   });
 
@@ -80,7 +80,7 @@ describe("NodeGenerator.generate()", () => {
     const spec = makeSpec();
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `static readonly requiredSettings = ["REPLICATE_API_TOKEN"]`,
+      `static readonly requiredSettings = ["REPLICATE_API_TOKEN"]`
     );
   });
 
@@ -124,9 +124,9 @@ describe("NodeGenerator.generate()", () => {
           name: "prompt",
           propType: "str",
           default: "",
-          description: "Input prompt",
-        }),
-      ],
+          description: "Input prompt"
+        })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(`type: "str"`);
@@ -142,9 +142,9 @@ describe("NodeGenerator.generate()", () => {
           name: "num_inference_steps",
           propType: "int",
           default: 50,
-          description: "Steps",
-        }),
-      ],
+          description: "Steps"
+        })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(`type: "int"`);
@@ -158,9 +158,9 @@ describe("NodeGenerator.generate()", () => {
           name: "guidance_scale",
           propType: "float",
           default: 7.5,
-          description: "Guidance scale",
-        }),
-      ],
+          description: "Guidance scale"
+        })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(`type: "float"`);
@@ -174,9 +174,9 @@ describe("NodeGenerator.generate()", () => {
           name: "apply_watermark",
           propType: "bool",
           default: true,
-          description: "Apply watermark",
-        }),
-      ],
+          description: "Apply watermark"
+        })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(`type: "bool"`);
@@ -194,9 +194,9 @@ describe("NodeGenerator.generate()", () => {
           default: "K_EULER",
           description: "Scheduler type",
           enumRef: "Scheduler",
-          enumValues: ["DDIM", "K_EULER", "PNDM"],
-        }),
-      ],
+          enumValues: ["DDIM", "K_EULER", "PNDM"]
+        })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(`type: "enum"`);
@@ -209,49 +209,43 @@ describe("NodeGenerator.generate()", () => {
 
   it("generates String() cast for str fields", () => {
     const spec = makeSpec({
-      inputFields: [
-        makeField({ name: "prompt", propType: "str", default: "" }),
-      ],
+      inputFields: [makeField({ name: "prompt", propType: "str", default: "" })]
     });
     const code = gen.generate(spec, "image-generate");
-    expect(code).toContain(
-      `const prompt = String(this.prompt ?? "");`,
-    );
+    expect(code).toContain(`const prompt = String(this.prompt ?? "");`);
   });
 
   it("generates Number() cast for int fields", () => {
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "num_steps", propType: "int", default: 50 }),
-      ],
+        makeField({ name: "num_steps", propType: "int", default: 50 })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
-    expect(code).toContain(
-      `const numSteps = Number(this.num_steps ?? 50);`,
-    );
+    expect(code).toContain(`const numSteps = Number(this.num_steps ?? 50);`);
   });
 
   it("generates Number() cast for float fields", () => {
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "guidance_scale", propType: "float", default: 7.5 }),
-      ],
+        makeField({ name: "guidance_scale", propType: "float", default: 7.5 })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const guidanceScale = Number(this.guidance_scale ?? 7.5);`,
+      `const guidanceScale = Number(this.guidance_scale ?? 7.5);`
     );
   });
 
   it("generates Boolean() cast for bool fields", () => {
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "apply_watermark", propType: "bool", default: true }),
-      ],
+        makeField({ name: "apply_watermark", propType: "bool", default: true })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const applyWatermark = Boolean(this.apply_watermark ?? true);`,
+      `const applyWatermark = Boolean(this.apply_watermark ?? true);`
     );
   });
 
@@ -259,8 +253,8 @@ describe("NodeGenerator.generate()", () => {
     const spec = makeSpec({
       inputFields: [
         makeField({ name: "prompt", propType: "str", default: "" }),
-        makeField({ name: "num_steps", propType: "int", default: 50 }),
-      ],
+        makeField({ name: "num_steps", propType: "int", default: 50 })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(`"prompt": prompt,`);
@@ -274,9 +268,9 @@ describe("NodeGenerator.generate()", () => {
           name: "image",
           apiParamName: "image_url",
           propType: "str",
-          default: "",
-        }),
-      ],
+          default: ""
+        })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(`"image_url"`);
@@ -291,9 +285,9 @@ describe("NodeGenerator.generate()", () => {
           name: "image",
           propType: "image",
           tsType: "image",
-          default: null,
-        }),
-      ],
+          default: null
+        })
+      ]
     });
     const code = gen.generate(spec, "image-to-image");
     expect(code).toContain(`isRefSet(imageRef)`);
@@ -308,10 +302,10 @@ describe("NodeGenerator.generate()", () => {
           name: "video",
           propType: "video",
           tsType: "video",
-          default: null,
-        }),
+          default: null
+        })
       ],
-      outputType: "video",
+      outputType: "video"
     });
     const code = gen.generate(spec, "video-to-video");
     expect(code).toContain(`isRefSet(videoRef)`);
@@ -325,10 +319,10 @@ describe("NodeGenerator.generate()", () => {
           name: "audio",
           propType: "audio",
           tsType: "audio",
-          default: null,
-        }),
+          default: null
+        })
       ],
-      outputType: "audio",
+      outputType: "audio"
     });
     const code = gen.generate(spec, "audio-to-audio");
     expect(code).toContain(`isRefSet(audioRef)`);
@@ -372,11 +366,11 @@ describe("NodeGenerator.generate()", () => {
   it("calls replicateSubmit with correct endpointId", () => {
     const spec = makeSpec({
       endpointId:
-        "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb",
+        "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb"
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `replicateSubmit(apiKey, "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb", args)`,
+      `replicateSubmit(apiKey, "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb", args)`
     );
   });
 
@@ -402,9 +396,9 @@ describe("NodeGenerator.generate()", () => {
           name: "width",
           propType: "int",
           default: 0,
-          parentField: "some_parent",
-        }),
-      ],
+          parentField: "some_parent"
+        })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).not.toContain(`declare width: any;`);
@@ -419,9 +413,9 @@ describe("NodeGenerator.generate()", () => {
         makeField({
           name: "prompt_template",
           propType: "str",
-          default: "{prompt}",
-        }),
-      ],
+          default: "{prompt}"
+        })
+      ]
     });
     const code = gen.generate(spec, "image-generate");
     // prompt_template should not appear in scalar extraction
@@ -439,10 +433,10 @@ describe("NodeGenerator.generateModule()", () => {
   it("includes BaseNode and prop imports from @nodetool/node-sdk", () => {
     const code = gen.generateModule("image-generate", [makeSpec()]);
     expect(code).toContain(
-      `import { BaseNode, prop } from "@nodetool/node-sdk"`,
+      `import { BaseNode, prop } from "@nodetool/node-sdk"`
     );
     expect(code).toContain(
-      `import type { NodeClass } from "@nodetool/node-sdk"`,
+      `import type { NodeClass } from "@nodetool/node-sdk"`
     );
   });
 
@@ -479,11 +473,11 @@ describe("NodeGenerator.generateModule()", () => {
   it("includes all class names in export array", () => {
     const spec1 = makeSpec({
       className: "StabilityAiSdxl",
-      endpointId: "stability-ai/sdxl:v1",
+      endpointId: "stability-ai/sdxl:v1"
     });
     const spec2 = makeSpec({
       className: "BlackForestLabsFluxDev",
-      endpointId: "black-forest-labs/flux-dev:v1",
+      endpointId: "black-forest-labs/flux-dev:v1"
     });
     const code = gen.generateModule("image-generate", [spec1, spec2]);
     expect(code).toContain(`StabilityAiSdxl,`);
@@ -493,13 +487,14 @@ describe("NodeGenerator.generateModule()", () => {
   it("applies module config overrides", () => {
     const spec = makeSpec({
       className: "OldName",
-      endpointId: "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb",
+      endpointId:
+        "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb"
     });
     const moduleConfig = {
       configs: {
         "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb":
-          { className: "Sdxl" } as NodeConfig,
-      },
+          { className: "Sdxl" } as NodeConfig
+      }
     };
     const code = gen.generateModule("image-generate", [spec], moduleConfig);
     expect(code).toContain(`class Sdxl`);
@@ -545,22 +540,22 @@ describe("NodeGenerator.applyConfig()", () => {
           name: "seed",
           propType: "int",
           default: 0,
-          description: "Old description",
-        }),
-      ],
+          description: "Old description"
+        })
+      ]
     });
     const result = gen.applyConfig(spec, {
-      fieldOverrides: { seed: { description: "New description" } },
+      fieldOverrides: { seed: { description: "New description" } }
     });
     expect(result.inputFields[0].description).toBe("New description");
   });
 
   it("applies field override — default value", () => {
     const spec = makeSpec({
-      inputFields: [makeField({ name: "seed", propType: "int", default: 0 })],
+      inputFields: [makeField({ name: "seed", propType: "int", default: 0 })]
     });
     const result = gen.applyConfig(spec, {
-      fieldOverrides: { seed: { default: -1 } },
+      fieldOverrides: { seed: { default: -1 } }
     });
     expect(result.inputFields[0].default).toBe(-1);
   });
@@ -568,11 +563,11 @@ describe("NodeGenerator.applyConfig()", () => {
   it("applies field override — propType change", () => {
     const spec = makeSpec({
       inputFields: [
-        makeField({ name: "image_path", propType: "str", default: "" }),
-      ],
+        makeField({ name: "image_path", propType: "str", default: "" })
+      ]
     });
     const result = gen.applyConfig(spec, {
-      fieldOverrides: { image_path: { propType: "image" } },
+      fieldOverrides: { image_path: { propType: "image" } }
     });
     expect(result.inputFields[0].propType).toBe("image");
   });
@@ -582,8 +577,8 @@ describe("NodeGenerator.applyConfig()", () => {
       name: "Scheduler",
       values: [
         ["DDIM", "DDIM"],
-        ["K_EULER", "K_EULER"],
-      ],
+        ["K_EULER", "K_EULER"]
+      ]
     };
     const spec = makeSpec({
       inputFields: [
@@ -591,13 +586,13 @@ describe("NodeGenerator.applyConfig()", () => {
           name: "scheduler",
           propType: "enum",
           enumRef: "Scheduler",
-          enumValues: ["DDIM"],
-        }),
+          enumValues: ["DDIM"]
+        })
       ],
-      enums: [enumDef],
+      enums: [enumDef]
     });
     const result = gen.applyConfig(spec, {
-      enumOverrides: { Scheduler: "SchedulerType" },
+      enumOverrides: { Scheduler: "SchedulerType" }
     });
     expect(result.enums[0].name).toBe("SchedulerType");
     expect(result.inputFields[0].enumRef).toBe("SchedulerType");
@@ -608,8 +603,8 @@ describe("NodeGenerator.applyConfig()", () => {
       name: "Refine",
       values: [
         ["NO_REFINER", "no_refiner"],
-        ["BASE_IMAGE_REFINER", "base_image_refiner"],
-      ],
+        ["BASE_IMAGE_REFINER", "base_image_refiner"]
+      ]
     };
     const spec = makeSpec({
       inputFields: [
@@ -617,15 +612,15 @@ describe("NodeGenerator.applyConfig()", () => {
           name: "refine",
           propType: "enum",
           enumRef: "Refine",
-          enumValues: ["no_refiner", "base_image_refiner"],
-        }),
+          enumValues: ["no_refiner", "base_image_refiner"]
+        })
       ],
-      enums: [enumDef],
+      enums: [enumDef]
     });
     const result = gen.applyConfig(spec, {
       enumValueOverrides: {
-        Refine: { NO_REFINER: "NONE", BASE_IMAGE_REFINER: "BASE" },
-      },
+        Refine: { NO_REFINER: "NONE", BASE_IMAGE_REFINER: "BASE" }
+      }
     });
     const keys = result.enums[0].values.map(([k]) => k);
     expect(keys).toContain("NONE");
@@ -640,9 +635,15 @@ describe("NodeGenerator.applyConfig()", () => {
   });
 
   it("does not mutate original inputFields array", () => {
-    const original = makeField({ name: "prompt", propType: "str", default: "" });
+    const original = makeField({
+      name: "prompt",
+      propType: "str",
+      default: ""
+    });
     const spec = makeSpec({ inputFields: [original] });
-    gen.applyConfig(spec, { fieldOverrides: { prompt: { description: "Changed" } } });
+    gen.applyConfig(spec, {
+      fieldOverrides: { prompt: { description: "Changed" } }
+    });
     expect(original.description).toBe("");
   });
 });

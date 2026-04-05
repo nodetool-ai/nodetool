@@ -14,6 +14,12 @@ export interface ImageGenerationOutputs {
   output: ImageRef;
 }
 
-export function imageGeneration(inputs: ImageGenerationInputs): DslNode<ImageGenerationOutputs, "output"> {
-  return createNode("gemini.image.ImageGeneration", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function imageGeneration(
+  inputs: ImageGenerationInputs
+): DslNode<ImageGenerationOutputs, "output"> {
+  return createNode(
+    "gemini.image.ImageGeneration",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }

@@ -13,7 +13,11 @@ import type { ProcessingMessage } from "@nodetool/protocol";
 function createMockProvider(
   responseOverrides?: Partial<{
     content: string;
-    toolCalls: Array<{ id: string; name: string; args: Record<string, unknown> }>;
+    toolCalls: Array<{
+      id: string;
+      name: string;
+      args: Record<string, unknown>;
+    }>;
   }>
 ) {
   const defaultResponse = {
@@ -25,19 +29,27 @@ function createMockProvider(
         name: "create_team",
         args: {
           agents: [
-            { name: "coordinator", role: "Lead coordinator", skills: ["planning"] },
-            { name: "researcher", role: "Data gatherer", skills: ["search", "analysis"] },
-          ],
-        },
-      },
-    ],
+            {
+              name: "coordinator",
+              role: "Lead coordinator",
+              skills: ["planning"]
+            },
+            {
+              name: "researcher",
+              role: "Data gatherer",
+              skills: ["search", "analysis"]
+            }
+          ]
+        }
+      }
+    ]
   };
 
   return {
     provider: "mock",
     hasToolSupport: vi.fn(async () => true),
     generateMessageTraced: vi.fn().mockResolvedValue(defaultResponse),
-    getAvailableLanguageModels: vi.fn(async () => []),
+    getAvailableLanguageModels: vi.fn(async () => [])
   } as unknown as BaseProvider;
 }
 
@@ -63,7 +75,7 @@ describe("SubAgentPlanner constructor", () => {
     const planner = new SubAgentPlanner({
       provider,
       model: "gpt-4",
-      tools: [],
+      tools: []
     });
     expect(planner).toBeDefined();
   });
@@ -72,7 +84,7 @@ describe("SubAgentPlanner constructor", () => {
     const provider = createMockProvider();
     const planner = new SubAgentPlanner({
       provider,
-      model: "gpt-4",
+      model: "gpt-4"
     });
     expect(planner).toBeDefined();
   });
@@ -87,7 +99,11 @@ describe("SubAgentPlanner.plan with successful tool call", () => {
     const { result } = await collectMessages(gen);
 
     expect(Array.isArray(result)).toBe(true);
-    const configs = result as Array<{ name: string; role: string; skills: string[] }>;
+    const configs = result as Array<{
+      name: string;
+      role: string;
+      skills: string[];
+    }>;
     expect(configs).toHaveLength(2);
     expect(configs[0].name).toBe("coordinator");
     expect(configs[1].name).toBe("researcher");
@@ -101,7 +117,9 @@ describe("SubAgentPlanner.plan with successful tool call", () => {
     const gen = planner.plan("Build a website", 2);
     const { messages } = await collectMessages(gen);
 
-    const planningUpdates = messages.filter((m) => m.type === "planning_update");
+    const planningUpdates = messages.filter(
+      (m) => m.type === "planning_update"
+    );
     expect(planningUpdates.length).toBeGreaterThanOrEqual(2);
 
     // First should be initialization
@@ -110,7 +128,9 @@ describe("SubAgentPlanner.plan with successful tool call", () => {
     expect(initMsg.status).toBe("started");
 
     // Should have a completion message
-    const completeMsg = planningUpdates.find((m: any) => m.phase === "complete");
+    const completeMsg = planningUpdates.find(
+      (m: any) => m.phase === "complete"
+    );
     expect(completeMsg).toBeDefined();
   });
 });
@@ -119,18 +139,20 @@ describe("SubAgentPlanner.plan with text response (JSON extraction)", () => {
   it("extracts team from JSON in text when no tool call", async () => {
     const provider = createMockProvider({
       content: JSON.stringify({
-        agents: [
-          { name: "analyst", role: "Data analyst", skills: ["data"] },
-        ],
+        agents: [{ name: "analyst", role: "Data analyst", skills: ["data"] }]
       }),
-      toolCalls: [],
+      toolCalls: []
     });
     const planner = new SubAgentPlanner({ provider, model: "gpt-4" });
 
     const gen = planner.plan("Analyze data", 1);
     const { result } = await collectMessages(gen);
 
-    const configs = result as Array<{ name: string; role: string; skills: string[] }>;
+    const configs = result as Array<{
+      name: string;
+      role: string;
+      skills: string[];
+    }>;
     expect(configs).toHaveLength(1);
     expect(configs[0].name).toBe("analyst");
   });
@@ -140,7 +162,7 @@ describe("SubAgentPlanner.plan fallback", () => {
   it("falls back to generic agents after retries exhausted", async () => {
     const provider = createMockProvider({
       content: "I don't understand",
-      toolCalls: [],
+      toolCalls: []
     });
     // Make extractJSON return null for this text
     const planner = new SubAgentPlanner({ provider, model: "gpt-4" });
@@ -148,7 +170,11 @@ describe("SubAgentPlanner.plan fallback", () => {
     const gen = planner.plan("Do something", 3);
     const { messages, result } = await collectMessages(gen);
 
-    const configs = result as Array<{ name: string; role: string; skills: string[] }>;
+    const configs = result as Array<{
+      name: string;
+      role: string;
+      skills: string[];
+    }>;
     expect(configs.length).toBeGreaterThan(0);
     // Should be fallback agents
     expect(configs[0].name).toBe("coordinator");
@@ -161,7 +187,7 @@ describe("SubAgentPlanner.plan fallback", () => {
   it("fallback agents are limited to requested count", async () => {
     const provider = createMockProvider({
       content: "no valid JSON here",
-      toolCalls: [],
+      toolCalls: []
     });
     const planner = new SubAgentPlanner({ provider, model: "gpt-4" });
 
@@ -175,7 +201,7 @@ describe("SubAgentPlanner.plan fallback", () => {
   it("fallback returns at most 4 agents even if more requested", async () => {
     const provider = createMockProvider({
       content: "invalid",
-      toolCalls: [],
+      toolCalls: []
     });
     const planner = new SubAgentPlanner({ provider, model: "gpt-4" });
 
@@ -204,10 +230,10 @@ describe("SubAgentPlanner.plan error handling", () => {
             id: "tc_1",
             name: "create_team",
             args: {
-              agents: [{ name: "recovered", role: "test", skills: ["test"] }],
-            },
-          },
-        ],
+              agents: [{ name: "recovered", role: "test", skills: ["test"] }]
+            }
+          }
+        ]
       };
     });
 
@@ -228,10 +254,14 @@ describe("SubAgentPlanner.plan with tools info", () => {
       description: "Search the web",
       inputSchema: {},
       process: vi.fn(),
-      toProviderTool: vi.fn(),
+      toProviderTool: vi.fn()
     } as any;
 
-    const planner = new SubAgentPlanner({ provider, model: "gpt-4", tools: [tool] });
+    const planner = new SubAgentPlanner({
+      provider,
+      model: "gpt-4",
+      tools: [tool]
+    });
     const gen = planner.plan("Research topic", 2);
     await collectMessages(gen);
 
@@ -253,10 +283,10 @@ describe("SubAgentPlanner agent config mapping", () => {
           id: "tc_1",
           name: "create_team",
           args: {
-            agents: [{ role: "helper", skills: ["help"] }],
-          },
-        },
-      ],
+            agents: [{ role: "helper", skills: ["help"] }]
+          }
+        }
+      ]
     });
     const planner = new SubAgentPlanner({ provider, model: "gpt-4" });
     const gen = planner.plan("test", 1);
@@ -273,10 +303,10 @@ describe("SubAgentPlanner agent config mapping", () => {
           id: "tc_1",
           name: "create_team",
           args: {
-            agents: [{ name: "bot", skills: ["stuff"] }],
-          },
-        },
-      ],
+            agents: [{ name: "bot", skills: ["stuff"] }]
+          }
+        }
+      ]
     });
     const planner = new SubAgentPlanner({ provider, model: "gpt-4" });
     const gen = planner.plan("test", 1);
@@ -293,10 +323,10 @@ describe("SubAgentPlanner agent config mapping", () => {
           id: "tc_1",
           name: "create_team",
           args: {
-            agents: [{ name: "bot", role: "helper", skills: "not-an-array" }],
-          },
-        },
-      ],
+            agents: [{ name: "bot", role: "helper", skills: "not-an-array" }]
+          }
+        }
+      ]
     });
     const planner = new SubAgentPlanner({ provider, model: "gpt-4" });
     const gen = planner.plan("test", 1);

@@ -8,20 +8,14 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { pack, unpack } from "msgpackr";
-import {
-  initTestDb,
-  Thread,
-  Message,
-  Workflow,
-  Job,
-} from "@nodetool/models";
+import { initTestDb, Thread, Message, Workflow, Job } from "@nodetool/models";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
-  type WebSocketReceiveFrame,
+  type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
 
 class MockWebSocket implements WebSocketConnection {
@@ -93,7 +87,12 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
     process.env.LLAMA_CPP_CACHE_DIR = llamaCacheDir;
 
     // Create llama.cpp cache structure: models--test--gguf/snapshots/abc123/model.gguf
-    const snapshotDir = join(llamaCacheDir, "models--test--gguf", "snapshots", "abc123");
+    const snapshotDir = join(
+      llamaCacheDir,
+      "models--test--gguf",
+      "snapshots",
+      "abc123"
+    );
     await mkdir(snapshotDir, { recursive: true });
     await writeFile(join(snapshotDir, "model.gguf"), "fake-model-data");
 
@@ -107,13 +106,16 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
             key: "k-llama-found",
             repo_id: "test/gguf",
             model_type: "llama_cpp",
-            path: "model.gguf",
-          },
-        ]),
+            path: "model.gguf"
+          }
+        ])
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await res!.json()) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await res!.json()) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].downloaded).toBe(true);
   });
 
@@ -123,7 +125,12 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
 
     // File is at basename level: models--test--gguf/snapshots/snap1/model.gguf
     // but path requested is "subdir/model.gguf"
-    const snapshotDir = join(llamaCacheDir, "models--test--gguf2", "snapshots", "snap1");
+    const snapshotDir = join(
+      llamaCacheDir,
+      "models--test--gguf2",
+      "snapshots",
+      "snap1"
+    );
     await mkdir(snapshotDir, { recursive: true });
     await writeFile(join(snapshotDir, "model.gguf"), "fake-data");
 
@@ -137,13 +144,16 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
             key: "k-basename",
             repo_id: "test/gguf2",
             model_type: "llama_cpp_model",
-            path: "subdir/model.gguf",
-          },
-        ]),
+            path: "subdir/model.gguf"
+          }
+        ])
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await res!.json()) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await res!.json()) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].downloaded).toBe(true);
   });
 
@@ -152,7 +162,11 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
     process.env.LLAMA_CPP_CACHE_DIR = llamaCacheDir;
 
     // Create a file (not directory) in snapshots
-    const snapshotsDir = join(llamaCacheDir, "models--test--gguf3", "snapshots");
+    const snapshotsDir = join(
+      llamaCacheDir,
+      "models--test--gguf3",
+      "snapshots"
+    );
     await mkdir(snapshotsDir, { recursive: true });
     await writeFile(join(snapshotsDir, "not-a-dir"), "file");
 
@@ -166,13 +180,16 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
             key: "k-skipfile",
             repo_id: "test/gguf3",
             model_type: "hf.gguf",
-            path: "model.gguf",
-          },
-        ]),
+            path: "model.gguf"
+          }
+        ])
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await res!.json()) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await res!.json()) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].downloaded).toBe(false);
   });
 
@@ -189,13 +206,16 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
             key: "k-nodir",
             repo_id: "test/gguf-nodir",
             model_type: "llama_cpp",
-            path: "model.gguf",
-          },
-        ]),
+            path: "model.gguf"
+          }
+        ])
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await res!.json()) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await res!.json()) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].downloaded).toBe(false);
   });
 
@@ -205,7 +225,13 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
     const hfCache = join(tempDir, "hf-walk");
     process.env.HUGGINGFACE_HUB_CACHE = hfCache;
 
-    const snapshotDir = join(hfCache, "hub", "models--test--walk", "snapshots", "snap1");
+    const snapshotDir = join(
+      hfCache,
+      "hub",
+      "models--test--walk",
+      "snapshots",
+      "snap1"
+    );
     await mkdir(join(snapshotDir, "subdir"), { recursive: true });
     await writeFile(join(snapshotDir, "config.json"), "{}");
     await writeFile(join(snapshotDir, "subdir", "model.safetensors"), "data");
@@ -217,12 +243,15 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           repo_id: "test/walk",
-          allow_pattern: "*.safetensors",
-        }),
+          allow_pattern: "*.safetensors"
+        })
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await res!.json()) as { all_present: boolean; total_files: number };
+    const data = (await res!.json()) as {
+      all_present: boolean;
+      total_files: number;
+    };
     expect(data.total_files).toBe(2);
     expect(data.all_present).toBe(true);
   });
@@ -231,7 +260,13 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
     const hfCache = join(tempDir, "hf-file-cache");
     process.env.HUGGINGFACE_HUB_CACHE = hfCache;
 
-    const snapshotDir = join(hfCache, "hub", "models--test--repo-file", "snapshots", "snap1");
+    const snapshotDir = join(
+      hfCache,
+      "hub",
+      "models--test--repo-file",
+      "snapshots",
+      "snap1"
+    );
     await mkdir(snapshotDir, { recursive: true });
     await writeFile(join(snapshotDir, "model.bin"), "data");
 
@@ -240,7 +275,7 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
       new Request("http://localhost/api/models/huggingface/try_cache_files", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify([{ repo_id: "test/repo-file", path: "model.bin" }]),
+        body: JSON.stringify([{ repo_id: "test/repo-file", path: "model.bin" }])
       })
     );
     expect(res!.status).toBe(200);
@@ -254,7 +289,13 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
     const hfCache = join(tempDir, "hf-for-llama");
     process.env.HUGGINGFACE_HUB_CACHE = hfCache;
 
-    const snapshotDir = join(hfCache, "hub", "models--test--hf-llama", "snapshots", "snap1");
+    const snapshotDir = join(
+      hfCache,
+      "hub",
+      "models--test--hf-llama",
+      "snapshots",
+      "snap1"
+    );
     await mkdir(snapshotDir, { recursive: true });
     await writeFile(join(snapshotDir, "model.gguf"), "data");
 
@@ -268,13 +309,16 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
             key: "k-hf-llama",
             repo_id: "test/hf-llama",
             model_type: "llama_cpp",
-            path: "model.gguf",
-          },
-        ]),
+            path: "model.gguf"
+          }
+        ])
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await res!.json()) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await res!.json()) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].downloaded).toBe(true);
   });
 
@@ -282,7 +326,13 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
     const hfCache = join(tempDir, "hf-has-cached");
     process.env.HUGGINGFACE_HUB_CACHE = hfCache;
 
-    const snapshotDir = join(hfCache, "hub", "models--test--has-cached", "snapshots", "snap1");
+    const snapshotDir = join(
+      hfCache,
+      "hub",
+      "models--test--has-cached",
+      "snapshots",
+      "snap1"
+    );
     await mkdir(snapshotDir, { recursive: true });
     await writeFile(join(snapshotDir, "file.bin"), "data");
 
@@ -291,7 +341,7 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
       new Request("http://localhost/api/models/huggingface/try_cache_repos", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(["test/has-cached"]),
+        body: JSON.stringify(["test/has-cached"])
       })
     );
     expect(res!.status).toBe(200);
@@ -303,7 +353,13 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
     const hfCache = join(tempDir, "hf-patterns");
     process.env.HUGGINGFACE_HUB_CACHE = hfCache;
 
-    const snapshotDir = join(hfCache, "hub", "models--test--patterns", "snapshots", "snap1");
+    const snapshotDir = join(
+      hfCache,
+      "hub",
+      "models--test--patterns",
+      "snapshots",
+      "snap1"
+    );
     await mkdir(snapshotDir, { recursive: true });
     await writeFile(join(snapshotDir, "model.safetensors"), "data");
     await writeFile(join(snapshotDir, "model.bin"), "data");
@@ -318,13 +374,16 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
             key: "k-patterns",
             repo_id: "test/patterns",
             allow_patterns: ["*.safetensors"],
-            ignore_patterns: ["*.bin"],
-          },
-        ]),
+            ignore_patterns: ["*.bin"]
+          }
+        ])
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await res!.json()) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await res!.json()) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].downloaded).toBe(true);
   });
 });
@@ -343,23 +402,28 @@ describe("UnifiedWebSocketRunner: stream_input success path", () => {
         async process() {
           await new Promise((r) => setTimeout(r, 5000));
           return {};
-        },
-      }),
+        }
+      })
     });
     await runner.connect(ws);
 
     const graph = {
       nodes: [{ id: "n1", type: "test.SlowNode", name: "n1" }],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = status.active_jobs[0]?.job_id;
 
     if (jobId) {
       const result = await runner.handleCommand({
         command: "stream_input",
-        data: { job_id: jobId, input: "my_input", value: "hello", handle: "h1" },
+        data: { job_id: jobId, input: "my_input", value: "hello", handle: "h1" }
       });
       expect(result.message || result.error).toBeDefined();
     }
@@ -378,33 +442,38 @@ describe("UnifiedWebSocketRunner: chat_message stale sequence", () => {
   it("skips processing when requestSeq is stale", async () => {
     const ws = new MockWebSocket();
     const runner = new UnifiedWebSocketRunner({
-      resolveExecutor: () => ({ async process() { return {}; } }),
-      resolveProvider: async () => ({
-        provider: "mock",
-        generateMessages: async function* () {
-          yield { type: "chunk" as const, content: "Hello!" };
-        },
-        generateMessage: vi.fn(),
-        hasToolSupport: async () => false,
-        getAvailableLanguageModels: async () => [],
-        getAvailableImageModels: async () => [],
-        getAvailableVideoModels: async () => [],
-        getAvailableTTSModels: async () => [],
-        getAvailableASRModels: async () => [],
-        getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({}),
-      } as any),
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      }),
+      resolveProvider: async () =>
+        ({
+          provider: "mock",
+          generateMessages: async function* () {
+            yield { type: "chunk" as const, content: "Hello!" };
+          },
+          generateMessage: vi.fn(),
+          hasToolSupport: async () => false,
+          getAvailableLanguageModels: async () => [],
+          getAvailableImageModels: async () => [],
+          getAvailableVideoModels: async () => [],
+          getAvailableTTSModels: async () => [],
+          getAvailableASRModels: async () => [],
+          getAvailableEmbeddingModels: async () => [],
+          getContainerEnv: () => ({})
+        }) as any
     });
     await runner.connect(ws);
 
     // Send two chat messages rapidly - the first should be superseded
     await runner.handleCommand({
       command: "chat_message",
-      data: { thread_id: "t1", content: "first" },
+      data: { thread_id: "t1", content: "first" }
     });
     await runner.handleCommand({
       command: "chat_message",
-      data: { thread_id: "t1", content: "second" },
+      data: { thread_id: "t1", content: "second" }
     });
 
     await new Promise((r) => setTimeout(r, 150));
@@ -426,12 +495,12 @@ describe("HTTP API: /v1/ and /api/oauth/ routing from handleApiRequest", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-user-id": "user-1",
+          "x-user-id": "user-1"
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          messages: [{ role: "user", content: "hi" }],
-        }),
+          messages: [{ role: "user", content: "hi" }]
+        })
       })
     );
     expect(res).toBeDefined();
@@ -442,7 +511,7 @@ describe("HTTP API: /v1/ and /api/oauth/ routing from handleApiRequest", () => {
     const { handleApiRequest } = await import("../src/http-api.js");
     const res = await handleApiRequest(
       new Request("http://localhost/v1/models", {
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res).toBeDefined();
@@ -453,7 +522,7 @@ describe("HTTP API: /v1/ and /api/oauth/ routing from handleApiRequest", () => {
     const { handleApiRequest } = await import("../src/http-api.js");
     const res = await handleApiRequest(
       new Request("http://localhost/api/oauth/hf/tokens", {
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res).toBeDefined();
@@ -477,9 +546,12 @@ describe("OAuth API: GitHub start host handling", () => {
 
   it("handles host with protocol prefix in GitHub start", async () => {
     const { handleOAuthRequest } = await import("../src/oauth-api.js");
-    const request = new Request("http://localhost:7777/api/oauth/github/start", {
-      headers: { host: "http://example.com" },
-    });
+    const request = new Request(
+      "http://localhost:7777/api/oauth/github/start",
+      {
+        headers: { host: "http://example.com" }
+      }
+    );
     const response = await handleOAuthRequest(
       request,
       "/api/oauth/github/start",
@@ -493,9 +565,12 @@ describe("OAuth API: GitHub start host handling", () => {
 
   it("handles 127.0.0.1 host in GitHub start (replaces with localhost)", async () => {
     const { handleOAuthRequest } = await import("../src/oauth-api.js");
-    const request = new Request("http://127.0.0.1:7777/api/oauth/github/start", {
-      headers: { host: "127.0.0.1:7777" },
-    });
+    const request = new Request(
+      "http://127.0.0.1:7777/api/oauth/github/start",
+      {
+        headers: { host: "127.0.0.1:7777" }
+      }
+    );
     const response = await handleOAuthRequest(
       request,
       "/api/oauth/github/start",
@@ -511,9 +586,12 @@ describe("OAuth API: GitHub start host handling", () => {
 
   it("uses https for non-localhost host in GitHub start", async () => {
     const { handleOAuthRequest } = await import("../src/oauth-api.js");
-    const request = new Request("https://myapp.example.com/api/oauth/github/start", {
-      headers: { host: "myapp.example.com" },
-    });
+    const request = new Request(
+      "https://myapp.example.com/api/oauth/github/start",
+      {
+        headers: { host: "myapp.example.com" }
+      }
+    );
     const response = await handleOAuthRequest(
       request,
       "/api/oauth/github/start",
@@ -554,14 +632,15 @@ describe("OAuth API: GitHub tokens", () => {
 
 describe("RunCodeTool: truncate and typescript path", () => {
   it("truncates very large output", async () => {
-    const { RunCodeTool } = await import("../../agents/src/tools/code-tools.js");
+    const { RunCodeTool } =
+      await import("../../agents/src/tools/code-tools.js");
     const tool = new RunCodeTool();
     const mockContext = {} as any;
 
     // Generate output larger than MAX_OUTPUT_CHARS (50000)
     const result = await tool.process(mockContext, {
       language: "javascript",
-      code: `process.stdout.write("x".repeat(60000))`,
+      code: `process.stdout.write("x".repeat(60000))`
     });
     expect(result.exitCode).toBe(0);
     if (result.stdout.length > 50000) {
@@ -570,13 +649,14 @@ describe("RunCodeTool: truncate and typescript path", () => {
   }, 15000);
 
   it("executes TypeScript code", async () => {
-    const { RunCodeTool } = await import("../../agents/src/tools/code-tools.js");
+    const { RunCodeTool } =
+      await import("../../agents/src/tools/code-tools.js");
     const tool = new RunCodeTool({ timeoutMs: 30000 });
     const mockContext = {} as any;
 
     const result = await tool.process(mockContext, {
       language: "typescript",
-      code: 'const x: string = "hello ts"; console.log(x)',
+      code: 'const x: string = "hello ts"; console.log(x)'
     });
     // npx tsx may or may not be available, but the code path will be exercised
     if (result.exitCode === 0) {

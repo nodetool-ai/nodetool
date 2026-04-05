@@ -43,20 +43,20 @@ function createMockChannel(opts?: {
       on(event: string, listener: (...args: unknown[]) => void) {
         if (!stderrListeners[event]) stderrListeners[event] = [];
         stderrListeners[event].push(listener);
-      },
+      }
     },
-    close: vi.fn(),
+    close: vi.fn()
   };
   return channel;
 }
 
 function createMockSftp() {
   return {
-    fastPut: vi.fn(
-      (_l: string, _r: string, cb: (err?: Error) => void) => cb(undefined)
+    fastPut: vi.fn((_l: string, _r: string, cb: (err?: Error) => void) =>
+      cb(undefined)
     ),
-    fastGet: vi.fn(
-      (_r: string, _l: string, cb: (err?: Error) => void) => cb(undefined)
+    fastGet: vi.fn((_r: string, _l: string, cb: (err?: Error) => void) =>
+      cb(undefined)
     ),
     createWriteStream: vi.fn((_remotePath: string) => {
       const wsListeners: Record<string, ((...args: unknown[]) => void)[]> = {};
@@ -70,18 +70,18 @@ function createMockSftp() {
           Promise.resolve().then(() => {
             for (const fn of wsListeners["close"] ?? []) fn();
           });
-        },
+        }
       };
     }),
     stat: vi.fn((_r: string, cb: (err?: Error) => void) => cb(undefined)),
-    chmod: vi.fn(
-      (_r: string, _m: number, cb: (err?: Error) => void) => cb(undefined)
+    chmod: vi.fn((_r: string, _m: number, cb: (err?: Error) => void) =>
+      cb(undefined)
     ),
-    mkdir: vi.fn(
-      (_r: string, _a: object, cb: (err?: Error) => void) => cb(undefined)
+    mkdir: vi.fn((_r: string, _a: object, cb: (err?: Error) => void) =>
+      cb(undefined)
     ),
     rmdir: vi.fn((_r: string, cb: (err?: Error) => void) => cb(undefined)),
-    end: vi.fn(),
+    end: vi.fn()
   };
 }
 
@@ -116,14 +116,12 @@ function createMockClientInternal() {
         cb(undefined, ch);
       }
     ),
-    sftp: vi.fn(
-      (cb: (err: Error | undefined, sftp: unknown) => void) => {
-        currentSftp = createMockSftp();
-        cb(undefined, currentSftp);
-      }
-    ),
+    sftp: vi.fn((cb: (err: Error | undefined, sftp: unknown) => void) => {
+      currentSftp = createMockSftp();
+      cb(undefined, currentSftp);
+    }),
     end: vi.fn(),
-    _sock: { writable: true },
+    _sock: { writable: true }
   };
   return client;
 }
@@ -135,7 +133,7 @@ vi.mock("node:fs", async (importOriginal) => {
     ...actual,
     existsSync: vi.fn(actual.existsSync),
     readFileSync: vi.fn(actual.readFileSync),
-    mkdirSync: vi.fn(),
+    mkdirSync: vi.fn()
   };
 });
 
@@ -151,7 +149,7 @@ import {
   SSHConnection,
   SSHConnectionError,
   SSHCommandError,
-  withSSHConnection,
+  withSSHConnection
 } from "../src/ssh.js";
 import type { SSHConnectionOptions } from "../src/ssh.js";
 
@@ -173,7 +171,7 @@ const mockSsh2Module = {
       currentClient = createMockClientInternal();
       return currentClient as unknown;
     }
-  },
+  }
 };
 
 // For CJS require() interop, inject into require.cache
@@ -191,7 +189,7 @@ if (resolvedSsh2Path) {
     id: resolvedSsh2Path,
     filename: resolvedSsh2Path,
     loaded: true,
-    exports: mockSsh2Module,
+    exports: mockSsh2Module
   } as NodeModule;
 } else {
   // ssh2 is not installed, so create a synthetic cache entry
@@ -214,7 +212,7 @@ const baseOpts: SSHConnectionOptions = {
   port: 22,
   timeout: 5,
   retryAttempts: 1,
-  retryDelay: 0,
+  retryDelay: 0
 };
 
 beforeEach(() => {
@@ -287,7 +285,7 @@ describe("SSHConnection constructor", () => {
     const conn = new SSHConnection({
       host: "h",
       user: "u",
-      keyPath: "/path/key",
+      keyPath: "/path/key"
     });
     expect(conn.keyPath).toBe("/path/key");
   });
@@ -331,7 +329,7 @@ describe("SSHConnection.connect", () => {
       host: "h",
       user: "u",
       retryAttempts: 1,
-      retryDelay: 0,
+      retryDelay: 0
     });
     await conn.connect();
     const config = currentClient.connect.mock.calls[0][0] as Record<
@@ -348,7 +346,7 @@ describe("SSHConnection.connect", () => {
     const conn = new SSHConnection({
       ...baseOpts,
       password: undefined,
-      keyPath: "/nonexistent/key",
+      keyPath: "/nonexistent/key"
     });
     await expect(conn.connect()).rejects.toThrow(SSHConnectionError);
     await expect(conn.connect()).rejects.toThrow("SSH key not found");
@@ -360,7 +358,7 @@ describe("SSHConnection.connect", () => {
     const conn = new SSHConnection({
       ...baseOpts,
       password: undefined,
-      keyPath: "/home/user/.ssh/id_rsa",
+      keyPath: "/home/user/.ssh/id_rsa"
     });
     await conn.connect();
     const config = currentClient.connect.mock.calls[0][0] as Record<
@@ -377,7 +375,7 @@ describe("SSHConnection.connect", () => {
     const conn = new SSHConnection({
       ...baseOpts,
       password: undefined,
-      keyPath: "~/.ssh/id_rsa",
+      keyPath: "~/.ssh/id_rsa"
     });
     await conn.connect();
     const expectedPath = path.join(os.homedir(), ".ssh/id_rsa");
@@ -391,7 +389,7 @@ describe("SSHConnection.connect", () => {
     const conn = new SSHConnection({
       ...baseOpts,
       retryAttempts: 2,
-      retryDelay: 0,
+      retryDelay: 0
     });
     await expect(conn.connect()).rejects.toThrow(SSHConnectionError);
   });
@@ -401,7 +399,7 @@ describe("SSHConnection.connect", () => {
     const conn = new SSHConnection({
       ...baseOpts,
       retryAttempts: 1,
-      retryDelay: 0,
+      retryDelay: 0
     });
     try {
       await conn.connect();
@@ -426,7 +424,9 @@ describe("SSHConnection.disconnect", () => {
     const conn = new SSHConnection(baseOpts);
     await conn.connect();
     // Trigger sftp creation by accessing private method
-    const getSftp = (conn as unknown as { getSftp(): Promise<unknown> }).getSftp.bind(conn);
+    const getSftp = (
+      conn as unknown as { getSftp(): Promise<unknown> }
+    ).getSftp.bind(conn);
     await getSftp();
     const sftp = currentSftp;
     conn.disconnect();
@@ -515,7 +515,7 @@ describe("SSHConnection.execute", () => {
           createMockChannel({
             exitCode: 1,
             stdout: "partial",
-            stderr: "error detail",
+            stderr: "error detail"
           })
         );
       }
@@ -556,34 +556,32 @@ describe("SSHConnection.execute", () => {
 
   it("should handle timeout", async () => {
     currentClient.exec.mockImplementation(
-      (
-        _cmd: string,
-        cb: (err: Error | undefined, ch: unknown) => void
-      ) => {
+      (_cmd: string, cb: (err: Error | undefined, ch: unknown) => void) => {
         // Create a channel that never fires close
         const ch = {
-          on(_event: string, _listener: Function) { return ch; },
+          on(_event: string, _listener: Function) {
+            return ch;
+          },
           stderr: { on(_event: string, _listener: Function) {} },
-          close: vi.fn(),
+          close: vi.fn()
         };
         cb(undefined, ch);
       }
     );
-    await expect(
-      conn.execute("sleep 100", { timeout: 0.05 })
-    ).rejects.toThrow(SSHCommandError);
+    await expect(conn.execute("sleep 100", { timeout: 0.05 })).rejects.toThrow(
+      SSHCommandError
+    );
   });
 
   it("should include timeout info in error", async () => {
     currentClient.exec.mockImplementation(
-      (
-        _cmd: string,
-        cb: (err: Error | undefined, ch: unknown) => void
-      ) => {
+      (_cmd: string, cb: (err: Error | undefined, ch: unknown) => void) => {
         const ch = {
-          on(_event: string, _listener: Function) { return ch; },
+          on(_event: string, _listener: Function) {
+            return ch;
+          },
           stderr: { on(_event: string, _listener: Function) {} },
-          close: vi.fn(),
+          close: vi.fn()
         };
         cb(undefined, ch);
       }
@@ -710,7 +708,7 @@ describe("SSHConnection SFTP operations", () => {
   it("downloadFile should create local directory", async () => {
     await conn.downloadFile("/remote/file.txt", "/local/deep/dir/file.txt");
     expect(mockedMkdirSync).toHaveBeenCalledWith("/local/deep/dir", {
-      recursive: true,
+      recursive: true
     });
   });
 

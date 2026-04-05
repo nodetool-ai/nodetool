@@ -116,7 +116,7 @@ export class WorkflowSyncer {
             repoId,
             filePath: model.path ?? undefined,
             ignorePatterns: model.ignore_patterns ?? undefined,
-            allowPatterns: model.allow_patterns ?? undefined,
+            allowPatterns: model.allow_patterns ?? undefined
           })) {
             lastStatus = progress["status"] as string | undefined;
             if (lastStatus === "downloading") {
@@ -140,9 +140,7 @@ export class WorkflowSyncer {
         ) {
           const modelId = model.id;
           if (!modelId) {
-            console.error(
-              "  Error: model id is required for Ollama models"
-            );
+            console.error("  Error: model id is required for Ollama models");
             continue;
           }
           console.log(`  Downloading Ollama model: ${modelId}`);
@@ -236,7 +234,7 @@ export class WorkflowSyncer {
           contentType: asset.content_type,
           parentId: asset.parent_id ?? undefined,
           workflowId: asset.workflow_id ?? undefined,
-          metadata: asset.metadata ?? undefined,
+          metadata: asset.metadata ?? undefined
         });
 
         // Upload asset file if it's not a folder

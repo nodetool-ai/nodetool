@@ -1,13 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  initTestDb,
-  OAuthCredential,
-} from "@nodetool/models";
+import { initTestDb, OAuthCredential } from "@nodetool/models";
 import {
   generatePkcePair,
   generateState,
   oauthStateStore,
-  handleOAuthRequest,
+  handleOAuthRequest
 } from "../src/oauth-api.js";
 
 function getUserId(): string {
@@ -65,7 +62,7 @@ describe("OAuth state store TTL", () => {
       userId: "u1",
       codeVerifier: "verifier",
       redirectUri: "http://localhost/callback",
-      createdAt: Date.now(),
+      createdAt: Date.now()
     });
 
     expect(oauthStateStore.has("test-state")).toBe(true);
@@ -82,13 +79,13 @@ describe("OAuth API: HuggingFace endpoints", () => {
 
   it("GET /api/oauth/hf/start returns auth_url", async () => {
     const request = new Request("http://localhost:7777/api/oauth/hf/start", {
-      headers: { "x-user-id": "test-user-1", host: "localhost:7777" },
+      headers: { "x-user-id": "test-user-1", host: "localhost:7777" }
     });
 
     const response = await handleOAuthRequest(
       request,
       "/api/oauth/hf/start",
-      getUserId,
+      getUserId
     );
 
     expect(response).not.toBeNull();
@@ -109,7 +106,7 @@ describe("OAuth API: HuggingFace endpoints", () => {
     const response = await handleOAuthRequest(
       new Request("http://localhost:7777/api/oauth/hf/tokens"),
       "/api/oauth/hf/tokens",
-      getUserId,
+      getUserId
     );
 
     expect(response).not.toBeNull();
@@ -125,7 +122,7 @@ describe("OAuth API: HuggingFace endpoints", () => {
     const response = await handleOAuthRequest(
       new Request("http://localhost:7777/api/oauth/hf/callback"),
       "/api/oauth/hf/callback",
-      getUserId,
+      getUserId
     );
 
     expect(response).not.toBeNull();
@@ -138,10 +135,10 @@ describe("OAuth API: HuggingFace endpoints", () => {
   it("GET /api/oauth/hf/callback with error param returns error HTML", async () => {
     const response = await handleOAuthRequest(
       new Request(
-        "http://localhost:7777/api/oauth/hf/callback?error=access_denied&error_description=User+denied",
+        "http://localhost:7777/api/oauth/hf/callback?error=access_denied&error_description=User+denied"
       ),
       "/api/oauth/hf/callback",
-      getUserId,
+      getUserId
     );
 
     expect(response).not.toBeNull();
@@ -153,10 +150,10 @@ describe("OAuth API: HuggingFace endpoints", () => {
   it("GET /api/oauth/hf/callback with invalid state returns error HTML", async () => {
     const response = await handleOAuthRequest(
       new Request(
-        "http://localhost:7777/api/oauth/hf/callback?code=abc&state=invalid",
+        "http://localhost:7777/api/oauth/hf/callback?code=abc&state=invalid"
       ),
       "/api/oauth/hf/callback",
-      getUserId,
+      getUserId
     );
 
     expect(response).not.toBeNull();
@@ -169,7 +166,7 @@ describe("OAuth API: HuggingFace endpoints", () => {
     const response = await handleOAuthRequest(
       new Request("http://localhost:7777/api/oauth/unknown"),
       "/api/oauth/unknown",
-      getUserId,
+      getUserId
     );
     expect(response).toBeNull();
   });
@@ -188,14 +185,14 @@ describe("OAuth API: GitHub endpoints", () => {
     const request = new Request(
       "http://localhost:7777/api/oauth/github/start",
       {
-        headers: { host: "localhost:7777" },
-      },
+        headers: { host: "localhost:7777" }
+      }
     );
 
     const response = await handleOAuthRequest(
       request,
       "/api/oauth/github/start",
-      getUserId,
+      getUserId
     );
 
     expect(response).not.toBeNull();
@@ -211,14 +208,14 @@ describe("OAuth API: GitHub endpoints", () => {
     const request = new Request(
       "http://localhost:7777/api/oauth/github/start",
       {
-        headers: { host: "localhost:7777" },
-      },
+        headers: { host: "localhost:7777" }
+      }
     );
 
     const response = await handleOAuthRequest(
       request,
       "/api/oauth/github/start",
-      getUserId,
+      getUserId
     );
 
     expect(response).not.toBeNull();
@@ -235,7 +232,7 @@ describe("OAuth API: GitHub endpoints", () => {
     const response = await handleOAuthRequest(
       new Request("http://localhost:7777/api/oauth/github/tokens"),
       "/api/oauth/github/tokens",
-      getUserId,
+      getUserId
     );
 
     expect(response).not.toBeNull();
@@ -265,7 +262,7 @@ describe("OAuthCredential model CRUD", () => {
       token_type: "Bearer",
       scope: "openid read-repos",
       received_at: now,
-      expires_at: null,
+      expires_at: null
     });
 
     expect(cred.user_id).toBe("u1");
@@ -288,7 +285,7 @@ describe("OAuthCredential model CRUD", () => {
       account_id: "acc123",
       access_token: "token1",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     const cred2 = await OAuthCredential.upsert({
@@ -297,7 +294,7 @@ describe("OAuthCredential model CRUD", () => {
       account_id: "acc123",
       access_token: "token2",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     expect(cred2.id).toBe(cred1.id);
@@ -310,7 +307,7 @@ describe("OAuthCredential model CRUD", () => {
     const result = await OAuthCredential.findByAccount(
       "u1",
       "huggingface",
-      "nonexistent",
+      "nonexistent"
     );
     expect(result).toBeNull();
   });
@@ -324,7 +321,7 @@ describe("OAuthCredential model CRUD", () => {
       account_id: "acc1",
       access_token: "tok1",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     await OAuthCredential.upsert({
@@ -333,7 +330,7 @@ describe("OAuthCredential model CRUD", () => {
       account_id: "acc2",
       access_token: "tok2",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     await OAuthCredential.upsert({
@@ -342,18 +339,18 @@ describe("OAuthCredential model CRUD", () => {
       account_id: "acc3",
       access_token: "tok3",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     const hfCreds = await OAuthCredential.listForUserAndProvider(
       "u1",
-      "huggingface",
+      "huggingface"
     );
     expect(hfCreds.length).toBe(2);
 
     const ghCreds = await OAuthCredential.listForUserAndProvider(
       "u1",
-      "github",
+      "github"
     );
     expect(ghCreds.length).toBe(1);
     expect(ghCreds[0].account_id).toBe("acc3");
@@ -368,7 +365,7 @@ describe("OAuthCredential model CRUD", () => {
       account_id: "acc1",
       access_token: "tok1",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     await OAuthCredential.upsert({
@@ -377,12 +374,12 @@ describe("OAuthCredential model CRUD", () => {
       account_id: "acc2",
       access_token: "tok2",
       token_type: "Bearer",
-      received_at: now,
+      received_at: now
     });
 
     const u1Creds = await OAuthCredential.listForUserAndProvider(
       "u1",
-      "huggingface",
+      "huggingface"
     );
     expect(u1Creds.length).toBe(1);
     // Tokens are encrypted at rest; verify via decryption
@@ -391,7 +388,7 @@ describe("OAuthCredential model CRUD", () => {
 
     const u2Creds = await OAuthCredential.listForUserAndProvider(
       "u2",
-      "huggingface",
+      "huggingface"
     );
     expect(u2Creds.length).toBe(1);
     const decryptedU2 = await u2Creds[0].getDecryptedAccessToken();

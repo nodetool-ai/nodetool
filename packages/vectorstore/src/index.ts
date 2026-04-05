@@ -11,13 +11,10 @@ export {
   type DocumentRecord,
   type QueryResult,
   type GetResult,
-  type EmbeddingFunction,
+  type EmbeddingFunction
 } from "./sqlite-vec-store.js";
 
-export {
-  splitDocument,
-  type TextChunk,
-} from "./chroma-client.js";
+export { splitDocument, type TextChunk } from "./chroma-client.js";
 
 export {
   ProviderEmbeddingFunction,
@@ -27,7 +24,7 @@ export {
   MistralEmbeddingFunction,
   getProviderEmbeddingFunction,
   type EmbeddingProvider,
-  type ProviderEmbeddingOptions,
+  type ProviderEmbeddingOptions
 } from "./embedding.js";
 
 // ---------------------------------------------------------------------------
@@ -49,12 +46,12 @@ export async function getVecStore() {
  */
 export async function getCollection(
   name: string,
-  embeddingFunction?: EmbeddingFunction | null,
+  embeddingFunction?: EmbeddingFunction | null
 ) {
   const store = getDefaultStore();
   return store.getCollection({
     name,
-    embeddingFunction: embeddingFunction ?? undefined,
+    embeddingFunction: embeddingFunction ?? undefined
   });
 }
 
@@ -81,7 +78,7 @@ export async function getAllCollections() {
     if (ef) {
       const withEf = await store.getCollection({
         name: col.name,
-        embeddingFunction: ef,
+        embeddingFunction: ef
       });
       result.push(withEf);
     } else {

@@ -7,5 +7,5 @@ export type {
   FieldDef,
   NodeSpec,
   NodeConfig,
-  ModuleConfig,
+  ModuleConfig
 } from "./types.js";

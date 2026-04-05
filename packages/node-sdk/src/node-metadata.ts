@@ -69,7 +69,7 @@ function parseTypeString(typeName: string): TypeMetadata {
 
   return {
     type: base,
-    type_args: parts.map(parseTypeString),
+    type_args: parts.map(parseTypeString)
   };
 }
 
@@ -82,21 +82,21 @@ function toMetadataType(typeMeta: TypeMetadata): TypeMetadata {
   return {
     ...typeMeta,
     type: mapScalarTypeName(typeMeta.type),
-    type_args: (typeMeta.type_args ?? []).map(toMetadataType),
+    type_args: (typeMeta.type_args ?? []).map(toMetadataType)
   };
 }
 
 function cloneTypeMetadata(typeMeta: TypeMetadata): TypeMetadata {
   return {
     ...typeMeta,
-    type_args: (typeMeta.type_args ?? []).map(cloneTypeMetadata),
+    type_args: (typeMeta.type_args ?? []).map(cloneTypeMetadata)
   };
 }
 
 function clonePropertyMetadata(prop: PropertyMetadata): PropertyMetadata {
   const cloned: PropertyMetadata = {
     ...prop,
-    type: cloneTypeMetadata(prop.type),
+    type: cloneTypeMetadata(prop.type)
   };
   if (Object.prototype.hasOwnProperty.call(prop, "default")) {
     cloned.default = prop.default;
@@ -107,11 +107,14 @@ function clonePropertyMetadata(prop: PropertyMetadata): PropertyMetadata {
 function cloneOutputMetadata(output: OutputSlotMetadata): OutputSlotMetadata {
   return {
     ...output,
-    type: cloneTypeMetadata(output.type),
+    type: cloneTypeMetadata(output.type)
   };
 }
 
-function mergeMetadata(tsMetadata: NodeMetadata, pyMetadata?: NodeMetadata): NodeMetadata {
+function mergeMetadata(
+  tsMetadata: NodeMetadata,
+  pyMetadata?: NodeMetadata
+): NodeMetadata {
   if (!pyMetadata) return tsMetadata;
 
   // TS class definitions are authoritative. Python metadata is used only to
@@ -119,16 +122,18 @@ function mergeMetadata(tsMetadata: NodeMetadata, pyMetadata?: NodeMetadata): Nod
   // layout, model_packs) and to enrich property descriptions/defaults when
   // the TS class omits them.
   const tsProps = new Map(tsMetadata.properties.map((p) => [p.name, p]));
-  const mergedProperties: PropertyMetadata[] = tsMetadata.properties.map((tsProp) => {
-    const pyProp = pyMetadata.properties?.find((p) => p.name === tsProp.name);
-    if (!pyProp) return tsProp;
-    // Backfill description and title from Python if TS doesn't set them
-    return {
-      ...tsProp,
-      description: tsProp.description ?? pyProp.description,
-      title: tsProp.title ?? pyProp.title,
-    };
-  });
+  const mergedProperties: PropertyMetadata[] = tsMetadata.properties.map(
+    (tsProp) => {
+      const pyProp = pyMetadata.properties?.find((p) => p.name === tsProp.name);
+      if (!pyProp) return tsProp;
+      // Backfill description and title from Python if TS doesn't set them
+      return {
+        ...tsProp,
+        description: tsProp.description ?? pyProp.description,
+        title: tsProp.title ?? pyProp.title
+      };
+    }
+  );
 
   // Append Python-only properties that don't exist in TS (rare, but keeps
   // backward compatibility for dynamic properties not declared via @prop).
@@ -141,9 +146,10 @@ function mergeMetadata(tsMetadata: NodeMetadata, pyMetadata?: NodeMetadata): Nod
   return {
     ...tsMetadata,
     properties: mergedProperties,
-    outputs: tsMetadata.outputs.length > 0
-      ? tsMetadata.outputs
-      : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
+    outputs:
+      tsMetadata.outputs.length > 0
+        ? tsMetadata.outputs
+        : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
     // Backfill optional fields from Python when TS doesn't set them
     layout: tsMetadata.layout ?? pyMetadata.layout,
     model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
@@ -163,7 +169,7 @@ function getDecoratedProperties(nodeClass: NodeClass): PropertyMetadata[] {
       min: opts.min,
       max: opts.max,
       values: opts.values,
-      json_schema_extra: opts.json_schema_extra,
+      json_schema_extra: opts.json_schema_extra
     };
     if (Object.prototype.hasOwnProperty.call(opts, "default")) {
       result.default = opts.default;
@@ -174,13 +180,14 @@ function getDecoratedProperties(nodeClass: NodeClass): PropertyMetadata[] {
 
 function getOutputs(nodeClass: NodeClass): OutputSlotMetadata[] {
   const outputs: OutputSlotMetadata[] = [];
-  const declared = nodeClass.metadataOutputTypes ?? nodeClass.getDeclaredOutputs();
+  const declared =
+    nodeClass.metadataOutputTypes ?? nodeClass.getDeclaredOutputs();
 
   if (Object.keys(declared).length > 0) {
     for (const [name, typeName] of Object.entries(declared)) {
       outputs.push({
         name,
-        type: parseTypeString(typeName),
+        type: parseTypeString(typeName)
       });
     }
     return outputs;
@@ -188,10 +195,12 @@ function getOutputs(nodeClass: NodeClass): OutputSlotMetadata[] {
 
   const descriptor = nodeClass.toDescriptor();
   if (descriptor.outputs && Object.keys(descriptor.outputs).length > 0) {
-    for (const [name, typeName] of Object.entries(descriptor.outputs as Record<string, string>)) {
+    for (const [name, typeName] of Object.entries(
+      descriptor.outputs as Record<string, string>
+    )) {
       outputs.push({
         name,
-        type: parseTypeString(typeName),
+        type: parseTypeString(typeName)
       });
     }
   }
@@ -211,11 +220,20 @@ function falUnitPricingFromClass(nodeClass: NodeClass): FalUnitPricing | undefin
   };
 }
 
-export function getNodeMetadata(nodeClass: NodeClass, options: GetNodeMetadataOptions = {}): NodeMetadata {
+export function getNodeMetadata(
+  nodeClass: NodeClass,
+  options: GetNodeMetadataOptions = {}
+): NodeMetadata {
   const nodeType = nodeClass.nodeType;
   const namespace = deriveNamespace(nodeType);
-  const properties = getDecoratedProperties(nodeClass).map((p) => ({ ...p, type: toMetadataType(p.type) }));
-  const outputs = getOutputs(nodeClass).map((o) => ({ ...o, type: toMetadataType(o.type) }));
+  const properties = getDecoratedProperties(nodeClass).map((p) => ({
+    ...p,
+    type: toMetadataType(p.type)
+  }));
+  const outputs = getOutputs(nodeClass).map((o) => ({
+    ...o,
+    type: toMetadataType(o.type)
+  }));
 
   const tsMetadata: NodeMetadata = {
     title: nodeClass.title || nodeType,
@@ -227,7 +245,8 @@ export function getNodeMetadata(nodeClass: NodeClass, options: GetNodeMetadataOp
     outputs,
 
     recommended_models: nodeClass.recommendedModels ?? [],
-    basic_fields: nodeClass.basicFields ?? properties.map((property) => property.name),
+    basic_fields:
+      nodeClass.basicFields ?? properties.map((property) => property.name),
     required_settings: nodeClass.requiredSettings ?? [],
     required_runtimes: nodeClass.requiredRuntimes ?? [],
     is_streaming_input: nodeClass.isStreamingInput || false,

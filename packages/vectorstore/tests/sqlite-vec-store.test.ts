@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { SqliteVecStore, VecNotFoundError, getDefaultStore, resetDefaultStore } from "../src/sqlite-vec-store.js";
+import {
+  SqliteVecStore,
+  VecNotFoundError,
+  getDefaultStore,
+  resetDefaultStore
+} from "../src/sqlite-vec-store.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { unlinkSync } from "node:fs";
@@ -8,15 +13,26 @@ let store: SqliteVecStore;
 let dbPath: string;
 
 function freshDb(): SqliteVecStore {
-  dbPath = join(tmpdir(), `vec-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+  dbPath = join(
+    tmpdir(),
+    `vec-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`
+  );
   return new SqliteVecStore(dbPath);
 }
 
 function cleanup() {
-  try { store.close(); } catch {}
-  try { unlinkSync(dbPath); } catch {}
-  try { unlinkSync(dbPath + "-wal"); } catch {}
-  try { unlinkSync(dbPath + "-shm"); } catch {}
+  try {
+    store.close();
+  } catch {}
+  try {
+    unlinkSync(dbPath);
+  } catch {}
+  try {
+    unlinkSync(dbPath + "-wal");
+  } catch {}
+  try {
+    unlinkSync(dbPath + "-shm");
+  } catch {}
 }
 
 describe("SqliteVecStore", () => {
@@ -45,7 +61,9 @@ describe("SqliteVecStore", () => {
     });
 
     it("getCollection throws VecNotFoundError for missing", async () => {
-      await expect(store.getCollection({ name: "nope" })).rejects.toThrow(VecNotFoundError);
+      await expect(store.getCollection({ name: "nope" })).rejects.toThrow(
+        VecNotFoundError
+      );
     });
 
     it("getOrCreateCollection creates if missing", async () => {
@@ -57,7 +75,10 @@ describe("SqliteVecStore", () => {
 
     it("getOrCreateCollection returns existing if present", async () => {
       await store.createCollection({ name: "dup", metadata: { v: "1" } });
-      const col = await store.getOrCreateCollection({ name: "dup", metadata: { v: "2" } });
+      const col = await store.getOrCreateCollection({
+        name: "dup",
+        metadata: { v: "2" }
+      });
       expect(col.metadata.v).toBe("1"); // original metadata preserved
     });
 
@@ -68,11 +89,15 @@ describe("SqliteVecStore", () => {
 
       const cols = await store.listCollections();
       expect(cols).toHaveLength(0);
-      await expect(store.getCollection({ name: "del-me" })).rejects.toThrow(VecNotFoundError);
+      await expect(store.getCollection({ name: "del-me" })).rejects.toThrow(
+        VecNotFoundError
+      );
     });
 
     it("deleteCollection throws for missing collection", async () => {
-      await expect(store.deleteCollection({ name: "ghost" })).rejects.toThrow(VecNotFoundError);
+      await expect(store.deleteCollection({ name: "ghost" })).rejects.toThrow(
+        VecNotFoundError
+      );
     });
   });
 
@@ -84,7 +109,7 @@ describe("SqliteVecStore", () => {
       await col.add({
         ids: ["a", "b"],
         documents: ["hello", "world"],
-        metadatas: [{ k: "v1" }, { k: "v2" }],
+        metadatas: [{ k: "v1" }, { k: "v2" }]
       });
 
       expect(await col.count()).toBe(2);
@@ -108,7 +133,7 @@ describe("SqliteVecStore", () => {
       const col = await store.createCollection({ name: "paged" });
       await col.add({
         ids: ["1", "2", "3", "4"],
-        documents: ["a", "b", "c", "d"],
+        documents: ["a", "b", "c", "d"]
       });
 
       const page1 = await col.get({ limit: 2 });
@@ -142,13 +167,13 @@ describe("SqliteVecStore", () => {
       await col.add({
         ids: ["a"],
         documents: ["original"],
-        embeddings: [[1, 0, 0]],
+        embeddings: [[1, 0, 0]]
       });
 
       await col.upsert({
         ids: ["a"],
         documents: ["updated"],
-        embeddings: [[0, 1, 0]],
+        embeddings: [[0, 1, 0]]
       });
 
       expect(await col.count()).toBe(1);
@@ -161,7 +186,7 @@ describe("SqliteVecStore", () => {
       await col.add({
         ids: ["img1"],
         uris: ["file:///tmp/test.png"],
-        metadatas: [{ type: "image" }],
+        metadatas: [{ type: "image" }]
       });
 
       const result = await col.get({ ids: ["img1"] });
@@ -181,13 +206,13 @@ describe("SqliteVecStore", () => {
         embeddings: [
           [1, 0, 0],
           [0, 1, 0],
-          [0, 0, 1],
-        ],
+          [0, 0, 1]
+        ]
       });
 
       const result = await col.query({
         queryEmbeddings: [[0.9, 0.1, 0]],
-        nResults: 2,
+        nResults: 2
       });
 
       expect(result.ids[0]).toHaveLength(2);
@@ -202,7 +227,7 @@ describe("SqliteVecStore", () => {
 
       const result = await col.query({
         queryEmbeddings: [[1, 0, 0]],
-        nResults: 5,
+        nResults: 5
       });
       expect(result.ids[0]).toEqual([]);
     });
@@ -213,12 +238,12 @@ describe("SqliteVecStore", () => {
         ids: ["d1"],
         documents: ["the document"],
         embeddings: [[1, 0]],
-        metadatas: [{ source: "test" }],
+        metadatas: [{ source: "test" }]
       });
 
       const result = await col.query({
         queryEmbeddings: [[1, 0]],
-        nResults: 1,
+        nResults: 1
       });
       expect(result.documents[0][0]).toBe("the document");
       expect(result.metadatas[0][0]).toEqual({ source: "test" });
@@ -231,16 +256,16 @@ describe("SqliteVecStore", () => {
         documents: ["alpha", "beta"],
         embeddings: [
           [1, 0],
-          [0, 1],
-        ],
+          [0, 1]
+        ]
       });
 
       const result = await col.query({
         queryEmbeddings: [
           [1, 0],
-          [0, 1],
+          [0, 1]
         ],
-        nResults: 1,
+        nResults: 1
       });
       expect(result.ids).toHaveLength(2);
       expect(result.ids[0][0]).toBe("a");
@@ -255,12 +280,16 @@ describe("SqliteVecStore", () => {
       const col = await store.createCollection({ name: "kw" });
       await col.add({
         ids: ["d1", "d2", "d3"],
-        documents: ["apple pie recipe", "banana bread guide", "apple sauce tutorial"],
+        documents: [
+          "apple pie recipe",
+          "banana bread guide",
+          "apple sauce tutorial"
+        ]
       });
 
       const result = await col.query({
         queryTexts: ["apple"],
-        nResults: 5,
+        nResults: 5
       });
       expect(result.ids[0].sort()).toEqual(["d1", "d3"]);
     });
@@ -272,14 +301,14 @@ describe("SqliteVecStore", () => {
         documents: ["apple pie recipe", "apple sauce tutorial"],
         embeddings: [
           [1, 0],
-          [0, 1],
-        ],
+          [0, 1]
+        ]
       });
 
       const result = await col.query({
         queryEmbeddings: [[0.5, 0.5]],
         nResults: 5,
-        whereDocument: { $contains: "pie" },
+        whereDocument: { $contains: "pie" }
       });
       expect(result.ids[0]).toEqual(["d1"]);
     });
@@ -292,14 +321,16 @@ describe("SqliteVecStore", () => {
         embeddings: [
           [1, 0, 0],
           [0, 1, 0],
-          [0, 0, 1],
-        ],
+          [0, 0, 1]
+        ]
       });
 
       const result = await col.query({
         queryEmbeddings: [[0.3, 0.3, 0.3]],
         nResults: 5,
-        whereDocument: { $or: [{ $contains: "apple" }, { $contains: "cherry" }] },
+        whereDocument: {
+          $or: [{ $contains: "apple" }, { $contains: "cherry" }]
+        }
       });
       expect(result.ids[0].sort()).toEqual(["d1", "d3"]);
     });
@@ -312,12 +343,12 @@ describe("SqliteVecStore", () => {
       const col = await store.createCollection({ name: "uri-search" });
       await col.add({
         ids: ["img1", "img2"],
-        uris: ["file:///photos/cat.jpg", "file:///photos/dog.jpg"],
+        uris: ["file:///photos/cat.jpg", "file:///photos/dog.jpg"]
       });
 
       const result = await col.query({
         queryURIs: ["cat"],
-        nResults: 5,
+        nResults: 5
       });
       expect(result.ids[0]).toEqual(["img1"]);
     });
@@ -331,7 +362,9 @@ describe("SqliteVecStore", () => {
       const col = await store.getCollection({ name: "old-name" });
       await col.modify({ name: "new-name" });
 
-      await expect(store.getCollection({ name: "old-name" })).rejects.toThrow(VecNotFoundError);
+      await expect(store.getCollection({ name: "old-name" })).rejects.toThrow(
+        VecNotFoundError
+      );
       const renamed = await store.getCollection({ name: "new-name" });
       expect(renamed.name).toBe("new-name");
     });
@@ -352,24 +385,24 @@ describe("SqliteVecStore", () => {
     it("auto-embeds documents via embedding function on add", async () => {
       const mockEf = {
         generate: async (texts: string[]) =>
-          texts.map(() => [1, 0, 0] as number[]),
+          texts.map(() => [1, 0, 0] as number[])
       };
 
       const col = await store.createCollection({
         name: "auto-embed",
-        embeddingFunction: mockEf,
+        embeddingFunction: mockEf
       });
 
       await col.add({
         ids: ["d1"],
-        documents: ["test document"],
+        documents: ["test document"]
         // No explicit embeddings — should use mockEf
       });
 
       // The embedding function should have been called, creating a vec0 index
       const result = await col.query({
         queryEmbeddings: [[1, 0, 0]],
-        nResults: 1,
+        nResults: 1
       });
       expect(result.ids[0]).toEqual(["d1"]);
     });
@@ -377,24 +410,24 @@ describe("SqliteVecStore", () => {
     it("auto-embeds query texts via embedding function", async () => {
       const mockEf = {
         generate: async (texts: string[]) =>
-          texts.map(() => [1, 0, 0] as number[]),
+          texts.map(() => [1, 0, 0] as number[])
       };
 
       const col = await store.createCollection({
         name: "auto-query",
-        embeddingFunction: mockEf,
+        embeddingFunction: mockEf
       });
 
       await col.add({
         ids: ["d1"],
         documents: ["test"],
-        embeddings: [[1, 0, 0]],
+        embeddings: [[1, 0, 0]]
       });
 
       // Query by text — embedding function should convert to vector
       const result = await col.query({
         queryTexts: ["anything"],
-        nResults: 1,
+        nResults: 1
       });
       expect(result.ids[0]).toEqual(["d1"]);
     });
@@ -410,15 +443,15 @@ describe("SqliteVecStore", () => {
         documents: ["alpha", "beta"],
         embeddings: [
           [1, 0],
-          [0, 1],
-        ],
+          [0, 1]
+        ]
       });
 
       await col.delete({ ids: ["a"] });
 
       const result = await col.query({
         queryEmbeddings: [[1, 0]],
-        nResults: 5,
+        nResults: 5
       });
       // Only "b" should remain
       expect(result.ids[0]).toEqual(["b"]);
@@ -446,12 +479,12 @@ describe("SqliteVecStore", () => {
       await col.add({
         ids: ["a"],
         documents: ["only one"],
-        embeddings: [[1, 0]],
+        embeddings: [[1, 0]]
       });
 
       const result = await col.query({
         queryEmbeddings: [[1, 0]],
-        nResults: 100,
+        nResults: 100
       });
       expect(result.ids[0]).toHaveLength(1);
       expect(result.ids[0][0]).toBe("a");
@@ -466,12 +499,12 @@ describe("SqliteVecStore", () => {
       await col.add({
         ids: ["v0", "v1", "v2"],
         documents: ["zero", "one", "two"],
-        embeddings: [makeVec(0), makeVec(1), makeVec(2)],
+        embeddings: [makeVec(0), makeVec(1), makeVec(2)]
       });
 
       const result = await col.query({
         queryEmbeddings: [makeVec(1)],
-        nResults: 1,
+        nResults: 1
       });
       expect(result.ids[0][0]).toBe("v1");
     });
@@ -489,7 +522,7 @@ describe("SqliteVecStore", () => {
 
       const result = await col.query({
         queryEmbeddings: [[0, 1]],
-        nResults: 3,
+        nResults: 3
       });
       // doc-0 has embedding [0, 1] — should be first
       expect(result.ids[0][0]).toBe("doc-0");
@@ -506,14 +539,14 @@ describe("SqliteVecStore", () => {
       const col = await store.createCollection({ name: "kw-where-text" });
       await col.add({
         ids: ["d1", "d2", "d3"],
-        documents: ["apple pie recipe", "apple sauce tutorial", "banana bread"],
+        documents: ["apple pie recipe", "apple sauce tutorial", "banana bread"]
       });
 
       // No embedding function → falls back to keyword search; whereDocument applies
       const result = await col.query({
         queryTexts: ["apple"],
         nResults: 5,
-        whereDocument: { $contains: "pie" },
+        whereDocument: { $contains: "pie" }
       });
       expect(result.ids[0]).toEqual(["d1"]);
     });
@@ -526,7 +559,7 @@ describe("SqliteVecStore", () => {
     it("createCollection preserves metadata with nested values", async () => {
       await store.createCollection({
         name: "meta-types",
-        metadata: { count: 42, active: true, label: "test" },
+        metadata: { count: 42, active: true, label: "test" }
       });
       const col = await store.getCollection({ name: "meta-types" });
       expect(col.metadata.count).toBe(42);

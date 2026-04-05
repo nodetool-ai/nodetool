@@ -54,32 +54,6 @@ async function getPythonVersion(): Promise<string | null> {
 }
 
 /**
- * Get Ollama version if installed
- */
-async function getOllamaVersion(): Promise<string | null> {
-  try {
-    const output = await execCommand("ollama --version");
-    // Output format may vary, try to extract version
-    if (output) {
-      // Parse output like "ollama version is 0.1.23" or just "0.1.23"
-      const versionMatch = output.match(/(\d+\.\d+\.\d+)/);
-      return versionMatch ? versionMatch[1] : output;
-    }
-    return null;
-  } catch (error) {
-    return null;
-  }
-}
-
-/**
- * Check if Ollama is installed
- */
-async function checkOllamaInstalled(): Promise<boolean> {
-  const version = await getOllamaVersion();
-  return version !== null;
-}
-
-/**
  * Get llama-server version if installed
  */
 async function getLlamaServerVersion(): Promise<string | null> {
@@ -221,17 +195,13 @@ export async function getSystemInfo(): Promise<SystemInfo> {
   // Run independent checks in parallel
   const [
     pythonVersion,
-    ollamaVersion,
     llamaServerVersion,
     cudaInfo,
-    ollamaInstalled,
     llamaServerInstalled,
   ] = await Promise.all([
     getPythonVersion(),
-    getOllamaVersion(),
     getLlamaServerVersion(),
     getCudaInfo(),
-    checkOllamaInstalled(),
     checkLlamaServerInstalled(),
   ]);
 
@@ -255,8 +225,6 @@ export async function getSystemInfo(): Promise<SystemInfo> {
     // Feature availability
     cudaAvailable: cudaInfo.available,
     cudaVersion: cudaInfo.version,
-    ollamaInstalled,
-    ollamaVersion,
     llamaServerInstalled,
     llamaServerVersion,
   };

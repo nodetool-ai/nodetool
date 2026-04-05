@@ -1,4 +1,7 @@
-import { StreamRunnerBase, type StreamRunnerOptions } from "./stream-runner-base.js";
+import {
+  StreamRunnerBase,
+  type StreamRunnerOptions
+} from "./stream-runner-base.js";
 
 // ---------------------------------------------------------------------------
 // Lua literal encoding helpers
@@ -47,7 +50,9 @@ export function luaLiteral(value: unknown, depth = 0): string {
       if (typeof k === "string" && isLuaIdentifier(k)) {
         parts.push(`${k} = ${luaLiteral(v, depth + 1)}`);
       } else {
-        parts.push(`[${luaLiteral(k, depth + 1)}] = ${luaLiteral(v, depth + 1)}`);
+        parts.push(
+          `[${luaLiteral(k, depth + 1)}] = ${luaLiteral(v, depth + 1)}`
+        );
       }
     }
     return "{" + parts.join(", ") + "}";
@@ -88,14 +93,14 @@ export class LuaRunner extends StreamRunnerBase {
   constructor(options?: LuaRunnerOptions) {
     super({
       image: options?.image ?? "nickblah/lua:5.2.4-luarocks-ubuntu",
-      ...options,
+      ...options
     });
     this.executable = options?.executable ?? "lua";
   }
 
   override buildContainerCommand(
     userCode: string,
-    envLocals: Record<string, unknown>,
+    envLocals: Record<string, unknown>
   ): string[] {
     // Build injected locals lines
     const injectedLocalsLines: string[] = [];
@@ -143,7 +148,7 @@ export class LuaSubprocessRunner extends LuaRunner {
     super({
       executable: options?.executable ?? "lua",
       mode: "subprocess",
-      ...options,
+      ...options
     });
   }
 }

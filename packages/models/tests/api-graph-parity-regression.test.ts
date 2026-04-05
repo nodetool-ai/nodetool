@@ -19,7 +19,7 @@ describe("Python parity — API graph node serialization", () => {
       ui_properties: { x: 10, y: 20 },
       dynamic_properties: { model: "gpt" },
       dynamic_outputs: { branch_a: { type: "string" } as any },
-      sync_mode: "zip_all",
+      sync_mode: "zip_all"
     };
 
     expect(toApiNode(node)).toEqual({
@@ -30,7 +30,7 @@ describe("Python parity — API graph node serialization", () => {
       ui_properties: { x: 10, y: 20 },
       dynamic_properties: { model: "gpt" },
       dynamic_outputs: { branch_a: { type: "string" } },
-      sync_mode: "zip_all",
+      sync_mode: "zip_all"
     });
   });
 
@@ -38,8 +38,8 @@ describe("Python parity — API graph node serialization", () => {
     expect(
       toApiNode({
         id: "plain",
-        type: "test.Plain",
-      }),
+        type: "test.Plain"
+      })
     ).toEqual({
       id: "plain",
       parent_id: null,
@@ -48,7 +48,7 @@ describe("Python parity — API graph node serialization", () => {
       ui_properties: {},
       dynamic_properties: {},
       dynamic_outputs: {},
-      sync_mode: "on_any",
+      sync_mode: "on_any"
     });
   });
 
@@ -61,10 +61,10 @@ describe("Python parity — API graph node serialization", () => {
           properties: { seed: 1 },
           ui_properties: { collapsed: false },
           dynamic_properties: { provider: "openai" },
-          dynamic_outputs: { extra: { type: "number" } as any },
-        },
+          dynamic_outputs: { extra: { type: "number" } as any }
+        }
       ],
-      edges: [],
+      edges: []
     };
 
     const apiGraph = toApiGraph(graph);
@@ -73,7 +73,7 @@ describe("Python parity — API graph node serialization", () => {
       ui_properties: { collapsed: false },
       dynamic_properties: { provider: "openai" },
       dynamic_outputs: { extra: { type: "number" } },
-      sync_mode: "on_any",
+      sync_mode: "on_any"
     });
   });
 });

@@ -90,7 +90,7 @@ export class Workflow extends DBModel {
   getGraph(): WorkflowGraph {
     return {
       nodes: this.graph?.nodes ?? [],
-      edges: this.graph?.edges ?? [],
+      edges: this.graph?.edges ?? []
     };
   }
 
@@ -103,7 +103,7 @@ export class Workflow extends DBModel {
   /** Find a workflow by id, respecting ownership or public access. */
   static async find(
     userId: string,
-    workflowId: string,
+    workflowId: string
   ): Promise<Workflow | null> {
     const wf = await Workflow.get<Workflow>(workflowId);
     if (!wf) return null;
@@ -118,7 +118,7 @@ export class Workflow extends DBModel {
       limit?: number;
       access?: AccessLevel;
       runMode?: string;
-    } = {},
+    } = {}
   ): Promise<[Workflow[], string]> {
     const { limit = 50, access, runMode } = opts;
     const db = getDb();
@@ -127,13 +127,15 @@ export class Workflow extends DBModel {
     if (access) conditions.push(eq(workflows.access, access));
     if (runMode) conditions.push(eq(workflows.run_mode, runMode));
 
-    const rows = db.select().from(workflows)
+    const rows = db
+      .select()
+      .from(workflows)
       .where(and(...conditions))
       .orderBy(desc(workflows.updated_at))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Workflow(r as Record<string, unknown>));
+    const items = rows.map((r) => new Workflow(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -142,17 +144,19 @@ export class Workflow extends DBModel {
 
   /** Paginate public workflows only. */
   static async paginatePublic(
-    opts: { limit?: number } = {},
+    opts: { limit?: number } = {}
   ): Promise<[Workflow[], string]> {
     const { limit = 50 } = opts;
     const db = getDb();
-    const rows = db.select().from(workflows)
+    const rows = db
+      .select()
+      .from(workflows)
       .where(eq(workflows.access, "public"))
       .orderBy(desc(workflows.updated_at))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Workflow(r as Record<string, unknown>));
+    const items = rows.map((r) => new Workflow(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -162,23 +166,25 @@ export class Workflow extends DBModel {
   /** Paginate workflows that are configured as tools. */
   static async paginateTools(
     userId: string,
-    opts: { limit?: number } = {},
+    opts: { limit?: number } = {}
   ): Promise<[Workflow[], string]> {
     const { limit = 50 } = opts;
     const db = getDb();
-    const rows = db.select().from(workflows)
+    const rows = db
+      .select()
+      .from(workflows)
       .where(and(eq(workflows.user_id, userId), eq(workflows.run_mode, "tool")))
       .orderBy(desc(workflows.updated_at))
       .limit(limit + 1)
       .all();
 
-    const items = rows.map(r => new Workflow(r as Record<string, unknown>));
+    const items = rows.map((r) => new Workflow(r as Record<string, unknown>));
     if (items.length <= limit) {
-      const tools = items.filter(w => w.hasToolName());
+      const tools = items.filter((w) => w.hasToolName());
       return [tools, ""];
     }
     items.pop();
-    const tools = items.filter(w => w.hasToolName());
+    const tools = items.filter((w) => w.hasToolName());
     const cursor = items[items.length - 1]?.id ?? "";
     return [tools, cursor];
   }
@@ -199,25 +205,32 @@ export class Workflow extends DBModel {
       thumbnail: (data.thumbnail as string) ?? null,
       thumbnail_url: (data.thumbnail_url as string) ?? null,
       settings: (data.settings as Record<string, unknown>) ?? null,
-      graph: (data.graph as Record<string, unknown>) ?? { nodes: [], edges: [] },
+      graph: (data.graph as Record<string, unknown>) ?? {
+        nodes: [],
+        edges: []
+      },
       run_mode: (data.run_mode as string) ?? null,
       workspace_id: (data.workspace_id as string) ?? null,
-      html_app: (data.html_app as string) ?? null,
+      html_app: (data.html_app as string) ?? null
     });
   }
 
   /** Find a workflow by tool name for a given user. */
   static async findByToolName(
     userId: string,
-    toolName: string,
+    toolName: string
   ): Promise<Workflow | null> {
     const db = getDb();
-    const row = db.select().from(workflows)
-      .where(and(
-        eq(workflows.user_id, userId),
-        eq(workflows.tool_name, toolName),
-        eq(workflows.run_mode, "tool"),
-      ))
+    const row = db
+      .select()
+      .from(workflows)
+      .where(
+        and(
+          eq(workflows.user_id, userId),
+          eq(workflows.tool_name, toolName),
+          eq(workflows.run_mode, "tool")
+        )
+      )
       .limit(1)
       .get();
     return row ? new Workflow(row as Record<string, unknown>) : null;

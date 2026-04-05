@@ -146,17 +146,6 @@ const getUVPath = (): string => {
 };
 
 /**
- * Retrieves the path to the Ollama executable from the conda environment.
- * Note: Actual presence is ensured at runtime by ensureOllamaInstalled().
- */
-const getOllamaPath = (): string => {
-  const condaPath: string = getCondaEnvPath();
-  return process.platform === "win32"
-    ? path.join(condaPath, "Scripts", "ollama.exe")
-    : path.join(condaPath, "bin", "ollama");
-};
-
-/**
  * Retrieves the path to the llama-server executable from the conda environment.
  */
 const getLlamaServerPath = (): string => {
@@ -164,16 +153,6 @@ const getLlamaServerPath = (): string => {
   return process.platform === "win32"
     ? path.join(condaPath, "Library", "bin", "llama-server.exe")
     : path.join(condaPath, "bin", "llama-server");
-};
-
-/**
- * Returns the per-OS models directory to use for Ollama.
- * macOS/Linux: ~/.ollama/models
- * Windows: C:\\Users\\<User>\\.ollama\\models
- */
-const getOllamaModelsPath = (): string => {
-  const homeDir = app.getPath("home");
-  return path.join(homeDir, ".ollama", "models");
 };
 
 /**
@@ -362,9 +341,7 @@ export {
   getNodePath,
   getPythonPath,
   getUVPath,
-  getOllamaPath,
   getLlamaServerPath,
-  getOllamaModelsPath,
   getCondaLockFilePath,
   getProcessEnv,
   getSystemDataPath,

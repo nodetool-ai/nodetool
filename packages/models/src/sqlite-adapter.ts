@@ -13,13 +13,13 @@ import {
   ConditionGroup,
   LogicalOperator,
   Operator,
-  Variable,
+  Variable
 } from "./condition-builder.js";
 import type {
   DatabaseAdapter,
   IndexDef,
   Row,
-  TableSchema,
+  TableSchema
 } from "./database-adapter.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
     const pk = this.getPrimaryKey();
     const columnDefs: string[] = [];
     for (const [colName, fieldDef] of Object.entries(
-      this.tableSchema.columns,
+      this.tableSchema.columns
     )) {
       validateColumnName(colName);
       const colType = sqliteType(fieldDef.type);
@@ -159,21 +159,26 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
     // Migrate: add any columns defined in the schema but missing from the table
     const existingCols = new Set(
-      (this.db.pragma(`table_info(${quoteIdentifier(this.tableName)})`) as Array<{ name: string }>)
-        .map((row) => row.name),
+      (
+        this.db.pragma(
+          `table_info(${quoteIdentifier(this.tableName)})`
+        ) as Array<{ name: string }>
+      ).map((row) => row.name)
     );
-    for (const [colName, fieldDef] of Object.entries(this.tableSchema.columns)) {
+    for (const [colName, fieldDef] of Object.entries(
+      this.tableSchema.columns
+    )) {
       if (!existingCols.has(colName)) {
         const colType = sqliteType(fieldDef.type);
-        this.db.exec(`ALTER TABLE ${quoteIdentifier(this.tableName)} ADD COLUMN ${quoteIdentifier(colName)} ${colType}`);
+        this.db.exec(
+          `ALTER TABLE ${quoteIdentifier(this.tableName)} ADD COLUMN ${quoteIdentifier(colName)} ${colType}`
+        );
       }
     }
   }
 
   async dropTable(): Promise<void> {
-    this.db.exec(
-      `DROP TABLE IF EXISTS ${quoteIdentifier(this.tableName)}`,
-    );
+    this.db.exec(`DROP TABLE IF EXISTS ${quoteIdentifier(this.tableName)}`);
   }
 
   async save(item: Row): Promise<void> {
@@ -214,15 +219,9 @@ export class SQLiteAdapter implements DatabaseAdapter {
       limit?: number;
       reverse?: boolean;
       columns?: string[];
-    } = {},
+    } = {}
   ): Promise<[Row[], string]> {
-    const {
-      condition,
-      orderBy,
-      limit = 100,
-      reverse = false,
-      columns,
-    } = opts;
+    const { condition, orderBy, limit = 100, reverse = false, columns } = opts;
 
     const pk = this.getPrimaryKey();
     const quotedTable = quoteIdentifier(this.tableName);
@@ -235,7 +234,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
         .map((c) =>
           c === "*"
             ? `${quotedTable}.*`
-            : `${quotedTable}.${quoteIdentifier(c)}`,
+            : `${quotedTable}.${quoteIdentifier(c)}`
         )
         .join(", ");
     } else {
@@ -273,16 +272,12 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
     // Pop the extra record used to detect another page
     deserialized.pop();
-    const cursor = String(
-      deserialized[deserialized.length - 1]?.[pk] ?? "",
-    );
+    const cursor = String(deserialized[deserialized.length - 1]?.[pk] ?? "");
     return [deserialized, cursor];
   }
 
   /** Recursively translate a Condition/ConditionGroup to SQL + params. */
-  _buildCondition(
-    condition: Condition | ConditionGroup,
-  ): [string, unknown[]] {
+  _buildCondition(condition: Condition | ConditionGroup): [string, unknown[]] {
     if (condition instanceof Condition) {
       const col = validateColumnName(condition.field);
       const quotedField = quoteIdentifier(col);
@@ -340,8 +335,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
         return [subClauses[0], allParams];
       }
 
-      const op =
-        condition.operator === LogicalOperator.AND ? " AND " : " OR ";
+      const op = condition.operator === LogicalOperator.AND ? " AND " : " OR ";
       const combined = subClauses.map((s) => `(${s})`).join(op);
       return [combined, allParams];
     }
@@ -350,7 +344,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
   async createIndex(
     indexName: string,
     columns: string[],
-    unique = false,
+    unique = false
   ): Promise<void> {
     validateColumnName(indexName);
     const uniqueStr = unique ? "UNIQUE " : "";
@@ -363,14 +357,11 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
   async dropIndex(indexName: string): Promise<void> {
     validateColumnName(indexName);
-    this.db.exec(
-      `DROP INDEX IF EXISTS ${quoteIdentifier(indexName)}`,
-    );
+    this.db.exec(`DROP INDEX IF EXISTS ${quoteIdentifier(indexName)}`);
   }
 
   async listIndexes(): Promise<IndexDef[]> {
-    const sql =
-      "SELECT * FROM sqlite_master WHERE type='index' AND tbl_name=?";
+    const sql = "SELECT * FROM sqlite_master WHERE type='index' AND tbl_name=?";
     const rows = this.db.prepare(sql).all(this.tableName) as Row[];
     const indexes: IndexDef[] = [];
 
@@ -390,7 +381,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
       indexes.push({
         name: row.name,
         columns: cols,
-        unique: createStmt.toUpperCase().includes("UNIQUE"),
+        unique: createStmt.toUpperCase().includes("UNIQUE")
       });
     }
 

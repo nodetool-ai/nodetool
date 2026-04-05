@@ -23,24 +23,29 @@ export function getNodetoolDataDir(): string {
   if (process.platform === "win32") {
     return join(
       process.env["APPDATA"] ?? join(homedir(), "AppData", "Roaming"),
-      "nodetool",
+      "nodetool"
     );
   }
   // macOS and Linux: use XDG standard to match Python side
   return join(
     process.env["XDG_DATA_HOME"] ?? join(homedir(), ".local", "share"),
-    "nodetool",
+    "nodetool"
   );
 }
 
 /** Default path for the main SQLite database. Override with DB_PATH. */
 export function getDefaultDbPath(): string {
-  return process.env["DB_PATH"] ?? join(getNodetoolDataDir(), "nodetool.sqlite3");
+  return (
+    process.env["DB_PATH"] ?? join(getNodetoolDataDir(), "nodetool.sqlite3")
+  );
 }
 
 /** Default path for the vector store database. Override with VECTORSTORE_DB_PATH. */
 export function getDefaultVectorstoreDbPath(): string {
-  return process.env["VECTORSTORE_DB_PATH"] ?? join(getNodetoolDataDir(), "vectorstore.db");
+  return (
+    process.env["VECTORSTORE_DB_PATH"] ??
+    join(getNodetoolDataDir(), "vectorstore.db")
+  );
 }
 
 /** Default path for local asset storage. Override with ASSET_FOLDER or STORAGE_PATH. */

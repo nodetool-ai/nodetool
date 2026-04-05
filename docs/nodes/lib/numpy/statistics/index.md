@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.numpy.statistics Nodes"
+title: "lib.array.statistics Nodes"
 ---
 
 

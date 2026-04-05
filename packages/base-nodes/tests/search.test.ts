@@ -7,7 +7,7 @@ import {
   GoogleJobsNode,
   GoogleLensNode,
   GoogleMapsNode,
-  GoogleShoppingNode,
+  GoogleShoppingNode
 } from "../src/nodes/search.js";
 
 const originalFetch = globalThis.fetch;
@@ -30,7 +30,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     statusText: status === 200 ? "OK" : "Error",
     json: async () => body,
-    text: async () => JSON.stringify(body),
+    text: async () => JSON.stringify(body)
   } as unknown as Response;
 }
 
@@ -111,7 +111,7 @@ describe("GoogleImagesNode", () => {
     const node = new GoogleImagesNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        images_results: [{ original: "https://img.com/1.png" }],
+        images_results: [{ original: "https://img.com/1.png" }]
       })
     );
     node.assign({ keyword: "cats" });
@@ -122,9 +122,7 @@ describe("GoogleImagesNode", () => {
 
   it("uses reverse image search for image_url", async () => {
     const node = new GoogleImagesNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ images_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ images_results: [] }));
     node.assign({
       image_url: "https://example.com/img.jpg"
     });
@@ -138,32 +136,66 @@ describe("GoogleImagesNode", () => {
     const node = new GoogleImagesNode();
     node.assign({ keyword: "", image_url: "" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
-    await expect(node.process()).rejects.toThrow("One of 'keyword' or 'image_url' is required");
+    await expect(node.process()).rejects.toThrow(
+      "One of 'keyword' or 'image_url' is required"
+    );
   });
 });
 
 // ── GoogleFinance ─────────────────────────────────────────────────────────
 
 describe("GoogleFinanceNode", () => {
-  it("returns finance data", async () => {
+  it("returns finance data with full output shape", async () => {
     const node = new GoogleFinanceNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ summary: { price: 150 } })
-    );
+    const apiData = {
+      summary: { price: 150, currency: "USD" },
+      markets: { us: [] }
+    };
+    mockFetch.mockResolvedValueOnce(jsonResponse(apiData));
     node.assign({ query: "AAPL:NASDAQ" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output.success).toBe(true);
+    expect(output.results).toEqual(apiData);
+    expect(typeof output.results).toBe("object");
+    expect((output.results as Record<string, unknown>).summary).toEqual({
+      price: 150,
+      currency: "USD"
+    });
   });
 
-  it("returns error when query empty", async () => {
+  it("passes window parameter when provided", async () => {
+    const node = new GoogleFinanceNode();
+    mockFetch.mockResolvedValueOnce(jsonResponse({ graph: [1, 2, 3] }));
+    node.assign({ query: "GOOG:NASDAQ", window: "1y" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output.success).toBe(true);
+    expect(output.results).toEqual({ graph: [1, 2, 3] });
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url).toContain("window=1y");
+    expect(url).toContain("engine=google_finance");
+  });
+
+  it("returns error object with exact message when query empty", async () => {
     const node = new GoogleFinanceNode();
     node.assign({ query: "" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
-    expect(output.error).toBeDefined();
+    expect(output).toEqual({
+      error: "Query is required for Google Finance search."
+    });
+    expect(output.success).toBeUndefined();
+    expect(output.results).toBeUndefined();
+  });
+
+  it("throws when API key missing", async () => {
+    const node = new GoogleFinanceNode();
+    node.assign({ query: "AAPL" });
+    await expect(node.process()).rejects.toThrow("SERPAPI_API_KEY is required");
   });
 });
 
@@ -196,7 +228,7 @@ describe("GoogleLensNode", () => {
     const node = new GoogleLensNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        visual_matches: [{ image: "https://img.com/match.png", title: "Match" }],
+        visual_matches: [{ image: "https://img.com/match.png", title: "Match" }]
       })
     );
     node.assign({
@@ -226,7 +258,7 @@ describe("GoogleMapsNode", () => {
     const node = new GoogleMapsNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        local_results: [{ title: "Cafe", type: "restaurant", rating: 4.5 }],
+        local_results: [{ title: "Cafe", type: "restaurant", rating: 4.5 }]
       })
     );
     node.assign({ query: "cafes" });
@@ -261,9 +293,7 @@ describe("GoogleShoppingNode", () => {
 
   it("builds tbs filter for price and condition", async () => {
     const node = new GoogleShoppingNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ shopping_results: [] })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ shopping_results: [] }));
     node.assign({
       query: "phone",
       min_price: 100,

@@ -6,7 +6,7 @@ import {
   RemoteUserManager,
   SimpleSSHConnection,
   type SSHConnectionHandle,
-  type UserInfo,
+  type UserInfo
 } from "../src/remote-users.js";
 
 // Helper: create a mock SSH connection
@@ -14,7 +14,7 @@ function createMockSSH(): SSHConnectionHandle & {
   execute: ReturnType<typeof vi.fn>;
 } {
   return {
-    execute: vi.fn(),
+    execute: vi.fn()
   };
 }
 
@@ -42,8 +42,8 @@ const fakeDeployment = {
     container_id: null,
     container_name: null,
     url: null,
-    container_hash: null,
-  },
+    container_hash: null
+  }
 };
 
 describe("RemoteUserManager", () => {
@@ -73,8 +73,8 @@ describe("RemoteUserManager", () => {
           username: "alice",
           role: "admin",
           token_hash: "hash1",
-          created_at: "2024-01-01T00:00:00Z",
-        },
+          created_at: "2024-01-01T00:00:00Z"
+        }
       };
       ssh.execute.mockResolvedValue([0, usersYaml(existing), ""]);
       const users = await mgr.listUsers();
@@ -123,8 +123,8 @@ describe("RemoteUserManager", () => {
           username: "bob",
           role: "user",
           token_hash: "h",
-          created_at: "2024-01-01T00:00:00Z",
-        },
+          created_at: "2024-01-01T00:00:00Z"
+        }
       };
       ssh.execute.mockResolvedValue([0, usersYaml(existing), ""]);
       await expect(mgr.addUser("bob", "user", "tok")).rejects.toThrow(
@@ -141,7 +141,9 @@ describe("RemoteUserManager", () => {
       // Decode base64 content
       const b64 = writeCall.split("echo ")[1]!.split(" |")[0]!;
       const yamlContent = Buffer.from(b64, "base64").toString("utf-8");
-      const data = yaml.load(yamlContent) as { users: Record<string, UserInfo> };
+      const data = yaml.load(yamlContent) as {
+        users: Record<string, UserInfo>;
+      };
       expect(data.users["carol"]!.token_hash).toBe(sha256("plaintext-tok"));
     });
 
@@ -152,7 +154,9 @@ describe("RemoteUserManager", () => {
       const writeCall = ssh.execute.mock.calls[2]![0] as string;
       const b64 = writeCall.split("echo ")[1]!.split(" |")[0]!;
       const yamlContent = Buffer.from(b64, "base64").toString("utf-8");
-      const data = yaml.load(yamlContent) as { users: Record<string, UserInfo> };
+      const data = yaml.load(yamlContent) as {
+        users: Record<string, UserInfo>;
+      };
       expect(data.users["dave"]!.user_id).toMatch(/^user_dave_/);
     });
 
@@ -163,7 +167,9 @@ describe("RemoteUserManager", () => {
       const writeCall = ssh.execute.mock.calls[2]![0] as string;
       const b64 = writeCall.split("echo ")[1]!.split(" |")[0]!;
       const yamlContent = Buffer.from(b64, "base64").toString("utf-8");
-      const data = yaml.load(yamlContent) as { users: Record<string, UserInfo> };
+      const data = yaml.load(yamlContent) as {
+        users: Record<string, UserInfo>;
+      };
       expect(data.users["eve"]!.role).toBe("admin");
     });
 
@@ -174,7 +180,9 @@ describe("RemoteUserManager", () => {
       const writeCall = ssh.execute.mock.calls[2]![0] as string;
       const b64 = writeCall.split("echo ")[1]!.split(" |")[0]!;
       const yamlContent = Buffer.from(b64, "base64").toString("utf-8");
-      const data = yaml.load(yamlContent) as { users: Record<string, UserInfo> };
+      const data = yaml.load(yamlContent) as {
+        users: Record<string, UserInfo>;
+      };
       // Should be a valid ISO date
       expect(() => new Date(data.users["frank"]!.created_at)).not.toThrow();
     });
@@ -201,15 +209,15 @@ describe("RemoteUserManager", () => {
           username: "alice",
           role: "admin",
           token_hash: "h",
-          created_at: "2024-01-01T00:00:00Z",
+          created_at: "2024-01-01T00:00:00Z"
         },
         bob: {
           user_id: "user_bob_def",
           username: "bob",
           role: "user",
           token_hash: "h2",
-          created_at: "2024-01-01T00:00:00Z",
-        },
+          created_at: "2024-01-01T00:00:00Z"
+        }
       };
       ssh.execute.mockResolvedValue([0, usersYaml(existing), ""]);
       await mgr.removeUser("alice");
@@ -218,16 +226,16 @@ describe("RemoteUserManager", () => {
       const writeCall = ssh.execute.mock.calls[2]![0] as string;
       const b64 = writeCall.split("echo ")[1]!.split(" |")[0]!;
       const yamlContent = Buffer.from(b64, "base64").toString("utf-8");
-      const data = yaml.load(yamlContent) as { users: Record<string, UserInfo> };
+      const data = yaml.load(yamlContent) as {
+        users: Record<string, UserInfo>;
+      };
       expect(data.users).not.toHaveProperty("alice");
       expect(data.users).toHaveProperty("bob");
     });
 
     it("should throw when user does not exist", async () => {
       ssh.execute.mockResolvedValue([0, "{}", ""]);
-      await expect(mgr.removeUser("nonexistent")).rejects.toThrow(
-        "not found"
-      );
+      await expect(mgr.removeUser("nonexistent")).rejects.toThrow("not found");
     });
 
     it("should save after removing", async () => {
@@ -237,8 +245,8 @@ describe("RemoteUserManager", () => {
           username: "alice",
           role: "admin",
           token_hash: "h",
-          created_at: "2024-01-01T00:00:00Z",
-        },
+          created_at: "2024-01-01T00:00:00Z"
+        }
       };
       ssh.execute.mockResolvedValue([0, usersYaml(existing), ""]);
       await mgr.removeUser("alice");
@@ -259,8 +267,8 @@ describe("RemoteUserManager", () => {
           username: "alice",
           role: "admin",
           token_hash: sha256("old-token"),
-          created_at: "2024-01-01T00:00:00Z",
-        },
+          created_at: "2024-01-01T00:00:00Z"
+        }
       };
       ssh.execute.mockResolvedValue([0, usersYaml(existing), ""]);
       await mgr.resetToken("alice", "new-token");
@@ -268,7 +276,9 @@ describe("RemoteUserManager", () => {
       const writeCall = ssh.execute.mock.calls[2]![0] as string;
       const b64 = writeCall.split("echo ")[1]!.split(" |")[0]!;
       const yamlContent = Buffer.from(b64, "base64").toString("utf-8");
-      const data = yaml.load(yamlContent) as { users: Record<string, UserInfo> };
+      const data = yaml.load(yamlContent) as {
+        users: Record<string, UserInfo>;
+      };
       expect(data.users["alice"]!.token_hash).toBe(sha256("new-token"));
     });
 
@@ -279,8 +289,8 @@ describe("RemoteUserManager", () => {
           username: "alice",
           role: "admin",
           token_hash: sha256("old"),
-          created_at: "2024-01-01T00:00:00Z",
-        },
+          created_at: "2024-01-01T00:00:00Z"
+        }
       };
       ssh.execute.mockResolvedValue([0, usersYaml(existing), ""]);
       await mgr.resetToken("alice", "new-tok");
@@ -288,16 +298,16 @@ describe("RemoteUserManager", () => {
       const writeCall = ssh.execute.mock.calls[2]![0] as string;
       const b64 = writeCall.split("echo ")[1]!.split(" |")[0]!;
       const yamlContent = Buffer.from(b64, "base64").toString("utf-8");
-      const data = yaml.load(yamlContent) as { users: Record<string, UserInfo> };
+      const data = yaml.load(yamlContent) as {
+        users: Record<string, UserInfo>;
+      };
       expect(data.users["alice"]!.user_id).toBe("user_alice_abc");
       expect(data.users["alice"]!.role).toBe("admin");
     });
 
     it("should throw when user does not exist", async () => {
       ssh.execute.mockResolvedValue([0, "{}", ""]);
-      await expect(mgr.resetToken("ghost", "tok")).rejects.toThrow(
-        "not found"
-      );
+      await expect(mgr.resetToken("ghost", "tok")).rejects.toThrow("not found");
     });
 
     it("should update created_at timestamp", async () => {
@@ -308,8 +318,8 @@ describe("RemoteUserManager", () => {
           username: "alice",
           role: "user",
           token_hash: sha256("old"),
-          created_at: oldDate,
-        },
+          created_at: oldDate
+        }
       };
       ssh.execute.mockResolvedValue([0, usersYaml(existing), ""]);
       await mgr.resetToken("alice", "new");
@@ -317,7 +327,9 @@ describe("RemoteUserManager", () => {
       const writeCall = ssh.execute.mock.calls[2]![0] as string;
       const b64 = writeCall.split("echo ")[1]!.split(" |")[0]!;
       const yamlContent = Buffer.from(b64, "base64").toString("utf-8");
-      const data = yaml.load(yamlContent) as { users: Record<string, UserInfo> };
+      const data = yaml.load(yamlContent) as {
+        users: Record<string, UserInfo>;
+      };
       expect(data.users["alice"]!.created_at).not.toBe(oldDate);
     });
   });
@@ -330,10 +342,7 @@ describe("RemoteUserManager", () => {
     it("should resolve with exit code, stdout, stderr on success", async () => {
       const mockClient = {
         exec: vi.fn(
-          (
-            _cmd: string,
-            cb: (err: Error | undefined, stream: any) => void
-          ) => {
+          (_cmd: string, cb: (err: Error | undefined, stream: any) => void) => {
             const stream = {
               on: vi.fn((event: string, handler: Function) => {
                 if (event === "data") handler(Buffer.from("out"));
@@ -342,12 +351,12 @@ describe("RemoteUserManager", () => {
               stderr: {
                 on: vi.fn((event: string, handler: Function) => {
                   if (event === "data") handler(Buffer.from("err"));
-                }),
-              },
+                })
+              }
             };
             cb(undefined, stream);
           }
-        ),
+        )
       };
 
       const conn = new SimpleSSHConnection(mockClient);
@@ -360,13 +369,10 @@ describe("RemoteUserManager", () => {
     it("should reject when client.exec returns error", async () => {
       const mockClient = {
         exec: vi.fn(
-          (
-            _cmd: string,
-            cb: (err: Error | undefined, stream: any) => void
-          ) => {
+          (_cmd: string, cb: (err: Error | undefined, stream: any) => void) => {
             cb(new Error("conn error"), null as any);
           }
-        ),
+        )
       };
 
       const conn = new SimpleSSHConnection(mockClient);
@@ -376,21 +382,18 @@ describe("RemoteUserManager", () => {
     it("should reject on non-zero exit when check is true (default)", async () => {
       const mockClient = {
         exec: vi.fn(
-          (
-            _cmd: string,
-            cb: (err: Error | undefined, stream: any) => void
-          ) => {
+          (_cmd: string, cb: (err: Error | undefined, stream: any) => void) => {
             const stream = {
               on: vi.fn((event: string, handler: Function) => {
                 if (event === "close") handler(1);
               }),
               stderr: {
-                on: vi.fn(),
-              },
+                on: vi.fn()
+              }
             };
             cb(undefined, stream);
           }
-        ),
+        )
       };
 
       const conn = new SimpleSSHConnection(mockClient);
@@ -400,21 +403,18 @@ describe("RemoteUserManager", () => {
     it("should resolve on non-zero exit when check is false", async () => {
       const mockClient = {
         exec: vi.fn(
-          (
-            _cmd: string,
-            cb: (err: Error | undefined, stream: any) => void
-          ) => {
+          (_cmd: string, cb: (err: Error | undefined, stream: any) => void) => {
             const stream = {
               on: vi.fn((event: string, handler: Function) => {
                 if (event === "close") handler(1);
               }),
               stderr: {
-                on: vi.fn(),
-              },
+                on: vi.fn()
+              }
             };
             cb(undefined, stream);
           }
-        ),
+        )
       };
 
       const conn = new SimpleSSHConnection(mockClient);

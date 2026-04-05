@@ -6,7 +6,7 @@
 
 export enum TokenType {
   STATIC = "static",
-  USER = "user",
+  USER = "user"
 }
 
 export interface AuthResult {
@@ -37,7 +37,9 @@ export abstract class AuthProvider {
 
     let authHeader: string | null | undefined;
     if (headers instanceof Headers) {
-      authHeader = headers.get(headerName) ?? headers.get(headerName.replace(/\b\w/g, (c) => c.toUpperCase()));
+      authHeader =
+        headers.get(headerName) ??
+        headers.get(headerName.replace(/\b\w/g, (c) => c.toUpperCase()));
     } else {
       authHeader =
         headers[headerName] ??

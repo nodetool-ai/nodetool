@@ -22,9 +22,9 @@ function createMockProvider(finishResult?: Record<string, unknown>) {
         {
           id: "tc_1",
           name: "finish_step",
-          args: { result },
-        },
-      ],
+          args: { result }
+        }
+      ]
     }),
     generateMessageTraced: vi.fn().mockResolvedValue({
       role: "assistant",
@@ -33,9 +33,9 @@ function createMockProvider(finishResult?: Record<string, unknown>) {
         {
           id: "tc_1",
           name: "finish_step",
-          args: { result },
-        },
-      ],
+          args: { result }
+        }
+      ]
     }),
     async *generateMessages(..._args: unknown[]) {
       yield {
@@ -45,9 +45,9 @@ function createMockProvider(finishResult?: Record<string, unknown>) {
           {
             id: "tc_1",
             name: "finish_step",
-            args: { result },
-          },
-        ],
+            args: { result }
+          }
+        ]
       };
     },
     async *generateMessagesTraced(..._args: unknown[]) {
@@ -58,16 +58,16 @@ function createMockProvider(finishResult?: Record<string, unknown>) {
           {
             id: "tc_1",
             name: "finish_step",
-            args: { result },
-          },
-        ],
+            args: { result }
+          }
+        ]
       };
     },
     getAvailableLanguageModels: vi.fn(async () => []),
     isContextLengthError: () => false,
     trackUsage: vi.fn(),
     getTotalCost: vi.fn().mockReturnValue(0),
-    resetCost: vi.fn(),
+    resetCost: vi.fn()
   } as unknown as BaseProvider;
 }
 
@@ -76,7 +76,7 @@ function createMockContext() {
     storeStepResult: vi.fn(),
     loadStepResult: vi.fn(),
     set: vi.fn(),
-    get: vi.fn(),
+    get: vi.fn()
   } as unknown as ProcessingContext;
 }
 
@@ -89,7 +89,10 @@ describe("SimpleAgent constructor", () => {
       provider,
       model: "gpt-4",
       tools: [],
-      outputSchema: { type: "object", properties: { answer: { type: "string" } } },
+      outputSchema: {
+        type: "object",
+        properties: { answer: { type: "string" } }
+      }
     });
 
     expect(agent.name).toBe("test-simple");
@@ -105,7 +108,7 @@ describe("SimpleAgent constructor", () => {
       provider,
       model: "m",
       tools: [],
-      outputSchema: {},
+      outputSchema: {}
     });
 
     // maxIterations is private, so we test its effect indirectly
@@ -121,7 +124,7 @@ describe("SimpleAgent constructor", () => {
       model: "m",
       tools: [],
       outputSchema: {},
-      maxIterations: 5,
+      maxIterations: 5
     });
 
     expect(agent).toBeDefined();
@@ -136,7 +139,7 @@ describe("SimpleAgent constructor", () => {
       model: "m",
       tools: [],
       outputSchema: {},
-      maxTokenLimit: 4096,
+      maxTokenLimit: 4096
     });
 
     expect(agent.maxTokenLimit).toBe(4096);
@@ -150,7 +153,7 @@ describe("SimpleAgent constructor", () => {
       provider,
       model: "m",
       tools: [],
-      outputSchema: {},
+      outputSchema: {}
     });
 
     expect(agent.inputs).toEqual({});
@@ -167,7 +170,7 @@ describe("SimpleAgent getResults", () => {
       provider,
       model: "m",
       tools: [],
-      outputSchema: {},
+      outputSchema: {}
     });
 
     expect(agent.getResults()).toBeNull();
@@ -183,7 +186,7 @@ describe("SimpleAgent task creation", () => {
       provider,
       model: "m",
       tools: [],
-      outputSchema: {},
+      outputSchema: {}
     });
 
     expect(agent.task).toBeNull();

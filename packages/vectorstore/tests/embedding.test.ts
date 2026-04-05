@@ -6,7 +6,7 @@ import {
   GeminiEmbeddingFunction,
   MistralEmbeddingFunction,
   ProviderEmbeddingFunction,
-  getProviderEmbeddingFunction,
+  getProviderEmbeddingFunction
 } from "../src/embedding.js";
 
 // ---------------------------------------------------------------------------
@@ -18,7 +18,7 @@ function mockFetch(response: unknown, ok = true, status = 200) {
     ok,
     status,
     json: async () => response,
-    text: async () => JSON.stringify(response),
+    text: async () => JSON.stringify(response)
   });
 }
 
@@ -114,8 +114,8 @@ describe("OpenAIEmbeddingFunction", () => {
     const mockData = {
       data: [
         { index: 0, embedding: [0.1, 0.2, 0.3] },
-        { index: 1, embedding: [0.4, 0.5, 0.6] },
-      ],
+        { index: 1, embedding: [0.4, 0.5, 0.6] }
+      ]
     };
     vi.stubGlobal("fetch", mockFetch(mockData));
 
@@ -128,9 +128,14 @@ describe("OpenAIEmbeddingFunction", () => {
   it("throws when API key is not configured", async () => {
     // Ensure no key is set and fetch is not callable
     const ef = new OpenAIEmbeddingFunction();
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("fetch should not be called")));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("fetch should not be called"))
+    );
 
-    await expect(ef.generate(["test"])).rejects.toThrow("OPENAI_API_KEY not configured");
+    await expect(ef.generate(["test"])).rejects.toThrow(
+      "OPENAI_API_KEY not configured"
+    );
   });
 
   it("throws on HTTP error", async () => {
@@ -139,7 +144,9 @@ describe("OpenAIEmbeddingFunction", () => {
 
     vi.stubGlobal("fetch", mockFetch("Unauthorized", false, 401));
 
-    await expect(ef.generate(["test"])).rejects.toThrow("OpenAI embedding failed (401)");
+    await expect(ef.generate(["test"])).rejects.toThrow(
+      "OpenAI embedding failed (401)"
+    );
   });
 
   it("uses custom model and dimensions", async () => {
@@ -147,14 +154,16 @@ describe("OpenAIEmbeddingFunction", () => {
     const ef = new OpenAIEmbeddingFunction("text-embedding-3-large", 256);
 
     let capturedBody: Record<string, unknown> = {};
-    const mockFetchFn = vi.fn().mockImplementation(async (_url: string, opts: RequestInit) => {
-      capturedBody = JSON.parse(opts.body as string);
-      return {
-        ok: true,
-        json: async () => ({ data: [{ index: 0, embedding: [1, 2] }] }),
-        text: async () => "",
-      };
-    });
+    const mockFetchFn = vi
+      .fn()
+      .mockImplementation(async (_url: string, opts: RequestInit) => {
+        capturedBody = JSON.parse(opts.body as string);
+        return {
+          ok: true,
+          json: async () => ({ data: [{ index: 0, embedding: [1, 2] }] }),
+          text: async () => ""
+        };
+      });
     vi.stubGlobal("fetch", mockFetchFn);
 
     await ef.generate(["test"]);
@@ -183,10 +192,21 @@ describe("OllamaEmbeddingFunction", () => {
     process.env.OLLAMA_API_URL = "http://localhost:11434";
     const ef = new OllamaEmbeddingFunction();
 
-    vi.stubGlobal("fetch", mockFetch({ embeddings: [[0.1, 0.2], [0.3, 0.4]] }));
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        embeddings: [
+          [0.1, 0.2],
+          [0.3, 0.4]
+        ]
+      })
+    );
 
     const result = await ef.generate(["a", "b"]);
-    expect(result).toEqual([[0.1, 0.2], [0.3, 0.4]]);
+    expect(result).toEqual([
+      [0.1, 0.2],
+      [0.3, 0.4]
+    ]);
   });
 
   it("throws on HTTP error", async () => {
@@ -195,7 +215,9 @@ describe("OllamaEmbeddingFunction", () => {
 
     vi.stubGlobal("fetch", mockFetch("Server Error", false, 500));
 
-    await expect(ef.generate(["test"])).rejects.toThrow("Ollama embedding failed (500)");
+    await expect(ef.generate(["test"])).rejects.toThrow(
+      "Ollama embedding failed (500)"
+    );
   });
 });
 
@@ -225,7 +247,7 @@ describe("GeminiEmbeddingFunction", () => {
       return {
         ok: true,
         json: async () => ({ embedding: { values: [0.1, 0.2, 0.3] } }),
-        text: async () => "",
+        text: async () => ""
       };
     });
     vi.stubGlobal("fetch", fetchFn);
@@ -239,9 +261,14 @@ describe("GeminiEmbeddingFunction", () => {
 
   it("throws when API key is not configured", async () => {
     const ef = new GeminiEmbeddingFunction();
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("fetch should not be called")));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("fetch should not be called"))
+    );
 
-    await expect(ef.generate(["test"])).rejects.toThrow("GEMINI_API_KEY not configured");
+    await expect(ef.generate(["test"])).rejects.toThrow(
+      "GEMINI_API_KEY not configured"
+    );
   });
 });
 
@@ -265,15 +292,21 @@ describe("MistralEmbeddingFunction", () => {
     process.env.MISTRAL_API_KEY = "mistral-key";
     const ef = new MistralEmbeddingFunction();
 
-    vi.stubGlobal("fetch", mockFetch({
-      data: [
-        { index: 0, embedding: [0.5, 0.6] },
-        { index: 1, embedding: [0.7, 0.8] },
-      ],
-    }));
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        data: [
+          { index: 0, embedding: [0.5, 0.6] },
+          { index: 1, embedding: [0.7, 0.8] }
+        ]
+      })
+    );
 
     const result = await ef.generate(["a", "b"]);
-    expect(result).toEqual([[0.5, 0.6], [0.7, 0.8]]);
+    expect(result).toEqual([
+      [0.5, 0.6],
+      [0.7, 0.8]
+    ]);
   });
 
   it("throws on HTTP error", async () => {
@@ -282,6 +315,8 @@ describe("MistralEmbeddingFunction", () => {
 
     vi.stubGlobal("fetch", mockFetch("Error", false, 429));
 
-    await expect(ef.generate(["test"])).rejects.toThrow("Mistral embedding failed (429)");
+    await expect(ef.generate(["test"])).rejects.toThrow(
+      "Mistral embedding failed (429)"
+    );
   });
 });

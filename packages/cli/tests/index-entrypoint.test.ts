@@ -13,15 +13,15 @@ vi.mock("@nodetool/security", () => ({
     // Simulates looking up secrets from the DB
     const secrets: Record<string, string> = {};
     return secrets[key] ?? null;
-  }),
+  })
 }));
 
 vi.mock("@nodetool/models", () => ({
-  initDb: vi.fn(),
+  initDb: vi.fn()
 }));
 
 vi.mock("@nodetool/config", () => ({
-  getDefaultDbPath: vi.fn(() => ":memory:"),
+  getDefaultDbPath: vi.fn(() => ":memory:")
 }));
 
 // ─── Settings merge logic ─────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ describe("always-on tools injection", () => {
     "conversion",
     "extract_pdf_text",
     "convert_pdf_to_markdown",
-    "convert_document",
+    "convert_document"
   ];
 
   it("adds all always-on tools to empty list", () => {
@@ -152,9 +152,7 @@ describe("always-on tools injection", () => {
       if (!enabledTools.includes(tool)) enabledTools.push(tool);
     }
     // statistics and geometry should not be duplicated
-    expect(
-      enabledTools.filter((t) => t === "statistics").length,
-    ).toBe(1);
+    expect(enabledTools.filter((t) => t === "statistics").length).toBe(1);
     expect(enabledTools.length).toBe(alwaysOn.length);
   });
 
@@ -178,10 +176,7 @@ describe("autoEnable logic", () => {
   it("enables tools when env var is set", async () => {
     const enabledTools: string[] = [];
 
-    async function autoEnable(
-      key: string,
-      tools: string[],
-    ): Promise<void> {
+    async function autoEnable(key: string, tools: string[]): Promise<void> {
       const val = process.env[key] ?? null;
       if (val) {
         for (const tool of tools) {
@@ -194,7 +189,7 @@ describe("autoEnable logic", () => {
     await autoEnable("SERPAPI_API_KEY", [
       "google_search",
       "google_news",
-      "google_images",
+      "google_images"
     ]);
 
     expect(enabledTools).toContain("google_search");
@@ -205,10 +200,7 @@ describe("autoEnable logic", () => {
   it("does not enable tools when env var is empty", async () => {
     const enabledTools: string[] = [];
 
-    async function autoEnable(
-      key: string,
-      tools: string[],
-    ): Promise<void> {
+    async function autoEnable(key: string, tools: string[]): Promise<void> {
       const val = process.env[key] ?? null;
       if (val) {
         for (const tool of tools) {
@@ -218,10 +210,7 @@ describe("autoEnable logic", () => {
     }
 
     vi.stubEnv("SERPAPI_API_KEY", "");
-    await autoEnable("SERPAPI_API_KEY", [
-      "google_search",
-      "google_news",
-    ]);
+    await autoEnable("SERPAPI_API_KEY", ["google_search", "google_news"]);
 
     // Empty string is falsy, so tools should not be enabled
     expect(enabledTools).toEqual([]);
@@ -230,10 +219,7 @@ describe("autoEnable logic", () => {
   it("does not enable tools when env var is unset", async () => {
     const enabledTools: string[] = [];
 
-    async function autoEnable(
-      key: string,
-      tools: string[],
-    ): Promise<void> {
+    async function autoEnable(key: string, tools: string[]): Promise<void> {
       const val = process.env[key] ?? null;
       if (val) {
         for (const tool of tools) {
@@ -251,10 +237,7 @@ describe("autoEnable logic", () => {
   it("does not add duplicate tools", async () => {
     const enabledTools = ["google_search"];
 
-    async function autoEnable(
-      key: string,
-      tools: string[],
-    ): Promise<void> {
+    async function autoEnable(key: string, tools: string[]): Promise<void> {
       const val = process.env[key] ?? null;
       if (val) {
         for (const tool of tools) {
@@ -264,24 +247,16 @@ describe("autoEnable logic", () => {
     }
 
     vi.stubEnv("SERPAPI_API_KEY", "key");
-    await autoEnable("SERPAPI_API_KEY", [
-      "google_search",
-      "google_news",
-    ]);
+    await autoEnable("SERPAPI_API_KEY", ["google_search", "google_news"]);
 
-    expect(enabledTools.filter((t) => t === "google_search").length).toBe(
-      1,
-    );
+    expect(enabledTools.filter((t) => t === "google_search").length).toBe(1);
     expect(enabledTools).toContain("google_news");
   });
 
   it("multiple autoEnable calls accumulate tools", async () => {
     const enabledTools: string[] = [];
 
-    async function autoEnable(
-      key: string,
-      tools: string[],
-    ): Promise<void> {
+    async function autoEnable(key: string, tools: string[]): Promise<void> {
       const val = process.env[key] ?? null;
       if (val) {
         for (const tool of tools) {
@@ -297,8 +272,8 @@ describe("autoEnable logic", () => {
       autoEnable("SERPAPI_API_KEY", ["google_search"]),
       autoEnable("OPENAI_API_KEY", [
         "openai_web_search",
-        "openai_image_generation",
-      ]),
+        "openai_image_generation"
+      ])
     ]);
 
     expect(enabledTools).toContain("google_search");

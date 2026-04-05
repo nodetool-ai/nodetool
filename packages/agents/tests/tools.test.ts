@@ -25,14 +25,14 @@ describe("CalculatorTool", () => {
 
   it("returns error for invalid expression", async () => {
     const result = (await calc.process(mockContext, {
-      expression: "foo bar baz",
+      expression: "foo bar baz"
     })) as Record<string, unknown>;
     expect(result).toHaveProperty("error");
   });
 
   it("returns error for non-string expression", async () => {
     const result = (await calc.process(mockContext, {
-      expression: 42,
+      expression: 42
     })) as Record<string, unknown>;
     expect(result).toHaveProperty("error");
   });
@@ -46,7 +46,7 @@ describe("CalculatorTool", () => {
 
   it("returns error for non-finite number (Infinity)", async () => {
     const result = (await calc.process(mockContext, {
-      expression: "1/0",
+      expression: "1/0"
     })) as Record<string, unknown>;
     expect(result).toHaveProperty("error");
     expect(result.error).toContain("finite number");
@@ -54,7 +54,7 @@ describe("CalculatorTool", () => {
 
   it("returns error for NaN", async () => {
     const result = (await calc.process(mockContext, {
-      expression: "sqrt(-1)",
+      expression: "sqrt(-1)"
     })) as Record<string, unknown>;
     expect(result).toHaveProperty("error");
     expect(result.error).toContain("finite number");

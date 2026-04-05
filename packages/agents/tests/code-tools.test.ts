@@ -12,14 +12,14 @@ describe("RunCodeTool", () => {
     const pt = tool.toProviderTool();
     expect(pt.inputSchema).toBeDefined();
     expect((pt.inputSchema as any).required).toEqual(
-      expect.arrayContaining(["language", "code"]),
+      expect.arrayContaining(["language", "code"])
     );
   });
 
   it("executes simple JavaScript", async () => {
     const result = await tool.process(mockContext, {
       language: "javascript",
-      code: 'console.log("hello from js")',
+      code: 'console.log("hello from js")'
     });
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("hello from js");
@@ -28,7 +28,7 @@ describe("RunCodeTool", () => {
   it("executes Python print", async () => {
     const result = await tool.process(mockContext, {
       language: "python",
-      code: 'print("hello from python")',
+      code: 'print("hello from python")'
     });
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("hello from python");
@@ -37,7 +37,7 @@ describe("RunCodeTool", () => {
   it("executes Bash echo", async () => {
     const result = await tool.process(mockContext, {
       language: "bash",
-      code: 'echo "hello from bash"',
+      code: 'echo "hello from bash"'
     });
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("hello from bash");
@@ -46,7 +46,7 @@ describe("RunCodeTool", () => {
   it("captures stderr", async () => {
     const result = await tool.process(mockContext, {
       language: "javascript",
-      code: 'console.error("oops")',
+      code: 'console.error("oops")'
     });
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toContain("oops");
@@ -55,7 +55,7 @@ describe("RunCodeTool", () => {
   it("returns non-zero exit code on error", async () => {
     const result = await tool.process(mockContext, {
       language: "javascript",
-      code: "process.exit(42)",
+      code: "process.exit(42)"
     });
     expect(result.exitCode).not.toBe(0);
   });
@@ -64,7 +64,7 @@ describe("RunCodeTool", () => {
     const shortTimeoutTool = new RunCodeTool({ timeoutMs: 500 });
     const result = await shortTimeoutTool.process(mockContext, {
       language: "javascript",
-      code: "setTimeout(() => {}, 60000); // hang for 60s",
+      code: "setTimeout(() => {}, 60000); // hang for 60s"
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toContain("timeout");
@@ -73,7 +73,7 @@ describe("RunCodeTool", () => {
   it("returns error for empty code", async () => {
     const result = await tool.process(mockContext, {
       language: "javascript",
-      code: "   ",
+      code: "   "
     });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("No code provided");
@@ -82,7 +82,7 @@ describe("RunCodeTool", () => {
   it("returns error for unsupported language", async () => {
     const result = await tool.process(mockContext, {
       language: "ruby",
-      code: 'puts "hi"',
+      code: 'puts "hi"'
     });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("Unsupported language");
@@ -96,7 +96,7 @@ describe("RunCodeTool", () => {
   it("userMessage shows short code snippets", () => {
     const msg = tool.userMessage({
       language: "bash",
-      code: "echo hi",
+      code: "echo hi"
     });
     expect(msg).toContain("echo hi");
   });
@@ -104,7 +104,7 @@ describe("RunCodeTool", () => {
   it("userMessage uses ellipsis for long code", () => {
     const msg = tool.userMessage({
       language: "javascript",
-      code: "a".repeat(100),
+      code: "a".repeat(100)
     });
     expect(msg).toContain("...");
     expect(msg).not.toContain("a".repeat(100));
@@ -122,7 +122,7 @@ describe("RunCodeTool", () => {
 
   it("returns error for undefined code", async () => {
     const result = await tool.process(mockContext, {
-      language: "javascript",
+      language: "javascript"
     });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("No code provided");
@@ -131,7 +131,7 @@ describe("RunCodeTool", () => {
   it("returns error for non-string code", async () => {
     const result = await tool.process(mockContext, {
       language: "javascript",
-      code: 123 as any,
+      code: 123 as any
     });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("No code provided");

@@ -3,28 +3,49 @@ import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
 import { handleCollectionRequest } from "../collection-api.js";
 
-interface RouteOptions { apiOptions: HttpApiOptions }
+interface RouteOptions {
+  apiOptions: HttpApiOptions;
+}
 
-const collectionsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
+const collectionsRoutes: FastifyPluginAsync<RouteOptions> = async (
+  app,
+  opts
+) => {
   const { apiOptions } = opts;
 
   app.all("/api/collections", async (req, reply) => {
     const url = new URL(req.url, "http://localhost");
     await bridge(req, reply, async (request) => {
-      const res = await handleCollectionRequest(request, url.pathname, apiOptions);
-      return res ?? new Response(JSON.stringify({ detail: "Not found" }), {
-        status: 404, headers: { "content-type": "application/json" },
-      });
+      const res = await handleCollectionRequest(
+        request,
+        url.pathname,
+        apiOptions
+      );
+      return (
+        res ??
+        new Response(JSON.stringify({ detail: "Not found" }), {
+          status: 404,
+          headers: { "content-type": "application/json" }
+        })
+      );
     });
   });
 
   app.all("/api/collections/*", async (req, reply) => {
     const url = new URL(req.url, "http://localhost");
     await bridge(req, reply, async (request) => {
-      const res = await handleCollectionRequest(request, url.pathname, apiOptions);
-      return res ?? new Response(JSON.stringify({ detail: "Not found" }), {
-        status: 404, headers: { "content-type": "application/json" },
-      });
+      const res = await handleCollectionRequest(
+        request,
+        url.pathname,
+        apiOptions
+      );
+      return (
+        res ??
+        new Response(JSON.stringify({ detail: "Not found" }), {
+          status: 404,
+          headers: { "content-type": "application/json" }
+        })
+      );
     });
   });
 
@@ -36,7 +57,9 @@ const collectionsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) =>
 
   // Admin endpoints (stubs)
   app.post("/admin/secrets/import", async (_req, reply) => {
-    reply.status(501).send({ detail: "Secrets import not available in standalone mode" });
+    reply
+      .status(501)
+      .send({ detail: "Secrets import not available in standalone mode" });
   });
 };
 

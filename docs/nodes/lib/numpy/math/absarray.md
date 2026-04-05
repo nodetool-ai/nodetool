@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Abs Array"
-node_type: "lib.numpy.math.AbsArray"
-namespace: "lib.numpy.math"
+node_type: "lib.array.math.AbsArray"
+namespace: "lib.array.math"
 ---
 
-**Type:** `lib.numpy.math.AbsArray`
+**Type:** `lib.array.math.AbsArray`
 
-**Namespace:** `lib.numpy.math`
+**Namespace:** `lib.array.math`
 
 ## Description
 
@@ -35,5 +35,5 @@ Compute the absolute value of each element in a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.math](../) namespace.
+Browse other nodes in the [lib.array.math](../) namespace.
 

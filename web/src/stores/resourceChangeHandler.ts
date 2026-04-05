@@ -10,6 +10,7 @@
 import log from "loglevel";
 import { queryClient } from "../queryClient";
 import { ResourceChangeUpdate } from "./ApiTypes";
+import { loadMetadata } from "../serverState/useMetadata";
 
 /**
  * Mapping of resource types to their TanStack Query cache keys.
@@ -25,6 +26,7 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
   workspace: ["workspaces"],
   secret: ["secrets"],
   model: ["models"],
+  metadata: ["metadata"]
   // Add more mappings as needed
 };
 
@@ -36,10 +38,17 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
 export function handleResourceChange(update: ResourceChangeUpdate): void {
   const { event, resource_type, resource } = update;
 
-  log.info(
-    `[ResourceChange] Received update: ${event} ${resource_type}`,
-    { id: resource.id, etag: resource.etag }
-  );
+  log.info(`[ResourceChange] Received update: ${event} ${resource_type}`, {
+    id: resource.id,
+    etag: resource.etag
+  });
+
+  // Special handling for metadata changes (e.g. Python bridge nodes registered)
+  if (resource_type === "metadata") {
+    log.info("[ResourceChange] Reloading node metadata");
+    void loadMetadata();
+    return;
+  }
 
   // Get the query keys associated with this resource type
   const queryKeys = RESOURCE_TYPE_TO_QUERY_KEYS[resource_type];
@@ -70,7 +79,9 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
 
     // For workflows, invalidate the specific workflow query
     if (resource_type === "workflow") {
-      log.debug(`[ResourceChange] Invalidating workflow queries: ["workflow", "${resource.id}"], ["workflow", "${resource.id}", "versions"]`);
+      log.debug(
+        `[ResourceChange] Invalidating workflow queries: ["workflow", "${resource.id}"], ["workflow", "${resource.id}", "versions"]`
+      );
       queryClient.invalidateQueries({
         queryKey: ["workflow", resource.id]
       });
@@ -81,7 +92,9 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
 
     // For threads, invalidate the specific thread query
     if (resource_type === "thread") {
-      log.debug(`[ResourceChange] Invalidating thread queries: ["thread", "${resource.id}"], ["messages", "${resource.id}"]`);
+      log.debug(
+        `[ResourceChange] Invalidating thread queries: ["thread", "${resource.id}"], ["messages", "${resource.id}"]`
+      );
       queryClient.invalidateQueries({
         queryKey: ["thread", resource.id]
       });
@@ -92,7 +105,9 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
 
     // For jobs, invalidate the specific job query
     if (resource_type === "job") {
-      log.debug(`[ResourceChange] Invalidating job query: ["job", "${resource.id}"]`);
+      log.debug(
+        `[ResourceChange] Invalidating job query: ["job", "${resource.id}"]`
+      );
       queryClient.invalidateQueries({
         queryKey: ["job", resource.id]
       });

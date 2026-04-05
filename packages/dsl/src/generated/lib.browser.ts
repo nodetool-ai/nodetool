@@ -12,8 +12,13 @@ export interface WebFetchOutputs {
   output: string;
 }
 
-export function webFetch(inputs: WebFetchInputs): DslNode<WebFetchOutputs, "output"> {
-  return createNode("lib.browser.WebFetch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function webFetch(
+  inputs: WebFetchInputs
+): DslNode<WebFetchOutputs, "output"> {
+  return createNode("lib.browser.WebFetch", inputs as Record<string, unknown>, {
+    outputNames: ["output"],
+    defaultOutput: "output"
+  });
 }
 
 // Download File — lib.browser.DownloadFile
@@ -25,8 +30,14 @@ export interface DownloadFileOutputs {
   output: unknown;
 }
 
-export function downloadFile(inputs: DownloadFileInputs): DslNode<DownloadFileOutputs, "output"> {
-  return createNode("lib.browser.DownloadFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function downloadFile(
+  inputs: DownloadFileInputs
+): DslNode<DownloadFileOutputs, "output"> {
+  return createNode(
+    "lib.browser.DownloadFile",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Browser — lib.browser.Browser
@@ -42,7 +53,9 @@ export interface BrowserOutputs {
 }
 
 export function browser(inputs: BrowserInputs): DslNode<BrowserOutputs> {
-  return createNode("lib.browser.Browser", inputs as Record<string, unknown>, { outputNames: ["success", "content", "metadata"] });
+  return createNode("lib.browser.Browser", inputs as Record<string, unknown>, {
+    outputNames: ["success", "content", "metadata"]
+  });
 }
 
 // Screenshot — lib.browser.Screenshot
@@ -57,8 +70,14 @@ export interface ScreenshotOutputs {
   output: Record<string, unknown>;
 }
 
-export function screenshot(inputs: ScreenshotInputs): DslNode<ScreenshotOutputs, "output"> {
-  return createNode("lib.browser.Screenshot", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function screenshot(
+  inputs: ScreenshotInputs
+): DslNode<ScreenshotOutputs, "output"> {
+  return createNode(
+    "lib.browser.Screenshot",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Browser Navigation — lib.browser.BrowserNavigation
@@ -76,8 +95,14 @@ export interface BrowserNavigationOutputs {
   output: Record<string, unknown>;
 }
 
-export function browserNavigation(inputs: BrowserNavigationInputs): DslNode<BrowserNavigationOutputs, "output"> {
-  return createNode("lib.browser.BrowserNavigation", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function browserNavigation(
+  inputs: BrowserNavigationInputs
+): DslNode<BrowserNavigationOutputs, "output"> {
+  return createNode(
+    "lib.browser.BrowserNavigation",
+    inputs as Record<string, unknown>,
+    { outputNames: ["output"], defaultOutput: "output" }
+  );
 }
 
 // Spider Crawl — lib.browser.SpiderCrawl
@@ -102,6 +127,15 @@ export interface SpiderCrawlOutputs {
   status_code: number;
 }
 
-export function spiderCrawl(inputs: SpiderCrawlInputs): DslNode<SpiderCrawlOutputs> {
-  return createNode("lib.browser.SpiderCrawl", inputs as Record<string, unknown>, { outputNames: ["url", "depth", "html", "title", "status_code"], streaming: true });
+export function spiderCrawl(
+  inputs: SpiderCrawlInputs
+): DslNode<SpiderCrawlOutputs> {
+  return createNode(
+    "lib.browser.SpiderCrawl",
+    inputs as Record<string, unknown>,
+    {
+      outputNames: ["url", "depth", "html", "title", "status_code"],
+      streaming: true
+    }
+  );
 }

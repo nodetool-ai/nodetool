@@ -74,7 +74,7 @@ export function cleanStack(stack: string): string {
       (line) =>
         line.includes("agent-js") ||
         line.includes("evalmachine") ||
-        (!line.includes("node:") && !line.includes("node_modules")),
+        (!line.includes("node:") && !line.includes("node_modules"))
     )
     .slice(0, 5)
     .join("\n");
@@ -112,18 +112,18 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     },
     info: (...args: unknown[]) => {
       logs.push("[info] " + args.map(formatArg).join(" "));
-    },
+    }
   };
 
   // Sandboxed fetch with limits
   const sandboxedFetch = async (
     url: string,
-    options?: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): Promise<Record<string, unknown>> => {
     fetchCount++;
     if (fetchCount > MAX_FETCH_CALLS) {
       throw new Error(
-        `Fetch limit exceeded (max ${MAX_FETCH_CALLS} requests per execution)`,
+        `Fetch limit exceeded (max ${MAX_FETCH_CALLS} requests per execution)`
       );
     }
     if (typeof url !== "string" || !url) {
@@ -136,7 +136,7 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     try {
       const fetchOptions: RequestInit = {
         method: (options?.method as string) ?? "GET",
-        signal: controller.signal,
+        signal: controller.signal
       };
 
       if (options?.headers && typeof options.headers === "object") {
@@ -170,7 +170,7 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers.entries()),
         body,
-        json,
+        json
       };
     } finally {
       clearTimeout(timer);
@@ -208,7 +208,7 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
           const fullPath = context.resolveWorkspacePath(path);
           const { readdir } = await import("node:fs/promises");
           return readdir(fullPath);
-        },
+        }
       }
     : {
         read: async (_path: string): Promise<string> => {
@@ -219,7 +219,7 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         },
         list: async (_path: string): Promise<string[]> => {
           throw new Error("workspace.list is not available without a context");
-        },
+        }
       };
 
   // Sleep helper
@@ -281,7 +281,7 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     getSecret,
     workspace,
     // Loop safety counter
-    __maxIter: MAX_LOOP_ITERATIONS,
+    __maxIter: MAX_LOOP_ITERATIONS
   };
 
   return { sandbox, getLogs: () => logs };
@@ -326,14 +326,9 @@ export interface RunSandboxResult {
  * captured console logs, and any error information.
  */
 export async function runInSandbox(
-  options: RunSandboxOptions,
+  options: RunSandboxOptions
 ): Promise<RunSandboxResult> {
-  const {
-    code,
-    context,
-    timeoutMs = DEFAULT_TIMEOUT_MS,
-    globals,
-  } = options;
+  const { code, context, timeoutMs = DEFAULT_TIMEOUT_MS, globals } = options;
 
   if (!code.trim()) {
     return { success: false, error: "No code provided", logs: [] };
@@ -350,16 +345,16 @@ export async function runInSandbox(
 
   try {
     const vmContext = vm.createContext(sandbox, {
-      codeGeneration: { strings: false, wasm: false },
+      codeGeneration: { strings: false, wasm: false }
     });
 
     const wrapped = wrapCode(code);
     const script = new vm.Script(wrapped, {
-      filename: "agent-js",
+      filename: "agent-js"
     });
 
     const promise = script.runInContext(vmContext, {
-      timeout: timeoutMs,
+      timeout: timeoutMs
     });
 
     let result: unknown;
@@ -371,9 +366,9 @@ export async function runInSandbox(
           new Promise((_, reject) => {
             timerId = setTimeout(
               () => reject(new Error("Async execution timeout")),
-              timeoutMs,
+              timeoutMs
             );
-          }),
+          })
         ]);
       } finally {
         if (timerId !== undefined) clearTimeout(timerId);
@@ -388,12 +383,11 @@ export async function runInSandbox(
     return {
       success: true,
       result: serialized,
-      logs: logs.length > 0 ? logs : undefined,
+      logs: logs.length > 0 ? logs : undefined
     };
   } catch (e: unknown) {
     const logs = getLogs();
-    const errorMessage =
-      e instanceof Error ? e.message : String(e);
+    const errorMessage = e instanceof Error ? e.message : String(e);
     const errorStack =
       e instanceof Error ? cleanStack(e.stack ?? "") : undefined;
 
@@ -401,7 +395,7 @@ export async function runInSandbox(
       success: false,
       error: errorMessage,
       stack: errorStack,
-      logs: logs.length > 0 ? logs : undefined,
+      logs: logs.length > 0 ? logs : undefined
     };
   }
 }

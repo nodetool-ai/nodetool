@@ -15,16 +15,16 @@ vi.mock("@nodetool/models", () => ({
   Secret: {
     listForUser: vi.fn(async () => [[], 0]),
     upsert: vi.fn(async () => {}),
-    get: vi.fn(async () => null),
-  },
+    get: vi.fn(async () => null)
+  }
 }));
 
 vi.mock("@nodetool/security", () => ({
-  getSecret: vi.fn(async () => null),
+  getSecret: vi.fn(async () => null)
 }));
 
 vi.mock("@nodetool/config", () => ({
-  getDefaultDbPath: vi.fn(() => ":memory:"),
+  getDefaultDbPath: vi.fn(() => ":memory:")
 }));
 
 vi.mock("@nodetool/kernel", () => ({
@@ -33,44 +33,52 @@ vi.mock("@nodetool/kernel", () => ({
     async run() {
       return { status: "completed", outputs: {} };
     }
-  },
+  }
 }));
 
 vi.mock("@nodetool/node-sdk", () => ({
   NodeRegistry: class {
     static global = new (class {
-      has() { return false; }
-      resolve() { return null; }
+      has() {
+        return false;
+      }
+      resolve() {
+        return null;
+      }
     })();
-    has() { return false; }
-    resolve() { return null; }
-  },
+    has() {
+      return false;
+    }
+    resolve() {
+      return null;
+    }
+  }
 }));
 
 vi.mock("@nodetool/base-nodes", () => ({
-  registerBaseNodes: vi.fn(),
+  registerBaseNodes: vi.fn()
 }));
 
 vi.mock("@nodetool/elevenlabs-nodes", () => ({
-  registerElevenLabsNodes: vi.fn(),
+  registerElevenLabsNodes: vi.fn()
 }));
 
 vi.mock("@nodetool/fal-nodes", () => ({
-  registerFalNodes: vi.fn(),
+  registerFalNodes: vi.fn()
 }));
 
 vi.mock("@nodetool/replicate-nodes", () => ({
-  registerReplicateNodes: vi.fn(),
+  registerReplicateNodes: vi.fn()
 }));
 
 vi.mock("@nodetool/runtime", () => ({
   ProcessingContext: class {
     constructor() {}
-  },
+  }
 }));
 
 vi.mock("@nodetool/dsl", () => ({
-  workflowToDsl: vi.fn(() => "// generated DSL"),
+  workflowToDsl: vi.fn(() => "// generated DSL")
 }));
 
 // ─── Helper: import the module freshly ─────────────────────────────────────
@@ -86,23 +94,21 @@ describe("printTable logic", () => {
   // Re-implement the pure-function logic from nodetool.ts to unit test it
   function printTable(
     rows: Record<string, unknown>[],
-    columns?: string[],
+    columns?: string[]
   ): string[] {
     if (rows.length === 0) return ["(no results)"];
     const cols = columns ?? Object.keys(rows[0]!);
     const widths = cols.map((c) =>
-      Math.max(c.length, ...rows.map((r) => String(r[c] ?? "").length)),
+      Math.max(c.length, ...rows.map((r) => String(r[c] ?? "").length))
     );
     const sep = widths.map((w) => "─".repeat(w + 2)).join("┼");
-    const header = cols
-      .map((c, i) => ` ${c.padEnd(widths[i]!)} `)
-      .join("│");
+    const header = cols.map((c, i) => ` ${c.padEnd(widths[i]!)} `).join("│");
     const lines = [header, sep];
     for (const row of rows) {
       lines.push(
         cols
           .map((c, i) => ` ${String(row[c] ?? "").padEnd(widths[i]!)} `)
-          .join("│"),
+          .join("│")
       );
     }
     return lines;
@@ -126,7 +132,7 @@ describe("printTable logic", () => {
   it("pads columns to the widest value", () => {
     const rows = [
       { key: "a", value: "short" },
-      { key: "b", value: "a much longer value" },
+      { key: "b", value: "a much longer value" }
     ];
     const lines = printTable(rows);
     // All data lines should have the same length
@@ -151,7 +157,7 @@ describe("printTable logic", () => {
     const rows = [
       { id: "1", name: "alpha" },
       { id: "2", name: "beta" },
-      { id: "3", name: "gamma" },
+      { id: "3", name: "gamma" }
     ];
     const lines = printTable(rows);
     expect(lines.length).toBe(5); // header + sep + 3 data rows
@@ -209,58 +215,61 @@ describe("apiGet / apiPost / apiGetText helpers", () => {
   async function apiPost(
     apiUrl: string,
     path: string,
-    body: unknown,
+    body: unknown
   ): Promise<unknown> {
     const res = await fetch(`${apiUrl}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
     return res.json();
   }
 
   it("apiGet fetches and parses JSON on success", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ ok: true }), { status: 200 }),
+    globalThis.fetch = vi.fn(
+      async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
     );
     const data = await apiGet("http://localhost:7777", "/api/test");
     expect(data).toEqual({ ok: true });
-    expect(globalThis.fetch).toHaveBeenCalledWith("http://localhost:7777/api/test");
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "http://localhost:7777/api/test"
+    );
   });
 
   it("apiGet throws on non-ok response", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response("not found", { status: 404 }),
+    globalThis.fetch = vi.fn(
+      async () => new Response("not found", { status: 404 })
     );
     await expect(apiGet("http://localhost", "/missing")).rejects.toThrow(
-      "HTTP 404",
+      "HTTP 404"
     );
   });
 
   it("apiGetText returns text on success", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response("hello world", { status: 200 }),
+    globalThis.fetch = vi.fn(
+      async () => new Response("hello world", { status: 200 })
     );
     const text = await apiGetText("http://localhost", "/text");
     expect(text).toBe("hello world");
   });
 
   it("apiGetText throws on non-ok response", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response("error", { status: 500 }),
+    globalThis.fetch = vi.fn(
+      async () => new Response("error", { status: 500 })
     );
     await expect(apiGetText("http://localhost", "/err")).rejects.toThrow(
-      "HTTP 500",
+      "HTTP 500"
     );
   });
 
   it("apiPost sends JSON body and parses response", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ result: "ok" }), { status: 200 }),
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ result: "ok" }), { status: 200 })
     );
     const data = await apiPost("http://localhost", "/api/do", {
-      key: "value",
+      key: "value"
     });
     expect(data).toEqual({ result: "ok" });
     const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -270,11 +279,11 @@ describe("apiGet / apiPost / apiGetText helpers", () => {
   });
 
   it("apiPost throws on non-ok response", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response("bad request", { status: 400 }),
+    globalThis.fetch = vi.fn(
+      async () => new Response("bad request", { status: 400 })
     );
     await expect(apiPost("http://localhost", "/err", {})).rejects.toThrow(
-      "HTTP 400",
+      "HTTP 400"
     );
   });
 });
@@ -291,7 +300,7 @@ describe("info command data structure", () => {
       "GROQ_API_KEY",
       "OLLAMA_API_URL",
       "SERPAPI_API_KEY",
-      "HF_TOKEN",
+      "HF_TOKEN"
     ];
     const data = {
       version: "0.1.0",
@@ -299,13 +308,13 @@ describe("info command data structure", () => {
       platform: process.platform,
       arch: process.arch,
       api_keys: Object.fromEntries(
-        apiKeys.map((k) => [k, process.env[k] ? "configured" : "not set"]),
+        apiKeys.map((k) => [k, process.env[k] ? "configured" : "not set"])
       ),
       environment: {
         ENV: process.env["ENV"] ?? "development",
         LOG_LEVEL: process.env["LOG_LEVEL"] ?? "INFO",
-        PORT: process.env["PORT"] ?? "7777",
-      },
+        PORT: process.env["PORT"] ?? "7777"
+      }
     };
 
     expect(data.version).toBe("0.1.0");
@@ -345,14 +354,14 @@ describe("settings show data structure", () => {
       "HF_TOKEN",
       "VECTORSTORE_DB_PATH",
       "ASSET_BUCKET",
-      "S3_ENDPOINT_URL",
+      "S3_ENDPOINT_URL"
     ];
 
     // Simulate the settings show logic with some env set
     const testEnv: Record<string, string> = {
       ANTHROPIC_API_KEY: "sk-ant-test",
       HF_TOKEN: "hf_test",
-      ENV: "production",
+      ENV: "production"
     };
 
     const data = Object.fromEntries(
@@ -362,8 +371,8 @@ describe("settings show data structure", () => {
           ? k.endsWith("KEY") || k.endsWith("TOKEN")
             ? "***"
             : testEnv[k]
-          : "",
-      ]),
+          : ""
+      ])
     );
 
     expect(data["ANTHROPIC_API_KEY"]).toBe("***");
@@ -418,28 +427,26 @@ describe("graph normalization (data → properties)", () => {
   it("converts node.data to node.properties", () => {
     const nodes = [
       { id: "n1", type: "test.Node", data: { text: "hello" } },
-      { id: "n2", type: "test.Other", properties: { value: 42 } },
+      { id: "n2", type: "test.Other", properties: { value: 42 } }
     ];
 
-    const normalized = nodes.map(
-      (n: Record<string, unknown>) => {
-        if (n.properties === undefined && n.data !== undefined) {
-          const { data, ...rest } = n;
-          return { ...rest, properties: data };
-        }
-        return n;
-      },
-    );
+    const normalized = nodes.map((n: Record<string, unknown>) => {
+      if (n.properties === undefined && n.data !== undefined) {
+        const { data, ...rest } = n;
+        return { ...rest, properties: data };
+      }
+      return n;
+    });
 
     expect(normalized[0]).toEqual({
       id: "n1",
       type: "test.Node",
-      properties: { text: "hello" },
+      properties: { text: "hello" }
     });
     expect(normalized[1]).toEqual({
       id: "n2",
       type: "test.Other",
-      properties: { value: 42 },
+      properties: { value: 42 }
     });
   });
 
@@ -448,7 +455,7 @@ describe("graph normalization (data → properties)", () => {
       id: "n1",
       type: "test.Node",
       data: { text: "hello" },
-      properties: { value: 42 },
+      properties: { value: 42 }
     };
 
     // When properties is defined, data is not converted

@@ -5,7 +5,7 @@ import * as os from "node:os";
 import {
   getHfToken,
   resolveHfToken,
-  clearHfTokenCache,
+  clearHfTokenCache
 } from "../src/hf-auth.js";
 
 // ---------------------------------------------------------------------------
@@ -20,7 +20,7 @@ const ENV_KEYS = [
   "HF_TOKEN_PATH",
   "HF_HOME",
   "XDG_CACHE_HOME",
-  "HF_HUB_DISABLE_IMPLICIT_TOKEN",
+  "HF_HUB_DISABLE_IMPLICIT_TOKEN"
 ];
 
 let savedEnv: Record<string, string | undefined> = {};

@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
+import { useCombo } from "../../stores/KeyPressedStore";
 import { Box } from "@mui/material";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import Help from "../content/Help/Help";
@@ -41,9 +42,20 @@ const RightSideButtons: React.FC = () => {
   const handleCloseHelp = useAppHeaderStore((state) => state.handleCloseHelp);
   const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
 
+  const setHelpIndex = useAppHeaderStore((state) => state.setHelpIndex);
+
   const handleHelpClick = useCallback(() => {
     handleOpenHelp();
   }, [handleOpenHelp]);
+
+  const handleShowKeyboardShortcuts = useCallback(() => {
+    setHelpIndex(1);
+    handleOpenHelp();
+  }, [setHelpIndex, handleOpenHelp]);
+
+  // Cmd+/ (Mac) or Ctrl+/ (Win/Linux) opens Help at Keyboard Shortcuts tab
+  useCombo(["Meta", "/"], handleShowKeyboardShortcuts);
+  useCombo(["Control", "/"], handleShowKeyboardShortcuts);
 
   return (
     <Box className="buttons-right" css={styles(theme)}>

@@ -12,14 +12,35 @@ const styles = (_theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: 1,
+    ".portal-recents-header": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 6,
+      paddingLeft: 4,
+      paddingRight: 4
+    },
     ".portal-recents-label": {
       fontSize: 10,
       fontWeight: 500,
       color: _theme.vars.palette.text.disabled,
       textTransform: "uppercase" as const,
-      letterSpacing: "0.08em",
-      marginBottom: 6,
-      paddingLeft: 4,
+      letterSpacing: "0.08em"
+    },
+    ".portal-new-workflow": {
+      fontSize: 11,
+      color: _theme.vars.palette.text.secondary,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      padding: "2px 6px",
+      borderRadius: 4,
+      transition: "background 0.15s ease, color 0.15s ease",
+      "&:hover": {
+        background: _theme.vars.palette.action.hover,
+        color: _theme.vars.palette.text.primary
+      }
     },
     ".portal-recent-item": {
       display: "flex",
@@ -30,14 +51,14 @@ const styles = (_theme: Theme) =>
       borderRadius: 6,
       transition: "background 0.15s ease",
       "&:hover": {
-        background: _theme.vars.palette.action.hover,
-      },
+        background: _theme.vars.palette.action.hover
+      }
     },
     ".portal-recent-icon": {
       fontSize: 12,
       opacity: 0.5,
       width: 18,
-      textAlign: "center" as const,
+      textAlign: "center" as const
     },
     ".portal-recent-title": {
       fontSize: 13,
@@ -45,12 +66,12 @@ const styles = (_theme: Theme) =>
       flex: 1,
       overflow: "hidden",
       textOverflow: "ellipsis",
-      whiteSpace: "nowrap" as const,
+      whiteSpace: "nowrap" as const
     },
     ".portal-recent-time": {
       fontSize: 11,
-      color: _theme.vars.palette.text.disabled,
-    },
+      color: _theme.vars.palette.text.disabled
+    }
   });
 
 type RecentItem = {
@@ -65,11 +86,17 @@ function formatRelativeTime(dateStr: string): string {
   const then = new Date(dateStr).getTime();
   const diffMs = now - then;
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 60) {return `${diffMin}m`;}
+  if (diffMin < 60) {
+    return `${diffMin}m`;
+  }
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) {return `${diffHr}h`;}
+  if (diffHr < 24) {
+    return `${diffHr}h`;
+  }
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) {return `${diffDay}d`;}
+  if (diffDay < 7) {
+    return `${diffDay}d`;
+  }
   const diffWeek = Math.floor(diffDay / 7);
   return `${diffWeek}w`;
 }
@@ -79,6 +106,7 @@ type PortalRecentsProps = {
   threads: Record<string, Thread>;
   onWorkflowClick: (workflowId: string) => void;
   onThreadClick: (threadId: string) => void;
+  onCreateWorkflow?: () => void;
 };
 
 const PortalRecents: React.FC<PortalRecentsProps> = ({
@@ -86,6 +114,7 @@ const PortalRecents: React.FC<PortalRecentsProps> = ({
   threads,
   onWorkflowClick,
   onThreadClick,
+  onCreateWorkflow
 }) => {
   const theme = useTheme();
 
@@ -97,7 +126,7 @@ const PortalRecents: React.FC<PortalRecentsProps> = ({
         id: w.id,
         title: w.name || "Untitled Workflow",
         updatedAt: w.updated_at || w.created_at || "",
-        type: "workflow",
+        type: "workflow"
       });
     });
 
@@ -106,7 +135,7 @@ const PortalRecents: React.FC<PortalRecentsProps> = ({
         id: t.id,
         title: t.title || "Untitled Chat",
         updatedAt: t.updated_at || t.created_at || "",
-        type: "chat",
+        type: "chat"
       });
     });
 
@@ -118,11 +147,20 @@ const PortalRecents: React.FC<PortalRecentsProps> = ({
     return items.slice(0, 5);
   }, [workflows, threads]);
 
-  if (recentItems.length === 0) {return null;}
+  if (recentItems.length === 0) {
+    return null;
+  }
 
   return (
     <div css={styles(theme)}>
-      <div className="portal-recents-label">Recent</div>
+      <div className="portal-recents-header">
+        <div className="portal-recents-label">Recent</div>
+        {onCreateWorkflow && (
+          <div className="portal-new-workflow" onClick={onCreateWorkflow}>
+            + New Workflow
+          </div>
+        )}
+      </div>
       {recentItems.map((item) => (
         <div
           key={`${item.type}-${item.id}`}

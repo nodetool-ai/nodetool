@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Auto Contrast"
-node_type: "lib.pillow.enhance.AutoContrast"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.AutoContrast"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.AutoContrast`
+**Type:** `lib.image.enhance.AutoContrast`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -36,5 +36,5 @@ Automatically adjusts image contrast for enhanced visual quality.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

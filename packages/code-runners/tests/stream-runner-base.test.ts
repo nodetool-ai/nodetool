@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { existsSync, rmdirSync } from "node:fs";
 import {
   StreamRunnerBase,
-  ContainerFailureError,
+  ContainerFailureError
 } from "../src/stream-runner-base.js";
 import { JavaScriptDockerRunner } from "../src/javascript-runner.js";
 import { BashDockerRunner } from "../src/bash-runner.js";
@@ -157,7 +157,7 @@ describe("StreamRunnerBase.buildContainerCommand", () => {
   it("throws when not overridden", () => {
     const runner = new StreamRunnerBase();
     expect(() => runner.buildContainerCommand("code", {})).toThrow(
-      "buildContainerCommand must be implemented by subclasses",
+      "buildContainerCommand must be implemented by subclasses"
     );
   });
 });
@@ -169,10 +169,7 @@ describe("StreamRunnerBase.buildContainerCommand", () => {
 describe("StreamRunnerBase.wrapSubprocessCommand", () => {
   it("returns the same command by default", () => {
     const runner = new EchoRunner();
-    const [wrapped, cleanup] = runner.wrapSubprocessCommand([
-      "echo",
-      "hello",
-    ]);
+    const [wrapped, cleanup] = runner.wrapSubprocessCommand(["echo", "hello"]);
     expect(wrapped).toEqual(["echo", "hello"]);
     expect(cleanup).toBeNull();
   });
@@ -183,7 +180,7 @@ describe("StreamRunnerBase.cleanupSubprocessWrapper", () => {
     const runner = new EchoRunner();
     expect(() => runner.cleanupSubprocessWrapper(null)).not.toThrow();
     expect(() =>
-      runner.cleanupSubprocessWrapper({ someData: true }),
+      runner.cleanupSubprocessWrapper({ someData: true })
     ).not.toThrow();
   });
 });
@@ -221,7 +218,7 @@ describe("StreamRunnerBase.buildContainerEnvironment", () => {
     const env = runner.buildContainerEnvironment({
       HOST: "localhost",
       PORT: 8080,
-      DEBUG: false,
+      DEBUG: false
     });
     expect(env).toEqual({ HOST: "localhost", PORT: "8080", DEBUG: "false" });
   });
@@ -317,7 +314,7 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   it("streams stdout output", async () => {
     const runner = new JavaScriptDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     const outputs: Array<[string, string]> = [];
     for await (const item of runner.stream('console.log("hello world")', {})) {
@@ -329,18 +326,16 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   it("streams multiple stdout lines", async () => {
     const runner = new JavaScriptDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     const outputs: Array<[string, string]> = [];
     for await (const item of runner.stream(
       'console.log("a"); console.log("b")',
-      {},
+      {}
     )) {
       outputs.push(item);
     }
-    const lines = outputs
-      .filter(([s]) => s === "stdout")
-      .map(([, v]) => v);
+    const lines = outputs.filter(([s]) => s === "stdout").map(([, v]) => v);
     expect(lines).toContain("a\n");
     expect(lines).toContain("b\n");
   });
@@ -348,12 +343,12 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   it("streams stderr output", async () => {
     const runner = new JavaScriptDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     const outputs: Array<[string, string]> = [];
     for await (const item of runner.stream(
       'process.stderr.write("err msg\\n")',
-      {},
+      {}
     )) {
       outputs.push(item);
     }
@@ -363,7 +358,7 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   it("throws ContainerFailureError on non-zero exit", async () => {
     const runner = new JavaScriptDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     await expect(async () => {
       for await (const _ of runner.stream("process.exit(1)", {})) {
@@ -375,7 +370,7 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   it("ContainerFailureError carries the exit code", async () => {
     const runner = new JavaScriptDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     try {
       for await (const _ of runner.stream("process.exit(42)", {})) {
@@ -391,7 +386,7 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   it("injects locals into subprocess execution", async () => {
     const runner = new JavaScriptDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     const outputs: Array<[string, string]> = [];
     for await (const item of runner.stream("console.log(x)", { x: 123 })) {
@@ -403,11 +398,11 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   it("injects string locals correctly", async () => {
     const runner = new JavaScriptDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     const outputs: Array<[string, string]> = [];
     for await (const item of runner.stream("console.log(name)", {
-      name: "world",
+      name: "world"
     })) {
       outputs.push(item);
     }
@@ -417,7 +412,7 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   it("collects no output for empty program", async () => {
     const runner = new JavaScriptDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     const outputs: Array<[string, string]> = [];
     for await (const item of runner.stream("// no output", {})) {
@@ -435,7 +430,7 @@ describe("StreamRunnerBase subprocess mode (Bash)", () => {
   it("streams stdout from bash echo", async () => {
     const runner = new BashDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     const outputs: Array<[string, string]> = [];
     for await (const item of runner.stream('echo "bash output"', {})) {
@@ -447,7 +442,7 @@ describe("StreamRunnerBase subprocess mode (Bash)", () => {
   it("throws ContainerFailureError on exit 1", async () => {
     const runner = new BashDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     await expect(async () => {
       for await (const _ of runner.stream("exit 1", {})) {
@@ -459,13 +454,10 @@ describe("StreamRunnerBase subprocess mode (Bash)", () => {
   it("streams stderr from bash", async () => {
     const runner = new BashDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 10,
+      timeoutSeconds: 10
     });
     const outputs: Array<[string, string]> = [];
-    for await (const item of runner.stream(
-      'echo "err line" >&2',
-      {},
-    )) {
+    for await (const item of runner.stream('echo "err line" >&2', {})) {
       outputs.push(item);
     }
     expect(outputs).toContainEqual(["stderr", "err line\n"]);
@@ -480,7 +472,7 @@ describe("StreamRunnerBase timeout", () => {
   it("kills subprocess when timeoutSeconds is exceeded", async () => {
     const runner = new BashDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 0.5,
+      timeoutSeconds: 0.5
     });
     await expect(async () => {
       for await (const _ of runner.stream("sleep 30", {})) {
@@ -511,7 +503,7 @@ describe("StreamRunnerBase.stop()", () => {
   it("terminates an active subprocess", async () => {
     const runner = new BashDockerRunner({
       mode: "subprocess",
-      timeoutSeconds: 60,
+      timeoutSeconds: 60
     });
 
     let gotFirstLine = false;
@@ -520,7 +512,7 @@ describe("StreamRunnerBase.stop()", () => {
     try {
       for await (const [, val] of runner.stream(
         'echo "started"; sleep 30',
-        {},
+        {}
       )) {
         if (val.includes("started")) {
           gotFirstLine = true;

@@ -12,7 +12,7 @@ function jsonResponse(payload: unknown, ok = true, status = 200): Response {
     ok,
     status,
     json: async () => payload,
-    body: null,
+    body: null
   } as unknown as Response;
 }
 
@@ -24,14 +24,14 @@ function streamResponse(lines: unknown[]): Response {
         controller.enqueue(encoder.encode(`${JSON.stringify(line)}\n`));
       }
       controller.close();
-    },
+    }
   });
 
   return {
     ok: true,
     status: 200,
     body,
-    json: async () => ({}),
+    json: async () => ({})
   } as unknown as Response;
 }
 
@@ -44,7 +44,7 @@ describe("OllamaProvider – convertMessage edge cases", () => {
   it("converts tool message", async () => {
     const result = await provider.convertMessage({
       role: "tool",
-      content: "tool result",
+      content: "tool result"
     });
     expect(result).toEqual({ role: "tool", content: "tool result" });
   });
@@ -52,7 +52,7 @@ describe("OllamaProvider – convertMessage edge cases", () => {
   it("converts tool message with object content", async () => {
     const result = await provider.convertMessage({
       role: "tool",
-      content: { ok: true } as any,
+      content: { ok: true } as any
     });
     expect(result).toEqual({ role: "tool", content: '{"ok":true}' });
   });
@@ -61,21 +61,19 @@ describe("OllamaProvider – convertMessage edge cases", () => {
     const result = await provider.convertMessage({
       role: "assistant",
       content: "calling",
-      toolCalls: [{ id: "tc1", name: "search", args: { q: "x" } }],
+      toolCalls: [{ id: "tc1", name: "search", args: { q: "x" } }]
     });
     expect(result).toEqual({
       role: "assistant",
       content: "calling",
-      tool_calls: [
-        { function: { name: "search", arguments: { q: "x" } } },
-      ],
+      tool_calls: [{ function: { name: "search", arguments: { q: "x" } } }]
     });
   });
 
   it("converts system message with string", async () => {
     const result = await provider.convertMessage({
       role: "system",
-      content: "You are helpful",
+      content: "You are helpful"
     });
     expect(result).toEqual({ role: "system", content: "You are helpful" });
   });
@@ -85,8 +83,8 @@ describe("OllamaProvider – convertMessage edge cases", () => {
       role: "system",
       content: [
         { type: "text", text: "part1" },
-        { type: "text", text: "part2" },
-      ],
+        { type: "text", text: "part2" }
+      ]
     });
     expect(result).toEqual({ role: "system", content: "part1\npart2" });
   });
@@ -94,7 +92,7 @@ describe("OllamaProvider – convertMessage edge cases", () => {
   it("converts system message with null content", async () => {
     const result = await provider.convertMessage({
       role: "system",
-      content: null,
+      content: null
     });
     expect(result).toEqual({ role: "system", content: "" });
   });
@@ -108,7 +106,7 @@ describe("OllamaProvider – convertMessage edge cases", () => {
   it("converts user string message", async () => {
     const result = await provider.convertMessage({
       role: "user",
-      content: "hello",
+      content: "hello"
     });
     expect(result).toEqual({ role: "user", content: "hello" });
   });
@@ -116,7 +114,7 @@ describe("OllamaProvider – convertMessage edge cases", () => {
   it("converts user multipart text-only (no images)", async () => {
     const result = await provider.convertMessage({
       role: "user",
-      content: [{ type: "text", text: "just text" }],
+      content: [{ type: "text", text: "just text" }]
     });
     expect(result).toEqual({ role: "user", content: "just text" });
     expect((result as any).images).toBeUndefined();
@@ -136,9 +134,9 @@ describe("OllamaProvider – imageToBase64 paths", () => {
       content: [
         {
           type: "image",
-          image: { data: `data:image/png;base64,${base64}` },
-        },
-      ],
+          image: { data: `data:image/png;base64,${base64}` }
+        }
+      ]
     });
     expect((result as any).images[0]).toBe(base64);
   });
@@ -155,9 +153,9 @@ describe("OllamaProvider – imageToBase64 paths", () => {
       content: [
         {
           type: "image",
-          image: { uri: `data:image/png;base64,${base64}` },
-        },
-      ],
+          image: { uri: `data:image/png;base64,${base64}` }
+        }
+      ]
     });
     expect((result as any).images[0]).toBe(base64);
   });
@@ -170,9 +168,7 @@ describe("OllamaProvider – imageToBase64 paths", () => {
 
     const result = await provider.convertMessage({
       role: "user",
-      content: [
-        { type: "image", image: { data: "AQID" } },
-      ],
+      content: [{ type: "image", image: { data: "AQID" } }]
     });
     expect((result as any).images[0]).toBe("AQID");
   });
@@ -182,7 +178,7 @@ describe("OllamaProvider – imageToBase64 paths", () => {
       if (url.includes("example.com")) {
         return {
           ok: true,
-          arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer,
+          arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
         };
       }
       return jsonResponse({});
@@ -196,8 +192,8 @@ describe("OllamaProvider – imageToBase64 paths", () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
-        { type: "image", image: { uri: "https://example.com/img.png" } },
-      ],
+        { type: "image", image: { uri: "https://example.com/img.png" } }
+      ]
     });
     expect((result as any).images[0]).toBeTruthy();
   });
@@ -214,8 +210,8 @@ describe("OllamaProvider – imageToBase64 paths", () => {
       provider.convertMessage({
         role: "user",
         content: [
-          { type: "image", image: { uri: "https://example.com/missing.png" } },
-        ],
+          { type: "image", image: { uri: "https://example.com/missing.png" } }
+        ]
       })
     ).rejects.toThrow("Failed to fetch image URI");
   });
@@ -229,7 +225,7 @@ describe("OllamaProvider – imageToBase64 paths", () => {
     await expect(
       provider.convertMessage({
         role: "user",
-        content: [{ type: "image", image: {} }],
+        content: [{ type: "image", image: {} }]
       })
     ).rejects.toThrow("Invalid image payload");
   });
@@ -246,8 +242,8 @@ describe("OllamaProvider – formatTools", () => {
       {
         name: "search",
         description: "Search",
-        inputSchema: { type: "object", properties: {} },
-      },
+        inputSchema: { type: "object", properties: {} }
+      }
     ]);
 
     expect(result).toEqual([
@@ -256,9 +252,9 @@ describe("OllamaProvider – formatTools", () => {
         function: {
           name: "search",
           description: "Search",
-          parameters: { type: "object", properties: {} },
-        },
-      },
+          parameters: { type: "object", properties: {} }
+        }
+      }
     ]);
   });
 });
@@ -274,7 +270,7 @@ describe("OllamaProvider – generateMessage edge cases", () => {
       provider.generateMessage({
         model: "test",
         messages: [{ role: "user", content: "hi" }],
-        jsonSchema: { type: "object" },
+        jsonSchema: { type: "object" }
       })
     ).rejects.toThrow("jsonSchema is not supported");
   });
@@ -282,7 +278,7 @@ describe("OllamaProvider – generateMessage edge cases", () => {
   it("handles json_schema response format", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       jsonResponse({
-        message: { content: '{"result": 42}' },
+        message: { content: '{"result": 42}' }
       })
     );
 
@@ -297,9 +293,9 @@ describe("OllamaProvider – generateMessage edge cases", () => {
       responseFormat: {
         type: "json_schema",
         json_schema: {
-          schema: { type: "object", properties: { result: { type: "number" } } },
-        },
-      },
+          schema: { type: "object", properties: { result: { type: "number" } } }
+        }
+      }
     });
 
     expect(result.content).toBe('{"result": 42}');
@@ -319,7 +315,7 @@ describe("OllamaProvider – generateMessage edge cases", () => {
       provider.generateMessage({
         model: "test",
         messages: [{ role: "user", content: "json" }],
-        responseFormat: { type: "json_schema", json_schema: {} },
+        responseFormat: { type: "json_schema", json_schema: {} }
       })
     ).rejects.toThrow("schema is required");
   });
@@ -329,10 +325,8 @@ describe("OllamaProvider – generateMessage edge cases", () => {
       jsonResponse({
         message: {
           content: "",
-          tool_calls: [
-            { function: { name: "calc", arguments: '{"x": 1}' } },
-          ],
-        },
+          tool_calls: [{ function: { name: "calc", arguments: '{"x": 1}' } }]
+        }
       })
     );
 
@@ -344,11 +338,11 @@ describe("OllamaProvider – generateMessage edge cases", () => {
     const result = await provider.generateMessage({
       model: "test",
       messages: [{ role: "user", content: "calc" }],
-      tools: [{ name: "calc" }],
+      tools: [{ name: "calc" }]
     });
 
     expect(result.toolCalls).toEqual([
-      { id: "tool_1", name: "calc", args: { x: 1 } },
+      { id: "tool_1", name: "calc", args: { x: 1 } }
     ]);
   });
 
@@ -357,8 +351,8 @@ describe("OllamaProvider – generateMessage edge cases", () => {
       jsonResponse({
         message: {
           content: "ok",
-          tool_calls: [{ function: {} }],
-        },
+          tool_calls: [{ function: {} }]
+        }
       })
     );
 
@@ -369,7 +363,7 @@ describe("OllamaProvider – generateMessage edge cases", () => {
 
     const result = await provider.generateMessage({
       model: "test",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     });
 
     // Tool call with empty name should be filtered out
@@ -387,7 +381,7 @@ describe("OllamaProvider – streaming edge cases", () => {
     const gen = provider.generateMessages({
       model: "test",
       messages: [{ role: "user", content: "hi" }],
-      jsonSchema: { type: "object" },
+      jsonSchema: { type: "object" }
     });
 
     await expect(gen.next()).rejects.toThrow("jsonSchema is not supported");
@@ -397,7 +391,7 @@ describe("OllamaProvider – streaming edge cases", () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
-      body: null,
+      body: null
     });
 
     const provider = new OllamaProvider(
@@ -407,7 +401,7 @@ describe("OllamaProvider – streaming edge cases", () => {
 
     const gen = provider.generateMessages({
       model: "test",
-      messages: [{ role: "user", content: "hi" }],
+      messages: [{ role: "user", content: "hi" }]
     });
 
     await expect(gen.next()).rejects.toThrow("API request failed");
@@ -418,7 +412,7 @@ describe("OllamaProvider – getAvailableEmbeddingModels", () => {
   it("returns models derived from language models", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       jsonResponse({
-        models: [{ model: "nomic-embed-text" }],
+        models: [{ model: "nomic-embed-text" }]
       })
     );
 
@@ -433,8 +427,8 @@ describe("OllamaProvider – getAvailableEmbeddingModels", () => {
         id: "nomic-embed-text",
         name: "nomic-embed-text",
         provider: "ollama",
-        dimensions: 0,
-      },
+        dimensions: 0
+      }
     ]);
   });
 });
@@ -465,9 +459,11 @@ describe("OllamaProvider – generateEmbedding errors", () => {
 
 describe("OllamaProvider – hasToolSupport with /api/show", () => {
   it("returns true when model has tools capability", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      jsonResponse({ capabilities: ["completion", "tools"] })
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ capabilities: ["completion", "tools"] })
+      );
     const provider = new OllamaProvider(
       { OLLAMA_API_URL: "http://localhost:11434" },
       { fetchFn: fetchFn as unknown as typeof fetch }
@@ -480,9 +476,9 @@ describe("OllamaProvider – hasToolSupport with /api/show", () => {
   });
 
   it("returns false when model has no tools capability", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      jsonResponse({ capabilities: ["completion"] })
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ capabilities: ["completion"] }));
     const provider = new OllamaProvider(
       { OLLAMA_API_URL: "http://localhost:11434" },
       { fetchFn: fetchFn as unknown as typeof fetch }
@@ -491,9 +487,9 @@ describe("OllamaProvider – hasToolSupport with /api/show", () => {
   });
 
   it("returns true when model has no capabilities field (backward compat)", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      jsonResponse({ modelfile: "FROM llama3" })
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ modelfile: "FROM llama3" }));
     const provider = new OllamaProvider(
       { OLLAMA_API_URL: "http://localhost:11434" },
       { fetchFn: fetchFn as unknown as typeof fetch }
@@ -502,9 +498,7 @@ describe("OllamaProvider – hasToolSupport with /api/show", () => {
   });
 
   it("returns true on non-200 API response (fallback)", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      jsonResponse({}, false, 404)
-    );
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse({}, false, 404));
     const provider = new OllamaProvider(
       { OLLAMA_API_URL: "http://localhost:11434" },
       { fetchFn: fetchFn as unknown as typeof fetch }
@@ -522,9 +516,9 @@ describe("OllamaProvider – hasToolSupport with /api/show", () => {
   });
 
   it("caches result — second call does not make another fetch", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      jsonResponse({ capabilities: ["tools"] })
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ capabilities: ["tools"] }));
     const provider = new OllamaProvider(
       { OLLAMA_API_URL: "http://localhost:11434" },
       { fetchFn: fetchFn as unknown as typeof fetch }
@@ -553,9 +547,9 @@ describe("OllamaProvider – parseDataUri non-base64 path", () => {
       content: [
         {
           type: "image",
-          image: { data: "data:image/png,hello%20world" },
-        },
-      ],
+          image: { data: "data:image/png,hello%20world" }
+        }
+      ]
     });
     expect((result as any).images[0]).toBeTruthy();
   });
@@ -571,9 +565,9 @@ describe("OllamaProvider – parseDataUri non-base64 path", () => {
       content: [
         {
           type: "image",
-          image: { uri: "data:image/png,hello%20world" },
-        },
-      ],
+          image: { uri: "data:image/png,hello%20world" }
+        }
+      ]
     });
     expect((result as any).images[0]).toBeTruthy();
   });
@@ -585,10 +579,8 @@ describe("OllamaProvider – normalizeToolArgs edge cases", () => {
       jsonResponse({
         message: {
           content: "",
-          tool_calls: [
-            { function: { name: "calc", arguments: "[1,2,3]" } },
-          ],
-        },
+          tool_calls: [{ function: { name: "calc", arguments: "[1,2,3]" } }]
+        }
       })
     );
 
@@ -600,7 +592,7 @@ describe("OllamaProvider – normalizeToolArgs edge cases", () => {
     const result = await provider.generateMessage({
       model: "test",
       messages: [{ role: "user", content: "calc" }],
-      tools: [{ name: "calc" }],
+      tools: [{ name: "calc" }]
     });
 
     expect(result.toolCalls![0].args).toEqual({});
@@ -611,10 +603,8 @@ describe("OllamaProvider – normalizeToolArgs edge cases", () => {
       jsonResponse({
         message: {
           content: "",
-          tool_calls: [
-            { function: { name: "calc", arguments: "not json" } },
-          ],
-        },
+          tool_calls: [{ function: { name: "calc", arguments: "not json" } }]
+        }
       })
     );
 
@@ -626,7 +616,7 @@ describe("OllamaProvider – normalizeToolArgs edge cases", () => {
     const result = await provider.generateMessage({
       model: "test",
       messages: [{ role: "user", content: "calc" }],
-      tools: [{ name: "calc" }],
+      tools: [{ name: "calc" }]
     });
 
     expect(result.toolCalls![0].args).toEqual({});
@@ -637,10 +627,8 @@ describe("OllamaProvider – normalizeToolArgs edge cases", () => {
       jsonResponse({
         message: {
           content: "",
-          tool_calls: [
-            { function: { name: "calc", arguments: [1, 2, 3] } },
-          ],
-        },
+          tool_calls: [{ function: { name: "calc", arguments: [1, 2, 3] } }]
+        }
       })
     );
 
@@ -652,7 +640,7 @@ describe("OllamaProvider – normalizeToolArgs edge cases", () => {
     const result = await provider.generateMessage({
       model: "test",
       messages: [{ role: "user", content: "calc" }],
-      tools: [{ name: "calc" }],
+      tools: [{ name: "calc" }]
     });
 
     expect(result.toolCalls![0].args).toEqual({});
@@ -661,9 +649,7 @@ describe("OllamaProvider – normalizeToolArgs edge cases", () => {
 
 describe("OllamaProvider – postJson error path", () => {
   it("throws when postJson receives non-OK response", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      jsonResponse({}, false, 500)
-    );
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse({}, false, 500));
 
     const provider = new OllamaProvider(
       { OLLAMA_API_URL: "http://localhost:11434" },
@@ -686,8 +672,8 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
     description: "Search the web",
     inputSchema: {
       type: "object",
-      properties: { query: { type: "string" } },
-    },
+      properties: { query: { type: "string" } }
+    }
   };
 
   const calcTool: import("../../src/providers/types.js").ProviderTool = {
@@ -697,9 +683,9 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
       type: "object",
       properties: {
         a: { type: "number" },
-        b: { type: "number" },
-      },
-    },
+        b: { type: "number" }
+      }
+    }
   };
 
   function makeFetchForEmulation(chatContent: string) {
@@ -726,9 +712,9 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
       model: "phi",
       messages: [
         { role: "system", content: "You are helpful." },
-        { role: "user", content: "search for hello" },
+        { role: "user", content: "search for hello" }
       ],
-      tools: [searchTool],
+      tools: [searchTool]
     });
 
     // Should have parsed emulated tool call
@@ -762,9 +748,9 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
         { role: "system", content: "You are helpful." },
         { role: "user", content: "search" },
         { role: "assistant", content: "search_web(query='test')" },
-        { role: "tool", content: '{"results": ["a","b"]}' },
+        { role: "tool", content: '{"results": ["a","b"]}' }
       ],
-      tools: [searchTool],
+      tools: [searchTool]
     });
 
     const chatCall = fetchFn.mock.calls.find(
@@ -789,9 +775,9 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
           message: {
             content: "",
             tool_calls: [
-              { function: { name: "search_web", arguments: { query: "hi" } } },
-            ],
-          },
+              { function: { name: "search_web", arguments: { query: "hi" } } }
+            ]
+          }
         });
       }
       return jsonResponse({});
@@ -805,7 +791,7 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
     const result = await provider.generateMessage({
       model: "llama3",
       messages: [{ role: "user", content: "search" }],
-      tools: [searchTool],
+      tools: [searchTool]
     });
 
     expect(result.toolCalls).toHaveLength(1);
@@ -829,7 +815,7 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
     await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "hello" }],
-      tools: [searchTool],
+      tools: [searchTool]
     });
 
     const chatCall = fetchFn.mock.calls.find(
@@ -852,8 +838,8 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
     description: "Search the web",
     inputSchema: {
       type: "object",
-      properties: { query: { type: "string" } },
-    },
+      properties: { query: { type: "string" } }
+    }
   };
 
   it("accumulates text and parses emulated calls at done=true", async () => {
@@ -865,7 +851,7 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
         return streamResponse([
           { message: { content: "search_web(query=" }, done: false },
           { message: { content: "'test')" }, done: false },
-          { message: { content: "" }, done: true },
+          { message: { content: "" }, done: true }
         ]);
       }
       return jsonResponse({});
@@ -876,11 +862,12 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
       { fetchFn: fetchFn as unknown as typeof fetch }
     );
 
-    const items: import("../../src/providers/types.js").ProviderStreamItem[] = [];
+    const items: import("../../src/providers/types.js").ProviderStreamItem[] =
+      [];
     for await (const item of provider.generateMessages({
       model: "phi",
       messages: [{ role: "user", content: "search" }],
-      tools: [searchTool],
+      tools: [searchTool]
     })) {
       items.push(item);
     }
@@ -903,12 +890,12 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
             message: {
               content: "",
               tool_calls: [
-                { function: { name: "search_web", arguments: { query: "hi" } } },
-              ],
+                { function: { name: "search_web", arguments: { query: "hi" } } }
+              ]
             },
-            done: false,
+            done: false
           },
-          { message: { content: "" }, done: true },
+          { message: { content: "" }, done: true }
         ]);
       }
       return jsonResponse({});
@@ -919,11 +906,12 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
       { fetchFn: fetchFn as unknown as typeof fetch }
     );
 
-    const items: import("../../src/providers/types.js").ProviderStreamItem[] = [];
+    const items: import("../../src/providers/types.js").ProviderStreamItem[] =
+      [];
     for await (const item of provider.generateMessages({
       model: "llama3",
       messages: [{ role: "user", content: "search" }],
-      tools: [searchTool],
+      tools: [searchTool]
     })) {
       items.push(item);
     }
@@ -942,7 +930,7 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
       if (typeof url === "string" && url.includes("/api/chat")) {
         return streamResponse([
           { message: { content: "Just plain text." }, done: false },
-          { message: { content: "" }, done: true },
+          { message: { content: "" }, done: true }
         ]);
       }
       return jsonResponse({});
@@ -953,11 +941,12 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
       { fetchFn: fetchFn as unknown as typeof fetch }
     );
 
-    const items: import("../../src/providers/types.js").ProviderStreamItem[] = [];
+    const items: import("../../src/providers/types.js").ProviderStreamItem[] =
+      [];
     for await (const item of provider.generateMessages({
       model: "phi",
       messages: [{ role: "user", content: "hello" }],
-      tools: [searchTool],
+      tools: [searchTool]
     })) {
       items.push(item);
     }
@@ -978,18 +967,21 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     {
       name: "search_web",
       description: "Search",
-      inputSchema: { type: "object", properties: { query: { type: "string" } } },
+      inputSchema: { type: "object", properties: { query: { type: "string" } } }
     },
     {
       name: "calculate",
       description: "Calculate",
-      inputSchema: { type: "object", properties: { a: { type: "number" }, b: { type: "number" } } },
+      inputSchema: {
+        type: "object",
+        properties: { a: { type: "number" }, b: { type: "number" } }
+      }
     },
     {
       name: "toggle",
       description: "Toggle",
-      inputSchema: { type: "object", properties: { flag: { type: "boolean" } } },
-    },
+      inputSchema: { type: "object", properties: { flag: { type: "boolean" } } }
+    }
   ];
 
   function makeProvider(chatContent: string) {
@@ -1013,7 +1005,7 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     const result = await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "go" }],
-      tools,
+      tools
     });
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls![0].name).toBe("search_web");
@@ -1027,7 +1019,7 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     const result = await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "go" }],
-      tools,
+      tools
     });
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls![0].name).toBe("calculate");
@@ -1040,7 +1032,7 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     const result = await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "go" }],
-      tools,
+      tools
     });
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls![0].name).toBe("calculate");
@@ -1053,7 +1045,7 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     const result = await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "go" }],
-      tools,
+      tools
     });
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls![0].name).toBe("toggle");
@@ -1065,7 +1057,7 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     const result = await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "go" }],
-      tools,
+      tools
     });
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls![0].name).toBe("search_web");
@@ -1077,7 +1069,7 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     const result = await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "go" }],
-      tools,
+      tools
     });
     expect(result.toolCalls).toHaveLength(0);
   });
@@ -1089,7 +1081,7 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     const result = await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "go" }],
-      tools,
+      tools
     });
     expect(result.toolCalls).toHaveLength(2);
     expect(result.toolCalls![0].name).toBe("search_web");
@@ -1098,12 +1090,12 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     expect(result.toolCalls![1].args).toEqual({ a: 3, b: 7 });
   });
 
-  it("parses double-quoted string args: search_web(query=\"test\")", async () => {
+  it('parses double-quoted string args: search_web(query="test")', async () => {
     const provider = makeProvider('search_web(query="test value")');
     const result = await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "go" }],
-      tools,
+      tools
     });
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls![0].args).toEqual({ query: "test value" });
@@ -1114,7 +1106,7 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
     const result = await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "go" }],
-      tools,
+      tools
     });
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls![0].args).toEqual({ flag: false });
@@ -1131,8 +1123,8 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
     description: "Search the web",
     inputSchema: {
       type: "object",
-      properties: { query: { type: "string" } },
-    },
+      properties: { query: { type: "string" } }
+    }
   };
 
   it("appends tool descriptions to existing system message", async () => {
@@ -1155,9 +1147,9 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
       model: "phi",
       messages: [
         { role: "system", content: "You are a helpful assistant." },
-        { role: "user", content: "hello" },
+        { role: "user", content: "hello" }
       ],
-      tools: [tool],
+      tools: [tool]
     });
 
     const chatCall = fetchFn.mock.calls.find(
@@ -1191,7 +1183,7 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
     await provider.generateMessage({
       model: "phi",
       messages: [{ role: "user", content: "hello" }],
-      tools: [tool],
+      tools: [tool]
     });
 
     const chatCall = fetchFn.mock.calls.find(
@@ -1228,9 +1220,9 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
         { role: "system", content: "Be helpful." },
         { role: "user", content: "search for cats" },
         { role: "assistant", content: "search_web(query='cats')" },
-        { role: "tool", content: "Found 10 results about cats." },
+        { role: "tool", content: "Found 10 results about cats." }
       ],
-      tools: [tool],
+      tools: [tool]
     });
 
     const chatCall = fetchFn.mock.calls.find(
@@ -1242,7 +1234,9 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
       (m: any) => m.role === "user" && m.content.includes("Function result:")
     );
     expect(convertedMsg).toBeDefined();
-    expect(convertedMsg.content).toBe("Function result: Found 10 results about cats.");
+    expect(convertedMsg.content).toBe(
+      "Function result: Found 10 results about cats."
+    );
     // No tool role messages should remain
     const toolMsgs = body.messages.filter((m: any) => m.role === "tool");
     expect(toolMsgs).toHaveLength(0);
@@ -1268,9 +1262,9 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
       model: "phi",
       messages: [
         { role: "user", content: "do something" },
-        { role: "tool", content: { data: [1, 2, 3] } as any },
+        { role: "tool", content: { data: [1, 2, 3] } as any }
       ],
-      tools: [tool],
+      tools: [tool]
     });
 
     const chatCall = fetchFn.mock.calls.find(

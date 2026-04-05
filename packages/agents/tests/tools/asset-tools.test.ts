@@ -13,10 +13,10 @@ import { InMemoryStorageAdapter } from "@nodetool/runtime";
 /* ------------------------------------------------------------------ */
 
 function makeContext(
-  storage?: ProcessingContext["storage"],
+  storage?: ProcessingContext["storage"]
 ): ProcessingContext {
   return {
-    storage: arguments.length === 0 ? new InMemoryStorageAdapter() : storage,
+    storage: arguments.length === 0 ? new InMemoryStorageAdapter() : storage
   } as unknown as ProcessingContext;
 }
 
@@ -38,7 +38,7 @@ describe("SaveAssetTool", () => {
 
     const result = (await tool.process(ctx, {
       name: "hello.txt",
-      content: "Hello, world!",
+      content: "Hello, world!"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -60,7 +60,7 @@ describe("SaveAssetTool", () => {
     const result = (await tool.process(ctx, {
       name: "data.json",
       content: '{"key": "value"}',
-      content_type: "application/json",
+      content_type: "application/json"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -70,7 +70,7 @@ describe("SaveAssetTool", () => {
   it("returns error when name is missing", async () => {
     const ctx = makeContext();
     const result = (await tool.process(ctx, {
-      content: "test",
+      content: "test"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -80,7 +80,7 @@ describe("SaveAssetTool", () => {
   it("returns error when content is missing", async () => {
     const ctx = makeContext();
     const result = (await tool.process(ctx, {
-      name: "test.txt",
+      name: "test.txt"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -91,7 +91,7 @@ describe("SaveAssetTool", () => {
     const ctx = makeContext(null);
     const result = (await tool.process(ctx, {
       name: "test.txt",
-      content: "test",
+      content: "test"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -102,13 +102,13 @@ describe("SaveAssetTool", () => {
     const storage = {
       store: vi.fn().mockRejectedValue(new Error("disk full")),
       retrieve: vi.fn(),
-      exists: vi.fn(),
+      exists: vi.fn()
     };
     const ctx = makeContext(storage);
 
     const result = (await tool.process(ctx, {
       name: "test.txt",
-      content: "test",
+      content: "test"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -123,7 +123,7 @@ describe("SaveAssetTool", () => {
 
   it("userMessage includes filename", () => {
     expect(tool.userMessage({ name: "report.txt" })).toBe(
-      "Saving asset as report.txt...",
+      "Saving asset as report.txt..."
     );
   });
 
@@ -153,7 +153,7 @@ describe("ReadAssetTool", () => {
     await storage.store("assets/notes.txt", data, "text/plain");
 
     const result = (await tool.process(ctx, {
-      name: "notes.txt",
+      name: "notes.txt"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -167,7 +167,7 @@ describe("ReadAssetTool", () => {
     const ctx = makeContext(storage);
 
     const result = (await tool.process(ctx, {
-      name: "nonexistent.txt",
+      name: "nonexistent.txt"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -185,7 +185,7 @@ describe("ReadAssetTool", () => {
   it("returns error when no storage adapter is configured", async () => {
     const ctx = makeContext(null);
     const result = (await tool.process(ctx, {
-      name: "test.txt",
+      name: "test.txt"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -196,12 +196,12 @@ describe("ReadAssetTool", () => {
     const storage = {
       store: vi.fn(),
       retrieve: vi.fn().mockRejectedValue(new Error("connection lost")),
-      exists: vi.fn(),
+      exists: vi.fn()
     };
     const ctx = makeContext(storage);
 
     const result = (await tool.process(ctx, {
-      name: "test.txt",
+      name: "test.txt"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
@@ -210,7 +210,7 @@ describe("ReadAssetTool", () => {
 
   it("userMessage includes filename", () => {
     expect(tool.userMessage({ name: "data.csv" })).toBe(
-      "Reading asset data.csv...",
+      "Reading asset data.csv..."
     );
   });
 
@@ -234,13 +234,13 @@ describe("SaveAssetTool + ReadAssetTool round-trip", () => {
     const saved = (await saveTool.process(ctx, {
       name: "round-trip.txt",
       content: "round-trip content 123",
-      content_type: "text/plain",
+      content_type: "text/plain"
     })) as Record<string, unknown>;
 
     expect(saved.success).toBe(true);
 
     const read = (await readTool.process(ctx, {
-      name: "round-trip.txt",
+      name: "round-trip.txt"
     })) as Record<string, unknown>;
 
     expect(read.success).toBe(true);

@@ -55,7 +55,7 @@ export function getLlamaCppCacheDir(): string {
  */
 export function getLlamaCppModelFilename(
   repoId: string,
-  filename: string,
+  filename: string
 ): string {
   return `${repoId.replace("/", "_")}_${filename}`;
 }
@@ -63,10 +63,7 @@ export function getLlamaCppModelFilename(
 /**
  * Full path to the expected location of a model in the llama.cpp cache.
  */
-export function getLlamaCppModelPath(
-  repoId: string,
-  filename: string,
-): string {
+export function getLlamaCppModelPath(repoId: string, filename: string): string {
   const cacheDir = getLlamaCppCacheDir();
   const flatFilename = getLlamaCppModelFilename(repoId, filename);
   return path.join(cacheDir, flatFilename);
@@ -77,7 +74,7 @@ export function getLlamaCppModelPath(
  */
 export async function isLlamaCppModelCached(
   repoId: string,
-  filename: string,
+  filename: string
 ): Promise<boolean> {
   const modelPath = getLlamaCppModelPath(repoId, filename);
   try {
@@ -116,14 +113,9 @@ export interface DownloadLlamaCppModelOptions {
 export async function downloadLlamaCppModel(
   repoId: string,
   filename: string,
-  opts: DownloadLlamaCppModelOptions = {},
+  opts: DownloadLlamaCppModelOptions = {}
 ): Promise<string> {
-  const {
-    token = null,
-    progressCallback,
-    cancelSignal,
-    tag = "latest",
-  } = opts;
+  const { token = null, progressCallback, cancelSignal, tag = "latest" } = opts;
 
   const cacheDir = getLlamaCppCacheDir();
   await fsp.mkdir(cacheDir, { recursive: true });
@@ -138,7 +130,7 @@ export async function downloadLlamaCppModel(
   const repo = slashIdx >= 0 ? repoId.slice(slashIdx + 1) : repoId;
   const manifestPath = path.join(
     cacheDir,
-    `manifest=${org}=${repo}=${tag}.json`,
+    `manifest=${org}=${repo}=${tag}.json`
   );
 
   // Build HuggingFace URL
@@ -153,11 +145,11 @@ export async function downloadLlamaCppModel(
   const headResp = await fetch(hfUrl, {
     method: "HEAD",
     headers,
-    redirect: "follow",
+    redirect: "follow"
   });
   if (!headResp.ok) {
     throw new Error(
-      `HEAD ${hfUrl} failed: ${headResp.status} ${headResp.statusText}`,
+      `HEAD ${hfUrl} failed: ${headResp.status} ${headResp.statusText}`
     );
   }
 
@@ -190,12 +182,10 @@ export async function downloadLlamaCppModel(
     method: "GET",
     headers,
     redirect: "follow",
-    signal: cancelSignal,
+    signal: cancelSignal
   });
   if (!resp.ok) {
-    throw new Error(
-      `GET ${hfUrl} failed: ${resp.status} ${resp.statusText}`,
-    );
+    throw new Error(`GET ${hfUrl} failed: ${resp.status} ${resp.statusText}`);
   }
   if (!resp.body) {
     throw new Error(`No response body for ${hfUrl}`);
@@ -247,12 +237,12 @@ export async function downloadLlamaCppModel(
     version: tag,
     ggufFile: {
       rfilename: filename,
-      size: totalSize ?? downloaded,
+      size: totalSize ?? downloaded
     },
     metadata: {
       author: org,
-      repo_id: repoId,
-    },
+      repo_id: repoId
+    }
   };
   await fsp.writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
 

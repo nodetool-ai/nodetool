@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Mat Mul"
-node_type: "lib.numpy.manipulation.MatMul"
-namespace: "lib.numpy.manipulation"
+node_type: "lib.array.manipulation.MatMul"
+namespace: "lib.array.manipulation"
 ---
 
-**Type:** `lib.numpy.manipulation.MatMul`
+**Type:** `lib.array.manipulation.MatMul`
 
-**Namespace:** `lib.numpy.manipulation`
+**Namespace:** `lib.array.manipulation`
 
 ## Description
 
@@ -36,5 +36,5 @@ Perform matrix multiplication on two input arrays.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.manipulation](../) namespace.
+Browse other nodes in the [lib.array.manipulation](../) namespace.
 

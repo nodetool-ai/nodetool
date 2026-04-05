@@ -32,7 +32,7 @@ describe("Job model (SQLite)", () => {
   it("creates with defaults", async () => {
     const job = await Job.create<Job>({
       user_id: "u1",
-      workflow_id: "w1",
+      workflow_id: "w1"
     });
     expect(job.status).toBe("scheduled");
     expect(job.retry_count).toBe(0);
@@ -44,7 +44,7 @@ describe("Job model (SQLite)", () => {
   it("state transitions", async () => {
     const job = await Job.create<Job>({
       user_id: "u1",
-      workflow_id: "w1",
+      workflow_id: "w1"
     });
 
     job.markRunning("worker-1");
@@ -69,7 +69,7 @@ describe("Job model (SQLite)", () => {
   it("markFailed records error", async () => {
     const job = await Job.create<Job>({
       user_id: "u1",
-      workflow_id: "w1",
+      workflow_id: "w1"
     });
     job.markFailed("boom");
     expect(job.status).toBe("failed");
@@ -79,7 +79,7 @@ describe("Job model (SQLite)", () => {
   it("heartbeat and stale check", async () => {
     const job = await Job.create<Job>({
       user_id: "u1",
-      workflow_id: "w1",
+      workflow_id: "w1"
     });
     expect(job.isStale(1000)).toBe(true); // no heartbeat yet
 
@@ -91,17 +91,17 @@ describe("Job model (SQLite)", () => {
     await Job.create<Job>({
       user_id: "u1",
       workflow_id: "w1",
-      status: "running",
+      status: "running"
     });
     await Job.create<Job>({
       user_id: "u1",
       workflow_id: "w2",
-      status: "completed",
+      status: "completed"
     });
     await Job.create<Job>({
       user_id: "u2",
       workflow_id: "w3",
-      status: "running",
+      status: "running"
     });
 
     const [allForU1] = await Job.paginate("u1");
@@ -114,7 +114,7 @@ describe("Job model (SQLite)", () => {
   it("persists state transitions through save and reload", async () => {
     const job = await Job.create<Job>({
       user_id: "u1",
-      workflow_id: "w1",
+      workflow_id: "w1"
     });
     job.markRunning("worker-1");
     await job.save();
@@ -135,7 +135,7 @@ describe("Workflow model (SQLite)", () => {
   it("creates with defaults", async () => {
     const wf = await Workflow.create<Workflow>({
       user_id: "u1",
-      name: "My Workflow",
+      name: "My Workflow"
     });
     expect(wf.access).toBe("private");
     expect(wf.graph).toEqual({ nodes: [], edges: [] });
@@ -145,7 +145,7 @@ describe("Workflow model (SQLite)", () => {
   it("find respects ownership", async () => {
     const wf = await Workflow.create<Workflow>({
       user_id: "u1",
-      name: "Private WF",
+      name: "Private WF"
     });
 
     expect(await Workflow.find("u1", wf.id)).not.toBeNull();
@@ -156,7 +156,7 @@ describe("Workflow model (SQLite)", () => {
     const wf = await Workflow.create<Workflow>({
       user_id: "u1",
       name: "Public WF",
-      access: "public",
+      access: "public"
     });
     expect(await Workflow.find("u2", wf.id)).not.toBeNull();
   });
@@ -164,11 +164,11 @@ describe("Workflow model (SQLite)", () => {
   it("paginate filters by user", async () => {
     await Workflow.create<Workflow>({
       user_id: "u1",
-      name: "WF1",
+      name: "WF1"
     });
     await Workflow.create<Workflow>({
       user_id: "u2",
-      name: "WF2",
+      name: "WF2"
     });
     const [results] = await Workflow.paginate("u1");
     expect(results).toHaveLength(1);
@@ -179,14 +179,14 @@ describe("Workflow model (SQLite)", () => {
     const graph = {
       nodes: [
         { id: "n1", type: "input", data: { value: 42 } },
-        { id: "n2", type: "output", data: { label: "result" } },
+        { id: "n2", type: "output", data: { label: "result" } }
       ],
-      edges: [{ source: "n1", target: "n2", sourceHandle: "out" }],
+      edges: [{ source: "n1", target: "n2", sourceHandle: "out" }]
     };
     const wf = await Workflow.create<Workflow>({
       user_id: "u1",
       name: "Graph WF",
-      graph,
+      graph
     });
 
     const reloaded = await Workflow.get<Workflow>(wf.id);
@@ -199,7 +199,7 @@ describe("Workflow model (SQLite)", () => {
     const wf = await Workflow.create<Workflow>({
       user_id: "u1",
       name: "Tagged WF",
-      tags,
+      tags
     });
 
     const reloaded = await Workflow.get<Workflow>(wf.id);
@@ -218,7 +218,7 @@ describe("Asset model (SQLite)", () => {
     const asset = await Asset.create<Asset>({
       user_id: "u1",
       name: "photo.jpg",
-      content_type: "image/jpeg",
+      content_type: "image/jpeg"
     });
     expect(asset.parent_id).toBeNull();
     expect(asset.size).toBeNull();
@@ -228,7 +228,7 @@ describe("Asset model (SQLite)", () => {
     const img = await Asset.create<Asset>({
       user_id: "u1",
       name: "photo.jpg",
-      content_type: "image/jpeg",
+      content_type: "image/jpeg"
     });
     expect(img.isFolder).toBe(false);
     expect(img.fileExtension).toBe("jpg");
@@ -237,7 +237,7 @@ describe("Asset model (SQLite)", () => {
     const folder = await Asset.create<Asset>({
       user_id: "u1",
       name: "My Folder",
-      content_type: "folder",
+      content_type: "folder"
     });
     expect(folder.isFolder).toBe(true);
     expect(folder.hasThumbnail).toBe(false);
@@ -247,19 +247,19 @@ describe("Asset model (SQLite)", () => {
     const folder = await Asset.create<Asset>({
       user_id: "u1",
       name: "Folder",
-      content_type: "folder",
+      content_type: "folder"
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "file1.txt",
       content_type: "text/plain",
-      parent_id: folder.id,
+      parent_id: folder.id
     });
     await Asset.create<Asset>({
       user_id: "u1",
       name: "file2.txt",
       content_type: "text/plain",
-      parent_id: folder.id,
+      parent_id: folder.id
     });
 
     const children = await Asset.getChildren("u1", folder.id);
@@ -272,7 +272,7 @@ describe("Asset model (SQLite)", () => {
       user_id: "u1",
       name: "photo.jpg",
       content_type: "image/jpeg",
-      metadata,
+      metadata
     });
 
     const reloaded = await Asset.get<Asset>(asset.id);
@@ -291,7 +291,7 @@ describe("Message model (SQLite)", () => {
     const msg = await Message.create<Message>({
       user_id: "u1",
       thread_id: "t1",
-      content: "Hello world",
+      content: "Hello world"
     });
     expect(msg.role).toBe("user");
     expect(msg.tool_calls).toBeNull();
@@ -301,17 +301,17 @@ describe("Message model (SQLite)", () => {
     await Message.create<Message>({
       user_id: "u1",
       thread_id: "t1",
-      content: "msg1",
+      content: "msg1"
     });
     await Message.create<Message>({
       user_id: "u1",
       thread_id: "t1",
-      content: "msg2",
+      content: "msg2"
     });
     await Message.create<Message>({
       user_id: "u1",
       thread_id: "t2",
-      content: "msg3",
+      content: "msg3"
     });
 
     const [msgs] = await Message.paginate("t1");
@@ -323,20 +323,20 @@ describe("Message model (SQLite)", () => {
       {
         id: "call_1",
         type: "function",
-        function: { name: "get_weather", arguments: '{"city":"NYC"}' },
+        function: { name: "get_weather", arguments: '{"city":"NYC"}' }
       },
       {
         id: "call_2",
         type: "function",
-        function: { name: "search", arguments: '{"q":"test"}' },
-      },
+        function: { name: "search", arguments: '{"q":"test"}' }
+      }
     ];
     const msg = await Message.create<Message>({
       user_id: "u1",
       thread_id: "t1",
       role: "assistant",
       content: null,
-      tool_calls: toolCalls,
+      tool_calls: toolCalls
     });
 
     const reloaded = await Message.get<Message>(msg.id);
@@ -352,7 +352,7 @@ describe("Message model (SQLite)", () => {
       thread_id: "t1",
       content: "process files",
       input_files: inputFiles,
-      output_files: outputFiles,
+      output_files: outputFiles
     });
 
     const reloaded = await Message.get<Message>(msg.id);
@@ -371,7 +371,7 @@ describe("Thread model (SQLite)", () => {
   it("creates with defaults", async () => {
     const thread = await Thread.create<Thread>({
       user_id: "u1",
-      title: "Test Thread",
+      title: "Test Thread"
     });
     expect(thread.title).toBe("Test Thread");
     expect(thread.created_at).toBeTruthy();
@@ -380,7 +380,7 @@ describe("Thread model (SQLite)", () => {
   it("find scoped to user", async () => {
     const thread = await Thread.create<Thread>({
       user_id: "u1",
-      title: "Private Thread",
+      title: "Private Thread"
     });
     expect(await Thread.find("u1", thread.id)).not.toBeNull();
     expect(await Thread.find("u2", thread.id)).toBeNull();
@@ -389,11 +389,11 @@ describe("Thread model (SQLite)", () => {
   it("paginate by user", async () => {
     await Thread.create<Thread>({
       user_id: "u1",
-      title: "Thread A",
+      title: "Thread A"
     });
     await Thread.create<Thread>({
       user_id: "u2",
-      title: "Thread B",
+      title: "Thread B"
     });
 
     const [threads] = await Thread.paginate("u1");

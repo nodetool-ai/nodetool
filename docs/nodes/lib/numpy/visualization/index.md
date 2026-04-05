@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.numpy.visualization Nodes"
+title: "lib.array.visualization Nodes"
 ---
 
 

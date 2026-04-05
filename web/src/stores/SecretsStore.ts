@@ -13,6 +13,7 @@ interface SecretsStore {
    * Returns null if missing, empty, or the request fails.
    */
   fetchDecryptedSecret: (key: string) => Promise<string | null>;
+  getSecretValue: (key: string) => Promise<string | null>;
   updateSecret: (key: string, value: string, description?: string) => Promise<void>;
   deleteSecret: (key: string) => Promise<void>;
 }
@@ -73,6 +74,19 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
       }
       const trimmed = value.trim();
       return trimmed.length > 0 ? trimmed : null;
+    } catch {
+      return null;
+    }
+  },
+
+  getSecretValue: async (key: string) => {
+    try {
+      const { error, data } = await client.GET("/api/settings/secrets/{key}", {
+        params: { path: { key } }
+      });
+      if (error) return null;
+      const record = data as Record<string, unknown>;
+      return typeof record.value === "string" ? record.value : null;
     } catch {
       return null;
     }

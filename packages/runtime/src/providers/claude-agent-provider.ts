@@ -27,7 +27,7 @@ import type {
   MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
-  ToolCall,
+  ToolCall
 } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.claude_agent");
@@ -35,9 +35,21 @@ const log = createLogger("nodetool.runtime.providers.claude_agent");
 const MCP_SERVER_NAME = "nodetool-tools";
 
 const CLAUDE_AGENT_MODELS: LanguageModel[] = [
-  { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", provider: "claude_agent" },
-  { id: "claude-opus-4-20250514", name: "Claude Opus 4", provider: "claude_agent" },
-  { id: "claude-haiku-4-20250514", name: "Claude Haiku 4", provider: "claude_agent" },
+  {
+    id: "claude-sonnet-4-20250514",
+    name: "Claude Sonnet 4",
+    provider: "claude_agent"
+  },
+  {
+    id: "claude-opus-4-20250514",
+    name: "Claude Opus 4",
+    provider: "claude_agent"
+  },
+  {
+    id: "claude-haiku-4-20250514",
+    name: "Claude Haiku 4",
+    provider: "claude_agent"
+  }
 ];
 
 /** Built-in Claude Code tools we disable — we only want text generation + our MCP tools. */
@@ -53,7 +65,7 @@ const DISALLOWED_TOOLS = [
   "WebFetch",
   "WebSearch",
   "Task",
-  "TaskOutput",
+  "TaskOutput"
 ];
 
 function extractText(content: Message["content"]): string {
@@ -99,7 +111,9 @@ function jsonSchemaPropertyToZod(prop: Record<string, unknown>, z: any): any {
       return z.array(z.any());
     }
     case "object": {
-      const properties = prop.properties as Record<string, Record<string, unknown>> | undefined;
+      const properties = prop.properties as
+        | Record<string, Record<string, unknown>>
+        | undefined;
       if (properties) {
         const shape: Record<string, unknown> = {};
         const required = (prop.required as string[]) ?? [];
@@ -125,10 +139,12 @@ function jsonSchemaPropertyToZod(prop: Record<string, unknown>, z: any): any {
  */
 function jsonSchemaToZodShape(
   schema: Record<string, unknown> | undefined,
-  z: any,
+  z: any
 ): Record<string, unknown> {
   if (!schema) return {};
-  const properties = schema.properties as Record<string, Record<string, unknown>> | undefined;
+  const properties = schema.properties as
+    | Record<string, Record<string, unknown>>
+    | undefined;
   if (!properties) return {};
 
   const required = (schema.required as string[]) ?? [];
@@ -155,7 +171,7 @@ function jsonSchemaToZodShape(
  */
 export type OnToolCall = (
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ) => Promise<string>;
 
 export class ClaudeAgentProvider extends BaseProvider {
@@ -184,7 +200,10 @@ export class ClaudeAgentProvider extends BaseProvider {
   /**
    * Extract the system prompt and the last user message from the messages array.
    */
-  private extractPrompt(messages: Message[]): { systemPrompt: string; prompt: string } {
+  private extractPrompt(messages: Message[]): {
+    systemPrompt: string;
+    prompt: string;
+  } {
     let systemPrompt = "You are a helpful assistant.";
     let prompt = "";
 
@@ -212,13 +231,15 @@ export class ClaudeAgentProvider extends BaseProvider {
   /**
    * Dynamically import the Agent SDK. Throws a descriptive error if not installed.
    */
-  private async getSdk(): Promise<typeof import("@anthropic-ai/claude-agent-sdk")> {
+  private async getSdk(): Promise<
+    typeof import("@anthropic-ai/claude-agent-sdk")
+  > {
     try {
       return await import("@anthropic-ai/claude-agent-sdk");
     } catch {
       throw new Error(
         "Claude Agent SDK (@anthropic-ai/claude-agent-sdk) is not installed or Claude Code " +
-          "is not available. Install Claude Code and run: npm install @anthropic-ai/claude-agent-sdk",
+          "is not available. Install Claude Code and run: npm install @anthropic-ai/claude-agent-sdk"
       );
     }
   }
@@ -248,7 +269,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     onToolCall: OnToolCall,
     sdk: typeof import("@anthropic-ai/claude-agent-sdk"),
     z: any,
-    toolCallTracker: ToolCall[],
+    toolCallTracker: ToolCall[]
   ) {
     const mcpTools = tools.map((t) => {
       const zodShape = jsonSchemaToZodShape(t.inputSchema, z) as any;
@@ -261,7 +282,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           const toolCall: ToolCall = {
             id: `call_${Date.now()}_${toolCallTracker.length}`,
             name: t.name,
-            args,
+            args
           };
           toolCallTracker.push(toolCall);
           log.debug("MCP tool called", { name: t.name, args });
@@ -274,17 +295,17 @@ export class ClaudeAgentProvider extends BaseProvider {
             log.error("MCP tool error", { name: t.name, error: errorMsg });
             return {
               content: [{ type: "text" as const, text: errorMsg }],
-              isError: true,
+              isError: true
             };
           }
-        },
+        }
       );
     });
 
     return sdk.createSdkMcpServer({
       name: MCP_SERVER_NAME,
       version: "1.0.0",
-      tools: mcpTools,
+      tools: mcpTools
     });
   }
 
@@ -321,8 +342,16 @@ export class ClaudeAgentProvider extends BaseProvider {
 
     if (hasTools && args.tools && args.onToolCall) {
       const { z } = await import("zod");
-      mcpServer = this.buildMcpServer(args.tools, args.onToolCall, sdk, z, toolCallTracker);
-      allowedTools = args.tools.map((t) => `mcp__${MCP_SERVER_NAME}__${t.name}`);
+      mcpServer = this.buildMcpServer(
+        args.tools,
+        args.onToolCall,
+        sdk,
+        z,
+        toolCallTracker
+      );
+      allowedTools = args.tools.map(
+        (t) => `mcp__${MCP_SERVER_NAME}__${t.name}`
+      );
     }
 
     log.debug("Claude Agent request", {
@@ -331,7 +360,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       threadId,
       resuming: !!resumeSessionId,
       tools: hasTools ? args.tools!.map((t) => t.name) : [],
-      mcpEnabled: !!mcpServer,
+      mcpEnabled: !!mcpServer
     });
 
     // Unset CLAUDECODE to allow running inside a Claude Code session
@@ -351,8 +380,8 @@ export class ClaudeAgentProvider extends BaseProvider {
         allowedTools,
         env: cleanEnv,
         ...(mcpServer ? { mcpServers: { [MCP_SERVER_NAME]: mcpServer } } : {}),
-        ...(resumeSessionId ? { resume: resumeSessionId } : {}),
-      },
+        ...(resumeSessionId ? { resume: resumeSessionId } : {})
+      }
     });
 
     // streamedTextLength tracks the text position within the current assistant turn.
@@ -375,7 +404,10 @@ export class ClaudeAgentProvider extends BaseProvider {
         threadId
       ) {
         this.setSessionId(threadId, msgObj.session_id);
-        log.debug("Claude session initialized", { threadId, sessionId: msgObj.session_id });
+        log.debug("Claude session initialized", {
+          threadId,
+          sessionId: msgObj.session_id
+        });
         continue;
       }
 
@@ -395,7 +427,9 @@ export class ClaudeAgentProvider extends BaseProvider {
         const content = partial?.content;
         if (Array.isArray(content)) {
           const text = content
-            .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+            .filter(
+              (b: any) => b?.type === "text" && typeof b.text === "string"
+            )
             .map((b: any) => b.text as string)
             .join("");
           if (text.length > streamedTextLength) {
@@ -414,7 +448,9 @@ export class ClaudeAgentProvider extends BaseProvider {
         const content = message?.content;
         if (Array.isArray(content)) {
           const text = content
-            .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+            .filter(
+              (b: any) => b?.type === "text" && typeof b.text === "string"
+            )
             .map((b: any) => b.text as string)
             .join("");
           if (text.length > streamedTextLength) {
@@ -476,7 +512,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     return {
       role: "assistant",
       content: parts.join(""),
-      ...(toolCalls.length > 0 ? { toolCalls } : {}),
+      ...(toolCalls.length > 0 ? { toolCalls } : {})
     };
   }
 

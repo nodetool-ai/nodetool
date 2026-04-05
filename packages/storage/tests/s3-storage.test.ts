@@ -9,18 +9,30 @@ vi.mock("@aws-sdk/client-s3", () => {
     S3Client: vi.fn().mockImplementation(function (this: any) {
       this.send = mockSend;
     }),
-    PutObjectCommand: vi.fn().mockImplementation(function (this: any, input: any) {
+    PutObjectCommand: vi.fn().mockImplementation(function (
+      this: any,
+      input: any
+    ) {
       Object.assign(this, { _type: "put", ...input });
     }),
-    GetObjectCommand: vi.fn().mockImplementation(function (this: any, input: any) {
+    GetObjectCommand: vi.fn().mockImplementation(function (
+      this: any,
+      input: any
+    ) {
       Object.assign(this, { _type: "get", ...input });
     }),
-    DeleteObjectCommand: vi.fn().mockImplementation(function (this: any, input: any) {
+    DeleteObjectCommand: vi.fn().mockImplementation(function (
+      this: any,
+      input: any
+    ) {
       Object.assign(this, { _type: "delete", ...input });
     }),
-    HeadObjectCommand: vi.fn().mockImplementation(function (this: any, input: any) {
+    HeadObjectCommand: vi.fn().mockImplementation(function (
+      this: any,
+      input: any
+    ) {
       Object.assign(this, { _type: "head", ...input });
-    }),
+    })
   };
 });
 
@@ -29,7 +41,12 @@ describe("S3Storage", () => {
 
   beforeEach(() => {
     mockSend.mockReset();
-    storage = new S3Storage("my-bucket", "http://localhost:9000", "cdn.example.com", "us-west-2");
+    storage = new S3Storage(
+      "my-bucket",
+      "http://localhost:9000",
+      "cdn.example.com",
+      "us-west-2"
+    );
   });
 
   describe("upload", () => {
@@ -57,8 +74,8 @@ describe("S3Storage", () => {
       const content = Buffer.from("file content");
       mockSend.mockResolvedValue({
         Body: {
-          transformToByteArray: async () => new Uint8Array(content),
-        },
+          transformToByteArray: async () => new Uint8Array(content)
+        }
       });
       const result = await storage.download("test.txt");
       expect(Buffer.isBuffer(result)).toBe(true);
@@ -67,7 +84,9 @@ describe("S3Storage", () => {
 
     it("throws on empty body", async () => {
       mockSend.mockResolvedValue({ Body: null });
-      await expect(storage.download("missing.txt")).rejects.toThrow("Empty response body");
+      await expect(storage.download("missing.txt")).rejects.toThrow(
+        "Empty response body"
+      );
     });
 
     it("falls back to async iterable when transformToByteArray is missing", async () => {
@@ -75,7 +94,7 @@ describe("S3Storage", () => {
       const asyncIter = {
         async *[Symbol.asyncIterator]() {
           for (const c of chunks) yield c;
-        },
+        }
       };
       mockSend.mockResolvedValue({ Body: asyncIter });
       const result = await storage.download("test.txt");
@@ -171,7 +190,7 @@ describe("S3Storage", () => {
       expect(S3Client).toHaveBeenCalledWith(
         expect.objectContaining({
           endpoint: "http://minio:9000",
-          forcePathStyle: true,
+          forcePathStyle: true
         })
       );
     });
@@ -211,7 +230,11 @@ describe("S3Storage", () => {
 
     it("passes custom content types verbatim", async () => {
       mockSend.mockResolvedValue({});
-      await storage.upload("data.bin", Buffer.from("x"), "application/x-custom+json");
+      await storage.upload(
+        "data.bin",
+        Buffer.from("x"),
+        "application/x-custom+json"
+      );
       const cmd = mockSend.mock.calls[0][0];
       expect(cmd.ContentType).toBe("application/x-custom+json");
     });
@@ -223,7 +246,7 @@ describe("S3Storage", () => {
       const asyncIter = {
         async *[Symbol.asyncIterator]() {
           for (const c of chunkData) yield Buffer.from(c);
-        },
+        }
       };
       mockSend.mockResolvedValue({ Body: asyncIter });
       const result = await storage.download("multi.txt");
@@ -235,7 +258,7 @@ describe("S3Storage", () => {
       const asyncIter = {
         async *[Symbol.asyncIterator]() {
           for (const b of bytes) yield new Uint8Array([b]);
-        },
+        }
       };
       mockSend.mockResolvedValue({ Body: asyncIter });
       const result = await storage.download("bytes.bin");

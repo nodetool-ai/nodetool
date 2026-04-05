@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.pillow.__init__ Nodes"
+title: "lib.image Nodes"
 ---
 
 

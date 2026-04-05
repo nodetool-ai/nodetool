@@ -16,7 +16,9 @@ describe("getApiKey", () => {
   });
 
   it("returns key from secrets object", () => {
-    expect(getApiKey({ KIE_API_KEY: "secret-from-secrets" })).toBe("secret-from-secrets");
+    expect(getApiKey({ KIE_API_KEY: "secret-from-secrets" })).toBe(
+      "secret-from-secrets"
+    );
   });
 
   it("falls back to process.env", () => {

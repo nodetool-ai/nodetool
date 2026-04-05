@@ -13,7 +13,7 @@ let parser: SchemaParser;
 beforeAll(async () => {
   const raw = await readFile(
     join(__dirname, "fixtures", "sdxl-schema.json"),
-    "utf-8",
+    "utf-8"
   );
   sdxlSchema = JSON.parse(raw) as ReplicateSchema;
   parser = new SchemaParser();
@@ -66,7 +66,7 @@ describe("toEnumKey", () => {
 
   it('converts "expert_ensemble_refiner" → "EXPERT_ENSEMBLE_REFINER"', () => {
     expect(parser.toEnumKey("expert_ensemble_refiner")).toBe(
-      "EXPERT_ENSEMBLE_REFINER",
+      "EXPERT_ENSEMBLE_REFINER"
     );
   });
 
@@ -77,7 +77,7 @@ describe("toEnumKey", () => {
   it('converts slash separator "realistic_image/b_and_w" → "REALISTIC_IMAGE_B_AND_W"', () => {
     // Slash becomes __ which then gets collapsed to _ by the dedup pass
     expect(parser.toEnumKey("realistic_image/b_and_w")).toBe(
-      "REALISTIC_IMAGE_B_AND_W",
+      "REALISTIC_IMAGE_B_AND_W"
     );
   });
 });
@@ -88,17 +88,21 @@ describe("toEnumKey", () => {
 
 describe("generateClassName", () => {
   it('"stability-ai/sdxl" → "StabilityAiSdxl"', () => {
-    expect(parser.generateClassName("stability-ai/sdxl")).toBe("StabilityAiSdxl");
+    expect(parser.generateClassName("stability-ai/sdxl")).toBe(
+      "StabilityAiSdxl"
+    );
   });
 
   it('"black-forest-labs/flux-schnell" → "BlackForestLabsFluxSchnell"', () => {
     expect(parser.generateClassName("black-forest-labs/flux-schnell")).toBe(
-      "BlackForestLabsFluxSchnell",
+      "BlackForestLabsFluxSchnell"
     );
   });
 
   it('"lucataco/sdxl-lcm" → "LucatacoSdxlLcm"', () => {
-    expect(parser.generateClassName("lucataco/sdxl-lcm")).toBe("LucatacoSdxlLcm");
+    expect(parser.generateClassName("lucataco/sdxl-lcm")).toBe(
+      "LucatacoSdxlLcm"
+    );
   });
 
   it("strips dots from version segments", () => {
@@ -118,7 +122,7 @@ describe("parse() with sdxl schema", () => {
   it("extracts the correct endpointId", () => {
     const spec = parser.parse(sdxlSchema);
     expect(spec.endpointId).toBe(
-      "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb",
+      "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb"
     );
   });
 
@@ -230,7 +234,7 @@ describe("parse() with sdxl schema", () => {
 describe("type mapping via parse()", () => {
   function makeSchema(
     propName: string,
-    propDef: Record<string, unknown>,
+    propDef: Record<string, unknown>
   ): ReplicateSchema {
     return {
       modelId: "test/model",
@@ -241,9 +245,9 @@ describe("type mapping via parse()", () => {
       inputSchema: {
         type: "object",
         properties: { [propName]: propDef },
-        required: [],
+        required: []
       },
-      outputSchema: {},
+      outputSchema: {}
     };
   }
 
@@ -255,20 +259,26 @@ describe("type mapping via parse()", () => {
   });
 
   it("maps integer type to int", () => {
-    const spec = parser.parse(makeSchema("steps", { type: "integer", default: 28 }));
+    const spec = parser.parse(
+      makeSchema("steps", { type: "integer", default: 28 })
+    );
     const f = spec.inputFields.find((f) => f.name === "steps")!;
     expect(f.propType).toBe("int");
     expect(f.tsType).toBe("number");
   });
 
   it("maps number type to float", () => {
-    const spec = parser.parse(makeSchema("scale", { type: "number", default: 7.5 }));
+    const spec = parser.parse(
+      makeSchema("scale", { type: "number", default: 7.5 })
+    );
     const f = spec.inputFields.find((f) => f.name === "scale")!;
     expect(f.propType).toBe("float");
   });
 
   it("maps boolean type to bool", () => {
-    const spec = parser.parse(makeSchema("enabled", { type: "boolean", default: false }));
+    const spec = parser.parse(
+      makeSchema("enabled", { type: "boolean", default: false })
+    );
     const f = spec.inputFields.find((f) => f.name === "enabled")!;
     expect(f.propType).toBe("bool");
     expect(f.tsType).toBe("boolean");
@@ -276,7 +286,7 @@ describe("type mapping via parse()", () => {
 
   it("maps uri string with 'video' in name to video type", () => {
     const spec = parser.parse(
-      makeSchema("video_url", { type: "string", format: "uri" }),
+      makeSchema("video_url", { type: "string", format: "uri" })
     );
     const f = spec.inputFields.find((f) => f.name === "video_url")!;
     expect(f.propType).toBe("video");
@@ -285,7 +295,7 @@ describe("type mapping via parse()", () => {
 
   it("maps uri string with 'audio' in name to audio type", () => {
     const spec = parser.parse(
-      makeSchema("audio_url", { type: "string", format: "uri" }),
+      makeSchema("audio_url", { type: "string", format: "uri" })
     );
     const f = spec.inputFields.find((f) => f.name === "audio_url")!;
     expect(f.propType).toBe("audio");
@@ -293,7 +303,7 @@ describe("type mapping via parse()", () => {
 
   it("maps uri string with 'sound' in name to audio type", () => {
     const spec = parser.parse(
-      makeSchema("sound_file", { type: "string", format: "uri" }),
+      makeSchema("sound_file", { type: "string", format: "uri" })
     );
     const f = spec.inputFields.find((f) => f.name === "sound_file")!;
     expect(f.propType).toBe("audio");
@@ -301,7 +311,7 @@ describe("type mapping via parse()", () => {
 
   it("maps uri string with 'music' in name to audio type", () => {
     const spec = parser.parse(
-      makeSchema("music_file", { type: "string", format: "uri" }),
+      makeSchema("music_file", { type: "string", format: "uri" })
     );
     const f = spec.inputFields.find((f) => f.name === "music_file")!;
     expect(f.propType).toBe("audio");
@@ -309,7 +319,7 @@ describe("type mapping via parse()", () => {
 
   it("maps generic uri string to image type by default", () => {
     const spec = parser.parse(
-      makeSchema("image_url", { type: "string", format: "uri" }),
+      makeSchema("image_url", { type: "string", format: "uri" })
     );
     const f = spec.inputFields.find((f) => f.name === "image_url")!;
     expect(f.propType).toBe("image");
@@ -317,7 +327,7 @@ describe("type mapping via parse()", () => {
 
   it("maps array of strings to list[str]", () => {
     const spec = parser.parse(
-      makeSchema("tags", { type: "array", items: { type: "string" } }),
+      makeSchema("tags", { type: "array", items: { type: "string" } })
     );
     const f = spec.inputFields.find((f) => f.name === "tags")!;
     expect(f.propType).toBe("list[str]");
@@ -340,7 +350,7 @@ describe("default value logic via parse()", () => {
   function makeSchema(
     propName: string,
     propDef: Record<string, unknown>,
-    required = false,
+    required = false
   ): ReplicateSchema {
     return {
       modelId: "test/model",
@@ -351,19 +361,23 @@ describe("default value logic via parse()", () => {
       inputSchema: {
         type: "object",
         properties: { [propName]: propDef },
-        required: required ? [propName] : [],
+        required: required ? [propName] : []
       },
-      outputSchema: {},
+      outputSchema: {}
     };
   }
 
   it("uses provided default value for string field", () => {
-    const spec = parser.parse(makeSchema("style", { type: "string", default: "photorealistic" }));
+    const spec = parser.parse(
+      makeSchema("style", { type: "string", default: "photorealistic" })
+    );
     expect(spec.inputFields[0].default).toBe("photorealistic");
   });
 
   it("uses provided default value for integer field", () => {
-    const spec = parser.parse(makeSchema("steps", { type: "integer", default: 50 }));
+    const spec = parser.parse(
+      makeSchema("steps", { type: "integer", default: 50 })
+    );
     expect(spec.inputFields[0].default).toBe(50);
   });
 
@@ -371,15 +385,15 @@ describe("default value logic via parse()", () => {
     const spec = parser.parse(
       makeSchema("seed", {
         type: "integer",
-        description: "Random seed for reproducibility",
-      }),
+        description: "Random seed for reproducibility"
+      })
     );
     expect(spec.inputFields[0].default).toBe(-1);
   });
 
   it("defaults image/video/audio fields to null", () => {
     const spec = parser.parse(
-      makeSchema("image_url", { type: "string", format: "uri" }),
+      makeSchema("image_url", { type: "string", format: "uri" })
     );
     expect(spec.inputFields[0].default).toBeNull();
   });

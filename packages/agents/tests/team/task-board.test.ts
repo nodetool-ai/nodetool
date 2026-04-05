@@ -9,7 +9,7 @@ const researcher: AgentIdentity = {
   skills: ["web_search", "analysis"],
   provider: "openai",
   model: "gpt-4o",
-  tools: [],
+  tools: []
 };
 
 const writer: AgentIdentity = {
@@ -19,7 +19,7 @@ const writer: AgentIdentity = {
   skills: ["writing", "editing"],
   provider: "openai",
   model: "gpt-4o",
-  tools: [],
+  tools: []
 };
 
 describe("TaskBoard", () => {
@@ -33,7 +33,7 @@ describe("TaskBoard", () => {
     const task = board.create({
       title: "Research AI papers",
       description: "Find recent papers on multi-agent systems",
-      createdBy: "coordinator",
+      createdBy: "coordinator"
     });
 
     expect(task.id).toBeDefined();
@@ -47,7 +47,7 @@ describe("TaskBoard", () => {
     const task = board.create({
       title: "Write report",
       description: "Write the final report",
-      createdBy: "coordinator",
+      createdBy: "coordinator"
     });
 
     const claimed = board.claim(task.id, "writer");
@@ -62,14 +62,14 @@ describe("TaskBoard", () => {
     const taskA = board.create({
       title: "Research",
       description: "Do research",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     const taskB = board.create({
       title: "Write",
       description: "Write based on research",
       createdBy: "coord",
-      dependsOn: [taskA.id],
+      dependsOn: [taskA.id]
     });
 
     // Can't claim B while A is not done
@@ -88,14 +88,14 @@ describe("TaskBoard", () => {
     const task = board.create({
       title: "Analyze data",
       description: "Analyze the dataset",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     board.claim(task.id, "researcher");
     board.startWork(task.id, "researcher");
     const completed = board.complete(task.id, {
       result: { summary: "Data shows upward trend" },
-      artifacts: ["chart.png"],
+      artifacts: ["chart.png"]
     });
 
     expect(completed).toBe(true);
@@ -109,7 +109,7 @@ describe("TaskBoard", () => {
     const task = board.create({
       title: "Fetch data",
       description: "Get API data",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     board.claim(task.id, "researcher");
@@ -126,13 +126,13 @@ describe("TaskBoard", () => {
       title: "Search web",
       description: "Search the web",
       createdBy: "coord",
-      requiredSkills: ["web_search"],
+      requiredSkills: ["web_search"]
     });
     board.create({
       title: "Write article",
       description: "Write an article",
       createdBy: "coord",
-      requiredSkills: ["writing"],
+      requiredSkills: ["writing"]
     });
 
     const forResearcher = board.getAvailable(researcher);
@@ -148,12 +148,12 @@ describe("TaskBoard", () => {
     board.create({
       title: "Task 1",
       description: "No skills needed",
-      createdBy: "coord",
+      createdBy: "coord"
     });
     board.create({
       title: "Task 2",
       description: "No skills needed",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     expect(board.getAvailable(researcher)).toHaveLength(2);
@@ -164,19 +164,19 @@ describe("TaskBoard", () => {
       title: "Low priority",
       description: "desc",
       createdBy: "coord",
-      priority: 9,
+      priority: 9
     });
     board.create({
       title: "High priority",
       description: "desc",
       createdBy: "coord",
-      priority: 1,
+      priority: 1
     });
     board.create({
       title: "Medium priority",
       description: "desc",
       createdBy: "coord",
-      priority: 5,
+      priority: 5
     });
 
     const tasks = board.getAvailable();
@@ -189,7 +189,7 @@ describe("TaskBoard", () => {
     const parent = board.create({
       title: "Write report",
       description: "Full report",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     board.claim(parent.id, "writer");
@@ -198,7 +198,11 @@ describe("TaskBoard", () => {
     const subtasks = board.decompose(parent.id, [
       { title: "Intro", description: "Write intro", createdBy: "writer" },
       { title: "Body", description: "Write body", createdBy: "writer" },
-      { title: "Conclusion", description: "Write conclusion", createdBy: "writer" },
+      {
+        title: "Conclusion",
+        description: "Write conclusion",
+        createdBy: "writer"
+      }
     ]);
 
     expect(subtasks).toHaveLength(3);
@@ -215,7 +219,7 @@ describe("TaskBoard", () => {
     const parent = board.create({
       title: "Report",
       description: "Full report",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     board.claim(parent.id, "writer");
@@ -223,7 +227,7 @@ describe("TaskBoard", () => {
 
     const subtasks = board.decompose(parent.id, [
       { title: "Part 1", description: "d1", createdBy: "writer" },
-      { title: "Part 2", description: "d2", createdBy: "writer" },
+      { title: "Part 2", description: "d2", createdBy: "writer" }
     ]);
 
     // Complete all subtasks
@@ -241,13 +245,13 @@ describe("TaskBoard", () => {
     const taskA = board.create({
       title: "Task A",
       description: "desc",
-      createdBy: "coord",
+      createdBy: "coord"
     });
     const taskB = board.create({
       title: "Task B",
       description: "desc",
       createdBy: "coord",
-      dependsOn: [taskA.id],
+      dependsOn: [taskA.id]
     });
 
     // Fail Task A — now Task B can never have its dependency met
@@ -264,7 +268,7 @@ describe("TaskBoard", () => {
     const task = board.create({
       title: "Only task",
       description: "desc",
-      createdBy: "coord",
+      createdBy: "coord"
     });
 
     expect(board.isComplete()).toBe(false);
@@ -283,7 +287,7 @@ describe("TaskBoard", () => {
     const task = board.create({
       title: "Test",
       description: "desc",
-      createdBy: "coord",
+      createdBy: "coord"
     });
     board.claim(task.id, "researcher");
     board.startWork(task.id, "researcher");
@@ -300,7 +304,7 @@ describe("TaskBoard", () => {
     const taskA = board.create({
       title: "A",
       description: "d",
-      createdBy: "c",
+      createdBy: "c"
     });
 
     // Can't create a task depending on itself
@@ -309,7 +313,7 @@ describe("TaskBoard", () => {
       title: "B",
       description: "d",
       createdBy: "c",
-      dependsOn: [taskA.id],
+      dependsOn: [taskA.id]
     });
 
     expect(() =>
@@ -317,7 +321,7 @@ describe("TaskBoard", () => {
         title: "Cycle",
         description: "d",
         createdBy: "c",
-        dependsOn: [taskB.id],
+        dependsOn: [taskB.id]
       })
     ).not.toThrow(); // This is fine: A→B→C is a chain, not a cycle
   });
@@ -326,7 +330,7 @@ describe("TaskBoard", () => {
     const task = board.create({
       title: "T",
       description: "d",
-      createdBy: "c",
+      createdBy: "c"
     });
 
     board.claim(task.id, "researcher");
@@ -342,13 +346,13 @@ describe("TaskBoard", () => {
     const parent = board.create({
       title: "Parent",
       description: "d",
-      createdBy: "c",
+      createdBy: "c"
     });
     board.claim(parent.id, "w");
     board.startWork(parent.id, "w");
     board.decompose(parent.id, [
       { title: "Sub 1", description: "d1", createdBy: "c" },
-      { title: "Sub 2", description: "d2", createdBy: "c" },
+      { title: "Sub 2", description: "d2", createdBy: "c" }
     ]);
 
     const subs = board.getSubtasks(parent.id);

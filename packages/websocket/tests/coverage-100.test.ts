@@ -12,12 +12,12 @@ import {
   Workflow,
   Job,
   Secret,
-  OAuthCredential,
+  OAuthCredential
 } from "@nodetool/models";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
-  type WebSocketReceiveFrame,
+  type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
 
 // ── Shared helpers ──────────────────────────────────────────────────
@@ -28,12 +28,18 @@ class MockWS implements WebSocketConnection {
   sentBytes: Uint8Array[] = [];
   sentText: string[] = [];
   queue: Array<WebSocketReceiveFrame> = [];
-  async accept() { return; }
+  async accept() {
+    return;
+  }
   async receive(): Promise<WebSocketReceiveFrame> {
     return this.queue.shift() ?? { type: "websocket.disconnect" };
   }
-  async sendBytes(data: Uint8Array) { this.sentBytes.push(data); }
-  async sendText(data: string) { this.sentText.push(data); }
+  async sendBytes(data: Uint8Array) {
+    this.sentBytes.push(data);
+  }
+  async sendText(data: string) {
+    this.sentText.push(data);
+  }
   async close() {
     this.clientState = "disconnected";
     this.applicationState = "disconnected";
@@ -83,7 +89,13 @@ describe("Models API: additional coverage", () => {
   it("isDownloadedFromFiles without allowPatterns uses ignorePatterns path", async () => {
     const hfCache = join(tempDir, "hf-noallow");
     process.env.HUGGINGFACE_HUB_CACHE = hfCache;
-    const snapDir = join(hfCache, "hub", "models--test--noallow", "snapshots", "s1");
+    const snapDir = join(
+      hfCache,
+      "hub",
+      "models--test--noallow",
+      "snapshots",
+      "s1"
+    );
     await mkdir(snapDir, { recursive: true });
     await writeFile(join(snapDir, "file.bin"), "x");
 
@@ -93,9 +105,7 @@ describe("Models API: additional coverage", () => {
       new Request("http://localhost/api/models/huggingface/cache_status", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify([
-          { key: "k1", repo_id: "test/noallow" },
-        ]),
+        body: JSON.stringify([{ key: "k1", repo_id: "test/noallow" }])
       })
     );
     expect(res!.status).toBe(200);
@@ -106,7 +116,13 @@ describe("Models API: additional coverage", () => {
   it("isDownloadedFromFiles with ignorePatterns that filter all files returns false", async () => {
     const hfCache = join(tempDir, "hf-ignored");
     process.env.HUGGINGFACE_HUB_CACHE = hfCache;
-    const snapDir = join(hfCache, "hub", "models--test--ignored", "snapshots", "s1");
+    const snapDir = join(
+      hfCache,
+      "hub",
+      "models--test--ignored",
+      "snapshots",
+      "s1"
+    );
     await mkdir(snapDir, { recursive: true });
     await writeFile(join(snapDir, "file.bin"), "x");
 
@@ -116,8 +132,8 @@ describe("Models API: additional coverage", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify([
-          { key: "k-ign", repo_id: "test/ignored", ignore_patterns: ["*.bin"] },
-        ]),
+          { key: "k-ign", repo_id: "test/ignored", ignore_patterns: ["*.bin"] }
+        ])
       })
     );
     expect(res!.status).toBe(200);
@@ -131,7 +147,7 @@ describe("Models API: additional coverage", () => {
       new Request("http://localhost/api/models/huggingface/cache_status", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: "not-valid-json{{{",
+        body: "not-valid-json{{{"
       })
     );
     // Should return an error or null response since body parsing fails
@@ -234,7 +250,7 @@ describe("HTTP API: additional coverage", () => {
     // Just calling any endpoint exercises ensureAdapterResolver
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows", {
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(200);
@@ -244,7 +260,7 @@ describe("HTTP API: additional coverage", () => {
     const { handleApiRequest } = await import("../src/http-api.js");
     const res = await handleApiRequest(
       new Request("http://localhost/api/nodes/metadata", {
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     expect(res.status).toBe(200);
@@ -258,7 +274,7 @@ describe("HTTP API: additional coverage", () => {
       new Request("http://localhost/api/workflows/some-workflow-id", {
         method: "PUT",
         headers: { "content-type": "application/json", "x-user-id": "user-1" },
-        body: JSON.stringify({ name: 123 }), // name should be string
+        body: JSON.stringify({ name: 123 }) // name should be string
       })
     );
     // Should get a 400 error for invalid workflow
@@ -269,7 +285,7 @@ describe("HTTP API: additional coverage", () => {
     const { handleApiRequest } = await import("../src/http-api.js");
     const res = await handleApiRequest(
       new Request("http://localhost/api/workflows/public/some-id", {
-        method: "POST",
+        method: "POST"
       })
     );
     expect(res.status).toBe(405);
@@ -278,18 +294,21 @@ describe("HTTP API: additional coverage", () => {
   it("GET /api/messages?thread_id=x checks user ownership (line 418)", async () => {
     const { handleApiRequest } = await import("../src/http-api.js");
     // Create a thread
-    const thread = await Thread.create({ user_id: "other-user", title: "test" });
+    const thread = await Thread.create({
+      user_id: "other-user",
+      title: "test"
+    });
     // Create a message owned by different user
     await Message.create({
       thread_id: thread.id,
       user_id: "other-user",
       role: "user",
-      content: "hello",
+      content: "hello"
     });
 
     const res = await handleApiRequest(
       new Request(`http://localhost/api/messages?thread_id=${thread.id}`, {
-        headers: { "x-user-id": "user-1" },
+        headers: { "x-user-id": "user-1" }
       })
     );
     // Should return 404 because message belongs to other user
@@ -308,13 +327,16 @@ describe("HTTP API: secret error paths", () => {
     await Secret.create({
       user_id: "user-1",
       key: "BAD_SECRET",
-      encrypted_value: "not-a-valid-encrypted-value",
+      encrypted_value: "not-a-valid-encrypted-value"
     });
 
     const res = await handleApiRequest(
-      new Request("http://localhost/api/settings/secrets/BAD_SECRET?decrypt=true", {
-        headers: { "x-user-id": "user-1" },
-      })
+      new Request(
+        "http://localhost/api/settings/secrets/BAD_SECRET?decrypt=true",
+        {
+          headers: { "x-user-id": "user-1" }
+        }
+      )
     );
     expect(res.status).toBe(500);
   });
@@ -325,7 +347,7 @@ describe("HTTP API: secret error paths", () => {
       new Request("http://localhost/api/settings/secrets/TEST_KEY", {
         method: "PUT",
         headers: { "content-type": "application/json", "x-user-id": "user-1" },
-        body: JSON.stringify({ value: "my-secret-value" }),
+        body: JSON.stringify({ value: "my-secret-value" })
       })
     );
     // Should succeed or fail depending on crypto setup
@@ -355,10 +377,17 @@ describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
   it("clearModels returns message (line 580)", async () => {
     const ws = new MockWS();
     const runner = new UnifiedWebSocketRunner({
-      resolveExecutor: () => ({ async process() { return {}; } }),
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      })
     });
     await runner.connect(ws);
-    const result = await runner.handleCommand({ command: "clear_models", data: {} });
+    const result = await runner.handleCommand({
+      command: "clear_models",
+      data: {}
+    });
     expect(result.message).toContain("Model clearing");
     await runner.disconnect();
   });
@@ -370,17 +399,22 @@ describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
         async process() {
           await new Promise((r) => setTimeout(r, 5000));
           return {};
-        },
-      }),
+        }
+      })
     });
     await runner.connect(ws);
 
     const graph = {
       nodes: [{ id: "n1", type: "test.Slow", name: "n1" }],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const allStatus = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const allStatus = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = allStatus.active_jobs[0]?.job_id;
 
     if (jobId) {
@@ -395,7 +429,11 @@ describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
   it("getStatus with unknown jobId returns not_found", async () => {
     const ws = new MockWS();
     const runner = new UnifiedWebSocketRunner({
-      resolveExecutor: () => ({ async process() { return {}; } }),
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      })
     });
     await runner.connect(ws);
     const status = runner.getStatus("nonexistent-job-id");
@@ -406,14 +444,18 @@ describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
   it("tool_result resolves ToolBridge waiter (line 76-77)", async () => {
     const ws = new MockWS();
     const runner = new UnifiedWebSocketRunner({
-      resolveExecutor: () => ({ async process() { return {}; } }),
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      })
     });
     await runner.connect(ws);
 
     // tool_result without an active tool call should not throw
     const result = await runner.handleCommand({
       command: "tool_result",
-      data: { tool_call_id: "tc-123", result: { value: "hello" } },
+      data: { tool_call_id: "tc-123", result: { value: "hello" } }
     });
     expect(result).toBeDefined();
     await runner.disconnect();
@@ -425,16 +467,19 @@ describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
       resolveExecutor: () => ({
         async process() {
           throw new Error("Simulated execution failure");
-        },
-      }),
+        }
+      })
     });
     await runner.connect(ws);
 
     const graph = {
       nodes: [{ id: "n1", type: "test.FailNode", name: "n1" }],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
     // Wait for the job to finish
     await new Promise((r) => setTimeout(r, 200));
     await runner.disconnect();
@@ -447,26 +492,38 @@ describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
         async process() {
           await new Promise((r) => setTimeout(r, 5000));
           return {};
-        },
-      }),
+        }
+      })
     });
     await runner.connect(ws);
 
     const graph = {
       nodes: [
         { id: "n1", type: "test.Slow", name: "n1" },
-        { id: "n2", type: "test.Slow", name: "n2" },
+        { id: "n2", type: "test.Slow", name: "n2" }
       ],
-      edges: [{ source: "n1", sourceHandle: "output", target: "n2", targetHandle: "input" }],
+      edges: [
+        {
+          source: "n1",
+          sourceHandle: "output",
+          target: "n2",
+          targetHandle: "input"
+        }
+      ]
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
-    const status = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
+    const status = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     const jobId = status.active_jobs[0]?.job_id;
 
     if (jobId) {
       const result = await runner.handleCommand({
         command: "reconnect_job",
-        data: { job_id: jobId },
+        data: { job_id: jobId }
       });
       expect(result).toBeDefined();
       // Wait for reconnectJob async to finish sending messages
@@ -500,15 +557,18 @@ describe("UnifiedWebSocketRunner: output type inference (lines 128-132)", () => 
         async process() {
           // Return outputs directly without emitting output_update messages
           // This triggers sendOutputUpdates -> inferOutputType for each value type
-          return { status: "completed", outputs: {
-            float_out: [3.14],
-            bool_out: [true],
-            list_out: [[1, 2, 3]],
-            dict_out: [{ key: "val" }],
-            null_out: [null],
-          }};
-        },
-      }),
+          return {
+            status: "completed",
+            outputs: {
+              float_out: [3.14],
+              bool_out: [true],
+              list_out: [[1, 2, 3]],
+              dict_out: [{ key: "val" }],
+              null_out: [null]
+            }
+          };
+        }
+      })
     });
     await runner.connect(ws);
 
@@ -518,11 +578,14 @@ describe("UnifiedWebSocketRunner: output type inference (lines 128-132)", () => 
         { id: "bool_out", type: "nodetool.output.Output", name: "bool_out" },
         { id: "list_out", type: "nodetool.output.Output", name: "list_out" },
         { id: "dict_out", type: "nodetool.output.Output", name: "dict_out" },
-        { id: "null_out", type: "nodetool.output.Output", name: "null_out" },
+        { id: "null_out", type: "nodetool.output.Output", name: "null_out" }
       ],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
     // Wait for job to complete and output updates to be sent
     await new Promise((r) => setTimeout(r, 300));
 
@@ -545,14 +608,20 @@ describe("HTTP API: createHttpApiServer with real request (lines 1067-1074)", ()
     await new Promise<void>((resolve) => {
       server.listen(0, () => {
         const addr = server.address() as { port: number };
-        http.get(`http://localhost:${addr.port}/api/workflows`, { headers: { "x-user-id": "test" } }, (res) => {
-          let data = "";
-          res.on("data", (chunk: Buffer) => { data += chunk; });
-          res.on("end", () => {
-            server.close();
-            resolve();
-          });
-        });
+        http.get(
+          `http://localhost:${addr.port}/api/workflows`,
+          { headers: { "x-user-id": "test" } },
+          (res) => {
+            let data = "";
+            res.on("data", (chunk: Buffer) => {
+              data += chunk;
+            });
+            res.on("end", () => {
+              server.close();
+              resolve();
+            });
+          }
+        );
       });
     });
   });
@@ -568,24 +637,29 @@ describe("HTTP API: createHttpApiServer with real request (lines 1067-1074)", ()
       server.listen(0, () => {
         const addr = server.address() as { port: number };
         // Send a POST with content-length mismatch to trigger an error
-        const req = http.request({
-          hostname: "localhost",
-          port: addr.port,
-          path: "/api/workflows",
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-user-id": "test",
-            "transfer-encoding": "chunked",
+        const req = http.request(
+          {
+            hostname: "localhost",
+            port: addr.port,
+            path: "/api/workflows",
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-user-id": "test",
+              "transfer-encoding": "chunked"
+            }
           },
-        }, (res) => {
-          let data = "";
-          res.on("data", (chunk: Buffer) => { data += chunk; });
-          res.on("end", () => {
-            server.close();
-            resolve();
-          });
-        });
+          (res) => {
+            let data = "";
+            res.on("data", (chunk: Buffer) => {
+              data += chunk;
+            });
+            res.on("end", () => {
+              server.close();
+              resolve();
+            });
+          }
+        );
         req.write("{invalid");
         req.end();
       });
@@ -611,22 +685,28 @@ describe("UnifiedWebSocketRunner: resolveOutputNodeForKey fallback", () => {
     const runner = new UnifiedWebSocketRunner({
       resolveExecutor: () => ({
         async process() {
-          return { status: "completed", outputs: {
-            unknown_key: ["value"],
-          }};
-        },
-      }),
+          return {
+            status: "completed",
+            outputs: {
+              unknown_key: ["value"]
+            }
+          };
+        }
+      })
     });
     await runner.connect(ws);
 
     const graph = {
       nodes: [
         // Use an Output node as fallback
-        { id: "out1", type: "nodetool.output.Output", name: "out1" },
+        { id: "out1", type: "nodetool.output.Output", name: "out1" }
       ],
-      edges: [],
+      edges: []
     };
-    await runner.handleCommand({ command: "run_job", data: { graph, params: {} } });
+    await runner.handleCommand({
+      command: "run_job",
+      data: { graph, params: {} }
+    });
     await new Promise((r) => setTimeout(r, 300));
     expect(ws.sentBytes.length).toBeGreaterThan(0);
     await runner.disconnect();
@@ -645,29 +725,34 @@ describe("UnifiedWebSocketRunner: chat_message without thread_id", () => {
   it("creates new thread when thread_id is missing (lines 496-498)", async () => {
     const ws = new MockWS();
     const runner = new UnifiedWebSocketRunner({
-      resolveExecutor: () => ({ async process() { return {}; } }),
-      resolveProvider: async () => ({
-        provider: "mock",
-        generateMessages: async function* () {
-          yield { type: "chunk" as const, content: "hi" };
-        },
-        generateMessage: vi.fn(),
-        hasToolSupport: async () => false,
-        getAvailableLanguageModels: async () => [],
-        getAvailableImageModels: async () => [],
-        getAvailableVideoModels: async () => [],
-        getAvailableTTSModels: async () => [],
-        getAvailableASRModels: async () => [],
-        getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({}),
-      } as any),
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      }),
+      resolveProvider: async () =>
+        ({
+          provider: "mock",
+          generateMessages: async function* () {
+            yield { type: "chunk" as const, content: "hi" };
+          },
+          generateMessage: vi.fn(),
+          hasToolSupport: async () => false,
+          getAvailableLanguageModels: async () => [],
+          getAvailableImageModels: async () => [],
+          getAvailableVideoModels: async () => [],
+          getAvailableTTSModels: async () => [],
+          getAvailableASRModels: async () => [],
+          getAvailableEmbeddingModels: async () => [],
+          getContainerEnv: () => ({})
+        }) as any
     });
     await runner.connect(ws);
 
     // Send chat_message WITHOUT thread_id
     await runner.handleCommand({
       command: "chat_message",
-      data: { content: "hello" },
+      data: { content: "hello" }
     });
 
     await new Promise((r) => setTimeout(r, 200));
@@ -703,7 +788,8 @@ describe("Models API: isServerReachable catch path (line 489)", () => {
 
 describe("RunCodeTool: maxbuffer error path (line 50)", () => {
   it("handles ERR_CHILD_PROCESS_STDIO_MAXBUFFER error code", async () => {
-    const { RunCodeTool } = await import("../../agents/src/tools/code-tools.js");
+    const { RunCodeTool } =
+      await import("../../agents/src/tools/code-tools.js");
     const tool = new RunCodeTool({ maxOutputChars: 100 });
     const mockContext = {} as any;
 
@@ -713,7 +799,7 @@ describe("RunCodeTool: maxbuffer error path (line 50)", () => {
     // Write more than 400 bytes to trigger ERR_CHILD_PROCESS_STDIO_MAXBUFFER
     const result = await tool.process(mockContext, {
       language: "javascript",
-      code: `process.stdout.write("x".repeat(1000))`,
+      code: `process.stdout.write("x".repeat(1000))`
     });
     // Either the error is caught with exitCode 1 or the output is truncated
     expect(result).toHaveProperty("exitCode");

@@ -10,7 +10,7 @@ export {
   ContainerFailureError,
   type StreamRunnerOptions,
   type StreamOptions,
-  type Slot,
+  type Slot
 } from "./stream-runner-base.js";
 
 export { DockerHijackMultiplexDemuxer } from "./docker-demuxer.js";

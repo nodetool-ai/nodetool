@@ -8,7 +8,7 @@ function setup() {
 }
 
 async function createPrediction(
-  data: Record<string, unknown> = {},
+  data: Record<string, unknown> = {}
 ): Promise<Prediction> {
   return Prediction.create<Prediction>({
     user_id: (data.user_id as string) ?? "u1",
@@ -24,7 +24,8 @@ async function createPrediction(
     cached_tokens: (data.cached_tokens as number | null | undefined) ?? 0,
     reasoning_tokens: (data.reasoning_tokens as number | null | undefined) ?? 0,
     created_at: (data.created_at as string) ?? new Date().toISOString(),
-    metadata: (data.metadata as Record<string, unknown> | null | undefined) ?? null,
+    metadata:
+      (data.metadata as Record<string, unknown> | null | undefined) ?? null
   });
 }
 
@@ -50,15 +51,39 @@ describe("Prediction model", () => {
   });
 
   it("paginate filters by user, provider, and model and returns a cursor", async () => {
-    await createPrediction({ user_id: "u1", provider: "openai", model: "gpt-4o", created_at: "2025-01-03T00:00:00.000Z" });
-    await createPrediction({ user_id: "u1", provider: "openai", model: "gpt-4o-mini", created_at: "2025-01-02T00:00:00.000Z" });
-    await createPrediction({ user_id: "u1", provider: "anthropic", model: "claude", created_at: "2025-01-01T00:00:00.000Z" });
-    await createPrediction({ user_id: "u2", provider: "openai", model: "gpt-4o" });
+    await createPrediction({
+      user_id: "u1",
+      provider: "openai",
+      model: "gpt-4o",
+      created_at: "2025-01-03T00:00:00.000Z"
+    });
+    await createPrediction({
+      user_id: "u1",
+      provider: "openai",
+      model: "gpt-4o-mini",
+      created_at: "2025-01-02T00:00:00.000Z"
+    });
+    await createPrediction({
+      user_id: "u1",
+      provider: "anthropic",
+      model: "claude",
+      created_at: "2025-01-01T00:00:00.000Z"
+    });
+    await createPrediction({
+      user_id: "u2",
+      provider: "openai",
+      model: "gpt-4o"
+    });
 
-    const [openAiOnly] = await Prediction.paginate("u1", { provider: "openai" });
+    const [openAiOnly] = await Prediction.paginate("u1", {
+      provider: "openai"
+    });
     expect(openAiOnly).toHaveLength(2);
 
-    const [exactModel] = await Prediction.paginate("u1", { provider: "openai", model: "gpt-4o" });
+    const [exactModel] = await Prediction.paginate("u1", {
+      provider: "openai",
+      model: "gpt-4o"
+    });
     expect(exactModel).toHaveLength(1);
 
     const [limited, cursor] = await Prediction.paginate("u1", { limit: 2 });
@@ -82,7 +107,7 @@ describe("Prediction model", () => {
       cost: 2.5,
       input_tokens: 20,
       output_tokens: 10,
-      total_tokens: 30,
+      total_tokens: 30
     });
     await createPrediction({
       user_id: "u1",
@@ -91,7 +116,7 @@ describe("Prediction model", () => {
       cost: 1.5,
       input_tokens: 5,
       output_tokens: 15,
-      total_tokens: 20,
+      total_tokens: 20
     });
 
     const overall = await Prediction.aggregateByUser("u1");
@@ -101,7 +126,10 @@ describe("Prediction model", () => {
     expect(overall.total_tokens).toBe(50);
     expect(overall.call_count).toBe(2);
 
-    const filtered = await Prediction.aggregateByUser("u1", { provider: "openai", model: "gpt-4o" });
+    const filtered = await Prediction.aggregateByUser("u1", {
+      provider: "openai",
+      model: "gpt-4o"
+    });
     expect(filtered.total_cost).toBe(2.5);
     expect(filtered.call_count).toBe(1);
   });
@@ -116,7 +144,7 @@ describe("Prediction model", () => {
       cost: null,
       input_tokens: null,
       output_tokens: null,
-      total_tokens: null,
+      total_tokens: null
     });
 
     const byUser = await Prediction.aggregateByUser("u1");
@@ -132,7 +160,7 @@ describe("Prediction model", () => {
       total_input_tokens: 0,
       total_output_tokens: 0,
       total_tokens: 0,
-      call_count: 1,
+      call_count: 1
     });
 
     const [byModel] = await Prediction.aggregateByModel("u1");
@@ -143,43 +171,115 @@ describe("Prediction model", () => {
       total_input_tokens: 0,
       total_output_tokens: 0,
       total_tokens: 0,
-      call_count: 1,
+      call_count: 1
     });
   });
 
   it("aggregateByProvider groups predictions by provider", async () => {
-    await createPrediction({ user_id: "u1", provider: "openai", model: "gpt-4o", cost: 2, total_tokens: 20 });
-    await createPrediction({ user_id: "u1", provider: "openai", model: "gpt-4o-mini", cost: 1, total_tokens: 10 });
-    await createPrediction({ user_id: "u1", provider: "anthropic", model: "claude", cost: 4, total_tokens: 40 });
+    await createPrediction({
+      user_id: "u1",
+      provider: "openai",
+      model: "gpt-4o",
+      cost: 2,
+      total_tokens: 20
+    });
+    await createPrediction({
+      user_id: "u1",
+      provider: "openai",
+      model: "gpt-4o-mini",
+      cost: 1,
+      total_tokens: 10
+    });
+    await createPrediction({
+      user_id: "u1",
+      provider: "anthropic",
+      model: "claude",
+      cost: 4,
+      total_tokens: 40
+    });
 
     const groups = await Prediction.aggregateByProvider("u1");
     expect(groups).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ provider: "openai", total_cost: 3, total_tokens: 30, call_count: 2 }),
-        expect.objectContaining({ provider: "anthropic", total_cost: 4, total_tokens: 40, call_count: 1 }),
-      ]),
+        expect.objectContaining({
+          provider: "openai",
+          total_cost: 3,
+          total_tokens: 30,
+          call_count: 2
+        }),
+        expect.objectContaining({
+          provider: "anthropic",
+          total_cost: 4,
+          total_tokens: 40,
+          call_count: 1
+        })
+      ])
     );
   });
 
   it("aggregateByModel groups predictions by provider and model", async () => {
-    await createPrediction({ user_id: "u1", provider: "openai", model: "gpt-4o", cost: 2, total_tokens: 20 });
-    await createPrediction({ user_id: "u1", provider: "openai", model: "gpt-4o", cost: 1, total_tokens: 10 });
-    await createPrediction({ user_id: "u1", provider: "openai", model: "gpt-4o-mini", cost: 4, total_tokens: 40 });
-    await createPrediction({ user_id: "u1", provider: "anthropic", model: "claude", cost: 3, total_tokens: 30 });
+    await createPrediction({
+      user_id: "u1",
+      provider: "openai",
+      model: "gpt-4o",
+      cost: 2,
+      total_tokens: 20
+    });
+    await createPrediction({
+      user_id: "u1",
+      provider: "openai",
+      model: "gpt-4o",
+      cost: 1,
+      total_tokens: 10
+    });
+    await createPrediction({
+      user_id: "u1",
+      provider: "openai",
+      model: "gpt-4o-mini",
+      cost: 4,
+      total_tokens: 40
+    });
+    await createPrediction({
+      user_id: "u1",
+      provider: "anthropic",
+      model: "claude",
+      cost: 3,
+      total_tokens: 30
+    });
 
-    const openAiGroups = await Prediction.aggregateByModel("u1", { provider: "openai" });
+    const openAiGroups = await Prediction.aggregateByModel("u1", {
+      provider: "openai"
+    });
     expect(openAiGroups).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ provider: "openai", model: "gpt-4o", total_cost: 3, total_tokens: 30, call_count: 2 }),
-        expect.objectContaining({ provider: "openai", model: "gpt-4o-mini", total_cost: 4, total_tokens: 40, call_count: 1 }),
-      ]),
+        expect.objectContaining({
+          provider: "openai",
+          model: "gpt-4o",
+          total_cost: 3,
+          total_tokens: 30,
+          call_count: 2
+        }),
+        expect.objectContaining({
+          provider: "openai",
+          model: "gpt-4o-mini",
+          total_cost: 4,
+          total_tokens: 40,
+          call_count: 1
+        })
+      ])
     );
 
     const allGroups = await Prediction.aggregateByModel("u1");
     expect(allGroups).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ provider: "anthropic", model: "claude", total_cost: 3, total_tokens: 30, call_count: 1 }),
-      ]),
+        expect.objectContaining({
+          provider: "anthropic",
+          model: "claude",
+          total_cost: 3,
+          total_tokens: 30,
+          call_count: 1
+        })
+      ])
     );
   });
 });

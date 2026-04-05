@@ -68,7 +68,7 @@ export const SINGLE_FILE_DIFFUSION_EXTENSIONS: readonly string[] = [
   ".bin",
   ".pt",
   ".pth",
-  ".svdq",
+  ".svdq"
 ];
 
 /**
@@ -81,7 +81,7 @@ export const SINGLE_FILE_DIFFUSION_TAGS: ReadonlySet<string> = new Set([
   "diffusers:stablediffusion3pipeline",
   "diffusion-single-file",
   "stable-diffusion",
-  "flux",
+  "flux"
 ]);
 
 /** Default globs used when scanning repos for general-purpose weight files. */
@@ -90,7 +90,7 @@ export const HF_DEFAULT_FILE_PATTERNS: readonly string[] = [
   "*.ckpt",
   "*.gguf",
   "*.bin",
-  "*.svdq",
+  "*.svdq"
 ];
 
 /** Extra globs for torch weights common in control/adapters. */
@@ -100,34 +100,35 @@ export const HF_PTH_FILE_PATTERNS: readonly string[] = ["*.pth", "*.pt"];
  * Known repo-id allowlists for supported model families.
  * These repos are recognized for offline type matching without hub metadata.
  */
-export const KNOWN_REPO_PATTERNS: Readonly<Record<string, readonly string[]>> = {
-  flux: [
-    "Comfy-Org/flux1-dev",
-    "Comfy-Org/flux1-schnell",
-    "black-forest-labs/FLUX.1-dev",
-    "black-forest-labs/FLUX.1-schnell",
-  ],
-  flux_kontext: [
-    "black-forest-labs/FLUX.1-Kontext-dev",
-    "nunchaku-tech/nunchaku-flux-kontext",
-  ],
-  flux_canny: [
-    "black-forest-labs/FLUX.1-Canny-dev",
-    "nunchaku-tech/nunchaku-flux.1-canny-dev",
-  ],
-  flux_depth: [
-    "black-forest-labs/FLUX.1-Depth-dev",
-    "nunchaku-tech/nunchaku-flux.1-depth-dev",
-  ],
-  flux_vae: ["ffxvs/vae-flux"],
-  qwen_image: [
-    "Comfy-Org/Qwen-Image_ComfyUI",
-    "city96/Qwen-Image-gguf",
-    "nunchaku-tech/nunchaku-qwen-image",
-  ],
-  qwen_image_edit: ["Comfy-Org/Qwen-Image-Edit_ComfyUI"],
-  sd35: ["Comfy-Org/stable-diffusion-3.5-fp8"],
-};
+export const KNOWN_REPO_PATTERNS: Readonly<Record<string, readonly string[]>> =
+  {
+    flux: [
+      "Comfy-Org/flux1-dev",
+      "Comfy-Org/flux1-schnell",
+      "black-forest-labs/FLUX.1-dev",
+      "black-forest-labs/FLUX.1-schnell"
+    ],
+    flux_kontext: [
+      "black-forest-labs/FLUX.1-Kontext-dev",
+      "nunchaku-tech/nunchaku-flux-kontext"
+    ],
+    flux_canny: [
+      "black-forest-labs/FLUX.1-Canny-dev",
+      "nunchaku-tech/nunchaku-flux.1-canny-dev"
+    ],
+    flux_depth: [
+      "black-forest-labs/FLUX.1-Depth-dev",
+      "nunchaku-tech/nunchaku-flux.1-depth-dev"
+    ],
+    flux_vae: ["ffxvs/vae-flux"],
+    qwen_image: [
+      "Comfy-Org/Qwen-Image_ComfyUI",
+      "city96/Qwen-Image-gguf",
+      "nunchaku-tech/nunchaku-qwen-image"
+    ],
+    qwen_image_edit: ["Comfy-Org/Qwen-Image-Edit_ComfyUI"],
+    sd35: ["Comfy-Org/stable-diffusion-3.5-fp8"]
+  };
 
 /**
  * Map hf.* types to repo-id allowlists so type matching can succeed offline.
@@ -141,12 +142,12 @@ export const KNOWN_TYPE_REPO_MATCHERS: Record<string, string[]> = {
   "hf.stable_diffusion_3": [...KNOWN_REPO_PATTERNS.sd35],
   "hf.qwen_image": [
     ...KNOWN_REPO_PATTERNS.qwen_image,
-    ...KNOWN_REPO_PATTERNS.qwen_image_edit,
+    ...KNOWN_REPO_PATTERNS.qwen_image_edit
   ],
   "hf.qwen_image_edit": [...KNOWN_REPO_PATTERNS.qwen_image_edit],
   "hf.qwen_vl": [
     ...KNOWN_REPO_PATTERNS.qwen_image,
-    ...KNOWN_REPO_PATTERNS.qwen_image_edit,
+    ...KNOWN_REPO_PATTERNS.qwen_image_edit
   ],
   "hf.unet": [
     ...KNOWN_REPO_PATTERNS.flux,
@@ -155,19 +156,19 @@ export const KNOWN_TYPE_REPO_MATCHERS: Record<string, string[]> = {
     ...KNOWN_REPO_PATTERNS.flux_depth,
     ...KNOWN_REPO_PATTERNS.qwen_image,
     ...KNOWN_REPO_PATTERNS.qwen_image_edit,
-    ...KNOWN_REPO_PATTERNS.sd35,
+    ...KNOWN_REPO_PATTERNS.sd35
   ],
   "hf.vae": [
     ...KNOWN_REPO_PATTERNS.flux_vae,
     ...KNOWN_REPO_PATTERNS.qwen_image,
-    ...KNOWN_REPO_PATTERNS.qwen_image_edit,
+    ...KNOWN_REPO_PATTERNS.qwen_image_edit
   ],
   "hf.clip": [
     ...KNOWN_REPO_PATTERNS.sd35,
     ...KNOWN_REPO_PATTERNS.qwen_image,
-    ...KNOWN_REPO_PATTERNS.qwen_image_edit,
+    ...KNOWN_REPO_PATTERNS.qwen_image_edit
   ],
-  "hf.t5": [...KNOWN_REPO_PATTERNS.sd35],
+  "hf.t5": [...KNOWN_REPO_PATTERNS.sd35]
 };
 
 /**
@@ -183,7 +184,7 @@ export const _CHECKPOINT_BASES: Readonly<Record<string, string>> = {
   "hf.flux_canny": "hf.flux_canny_checkpoint",
   "hf.flux_depth": "hf.flux_depth_checkpoint",
   "hf.qwen_image": "hf.qwen_image_checkpoint",
-  "hf.qwen_image_edit": "hf.qwen_image_edit_checkpoint",
+  "hf.qwen_image_edit": "hf.qwen_image_edit_checkpoint"
 };
 
 /**
@@ -214,7 +215,7 @@ export const HF_TYPE_KEYWORD_MATCHERS: Record<string, string[]> = {
   "hf.clip": ["clip"],
   "hf.t5": ["t5"],
   "hf.flux_redux": ["flux", "redux"],
-  "hf.real_esrgan": ["esrgan", "real-esrgan"],
+  "hf.real_esrgan": ["esrgan", "real-esrgan"]
 };
 
 // Copy keyword matchers to checkpoint variants.
@@ -228,7 +229,9 @@ for (const [base, ckpt] of Object.entries(_CHECKPOINT_BASES)) {
  * Map transformer architecture class names (from `config.json` `architectures` array)
  * to hf.* types for offline model-type inference.
  */
-export const _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING: Readonly<Record<string, string>> = {
+export const _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING: Readonly<
+  Record<string, string>
+> = {
   // Causal language models (text generation)
   LlamaForCausalLM: "hf.text_generation",
   LlamaForSequenceClassification: "hf.text_classification",
@@ -278,7 +281,7 @@ export const _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING: Readonly<Record<string, st
   LlavaForConditionalGeneration: "hf.image_text_to_text",
   Qwen2VLForConditionalGeneration: "hf.image_text_to_text",
   Qwen2_5_VLForConditionalGeneration: "hf.image_text_to_text",
-  Qwen3VLForConditionalGeneration: "hf.image_text_to_text",
+  Qwen3VLForConditionalGeneration: "hf.image_text_to_text"
 };
 
 /**
@@ -334,7 +337,7 @@ export const _CONFIG_MODEL_TYPE_MAPPING: Readonly<Record<string, string>> = {
   distilbert: "hf.feature_extraction",
   clip: "hf.zero_shot_image_classification",
   clip_vision_model: "hf.zero_shot_image_classification",
-  resnet: "hf.image_classification",
+  resnet: "hf.image_classification"
 };
 
 /**
@@ -361,7 +364,7 @@ export const CLASSNAME_TO_MODEL_TYPE: Readonly<Record<string, string>> = {
   FluxFillPipeline: "hf.inpainting",
   QwenImagePipeline: "hf.qwen_image",
   QwenImageEditPlusPipeline: "hf.qwen_image_edit",
-  NunchakuQwenImageTransformer2DModel: "hf.qwen_image",
+  NunchakuQwenImageTransformer2DModel: "hf.qwen_image"
 };
 
 // ---------------------------------------------------------------------------
@@ -378,7 +381,7 @@ export const CLASSNAME_TO_MODEL_TYPE: Readonly<Record<string, string>> = {
 export enum RepoPackagingHint {
   REPO_BUNDLE = "repo_bundle",
   PER_FILE = "per_file",
-  UNKNOWN = "unknown",
+  UNKNOWN = "unknown"
 }
 
 // ---------------------------------------------------------------------------
@@ -395,14 +398,14 @@ export const _WEIGHT_EXTENSIONS: readonly string[] = [
   ".gguf",
   ".ggml",
   ".onnx",
-  ".svdq",
+  ".svdq"
 ];
 
 export const _INDEX_FILENAMES: ReadonlySet<string> = new Set([
   "model.safetensors.index.json",
   "pytorch_model.bin.index.json",
   "model.bin.index.json",
-  "model.index.json",
+  "model.index.json"
 ]);
 
 /** Size/keyword thresholds that help spot adapters vs base weights. */
@@ -419,7 +422,7 @@ export const _QUANT_MARKERS: readonly string[] = [
   "q5",
   "q6",
   "q8",
-  "svdq",
+  "svdq"
 ];
 
 export const _ADAPTER_MARKERS: readonly string[] = [
@@ -430,7 +433,7 @@ export const _ADAPTER_MARKERS: readonly string[] = [
   "ti_",
   "control",
   "ip-adapter",
-  "style",
+  "style"
 ];
 
 // ---------------------------------------------------------------------------
@@ -440,14 +443,17 @@ export const _ADAPTER_MARKERS: readonly string[] = [
 /**
  * Static search hints per hf.* type used to build repo/file queries (offline/hub).
  */
-export const HF_SEARCH_TYPE_CONFIG: Record<string, Record<string, string[] | string>> = {
+export const HF_SEARCH_TYPE_CONFIG: Record<
+  string,
+  Record<string, string[] | string>
+> = {
   "hf.stable_diffusion_3": {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
-    repo_pattern: [...KNOWN_REPO_PATTERNS.sd35],
+    repo_pattern: [...KNOWN_REPO_PATTERNS.sd35]
   },
   "hf.flux": {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
-    repo_pattern: [...KNOWN_REPO_PATTERNS.flux, "*flux*"],
+    repo_pattern: [...KNOWN_REPO_PATTERNS.flux, "*flux*"]
   },
   "hf.flux_fp8": {
     filename_pattern: [
@@ -455,69 +461,69 @@ export const HF_SEARCH_TYPE_CONFIG: Record<string, Record<string, string[] | str
       "*fp8*.ckpt",
       "*fp8*.bin",
       "*fp8*.pt",
-      "*fp8*.pth",
+      "*fp8*.pth"
     ],
-    repo_pattern: [...KNOWN_REPO_PATTERNS.flux, "*flux*"],
+    repo_pattern: [...KNOWN_REPO_PATTERNS.flux, "*flux*"]
   },
   "hf.flux_kontext": {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
     repo_pattern: [
       ...KNOWN_REPO_PATTERNS.flux_kontext,
       "*nunchaku*flux*",
-      "*flux*kontext*",
-    ],
+      "*flux*kontext*"
+    ]
   },
   "hf.flux_canny": {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
     repo_pattern: [
       ...KNOWN_REPO_PATTERNS.flux_canny,
       "*nunchaku*flux*canny*",
-      "*flux*canny*",
-    ],
+      "*flux*canny*"
+    ]
   },
   "hf.flux_depth": {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
     repo_pattern: [
       ...KNOWN_REPO_PATTERNS.flux_depth,
       "*nunchaku*flux*depth*",
-      "*flux*depth*",
-    ],
+      "*flux*depth*"
+    ]
   },
   "hf.qwen_image": {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
-    repo_pattern: [...KNOWN_REPO_PATTERNS.qwen_image],
+    repo_pattern: [...KNOWN_REPO_PATTERNS.qwen_image]
   },
   "hf.qwen_image_edit": {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
-    repo_pattern: [...KNOWN_REPO_PATTERNS.qwen_image_edit],
+    repo_pattern: [...KNOWN_REPO_PATTERNS.qwen_image_edit]
   },
   "hf.qwen_vl": {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
     repo_pattern: [
       ...KNOWN_REPO_PATTERNS.qwen_image,
-      ...KNOWN_REPO_PATTERNS.qwen_image_edit,
-    ],
+      ...KNOWN_REPO_PATTERNS.qwen_image_edit
+    ]
   },
   "hf.controlnet": {
     repo_pattern: ["*control*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS],
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS]
   },
   "hf.controlnet_sdxl": {
     repo_pattern: ["*control*"],
     tag: ["*sdxl*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS],
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS]
   },
   "hf.controlnet_flux": {
     repo_pattern: ["*control*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS],
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS]
   },
   "hf.ip_adapter": {
     repo_pattern: ["*IP-Adapter*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS],
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS]
   },
   "hf.lora_sd": { repo_pattern: ["*lora*"], pipeline_tag: [] },
   "hf.lora_sdxl": {
-    repo_pattern: ["*lora*sdxl*", "*sdxl*lora*"],
+    repo_pattern: ["*lora*sdxl*", "*sdxl*lora*"]
   },
   "hf.lora_qwen_image": { repo_pattern: ["*lora*qwen*"], pipeline_tag: [] },
   "hf.unet": {
@@ -527,7 +533,7 @@ export const HF_SEARCH_TYPE_CONFIG: Record<string, Record<string, string[] | str
       ...KNOWN_REPO_PATTERNS.qwen_image_edit,
       ...KNOWN_REPO_PATTERNS.sd35,
       "*unet*",
-      "*stable-diffusion*",
+      "*stable-diffusion*"
     ],
     filename_pattern: [
       "*unet*.safetensors",
@@ -535,8 +541,8 @@ export const HF_SEARCH_TYPE_CONFIG: Record<string, Record<string, string[] | str
       "*unet*.ckpt",
       "*flux*.safetensors",
       "*flux*.bin",
-      "*flux*.ckpt",
-    ],
+      "*flux*.ckpt"
+    ]
   },
   "hf.vae": {
     repo_pattern: [
@@ -544,14 +550,14 @@ export const HF_SEARCH_TYPE_CONFIG: Record<string, Record<string, string[] | str
       ...KNOWN_REPO_PATTERNS.qwen_image,
       ...KNOWN_REPO_PATTERNS.qwen_image_edit,
       "*vae*",
-      "*stable-diffusion*",
+      "*stable-diffusion*"
     ],
     filename_pattern: [
       "*vae*.safetensors",
       "*vae*.bin",
       "*vae*.ckpt",
-      "*vae*.pt",
-    ],
+      "*vae*.pt"
+    ]
   },
   "hf.clip": {
     repo_pattern: [
@@ -559,18 +565,18 @@ export const HF_SEARCH_TYPE_CONFIG: Record<string, Record<string, string[] | str
       ...KNOWN_REPO_PATTERNS.qwen_image,
       ...KNOWN_REPO_PATTERNS.qwen_image_edit,
       "*clip*",
-      "*flux*",
+      "*flux*"
     ],
     filename_pattern: [
       "*clip*.safetensors",
       "*clip*.bin",
       "*clip*.gguf",
-      "*clip*.ckpt",
-    ],
+      "*clip*.ckpt"
+    ]
   },
   "hf.t5": {
     repo_pattern: [...KNOWN_REPO_PATTERNS.sd35, "*t5*", "*flux*"],
-    filename_pattern: ["*t5*.safetensors", "*t5*.bin", "*t5*.gguf", "*t5*.ckpt"],
+    filename_pattern: ["*t5*.safetensors", "*t5*.bin", "*t5*.gguf", "*t5*.ckpt"]
   },
   "hf.image_to_video": { pipeline_tag: ["image-to-video"] },
   "hf.text_to_video": { pipeline_tag: ["text-to-video"] },
@@ -579,12 +585,12 @@ export const HF_SEARCH_TYPE_CONFIG: Record<string, Record<string, string[] | str
   "hf.outpainting": { tag: ["*outpaint*"] },
   "hf.flux_redux": {
     repo_pattern: ["*flux*redux*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS]
   },
   "hf.real_esrgan": {
     repo_pattern: ["*esrgan*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
-  },
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS]
+  }
 };
 
 // Derive checkpoint variants (single-file) from base configs.
@@ -603,7 +609,9 @@ for (const [base, ckpt] of Object.entries(_CHECKPOINT_BASES)) {
 // HF_TYPE_STRUCTURAL_RULES
 // ---------------------------------------------------------------------------
 
-export const HF_TYPE_STRUCTURAL_RULES: Readonly<Record<string, Record<string, boolean>>> = {
+export const HF_TYPE_STRUCTURAL_RULES: Readonly<
+  Record<string, Record<string, boolean>>
+> = {
   "hf.unet": { file_only: true },
   "hf.vae": { file_only: true },
   "hf.clip": { file_only: true },
@@ -614,18 +622,21 @@ export const HF_TYPE_STRUCTURAL_RULES: Readonly<Record<string, Record<string, bo
   "hf.stable_diffusion_3_checkpoint": { file_only: true, checkpoint: true },
   "hf.stable_diffusion_xl_refiner_checkpoint": {
     file_only: true,
-    checkpoint: true,
+    checkpoint: true
   },
   "hf.flux_checkpoint": { file_only: true, checkpoint: true },
   "hf.qwen_image_checkpoint": { checkpoint: true, nested_checkpoint: true },
-  "hf.qwen_image_edit_checkpoint": { checkpoint: true, nested_checkpoint: true },
+  "hf.qwen_image_edit_checkpoint": {
+    checkpoint: true,
+    nested_checkpoint: true
+  },
   "hf.flux": { single_file_repo: true },
   "hf.flux_fp8": { single_file_repo: true },
   "hf.flux_redux": { single_file_repo: true },
   "hf.stable_diffusion": { single_file_repo: true },
   "hf.stable_diffusion_xl": { single_file_repo: true },
   "hf.stable_diffusion_3": { single_file_repo: true },
-  "hf.stable_diffusion_xl_refiner": { single_file_repo: true },
+  "hf.stable_diffusion_xl_refiner": { single_file_repo: true }
 };
 
 // ---------------------------------------------------------------------------
@@ -636,7 +647,7 @@ export const GENERIC_HF_TYPES: ReadonlySet<string> = new Set([
   "hf.text_to_image",
   "hf.image_to_image",
   "hf.model",
-  "hf.model_generic",
+  "hf.model_generic"
 ]);
 
 export const SUPPORTED_MODEL_TYPES: readonly string[] = [
@@ -651,7 +662,7 @@ export const SUPPORTED_MODEL_TYPES: readonly string[] = [
   "gemma3n",
   "phi3",
   "phi4",
-  "gemma2",
+  "gemma2"
 ];
 
 // ---------------------------------------------------------------------------
@@ -661,7 +672,10 @@ export const SUPPORTED_MODEL_TYPES: readonly string[] = [
 /** Global HfFastCache instance for local snapshot lookups. */
 const HF_FAST_CACHE = new HfFastCache();
 
-const _DIFFUSION_COMPONENTS: ReadonlySet<string> = new Set(["unet", "transformer_denoiser"]);
+const _DIFFUSION_COMPONENTS: ReadonlySet<string> = new Set([
+  "unet",
+  "transformer_denoiser"
+]);
 const _ARTIFACT_INSPECTION_LIMIT = 16;
 const _DIFFUSION_REPO_CACHE = new Map<string, boolean>();
 
@@ -699,9 +713,14 @@ export function _matchesAnyPattern(value: string, patterns: string[]): boolean {
 }
 
 /** Case-insensitive glob check used when filtering by repo id. */
-export function _matchesAnyPatternCi(value: string, patterns: string[]): boolean {
+export function _matchesAnyPatternCi(
+  value: string,
+  patterns: string[]
+): boolean {
   const valueLower = value.toLowerCase();
-  return patterns.some((p) => _fnmatchToRegex(p.toLowerCase()).test(valueLower));
+  return patterns.some((p) =>
+    _fnmatchToRegex(p.toLowerCase()).test(valueLower)
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -751,7 +770,7 @@ export function _hasQuantizedVariants(weightFiles: readonly string[]): boolean {
 
 /** Flag repos containing small LoRA/adapter-like files instead of base weights. */
 export function _hasAdapterCandidates(
-  weightEntries: readonly [string, number][],
+  weightEntries: readonly [string, number][]
 ): boolean {
   const adapterLike: [string, number][] = [];
   for (const [name, size] of weightEntries) {
@@ -784,7 +803,9 @@ export function _allSameFamily(weightFiles: readonly string[]): boolean {
   for (const name of weightFiles) {
     const basename = path.basename(name);
     const dotIdx = basename.lastIndexOf(".");
-    let stem = (dotIdx >= 0 ? basename.slice(0, dotIdx) : basename).toLowerCase();
+    let stem = (
+      dotIdx >= 0 ? basename.slice(0, dotIdx) : basename
+    ).toLowerCase();
     for (const marker of _QUANT_MARKERS) {
       stem = stem.replaceAll(marker, "");
     }
@@ -800,17 +821,19 @@ export function _allSameFamily(weightFiles: readonly string[]): boolean {
  */
 export function detectRepoPackaging(
   _repoId: string,
-  fileEntries: readonly [string, number][],
+  fileEntries: readonly [string, number][]
 ): RepoPackagingHint {
-  const weightEntries: [string, number][] = fileEntries.filter(
-    ([name]) => _isWeightFile(name),
+  const weightEntries: [string, number][] = fileEntries.filter(([name]) =>
+    _isWeightFile(name)
   ) as [string, number][];
   const weightFiles = weightEntries.map(([name]) => name);
   const lowerWeightFiles = weightFiles.map((n) => n.toLowerCase());
 
   if (_hasBundleMetadata()) return RepoPackagingHint.REPO_BUNDLE;
-  if (_hasShardedWeights(lowerWeightFiles)) return RepoPackagingHint.REPO_BUNDLE;
-  if (_hasQuantizedVariants(lowerWeightFiles)) return RepoPackagingHint.PER_FILE;
+  if (_hasShardedWeights(lowerWeightFiles))
+    return RepoPackagingHint.REPO_BUNDLE;
+  if (_hasQuantizedVariants(lowerWeightFiles))
+    return RepoPackagingHint.PER_FILE;
   if (_hasAdapterCandidates(weightEntries)) return RepoPackagingHint.PER_FILE;
   if (weightFiles.length === 1) return RepoPackagingHint.REPO_BUNDLE;
   if (_allSameFamily(weightFiles)) return RepoPackagingHint.REPO_BUNDLE;
@@ -843,7 +866,7 @@ export function _isSingleFileDiffusionWeight(fileName: string): boolean {
     "pytorch_model.bin",
     "model.bin",
     "model.pt",
-    "model.pth",
+    "model.pth"
   ]);
   return !standardWeightNames.has(lower);
 }
@@ -861,7 +884,7 @@ export function _isDiffusionArtifactCandidate(fileName: string): boolean {
 export async function _repoHasDiffusionArtifacts(
   repoId: string,
   snapshotDir: string | null,
-  fileList: readonly string[],
+  fileList: readonly string[]
 ): Promise<boolean> {
   const cached = _DIFFUSION_REPO_CACHE.get(repoId);
   if (cached !== undefined) return cached;
@@ -886,8 +909,7 @@ export async function _repoHasDiffusionArtifacts(
   try {
     const detection = inspectPaths(candidatePaths);
     const matches = !!(
-      detection &&
-      _DIFFUSION_COMPONENTS.has(detection.component ?? "")
+      detection && _DIFFUSION_COMPONENTS.has(detection.component ?? "")
     );
     _DIFFUSION_REPO_CACHE.set(repoId, matches);
     return matches;
@@ -922,7 +944,7 @@ function _getFileSize(filePath: string): number {
 /** Calculate total size and file entries for a repo, resolving paths. */
 export function _calculateRepoStats(
   snapshotPath: string,
-  fileList: readonly string[] | null,
+  fileList: readonly string[] | null
 ): [number, [string, number][]] {
   let sizeOnDisk = 0;
   const fileEntries: [string, number][] = [];
@@ -964,7 +986,7 @@ function _safeLoadJson(filePath: string): Record<string, unknown> {
  */
 export function _inferModelTypeFromLocalConfigs(
   fileEntries: readonly [string, number][],
-  snapshotDir: string | null,
+  snapshotDir: string | null
 ): string | null {
   if (!snapshotDir) return null;
 
@@ -972,7 +994,9 @@ export function _inferModelTypeFromLocalConfigs(
     .map(([relPath]) => relPath)
     .filter((relPath) => {
       const lower = relPath.toLowerCase();
-      return lower.endsWith("model_index.json") || lower.endsWith("config.json");
+      return (
+        lower.endsWith("model_index.json") || lower.endsWith("config.json")
+      );
     });
 
   if (configCandidates.length === 0) return null;
@@ -996,9 +1020,8 @@ export function _inferModelTypeFromLocalConfigs(
       if (mapped) return mapped;
     }
 
-    const modelType = typeof data.model_type === "string"
-      ? data.model_type.toLowerCase()
-      : "";
+    const modelType =
+      typeof data.model_type === "string" ? data.model_type.toLowerCase() : "";
     if (modelType) {
       const mapped = _CONFIG_MODEL_TYPE_MAPPING[modelType];
       if (mapped) return mapped;
@@ -1028,7 +1051,7 @@ export async function _buildCachedRepoEntry(
   repoId: string,
   repoDir: string,
   snapshotDir?: string | null,
-  fileList?: string[] | null,
+  fileList?: string[] | null
 ): Promise<[UnifiedModel, [string, number][]]> {
   const repoRoot = await HF_FAST_CACHE.repoRoot(repoId, "model");
   let fileEntries: [string, number][] = [];
@@ -1050,7 +1073,9 @@ export async function _buildCachedRepoEntry(
   // Artifact inspection
   let artifactDetection: ArtifactDetection | null = null;
   if (fileEntries.length > 0 && snapshotPath) {
-    const artifactPaths = fileEntries.map(([name]) => path.join(snapshotPath!, name));
+    const artifactPaths = fileEntries.map(([name]) =>
+      path.join(snapshotPath!, name)
+    );
     try {
       artifactDetection = inspectPaths(artifactPaths);
     } catch {
@@ -1076,7 +1101,7 @@ export async function _buildCachedRepoEntry(
     artifact_family: artifactDetection?.family ?? null,
     artifact_component: artifactDetection?.component ?? null,
     artifact_confidence: artifactDetection?.confidence ?? null,
-    artifact_evidence: artifactDetection?.evidence ?? null,
+    artifact_evidence: artifactDetection?.evidence ?? null
   };
 
   return [repoModel, fileEntries];
@@ -1112,7 +1137,7 @@ export async function readCachedHfModels(): Promise<UnifiedModel[]> {
 
 /** Get search configuration for a given hf.* type, or null if not found. */
 export function _buildSearchConfigForType(
-  modelType: string,
+  modelType: string
 ): Record<string, string[] | string> | null {
   const normalized = modelType.toLowerCase();
   const config = HF_SEARCH_TYPE_CONFIG[normalized];
@@ -1120,7 +1145,7 @@ export function _buildSearchConfigForType(
   if (normalized.startsWith("hf.")) {
     return {
       filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
-      repo_pattern: ["*"],
+      repo_pattern: ["*"]
     };
   }
   return null;
@@ -1131,7 +1156,7 @@ export function _buildSearchConfigForType(
  */
 export function _derivePipelineTag(
   normalizedType: string,
-  task?: string | null,
+  task?: string | null
 ): string | null {
   if (task) return task.replace(/_/g, "-");
   const slug = normalizedType.startsWith("hf.")
@@ -1153,14 +1178,14 @@ export function _derivePipelineTag(
     "flux_depth",
     "flux_redux",
     "qwen_image",
-    "ip_adapter",
+    "ip_adapter"
   ]);
   if (textToImageSlugs.has(effectiveSlug)) return "text-to-image";
   const imageToImageSlugs = new Set([
     "qwen_image_edit",
     "image_to_image",
     "inpainting",
-    "outpainting",
+    "outpainting"
   ]);
   if (imageToImageSlugs.has(effectiveSlug)) return "image-to-image";
   if (effectiveSlug === "text_to_video") return "text-to-video";
@@ -1174,7 +1199,7 @@ export function _derivePipelineTag(
 export function _matchesRepoForType(
   normalizedType: string,
   repoId: string,
-  repoIdFromId: string,
+  repoIdFromId: string
 ): boolean {
   const matchers = KNOWN_TYPE_REPO_MATCHERS[normalizedType];
   if (!matchers) return false;
@@ -1183,7 +1208,7 @@ export function _matchesRepoForType(
   return matchers.some(
     (candidate) =>
       repoLower === candidate.toLowerCase() ||
-      repoFromIdLower === candidate.toLowerCase(),
+      repoFromIdLower === candidate.toLowerCase()
   );
 }
 
@@ -1193,7 +1218,7 @@ export function _matchesRepoForType(
 export function _matchesArtifactDetection(
   normalizedType: string,
   artifactFamily?: string | null,
-  artifactComponent?: string | null,
+  artifactComponent?: string | null
 ): boolean {
   const fam = (artifactFamily ?? "").toLowerCase();
   const comp = (artifactComponent ?? "").toLowerCase();
@@ -1204,13 +1229,17 @@ export function _matchesArtifactDetection(
       "hf.flux_fp8",
       "hf.flux_kontext",
       "hf.flux_canny",
-      "hf.flux_depth",
+      "hf.flux_depth"
     ].includes(normalizedType)
   ) {
     return fam.includes("flux");
   }
   if (normalizedType === "hf.stable_diffusion") {
-    return fam.startsWith("sd1") || fam.startsWith("sd2") || fam.includes("stable-diffusion");
+    return (
+      fam.startsWith("sd1") ||
+      fam.startsWith("sd2") ||
+      fam.includes("stable-diffusion")
+    );
   }
   if (normalizedType === "hf.stable_diffusion_xl") {
     return fam.includes("sdxl");
@@ -1221,14 +1250,20 @@ export function _matchesArtifactDetection(
   if (normalizedType === "hf.stable_diffusion_3") {
     return fam.includes("sd3") || fam.includes("stable-diffusion-3");
   }
-  if (normalizedType === "hf.qwen_image" || normalizedType === "hf.qwen_image_edit") {
+  if (
+    normalizedType === "hf.qwen_image" ||
+    normalizedType === "hf.qwen_image_edit"
+  ) {
     return fam.includes("qwen");
   }
   return false;
 }
 
 /** Semantic match for hf.* types (no structural checks here). */
-export function _matchesModelType(model: UnifiedModel, modelType: string): boolean {
+export function _matchesModelType(
+  model: UnifiedModel,
+  modelType: string
+): boolean {
   let normalizedType = modelType.toLowerCase();
   let checkpointVariant: string | null = null;
   if (normalizedType.endsWith("_checkpoint")) {
@@ -1243,7 +1278,11 @@ export function _matchesModelType(model: UnifiedModel, modelType: string): boole
 
   function isQwenTextEncoder(p: string | null): boolean {
     if (!p) return false;
-    return p.includes("text_encoders") || p.includes("text_encoder") || p.includes("qwen_2.5_vl");
+    return (
+      p.includes("text_encoders") ||
+      p.includes("text_encoder") ||
+      p.includes("qwen_2.5_vl")
+    );
   }
 
   function isQwenVae(p: string | null): boolean {
@@ -1260,13 +1299,17 @@ export function _matchesModelType(model: UnifiedModel, modelType: string): boole
       : modelTypeLower;
     if (targetTypes.has(modelTypeLower) || modelTypeBase === normalizedType) {
       return !(
-        (normalizedType === "hf.qwen_image" || normalizedType === "hf.qwen_image_edit") &&
+        (normalizedType === "hf.qwen_image" ||
+          normalizedType === "hf.qwen_image_edit") &&
         (isQwenTextEncoder(pathLower) || isQwenVae(pathLower))
       );
     }
 
     if (!GENERIC_HF_TYPES.has(modelTypeLower)) {
-      const qwenFamilyTypes = new Set(["hf.qwen_image", "hf.qwen_image_checkpoint"]);
+      const qwenFamilyTypes = new Set([
+        "hf.qwen_image",
+        "hf.qwen_image_checkpoint"
+      ]);
       const allowedFamily =
         (normalizedType === "hf.qwen_image_checkpoint" ||
           normalizedType === "hf.qwen_vl" ||
@@ -1276,7 +1319,10 @@ export function _matchesModelType(model: UnifiedModel, modelType: string): boole
     }
   }
 
-  if (normalizedType === "hf.qwen_image" || normalizedType === "hf.qwen_image_edit") {
+  if (
+    normalizedType === "hf.qwen_image" ||
+    normalizedType === "hf.qwen_image_edit"
+  ) {
     if (isQwenTextEncoder(pathLower) || isQwenVae(pathLower)) return false;
   }
 
@@ -1289,7 +1335,13 @@ export function _matchesModelType(model: UnifiedModel, modelType: string): boole
   const artifactFamily = (model.artifact_family ?? "").toLowerCase();
   const artifactComponent = (model.artifact_component ?? "").toLowerCase();
   if (artifactFamily || artifactComponent) {
-    if (_matchesArtifactDetection(normalizedType, artifactFamily, artifactComponent)) {
+    if (
+      _matchesArtifactDetection(
+        normalizedType,
+        artifactFamily,
+        artifactComponent
+      )
+    ) {
       return true;
     }
   }
@@ -1300,7 +1352,7 @@ export function _matchesModelType(model: UnifiedModel, modelType: string): boole
     if (
       keywords.some(
         (keyword) =>
-          repoId.includes(keyword) || tags.some((tag) => tag.includes(keyword)),
+          repoId.includes(keyword) || tags.some((tag) => tag.includes(keyword))
       )
     ) {
       return true;
@@ -1329,11 +1381,18 @@ interface RepoEntry {
  * that are universally ergonomic.
  */
 async function _iterCachedModelFiles(
-  preResolvedRepos?: RepoEntry[] | null,
-): Promise<{ repoId: string; repoDir: string; snapshotDir: string; fileList: string[] }[]> {
+  preResolvedRepos?: RepoEntry[] | null
+): Promise<
+  { repoId: string; repoDir: string; snapshotDir: string; fileList: string[] }[]
+> {
   const repoList: RepoEntry[] =
-    preResolvedRepos ?? await HF_FAST_CACHE.discoverRepos("model");
-  const results: { repoId: string; repoDir: string; snapshotDir: string; fileList: string[] }[] = [];
+    preResolvedRepos ?? (await HF_FAST_CACHE.discoverRepos("model"));
+  const results: {
+    repoId: string;
+    repoDir: string;
+    snapshotDir: string;
+    fileList: string[];
+  }[] = [];
 
   for (const { repoId, repoDir } of repoList) {
     const snapshotDir = await HF_FAST_CACHE.activeSnapshotDir(repoId, "model");
@@ -1359,7 +1418,7 @@ async function _iterCachedModelFiles(
  */
 export async function searchCachedHfModels(
   repoPatterns?: readonly string[] | null,
-  filenamePatterns?: readonly string[] | null,
+  filenamePatterns?: readonly string[] | null
 ): Promise<UnifiedModel[]> {
   const results: UnifiedModel[] = [];
 
@@ -1378,11 +1437,15 @@ export async function searchCachedHfModels(
       repoId,
       repoDir,
       snapshotDir,
-      fileList,
+      fileList
     );
     results.push(repoModel);
 
-    if (filenamePatterns && filenamePatterns.length > 0 && fileEntries.length > 0) {
+    if (
+      filenamePatterns &&
+      filenamePatterns.length > 0 &&
+      fileEntries.length > 0
+    ) {
       for (const [relativeName, fileSize] of fileEntries) {
         if (!_matchesAnyPattern(relativeName, [...filenamePatterns])) continue;
 
@@ -1408,7 +1471,7 @@ export async function searchCachedHfModels(
           artifact_family: repoModel.artifact_family ?? null,
           artifact_component: repoModel.artifact_component ?? null,
           artifact_confidence: repoModel.artifact_confidence ?? null,
-          artifact_evidence: repoModel.artifact_evidence ?? null,
+          artifact_evidence: repoModel.artifact_evidence ?? null
         };
         results.push(fileModel);
       }
@@ -1430,7 +1493,7 @@ export async function searchCachedHfModels(
  * artifact hints) to label each result with the desired type.
  */
 export async function getModelsByHfType(
-  modelType: string,
+  modelType: string
 ): Promise<UnifiedModel[]> {
   const config = _buildSearchConfigForType(modelType) ?? {};
   const repoPattern = config.repo_pattern;
@@ -1474,7 +1537,8 @@ export async function getModelsByHfType(
       }
 
       // For non-file-oriented types, skip file-level entries to avoid duplicates
-      if (!fileOnly && !checkpoint && !singleFileRepo && pathValue != null) continue;
+      if (!fileOnly && !checkpoint && !singleFileRepo && pathValue != null)
+        continue;
 
       if (!_matchesModelType(model, modelType)) continue;
 
@@ -1486,12 +1550,16 @@ export async function getModelsByHfType(
   }
 
   const offlineModels = await searchCachedHfModels(
-    repoPattern ? (Array.isArray(repoPattern) ? repoPattern : [repoPattern]) : null,
+    repoPattern
+      ? Array.isArray(repoPattern)
+        ? repoPattern
+        : [repoPattern]
+      : null,
     filenamePattern
       ? Array.isArray(filenamePattern)
         ? filenamePattern
         : [filenamePattern]
-      : null,
+      : null
   );
 
   return filterModels(offlineModels);
@@ -1542,7 +1610,7 @@ function _getLlamaCppCacheDir(): string {
 
 /** Build a lookup from flat GGUF filename to (repo_id, original_filename). */
 export function _buildManifestLookup(
-  cacheDir: string,
+  cacheDir: string
 ): Map<string, [string, string]> {
   const lookup = new Map<string, [string, string]>();
   let entries: string[];
@@ -1582,7 +1650,7 @@ export function _buildManifestLookup(
  */
 export function _parseGgufFlatFilename(
   entry: string,
-  manifestLookup: Map<string, [string, string]>,
+  manifestLookup: Map<string, [string, string]>
 ): [string, string, string] {
   // 1. Manifest lookup
   const manifestMatch = manifestLookup.get(entry);
@@ -1606,7 +1674,10 @@ export function _parseGgufFlatFilename(
     const repoCandidate = rest.slice(0, us);
     const filenameCandidate = rest.slice(us + 1);
     const expected = `${org}_${repoCandidate}_${filenameCandidate}`;
-    if (expected === entry && filenameCandidate.toLowerCase().endsWith(".gguf")) {
+    if (
+      expected === entry &&
+      filenameCandidate.toLowerCase().endsWith(".gguf")
+    ) {
       const repoId = `${org}/${repoCandidate}`;
       return [repoId, repoCandidate, filenameCandidate];
     }
@@ -1657,7 +1728,10 @@ export async function getLlamaCppModelsFromCache(): Promise<UnifiedModel[]> {
       continue;
     }
 
-    const [repoId, repo, filename] = _parseGgufFlatFilename(entry, manifestLookup);
+    const [repoId, repo, filename] = _parseGgufFlatFilename(
+      entry,
+      manifestLookup
+    );
 
     let size = 0;
     try {
@@ -1677,7 +1751,7 @@ export async function getLlamaCppModelsFromCache(): Promise<UnifiedModel[]> {
       path: filename,
       cache_path: filePath,
       size_on_disk: size,
-      downloaded: true,
+      downloaded: true
     });
   }
 

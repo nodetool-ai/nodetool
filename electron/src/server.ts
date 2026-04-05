@@ -1,9 +1,7 @@
 import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
 import {
-  getOllamaPath,
   getLlamaServerPath,
-  getOllamaModelsPath,
   getPythonPath,
   getProcessEnv,
   PID_FILE_PATH,
@@ -15,13 +13,18 @@ import {
 /**
  * Resolves the path to the Node.js-based backend server entry point.
  * In packaged mode: resources/backend/server.mjs
- * In dev mode: ../../packages/websocket/dist/server.js (relative to electron/dist-electron/)
+ * In dev mode: ../../packages/websocket/src/server.ts (run via tsx)
  */
 function getNodeBackendPath(): string {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, "backend", "server.mjs");
   }
-  return path.join(__dirname, "..", "..", "packages", "websocket", "dist", "server.js");
+  return path.join(__dirname, "..", "..", "packages", "websocket", "src", "server.ts");
+}
+
+/** In dev mode we need tsx to run TypeScript source directly. */
+function isDevMode(): boolean {
+  return !app.isPackaged;
 }
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
@@ -36,9 +39,7 @@ import { Watchdog } from "./watchdog";
 import { readSettings, getModelServiceStartupSettings, readSettingsAsync } from "./settings";
 
 let backendWatchdog: Watchdog | null = null;
-let ollamaWatchdog: Watchdog | null = null;
 let llamaWatchdog: Watchdog | null = null;
-const OLLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "ollama.pid");
 const LLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "llama-server.pid");
 
 /** Server Management Module */
@@ -141,124 +142,6 @@ async function findAvailablePort(
   throw new Error(
     `No available port found from ${startPort} to ${startPort + maxIncrements}`
   );
-}
-
-/**
- * Checks if the Ollama server is responsive
- * @param port - The port to check
- * @param timeoutMs - The timeout in milliseconds
- * @returns True if the Ollama server is responsive, false otherwise
- */
-export async function isOllamaResponsive(
-  port: number,
-  timeoutMs = 2000
-): Promise<boolean> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(`http://127.0.0.1:${port}/api/tags`, {
-      signal: controller.signal,
-    });
-    return res.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(id);
-  }
-}
-
-/**
- * Starts the Ollama server on a custom port using Watchdog
- */
-async function startOllamaServer(): Promise<void> {
-  const existingPort = 11434;
-  if (await isOllamaResponsive(existingPort)) {
-    serverState.ollamaPort = existingPort;
-    serverState.ollamaExternalManaged = true;
-    logMessage(`Detected running Ollama instance on port ${existingPort}`);
-
-    const existingBasePath = getProcessEnv().PATH || "";
-    const ollamaScriptsDir = path.join(getCondaEnvPath(), "Scripts");
-    const ollamaBinDir = path.join(getCondaEnvPath(), "Library", "bin");
-    const userOllamaDir = path.join(
-      app.getPath("home"),
-      "AppData",
-      "Local",
-      "Programs",
-      "Ollama"
-    );
-
-    process.env.PATH = [
-      ollamaScriptsDir,
-      ollamaBinDir,
-      userOllamaDir,
-      existingBasePath,
-    ]
-      .filter((segment) => segment && segment.trim().length > 0)
-      .join(path.delimiter);
-
-    logMessage(
-      `Using externally managed Ollama. Updated PATH with ${ollamaScriptsDir}, ${ollamaBinDir}, and ${userOllamaDir}`
-    );
-
-    return;
-  }
-
-  const basePort = serverState.ollamaPort ?? 11435;
-  const selectedPort = await findAvailablePort(basePort);
-  serverState.ollamaPort = selectedPort;
-  serverState.ollamaExternalManaged = false;
-
-  const bundledOllamaPath = getOllamaPath();
-  let ollamaExecutablePath = bundledOllamaPath;
-  try {
-    await fs.access(bundledOllamaPath);
-  } catch {
-    ollamaExecutablePath = "ollama";
-    logMessage(
-      `Bundled Ollama binary not found at ${bundledOllamaPath}; falling back to system 'ollama'`,
-      "warn"
-    );
-  }
-  const args = ["serve"]; // OLLAMA_HOST controls bind address/port
-  const modelsPath = getOllamaModelsPath();
-  try {
-    await fs.mkdir(modelsPath, { recursive: true });
-    logMessage(`Ensured OLLAMA_MODELS directory exists at: ${modelsPath}`);
-  } catch (error) {
-    logMessage(
-      `Failed to create OLLAMA_MODELS directory at ${modelsPath}: ${
-        (error as Error).message
-      }`,
-      "error"
-    );
-  }
-
-  ollamaWatchdog = new Watchdog({
-    name: "ollama",
-    command: ollamaExecutablePath,
-    args,
-    env: {
-      ...process.env,
-      OLLAMA_HOST: `127.0.0.1:${selectedPort}`,
-      OLLAMA_MODELS: modelsPath,
-    },
-    pidFilePath: OLLAMA_PID_FILE_PATH,
-    healthUrl: `http://127.0.0.1:${selectedPort}/api/tags`, // Ollama health endpoint
-    onOutput: (line) => emitServerLog(line),
-    logOutput: false,
-  });
-
-  try {
-    await ollamaWatchdog.start();
-  } catch (error) {
-    logMessage(
-      `Failed to start Ollama watchdog: ${(error as Error).message}`,
-      "error"
-    );
-    ollamaWatchdog = null;
-    throw error;
-  }
 }
 
 /**
@@ -452,44 +335,25 @@ async function startServer(): Promise<void> {
 
   // Determine managed local model services startup policy
   let startupSettings = {
-    startOllamaOnStartup: true,
     startLlamaCppOnStartup: false,
   };
   try {
     const settings = await readSettingsAsync();
-    startupSettings = getModelServiceStartupSettings(settings);
+    const modelSettings = getModelServiceStartupSettings(settings);
+    startupSettings = { startLlamaCppOnStartup: modelSettings.startLlamaCppOnStartup };
   } catch (error) {
     logMessage(
-      `Failed to read settings for model service startup, defaulting to ollama=true llama_cpp=false: ${error}`,
+      `Failed to read settings for model service startup, defaulting to llama_cpp=false: ${error}`,
       "warn"
     );
   }
 
   logMessage(
-    `Model service startup settings: ollama=${startupSettings.startOllamaOnStartup}, llama_cpp=${startupSettings.startLlamaCppOnStartup}`
+    `Model service startup settings: llama_cpp=${startupSettings.startLlamaCppOnStartup}`
   );
 
   // Start model services and find backend port in parallel.
   const modelServicePromises: Promise<void>[] = [];
-
-  if (startupSettings.startOllamaOnStartup) {
-    logMessage("Starting Ollama server...");
-    modelServicePromises.push(
-      startOllamaServer()
-        .then(() => logMessage("Ollama server started successfully"))
-        .catch((error) => {
-          logMessage(
-            `Failed to start Ollama server: ${(error as Error).message}. Continuing without Ollama.`,
-            "warn"
-          );
-          if (!serverState.ollamaPort) {
-            serverState.ollamaPort = 11435;
-          }
-        })
-    );
-  } else {
-    logMessage("Skipping Ollama server startup (disabled in settings)");
-  }
 
   if (startupSettings.startLlamaCppOnStartup) {
     logMessage("Starting llama-server...");
@@ -551,22 +415,37 @@ async function startServer(): Promise<void> {
     PORT: String(selectedPort),
     STATIC_FOLDER: webPath,
     NODETOOL_PYTHON: pythonPath,
-    OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
     LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
-    NODE_ENV: "production",
+    NODE_ENV: isDevMode() ? "development" : "production",
     NODE_PATH: backendNodeModules,
   };
 
-  backendWatchdog = new Watchdog({
-    name: "nodetool",
-    modulePath: backendEntryPoint,
-    env: backendEnv,
-    cwd: path.dirname(backendEntryPoint),
-    pidFilePath: PID_FILE_PATH,
-    healthUrl: `http://127.0.0.1:${selectedPort}/health`,
-    onOutput: (line) => handleServerOutput(Buffer.from(line)),
-    logOutput: false,
-  });
+  const watchdogOpts: import("./watchdog").WatchdogOptions = isDevMode()
+    ? {
+        // Dev mode: run TS source directly via tsx (no build step needed)
+        name: "nodetool",
+        command: path.join(__dirname, "..", "..", "node_modules", ".bin", "tsx"),
+        args: [backendEntryPoint],
+        env: backendEnv,
+        cwd: path.join(__dirname, "..", ".."),
+        pidFilePath: PID_FILE_PATH,
+        healthUrl: `http://127.0.0.1:${selectedPort}/health`,
+        onOutput: (line) => handleServerOutput(Buffer.from(line)),
+        logOutput: false,
+      }
+    : {
+        // Production: fork compiled JS via utilityProcess
+        name: "nodetool",
+        modulePath: backendEntryPoint,
+        env: backendEnv,
+        cwd: path.dirname(backendEntryPoint),
+        pidFilePath: PID_FILE_PATH,
+        healthUrl: `http://127.0.0.1:${selectedPort}/health`,
+        onOutput: (line) => handleServerOutput(Buffer.from(line)),
+        logOutput: false,
+      };
+
+  backendWatchdog = new Watchdog(watchdogOpts);
 
   try {
     logMessage("Calling watchdog.start() - this will wait for server to become healthy...");
@@ -641,14 +520,6 @@ async function isServerRunning(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-/**
- * Checks if the Ollama server process is currently running
- * @returns true if Ollama is running, false otherwise
- */
-function isOllamaRunning(): boolean {
-  return ollamaWatchdog !== null;
 }
 
 /**
@@ -872,11 +743,6 @@ async function stopServer(): Promise<void> {
       await backendWatchdog.stopGracefully();
       backendWatchdog = null;
     }
-    if (ollamaWatchdog) {
-      logMessage("Stopping Ollama server (watchdog)");
-      await ollamaWatchdog.stopGracefully();
-      ollamaWatchdog = null;
-    }
     if (llamaWatchdog) {
       logMessage("Stopping llama-server (watchdog)");
       await llamaWatchdog.stopGracefully();
@@ -890,40 +756,6 @@ async function stopServer(): Promise<void> {
   serverState.status = "idle";
   emitServerStateChanged();
   logMessage("Graceful shutdown complete");
-}
-
-/**
- * Starts the Ollama server watchdog if it is not currently running.
- */
-async function startOllamaService(): Promise<void> {
-  if (ollamaWatchdog) {
-    logMessage("Ollama server is already running", "info");
-    return;
-  }
-  await startOllamaServer();
-  emitServerStateChanged();
-}
-
-/**
- * Stops the Ollama server watchdog if it is managed by this app.
- */
-async function stopOllamaService(): Promise<void> {
-  if (!ollamaWatchdog) {
-    if (serverState.ollamaExternalManaged) {
-      logMessage(
-        "Ollama appears externally managed; tray stop is only available for app-managed Ollama",
-        "warn"
-      );
-    } else {
-      logMessage("Ollama server is not running", "info");
-    }
-    return;
-  }
-
-  await ollamaWatchdog.stopGracefully();
-  ollamaWatchdog = null;
-  serverState.ollamaExternalManaged = false;
-  emitServerStateChanged();
 }
 
 /**
@@ -998,10 +830,7 @@ export {
   restartLlamaServer,
   webPath,
   isServerRunning,
-  isOllamaRunning,
   isLlamaServerRunning,
-  startOllamaService,
-  stopOllamaService,
   startLlamaCppService,
   stopLlamaCppService,
 };

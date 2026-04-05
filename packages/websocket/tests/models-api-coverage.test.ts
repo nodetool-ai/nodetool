@@ -9,7 +9,7 @@ vi.mock("@nodetool/huggingface", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@nodetool/huggingface")>();
   return {
     ...orig,
-    getHuggingfaceFileInfos: vi.fn(async () => []),
+    getHuggingfaceFileInfos: vi.fn(async () => [])
   };
 });
 
@@ -34,7 +34,7 @@ function makeRequest(
   return new Request(`http://localhost/api/models${path}`, {
     method,
     headers,
-    body: requestBody,
+    body: requestBody
   });
 }
 
@@ -241,7 +241,9 @@ describe("Models API: huggingface endpoints", () => {
 
   it("DELETE /api/models/huggingface with repo_id returns boolean", async () => {
     const res = await handleModelsApiRequest(
-      makeRequest("/huggingface?repo_id=nonexistent/model", { method: "DELETE" })
+      makeRequest("/huggingface?repo_id=nonexistent/model", {
+        method: "DELETE"
+      })
     );
     expect(res!.status).toBe(200);
     const data = await jsonBody(res!);
@@ -407,9 +409,7 @@ describe("Models API: provider-specific model endpoints", () => {
 
 describe("Models API: ollama_model_info", () => {
   it("GET /api/models/ollama_model_info returns null", async () => {
-    const res = await handleModelsApiRequest(
-      makeRequest("/ollama_model_info")
-    );
+    const res = await handleModelsApiRequest(makeRequest("/ollama_model_info"));
     expect(res!.status).toBe(200);
     expect(await jsonBody(res!)).toBeNull();
   });
@@ -427,7 +427,7 @@ describe("Models API: HF cache endpoints", () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/try_cache_files", {
         method: "POST",
-        body: [{ repo_id: "test/model", path: "model.safetensors" }],
+        body: [{ repo_id: "test/model", path: "model.safetensors" }]
       })
     );
     expect(res!.status).toBe(200);
@@ -451,7 +451,7 @@ describe("Models API: HF cache endpoints", () => {
       new Request("http://localhost/api/models/huggingface/try_cache_files", {
         method: "POST",
         headers: { "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(res!.status).toBe(400);
@@ -461,7 +461,7 @@ describe("Models API: HF cache endpoints", () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/try_cache_files", {
         method: "POST",
-        body: [{ repo_id: "", path: "" }],
+        body: [{ repo_id: "", path: "" }]
       })
     );
     expect(res!.status).toBe(200);
@@ -473,7 +473,7 @@ describe("Models API: HF cache endpoints", () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/try_cache_repos", {
         method: "POST",
-        body: ["test/model"],
+        body: ["test/model"]
       })
     );
     expect(res!.status).toBe(200);
@@ -496,7 +496,7 @@ describe("Models API: HF cache endpoints", () => {
       new Request("http://localhost/api/models/huggingface/try_cache_repos", {
         method: "POST",
         headers: { "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(res!.status).toBe(400);
@@ -506,7 +506,7 @@ describe("Models API: HF cache endpoints", () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/check_cache", {
         method: "POST",
-        body: { repo_id: "test/model", allow_pattern: "*.safetensors" },
+        body: { repo_id: "test/model", allow_pattern: "*.safetensors" }
       })
     );
     expect(res!.status).toBe(200);
@@ -526,7 +526,7 @@ describe("Models API: HF cache endpoints", () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/check_cache", {
         method: "POST",
-        body: { repo_id: "" },
+        body: { repo_id: "" }
       })
     );
     expect(res!.status).toBe(400);
@@ -537,7 +537,7 @@ describe("Models API: HF cache endpoints", () => {
       new Request("http://localhost/api/models/huggingface/check_cache", {
         method: "POST",
         headers: { "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(res!.status).toBe(400);
@@ -555,7 +555,7 @@ describe("Models API: HF cache endpoints", () => {
       new Request("http://localhost/api/models/huggingface/cache_status", {
         method: "POST",
         headers: { "content-type": "text/plain" },
-        body: "not json",
+        body: "not json"
       })
     );
     expect(res!.status).toBe(400);
@@ -569,13 +569,16 @@ describe("Models API: HF cache endpoints", () => {
           {
             key: "k1",
             repo_id: "test/model",
-            path: "model.safetensors",
-          },
-        ],
+            path: "model.safetensors"
+          }
+        ]
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await jsonBody(res!)) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await jsonBody(res!)) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].key).toBe("k1");
     expect(data[0].downloaded).toBe(false);
   });
@@ -589,13 +592,16 @@ describe("Models API: HF cache endpoints", () => {
             key: "k-llama",
             repo_id: "test/gguf-model",
             model_type: "llama_cpp",
-            path: "model.gguf",
-          },
-        ],
+            path: "model.gguf"
+          }
+        ]
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await jsonBody(res!)) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await jsonBody(res!)) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].key).toBe("k-llama");
     expect(data[0].downloaded).toBe(false);
   });
@@ -608,13 +614,16 @@ describe("Models API: HF cache endpoints", () => {
           {
             key: "k-llama-nopath",
             repo_id: "test/gguf-model",
-            model_type: "llama_cpp",
-          },
-        ],
+            model_type: "llama_cpp"
+          }
+        ]
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await jsonBody(res!)) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await jsonBody(res!)) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].downloaded).toBe(false);
   });
 
@@ -627,13 +636,16 @@ describe("Models API: HF cache endpoints", () => {
             key: "k-nopath",
             repo_id: "test/model",
             allow_patterns: "*.safetensors",
-            ignore_patterns: "*.bin",
-          },
-        ],
+            ignore_patterns: "*.bin"
+          }
+        ]
       })
     );
     expect(res!.status).toBe(200);
-    const data = (await jsonBody(res!)) as Array<{ key: string; downloaded: boolean }>;
+    const data = (await jsonBody(res!)) as Array<{
+      key: string;
+      downloaded: boolean;
+    }>;
     expect(data[0].key).toBe("k-nopath");
     expect(data[0].downloaded).toBe(false);
   });
@@ -648,9 +660,7 @@ describe("Models API: pull_ollama_model", () => {
   });
 
   it("GET /api/models/pull_ollama_model returns 405", async () => {
-    const res = await handleModelsApiRequest(
-      makeRequest("/pull_ollama_model")
-    );
+    const res = await handleModelsApiRequest(makeRequest("/pull_ollama_model"));
     expect(res!.status).toBe(405);
   });
 });
@@ -667,7 +677,7 @@ describe("Models API: huggingface/file_info", () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/file_info", {
         method: "POST",
-        body: [{ repo_id: "test/model", path: "config.json" }],
+        body: [{ repo_id: "test/model", path: "config.json" }]
       })
     );
     expect(res!.status).toBe(200);
@@ -746,9 +756,7 @@ describe("Models API: isProduction behavior", () => {
 describe("Models API: recommended with check_servers", () => {
   it("GET /api/models/recommended?check_servers=true filters by availability", async () => {
     const res = await handleModelsApiRequest(
-      new Request(
-        "http://localhost/api/models/recommended?check_servers=true"
-      )
+      new Request("http://localhost/api/models/recommended?check_servers=true")
     );
     expect(res!.status).toBe(200);
     const data = (await jsonBody(res!)) as Array<Record<string, unknown>>;

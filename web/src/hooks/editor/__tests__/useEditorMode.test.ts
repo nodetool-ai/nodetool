@@ -1,26 +1,21 @@
 import { renderHook, act } from "@testing-library/react";
 import { useEditorMode } from "../useEditorMode";
 
-const KEY = "__test_editor_mode__";
-
-beforeEach(() => {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    /* empty */
-  }
-});
-
 describe("useEditorMode", () => {
-  test("defaults to false when no localStorage", () => {
-    const { result } = renderHook(() => useEditorMode({ storageKey: KEY }));
+  test("defaults to false", () => {
+    const { result } = renderHook(() => useEditorMode());
     expect(result.current.isCodeEditor).toBe(false);
   });
 
-  test("persists toggle to localStorage and calls onCodeEnabled when enabling", () => {
+  test("defaults to true when defaultEnabled is true", () => {
+    const { result } = renderHook(() => useEditorMode({ defaultEnabled: true }));
+    expect(result.current.isCodeEditor).toBe(true);
+  });
+
+  test("toggle switches mode and calls onCodeEnabled when enabling", () => {
     const onCodeEnabled = jest.fn();
     const { result } = renderHook(() =>
-      useEditorMode({ storageKey: KEY, onCodeEnabled })
+      useEditorMode({ onCodeEnabled })
     );
 
     act(() => {
@@ -28,7 +23,6 @@ describe("useEditorMode", () => {
     });
 
     expect(result.current.isCodeEditor).toBe(true);
-    expect(localStorage.getItem(KEY)).toBe("true");
     expect(onCodeEnabled).toHaveBeenCalledTimes(1);
 
     act(() => {
@@ -36,17 +30,7 @@ describe("useEditorMode", () => {
     });
 
     expect(result.current.isCodeEditor).toBe(false);
-    expect(localStorage.getItem(KEY)).toBe("false");
-  });
-
-  test("reads initial value from localStorage", () => {
-    localStorage.setItem(KEY, "true");
-    const { result } = renderHook(() => useEditorMode({ storageKey: KEY }));
-    expect(result.current.isCodeEditor).toBe(true);
+    // onCodeEnabled should not be called again when disabling
+    expect(onCodeEnabled).toHaveBeenCalledTimes(1);
   });
 });
-
-
-
-
-

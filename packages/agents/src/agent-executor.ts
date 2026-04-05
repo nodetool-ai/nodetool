@@ -12,7 +12,7 @@ import type {
   ProcessingContext,
   Message,
   ToolCall,
-  ProviderTool,
+  ProviderTool
 } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 import { Tool } from "./tools/base-tool.js";
@@ -24,15 +24,13 @@ const METADATA_SCHEMA: Record<string, unknown> = {
   properties: {
     title: { type: "string" },
     description: { type: "string" },
-    sources: { type: "array", items: { type: "string" } },
+    sources: { type: "array", items: { type: "string" } }
   },
   required: ["title", "description"],
-  additionalProperties: true,
+  additionalProperties: true
 };
 
-export function jsonSchemaForOutputType(
-  type: string
-): Record<string, unknown> {
+export function jsonSchemaForOutputType(type: string): Record<string, unknown> {
   const schemas: Record<string, Record<string, unknown>> = {
     json: { type: "object", description: "JSON object" },
     list: { type: "array", description: "Array of values" },
@@ -42,12 +40,12 @@ export function jsonSchemaForOutputType(
     markdown: { type: "string", description: "Markdown formatted text" },
     html: { type: "string", description: "HTML markup" },
     csv: { type: "string", description: "CSV formatted data" },
-    yaml: { type: "string", description: "YAML formatted data" },
+    yaml: { type: "string", description: "YAML formatted data" }
   };
   return (
     schemas[type] ?? {
       type: "string",
-      description: `Output of type ${type}`,
+      description: `Output of type ${type}`
     }
   );
 }
@@ -63,17 +61,16 @@ export class FinishTool extends Tool {
     outputSchema: Record<string, unknown> | null
   ) {
     super();
-    const resultSchema =
-      outputSchema ?? jsonSchemaForOutputType(outputType);
+    const resultSchema = outputSchema ?? jsonSchemaForOutputType(outputType);
 
     this.inputSchema = {
       type: "object",
       properties: {
         result: resultSchema,
-        metadata: METADATA_SCHEMA,
+        metadata: METADATA_SCHEMA
       },
       required: ["result", "metadata"],
-      additionalProperties: false,
+      additionalProperties: false
     };
   }
 
@@ -124,19 +121,15 @@ export class AgentExecutor {
     this.context = options.context;
     this.outputType = options.outputType ?? "string";
     this.threadId = options.threadId;
-    this.maxIterations =
-      options.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+    this.maxIterations = options.maxIterations ?? DEFAULT_MAX_ITERATIONS;
 
     this.finishTool = new FinishTool(
       this.outputType,
       options.outputSchema ?? null
     );
     this.tools = [...options.tools, this.finishTool];
-    this.systemPrompt =
-      options.systemPrompt ?? this.createSystemPrompt("");
-    this.history = [
-      { role: "system", content: this.systemPrompt },
-    ];
+    this.systemPrompt = options.systemPrompt ?? this.createSystemPrompt("");
+    this.history = [{ role: "system", content: this.systemPrompt }];
   }
 
   private createSystemPrompt(objective: string): string {
@@ -168,16 +161,17 @@ Safety and privacy:
    * Check if the provider supports native agentic tool execution.
    */
   private isAgenticProvider(): boolean {
-    return (this.provider as unknown as Record<string, unknown>).provider === "claude_agent";
+    return (
+      (this.provider as unknown as Record<string, unknown>).provider ===
+      "claude_agent"
+    );
   }
 
   async *execute(
     objective: string,
     inputs?: Record<string, unknown>
   ): AsyncGenerator<Chunk | ToolCall> {
-    const promptParts: string[] = [
-      `**Objective:**\n${objective}\n`,
-    ];
+    const promptParts: string[] = [`**Objective:**\n${objective}\n`];
 
     if (inputs && Object.keys(inputs).length > 0) {
       const inputStr = Object.entries(inputs)
@@ -192,7 +186,7 @@ Safety and privacy:
 
     this.history.push({
       role: "user",
-      content: promptParts.join("\n"),
+      content: promptParts.join("\n")
     });
 
     const providerTools: ProviderTool[] = this.tools.map((t) =>
@@ -214,20 +208,20 @@ Safety and privacy:
         messages: this.history,
         model: this.model,
         tools: providerTools,
-        threadId: this.threadId,
+        threadId: this.threadId
       });
 
       if (response.content) {
         yield {
           type: "chunk",
-          content: String(response.content),
+          content: String(response.content)
         } as Chunk;
       }
 
       const assistantMessage: Message = {
         role: "assistant",
         content: response.content,
-        toolCalls: response.toolCalls ?? undefined,
+        toolCalls: response.toolCalls ?? undefined
       };
       this.history.push(assistantMessage);
 
@@ -246,7 +240,7 @@ Safety and privacy:
             } catch {
               serialized = JSON.stringify({
                 error: "Failed to serialize tool result",
-                result_repr: String(result),
+                result_repr: String(result)
               });
             }
           }
@@ -254,15 +248,14 @@ Safety and privacy:
           this.history.push({
             role: "tool",
             content: serialized,
-            toolCallId: toolCall.id,
+            toolCallId: toolCall.id
           });
 
           if (toolCall.name === "finish_task") {
             this.completed = true;
             this._result = toolCall.args.result ?? null;
             this._metadata =
-              (toolCall.args.metadata as Record<string, unknown>) ??
-              null;
+              (toolCall.args.metadata as Record<string, unknown>) ?? null;
             break;
           }
         }
@@ -274,9 +267,8 @@ Safety and privacy:
       this._result = `Task incomplete after ${this.maxIterations} iterations`;
       this._metadata = {
         title: "Incomplete Task",
-        description:
-          "Task did not complete within iteration limit",
-        sources: [],
+        description: "Task did not complete within iteration limit",
+        sources: []
       };
     }
   }
@@ -289,8 +281,7 @@ Safety and privacy:
     providerTools: ProviderTool[]
   ): AsyncGenerator<Chunk | ToolCall> {
     const finishTaskState: { args: FinishTaskArgs | null } = { args: null };
-    const getFinishTaskArgs = (): FinishTaskArgs | null =>
-      finishTaskState.args;
+    const getFinishTaskArgs = (): FinishTaskArgs | null => finishTaskState.args;
 
     const onToolCall = async (
       name: string,
@@ -304,7 +295,9 @@ Safety and privacy:
       if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
       try {
         const result = await tool.process(this.context, args);
-        return typeof result === "string" ? result : JSON.stringify(result ?? null);
+        return typeof result === "string"
+          ? result
+          : JSON.stringify(result ?? null);
       } catch (e) {
         return JSON.stringify({ error: String(e) });
       }
@@ -315,7 +308,7 @@ Safety and privacy:
       model: this.model,
       tools: providerTools,
       threadId: this.threadId,
-      onToolCall,
+      onToolCall
     });
 
     if (response.content) {
@@ -342,7 +335,10 @@ Safety and privacy:
     const nudgeMessages: Message[] = [
       ...this.history,
       { role: "assistant", content: String(response.content ?? "") },
-      { role: "user", content: `Now call finish_task with the final result and metadata. The result type should be '${this.outputType}'.` },
+      {
+        role: "user",
+        content: `Now call finish_task with the final result and metadata. The result type should be '${this.outputType}'.`
+      }
     ];
 
     finishTaskState.args = null;
@@ -351,7 +347,7 @@ Safety and privacy:
       model: this.model,
       tools: providerTools,
       threadId: this.threadId,
-      onToolCall,
+      onToolCall
     });
 
     if (nudgeResponse.content) {
@@ -371,13 +367,14 @@ Safety and privacy:
     } else {
       this.completed = true;
       this._result = String(response.content ?? "Task incomplete");
-      this._metadata = { title: "Incomplete Task", description: "finish_task was not called" };
+      this._metadata = {
+        title: "Incomplete Task",
+        description: "finish_task was not called"
+      };
     }
   }
 
-  private async handleToolCall(
-    toolCall: ToolCall
-  ): Promise<unknown> {
+  private async handleToolCall(toolCall: ToolCall): Promise<unknown> {
     const tool = this.tools.find((t) => t.name === toolCall.name);
     if (!tool) {
       return { error: `Tool ${toolCall.name} not found` };
@@ -405,9 +402,7 @@ function formatValue(value: unknown): string {
   }
   if (typeof value === "object" && value !== null) {
     const formatted = JSON.stringify(value, null, 2);
-    return formatted.length > 200
-      ? formatted.slice(0, 200) + "..."
-      : formatted;
+    return formatted.length > 200 ? formatted.slice(0, 200) + "..." : formatted;
   }
   return String(value);
 }

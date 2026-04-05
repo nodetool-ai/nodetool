@@ -7,7 +7,7 @@ import {
   maskSecret,
   registerSetting,
   clearSettings,
-  getSettings,
+  getSettings
 } from "../src/index.js";
 
 describe("T-CFG-4: maskSecret", () => {
@@ -53,7 +53,7 @@ describe("T-CFG-4: diagnoseEnvironment", () => {
       envVar: "MY_UNSET",
       group: "Test",
       description: "An unset variable",
-      isSecret: false,
+      isSecret: false
     });
     delete process.env.MY_UNSET;
 
@@ -65,7 +65,7 @@ describe("T-CFG-4: diagnoseEnvironment", () => {
       isSet: false,
       isSecret: false,
       maskedValue: null,
-      description: "An unset variable",
+      description: "An unset variable"
     });
   });
 
@@ -75,7 +75,7 @@ describe("T-CFG-4: diagnoseEnvironment", () => {
       envVar: "MY_CONFIG",
       group: "Test",
       description: "A config value",
-      isSecret: false,
+      isSecret: false
     });
     process.env.MY_CONFIG = "hello-world";
 
@@ -91,7 +91,7 @@ describe("T-CFG-4: diagnoseEnvironment", () => {
       envVar: "MY_API_KEY",
       group: "Test",
       description: "A secret key",
-      isSecret: true,
+      isSecret: true
     });
     process.env.MY_API_KEY = "sk-proj_abcdef_key";
 
@@ -108,7 +108,7 @@ describe("T-CFG-4: diagnoseEnvironment", () => {
       envVar: "MY_API_KEY",
       group: "Test",
       description: "Short secret",
-      isSecret: true,
+      isSecret: true
     });
     process.env.MY_API_KEY = "abc";
 
@@ -122,14 +122,14 @@ describe("T-CFG-4: diagnoseEnvironment", () => {
       envVar: "MY_CONFIG",
       group: "Config",
       description: "Config",
-      isSecret: false,
+      isSecret: false
     });
     registerSetting({
       package: "test",
       envVar: "MY_API_KEY",
       group: "Secrets",
       description: "Secret",
-      isSecret: true,
+      isSecret: true
     });
     process.env.MY_CONFIG = "value1";
     process.env.MY_API_KEY = "super-secret-key-value";
@@ -148,8 +148,8 @@ describe("T-CFG-4: diagnoseEnvironment", () => {
         group: "G",
         description: "D",
         isSecret: false,
-        configured: true,
-      },
+        configured: true
+      }
     ];
     process.env.MY_CONFIG = "val";
 

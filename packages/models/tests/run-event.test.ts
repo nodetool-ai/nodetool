@@ -168,7 +168,7 @@ describe("RunEvent model", () => {
       seq: 5,
       event_type: "NodeFailed",
       node_id: "n1",
-      payload: { error: "oops" },
+      payload: { error: "oops" }
     });
     expect(ev.id).toBe("ev-123");
     expect(ev.run_id).toBe("r1");
@@ -205,7 +205,9 @@ describe("RunEvent model", () => {
     await RunEvent.appendEvent("r1", "NodeStarted", {}, "n1");
     await RunEvent.appendEvent("r1", "RunCompleted", {});
 
-    const last = await RunEvent.getLastEvent("r1", { eventType: "NodeStarted" });
+    const last = await RunEvent.getLastEvent("r1", {
+      eventType: "NodeStarted"
+    });
     expect(last).not.toBeNull();
     expect(last!.event_type).toBe("NodeStarted");
   });

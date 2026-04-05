@@ -382,7 +382,7 @@ const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
                 padding: "0.5rem 0.75rem",
                 borderRadius: "8px",
                 backgroundColor: "rgba(30, 35, 40, 0.4)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
                 color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",
               }}>
                 {currentLogUpdate.content}

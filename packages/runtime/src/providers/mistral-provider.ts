@@ -35,9 +35,9 @@ export class MistralProvider extends OpenAIProvider {
           ((key) =>
             new OpenAI({
               apiKey: key,
-              baseURL: "https://api.mistral.ai/v1",
+              baseURL: "https://api.mistral.ai/v1"
             })),
-        fetchFn,
+        fetchFn
       }
     );
 
@@ -58,8 +58,8 @@ export class MistralProvider extends OpenAIProvider {
       "https://api.mistral.ai/v1/models",
       {
         headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
+          Authorization: `Bearer ${this.apiKey}`
+        }
       }
     );
 
@@ -79,7 +79,7 @@ export class MistralProvider extends OpenAIProvider {
       .map((row) => ({
         id: row.id,
         name: row.name ?? row.id,
-        provider: "mistral",
+        provider: "mistral"
       }));
   }
 
@@ -89,8 +89,8 @@ export class MistralProvider extends OpenAIProvider {
         id: "mistral-embed",
         name: "Mistral Embed",
         provider: "mistral",
-        dimensions: 1024,
-      },
+        dimensions: 1024
+      }
     ];
   }
 
@@ -107,7 +107,7 @@ export class MistralProvider extends OpenAIProvider {
     const model = args.model || "mistral-embed";
     const response = await this.getClient().embeddings.create({
       model,
-      input,
+      input
     });
 
     return response.data.map((row) => row.embedding as number[]);

@@ -14,7 +14,7 @@ import type {
   BoardTask,
   ITaskBoard,
   TaskStatus,
-  TeamEvent,
+  TeamEvent
 } from "./types.js";
 
 export type BoardEventHandler = (event: TeamEvent) => void;
@@ -35,7 +35,7 @@ function rowToTask(row: typeof teamTasks.$inferSelect): BoardTask {
     result: row.result ?? undefined,
     failureReason: row.failure_reason ?? undefined,
     createdAt: new Date(row.created_at).getTime(),
-    updatedAt: new Date(row.updated_at).getTime(),
+    updatedAt: new Date(row.updated_at).getTime()
   };
 }
 
@@ -86,27 +86,34 @@ export class DbTaskBoard implements ITaskBoard {
       }
     }
 
-    this.db().insert(teamTasks).values({
-      id,
-      team_id: this.teamId,
-      title: opts.title,
-      description: opts.description,
-      status: "open",
-      created_by: opts.createdBy,
-      depends_on: dependsOn,
-      required_skills: requiredSkills,
-      priority,
-      artifacts: [],
-      parent_task_id: opts.parentTaskId ?? null,
-      result: null,
-      failure_reason: null,
-      created_at: now,
-      updated_at: now,
-    }).run();
+    this.db()
+      .insert(teamTasks)
+      .values({
+        id,
+        team_id: this.teamId,
+        title: opts.title,
+        description: opts.description,
+        status: "open",
+        created_by: opts.createdBy,
+        depends_on: dependsOn,
+        required_skills: requiredSkills,
+        priority,
+        artifacts: [],
+        parent_task_id: opts.parentTaskId ?? null,
+        result: null,
+        failure_reason: null,
+        created_at: now,
+        updated_at: now
+      })
+      .run();
 
     const task = rowToTask(this.getRow(id)!);
 
-    this.emit({ type: "task_created", task: { ...task }, timestamp: Date.now() });
+    this.emit({
+      type: "task_created",
+      task: { ...task },
+      timestamp: Date.now()
+    });
     return task;
   }
 
@@ -127,7 +134,7 @@ export class DbTaskBoard implements ITaskBoard {
       type: "task_claimed",
       taskId,
       agentId,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     });
     return true;
   }
@@ -148,7 +155,7 @@ export class DbTaskBoard implements ITaskBoard {
       type: "task_working",
       taskId,
       agentId,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     });
     return true;
   }
@@ -173,7 +180,7 @@ export class DbTaskBoard implements ITaskBoard {
         status: "done",
         result: opts?.result ?? null,
         artifacts: newArtifacts,
-        updated_at: this.now(),
+        updated_at: this.now()
       })
       .where(eq(teamTasks.id, taskId))
       .run();
@@ -182,7 +189,7 @@ export class DbTaskBoard implements ITaskBoard {
       type: "task_completed",
       taskId,
       artifacts: newArtifacts,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     });
     return true;
   }
@@ -203,7 +210,7 @@ export class DbTaskBoard implements ITaskBoard {
       type: "task_failed",
       taskId,
       reason,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     });
     return true;
   }
@@ -254,7 +261,7 @@ export class DbTaskBoard implements ITaskBoard {
         this.create({
           ...sub,
           parentTaskId,
-          dependsOn: sub.dependsOn ?? [],
+          dependsOn: sub.dependsOn ?? []
         })
       );
     }
@@ -273,7 +280,9 @@ export class DbTaskBoard implements ITaskBoard {
     const rows = this.db()
       .select()
       .from(teamTasks)
-      .where(and(eq(teamTasks.team_id, this.teamId), eq(teamTasks.status, "open")))
+      .where(
+        and(eq(teamTasks.team_id, this.teamId), eq(teamTasks.status, "open"))
+      )
       .all();
 
     const available: BoardTask[] = [];
@@ -368,7 +377,9 @@ export class DbTaskBoard implements ITaskBoard {
     const rows = this.db()
       .select()
       .from(teamTasks)
-      .where(and(eq(teamTasks.team_id, this.teamId), eq(teamTasks.status, "blocked")))
+      .where(
+        and(eq(teamTasks.team_id, this.teamId), eq(teamTasks.status, "blocked"))
+      )
       .all();
 
     for (const row of rows) {
@@ -384,7 +395,7 @@ export class DbTaskBoard implements ITaskBoard {
             status: "done",
             result,
             artifacts: allArtifacts,
-            updated_at: this.now(),
+            updated_at: this.now()
           })
           .where(eq(teamTasks.id, row.id))
           .run();
@@ -393,7 +404,7 @@ export class DbTaskBoard implements ITaskBoard {
           type: "task_completed",
           taskId: row.id,
           artifacts: allArtifacts,
-          timestamp: Date.now(),
+          timestamp: Date.now()
         });
       }
     }

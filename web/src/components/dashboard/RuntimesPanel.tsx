@@ -70,7 +70,7 @@ const RuntimesPanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const loadStatuses = useCallback(async () => {
-    const api = (window as any).api;
+    const api = window.api;
     if (!api?.packages?.getRuntimeStatuses) {return;}
     try {
       const [statuses, location] = await Promise.all([
@@ -92,7 +92,7 @@ const RuntimesPanel: React.FC = () => {
 
   const handleInstall = useCallback(
     async (packageId: string) => {
-      const api = (window as any).api;
+      const api = window.api;
       if (!api?.packages?.installRuntime) {return;}
 
       setInstalling((prev) => new Set(prev).add(packageId));
@@ -105,8 +105,9 @@ const RuntimesPanel: React.FC = () => {
         } else {
           setError(result.message || "Installation failed");
         }
-      } catch (err: any) {
-        setError(err?.message || "Installation failed");
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Installation failed";
+        setError(errorMessage);
       } finally {
         setInstalling((prev) => {
           const next = new Set(prev);
@@ -119,7 +120,7 @@ const RuntimesPanel: React.FC = () => {
   );
 
   const handleChangeLocation = useCallback(async () => {
-    const api = (window as any).api;
+    const api = window.api;
     if (!api?.packages?.selectInstallLocation) {return;}
     try {
       const selected = await api.packages.selectInstallLocation();

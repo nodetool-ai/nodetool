@@ -67,7 +67,7 @@ export class AdminHTTPClient {
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.headers = {
       "Content-Type": "application/json",
-      Accept: "application/json, text/event-stream",
+      Accept: "application/json, text/event-stream"
     };
     if (options.authToken) {
       this.headers["Authorization"] = `Bearer ${options.authToken}`;
@@ -95,9 +95,10 @@ export class AdminHTTPClient {
     let body: BodyInit | undefined;
 
     if (options?.rawBody !== undefined) {
-      body = options.rawBody instanceof ArrayBuffer
-        ? options.rawBody
-        : (options.rawBody.buffer as ArrayBuffer);
+      body =
+        options.rawBody instanceof ArrayBuffer
+          ? options.rawBody
+          : (options.rawBody.buffer as ArrayBuffer);
       delete headers["Content-Type"];
     } else if (options?.body !== undefined) {
       body = JSON.stringify(options.body);
@@ -107,9 +108,7 @@ export class AdminHTTPClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `${method} ${path} failed: ${response.status} ${text}`
-      );
+      throw new Error(`${method} ${path} failed: ${response.status} ${text}`);
     }
 
     return (await response.json()) as T;
@@ -127,9 +126,10 @@ export class AdminHTTPClient {
     let body: BodyInit | undefined;
 
     if (options?.rawBody !== undefined) {
-      body = options.rawBody instanceof ArrayBuffer
-        ? options.rawBody
-        : (options.rawBody.buffer as ArrayBuffer);
+      body =
+        options.rawBody instanceof ArrayBuffer
+          ? options.rawBody
+          : (options.rawBody.buffer as ArrayBuffer);
       delete headers["Content-Type"];
     } else if (options?.body !== undefined) {
       body = JSON.stringify(options.body);
@@ -138,14 +138,12 @@ export class AdminHTTPClient {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers,
-      body,
+      body
     });
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `${method} ${path} failed: ${response.status} ${text}`
-      );
+      throw new Error(`${method} ${path} failed: ${response.status} ${text}`);
     }
   }
 
@@ -155,13 +153,11 @@ export class AdminHTTPClient {
   ): Promise<Uint8Array> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
-      headers: this.headers,
+      headers: this.headers
     });
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `${method} ${path} failed: ${response.status} ${text}`
-      );
+      throw new Error(`${method} ${path} failed: ${response.status} ${text}`);
     }
     return new Uint8Array(await response.arrayBuffer());
   }
@@ -174,13 +170,11 @@ export class AdminHTTPClient {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers: this.headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined
     });
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `${method} ${path} failed: ${response.status} ${text}`
-      );
+      throw new Error(`${method} ${path} failed: ${response.status} ${text}`);
     }
     return response;
   }
@@ -202,13 +196,11 @@ export class AdminHTTPClient {
     workflow: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     return this.request("PUT", `/api/workflows/${workflowId}`, {
-      body: workflow,
+      body: workflow
     });
   }
 
-  async deleteWorkflow(
-    workflowId: string
-  ): Promise<Record<string, unknown>> {
+  async deleteWorkflow(workflowId: string): Promise<Record<string, unknown>> {
     return this.request("DELETE", `/api/workflows/${workflowId}`);
   }
 
@@ -217,7 +209,7 @@ export class AdminHTTPClient {
     params?: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     return this.request("POST", `/api/workflows/${workflowId}/run`, {
-      body: { params: params ?? {} },
+      body: { params: params ?? {} }
     });
   }
 
@@ -228,7 +220,7 @@ export class AdminHTTPClient {
     userId: string = "1"
   ): Promise<Record<string, unknown>> {
     return this.request("GET", `/admin/assets/${assetId}`, {
-      params: { user_id: userId },
+      params: { user_id: userId }
     });
   }
 
@@ -244,7 +236,7 @@ export class AdminHTTPClient {
     const data: Record<string, unknown> = {
       user_id: options.userId ?? "1",
       name: options.name ?? "",
-      content_type: options.contentType ?? "",
+      content_type: options.contentType ?? ""
     };
     if (options.id) data["id"] = options.id;
     if (options.parentId) data["parent_id"] = options.parentId;
@@ -259,7 +251,7 @@ export class AdminHTTPClient {
     data: Uint8Array | ArrayBuffer
   ): Promise<void> {
     return this.requestVoid("PUT", `/admin/storage/assets/${fileName}`, {
-      rawBody: data,
+      rawBody: data
     });
   }
 
@@ -269,10 +261,7 @@ export class AdminHTTPClient {
 
   // ── Database ─────────────────────────────────────────────
 
-  async dbGet(
-    table: string,
-    key: string
-  ): Promise<Record<string, unknown>> {
+  async dbGet(table: string, key: string): Promise<Record<string, unknown>> {
     return this.request("GET", `/admin/db/${table}/${key}`);
   }
 
@@ -307,13 +296,12 @@ export class AdminHTTPClient {
     const data: Record<string, unknown> = {
       repo_id: options.repoId,
       cache_dir: options.cacheDir ?? "/app/.cache/huggingface/hub",
-      stream: true,
+      stream: true
     };
     if (options.filePath) data["file_path"] = options.filePath;
     if (options.ignorePatterns)
       data["ignore_patterns"] = options.ignorePatterns;
-    if (options.allowPatterns)
-      data["allow_patterns"] = options.allowPatterns;
+    if (options.allowPatterns) data["allow_patterns"] = options.allowPatterns;
 
     const response = await this.requestSSE(
       "POST",
@@ -348,7 +336,7 @@ export class AdminHTTPClient {
     cacheDir: string = "/app/.cache/huggingface/hub"
   ): Promise<Record<string, unknown>> {
     return this.request("GET", `/admin/cache/size`, {
-      params: { cache_dir: cacheDir },
+      params: { cache_dir: cacheDir }
     });
   }
 
@@ -356,10 +344,7 @@ export class AdminHTTPClient {
     repoId: string
   ): Promise<Record<string, unknown>> {
     const encodedRepoId = encodeURIComponent(repoId);
-    return this.request(
-      "DELETE",
-      `/admin/models/huggingface/${encodedRepoId}`
-    );
+    return this.request("DELETE", `/admin/models/huggingface/${encodedRepoId}`);
   }
 
   // ── Collections ──────────────────────────────────────────
@@ -369,7 +354,7 @@ export class AdminHTTPClient {
     embeddingModel: string
   ): Promise<Record<string, unknown>> {
     return this.request("POST", "/admin/collections", {
-      body: { name, embedding_model: embeddingModel },
+      body: { name, embedding_model: embeddingModel }
     });
   }
 
@@ -380,13 +365,9 @@ export class AdminHTTPClient {
     metadatas: Record<string, string>[],
     embeddings: number[][]
   ): Promise<Record<string, unknown>> {
-    return this.request(
-      "POST",
-      `/admin/collections/${collectionName}/add`,
-      {
-        body: { documents, ids, metadatas, embeddings },
-      }
-    );
+    return this.request("POST", `/admin/collections/${collectionName}/add`, {
+      body: { documents, ids, metadatas, embeddings }
+    });
   }
 
   // ── Legacy admin operation endpoint ──────────────────────
@@ -400,14 +381,12 @@ export class AdminHTTPClient {
     const response = await fetch(`${this.baseUrl}/admin/operation`, {
       method: "POST",
       headers: this.headers,
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `Admin operation failed: ${response.status} ${text}`
-      );
+      throw new Error(`Admin operation failed: ${response.status} ${text}`);
     }
 
     const contentType = response.headers.get("content-type") ?? "";

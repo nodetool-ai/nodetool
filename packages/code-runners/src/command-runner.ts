@@ -1,4 +1,7 @@
-import { StreamRunnerBase, type StreamRunnerOptions } from "./stream-runner-base.js";
+import {
+  StreamRunnerBase,
+  type StreamRunnerOptions
+} from "./stream-runner-base.js";
 
 /**
  * Docker-backed command runner.
@@ -13,7 +16,7 @@ export class CommandDockerRunner extends StreamRunnerBase {
 
   override buildContainerCommand(
     userCode: string,
-    _envLocals: Record<string, unknown>,
+    _envLocals: Record<string, unknown>
   ): string[] {
     return userCode.split(" ");
   }

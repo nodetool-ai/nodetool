@@ -9,7 +9,7 @@ describe("TriggerWakeupService", () => {
       runId: "r1",
       nodeId: "n1",
       inputId: "input-1",
-      payload: { event: "click" },
+      payload: { event: "click" }
     });
 
     expect(result).toBe(true);
@@ -28,7 +28,7 @@ describe("TriggerWakeupService", () => {
       runId: "r1",
       nodeId: "n1",
       inputId: "input-1",
-      payload: { a: 1 },
+      payload: { a: 1 }
     });
     expect(first).toBe(true);
 
@@ -36,7 +36,7 @@ describe("TriggerWakeupService", () => {
       runId: "r1",
       nodeId: "n1",
       inputId: "input-1",
-      payload: { a: 2 },
+      payload: { a: 2 }
     });
     expect(second).toBe(false);
 
@@ -52,19 +52,19 @@ describe("TriggerWakeupService", () => {
       runId: "r1",
       nodeId: "n1",
       inputId: "i1",
-      payload: { x: 1 },
+      payload: { x: 1 }
     });
     await svc.deliverTriggerInput({
       runId: "r1",
       nodeId: "n1",
       inputId: "i2",
-      payload: { x: 2 },
+      payload: { x: 2 }
     });
     await svc.deliverTriggerInput({
       runId: "r1",
       nodeId: "n2",
       inputId: "i3",
-      payload: { x: 3 },
+      payload: { x: 3 }
     });
 
     // Only inputs for n1
@@ -83,13 +83,13 @@ describe("TriggerWakeupService", () => {
       runId: "r1",
       nodeId: "n1",
       inputId: "i1",
-      payload: { v: 1 },
+      payload: { v: 1 }
     });
     await svc.deliverTriggerInput({
       runId: "r1",
       nodeId: "n1",
       inputId: "i2",
-      payload: { v: 2 },
+      payload: { v: 2 }
     });
 
     svc.markProcessed("i1");
@@ -106,7 +106,7 @@ describe("TriggerWakeupService", () => {
       runId: "r1",
       nodeId: "n1",
       inputId: "i1",
-      payload: {},
+      payload: {}
     });
 
     svc.markProcessed("i1");
@@ -130,7 +130,7 @@ describe("TriggerWakeupService", () => {
       runId: "r1",
       nodeId: "n1",
       inputId: "i1",
-      payload: {},
+      payload: {}
     });
 
     // Not processed — should not be removed

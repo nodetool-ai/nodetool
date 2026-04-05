@@ -1,6 +1,6 @@
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 
-export const DEFAULT_MAX_DISPLAY_TEXT_LENGTH = 2000;
+const DEFAULT_MAX_DISPLAY_TEXT_LENGTH = 2000;
 
 export function sanitizeDisplayText(
   text: string,

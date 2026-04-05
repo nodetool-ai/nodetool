@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.numpy.manipulation Nodes"
+title: "lib.array.manipulation Nodes"
 ---
 
 

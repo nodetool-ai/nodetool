@@ -6,21 +6,24 @@
  */
 
 import { diagnoseEnvironment, type DiagnosticResult } from "@nodetool/config";
-import { getRegisteredSettings, type SettingDefinition } from "./settings-api.js";
+import {
+  getRegisteredSettings,
+  type SettingDefinition
+} from "./settings-api.js";
 
 /**
  * Common API key patterns to redact from string values.
  */
 const SECRET_PATTERNS = [
-  /sk-[A-Za-z0-9_-]{10,}/g,          // OpenAI
-  /hf_[A-Za-z0-9]{10,}/g,            // HuggingFace
-  /r8_[A-Za-z0-9]{10,}/g,            // Replicate
-  /fal_[A-Za-z0-9_-]{10,}/g,         // FAL
-  /key-[A-Za-z0-9_-]{10,}/g,         // Generic key- prefix
-  /Bearer\s+[A-Za-z0-9._-]{20,}/g,   // Bearer tokens
-  /ghp_[A-Za-z0-9]{30,}/g,           // GitHub personal tokens
-  /gho_[A-Za-z0-9]{30,}/g,           // GitHub OAuth tokens
-  /xox[bpsar]-[A-Za-z0-9-]{10,}/g,   // Slack tokens
+  /sk-[A-Za-z0-9_-]{10,}/g, // OpenAI
+  /hf_[A-Za-z0-9]{10,}/g, // HuggingFace
+  /r8_[A-Za-z0-9]{10,}/g, // Replicate
+  /fal_[A-Za-z0-9_-]{10,}/g, // FAL
+  /key-[A-Za-z0-9_-]{10,}/g, // Generic key- prefix
+  /Bearer\s+[A-Za-z0-9._-]{20,}/g, // Bearer tokens
+  /ghp_[A-Za-z0-9]{30,}/g, // GitHub personal tokens
+  /gho_[A-Za-z0-9]{30,}/g, // GitHub OAuth tokens
+  /xox[bpsar]-[A-Za-z0-9-]{10,}/g // Slack tokens
 ];
 
 /**
@@ -82,7 +85,7 @@ export function buildDebugExport(providerIds?: string[]): DebugExportResponse {
     group: def.group,
     description: def.description,
     isSecret: def.isSecret ?? false,
-    configured: !!process.env[def.envVar],
+    configured: !!process.env[def.envVar]
   }));
 
   const diagnostics = diagnoseEnvironment(settingStatuses);
@@ -92,7 +95,7 @@ export function buildDebugExport(providerIds?: string[]): DebugExportResponse {
     arch: process.arch,
     nodeVersion: process.version,
     uptime: process.uptime(),
-    memoryUsage: process.memoryUsage(),
+    memoryUsage: process.memoryUsage()
   };
 
   const providers = providerIds ?? [];
@@ -101,7 +104,7 @@ export function buildDebugExport(providerIds?: string[]): DebugExportResponse {
     diagnostics,
     system,
     providers,
-    timestamp: new Date().toISOString(),
+    timestamp: new Date().toISOString()
   };
 }
 
@@ -110,8 +113,8 @@ function jsonResponse(data: unknown, init?: ResponseInit): Response {
     status: init?.status ?? 200,
     headers: {
       "content-type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+      ...(init?.headers ?? {})
+    }
   });
 }
 
@@ -124,7 +127,7 @@ function errorResponse(status: number, detail: string): Response {
  */
 export async function handleDebugExportRequest(
   request: Request,
-  providerIds?: string[],
+  providerIds?: string[]
 ): Promise<Response> {
   // Debug export leaks system info — disabled in production
   if (process.env["NODETOOL_ENV"] === "production") {

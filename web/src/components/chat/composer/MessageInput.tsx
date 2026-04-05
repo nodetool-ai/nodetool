@@ -52,7 +52,7 @@ export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputPro
       <textarea
         className="chat-input"
         id="chat-prompt"
-        aria-labelledby="chat-prompt"
+        aria-label={placeholder}
         ref={textareaRef}
         value={value}
         onChange={handleChange}

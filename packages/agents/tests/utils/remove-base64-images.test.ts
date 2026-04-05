@@ -17,21 +17,21 @@ function textItem(text: string): MessageContent {
 function imageUrl(url: string): MessageContent {
   return {
     type: "image",
-    image: { uri: url },
+    image: { uri: url }
   } as unknown as MessageContent;
 }
 
 function imageBase64DataUri(dataUri: string): MessageContent {
   return {
     type: "image",
-    image: { uri: dataUri },
+    image: { uri: dataUri }
   } as unknown as MessageContent;
 }
 
 function imageWithData(data: Uint8Array): MessageContent {
   return {
     type: "image",
-    image: { data },
+    image: { data }
   } as unknown as MessageContent;
 }
 
@@ -82,7 +82,7 @@ describe("removeBase64Images", () => {
   it("removes all images when all are base64", () => {
     const items: MessageContent[] = [
       imageBase64DataUri("data:image/png;base64,aaa"),
-      imageWithData(new Uint8Array([0])),
+      imageWithData(new Uint8Array([0]))
     ];
     expect(removeBase64Images(items)).toEqual([]);
   });
@@ -101,7 +101,7 @@ describe("removeBase64Images", () => {
 
   it("does not mutate the original array", () => {
     const items: MessageContent[] = [
-      imageBase64DataUri("data:image/png;base64,xxx"),
+      imageBase64DataUri("data:image/png;base64,xxx")
     ];
     const copy = [...items];
     removeBase64Images(items);

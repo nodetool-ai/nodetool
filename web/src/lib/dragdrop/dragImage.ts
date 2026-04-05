@@ -59,14 +59,14 @@ export function createAssetDragImage(
       left: ${offset}px;
       width: 100%;
       height: 64px;
-      background: #1e1e1e;
-      border: 1px solid #333;
+      background: var(--palette-background-paper);
+      border: 1px solid var(--palette-divider);
       border-radius: 8px;
       display: flex;
       align-items: center;
       padding: 8px;
       box-sizing: border-box;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
       z-index: ${getZIndex(index, stackAssets.length)};
       transform: scale(${scale});
       transform-origin: top left;
@@ -87,7 +87,7 @@ export function createAssetDragImage(
           border-radius: 4px;
           margin-right: 12px;
           flex-shrink: 0;
-          background-color: #000;
+          background-color: var(--palette-background-default);
         `;
         item.appendChild(img);
       } else {
@@ -99,11 +99,11 @@ export function createAssetDragImage(
           border-radius: 4px;
           margin-right: 12px;
           flex-shrink: 0;
-          background-color: #333;
+          background-color: var(--palette-grey-800);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #aaa;
+          color: var(--palette-text-secondary);
           font-weight: 600;
           font-size: 11px;
           text-transform: uppercase;
@@ -127,7 +127,7 @@ export function createAssetDragImage(
       const name = document.createElement("div");
       name.textContent = asset.name;
       name.style.cssText = `
-        color: #eee;
+        color: var(--palette-text-primary);
         font-size: 13px;
         font-weight: 500;
         white-space: nowrap;
@@ -140,7 +140,7 @@ export function createAssetDragImage(
       const details = document.createElement("div");
       details.textContent = asset.content_type || "Unknown type";
       details.style.cssText = `
-        color: #888;
+        color: var(--palette-text-secondary);
         font-size: 11px;
         white-space: nowrap;
         overflow: hidden;
@@ -151,7 +151,7 @@ export function createAssetDragImage(
       item.appendChild(infoDiv);
     } else {
       // Placeholder card (looks like back of a card or generic)
-      item.style.background = "#252525";
+      item.style.background = "var(--palette-background-default)";
     }
 
     container.appendChild(item);
@@ -165,17 +165,17 @@ export function createAssetDragImage(
       position: absolute;
       top: -8px;
       right: -8px;
-      background-color: #3b82f6;
-      color: white;
+      background-color: var(--palette-primary-main);
+      color: var(--palette-primary-contrastText);
       border-radius: 12px;
       padding: 2px 8px;
       min-width: 20px;
       text-align: center;
       font-size: 12px;
       font-weight: bold;
-      border: 2px solid #1f2937;
+      border: 2px solid var(--palette-background-paper);
       z-index: 1000;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     `;
     container.appendChild(badge);
   }

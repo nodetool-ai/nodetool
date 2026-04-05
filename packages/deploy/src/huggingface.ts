@@ -39,7 +39,7 @@ async function hfCli(
   try {
     const { stdout } = await execFileAsync("huggingface-cli", args, {
       timeout: opts?.timeout ?? 60_000,
-      cwd: opts?.cwd,
+      cwd: opts?.cwd
     });
     return stdout;
   } catch (e: unknown) {
@@ -64,7 +64,7 @@ async function git(
   try {
     const { stdout } = await execFileAsync("git", args, {
       timeout: opts?.timeout ?? 60_000,
-      cwd: opts?.cwd,
+      cwd: opts?.cwd
     });
     return stdout;
   } catch (e: unknown) {
@@ -80,11 +80,11 @@ function generateSpaceReadme(deployment: HuggingFaceDeployment): string {
   const frontmatter: string[] = [
     "---",
     "title: NodeTool",
-    "emoji: \"\\U0001F527\"",
+    'emoji: "\\U0001F527"',
     "colorFrom: blue",
     "colorTo: purple",
     "sdk: docker",
-    "app_port: 7777",
+    "app_port: 7777"
   ];
 
   if (deployment.hardware) {
@@ -137,7 +137,7 @@ export class HuggingFaceDeployer {
       changes: [] as string[],
       will_create: [] as string[],
       will_update: [] as string[],
-      will_destroy: [] as string[],
+      will_destroy: [] as string[]
     };
 
     const changes = planResult["changes"] as string[];
@@ -199,12 +199,10 @@ export class HuggingFaceDeployer {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
-    const tmpDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-hf-")
-    );
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-hf-"));
 
     try {
       await this.stateManager.updateDeploymentStatus(
@@ -242,15 +240,13 @@ export class HuggingFaceDeployer {
       // 4. Write README.md with Space metadata
       results.steps.push("Writing Space metadata (README.md)...");
       const readme = generateSpaceReadme(this.deployment);
-      await fs.writeFile(
-        path.join(repoDir, "README.md"),
-        readme,
-        "utf-8"
-      );
+      await fs.writeFile(path.join(repoDir, "README.md"), readme, "utf-8");
 
       // 5. Git commit and push
       results.steps.push("Committing and pushing to HuggingFace...");
-      await git(["config", "user.email", "deploy@nodetool.ai"], { cwd: repoDir });
+      await git(["config", "user.email", "deploy@nodetool.ai"], {
+        cwd: repoDir
+      });
       await git(["config", "user.name", "NodeTool Deploy"], { cwd: repoDir });
       await git(["add", "-A"], { cwd: repoDir });
 
@@ -260,13 +256,12 @@ export class HuggingFaceDeployer {
         results.steps.push("No changes detected, skipping commit");
       } catch {
         // diff --quiet exits non-zero when there are changes
-        await git(
-          ["commit", "-m", "Deploy NodeTool via nodetool deploy"],
-          { cwd: repoDir }
-        );
+        await git(["commit", "-m", "Deploy NodeTool via nodetool deploy"], {
+          cwd: repoDir
+        });
         await git([...authArgs, "push", "origin", "main"], {
           cwd: repoDir,
-          timeout: 120_000,
+          timeout: 120_000
         });
         results.steps.push("Pushed to HuggingFace Space");
       }
@@ -279,7 +274,7 @@ export class HuggingFaceDeployer {
       await this.stateManager.writeState(this.deploymentName, {
         status: DeploymentStatus.SERVING,
         repo: this.deployment.repo,
-        space_url: `https://huggingface.co/spaces/${this.deployment.repo}`,
+        space_url: `https://huggingface.co/spaces/${this.deployment.repo}`
       });
     } catch (e) {
       results.status = "error";
@@ -311,7 +306,7 @@ export class HuggingFaceDeployer {
       deployment_name: this.deploymentName,
       status: "success",
       steps: [],
-      errors: [],
+      errors: []
     };
 
     try {
@@ -325,7 +320,7 @@ export class HuggingFaceDeployer {
         this.deployment.repo,
         "--type",
         "space",
-        "--yes",
+        "--yes"
       ]);
 
       results.steps.push("Space deleted successfully");
@@ -355,7 +350,7 @@ export class HuggingFaceDeployer {
       deployment_name: this.deploymentName,
       type: "huggingface",
       repo: this.deployment.repo,
-      space_url: `https://huggingface.co/spaces/${this.deployment.repo}`,
+      space_url: `https://huggingface.co/spaces/${this.deployment.repo}`
     };
 
     // Get state from state manager
@@ -372,7 +367,7 @@ export class HuggingFaceDeployer {
         "info",
         this.deployment.repo,
         "--type",
-        "space",
+        "space"
       ]);
       statusInfo["live_status"] = output.trim();
     } catch (e) {
@@ -419,7 +414,7 @@ export class HuggingFaceDeployer {
         "space",
         "--space_sdk",
         "docker",
-        "--yes",
+        "--yes"
       ]);
       results.steps.push(`Created HuggingFace Space: ${this.deployment.repo}`);
     } catch (e) {

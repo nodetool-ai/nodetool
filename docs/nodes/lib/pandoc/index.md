@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.pandoc Nodes"
+title: "lib.convert.pandoc Nodes"
 ---
 
 

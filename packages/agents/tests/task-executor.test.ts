@@ -19,11 +19,15 @@ function createMockProvider(delayMs = 0) {
       yield {
         id: "tc_1",
         name: "finish_step",
-        args: { result: { done: true } },
+        args: { result: { done: true } }
       };
     },
-    async *generateMessagesTraced(...args: any[]) { yield* (this as any).generateMessages(...args); },
-    async generateMessageTraced(...args: any[]) { return (this as any).generateMessage(...args); },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
+    },
     generateMessage: vi.fn(),
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
     getAvailableImageModels: vi.fn().mockResolvedValue([]),
@@ -39,7 +43,7 @@ function createMockProvider(delayMs = 0) {
     textToVideo: vi.fn(),
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
-    isContextLengthError: () => false,
+    isContextLengthError: () => false
   } as any;
 }
 
@@ -55,7 +59,7 @@ function createMockContext() {
     }),
     set: vi.fn(),
     get: vi.fn(),
-    _store: store,
+    _store: store
   } as any;
 }
 
@@ -67,9 +71,9 @@ function makeStep(id: string, dependsOn: string[] = []): Step {
     dependsOn,
     outputSchema: JSON.stringify({
       type: "object",
-      properties: { done: { type: "boolean" } },
+      properties: { done: { type: "boolean" } }
     }),
-    logs: [],
+    logs: []
   };
 }
 
@@ -83,7 +87,7 @@ describe("TaskExecutor", () => {
       model: "test-model",
       context: createMockContext(),
       tools: [],
-      task,
+      task
     });
 
     const messages: ProcessingMessage[] = [];
@@ -108,9 +112,9 @@ describe("TaskExecutor", () => {
         yield {
           id: "tc_1",
           name: "finish_step",
-          args: { result: { done: true } },
+          args: { result: { done: true } }
         };
-      },
+      }
     } as any;
 
     const context = createMockContext();
@@ -126,7 +130,7 @@ describe("TaskExecutor", () => {
       model: "test-model",
       context,
       tools: [],
-      task,
+      task
     });
 
     for await (const _msg of executor.executeTasks()) {
@@ -160,7 +164,7 @@ describe("TaskExecutor", () => {
       model: "test-model",
       context,
       tools: [],
-      task,
+      task
     });
 
     for await (const _msg of executor.executeTasks()) {
@@ -196,7 +200,7 @@ describe("TaskExecutor", () => {
       model: "test-model",
       context,
       tools: [],
-      task,
+      task
     });
 
     for await (const _msg of executor.executeTasks()) {
@@ -230,9 +234,9 @@ describe("TaskExecutor", () => {
         yield {
           id: "tc_1",
           name: "finish_step",
-          args: { result: { done: true } },
+          args: { result: { done: true } }
         };
-      },
+      }
     } as any;
 
     const context = createMockContext();
@@ -243,7 +247,7 @@ describe("TaskExecutor", () => {
       context,
       tools: [],
       task,
-      parallelExecution: true,
+      parallelExecution: true
     });
 
     const messages: ProcessingMessage[] = [];
@@ -270,7 +274,7 @@ describe("TaskExecutor", () => {
       model: "test-model",
       context: createMockContext(),
       tools: [],
-      task,
+      task
     });
 
     const messages: ProcessingMessage[] = [];
@@ -280,7 +284,9 @@ describe("TaskExecutor", () => {
 
     expect(s1.completed).toBe(false);
     const chunks = messages.filter((m) => m.type === "chunk");
-    expect(chunks.some((c) => (c as any).content.includes("dependency issues"))).toBe(true);
+    expect(
+      chunks.some((c) => (c as any).content.includes("dependency issues"))
+    ).toBe(true);
   });
 
   it("seeds inputs into context", async () => {
@@ -294,7 +300,7 @@ describe("TaskExecutor", () => {
       context,
       tools: [],
       task,
-      inputs: { myKey: "myValue" },
+      inputs: { myKey: "myValue" }
     });
 
     for await (const _msg of executor.executeTasks()) {
@@ -314,9 +320,9 @@ describe("TaskExecutor", () => {
       outputSchema: JSON.stringify({
         type: "object",
         properties: { answer: { type: "string" } },
-        required: ["answer"],
+        required: ["answer"]
       }),
-      logs: [],
+      logs: []
     };
     const task: Task = { id: "t1", title: "Test", steps: [s1] };
 
@@ -324,8 +330,12 @@ describe("TaskExecutor", () => {
     const provider = {
       ...createMockProvider(),
       generateMessages: async function* () {
-        yield { type: "chunk" as const, content: "Still thinking...", done: false };
-      },
+        yield {
+          type: "chunk" as const,
+          content: "Still thinking...",
+          done: false
+        };
+      }
     } as any;
 
     const executor = new TaskExecutor({
@@ -335,7 +345,7 @@ describe("TaskExecutor", () => {
       tools: [],
       task,
       maxSteps: 2,
-      maxStepIterations: 1,
+      maxStepIterations: 1
     });
 
     const messages: ProcessingMessage[] = [];
@@ -367,7 +377,7 @@ describe("TaskExecutor", () => {
       context,
       tools: [],
       task,
-      finalStepId: "s1",
+      finalStepId: "s1"
     });
 
     for await (const _msg of executor.executeTasks()) {

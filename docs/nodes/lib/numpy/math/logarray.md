@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Log Array"
-node_type: "lib.numpy.math.LogArray"
-namespace: "lib.numpy.math"
+node_type: "lib.array.math.LogArray"
+namespace: "lib.array.math"
 ---
 
-**Type:** `lib.numpy.math.LogArray`
+**Type:** `lib.array.math.LogArray`
 
-**Namespace:** `lib.numpy.math`
+**Namespace:** `lib.array.math`
 
 ## Description
 
@@ -35,5 +35,5 @@ Calculate the natural logarithm of each element in a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.math](../) namespace.
+Browse other nodes in the [lib.array.math](../) namespace.
 

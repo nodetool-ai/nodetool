@@ -8,7 +8,14 @@
  * encryption keys via PBKDF2-SHA256 with 100,000 iterations.
  */
 
-import { randomBytes, pbkdf2Sync, createCipheriv, createDecipheriv, createHmac, timingSafeEqual } from "node:crypto";
+import {
+  randomBytes,
+  pbkdf2Sync,
+  createCipheriv,
+  createDecipheriv,
+  createHmac,
+  timingSafeEqual
+} from "node:crypto";
 import { createLogger } from "@nodetool/config";
 
 const log = createLogger("nodetool.security.crypto");
@@ -55,14 +62,18 @@ export function deriveKey(masterKey: string, userId: string): Buffer {
  * @param plaintext - The plaintext string to encrypt.
  * @returns The encrypted value as a base64-encoded string.
  */
-export function encrypt(masterKey: string, userId: string, plaintext: string): string {
+export function encrypt(
+  masterKey: string,
+  userId: string,
+  plaintext: string
+): string {
   const key = deriveKey(masterKey, userId);
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
 
   const encrypted = Buffer.concat([
     cipher.update(plaintext, "utf-8"),
-    cipher.final(),
+    cipher.final()
   ]);
   const authTag = cipher.getAuthTag();
 
@@ -80,7 +91,11 @@ export function encrypt(masterKey: string, userId: string, plaintext: string): s
  * @returns The decrypted plaintext string.
  * @throws {Error} If the master key is incorrect or the data is corrupted.
  */
-export function decrypt(masterKey: string, userId: string, encryptedValue: string): string {
+export function decrypt(
+  masterKey: string,
+  userId: string,
+  encryptedValue: string
+): string {
   const key = deriveKey(masterKey, userId);
   const packed = Buffer.from(encryptedValue, "base64");
 
@@ -90,7 +105,10 @@ export function decrypt(masterKey: string, userId: string, encryptedValue: strin
 
   const iv = packed.subarray(0, IV_LENGTH);
   const authTag = packed.subarray(packed.length - AUTH_TAG_LENGTH);
-  const ciphertext = packed.subarray(IV_LENGTH, packed.length - AUTH_TAG_LENGTH);
+  const ciphertext = packed.subarray(
+    IV_LENGTH,
+    packed.length - AUTH_TAG_LENGTH
+  );
 
   try {
     const decipher = createDecipheriv("aes-256-gcm", key, iv);
@@ -98,11 +116,13 @@ export function decrypt(masterKey: string, userId: string, encryptedValue: strin
 
     const decrypted = Buffer.concat([
       decipher.update(ciphertext),
-      decipher.final(),
+      decipher.final()
     ]);
     return decrypted.toString("utf-8");
   } catch (err) {
-    log.debug("AES-GCM decryption failed (may fall back to Fernet)", { error: String(err) });
+    log.debug("AES-GCM decryption failed (may fall back to Fernet)", {
+      error: String(err)
+    });
     throw new Error("Failed to decrypt secret");
   }
 }
@@ -117,11 +137,21 @@ export function decrypt(masterKey: string, userId: string, encryptedValue: strin
  * @param userId - The user ID used as PBKDF2 salt.
  * @param encryptedValue - The Fernet token (base64url encoded).
  */
-export function decryptFernet(masterKey: string, userId: string, encryptedValue: string): string {
+export function decryptFernet(
+  masterKey: string,
+  userId: string,
+  encryptedValue: string
+): string {
   // Python uses master_key.encode() — the UTF-8 bytes of the base64 string itself as PBKDF2 password
   const masterKeyBytes = Buffer.from(masterKey, "utf-8");
   const salt = Buffer.from(userId, "utf-8");
-  const derived = pbkdf2Sync(masterKeyBytes, salt, PBKDF2_ITERATIONS, 32, "sha256");
+  const derived = pbkdf2Sync(
+    masterKeyBytes,
+    salt,
+    PBKDF2_ITERATIONS,
+    32,
+    "sha256"
+  );
 
   // Fernet splits the 32-byte derived key: first 16 = HMAC key, last 16 = AES-128 key
   const hmacKey = derived.subarray(0, 16);
@@ -129,7 +159,10 @@ export function decryptFernet(masterKey: string, userId: string, encryptedValue:
 
   // Decode Fernet token from base64url
   const b64token = encryptedValue.replace(/-/g, "+").replace(/_/g, "/");
-  const token = Buffer.from(b64token + "=".repeat((4 - (b64token.length % 4)) % 4), "base64");
+  const token = Buffer.from(
+    b64token + "=".repeat((4 - (b64token.length % 4)) % 4),
+    "base64"
+  );
 
   // Token layout: version(1) + timestamp(8) + iv(16) + ciphertext(N) + hmac(32)
   if (token.length < 1 + 8 + 16 + 32) {
@@ -141,7 +174,7 @@ export function decryptFernet(masterKey: string, userId: string, encryptedValue:
 
   const body = token.subarray(0, token.length - 32);
   const tokenHmac = token.subarray(token.length - 32);
-  const iv = body.subarray(9, 25);         // 1 + 8 = 9
+  const iv = body.subarray(9, 25); // 1 + 8 = 9
   const ciphertext = body.subarray(25);
 
   // Verify HMAC-SHA256
@@ -152,7 +185,10 @@ export function decryptFernet(masterKey: string, userId: string, encryptedValue:
 
   // Decrypt AES-128-CBC and strip PKCS7 padding
   const decipher = createDecipheriv("aes-128-cbc", aesKey, iv);
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  const decrypted = Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final()
+  ]);
   return decrypted.toString("utf-8");
 }
 
@@ -166,10 +202,20 @@ export function decryptFernet(masterKey: string, userId: string, encryptedValue:
  * @param userId - The user ID used as PBKDF2 salt.
  * @param plaintext - The plaintext to encrypt.
  */
-export function encryptFernet(masterKey: string, userId: string, plaintext: string): string {
+export function encryptFernet(
+  masterKey: string,
+  userId: string,
+  plaintext: string
+): string {
   const masterKeyBytes = Buffer.from(masterKey, "utf-8");
   const salt = Buffer.from(userId, "utf-8");
-  const derived = pbkdf2Sync(masterKeyBytes, salt, PBKDF2_ITERATIONS, 32, "sha256");
+  const derived = pbkdf2Sync(
+    masterKeyBytes,
+    salt,
+    PBKDF2_ITERATIONS,
+    32,
+    "sha256"
+  );
 
   const hmacKey = derived.subarray(0, 16);
   const aesKey = derived.subarray(16, 32);
@@ -190,14 +236,23 @@ export function encryptFernet(masterKey: string, userId: string, plaintext: stri
   const ciphertext = Buffer.concat([cipher.update(padded), cipher.final()]);
 
   // Build body: version(1) + timestamp(8) + iv(16) + ciphertext
-  const body = Buffer.concat([Buffer.from([FERNET_VERSION]), tsBuf, iv, ciphertext]);
+  const body = Buffer.concat([
+    Buffer.from([FERNET_VERSION]),
+    tsBuf,
+    iv,
+    ciphertext
+  ]);
 
   // HMAC-SHA256 over body
   const hmac = createHmac("sha256", hmacKey).update(body).digest();
 
   const token = Buffer.concat([body, hmac]);
   // Encode as base64url (no padding)
-  return token.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+  return token
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 }
 
 /**

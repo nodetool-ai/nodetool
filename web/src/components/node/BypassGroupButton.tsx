@@ -70,7 +70,7 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
   const shortcutStyles = useMemo(
     () => ({
       fontSize: ".85em",
-      color: "rgba(255,255,255,0.7)",
+      color: theme.vars.palette.text.secondary,
     }),
     []
   );

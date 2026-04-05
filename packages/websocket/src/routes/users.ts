@@ -3,7 +3,9 @@ import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
 import { handleUsersRequest } from "../users-api.js";
 
-interface RouteOptions { apiOptions: HttpApiOptions }
+interface RouteOptions {
+  apiOptions: HttpApiOptions;
+}
 
 const usersRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;
@@ -11,9 +13,13 @@ const usersRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.all("/api/users", async (req, reply) => {
     await bridge(req, reply, async (request) => {
       const res = await handleUsersRequest(request, "/api/users", apiOptions);
-      return res ?? new Response(JSON.stringify({ detail: "Not found" }), {
-        status: 404, headers: { "content-type": "application/json" },
-      });
+      return (
+        res ??
+        new Response(JSON.stringify({ detail: "Not found" }), {
+          status: 404,
+          headers: { "content-type": "application/json" }
+        })
+      );
     });
   });
 
@@ -21,9 +27,13 @@ const usersRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     const url = new URL(req.url, "http://localhost");
     await bridge(req, reply, async (request) => {
       const res = await handleUsersRequest(request, url.pathname, apiOptions);
-      return res ?? new Response(JSON.stringify({ detail: "Not found" }), {
-        status: 404, headers: { "content-type": "application/json" },
-      });
+      return (
+        res ??
+        new Response(JSON.stringify({ detail: "Not found" }), {
+          status: 404,
+          headers: { "content-type": "application/json" }
+        })
+      );
     });
   });
 };

@@ -5,7 +5,13 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import type { NodeDescriptor, Edge, NodeUpdate, JobUpdate, EdgeUpdate } from "@nodetool/protocol";
+import type {
+  NodeDescriptor,
+  Edge,
+  NodeUpdate,
+  JobUpdate,
+  EdgeUpdate
+} from "@nodetool/protocol";
 import { WorkflowRunner } from "../../src/runner.js";
 import { GraphValidationError } from "../../src/graph.js";
 import {
@@ -20,7 +26,7 @@ import {
   ErrorNode,
   SlowNode,
   Constant,
-  ConditionalErrorProcessor,
+  ConditionalErrorProcessor
 } from "./helpers.js";
 
 // ---------------------------------------------------------------------------
@@ -38,13 +44,13 @@ describe("RUNNER-001: 5-node linear chain", () => {
       nd("add1", Add.nodeType, {}, { b: 5 }),
       nd("mul", Multiply.nodeType, {}, { b: 2 }),
       nd("add2", Add.nodeType, {}, { b: 1 }),
-      nd("sink", Passthrough.nodeType, { name: "result" }),
+      nd("sink", Passthrough.nodeType, { name: "result" })
     ];
     const edges: Edge[] = [
       de("in", "value", "add1", "a"),
       de("add1", "result", "mul", "a"),
       de("mul", "result", "add2", "a"),
-      de("add2", "result", "sink", "value"),
+      de("add2", "result", "sink", "value")
     ];
 
     // x=4 → +5=9 → *2=18 → +1=19
@@ -64,12 +70,18 @@ describe("RUNNER-001: 5-node linear chain", () => {
 
 describe("RUNNER-002: Dangling edges are silently filtered (Python parity)", () => {
   it("run() silently removes dangling edges and completes", async () => {
-    const runner = new WorkflowRunner("test", { resolveExecutor: () => ({ async process() { return {}; } }) });
+    const runner = new WorkflowRunner("test", {
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      })
+    });
     const result = await runner.run(
       { job_id: "runner-002" },
       {
         nodes: [nd("a", "test.A")],
-        edges: [de("missing", "out", "a", "in")],
+        edges: [de("missing", "out", "a", "in")]
       }
     );
     // Python parity: _filterInvalidEdges removes dangling edge before validation
@@ -86,9 +98,13 @@ describe("RUNNER-003: initialize() hook called during graph init", () => {
     const initCalls: string[] = [];
     const runner = new WorkflowRunner("test", {
       resolveExecutor: (node) => ({
-        async initialize() { initCalls.push(node.id); },
-        async process() { return { value: 1 }; },
-      }),
+        async initialize() {
+          initCalls.push(node.id);
+        },
+        async process() {
+          return { value: 1 };
+        }
+      })
     });
 
     const nodes: NodeDescriptor[] = [nd("n1", "test.Node", { name: "out" })];
@@ -111,9 +127,13 @@ describe("RUNNER-004: finalize() hook called after node completes", () => {
     const finCalls: string[] = [];
     const runner = new WorkflowRunner("test", {
       resolveExecutor: (node) => ({
-        async finalize() { finCalls.push(node.id); },
-        async process() { return { value: 1 }; },
-      }),
+        async finalize() {
+          finCalls.push(node.id);
+        },
+        async process() {
+          return { value: 1 };
+        }
+      })
     });
 
     const nodes: NodeDescriptor[] = [nd("n1", "test.Node", { name: "out" })];
@@ -134,7 +154,7 @@ describe("RUNNER-007: Input node receives param and dispatches to downstream", (
 
     const nodes: NodeDescriptor[] = [
       inp("src", "my_input"),
-      nd("sink", Passthrough.nodeType, { name: "result" }),
+      nd("sink", Passthrough.nodeType, { name: "result" })
     ];
     const edges: Edge[] = [de("src", "value", "sink", "value")];
 
@@ -159,7 +179,7 @@ describe("RUNNER-008: Input node with no param and explicit finishInputStream", 
 
     const nodes: NodeDescriptor[] = [
       inp("src", "stream_val"),
-      nd("sink", Passthrough.nodeType, { name: "result" }),
+      nd("sink", Passthrough.nodeType, { name: "result" })
     ];
     const edges: Edge[] = [de("src", "value", "sink", "value")];
 
@@ -191,11 +211,11 @@ describe("RUNNER-009: Multiple input nodes dispatch their params", () => {
     const nodes: NodeDescriptor[] = [
       inp("ia", "left"),
       inp("ib", "right"),
-      nd("add", Add.nodeType, { name: "result" }),
+      nd("add", Add.nodeType, { name: "result" })
     ];
     const edges: Edge[] = [
       de("ia", "value", "add", "a"),
-      de("ib", "value", "add", "b"),
+      de("ib", "value", "add", "b")
     ];
 
     const result = await runner.run(
@@ -219,7 +239,7 @@ describe("RUNNER-015: Output node (sink) captures result in outputs map", () => 
 
     const nodes: NodeDescriptor[] = [
       inp("src", "val"),
-      nd("out_node", Passthrough.nodeType, { name: "my_output" }),
+      nd("out_node", Passthrough.nodeType, { name: "my_output" })
     ];
     const edges: Edge[] = [de("src", "value", "out_node", "value")];
 
@@ -245,11 +265,11 @@ describe("RUNNER-016: Multiple output nodes all capture their results", () => {
     const nodes: NodeDescriptor[] = [
       inp("src", "val"),
       nd("sink1", Passthrough.nodeType, { name: "out1" }),
-      nd("sink2", Passthrough.nodeType, { name: "out2" }),
+      nd("sink2", Passthrough.nodeType, { name: "out2" })
     ];
     const edges: Edge[] = [
       de("src", "value", "sink1", "value"),
-      de("src", "value", "sink2", "value"),
+      de("src", "value", "sink2", "value")
     ];
 
     const result = await runner.run(
@@ -274,12 +294,17 @@ describe("RUNNER-019: Streaming output node propagates streaming flag downstream
     // Constant source → StreamingCounter → Passthrough sink
     const nodes: NodeDescriptor[] = [
       inp("trig", "trig"),
-      nd("sc", "nodetool.test.StreamingCounter", { is_streaming_output: true }, { count: 4, start: 0 }),
-      nd("sink", Passthrough.nodeType, { name: "values" }),
+      nd(
+        "sc",
+        "nodetool.test.StreamingCounter",
+        { is_streaming_output: true },
+        { count: 4, start: 0 }
+      ),
+      nd("sink", Passthrough.nodeType, { name: "values" })
     ];
     const edges: Edge[] = [
       de("trig", "value", "sc", "start"),
-      de("sc", "value", "sink", "value", "e1"),
+      de("sc", "value", "sink", "value", "e1")
     ];
 
     const result = await runner.run(
@@ -310,7 +335,7 @@ describe("RUNNER-032: Node error captured in messages", () => {
 
     const nodes: NodeDescriptor[] = [
       inp("in", "val"),
-      nd("err", ErrorNode.nodeType, {}, { message: "boom" }),
+      nd("err", ErrorNode.nodeType, {}, { message: "boom" })
     ];
     const edges: Edge[] = [de("in", "value", "err", "value")];
 
@@ -340,13 +365,13 @@ describe("RUNNER-034: Cancellation produces cancelled status", () => {
         async process() {
           await new Promise((r) => setTimeout(r, 500));
           return { result: 1 };
-        },
-      }),
+        }
+      })
     });
 
     const nodes: NodeDescriptor[] = [
       inp("in", "x"),
-      nd("slow", SlowNode.nodeType),
+      nd("slow", SlowNode.nodeType)
     ];
     const edges: Edge[] = [de("in", "value", "slow", "delayMs")];
 
@@ -369,18 +394,26 @@ describe("RUNNER-034: Cancellation produces cancelled status", () => {
 describe("RUNNER-038: ExecutionContext.emit receives all messages", () => {
   it("all processing messages are forwarded to context.emit", async () => {
     const emitted: unknown[] = [];
-    const ctx = { emit: vi.fn((m: unknown) => emitted.push(m)) } as unknown as import("@nodetool/runtime").ProcessingContext;
+    const ctx = {
+      emit: vi.fn((m: unknown) => emitted.push(m))
+    } as unknown as import("@nodetool/runtime").ProcessingContext;
 
     const runner = new WorkflowRunner("test", {
-      resolveExecutor: () => ({ async process() { return { value: 42 }; } }),
-      executionContext: ctx,
+      resolveExecutor: () => ({
+        async process() {
+          return { value: 42 };
+        }
+      }),
+      executionContext: ctx
     });
 
     const nodes: NodeDescriptor[] = [nd("n1", "test.N", { name: "out" })];
     await runner.run({ job_id: "runner-038" }, { nodes, edges: [] });
 
     expect(ctx.emit).toHaveBeenCalled();
-    const jobUpdates = emitted.filter((m) => (m as { type: string }).type === "job_update");
+    const jobUpdates = emitted.filter(
+      (m) => (m as { type: string }).type === "job_update"
+    );
     expect(jobUpdates.length).toBeGreaterThanOrEqual(2); // running + completed
   });
 });
@@ -396,11 +429,14 @@ describe("RUNNER-043: pushInputValue routes to downstream inbox", () => {
 
     const nodes: NodeDescriptor[] = [
       inp("stream_in", "stream_in"),
-      nd("sink", Passthrough.nodeType, { name: "result" }),
+      nd("sink", Passthrough.nodeType, { name: "result" })
     ];
     const edges: Edge[] = [de("stream_in", "value", "sink", "value")];
 
-    const runPromise = runner.run({ job_id: "runner-043", params: {} }, { nodes, edges });
+    const runPromise = runner.run(
+      { job_id: "runner-043", params: {} },
+      { nodes, edges }
+    );
 
     // Slight delay then push a value
     await new Promise((r) => setTimeout(r, 10));
@@ -420,10 +456,16 @@ describe("RUNNER-043: pushInputValue routes to downstream inbox", () => {
 describe("RUNNER-044: pushInputValue before run() throws", () => {
   it("pushInputValue on unstarted runner throws an error", async () => {
     const runner = new WorkflowRunner("test", {
-      resolveExecutor: () => ({ async process() { return {}; } }),
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      })
     });
 
-    await expect(runner.pushInputValue("x", 1)).rejects.toThrow("not been started");
+    await expect(runner.pushInputValue("x", 1)).rejects.toThrow(
+      "not been started"
+    );
   });
 });
 
@@ -434,7 +476,11 @@ describe("RUNNER-044: pushInputValue before run() throws", () => {
 describe("RUNNER-045: finishInputStream before run() throws", () => {
   it("finishInputStream on unstarted runner throws an error", () => {
     const runner = new WorkflowRunner("test", {
-      resolveExecutor: () => ({ async process() { return {}; } }),
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      })
     });
 
     expect(() => runner.finishInputStream("x")).toThrow("not been started");
@@ -452,7 +498,7 @@ describe("RUNNER-046: Non-input source node executes as actor", () => {
 
     const nodes: NodeDescriptor[] = [
       nd("const", Constant.nodeType, {}, { value: "hello" }),
-      nd("sink", Passthrough.nodeType, { name: "result" }),
+      nd("sink", Passthrough.nodeType, { name: "result" })
     ];
     const edges: Edge[] = [de("const", "value", "sink", "value")];
 

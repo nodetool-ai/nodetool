@@ -69,7 +69,8 @@ export class TaskExecutor {
     this.inputs = opts.inputs ?? {};
     this.systemPrompt = opts.systemPrompt;
     this.maxSteps = opts.maxSteps ?? DEFAULT_MAX_STEPS;
-    this.maxStepIterations = opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
+    this.maxStepIterations =
+      opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
     this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.finalStepId = opts.finalStepId;
     this.parallelExecution = opts.parallelExecution ?? false;
@@ -86,10 +87,16 @@ export class TaskExecutor {
     }
 
     // Auto-detect finish step (last step) like Python does
-    this._finishStepId = this.finalStepId ??
-      (this.task.steps.length > 0 ? this.task.steps[this.task.steps.length - 1].id : undefined);
+    this._finishStepId =
+      this.finalStepId ??
+      (this.task.steps.length > 0
+        ? this.task.steps[this.task.steps.length - 1].id
+        : undefined);
 
-    log.info("Task execution started", { title: this.task.title, steps: this.task.steps.length });
+    log.info("Task execution started", {
+      title: this.task.title,
+      steps: this.task.steps.length
+    });
 
     let stepsTaken = 0;
 
@@ -103,14 +110,17 @@ export class TaskExecutor {
         if (!this.allTasksComplete()) {
           yield {
             type: "chunk",
-            content: "\nNo executable steps but not all complete. Possible dependency issues.\n",
-            done: false,
+            content:
+              "\nNo executable steps but not all complete. Possible dependency issues.\n",
+            done: false
           } satisfies Chunk;
         }
         break;
       }
 
-      log.debug("Dispatching steps", { stepIds: executableSteps.map((s) => s.id) });
+      log.debug("Dispatching steps", {
+        stepIds: executableSteps.map((s) => s.id)
+      });
 
       // Separate process-mode steps from normal steps
       const processSteps = executableSteps.filter((s) => s.mode === "process");
@@ -133,7 +143,7 @@ export class TaskExecutor {
           systemPrompt: this.systemPrompt,
           maxTokenLimit: this.maxTokenLimit,
           maxIterations: this.maxStepIterations,
-          useFinishTask: this.isFinishStep(step),
+          useFinishTask: this.isFinishStep(step)
         });
         return executor.execute();
       });
@@ -174,10 +184,14 @@ export class TaskExecutor {
    * Creates ephemeral steps for each item in the discover step's result
    * and aggregates the outputs into a list stored in context.
    */
-  private async *handleProcessStep(step: Step): AsyncGenerator<ProcessingMessage> {
+  private async *handleProcessStep(
+    step: Step
+  ): AsyncGenerator<ProcessingMessage> {
     const discoverStepId = step.dependsOn[0];
     if (!discoverStepId) {
-      log.warn("Process step has no dependencies, skipping fan-out", { stepId: step.id });
+      log.warn("Process step has no dependencies, skipping fan-out", {
+        stepId: step.id
+      });
       step.completed = true;
       return;
     }
@@ -185,7 +199,7 @@ export class TaskExecutor {
     let discoverResult = this.context.get(discoverStepId);
     if (discoverResult === undefined || discoverResult === null) {
       log.warn("Discover step result is null/undefined, skipping fan-out", {
-        stepId: step.id,
+        stepId: step.id
       });
       step.completed = true;
       this.context.set(step.id, []);
@@ -193,10 +207,13 @@ export class TaskExecutor {
       return;
     }
     if (!Array.isArray(discoverResult)) {
-      log.warn("Discover step result is not an array, wrapping as single-item list", {
-        stepId: step.id,
-        resultType: typeof discoverResult,
-      });
+      log.warn(
+        "Discover step result is not an array, wrapping as single-item list",
+        {
+          stepId: step.id,
+          resultType: typeof discoverResult
+        }
+      );
       discoverResult = [discoverResult];
     }
 
@@ -204,16 +221,21 @@ export class TaskExecutor {
     const template = step.perItemInstructions ?? step.instructions;
     const perItemSchema = step.perItemSchema;
 
-    log.info("Fan-out processing", { stepId: step.id, itemCount: items.length });
+    log.info("Fan-out processing", {
+      stepId: step.id,
+      itemCount: items.length
+    });
 
     // Create ephemeral steps for each item
     const ephemeralSteps: Step[] = items.map((item) => {
       let instructions = template;
       if (typeof item === "object" && item !== null) {
-        for (const [key, value] of Object.entries(item as Record<string, unknown>)) {
+        for (const [key, value] of Object.entries(
+          item as Record<string, unknown>
+        )) {
           instructions = instructions.replace(
             new RegExp(`\\{${key}\\}`, "g"),
-            String(value),
+            String(value)
           );
         }
       } else {
@@ -227,7 +249,7 @@ export class TaskExecutor {
         completed: false,
         dependsOn: [],
         logs: [],
-        outputSchema: perItemSchema ?? step.outputSchema,
+        outputSchema: perItemSchema ?? step.outputSchema
       } as Step;
     });
 
@@ -243,7 +265,7 @@ export class TaskExecutor {
         systemPrompt: this.systemPrompt,
         maxTokenLimit: this.maxTokenLimit,
         maxIterations: this.maxStepIterations,
-        useFinishTask: false,
+        useFinishTask: false
       });
       return executor.execute();
     });
@@ -274,7 +296,10 @@ export class TaskExecutor {
     step.completed = true;
     step.endTime = Date.now();
 
-    log.info("Fan-out complete", { stepId: step.id, resultCount: results.length });
+    log.info("Fan-out complete", {
+      stepId: step.id,
+      resultCount: results.length
+    });
   }
 
   /**
@@ -289,7 +314,7 @@ export class TaskExecutor {
    */
   private getExecutableSteps(): Step[] {
     const completedIds = new Set(
-      this.task.steps.filter((s) => s.completed).map((s) => s.id),
+      this.task.steps.filter((s) => s.completed).map((s) => s.id)
     );
     // Also count inputs as satisfied dependencies
     for (const key of Object.keys(this.inputs)) {
@@ -300,7 +325,7 @@ export class TaskExecutor {
       (step) =>
         !step.completed &&
         !this.isStepRunning(step) &&
-        step.dependsOn.every((dep) => completedIds.has(dep)),
+        step.dependsOn.every((dep) => completedIds.has(dep))
     );
   }
 
@@ -319,7 +344,10 @@ export class TaskExecutor {
     if (this._finishStepId) {
       return step.id === this._finishStepId;
     }
-    return this.task.steps.length > 0 && step === this.task.steps[this.task.steps.length - 1];
+    return (
+      this.task.steps.length > 0 &&
+      step === this.task.steps[this.task.steps.length - 1]
+    );
   }
 
   /**
@@ -329,11 +357,13 @@ export class TaskExecutor {
   private maybeDeferFinishStep(executableSteps: Step[]): Step[] {
     if (!this._finishStepId) return executableSteps;
 
-    const finishReady = executableSteps.some((s) => s.id === this._finishStepId);
+    const finishReady = executableSteps.some(
+      (s) => s.id === this._finishStepId
+    );
     if (!finishReady) return executableSteps;
 
     const otherPending = this.task.steps.some(
-      (s) => !s.completed && s.id !== this._finishStepId,
+      (s) => !s.completed && s.id !== this._finishStepId
     );
     if (!otherPending) return executableSteps;
 
@@ -346,7 +376,7 @@ export class TaskExecutor {
 // ---------------------------------------------------------------------------
 
 async function* mergeAsyncGenerators<T>(
-  generators: AsyncGenerator<T>[],
+  generators: AsyncGenerator<T>[]
 ): AsyncGenerator<T> {
   // Channel: a queue of resolved values with a promise-based pull mechanism
   const queue: T[] = [];
@@ -384,7 +414,9 @@ async function* mergeAsyncGenerators<T>(
     } else if (activeCount > 0) {
       // Set resolve BEFORE checking queue again to avoid race condition
       // where an item is pushed between the check and the await.
-      const waitPromise = new Promise<void>((r) => { resolve = r; });
+      const waitPromise = new Promise<void>((r) => {
+        resolve = r;
+      });
       // Re-check after setting resolve — item may have arrived between
       // the outer check and setting resolve.
       if (queue.length > 0) {
