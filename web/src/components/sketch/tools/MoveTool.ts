@@ -149,10 +149,7 @@ export class MoveTool implements ToolHandler {
         moveTargetLayer = dup;
       }
     } else if (event.nativeEvent.altKey && ctx.onAutoPickLayer) {
-      // Alt+click: auto-pick the topmost layer with non-transparent pixels.
-      // Uses the shared hitTestLayerAtDocPoint utility which goes through
-      // CoordinateMapper so layers with affine transforms (rotation, scale)
-      // are hit-tested correctly.
+      // Alt+click: auto-pick topmost non-transparent layer (affine-aware)
       for (let i = doc.layers.length - 1; i >= 0; i--) {
         const layer = doc.layers[i];
         const skipForHit =

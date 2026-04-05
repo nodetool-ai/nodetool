@@ -108,18 +108,18 @@ export function hitTestLayerAtDocPoint(
   });
 
   const local = mapper.docToLayer(docPoint);
-  const lx = Math.floor(local.x);
-  const ly = Math.floor(local.y);
+  const localX = Math.floor(local.x);
+  const localY = Math.floor(local.y);
 
   if (
-    lx < 0 ||
-    ly < 0 ||
-    lx >= layerCanvas.width ||
-    ly >= layerCanvas.height
+    localX < 0 ||
+    localY < 0 ||
+    localX >= layerCanvas.width ||
+    localY >= layerCanvas.height
   ) {
     return false;
   }
 
-  const pixel = layerCtx.getImageData(lx, ly, 1, 1).data;
+  const pixel = layerCtx.getImageData(localX, localY, 1, 1).data;
   return pixel[3] >= alphaThreshold;
 }
