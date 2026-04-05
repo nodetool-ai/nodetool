@@ -21,7 +21,7 @@
 - [ ] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag.
 - [ ] fix Fill tool: does not fill whole canvas - leaves some border
 - [ ] Crop tool: add ESC key to cancel current cropping
-- [ ] Move tool: fix gizmo that shows layer extends outside of canvas area. does not match layer bounds currently
+- [ ] Move tool: fix gizmo that shows layer extends outside of canvas area. does not match layer bounds currently. hide the move gizmo when move tool is inactive
 - [x] fix Layer preview: new transparent layer shows black preview. after drawing preview shows up correct with alpha grid
 - [x] all tooltips: add centralised setting for tooltip delay and set to 500ms
 - [x] Sketch node: input handles closer together, same spacing as output handles
@@ -39,7 +39,10 @@
 
 ## PHASE 2.2: Transform Tool features and shortcuts
 
-- [ ] Transform tool should show update while scaling, not only at commit
+before starting this tasks, make a check if we have all necessary architecture in place to make this additions cleanly.
+avoid workarounds and spread out implementation.
+
+- [ ] Transform tool should show updated layer while scaling, moving etc, not only at commit
 - [ ] Transform tool gizmo should adapt to layer size, so if layer is smaller than canvas the gizmo should be small
 - [ ] Transform tool: fix transforming from top and left side, currently scales from opposite side
 - [ ] Transform tool: add options for perspective, skew, etc.

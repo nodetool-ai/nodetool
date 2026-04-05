@@ -205,91 +205,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       drawCheckerboard(ctx, fullW, fullH, this.zoom);
     }
 
-    for (const layer of doc.layers) {
-      if (layer.type === "mask" || layer.type === "group") {
-        continue;
-      }
-      if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {
-        continue;
-      }
-      if (isolatedLayerId && layer.id !== isolatedLayerId) {
-        continue;
-      }
-      const layerCanvas = this.layerCanvases.get(layer.id);
-      if (!layerCanvas) {
-        continue;
-      }
-
-      // Apply non-destructive effects (FX pipeline integration)
-      let drawCanvas = layerCanvas;
-      if (layer.effects.length > 0 && layer.effects.some((e) => e.enabled)) {
-        drawCanvas = this.evaluateLayerEffects(layer.id, layerCanvas, layer.effects).surface;
-      }
-
-      const opacityScale = getAncestorGroupOpacityProduct(
-        doc.layers,
-        layer,
-        isolatedLayerId
-      );
-      const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
-      const compositeOffset = getLayerCompositeOffset(
-        layer,
-        {
-          width: drawCanvas.width,
-          height: drawCanvas.height
-        },
-        layerCanvas
-      );
-
-      if (hasActiveStroke) {
-        let tempCanvas = this.strokeTempCanvas;
-        if (
-          !tempCanvas ||
-          tempCanvas.width !== drawCanvas.width ||
-          tempCanvas.height !== drawCanvas.height
-        ) {
-          tempCanvas = window.document.createElement("canvas");
-          tempCanvas.width = drawCanvas.width;
-          tempCanvas.height = drawCanvas.height;
-          this.strokeTempCanvas = tempCanvas;
-        }
-        const tempCtx = tempCanvas.getContext("2d");
-        if (tempCtx) {
-          tempCtx.setTransform(1, 0, 0, 1, 0, 0);
-          tempCtx.globalAlpha = 1;
-          tempCtx.globalCompositeOperation = "source-over";
-          tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-          tempCtx.drawImage(drawCanvas, 0, 0);
-          tempCtx.save();
-          tempCtx.globalAlpha = activeStroke.opacity;
-          tempCtx.globalCompositeOperation = activeStroke.compositeOp;
-          this.strokeMaskScratchCanvas =
-            drawStrokeBufferForDisplayWithSelectionFeather(
-              tempCtx,
-              activeStroke.buffer,
-              activeStroke.selectionMaskForPreview,
-              this.strokeMaskScratchCanvas
-            );
-          tempCtx.restore();
-
-          ctx.save();
-          ctx.globalAlpha = layer.opacity * opacityScale;
-          ctx.globalCompositeOperation = blendModeToComposite(
-            layer.blendMode || "normal"
-          );
-          this.drawWithTransform(ctx, tempCanvas, compositeOffset, layer);
-          ctx.restore();
-        }
-      } else {
-        ctx.save();
-        ctx.globalAlpha = layer.opacity * opacityScale;
-        ctx.globalCompositeOperation = blendModeToComposite(
-          layer.blendMode || "normal"
-        );
-        this.drawWithTransform(ctx, drawCanvas, compositeOffset, layer);
-        ctx.restore();
-      }
-    }
+    this.renderDocumentCompositeToContext(ctx, doc, isolatedLayerId, activeStroke);
 
     if (useClip) {
       ctx.restore();
@@ -377,6 +293,107 @@ export class Canvas2DRuntime implements SketchRuntime {
     );
     this.drawWithTransform(ctx, drawCanvas, compositeOffset, layer);
     ctx.restore();
+  }
+
+  /**
+   * Render document pixels only: visibility, opacity, blend modes, transforms,
+   * effects, and optional active-stroke preview. This excludes display-only
+   * chrome such as the checkerboard background and canvas border.
+   */
+  private renderDocumentCompositeToContext(
+    ctx: CanvasRenderingContext2D,
+    doc: SketchDocument,
+    isolatedLayerId: string | null | undefined,
+    activeStroke: ActiveStrokeInfo | null
+  ): void {
+    for (const layer of doc.layers) {
+      if (layer.type === "mask" || layer.type === "group") {
+        continue;
+      }
+      if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {
+        continue;
+      }
+      if (isolatedLayerId && layer.id !== isolatedLayerId) {
+        continue;
+      }
+      const layerCanvas = this.layerCanvases.get(layer.id);
+      if (!layerCanvas) {
+        continue;
+      }
+
+      let drawCanvas = layerCanvas;
+      if (layer.effects.length > 0 && layer.effects.some((e) => e.enabled)) {
+        drawCanvas = this.evaluateLayerEffects(
+          layer.id,
+          layerCanvas,
+          layer.effects
+        ).surface;
+      }
+
+      const opacityScale = getAncestorGroupOpacityProduct(
+        doc.layers,
+        layer,
+        isolatedLayerId
+      );
+      const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
+      const compositeOffset = getLayerCompositeOffset(
+        layer,
+        {
+          width: drawCanvas.width,
+          height: drawCanvas.height
+        },
+        layerCanvas
+      );
+
+      if (hasActiveStroke) {
+        let tempCanvas = this.strokeTempCanvas;
+        if (
+          !tempCanvas ||
+          tempCanvas.width !== drawCanvas.width ||
+          tempCanvas.height !== drawCanvas.height
+        ) {
+          tempCanvas = window.document.createElement("canvas");
+          tempCanvas.width = drawCanvas.width;
+          tempCanvas.height = drawCanvas.height;
+          this.strokeTempCanvas = tempCanvas;
+        }
+        const tempCtx = tempCanvas.getContext("2d");
+        if (tempCtx) {
+          tempCtx.setTransform(1, 0, 0, 1, 0, 0);
+          tempCtx.globalAlpha = 1;
+          tempCtx.globalCompositeOperation = "source-over";
+          tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+          tempCtx.drawImage(drawCanvas, 0, 0);
+          tempCtx.save();
+          tempCtx.globalAlpha = activeStroke.opacity;
+          tempCtx.globalCompositeOperation = activeStroke.compositeOp;
+          this.strokeMaskScratchCanvas =
+            drawStrokeBufferForDisplayWithSelectionFeather(
+              tempCtx,
+              activeStroke.buffer,
+              activeStroke.selectionMaskForPreview,
+              this.strokeMaskScratchCanvas
+            );
+          tempCtx.restore();
+
+          ctx.save();
+          ctx.globalAlpha = layer.opacity * opacityScale;
+          ctx.globalCompositeOperation = blendModeToComposite(
+            layer.blendMode || "normal"
+          );
+          this.drawWithTransform(ctx, tempCanvas, compositeOffset, layer);
+          ctx.restore();
+        }
+      } else {
+        ctx.save();
+        ctx.globalAlpha = layer.opacity * opacityScale;
+        ctx.globalCompositeOperation = blendModeToComposite(
+          layer.blendMode || "normal"
+        );
+        this.drawWithTransform(ctx, drawCanvas, compositeOffset, layer);
+        ctx.restore();
+      }
+    }
   }
 
   getLayerData(layerId: string): string | null {
@@ -533,15 +550,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       return "";
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const layer of doc.layers) {
-      if (layer.type === "mask" || layer.type === "group") {
-        continue;
-      }
-      if (!isLayerCompositeVisible(doc.layers, layer, null)) {
-        continue;
-      }
-      this.drawLayerToContext(ctx, doc, layer.id);
-    }
+    this.renderDocumentCompositeToContext(ctx, doc, null, null);
     return canvas.toDataURL("image/png");
   }
 
@@ -573,15 +582,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       return "";
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const layer of doc.layers) {
-      if (layer.type === "mask" || layer.type === "group") {
-        continue;
-      }
-      if (!isLayerCompositeVisible(doc.layers, layer, null)) {
-        continue;
-      }
-      this.drawLayerToContext(ctx, doc, layer.id);
-    }
+    this.renderDocumentCompositeToContext(ctx, doc, null, null);
     return serializeLayerData(canvas.toDataURL("image/png"), {
       x: 0,
       y: 0,
@@ -1399,10 +1400,19 @@ export class Canvas2DRuntime implements SketchRuntime {
       this.readbackCanvas = rb;
     }
 
-    this.compositeToDisplay(rb, doc, isolatedLayerId, activeStroke, null);
+    const drawCtx = rb.getContext("2d", { willReadFrequently: true });
+    if (!drawCtx) {
+      return null;
+    }
+    drawCtx.clearRect(0, 0, cw, ch);
+    this.renderDocumentCompositeToContext(
+      drawCtx,
+      doc,
+      isolatedLayerId,
+      activeStroke
+    );
 
-    const ctx = rb.getContext("2d", { willReadFrequently: true });
-    return ctx ? ctx.getImageData(0, 0, cw, ch) : null;
+    return drawCtx.getImageData(0, 0, cw, ch);
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────

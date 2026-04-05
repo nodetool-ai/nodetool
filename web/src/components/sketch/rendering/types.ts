@@ -280,6 +280,9 @@ export interface SketchRuntime {
    * sampling, clipboard readback). Callers must not create their own
    * Canvas2DRuntime or duplicate compositing logic.
    *
+   * The returned pixels are document content only. Display-only decorations
+   * such as the checkerboard background and canvas border must be excluded.
+   *
    * @param doc - The current document state.
    * @param isolatedLayerId - If set, only this layer is composited (solo/isolate preview).
    * @param activeStroke - Optional in-progress stroke for live preview.

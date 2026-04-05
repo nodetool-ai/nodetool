@@ -29,6 +29,10 @@ function mockCanvas2DContext() {
     clearRect: jest.fn(),
     drawImage: jest.fn(),
     fillRect: jest.fn(),
+    strokeRect: jest.fn(),
+    createPattern: jest.fn(() => ({
+      setTransform: jest.fn()
+    })),
     beginPath: jest.fn(),
     rect: jest.fn(),
     clip: jest.fn(),
@@ -205,6 +209,40 @@ describe("Canvas2DRuntime", () => {
     it("getMaskDataUrl returns null when no mask layer", () => {
       const doc = makeDoc();
       expect(runtime.getMaskDataUrl(doc)).toBeNull();
+    });
+
+    it("readbackComposite does not draw display-only checkerboard for empty documents", () => {
+      const doc = makeDoc();
+      const mocked = mockCanvas2DContext();
+      try {
+        const ctx = document.createElement("canvas").getContext("2d");
+        if (!ctx) {
+          return;
+        }
+
+        runtime.readbackComposite(doc, null, null);
+
+        expect(ctx.fillRect).not.toHaveBeenCalled();
+      } finally {
+        mocked.restore();
+      }
+    });
+
+    it("readbackComposite does not draw the display border", () => {
+      const doc = makeDoc();
+      const mocked = mockCanvas2DContext();
+      try {
+        const ctx = document.createElement("canvas").getContext("2d");
+        if (!ctx) {
+          return;
+        }
+
+        runtime.readbackComposite(doc, null, null);
+
+        expect(ctx.strokeRect).not.toHaveBeenCalled();
+      } finally {
+        mocked.restore();
+      }
     });
   });
 
