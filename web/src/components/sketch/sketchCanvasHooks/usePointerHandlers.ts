@@ -146,6 +146,8 @@ export interface UsePointerHandlersResult {
   shiftHeldRef: React.MutableRefObject<boolean>;
   altHeldRef: React.MutableRefObject<boolean>;
   selectStartRef: React.MutableRefObject<Point | null>;
+  /** Cancel the active tool's in-progress operation (e.g. crop drag, transform). */
+  cancelActiveTool: () => void;
 }
 
 export function usePointerHandlers({
@@ -864,6 +866,12 @@ export function usePointerHandlers({
     prevActiveToolRef.current = activeTool;
   }, [activeTool]);
 
+  /** Cancel the active tool's in-progress operation (e.g. crop drag, transform). */
+  const cancelActiveTool = useCallback(() => {
+    const handler = getToolHandler(activeTool);
+    handler.onCancel?.(toolCtxRef.current);
+  }, [activeTool]);
+
   return {
     handlePointerDown,
     handlePointerMove,
@@ -876,6 +884,7 @@ export function usePointerHandlers({
     handleContextMenu,
     shiftHeldRef,
     altHeldRef,
-    selectStartRef
+    selectStartRef,
+    cancelActiveTool
   };
 }

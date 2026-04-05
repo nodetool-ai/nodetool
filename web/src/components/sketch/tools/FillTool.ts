@@ -11,6 +11,10 @@ import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { getCanvasRasterBounds } from "../painting";
 import {
+  getDocumentViewportLayerBounds,
+  ensureLayerRasterBounds
+} from "../painting/layerBounds";
+import {
   selectionHasAnyPixels,
   selectionHitTest
 } from "../selection";
@@ -185,6 +189,12 @@ export class FillTool implements ToolHandler {
       }
     }
 
+    // Ensure the layer canvas covers the full document viewport so the flood
+    // fill can reach all pixels visible on-screen. Without this, layers with
+    // compact contentBounds leave an unfilled border at the edges.
+    const viewportBounds = getDocumentViewportLayerBounds(activeLayer, doc);
+    const expandedBounds = ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
+
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const layerCtx = layerCanvas.getContext("2d");
     if (!layerCtx) {
@@ -193,10 +203,12 @@ export class FillTool implements ToolHandler {
 
     ctx.onStrokeStart();
 
-    // Map the document-space click into the layer's backing raster space
+    // Map the document-space click into the layer's backing raster space.
+    // Use the expanded bounds so the coordinate mapping accounts for the
+    // full-viewport canvas origin.
     const mapper = new CoordinateMapper({
       layerTransform: activeLayer.transform,
-      rasterBounds: activeLayer.contentBounds
+      rasterBounds: expandedBounds
     });
     const localPt = mapper.docToLayer(pt);
     const offset = mapper.offset;

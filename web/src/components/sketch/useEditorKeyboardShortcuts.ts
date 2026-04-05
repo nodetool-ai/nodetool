@@ -83,6 +83,8 @@ export interface UseEditorKeyboardShortcutsParams {
   swapColors: () => void;
   resetColors: () => void;
   togglePanelsHidden: () => void;
+  /** Cancel the active tool's in-progress operation (e.g. crop drag). */
+  cancelActiveTool?: () => void;
 }
 
 export function useEditorKeyboardShortcuts(
@@ -336,6 +338,7 @@ export function useEditorKeyboardShortcuts(
         } else {
           switch (e.key) {
             case "Escape":
+              paramsRef.current.cancelActiveTool?.();
               useSketchStore.getState().setSelection(null);
               break;
             case "b":
