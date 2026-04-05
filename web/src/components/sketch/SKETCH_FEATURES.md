@@ -1,6 +1,6 @@
 # Sketch Editor Roadmap
 
-> **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place; next work should stay focused on hardening core models — layer draw, render, selection, transform, coordinate mapping — before adding feature-heavy slices.
+> **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place, but transformed-layer move/transform correctness is not fully hardened yet; next work should stay focused on preview/commit parity, gizmo alignment, layer bounds, and output consistency before adding feature-heavy slices.
 > **Last updated**: 2026-04-05
 > **Execution note**: this file is the active roadmap/backlog. `REFACTOR-SKETCH-APP.md` is supporting implementation context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
 
@@ -24,6 +24,7 @@ Guidance for Phase 1 work:
 - each task should remove duplicated rules or hidden exceptions, not add a second temporary path beside the old one
 - if a feature needs one-off transform math, sampling logic, export logic, or display exceptions, stop and move that missing contract back into Phase 1 first
 - prefer one shared runtime/tool/session boundary over per-tool fixes in pointer handlers, tool modules, or export helpers
+- move/transform gizmos, layer bounds overlays, and selection/marquee visuals must use the same resolved transformed extents as compositing; if alignment needs one-off math, move that missing contract back into Phase 1 first
 - every Phase 1 slice should add focused regression coverage for transformed layers, preview/commit parity, or output consistency when relevant
 - defer performance-only rewrites unless they remove architectural drift or unblock correctness
 - if a task reveals a product decision instead of a cleanup need, move it to a later phase with a short note instead of solving it implicitly
@@ -32,6 +33,7 @@ Phase 1 "done means":
 
 - coordinate mapping done means preview, commit, hit testing, overlays, and helper tools use the same transform contract
 - preview/commit parity done means live preview, committed pixels, history replay, and export agree for the same transformed layer state
+- gizmo/bounds alignment done means move and transform gizmos, selection/marquee overlays, and hit targets align with the same resolved document-space layer extents used for rendering
 - document-output path done means readback/export/isolate no longer depend on display-only behavior such as checkerboards or canvas borders
 - shared hard-tool integration done means fill/clone/blur/adjustments use the same runtime/session seams as the simpler paint tools
 - sampling contract done means eyedropper/auto-pick/clone-stamp sampling agree on transformed layers, isolate state, and active stroke state
@@ -42,9 +44,9 @@ Phase 1 "done means":
 - [x] eliminate the remaining transformed-layer regressions and add focused regression coverage for move/nudge/draw/export/autosave roundtrips
   - regression tests in `__tests__/phase1TransformRegression.test.ts` and `__tests__/samplingContract.test.ts`
   - covers: move roundtrip, nudge accumulation, draw-after-move coordinate mapping, cross-tool consistency, affine transform roundtrips
-- [x] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
-  - move tool preview and commit use identical transform calculation; verified in regression tests
-  - `CoordinateMapper` used for both preview and committed operations
+- [ ] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
+  - audit note: current move preview/commit coverage is strongest for translation-only paths; moving a layer with existing scale/rotation/matrix state still needs explicit hardening
+  - required follow-up: preserve the full existing `LayerTransform` during move preview and commit, then add regression coverage for move-after-scale/rotate and preview merge with existing transforms
 - [x] keep document-output rendering separate from display chrome and route readback/export/isolate through one resolved-output path; display-only checkerboard/border logic must never leak into sampling or export
   - fixed eyedropper: removed display canvas fast path that leaked checkerboard colors; now always uses `readbackComposite`
   - `renderDocumentCompositeToContext` excludes chrome; `compositeToDisplay` adds it; `flattenToDataUrl` and `readbackComposite` use the chrome-free path
@@ -68,11 +70,13 @@ Phase 1 "done means":
 ### 1.2 - Fixes
 
 - [x] Improve selection: rectangle clips at canvas bounds (correct), ellipse/lasso/polygon already extend beyond canvas (verified, no change needed)
-- [ ] Improve move tool: no preview while moving, selection marquee does not fit layer bounds
+- [ ] Improve move tool: preserve existing scale/rotation/matrix during preview + commit on transformed layers; current move path is not fully correct beyond translation-only cases
+- [ ] Improve move/transform bounds visuals: move gizmo, scale gizmo, and selection/marquee overlays are currently not aligned to the layer correctly; they must use the same resolved transformed bounds as compositing and hit testing
 - [x] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag — cursor now redraws immediately when settings change via useEffect on drawCursor callback
 - [x] fix Fill tool: expanded layer canvas to full document viewport before flood fill so compact contentBounds layers no longer leave unfilled borders
 - [x] Crop tool: add ESC key to cancel current cropping — onCancel wired through cancelActiveTool chain
 - [x] Move tool: gizmo now uses actual layer canvas dimensions instead of only contentBounds; gizmo already hidden on tool deactivation (verified)
+  - note: this fixes the raster-footprint source for the off-canvas outline, but does not yet mean move/scale gizmos are aligned correctly for transformed layers
 - [x] fix Layer preview: new transparent layer shows black preview. after drawing preview shows up correct with alpha grid
 - [x] all tooltips: add centralised setting for tooltip delay and set to 500ms
 - [x] Sketch node: input handles closer together, same spacing as output handles
@@ -87,7 +91,7 @@ Architecture note: `layerCanvasesRef.current` (React ref Map) and `Canvas2DRunti
 - [x] add dedicated test suite for `layerBounds.ts`: cover `ensureLayerRasterBounds` (expansion, no-op when already large enough, content preservation after expansion), `getEffectiveLayerRasterBounds` (canvas metadata priority, fallback to contentBounds, fallback to canvas dimensions), `unionLayerBounds` (disjoint, overlapping, contained), `getDocumentViewportLayerBounds` (with and without layer transform offset)
 - [x] add tests for layer canvas lifecycle across operations: create layer → draw → move → draw again → undo → redo; verify canvas dimensions and raster bounds metadata stay consistent at each step
 - [x] add tests for `getOrCreateLayerCanvas` sizing decision chain: verify that `layer.contentBounds` takes priority, then stable raster size cache, then existing canvas, then document size fallback; verify that once a canvas is expanded it is not shrunk by a subsequent `getOrCreateLayerCanvas` call
-- [x] verify that `drainPendingStrokeCommit` runs before every operation that reads layer pixel data (history push, export, flatten, merge); add test that a committed stroke is visible in the next history snapshot
+- [ ] verify that `drainPendingStrokeCommit` runs before every operation that reads layer pixel data (history push, export, flatten, merge); replace the current smoke coverage with a real pending-stroke integration test that exercises the deferred commit path
 - [x] audit all callers of `ensureLayerRasterBounds` (PaintSession, FillTool, ShapeTool, GradientTool, usePointerHandlerUtils) and verify each one uses the returned expanded bounds for CoordinateMapper, not the stale `layer.contentBounds`
 
 ### 1.4 - Harden coordinate mapping
@@ -98,6 +102,7 @@ Architecture note: `layerCanvasesRef.current` (React ref Map) and `Canvas2DRunti
 - [x] add a cross-tool coordinate consistency test: for a layer with a non-trivial transform (e.g. translated + rotated), verify that PaintSession, FillTool, CloneStampTool, GradientTool, BlurTool, and ShapeTool all produce the same `docToLayer` result for the same document-space point — this catches any tool that constructs CoordinateMapper with different config
 - [x] verify that overlay preview drawing (selection outlines, shape preview, gradient preview) uses the same coordinate mapping as the committed pixels — a preview drawn at screen position X should result in committed pixels at the same X after commit
 - [x] verify that `dirtyToDoc` rect conversion is consistent with the compositing offset used by `getLayerCompositeOffset` — dirty-region redraws should exactly cover the area that changed
+- [ ] add regression coverage for move/transform gizmo alignment: for translated, scaled, and rotated layers, verify gizmo bounds/handles use the same resolved document-space extents as compositing and hit testing
 
 ### 1.5 - Harden selection model
 
@@ -105,21 +110,21 @@ The selection system (`Selection` type, mask creation, hit testing, constraint a
 
 - [x] add dedicated tests for `selectionHitTest`: verify correct results at selection boundary pixels, outside selection, at `originX/originY` offset, and with non-zero origin
 - [x] add dedicated tests for `combineMasks` in all four modes: replace, add (union), subtract, intersect; verify that combine result matches expected mask data for overlapping and non-overlapping inputs
-- [x] add tests for `applySelectionConstraint`: verify that pixels outside the selection mask are restored to pre-operation state after a fill or paint operation
+- [ ] add tests for `applySelectionConstraint`: verify this against shared production logic rather than only conceptual/inlined test logic so fill/gradient selection clipping cannot drift
 - [x] add tests for `selectionHasAnyPixels`: verify correct results for empty mask (all zeros), mask with a single selected pixel, and fully selected mask
 - [x] verify that selection `originX/originY` is handled consistently: when a selection is created at a non-zero document offset (e.g. ellipse at x=50,y=50), verify that `selectionHitTest`, `applySelectionConstraint`, and paint clipping all account for the origin correctly
-- [x] verify that each selection mode (rectangle, ellipse, lasso, polygon, magic wand) produces a mask with correct `width`, `height`, and `originX/originY` values relative to the document canvas
+- [ ] verify that each selection mode (rectangle, ellipse, lasso, polygon, magic wand) produces a mask with correct `width`, `height`, and `originX/originY` values relative to the document canvas; current coverage is strongest for rectangle/ellipse/core mask ops and needs explicit lasso/magic-wand follow-up
 
 ### 1.6 - Harden compositing and rendering
 
 The compositing pipeline (`renderDocumentCompositeToContext`) is the single path for both display and export. The per-layer compositing involves offset calculation, transform application, effects evaluation, and active stroke blending. Making this path trustworthy means display and export always agree.
 
-- [x] add test that verifies display compositing and `flattenToDataUrl` produce identical pixel output for the same document state (ignoring checkerboard background) — this is the core display/export parity check
+- [ ] add test that verifies display compositing and `flattenToDataUrl` produce identical pixel output for the same document state (ignoring checkerboard background) — use real pixel equivalence, not only structural/mock coverage
 - [x] add test that a layer with `contentBounds` offset at `(50, 50)` and transform at `(-10, -10)` composites at the correct document position (expected: top-left at `(40, 40)`) — this exercises the `getLayerCompositeOffset` + `drawWithTransform` pipeline
 - [x] add test that the active stroke buffer composites at the correct opacity and blend mode during display, and that after commit, the committed layer matches the preview
 - [x] add test that `getMaskDataUrl` returns only the mask layer content (not other layers) and respects the mask layer's transform and contentBounds offset
-- [x] add test that layer effects (`evaluateLayerEffects`) are applied during both display compositing and export — not just one path
-- [x] verify that `readbackComposite` (used by eyedropper and magic wand) samples the same pixels as the display shows, including layer transforms and effects
+- [ ] add test that layer effects (`evaluateLayerEffects`) are applied during both display compositing and export — not just one path
+- [ ] verify that `readbackComposite` (used by eyedropper and magic wand) samples the same pixels as the display shows, including layer transforms and effects
 
 ### 1.7 - Harden transform model
 
@@ -138,12 +143,12 @@ The delta history system is the safety net for all editing. History entries capt
 - [x] add test for history delta correctness: push three history entries where only one layer changes each time; verify that `resolveLayerData` reconstructs the correct data for each layer at each history position
 - [x] add test that undo after a bounds-expanding stroke restores the original (smaller) canvas dimensions and contentBounds — not the expanded ones
 - [x] add test that redo after undo replays the stroke correctly, including the bounds expansion
-- [x] add test for `serializeLayerData` / `deserializeLayerData` round-trip: verify that bounds metadata, transform, and pixel data survive encode → decode
+- [ ] add test for `serializeLayerData` / `deserializeLayerData` round-trip: verify helper-level bounds metadata and pixel data survive encode → decode; document-level serialization coverage is not enough on its own
 - [x] add test that document serialization → deserialization preserves all layer contentBounds, transforms, effects, and pixel data — verify by comparing a freshly created document with one that has been serialized and deserialized
 
 ### 1.9 - Active feature work
 
-- [ ] finish transform tool UX on top of the matrix-capable transform model: show live preview while transforming, keep commit/cancel reliable, and fix left/top handle scaling so it does not behave like right/bottom scaling
+- [ ] finish transform tool UX on top of the matrix-capable transform model: keep live preview correct, keep commit/cancel reliable, make move/scale gizmos align with the actual transformed layer, and fix left/top handle scaling so it does not behave like right/bottom scaling
 - [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
 - [x] fix brush strokes not visible when holding shift for straight lines - they only appear after releasing shift key. also all layers become invisible during drawing of straight lines
 
