@@ -9,8 +9,7 @@ import type {
   NodeSpec,
   NodeConfig,
   ModuleConfig,
-  FieldDef,
-  EnumDef
+  FieldDef
 } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -431,7 +430,6 @@ export class NodeGenerator {
           `          ${JSON.stringify(field.nestedAssetKey)}: ${varName}Url,`
         ];
         for (const sub of subFields) {
-          const subVar = fieldToVarName(sub.name);
           const subDefLit = defaultLiteral(sub.default, sub.propType);
           nestedObj.push(
             `          ${JSON.stringify(sub.name)}: ${castFn(sub.propType)}((this as any).${sub.name} ?? ${subDefLit}),`
