@@ -222,6 +222,10 @@ These are not "clean up for its own sake" tasks. They are explicit support work 
 
 - [ ] fix small delay when starting brush strokes - mouse cursor hangs for 50ms right after starting a stroke
 - [ ] rethink layer action buttons: sort, think about what should be in top and bottom groups, remove icons for crop canvas, but leave in context menu
+- [ ] rename duplicate layers "[layer name] copy 1", 2, 3 ...
+- [ ] remove Layer In / Layer Out from handle names, only layer name
+- [ ] Remove the default Image Input handle
+
 
 ## 2.1 - FEATURES
 
