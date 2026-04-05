@@ -171,7 +171,7 @@ describe("singular matrix fallback", () => {
     const pt = { x: 30, y: 40 };
     const result = mapper.docToLayer(pt);
 
-    // identity inverse applied: x' = 1*30 + 0*40 + 0 = 30, minus rx(0) = 30
+    // identity inverse applied: x' = 1*30 + 0*40 + 0 = 30 (no rasterBounds offset)
     expect(result.x).toBeCloseTo(30);
     expect(result.y).toBeCloseTo(40);
   });
