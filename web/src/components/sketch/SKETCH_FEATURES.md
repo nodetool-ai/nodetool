@@ -1,8 +1,8 @@
 # Sketch Editor Roadmap
 
-> **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place; next work should stay focused on parity, correctness, and high-value workflows.
-> **Last updated**: 2026-04-04
-> **Execution note**: near-term implementation order follows `REFACTOR-SKETCH-APP.md`; this file is the broader roadmap/backlog view.
+> **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place; next work should stay focused on core contracts, parity, and shared tool/runtime seams before adding feature-heavy slices.
+> **Last updated**: 2026-04-05
+> **Execution note**: this file is the active roadmap/backlog. `REFACTOR-SKETCH-APP.md` is supporting implementation context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
 
 ## Principles
 
@@ -14,7 +14,38 @@
 - only run sketch-related tests for normal iteration, not full app tests
 - when changing shortcuts, edit src/components/sketch/SHORTCUTS.md
 
-## PHASE 0: Current Fixes
+## PHASE 1: Current Priorities
+
+### 1.1 - Core groundwork before new feature slices
+
+Guidance for Phase 1 work:
+
+- each task should remove duplicated rules or hidden exceptions, not add a second temporary path beside the old one
+- if a feature needs one-off transform math, sampling logic, export logic, or display exceptions, stop and move that missing contract back into Phase 1 first
+- prefer one shared runtime/tool/session boundary over per-tool fixes in pointer handlers, tool modules, or export helpers
+- every Phase 1 slice should add focused regression coverage for transformed layers, preview/commit parity, or output consistency when relevant
+- defer performance-only rewrites unless they remove architectural drift or unblock correctness
+- if a task reveals a product decision instead of a cleanup need, move it to a later phase with a short note instead of solving it implicitly
+
+Phase 1 "done means":
+
+- coordinate mapping done means preview, commit, hit testing, overlays, and helper tools use the same transform contract
+- preview/commit parity done means live preview, committed pixels, history replay, and export agree for the same transformed layer state
+- document-output path done means readback/export/isolate no longer depend on display-only behavior such as checkerboards or canvas borders
+- shared hard-tool integration done means fill/clone/blur/adjustments use the same runtime/session seams as the simpler paint tools
+- sampling contract done means eyedropper/auto-pick/clone-stamp sampling agree on transformed layers, isolate state, and active stroke state
+
+- [ ] centralize document-space <-> layer-space coordinate mapping so preview, commit, hit testing, overlays, and helper tools all follow one transform contract
+- [ ] eliminate the remaining transformed-layer regressions and add focused regression coverage for move/nudge/draw/export/autosave roundtrips
+- [ ] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
+- [ ] keep document-output rendering separate from display chrome and route readback/export/isolate through one resolved-output path; display-only checkerboard/border logic must never leak into sampling or export
+- [ ] finish wiring `evaluateLayerEffects` / resolved-layer output through the remaining output paths so future thumbnails and helper flows stay consistent with the main canvas, export, isolate preview, and merge/downstream bake paths
+- [ ] route flood fill, clone stamp, blur, and adjustments through shared session boundaries even when their internal implementation stays CPU-backed
+- [ ] rework eyedropper, move auto-pick, clone-stamp sampling, and other readback helpers so transformed layers and isolate state use one sampling contract
+- [ ] remove the remaining implicit legacy-runtime behavior from normal editing flow and replace it with explicit documented exceptions
+- [ ] keep running focused stylus / paint-after-move / preview-correctness smoke checks after each major runtime slice and treat regressions in brush feel as blockers
+
+## PHASE 1.2: Fixes
 
 - [ ] Improve selection: only cut selection off for Rectangle at canvas bounds while creating a selection - lasso, ellipse, polygon should extend canvas
 - [ ] Improve move tool: no preview while moving, selection marquee does not fit layer bounds
@@ -27,7 +58,7 @@
 - [x] Sketch node: input handles closer together, same spacing as output handles
 - [x] Gradient Tool: should respect current selection, not draw outside
 
-## PHASE 1: Current Priorities
+### 1.3 - Active feature work
 
 - [ ] finish transform tool UX on top of the matrix-capable transform model: show live preview while transforming, keep commit/cancel reliable, and fix left/top handle scaling so it does not behave like right/bottom scaling
 - [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
@@ -39,8 +70,8 @@
 
 ## PHASE 2.2: Transform Tool features and shortcuts
 
-before starting this tasks, make a check if we have all necessary architecture in place to make this additions cleanly.
-avoid workarounds and spread out implementation.
+before starting these tasks, finish the Phase 1 groundwork items that affect transform semantics, preview/commit parity, and helper-tool sampling.
+avoid workarounds and spread out implementation; if a transform feature needs one-off math or display-path exceptions, move that missing foundation back into Phase 1 first.
 
 - [ ] Transform tool should show updated layer while scaling, moving etc, not only at commit
 - [ ] Transform tool gizmo should adapt to layer size, so if layer is smaller than canvas the gizmo should be small
@@ -123,16 +154,17 @@ Right-click inside the bounding box — Context menu with all transform modes (S
 
 ### PHASE 4 - ADVANCED FEATURES
 
-### WEBGPU PRIMARY RUNTIME - CURRENT PRIORITIES
+### 4.1 - Delayed technical follow-up
 
-- [ ] finish the remaining WebGPU compositing parity work for ordinary editing, especially dirty-region behavior and any edge-case redraw mismatches; blend modes, transformed layers, and isolate/solo behavior are in place
-- [ ] finish centralizing full-document readback so clipboard/export helpers and future thumbnails follow the same rules as eyedropper and selection sampling
-- [ ] finish wiring `evaluateLayerEffects` / resolved-layer output through the remaining output paths so future thumbnails and helper flows stay consistent with the main canvas, export, isolate preview, and merge/downstream bake paths
-- [ ] keep running a focused stylus-responsiveness smoke check after each major WebGPU slice and treat regressions in brush feel as blockers
-- [x] document the approved Canvas 2D helper paths for the current WebGPU-first architecture (overlay/gizmo UI, cursor/HUD presentation, text rasterization helpers, controlled CPU readback/export) and move any other usage into explicit follow-up work
-- [x] replace loose layer-effect param bags with a typed per-effect model so curves, true exposure, tonemapping, and bloom have real data structures from the start
-- [x] evaluate `webgpu-utils` and `colorjs.io` for the current runtime work, then explicitly decide adopt/defer for each; keep `gl-matrix` deferred until future lit/PBR brush math really needs it
-- [x] record fully GPU-native brush simulation and GPU selection compute as deferred until parity/readback/FX work is stable and profiling shows real benefit
+These are still real tasks, but they should wait until the Phase 1 groundwork is stable enough that we can make one clean decision instead of adding temporary behavior that will be replaced later.
+
+- [ ] decide whether layer thumbnails should remain raw `Layer.data` previews or move to resolved/effected runtime previews; delay until preview semantics and layer-panel perf budget are explicit
+- [ ] centralize snapshot/export/readback flow further and reduce unnecessary encoding/readback work; delay until the document-output contract stops moving
+- [ ] rework alpha-lock and dirty-region behavior once the shared session + tool boundaries settle; delay until ordinary editing parity is stable
+- [ ] decide blur/adjustments backend from profiling and correctness, not from a blanket "everything must be GPU" rule; delay until the shared CPU-backed tool paths are clean
+- [ ] move blur and/or adjustments fully to GPU only if profiling shows a clear gain worth the added complexity
+- [ ] add visual regression checks if manual smoke checks stop being sufficient; delay until current semantics are stable enough that snapshots will be trustworthy
+- [ ] document color/alpha/HDR rules more formally once effect semantics, working-space rules, and export behavior stop moving
 
 ### PHASE 5 - FX LAYER
 
