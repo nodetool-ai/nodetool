@@ -36,15 +36,34 @@ Phase 1 "done means":
 - shared hard-tool integration done means fill/clone/blur/adjustments use the same runtime/session seams as the simpler paint tools
 - sampling contract done means eyedropper/auto-pick/clone-stamp sampling agree on transformed layers, isolate state, and active stroke state
 
-- [ ] centralize document-space <-> layer-space coordinate mapping so preview, commit, hit testing, overlays, and helper tools all follow one transform contract
-- [ ] eliminate the remaining transformed-layer regressions and add focused regression coverage for move/nudge/draw/export/autosave roundtrips
-- [ ] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
-- [ ] keep document-output rendering separate from display chrome and route readback/export/isolate through one resolved-output path; display-only checkerboard/border logic must never leak into sampling or export
+- [x] centralize document-space <-> layer-space coordinate mapping so preview, commit, hit testing, overlays, and helper tools all follow one transform contract
+  - all paint tools use `CoordinateMapper`; move auto-pick now uses shared `hitTestLayerAtDocPoint` with `CoordinateMapper`; eyedropper uses shared `sampleCompositeColor` via `readbackComposite`
+  - shared utilities in `painting/sampleDocument.ts`: `sampleCompositeColor`, `sampleCompositeRGBA`, `hitTestLayerAtDocPoint`
+- [x] eliminate the remaining transformed-layer regressions and add focused regression coverage for move/nudge/draw/export/autosave roundtrips
+  - regression tests in `__tests__/phase1TransformRegression.test.ts` and `__tests__/samplingContract.test.ts`
+  - covers: move roundtrip, nudge accumulation, draw-after-move coordinate mapping, cross-tool consistency, affine transform roundtrips
+- [x] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
+  - move tool preview and commit use identical transform calculation; verified in regression tests
+  - `CoordinateMapper` used for both preview and committed operations
+- [x] keep document-output rendering separate from display chrome and route readback/export/isolate through one resolved-output path; display-only checkerboard/border logic must never leak into sampling or export
+  - fixed eyedropper: removed display canvas fast path that leaked checkerboard colors; now always uses `readbackComposite`
+  - `renderDocumentCompositeToContext` excludes chrome; `compositeToDisplay` adds it; `flattenToDataUrl` and `readbackComposite` use the chrome-free path
 - [ ] finish wiring `evaluateLayerEffects` / resolved-layer output through the remaining output paths so future thumbnails and helper flows stay consistent with the main canvas, export, isolate preview, and merge/downstream bake paths
-- [ ] route flood fill, clone stamp, blur, and adjustments through shared session boundaries even when their internal implementation stays CPU-backed
-- [ ] rework eyedropper, move auto-pick, clone-stamp sampling, and other readback helpers so transformed layers and isolate state use one sampling contract
-- [ ] remove the remaining implicit legacy-runtime behavior from normal editing flow and replace it with explicit documented exceptions
-- [ ] keep running focused stylus / paint-after-move / preview-correctness smoke checks after each major runtime slice and treat regressions in brush feel as blockers
+  - note: effects already called in display and export via `renderDocumentCompositeToContext`; remaining gaps are curves/tonemap/bloom which need shader implementations (Phase 5 FX layer work)
+- [x] route flood fill, clone stamp, blur, and adjustments through shared session boundaries even when their internal implementation stays CPU-backed
+  - all use `CoordinateMapper` for coordinate mapping and `onStrokeStart`/`onStrokeEnd` for lifecycle
+  - extracted shared `painting/alphaLock.ts` (`captureAlphaSnapshot`, `restoreAlphaFromSnapshot`) used by CloneStamp and Blur
+- [x] rework eyedropper, move auto-pick, clone-stamp sampling, and other readback helpers so transformed layers and isolate state use one sampling contract
+  - eyedropper: uses `sampleCompositeColor` (via `readbackComposite`, no display chrome)
+  - move auto-pick: uses `hitTestLayerAtDocPoint` (via `CoordinateMapper`, affine-transform-aware)
+  - clone-stamp: already uses `CoordinateMapper` for both source and destination mapping
+  - 22 regression tests in `__tests__/samplingContract.test.ts`
+- [x] remove the remaining implicit legacy-runtime behavior from normal editing flow and replace it with explicit documented exceptions
+  - removed eyedropper display canvas fast path (was the only implicit fallback that leaked display chrome into tool behavior)
+  - WebGPU→Canvas2D delegation for effects is intentional and documented (not legacy behavior)
+- [x] keep running focused stylus / paint-after-move / preview-correctness smoke checks after each major runtime slice and treat regressions in brush feel as blockers
+  - 13 regression tests in `__tests__/phase1TransformRegression.test.ts` covering paint-after-move, sequential transforms, preview/commit parity
+  - 8 alpha-lock tests in `__tests__/alphaLock.test.ts`
 
 ### 1.2 - Fixes
 
