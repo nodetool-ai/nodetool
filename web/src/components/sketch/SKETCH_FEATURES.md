@@ -16,16 +16,16 @@
 
 ## PHASE 0: Current Fixes
 
-- [x] Improve selection: only cut selection off for Rectangle at canvas bounds while creating a selection - lasso, ellipse, polygon should extend canvas
-- [x] Improve move-tool performance so dragging layers feels immediate, currently very slow
-- [x] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag.
-- [ ] fix Fill tool: does not fill correct areas
-- [ ] fix Crop tool: gizmo is blurry. and does not cut the correct position
-- [ ] fix Layer preview: new transparent layer shows black preview. after drawing preview shows up correct with alpha grid
-- [ ] all tooltips: add centralised setting for tooltip delay and set to 500ms
-- [ ] Move tool: add gizmo that shows layer extends outside of canvas area
-- [ ] Sketch node: input handles closer together, same spacing as output handles
-- [ ] Gradient Tool: should respect current selection, not draw outside
+- [ ] Improve selection: only cut selection off for Rectangle at canvas bounds while creating a selection - lasso, ellipse, polygon should extend canvas
+- [ ] Improve move tool: no preview while moving, selection marquee does not fit layer bounds
+- [ ] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag.
+- [ ] fix Fill tool: does not fill whole canvas - leaves some border
+- [ ] Crop tool: add ESC key to cancel current cropping
+- [ ] Move tool: fix gizmo that shows layer extends outside of canvas area. does not match layer bounds currently
+- [x] fix Layer preview: new transparent layer shows black preview. after drawing preview shows up correct with alpha grid
+- [x] all tooltips: add centralised setting for tooltip delay and set to 500ms
+- [x] Sketch node: input handles closer together, same spacing as output handles
+- [x] Gradient Tool: should respect current selection, not draw outside
 
 ## PHASE 1: Current Priorities
 

@@ -5,7 +5,7 @@
  * Each panel is memoized and receives only the settings + onChange it needs.
  */
 
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import {
   sketchSliderSx,
   toggleButtonSmallSx,
@@ -13,8 +13,9 @@ import {
   sketchHintTextSx,
   SKETCH_FONT,
   SKETCH_COLORS,
-  mergeHexPickerRgbPreserveAlpha as mergeColor
+  colorSwatchSx
 } from "./sketchStyles";
+import ColorPickerPopover from "./ColorPickerPopover";
 import {
   Box,
   Typography,
@@ -47,9 +48,6 @@ import {
   SegmentSourceLayerAction,
   SegmentBackend,
   SegmentationStatus,
-  parseColorToRgba,
-  rgbaToCss,
-  colorToHex6,
   PenPressureSettings,
   StrokeAssistSettings,
   StrokeAssistPreset,
@@ -832,69 +830,36 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
   settings,
   onChange
 }: GradientSettingsPanelProps) {
+  const [startAnchor, setStartAnchor] = useState<HTMLElement | null>(null);
+  const [endAnchor, setEndAnchor] = useState<HTMLElement | null>(null);
+  const [startInitial, setStartInitial] = useState(settings.startColor);
+  const [endInitial, setEndInitial] = useState(settings.endColor);
+
   return (
     <>
       <Box className="setting-row">
         <Typography className="setting-label">Start</Typography>
-        <input
-          type="color"
-          className="color-input"
-          value={colorToHex6(settings.startColor)}
-          onChange={(e) =>
-            onChange({
-              startColor: mergeColor(settings.startColor, e.target.value)
-            })
-          }
-        />
-      </Box>
-      <Box sx={{ px: "4px", mb: "4px" }}>
-        <Typography sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textFaint }}>
-          Start opacity
-        </Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={100}
-          step={1}
-          value={Math.round(parseColorToRgba(settings.startColor).a * 100)}
-          onChange={(_, v) => {
-            const a = (v as number) / 100;
-            const { r, g, b } = parseColorToRgba(settings.startColor);
-            onChange({ startColor: rgbaToCss({ r, g, b, a }) });
+        <Box
+          sx={{ ...colorSwatchSx }}
+          onClick={(e) => {
+            setStartInitial(settings.startColor);
+            setStartAnchor(e.currentTarget);
           }}
-        />
+        >
+          <Box sx={{ position: "absolute", inset: 0, backgroundColor: settings.startColor }} />
+        </Box>
       </Box>
       <Box className="setting-row">
         <Typography className="setting-label">End</Typography>
-        <input
-          type="color"
-          className="color-input"
-          value={colorToHex6(settings.endColor)}
-          onChange={(e) =>
-            onChange({
-              endColor: mergeColor(settings.endColor, e.target.value)
-            })
-          }
-        />
-      </Box>
-      <Box sx={{ px: "4px", mb: "4px" }}>
-        <Typography sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textFaint }}>
-          End opacity
-        </Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={100}
-          step={1}
-          value={Math.round(parseColorToRgba(settings.endColor).a * 100)}
-          onChange={(_, v) => {
-            const a = (v as number) / 100;
-            const { r, g, b } = parseColorToRgba(settings.endColor);
-            onChange({ endColor: rgbaToCss({ r, g, b, a }) });
+        <Box
+          sx={{ ...colorSwatchSx }}
+          onClick={(e) => {
+            setEndInitial(settings.endColor);
+            setEndAnchor(e.currentTarget);
           }}
-        />
+        >
+          <Box sx={{ position: "absolute", inset: 0, backgroundColor: settings.endColor }} />
+        </Box>
       </Box>
       <ToggleButtonGroup
         value={settings.type}
@@ -913,6 +878,21 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           Radial
         </ToggleButton>
       </ToggleButtonGroup>
+
+      <ColorPickerPopover
+        anchorEl={startAnchor}
+        color={settings.startColor}
+        initialColor={startInitial}
+        onColorChange={(c) => onChange({ startColor: c })}
+        onClose={() => setStartAnchor(null)}
+      />
+      <ColorPickerPopover
+        anchorEl={endAnchor}
+        color={settings.endColor}
+        initialColor={endInitial}
+        onColorChange={(c) => onChange({ endColor: c })}
+        onClose={() => setEndAnchor(null)}
+      />
     </>
   );
 });
