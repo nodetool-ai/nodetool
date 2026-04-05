@@ -31,51 +31,27 @@ describe("Pressure sensitivity", () => {
 
   it("store brush settings include pressure sensitivity", () => {
     const state = useSketchStore.getState();
-    expect(state.document.toolSettings.brush.pressureSensitivity).toBe(true);
-    expect(state.document.toolSettings.brush.pressureAffects).toBe("both");
+    expect(state.toolSettings.brush.pressureSensitivity).toBe(true);
+    expect(state.toolSettings.brush.pressureAffects).toBe("both");
   });
 
   it("can update pressure sensitivity settings", () => {
     act(() => {
-      const state = useSketchStore.getState();
-      const doc = state.document;
-      useSketchStore.setState({
-        document: {
-          ...doc,
-          toolSettings: {
-            ...doc.toolSettings,
-            brush: {
-              ...doc.toolSettings.brush,
-              pressureSensitivity: false,
-              pressureAffects: "size"
-            }
-          }
-        }
+      useSketchStore.getState().setPenPressure({
+        pressureSensitivity: false,
+        pressureAffects: "size"
       });
     });
     const state = useSketchStore.getState();
-    expect(state.document.toolSettings.brush.pressureSensitivity).toBe(false);
-    expect(state.document.toolSettings.brush.pressureAffects).toBe("size");
+    expect(state.toolSettings.penPressure.pressureSensitivity).toBe(false);
+    expect(state.toolSettings.penPressure.pressureAffects).toBe("size");
   });
 
   it("can set pressure to affect only opacity", () => {
     act(() => {
-      const state = useSketchStore.getState();
-      const doc = state.document;
-      useSketchStore.setState({
-        document: {
-          ...doc,
-          toolSettings: {
-            ...doc.toolSettings,
-            brush: {
-              ...doc.toolSettings.brush,
-              pressureAffects: "opacity"
-            }
-          }
-        }
-      });
+      useSketchStore.getState().setPenPressure({ pressureAffects: "opacity" });
     });
-    expect(useSketchStore.getState().document.toolSettings.brush.pressureAffects).toBe("opacity");
+    expect(useSketchStore.getState().toolSettings.penPressure.pressureAffects).toBe("opacity");
   });
 });
 
@@ -90,29 +66,29 @@ describe("Brush roundness and angle", () => {
 
   it("store brush settings include roundness and angle", () => {
     const state = useSketchStore.getState();
-    expect(state.document.toolSettings.brush.roundness).toBe(1.0);
-    expect(state.document.toolSettings.brush.angle).toBe(0);
+    expect(state.toolSettings.brush.roundness).toBe(1.0);
+    expect(state.toolSettings.brush.angle).toBe(0);
   });
 
   it("can update roundness", () => {
     act(() => {
       useSketchStore.getState().setBrushSettings({ roundness: 0.5 });
     });
-    expect(useSketchStore.getState().document.toolSettings.brush.roundness).toBe(0.5);
+    expect(useSketchStore.getState().toolSettings.brush.roundness).toBe(0.5);
   });
 
   it("can update angle", () => {
     act(() => {
       useSketchStore.getState().setBrushSettings({ angle: 45 });
     });
-    expect(useSketchStore.getState().document.toolSettings.brush.angle).toBe(45);
+    expect(useSketchStore.getState().toolSettings.brush.angle).toBe(45);
   });
 
   it("can update both roundness and angle together", () => {
     act(() => {
       useSketchStore.getState().setBrushSettings({ roundness: 0.3, angle: 120 });
     });
-    const brush = useSketchStore.getState().document.toolSettings.brush;
+    const brush = useSketchStore.getState().toolSettings.brush;
     expect(brush.roundness).toBe(0.3);
     expect(brush.angle).toBe(120);
   });

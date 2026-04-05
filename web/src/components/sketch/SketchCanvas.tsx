@@ -11,7 +11,8 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useRef, useState, forwardRef } from "react";
+import React, { useCallback, useRef, useState, useMemo, forwardRef } from "react";
+import { useSketchStore } from "./state";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -241,6 +242,17 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     } = props;
 
     const theme = useTheme();
+
+    // Subscribe to live toolSettings directly so that brush/color changes trigger
+    // only a SketchCanvas re-render (not a compositing cascade). The bare `doc`
+    // prop is intentionally passed to useCompositing so that compositing effects
+    // do not fire on every slider tick.
+    const liveToolSettings = useSketchStore((s) => s.toolSettings);
+    const docWithTools = useMemo(
+      () => ({ ...doc, toolSettings: liveToolSettings }),
+      [doc, liveToolSettings]
+    );
+
     const [transformPreviewByLayerId, setTransformPreviewByLayerId] = useState<
       Record<string, LayerTransform>
     >({});
@@ -344,7 +356,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Overlay and cursor rendering ──────────────────────────────────
 
     const overlay = useOverlayRenderer({
-      doc,
+      doc: docWithTools,
       activeTool,
       interactionTool,
       zoom,
@@ -365,7 +377,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Pointer handlers ──────────────────────────────────────────────
 
     const pointerHandlers = usePointerHandlers({
-      doc,
+      doc: docWithTools,
       activeTool,
       interactionTool,
       zoom,

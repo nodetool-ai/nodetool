@@ -15,7 +15,8 @@ import {
   SKETCH_COLORS,
   SKETCH_FONT,
   SKETCH_SIZE,
-  SKETCH_SPACING
+  SKETCH_SPACING,
+  SKETCH_TOOLTIP_DELAY_MS
 } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -258,7 +259,7 @@ const styles = (theme: Theme) =>
       height: SKETCH_SIZE.layerThumbnail,
       borderRadius: "2px",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
-      backgroundColor: theme.vars.palette.grey[900],
+      ...SKETCH_CHECKERBOARD,
       flexShrink: 0,
       display: "flex",
       alignItems: "center",
@@ -701,7 +702,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             rowGap: 0.5
           }}
         >
-          <Tooltip title="Add Transparent Layer">
+          <Tooltip title="Add Transparent Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={() => onAddLayer(null)}
@@ -720,7 +721,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Add Black Layer">
+          <Tooltip title="Add Black Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={() => onAddLayer("#000000")}
@@ -742,7 +743,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Add White Layer">
+          <Tooltip title="Add White Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={() => onAddLayer("#ffffff")}
@@ -764,7 +765,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Add Gray Layer">
+          <Tooltip title="Add Gray Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={() => onAddLayer("#808080")}
@@ -786,7 +787,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               />
             </IconButton>
           </Tooltip>
-          <Tooltip title="New empty layer group (folder)">
+          <Tooltip title="New empty layer group (folder)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={() => onAddGroup()}
@@ -823,7 +824,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             }
           }}
         >
-          <Tooltip title="Duplicate Layer">
+          <Tooltip title="Duplicate Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={() => onDuplicateLayer(activeLayerId)}
@@ -835,6 +836,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             title={
               hasMultiLayerSelection ? "Delete selected layers" : "Delete Layer"
             }
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <span>
               <IconButton
@@ -856,6 +859,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 ? "Remove Mask Designation"
                 : "Set as Mask Layer"
             }
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
               size="small"
@@ -875,6 +880,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 ? "Unlock Transparency"
                 : "Lock Transparency"
             }
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
               size="small"
@@ -888,7 +895,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <LockIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Trim Active Layer To Bounds">
+          <Tooltip title="Trim Active Layer To Bounds" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={onTrimLayerToBounds}
@@ -902,7 +909,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <FitScreenIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Crop Canvas To Visible Pixels">
+          <Tooltip title="Crop Canvas To Visible Pixels" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={onCropCanvasToActiveLayerVisiblePixels}
@@ -915,7 +922,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <CropFreeIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Crop Canvas To Layer Extents">
+          <Tooltip title="Crop Canvas To Layer Extents" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={onCropCanvasToActiveLayerExtents}
@@ -930,7 +937,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Flatten Visible">
+          <Tooltip title="Flatten Visible" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton size="small" onClick={onFlattenVisible}>
               <LayersIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
@@ -1018,12 +1025,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         >
           {selectedLayerIds.length >= 2 ? (
             <>
-              <Tooltip title="Group selected layers (adjacent siblings, same parent)">
+              <Tooltip title="Group selected layers (adjacent siblings, same parent)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                 <IconButton size="small" onClick={onGroupSelectedLayers}>
                   <CreateNewFolderIcon sx={{ fontSize: "1.125rem" }} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Delete selected layers">
+              <Tooltip title="Delete selected layers" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                 <IconButton
                   size="small"
                   color="error"
@@ -1044,7 +1051,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           }}
         >
           {activeLayer?.type === "group" ? (
-            <Tooltip title="Ungroup">
+            <Tooltip title="Ungroup" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
               <IconButton
                 size="small"
                 onClick={() => onUngroupLayer(activeLayerId)}
@@ -1067,7 +1074,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           "& .MuiIconButton-root": { width: 30, height: 30 }
         }}
       >
-        <Tooltip title="Clear Layer (Delete)">
+        <Tooltip title="Clear Layer (Delete)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <span>
             <IconButton
               size="small"
@@ -1078,7 +1085,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Flip Layer Horizontal">
+        <Tooltip title="Flip Layer Horizontal" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <span>
             <IconButton
               size="small"
@@ -1089,7 +1096,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Flip Layer Vertical">
+        <Tooltip title="Flip Layer Vertical" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <span>
             <IconButton
               size="small"
@@ -1102,7 +1109,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Merge Down">
+        <Tooltip title="Merge Down" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <span>
             <IconButton
               size="small"
@@ -1203,6 +1210,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 : "Show resize handles on canvas"
             }
             placement="left"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <Switch
               size="small"

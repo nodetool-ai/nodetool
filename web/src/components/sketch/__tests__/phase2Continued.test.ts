@@ -35,14 +35,14 @@ describe("Phase 2 Continued Features", () => {
 
     it("document starts with round brush type", () => {
       const state = useSketchStore.getState();
-      expect(state.document.toolSettings.brush.brushType).toBe("round");
+      expect(state.toolSettings.brush.brushType).toBe("round");
     });
 
     it("can change brush type to soft", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ brushType: "soft" });
       });
-      const settings = useSketchStore.getState().document.toolSettings.brush;
+      const settings = useSketchStore.getState().toolSettings.brush;
       expect(settings.brushType).toBe("soft");
     });
 
@@ -50,7 +50,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ brushType: "airbrush" });
       });
-      const settings = useSketchStore.getState().document.toolSettings.brush;
+      const settings = useSketchStore.getState().toolSettings.brush;
       expect(settings.brushType).toBe("airbrush");
     });
 
@@ -58,7 +58,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ brushType: "spray" });
       });
-      const settings = useSketchStore.getState().document.toolSettings.brush;
+      const settings = useSketchStore.getState().toolSettings.brush;
       expect(settings.brushType).toBe("spray");
     });
 
@@ -69,7 +69,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ brushType: "spray" });
       });
-      const settings = useSketchStore.getState().document.toolSettings.brush;
+      const settings = useSketchStore.getState().toolSettings.brush;
       expect(settings.size).toBe(24);
       expect(settings.opacity).toBe(0.5);
       expect(settings.hardness).toBe(0.6);
@@ -82,7 +82,7 @@ describe("Phase 2 Continued Features", () => {
         act(() => {
           useSketchStore.getState().setBrushSettings({ brushType: t });
         });
-        expect(useSketchStore.getState().document.toolSettings.brush.brushType).toBe(t);
+        expect(useSketchStore.getState().toolSettings.brush.brushType).toBe(t);
       }
     });
   });
@@ -92,11 +92,11 @@ describe("Phase 2 Continued Features", () => {
   describe("hardness adjustment (Shift+[/])", () => {
     it("can decrease brush hardness", () => {
       const store = useSketchStore.getState();
-      const initial = store.document.toolSettings.brush.hardness;
+      const initial = store.toolSettings.brush.hardness;
       act(() => {
         store.setBrushSettings({ hardness: Math.max(0, initial - 0.1) });
       });
-      const newHardness = useSketchStore.getState().document.toolSettings.brush.hardness;
+      const newHardness = useSketchStore.getState().toolSettings.brush.hardness;
       expect(newHardness).toBeCloseTo(initial - 0.1, 2);
     });
 
@@ -105,10 +105,10 @@ describe("Phase 2 Continued Features", () => {
         useSketchStore.getState().setBrushSettings({ hardness: 0.5 });
       });
       act(() => {
-        const h = useSketchStore.getState().document.toolSettings.brush.hardness;
+        const h = useSketchStore.getState().toolSettings.brush.hardness;
         useSketchStore.getState().setBrushSettings({ hardness: Math.min(1, h + 0.1) });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.hardness).toBeCloseTo(0.6, 2);
+      expect(useSketchStore.getState().toolSettings.brush.hardness).toBeCloseTo(0.6, 2);
     });
 
     it("clamps hardness at minimum 0", () => {
@@ -116,10 +116,10 @@ describe("Phase 2 Continued Features", () => {
         useSketchStore.getState().setBrushSettings({ hardness: 0 });
       });
       act(() => {
-        const h = useSketchStore.getState().document.toolSettings.brush.hardness;
+        const h = useSketchStore.getState().toolSettings.brush.hardness;
         useSketchStore.getState().setBrushSettings({ hardness: Math.max(0, h - 0.1) });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.hardness).toBe(0);
+      expect(useSketchStore.getState().toolSettings.brush.hardness).toBe(0);
     });
 
     it("clamps hardness at maximum 1", () => {
@@ -127,10 +127,10 @@ describe("Phase 2 Continued Features", () => {
         useSketchStore.getState().setBrushSettings({ hardness: 1 });
       });
       act(() => {
-        const h = useSketchStore.getState().document.toolSettings.brush.hardness;
+        const h = useSketchStore.getState().toolSettings.brush.hardness;
         useSketchStore.getState().setBrushSettings({ hardness: Math.min(1, h + 0.1) });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.hardness).toBe(1);
+      expect(useSketchStore.getState().toolSettings.brush.hardness).toBe(1);
     });
 
     it("eraser brush shape uses brush hardness (adjust via brush settings)", () => {
@@ -138,10 +138,10 @@ describe("Phase 2 Continued Features", () => {
         useSketchStore.getState().setBrushSettings({ hardness: 0.5 });
       });
       act(() => {
-        const h = useSketchStore.getState().document.toolSettings.brush.hardness;
+        const h = useSketchStore.getState().toolSettings.brush.hardness;
         useSketchStore.getState().setBrushSettings({ hardness: Math.min(1, h + 0.1) });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.hardness).toBeCloseTo(0.6, 2);
+      expect(useSketchStore.getState().toolSettings.brush.hardness).toBeCloseTo(0.6, 2);
     });
   });
 
@@ -159,7 +159,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ opacity });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.opacity).toBe(1);
+      expect(useSketchStore.getState().toolSettings.brush.opacity).toBe(1);
     });
 
     it("key 5 sets opacity to 50%", () => {
@@ -167,7 +167,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ opacity });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.opacity).toBe(0.5);
+      expect(useSketchStore.getState().toolSettings.brush.opacity).toBe(0.5);
     });
 
     it("key 1 sets opacity to 10%", () => {
@@ -175,7 +175,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ opacity });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.opacity).toBe(0.1);
+      expect(useSketchStore.getState().toolSettings.brush.opacity).toBe(0.1);
     });
 
     it("key 9 sets opacity to 90%", () => {
@@ -183,7 +183,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ opacity });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.opacity).toBe(0.9);
+      expect(useSketchStore.getState().toolSettings.brush.opacity).toBe(0.9);
     });
 
     it("number keys work for pencil opacity", () => {
@@ -191,7 +191,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setPencilSettings({ opacity });
       });
-      expect(useSketchStore.getState().document.toolSettings.pencil.opacity).toBe(0.3);
+      expect(useSketchStore.getState().toolSettings.pencil.opacity).toBe(0.3);
     });
 
     it("number keys work for eraser opacity", () => {
@@ -199,7 +199,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setEraserSettings({ opacity });
       });
-      expect(useSketchStore.getState().document.toolSettings.eraser.opacity).toBe(0.7);
+      expect(useSketchStore.getState().toolSettings.eraser.opacity).toBe(0.7);
     });
   });
 
@@ -217,21 +217,21 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ color: "#ff0000" });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.color).toBe("#ff0000");
+      expect(useSketchStore.getState().toolSettings.brush.color).toBe("#ff0000");
     });
 
     it("can update pencil color from picked color", () => {
       act(() => {
         useSketchStore.getState().setPencilSettings({ color: "#00ff00" });
       });
-      expect(useSketchStore.getState().document.toolSettings.pencil.color).toBe("#00ff00");
+      expect(useSketchStore.getState().toolSettings.pencil.color).toBe("#00ff00");
     });
 
     it("can update fill color from picked color", () => {
       act(() => {
         useSketchStore.getState().setFillSettings({ color: "#0000ff" });
       });
-      expect(useSketchStore.getState().document.toolSettings.fill.color).toBe("#0000ff");
+      expect(useSketchStore.getState().toolSettings.fill.color).toBe("#0000ff");
     });
 
     it("foreground and tool colors are independent (can be synced externally)", () => {
@@ -240,7 +240,7 @@ describe("Phase 2 Continued Features", () => {
         useSketchStore.getState().setBrushSettings({ color: "#aabbcc" });
       });
       expect(useSketchStore.getState().foregroundColor).toBe("#aabbcc");
-      expect(useSketchStore.getState().document.toolSettings.brush.color).toBe("#aabbcc");
+      expect(useSketchStore.getState().toolSettings.brush.color).toBe("#aabbcc");
     });
   });
 
@@ -257,7 +257,7 @@ describe("Phase 2 Continued Features", () => {
       act(() => {
         useSketchStore.getState().setActiveTool("brush");
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.brushType).toBe("spray");
+      expect(useSketchStore.getState().toolSettings.brush.brushType).toBe("spray");
     });
   });
 

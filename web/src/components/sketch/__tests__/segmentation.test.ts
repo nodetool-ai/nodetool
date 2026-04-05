@@ -522,7 +522,7 @@ describe("Store segment settings", () => {
       useSketchStore.getState().setSegmentSettings({ maskFeather: 10 });
     });
 
-    const stored = useSketchStore.getState().document;
+    const stored = useSketchStore.getState();
     expect(stored.toolSettings.segment.maskFeather).toBe(10);
     expect(stored.toolSettings.segment.promptMode).toBe("point");
   });

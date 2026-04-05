@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { colorToHex6 } from "./types";
-import { SKETCH_FONT, SKETCH_SPACING, SKETCH_COLORS, colorSwatchSx } from "./sketchStyles";
+import { SKETCH_FONT, SKETCH_SPACING, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, colorSwatchSx } from "./sketchStyles";
 import ColorPickerPopover from "./ColorPickerPopover";
 
 export interface ColorSwatchPairProps {
@@ -59,7 +59,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
       <Box className="color-swatch-pair__swatches" sx={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: SKETCH_SPACING.md }}>
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
           <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>FG</Typography>
-          <Tooltip title="Foreground Color" placement="right">
+          <Tooltip title="Foreground Color" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <Box
               className="color-swatch-pair__fg"
               onClick={handleFgClick}
@@ -72,7 +72,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
 
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
           <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>BG</Typography>
-          <Tooltip title="Background Color" placement="right">
+          <Tooltip title="Background Color" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <Box
               className="color-swatch-pair__bg"
               onClick={handleBgClick}
@@ -86,12 +86,12 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
 
       {/* ── Swap / Reset ── */}
       <Box className="color-swatch-pair__actions" sx={{ display: "flex", alignItems: "center", width: "54px" }}>
-        <Tooltip title="Swap Colors (X)" placement="right">
+        <Tooltip title="Swap Colors (X)" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <IconButton size="small" onClick={onSwapColors} sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}>
             <SwapHorizIcon sx={{ fontSize: "13px" }} />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Reset to B/W (D)" placement="right">
+        <Tooltip title="Reset to B/W (D)" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <IconButton size="small" onClick={onResetColors} sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}>
             <Typography sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}>D</Typography>
           </IconButton>

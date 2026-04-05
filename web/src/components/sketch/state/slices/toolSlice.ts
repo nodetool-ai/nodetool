@@ -18,13 +18,13 @@ import type {
   CloneStampSettings,
   SelectSettings,
   SegmentSettings,
+  ToolSettings,
   ColorMode,
-  SymmetryMode,
-  SketchDocument
+  SymmetryMode
 } from "../../types";
-import { SYMMETRY_DEFAULT_RAYS } from "../../types";
+import { SYMMETRY_DEFAULT_RAYS, cloneDefaultToolSettings } from "../../types";
 
-// ─── Private helpers ────────────────────────────────────────────────────────
+// ─── Private helpers ─────────────────────────────────────────────────────────
 
 const PRESSURE_OPTIONAL_KEYS = [
   "pressureSensitivity",
@@ -41,16 +41,6 @@ function stripPressureFromPartial<T extends Record<string, unknown>>(
     delete next[k];
   }
   return next as Partial<T>;
-}
-
-function withUpdatedToolTimestamp(document: SketchDocument): SketchDocument {
-  return {
-    ...document,
-    metadata: {
-      ...document.metadata,
-      updatedAt: new Date().toISOString()
-    }
-  };
 }
 
 /** Tool colors tied to the foreground swatch follow the new FG after swap. */
@@ -82,6 +72,13 @@ function mapDualWellToolColor(
 export interface ToolSlice {
   activeTool: SketchTool;
   setActiveTool: (tool: SketchTool) => void;
+
+  /**
+   * Live tool settings — the runtime source of truth.
+   * Stored separately from `document` so that brush/color changes do not
+   * mutate the document object and do not trigger document re-renders.
+   */
+  toolSettings: ToolSettings;
 
   setBrushSettings: (settings: Partial<BrushSettings>) => void;
   setPencilSettings: (settings: Partial<PencilSettings>) => void;
@@ -123,137 +120,97 @@ export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
   activeTool: "brush",
   setActiveTool: (tool: SketchTool) => set({ activeTool: tool }),
 
+  // Runtime source of truth for tool settings — NOT inside `document` so that
+  // brush/color changes do not mutate the document object and do not trigger
+  // the expensive document re-render cascade (compositing, autosave, etc.).
+  toolSettings: cloneDefaultToolSettings(),
+
   setBrushSettings: (settings: Partial<BrushSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          brush: {
-            ...state.document.toolSettings.brush,
-            ...stripPressureFromPartial(settings)
-          }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        brush: { ...state.toolSettings.brush, ...stripPressureFromPartial(settings) }
+      }
     })),
 
   setPencilSettings: (settings: Partial<PencilSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          pencil: {
-            ...state.document.toolSettings.pencil,
-            ...stripPressureFromPartial(settings)
-          }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        pencil: { ...state.toolSettings.pencil, ...stripPressureFromPartial(settings) }
+      }
     })),
 
   setPenPressure: (settings: Partial<PenPressureSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          penPressure: {
-            ...state.document.toolSettings.penPressure,
-            ...settings
-          }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        penPressure: { ...state.toolSettings.penPressure, ...settings }
+      }
     })),
 
   setEraserSettings: (settings: Partial<EraserSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          eraser: { ...state.document.toolSettings.eraser, ...settings }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        eraser: { ...state.toolSettings.eraser, ...settings }
+      }
     })),
 
   setShapeSettings: (settings: Partial<ShapeSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          shape: { ...state.document.toolSettings.shape, ...settings }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        shape: { ...state.toolSettings.shape, ...settings }
+      }
     })),
 
   setFillSettings: (settings: Partial<FillSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          fill: { ...state.document.toolSettings.fill, ...settings }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        fill: { ...state.toolSettings.fill, ...settings }
+      }
     })),
 
   setBlurSettings: (settings: Partial<BlurSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          blur: { ...state.document.toolSettings.blur, ...settings }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        blur: { ...state.toolSettings.blur, ...settings }
+      }
     })),
 
   setGradientSettings: (settings: Partial<GradientSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          gradient: { ...state.document.toolSettings.gradient, ...settings }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        gradient: { ...state.toolSettings.gradient, ...settings }
+      }
     })),
 
   setCloneStampSettings: (settings: Partial<CloneStampSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          cloneStamp: {
-            ...state.document.toolSettings.cloneStamp,
-            ...settings
-          }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        cloneStamp: { ...state.toolSettings.cloneStamp, ...settings }
+      }
     })),
 
   setSelectSettings: (settings: Partial<SelectSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          select: { ...state.document.toolSettings.select, ...settings }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        select: { ...state.toolSettings.select, ...settings }
+      }
     })),
 
   setSegmentSettings: (settings: Partial<SegmentSettings>) =>
     set((state) => ({
-      document: withUpdatedToolTimestamp({
-        ...state.document,
-        toolSettings: {
-          ...state.document.toolSettings,
-          segment: { ...state.document.toolSettings.segment, ...settings }
-        }
-      })
+      toolSettings: {
+        ...state.toolSettings,
+        segment: { ...state.toolSettings.segment, ...settings }
+      }
     })),
 
   foregroundColor: "#ffffff",
@@ -264,47 +221,26 @@ export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
     set((state) => {
       const oldFg = state.foregroundColor;
       const oldBg = state.backgroundColor;
-      const ts = state.document.toolSettings;
-      const document = withUpdatedToolTimestamp({
-        ...state.document,
+      const ts = state.toolSettings;
+      return {
+        foregroundColor: oldBg,
+        backgroundColor: oldFg,
         toolSettings: {
           ...ts,
-          brush: {
-            ...ts.brush,
-            color: mapForegroundLinkedToolColor(ts.brush.color, oldFg, oldBg)
-          },
-          pencil: {
-            ...ts.pencil,
-            color: mapForegroundLinkedToolColor(ts.pencil.color, oldFg, oldBg)
-          },
-          fill: {
-            ...ts.fill,
-            color: mapForegroundLinkedToolColor(ts.fill.color, oldFg, oldBg)
-          },
+          brush: { ...ts.brush, color: mapForegroundLinkedToolColor(ts.brush.color, oldFg, oldBg) },
+          pencil: { ...ts.pencil, color: mapForegroundLinkedToolColor(ts.pencil.color, oldFg, oldBg) },
+          fill: { ...ts.fill, color: mapForegroundLinkedToolColor(ts.fill.color, oldFg, oldBg) },
           shape: {
             ...ts.shape,
-            strokeColor: mapForegroundLinkedToolColor(
-              ts.shape.strokeColor,
-              oldFg,
-              oldBg
-            ),
+            strokeColor: mapForegroundLinkedToolColor(ts.shape.strokeColor, oldFg, oldBg),
             fillColor: mapDualWellToolColor(ts.shape.fillColor, oldFg, oldBg)
           },
           gradient: {
             ...ts.gradient,
-            startColor: mapForegroundLinkedToolColor(
-              ts.gradient.startColor,
-              oldFg,
-              oldBg
-            ),
+            startColor: mapForegroundLinkedToolColor(ts.gradient.startColor, oldFg, oldBg),
             endColor: mapDualWellToolColor(ts.gradient.endColor, oldFg, oldBg)
           }
         }
-      });
-      return {
-        foregroundColor: oldBg,
-        backgroundColor: oldFg,
-        document
       };
     }),
   resetColors: () =>

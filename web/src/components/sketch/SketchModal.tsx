@@ -47,6 +47,7 @@ import {
   SKETCH_SPACING,
   SKETCH_SIZE,
   SKETCH_Z_INDEX,
+  SKETCH_TOOLTIP_DELAY_MS,
   settingRowChildrenSx
 } from "./sketchStyles";
 
@@ -126,7 +127,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const activeTool = useSketchStore((s) => s.activeTool);
   const penPressure = useSketchStore((s) => ({
     ...DEFAULT_PEN_PRESSURE,
-    ...s.document.toolSettings?.penPressure
+    ...s.toolSettings?.penPressure
   }));
   const setPenPressure = useSketchStore((s) => s.setPenPressure);
   const headerPenPressureOn = penPressure.pressureSensitivity !== false;
@@ -198,6 +199,8 @@ const SketchModal: React.FC<SketchModalProps> = ({
                   ? "Turn off pen pressure"
                   : "Turn on pen pressure"
               }
+              enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+              enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
             >
               <IconButton
                 size="small"
@@ -246,14 +249,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
         {/* ── Actions (right-aligned) ── */}
         <Box sx={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          <Tooltip title="Undo (Ctrl+Z)">
+          <Tooltip title="Undo (Ctrl+Z)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span>
               <IconButton size="small" onClick={() => editorRef.current?.undo()} disabled={!canUndo()}>
                 <UndoIcon sx={{ fontSize: "18px" }} />
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="Redo (Ctrl+Y)">
+          <Tooltip title="Redo (Ctrl+Y)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span>
               <IconButton size="small" onClick={() => editorRef.current?.redo()} disabled={!canRedo()}>
                 <RedoIcon sx={{ fontSize: "18px" }} />
@@ -263,7 +266,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
           <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
 
-          <Tooltip title={`Symmetry: ${symmetryLabel}`}>
+          <Tooltip title={`Symmetry: ${symmetryLabel}`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={(e) => setSymmetryAnchorEl(e.currentTarget)}
@@ -309,7 +312,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             )}
           </Menu>
 
-          <Tooltip title="Export PNG (Ctrl+S)">
+          <Tooltip title="Export PNG (Ctrl+S)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton size="small" onClick={() => editorRef.current?.exportPng()}>
               <SaveAltIcon sx={{ fontSize: "18px" }} />
             </IconButton>
@@ -331,12 +334,12 @@ const SketchModal: React.FC<SketchModalProps> = ({
             </>
           ) : (
             <>
-              <Tooltip title="Discard all changes and close">
+              <Tooltip title="Discard all changes and close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                 <IconButton size="small" onClick={() => setConfirmDiscard(true)} sx={{ color: "grey.500" }}>
                   <TrashIcon width={16} height={16} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Close (Esc)">
+              <Tooltip title="Close (Esc)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                 <IconButton size="small" onClick={handleRequestClose}>
                   <CloseIcon fontSize="small" />
                 </IconButton>

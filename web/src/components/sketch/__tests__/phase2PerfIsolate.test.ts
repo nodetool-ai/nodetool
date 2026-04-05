@@ -90,7 +90,7 @@ describe("Phase 2 Performance + Isolate Layer", () => {
 
   describe("tool settings for blur", () => {
     it("default blur settings are correct", () => {
-      const blur = useSketchStore.getState().document.toolSettings.blur;
+      const blur = useSketchStore.getState().toolSettings.blur;
       expect(blur.size).toBe(14);
       expect(blur.strength).toBe(4);
     });
@@ -102,7 +102,7 @@ describe("Phase 2 Performance + Isolate Layer", () => {
           strength: 10
         });
       });
-      const blur = useSketchStore.getState().document.toolSettings.blur;
+      const blur = useSketchStore.getState().toolSettings.blur;
       expect(blur.size).toBe(40);
       expect(blur.strength).toBe(10);
     });

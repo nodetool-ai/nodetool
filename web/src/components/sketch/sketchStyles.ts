@@ -58,6 +58,11 @@ export const SKETCH_SIZE = {
   borderRadius: "4px"
 } as const;
 
+// ─── Tooltip delay ───────────────────────────────────────────────────────────
+
+/** Centralised hover delay (ms) for all MUI Tooltips inside the sketch editor. */
+export const SKETCH_TOOLTIP_DELAY_MS = 500;
+
 // ─── Z-Index Scale ───────────────────────────────────────────────────────────
 
 export const SKETCH_Z_INDEX = {

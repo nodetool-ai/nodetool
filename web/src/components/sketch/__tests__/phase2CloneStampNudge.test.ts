@@ -9,7 +9,8 @@ import {
   createDefaultDocument,
   normalizeSketchDocument,
   isPaintingTool,
-  SketchTool
+  SketchTool,
+  cloneDefaultToolSettings
 } from "../types";
 import { getSelectionBounds } from "../selection";
 
@@ -17,6 +18,7 @@ import { getSelectionBounds } from "../selection";
 function resetStore() {
   useSketchStore.setState({
     document: createDefaultDocument(),
+    toolSettings: cloneDefaultToolSettings(),
     activeTool: "brush",
     zoom: 1,
     pan: { x: 0, y: 0 },
@@ -83,33 +85,33 @@ describe("Clone stamp store actions", () => {
     const store = useSketchStore.getState();
     store.setCloneStampSettings({ size: 40 });
     const updated = useSketchStore.getState();
-    expect(updated.document.toolSettings.cloneStamp.size).toBe(40);
+    expect(updated.toolSettings.cloneStamp.size).toBe(40);
     // Other settings should be preserved
-    expect(updated.document.toolSettings.cloneStamp.opacity).toBe(1);
-    expect(updated.document.toolSettings.cloneStamp.hardness).toBe(0.7);
-    expect(updated.document.toolSettings.cloneStamp.sampling).toBe("active_layer");
+    expect(updated.toolSettings.cloneStamp.opacity).toBe(1);
+    expect(updated.toolSettings.cloneStamp.hardness).toBe(0.7);
+    expect(updated.toolSettings.cloneStamp.sampling).toBe("active_layer");
   });
 
   it("should update opacity independently", () => {
     const store = useSketchStore.getState();
     store.setCloneStampSettings({ opacity: 0.5 });
     const updated = useSketchStore.getState();
-    expect(updated.document.toolSettings.cloneStamp.opacity).toBe(0.5);
-    expect(updated.document.toolSettings.cloneStamp.size).toBe(14);
+    expect(updated.toolSettings.cloneStamp.opacity).toBe(0.5);
+    expect(updated.toolSettings.cloneStamp.size).toBe(14);
   });
 
   it("should update hardness independently", () => {
     const store = useSketchStore.getState();
     store.setCloneStampSettings({ hardness: 0.3 });
     const updated = useSketchStore.getState();
-    expect(updated.document.toolSettings.cloneStamp.hardness).toBe(0.3);
+    expect(updated.toolSettings.cloneStamp.hardness).toBe(0.3);
   });
 
   it("should change sampling mode", () => {
     const store = useSketchStore.getState();
     store.setCloneStampSettings({ sampling: "composited" });
     const updated = useSketchStore.getState();
-    expect(updated.document.toolSettings.cloneStamp.sampling).toBe("composited");
+    expect(updated.toolSettings.cloneStamp.sampling).toBe("composited");
   });
 
   it("should set clone_stamp as active tool", () => {
@@ -192,19 +194,19 @@ describe("Bracket keys and clone stamp size", () => {
   it("should allow incrementing clone stamp size", () => {
     const store = useSketchStore.getState();
     store.setActiveTool("clone_stamp");
-    const initialSize = store.document.toolSettings.cloneStamp.size;
+    const initialSize = store.toolSettings.cloneStamp.size;
     store.setCloneStampSettings({ size: initialSize + 5 });
     const updated = useSketchStore.getState();
-    expect(updated.document.toolSettings.cloneStamp.size).toBe(initialSize + 5);
+    expect(updated.toolSettings.cloneStamp.size).toBe(initialSize + 5);
   });
 
   it("should allow decrementing clone stamp size", () => {
     const store = useSketchStore.getState();
     store.setActiveTool("clone_stamp");
-    const initialSize = store.document.toolSettings.cloneStamp.size;
+    const initialSize = store.toolSettings.cloneStamp.size;
     store.setCloneStampSettings({ size: Math.max(1, initialSize - 5) });
     const updated = useSketchStore.getState();
-    expect(updated.document.toolSettings.cloneStamp.size).toBe(Math.max(1, initialSize - 5));
+    expect(updated.toolSettings.cloneStamp.size).toBe(Math.max(1, initialSize - 5));
   });
 });
 

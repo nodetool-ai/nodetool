@@ -34,7 +34,7 @@ import {
   rgbToHsv,
   hsvToRgb
 } from "./types";
-import { SKETCH_FONT, SKETCH_SPACING, SKETCH_SIZE, SKETCH_Z_INDEX, SKETCH_COLORS, toggleButtonSmallSx, colorPickerSliderThumbSx } from "./sketchStyles";
+import { SKETCH_FONT, SKETCH_SPACING, SKETCH_SIZE, SKETCH_Z_INDEX, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, toggleButtonSmallSx, colorPickerSliderThumbSx } from "./sketchStyles";
 
 const SV_SIZE = 160;
 const HUE_HEIGHT = 12;
@@ -193,7 +193,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       }}
     >
       <Box className="color-picker__header" sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", minHeight: "22px", mt: `-${SKETCH_SPACING.md}`, mr: `-${SKETCH_SPACING.md}`, mb: SKETCH_SPACING.xs }}>
-        <Tooltip title="Cancel — keep previous color">
+        <Tooltip title="Cancel — keep previous color" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <IconButton
             size="small"
             onClick={handleCancel}

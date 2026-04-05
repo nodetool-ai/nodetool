@@ -21,7 +21,7 @@ import {
 import { SketchTool } from "./types";
 import { PAINTING_TOOLS, SHAPE_TOOLS, type ToolDefinition } from "./toolDefinitions";
 import ColorSwatchPair from "./ColorSwatchPair";
-import { SKETCH_SPACING, SKETCH_SIZE } from "./sketchStyles";
+import { SKETCH_SPACING, SKETCH_SIZE, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 
 const BTN = 36; // button size px
 
@@ -77,7 +77,7 @@ function renderToolButton(def: ToolDefinition) {
 
   return (
     <ToggleButton key={tool} value={tool} aria-label={label}>
-      <Tooltip title={tooltip} placement="right">
+      <Tooltip title={tooltip} placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
         <Icon sx={{ fontSize: "20px" }} />
       </Tooltip>
     </ToggleButton>

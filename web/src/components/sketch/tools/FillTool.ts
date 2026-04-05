@@ -5,7 +5,7 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
-import type { FillSettings } from "../types";
+import type { FillSettings, Selection } from "../types";
 import { parseColorToRgba } from "../types";
 import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
@@ -14,6 +14,38 @@ import {
   selectionHasAnyPixels,
   selectionHitTest
 } from "../selection";
+
+// ─── Selection masking for putImageData-based tools ──────────────────────────
+//
+// putImageData bypasses the canvas clipping path, so selection constraints
+// must be applied by restoring original pixel values outside the selection
+// after the draw call completes.
+
+function applySelectionConstraint(
+  ctx: CanvasRenderingContext2D,
+  beforeData: ImageData,
+  selection: Selection,
+  offsetX: number,
+  offsetY: number
+): void {
+  const afterData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+  const after = afterData.data;
+  const before = beforeData.data;
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!selectionHitTest(selection, x + offsetX, y + offsetY)) {
+        const i = (y * w + x) * 4;
+        after[i]     = before[i];
+        after[i + 1] = before[i + 1];
+        after[i + 2] = before[i + 2];
+        after[i + 3] = before[i + 3];
+      }
+    }
+  }
+  ctx.putImageData(afterData, 0, 0);
+}
 
 // ─── Flood Fill (moved from drawingUtils.ts) ─────────────────────────────────
 //
@@ -167,13 +199,19 @@ export class FillTool implements ToolHandler {
       rasterBounds: activeLayer.contentBounds
     });
     const localPt = mapper.docToLayer(pt);
-
-    // Apply selection clip for fill
     const offset = mapper.offset;
-    const clipped = ctx.clipSelectionForOffset(layerCtx, offset);
+
+    // Snapshot pixels before fill so we can mask selection afterward.
+    // putImageData bypasses canvas clipping, so we apply selection constraint post-fill.
+    const hasSelection = selection && selectionHasAnyPixels(selection);
+    const beforeData = hasSelection
+      ? layerCtx.getImageData(0, 0, layerCanvas.width, layerCanvas.height)
+      : null;
+
     floodFill(layerCtx, localPt.x, localPt.y, { ...doc.toolSettings.fill, color: ctx.foregroundColor || doc.toolSettings.fill.color });
-    if (clipped) {
-      layerCtx.restore();
+
+    if (hasSelection && beforeData && selection) {
+      applySelectionConstraint(layerCtx, beforeData, selection, offset.x, offset.y);
     }
     const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
     ctx.onStrokeEnd(activeLayer.id, null, committedBounds);

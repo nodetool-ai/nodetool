@@ -153,6 +153,12 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     return layer?.transform ?? { x: 0, y: 0 };
   }, [store.document]);
 
+  // Keep a ref to live toolSettings so the autosave effect can include them
+  // without adding toolSettings as a dependency (which would cause autosave to
+  // fire on every brush slider tick).
+  const liveToolSettingsRef = useRef(store.toolSettings);
+  liveToolSettingsRef.current = store.toolSettings;
+
   // ─── Flush ref (filled in after canvasActions is created) ──────────
   const flushBeforeUndoRef = useRef<() => void>(() => {});
 
@@ -295,7 +301,10 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   // ─── Autosave on document changes ──────────────────────────────────
   useEffect(() => {
     if (onDocumentChange && canvasReady) {
-      onDocumentChange(store.document);
+      // Merge live toolSettings into the persisted document so callers receive
+      // the current tool state without toolSettings mutations triggering this
+      // effect on every slider tick.
+      onDocumentChange({ ...store.document, toolSettings: liveToolSettingsRef.current });
     }
   }, [store.document, onDocumentChange, canvasReady]);
 

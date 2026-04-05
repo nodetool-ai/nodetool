@@ -22,7 +22,7 @@
 - [ ] fix Fill tool: does not fill correct areas
 - [ ] fix Crop tool: gizmo is blurry. and does not cut the correct position
 - [ ] fix Layer preview: new transparent layer shows black preview. after drawing preview shows up correct with alpha grid
-- [ ] all tooltips: add centralised setting for tooltip delay
+- [ ] all tooltips: add centralised setting for tooltip delay and set to 500ms
 - [ ] Move tool: add gizmo that shows layer extends outside of canvas area
 - [ ] Sketch node: input handles closer together, same spacing as output handles
 - [ ] Gradient Tool: should respect current selection, not draw outside
@@ -125,6 +125,24 @@ Right-click inside the bounding box — Context menu with all transform modes (S
   Repeat & Additional
   Action, Shortcut
   Repeat last transformation Ctrl+Shift+T (Cmd+Shift+T)Repeat transformation on a copyCtrl+Alt+Shift+T (Cmd+Option+Shift+T)Move the object while in transformClick and drag inside the bounding box (not on a handle or the reference point)
+
+### PHASE 2.3: Selection Context Menu
+
+- [ ] Selection tool: add options to existing right-click context menu with options for
+      -- [ ] Select Inverse
+      -- [ ] Deselect
+      -- [ ] Reselect
+      -- [ ] Layer via Copy
+      -- [ ] Layer via Cut
+      -- [ ] New Layer…
+      -- [ ] Free Transform
+      -- [ ] Transform Selection
+      -- [ ] Fill > menu
+      -- [ ] Stroke > menu
+      -- [xx] Select All Layers (skip for now)
+      -- [xx] Save Selection… (skip for now)
+      -- [xx] Make Work Path… (skip for now)
+      -- [xx] Refine Edge (skip for now)
 
 ### PHASE 3 - SAM SEGMENTATION
 

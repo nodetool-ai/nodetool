@@ -38,7 +38,7 @@ describe("Phase 2 New Features", () => {
 
     it("document starts with default gradient settings", () => {
       const state = useSketchStore.getState();
-      expect(state.document.toolSettings.gradient).toEqual(
+      expect(state.toolSettings.gradient).toEqual(
         DEFAULT_GRADIENT_SETTINGS
       );
     });
@@ -47,7 +47,7 @@ describe("Phase 2 New Features", () => {
       act(() => {
         useSketchStore.getState().setGradientSettings({ startColor: "#ff0000" });
       });
-      const settings = useSketchStore.getState().document.toolSettings.gradient;
+      const settings = useSketchStore.getState().toolSettings.gradient;
       expect(settings.startColor).toBe("#ff0000");
       expect(settings.endColor).toBe("#000000");
       expect(settings.type).toBe("linear");
@@ -57,7 +57,7 @@ describe("Phase 2 New Features", () => {
       act(() => {
         useSketchStore.getState().setGradientSettings({ endColor: "#00ff00" });
       });
-      const settings = useSketchStore.getState().document.toolSettings.gradient;
+      const settings = useSketchStore.getState().toolSettings.gradient;
       expect(settings.startColor).toBe("#ffffff");
       expect(settings.endColor).toBe("#00ff00");
     });
@@ -66,7 +66,7 @@ describe("Phase 2 New Features", () => {
       act(() => {
         useSketchStore.getState().setGradientSettings({ type: "radial" });
       });
-      const settings = useSketchStore.getState().document.toolSettings.gradient;
+      const settings = useSketchStore.getState().toolSettings.gradient;
       expect(settings.type).toBe("radial");
     });
 
@@ -78,7 +78,7 @@ describe("Phase 2 New Features", () => {
           type: "radial"
         });
       });
-      const settings = useSketchStore.getState().document.toolSettings.gradient;
+      const settings = useSketchStore.getState().toolSettings.gradient;
       expect(settings).toEqual({
         startColor: "#ff0000",
         endColor: "#0000ff",
@@ -108,7 +108,7 @@ describe("Phase 2 New Features", () => {
         useSketchStore.getState().setDocument(legacyDoc);
       });
 
-      expect(useSketchStore.getState().document.toolSettings.gradient).toEqual(
+      expect(useSketchStore.getState().toolSettings.gradient).toEqual(
         DEFAULT_GRADIENT_SETTINGS
       );
     });
@@ -177,7 +177,7 @@ describe("Phase 2 New Features", () => {
         useSketchStore.getState().setActiveTool("brush");
         useSketchStore.getState().setActiveTool("gradient");
       });
-      const settings = useSketchStore.getState().document.toolSettings.gradient;
+      const settings = useSketchStore.getState().toolSettings.gradient;
       expect(settings).toEqual({
         startColor: "#ff0000",
         endColor: "#0000ff",

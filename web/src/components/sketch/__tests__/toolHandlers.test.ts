@@ -421,15 +421,12 @@ describe("CropTool", () => {
     expect(result).toBe(true);
   });
 
-  it("calls drawOverlayCrop during drag", () => {
+  it("calls drawGizmo during drag", () => {
     const tool = new CropTool();
     const ctx = makeToolContext();
     tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
     tool.onMove!(ctx, makePointerEvent({ point: { x: 30, y: 30 } }), []);
-    expect(ctx.drawOverlayCrop).toHaveBeenCalledWith(
-      { x: 5, y: 5 },
-      { x: 30, y: 30 }
-    );
+    expect(ctx.drawGizmo).toHaveBeenCalled();
   });
 });
 

@@ -20,7 +20,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
-import { SKETCH_SPACING } from "./sketchStyles";
+import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 
 /** Base left padding for the layer row (px). */
 const BASE_PADDING = 8;
@@ -201,6 +201,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
           <Tooltip
             title={isIsolated ? "Show all layers" : "Solo this layer"}
             placement="top"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
               size="small"
@@ -259,6 +261,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
               <Tooltip
                 title={summarizeLayerImageReference(layer.imageReference)}
                 placement="left"
+                enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+                enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
               >
                 <LinkIcon
                   sx={{
@@ -271,7 +275,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               </Tooltip>
             ) : null}
             {layer.alphaLock ? (
-              <Tooltip title="Lock transparency" placement="top">
+              <Tooltip title="Lock transparency" placement="top" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                 <LockIcon
                   sx={{
                     fontSize: "1rem",
@@ -310,6 +314,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
               title={layer.exposedAsInput === false ? "Input hidden" : ""}
               placement="left"
               disableHoverListener={layer.exposedAsInput !== false}
+              enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+              enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
             >
               <Box
                 sx={{
@@ -325,6 +331,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
               title={layer.exposedAsOutput === false ? "Output hidden" : ""}
               placement="left"
               disableHoverListener={layer.exposedAsOutput !== false}
+              enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+              enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
             >
               <Box
                 sx={{

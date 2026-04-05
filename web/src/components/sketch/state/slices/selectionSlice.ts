@@ -89,7 +89,7 @@ export const createSelectionSlice: StateCreator<
       return;
     }
     const copy = cloneSelectionMask(sel!);
-    featherMaskAlpha(copy, state.document.toolSettings.select.featherRadius);
+    featherMaskAlpha(copy, state.toolSettings.select.featherRadius);
     get().setSelection(copy);
   },
 
@@ -109,7 +109,7 @@ export const createSelectionSlice: StateCreator<
     if (!selectionHasAnyPixels(sel)) {
       return;
     }
-    const widthPx = state.document.toolSettings.select.borderWidth;
+    const widthPx = state.toolSettings.select.borderWidth;
     const ring = buildSelectionBorderStrokeMask(sel!, widthPx);
     if (!ring || !selectionHasAnyPixels(ring)) {
       return;

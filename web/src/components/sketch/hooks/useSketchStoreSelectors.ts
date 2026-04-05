@@ -22,6 +22,9 @@ import {
 
 export function useSketchStoreSelectors() {
   const document = useSketchStore((s) => s.document);
+  // Subscribe to the live toolSettings slice (separate from document so that
+  // brush/color changes do not mutate the document and trigger document re-renders).
+  const liveToolSettings = useSketchStore((s) => s.toolSettings);
   const activeTool = useSketchStore((s) => s.activeTool);
   const transientMoveModifierHeld = useSketchStore((s) => s.transientMoveModifierHeld);
   const zoom = useSketchStore((s) => s.zoom);
@@ -112,30 +115,32 @@ export function useSketchStoreSelectors() {
 
   const resolvedPenPressure = {
     ...DEFAULT_PEN_PRESSURE,
-    ...document.toolSettings?.penPressure
+    ...liveToolSettings.penPressure
   };
 
   // Defensively merge defaults so older/incomplete documents cannot break render.
+  // Reads from the live toolSettings slice (not document.toolSettings) so that
+  // brush/color mutations do not cause document re-renders.
   const toolSettings = {
     brush: {
       ...DEFAULT_BRUSH_SETTINGS,
-      ...document.toolSettings?.brush,
+      ...liveToolSettings.brush,
       ...resolvedPenPressure
     },
     pencil: {
       ...DEFAULT_PENCIL_SETTINGS,
-      ...document.toolSettings?.pencil,
+      ...liveToolSettings.pencil,
       ...resolvedPenPressure
     },
-    eraser: { ...DEFAULT_ERASER_SETTINGS, ...document.toolSettings?.eraser },
+    eraser: { ...DEFAULT_ERASER_SETTINGS, ...liveToolSettings.eraser },
     penPressure: resolvedPenPressure,
-    shape: { ...DEFAULT_SHAPE_SETTINGS, ...document.toolSettings?.shape },
-    fill: { ...DEFAULT_FILL_SETTINGS, ...document.toolSettings?.fill },
-    blur: { ...DEFAULT_BLUR_SETTINGS, ...document.toolSettings?.blur },
-    gradient: { ...DEFAULT_GRADIENT_SETTINGS, ...document.toolSettings?.gradient },
-    cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS, ...document.toolSettings?.cloneStamp },
-    select: { ...DEFAULT_SELECT_SETTINGS, ...document.toolSettings?.select },
-    segment: { ...DEFAULT_SEGMENT_SETTINGS, ...document.toolSettings?.segment }
+    shape: { ...DEFAULT_SHAPE_SETTINGS, ...liveToolSettings.shape },
+    fill: { ...DEFAULT_FILL_SETTINGS, ...liveToolSettings.fill },
+    blur: { ...DEFAULT_BLUR_SETTINGS, ...liveToolSettings.blur },
+    gradient: { ...DEFAULT_GRADIENT_SETTINGS, ...liveToolSettings.gradient },
+    cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS, ...liveToolSettings.cloneStamp },
+    select: { ...DEFAULT_SELECT_SETTINGS, ...liveToolSettings.select },
+    segment: { ...DEFAULT_SEGMENT_SETTINGS, ...liveToolSettings.segment }
   };
 
   const safeForegroundColor = foregroundColor || "#ffffff";

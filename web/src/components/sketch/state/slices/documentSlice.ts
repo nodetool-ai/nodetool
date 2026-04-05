@@ -134,8 +134,12 @@ export const createDocumentSlice: StateCreator<
   document: createDefaultDocument(),
 
   setDocument: (doc: SketchDocument) => {
+    const normalized = normalizeSketchDocument(doc);
     set({
-      document: normalizeSketchDocument(doc),
+      document: normalized,
+      // Hydrate the separate toolSettings slice from the loaded document so
+      // the runtime source of truth (store.toolSettings) matches what was saved.
+      toolSettings: normalized.toolSettings,
       history: [],
       historyIndex: -1,
       selectedLayerIds: [],
@@ -145,8 +149,10 @@ export const createDocumentSlice: StateCreator<
   },
 
   resetDocument: (width = 512, height = 512) => {
+    const defaultDoc = createDefaultDocument(width, height);
     set({
-      document: createDefaultDocument(width, height),
+      document: defaultDoc,
+      toolSettings: defaultDoc.toolSettings,
       activeTool: "brush",
       transientMoveModifierHeld: false,
       zoom: 1,

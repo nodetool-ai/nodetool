@@ -283,7 +283,7 @@ export function useEditorKeyboardShortcuts(
           if (tool === "brush") {
             const newHardness = Math.max(
               0,
-              store.document.toolSettings.brush.hardness - 0.1
+              store.toolSettings.brush.hardness - 0.1
             );
             paramsRef.current.setBrushSettings({
               hardness: Math.round(newHardness * 100) / 100
@@ -291,7 +291,7 @@ export function useEditorKeyboardShortcuts(
           } else if (tool === "eraser") {
             const newHardness = Math.max(
               0,
-              store.document.toolSettings.brush.hardness - 0.1
+              store.toolSettings.brush.hardness - 0.1
             );
             paramsRef.current.setBrushSettings({
               hardness: Math.round(newHardness * 100) / 100
@@ -303,7 +303,7 @@ export function useEditorKeyboardShortcuts(
           if (tool === "brush") {
             const newHardness = Math.min(
               1,
-              store.document.toolSettings.brush.hardness + 0.1
+              store.toolSettings.brush.hardness + 0.1
             );
             paramsRef.current.setBrushSettings({
               hardness: Math.round(newHardness * 100) / 100
@@ -311,7 +311,7 @@ export function useEditorKeyboardShortcuts(
           } else if (tool === "eraser") {
             const newHardness = Math.min(
               1,
-              store.document.toolSettings.brush.hardness + 0.1
+              store.toolSettings.brush.hardness + 0.1
             );
             paramsRef.current.setBrushSettings({
               hardness: Math.round(newHardness * 100) / 100
@@ -412,31 +412,31 @@ export function useEditorKeyboardShortcuts(
               if (tool === "brush") {
                 const newSize = Math.max(
                   1,
-                  store.document.toolSettings.brush.size - 5
+                  store.toolSettings.brush.size - 5
                 );
                 paramsRef.current.setBrushSettings({ size: newSize });
               } else if (tool === "pencil") {
                 const newSize = Math.max(
                   1,
-                  store.document.toolSettings.pencil.size - 1
+                  store.toolSettings.pencil.size - 1
                 );
                 paramsRef.current.setPencilSettings({ size: newSize });
               } else if (tool === "eraser") {
                 const newSize = Math.max(
                   1,
-                  store.document.toolSettings.eraser.size - 5
+                  store.toolSettings.eraser.size - 5
                 );
                 paramsRef.current.setEraserSettings({ size: newSize });
               } else if (tool === "blur") {
                 const newSize = Math.max(
                   1,
-                  store.document.toolSettings.blur.size - 5
+                  store.toolSettings.blur.size - 5
                 );
                 paramsRef.current.setBlurSettings({ size: newSize });
               } else if (tool === "clone_stamp") {
                 const newSize = Math.max(
                   1,
-                  store.document.toolSettings.cloneStamp.size - 5
+                  store.toolSettings.cloneStamp.size - 5
                 );
                 paramsRef.current.setCloneStampSettings({ size: newSize });
               }
@@ -448,31 +448,31 @@ export function useEditorKeyboardShortcuts(
               if (tool === "brush") {
                 const newSize = Math.min(
                   200,
-                  store.document.toolSettings.brush.size + 5
+                  store.toolSettings.brush.size + 5
                 );
                 paramsRef.current.setBrushSettings({ size: newSize });
               } else if (tool === "pencil") {
                 const newSize = Math.min(
                   10,
-                  store.document.toolSettings.pencil.size + 1
+                  store.toolSettings.pencil.size + 1
                 );
                 paramsRef.current.setPencilSettings({ size: newSize });
               } else if (tool === "eraser") {
                 const newSize = Math.min(
                   200,
-                  store.document.toolSettings.eraser.size + 5
+                  store.toolSettings.eraser.size + 5
                 );
                 paramsRef.current.setEraserSettings({ size: newSize });
               } else if (tool === "blur") {
                 const newSize = Math.min(
                   200,
-                  store.document.toolSettings.blur.size + 5
+                  store.toolSettings.blur.size + 5
                 );
                 paramsRef.current.setBlurSettings({ size: newSize });
               } else if (tool === "clone_stamp") {
                 const newSize = Math.min(
                   200,
-                  store.document.toolSettings.cloneStamp.size + 5
+                  store.toolSettings.cloneStamp.size + 5
                 );
                 paramsRef.current.setCloneStampSettings({ size: newSize });
               }

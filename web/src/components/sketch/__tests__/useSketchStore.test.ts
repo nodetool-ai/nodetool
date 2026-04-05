@@ -83,7 +83,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ size: 50, color: "#ff0000" });
       });
-      const brush = useSketchStore.getState().document.toolSettings.brush;
+      const brush = useSketchStore.getState().toolSettings.brush;
       expect(brush.size).toBe(50);
       expect(brush.color).toBe("#ff0000");
     });
@@ -92,7 +92,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().setPencilSettings({ size: 3, color: "#00ff00" });
       });
-      const pencil = useSketchStore.getState().document.toolSettings.pencil;
+      const pencil = useSketchStore.getState().toolSettings.pencil;
       expect(pencil.size).toBe(3);
       expect(pencil.color).toBe("#00ff00");
     });
@@ -101,7 +101,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().setEraserSettings({ size: 30 });
       });
-      expect(useSketchStore.getState().document.toolSettings.eraser.size).toBe(30);
+      expect(useSketchStore.getState().toolSettings.eraser.size).toBe(30);
     });
 
     it("stores stroke assist settings for paint tools", () => {
@@ -117,7 +117,7 @@ describe("useSketchStore", () => {
           }
         });
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.strokeAssist).toEqual({
+      expect(useSketchStore.getState().toolSettings.brush.strokeAssist).toEqual({
         preset: "inking",
         mode: "lazy",
         strength: 0.45,
@@ -152,8 +152,8 @@ describe("useSketchStore", () => {
       const s = useSketchStore.getState();
       expect(s.foregroundColor).toBe("#00ff00");
       expect(s.backgroundColor).toBe("#ff0000");
-      expect(s.document.toolSettings.brush.color).toBe("#00ff00");
-      expect(s.document.toolSettings.pencil.color).toBe("#00ff00");
+      expect(s.toolSettings.brush.color).toBe("#00ff00");
+      expect(s.toolSettings.pencil.color).toBe("#00ff00");
     });
 
     it("leaves a custom brush color unchanged when it did not match the old foreground", () => {
@@ -163,7 +163,7 @@ describe("useSketchStore", () => {
         useSketchStore.getState().setBrushSettings({ color: "#336699" });
         useSketchStore.getState().swapColors();
       });
-      expect(useSketchStore.getState().document.toolSettings.brush.color).toBe(
+      expect(useSketchStore.getState().toolSettings.brush.color).toBe(
         "#336699"
       );
     });
@@ -599,7 +599,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().setShapeSettings({ strokeColor: "#ff0000", strokeWidth: 5 });
       });
-      const shape = useSketchStore.getState().document.toolSettings.shape;
+      const shape = useSketchStore.getState().toolSettings.shape;
       expect(shape.strokeColor).toBe("#ff0000");
       expect(shape.strokeWidth).toBe(5);
     });
@@ -608,7 +608,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().setFillSettings({ color: "#00ff00", tolerance: 50 });
       });
-      const fill = useSketchStore.getState().document.toolSettings.fill;
+      const fill = useSketchStore.getState().toolSettings.fill;
       expect(fill.color).toBe("#00ff00");
       expect(fill.tolerance).toBe(50);
     });
@@ -617,7 +617,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().setShapeSettings({ filled: true, fillColor: "#0000ff" });
       });
-      const shape = useSketchStore.getState().document.toolSettings.shape;
+      const shape = useSketchStore.getState().toolSettings.shape;
       expect(shape.filled).toBe(true);
       expect(shape.fillColor).toBe("#0000ff");
     });

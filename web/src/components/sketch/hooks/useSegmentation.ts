@@ -91,7 +91,7 @@ export function useSegmentation({
   const checkModel = useCallback(async () => {
     setStatus("checking-model");
     try {
-      const backend = useSketchStore.getState().document.toolSettings.segment.backend;
+      const backend = useSketchStore.getState().toolSettings.segment.backend;
       const service = getSamService(backend);
       const info = await service.checkModelAvailability();
       setModelInfo(info);
