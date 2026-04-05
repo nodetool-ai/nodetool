@@ -205,7 +205,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 0, y: 0, width: 50, height: 50 },
-      transform: { x: 10, y: 10 }
+      transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 }
     });
     const doc = makeDoc({
       layers: [layer],
@@ -253,7 +253,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 0, y: 0, width: 40, height: 40 },
-      transform: { x: 5, y: 5 }
+      transform: { x: 5, y: 5, scaleX: 1, scaleY: 1, rotation: 0 }
     });
     const doc = makeDoc({
       layers: [layer],
@@ -282,7 +282,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 10, y: 10, width: 30, height: 30 },
-      transform: { x: 0, y: 0 }
+      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 }
     });
     const doc = makeDoc({
       layers: [layer],
@@ -315,7 +315,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 20, y: 20, width: 30, height: 30 },
-      transform: { x: 15, y: 15 }
+      transform: { x: 15, y: 15, scaleX: 1, scaleY: 1, rotation: 0 }
     });
     const doc = makeDoc({
       layers: [layer],
@@ -615,7 +615,7 @@ describe("Phase 1.6 – getMaskDataUrl", () => {
       type: "mask",
       visible: true,
       contentBounds: { x: 0, y: 0, width: 64, height: 64 },
-      transform: { x: 20, y: 20 }
+      transform: { x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 }
     });
 
     const doc = makeDoc({
@@ -685,7 +685,7 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace preserves transparency", (
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: { x: 20, y: 20 }
+      transform: { x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 }
     });
     const doc = makeDoc({
       layers: [layer],
@@ -776,7 +776,7 @@ describe("Phase 1.7 – transform undo restores original canvas data and transfo
     // After reconciliation, the canvas changes
     const layer = makeLayer({
       id: "layer-1",
-      transform: { x: 20, y: 20 },
+      transform: { x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 },
       contentBounds: { x: 0, y: 0, width: 64, height: 64 }
     });
     const doc = makeDoc({
@@ -842,7 +842,7 @@ describe("Phase 1.7 – transform undo restores original canvas data and transfo
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: { x: 10, y: 10 }
+      transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 }
     });
     const doc = makeDoc({
       layers: [layer],
