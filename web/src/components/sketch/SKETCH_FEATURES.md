@@ -130,6 +130,9 @@ The delta history system is the safety net for all editing. History entries capt
 
 ## PHASE 2 - FIXES
 
+- [ ] fix small delay when starting brush strokes - mouse cursor hangs for 50ms right after starting a stroke
+- [ ] rethink layer action buttons: sort, think about what should be in top and bottom groups, remove icons for crop canvas, but leave in context menu
+
 ## 2.1 - FEATURES
 
 ## PHASE 2.2: Transform Tool features and shortcuts
