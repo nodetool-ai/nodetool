@@ -7,6 +7,30 @@
 export { useCompositing } from "./useCompositing";
 export type { UseCompositingParams, UseCompositingResult } from "./useCompositing";
 
+export { useRuntimeBootstrap } from "./useRuntimeBootstrap";
+export type {
+  UseRuntimeBootstrapParams,
+  UseRuntimeBootstrapResult
+} from "./useRuntimeBootstrap";
+
+export { useTransformPreviewComposite } from "./useTransformPreviewComposite";
+export type {
+  UseTransformPreviewCompositeParams,
+  UseTransformPreviewCompositeResult
+} from "./useTransformPreviewComposite";
+
+export { useRedrawScheduler } from "./useRedrawScheduler";
+export type {
+  UseRedrawSchedulerParams,
+  UseRedrawSchedulerResult
+} from "./useRedrawScheduler";
+
+export { useLayerHydration } from "./useLayerHydration";
+export type {
+  UseLayerHydrationParams,
+  UseLayerHydrationResult
+} from "./useLayerHydration";
+
 export { useCanvasImperativeHandle } from "./useCanvasImperativeHandle";
 export type { UseCanvasImperativeHandleParams } from "./useCanvasImperativeHandle";
 

@@ -201,13 +201,13 @@ The delta history system is the safety net for all editing. History entries capt
 
 These are not "clean up for its own sake" tasks. They are explicit support work for the shared geometry / preview / output / state-boundary contracts above. Do them when touching the related seams; avoid a separate broad rewrite branch.
 
-- [ ] [impl+test] split `hooks/useCanvasActions.ts` by responsibility so gesture lifecycle, transform actions, export/output sync, and canvas-geometry actions stop competing in one file
+- [x] [impl+test] split `hooks/useCanvasActions.ts` by responsibility so gesture lifecycle, transform actions, export/output sync, and canvas-geometry actions stop competing in one file
   - suggested split: `useStrokeLifecycleActions.ts`, `useTransformActions.ts`, `useExportSyncActions.ts`, `useCanvasGeometryActions.ts`
   - keep the boundary clear: this layer coordinates ownership/sync rules, but tool modules should still express intent rather than embedding sync policy
-- [ ] [impl+test] break up `sketchCanvasHooks/useCompositing.ts` so runtime bootstrapping, layer hydration, redraw scheduling, transform preview compositing, and pending-stroke draining are isolated behind smaller helpers
+- [x] [impl+test] break up `sketchCanvasHooks/useCompositing.ts` so runtime bootstrapping, layer hydration, redraw scheduling, transform preview compositing, and pending-stroke draining are isolated behind smaller helpers
   - suggested split: `useRuntimeBootstrap.ts`, `useLayerHydration.ts`, `useRedrawScheduler.ts`, `useTransformPreviewComposite.ts`
   - keep this hook as the orchestrator, not the permanent home for every compositing concern
-- [ ] [impl+test] decompose `rendering/Canvas2DRuntime.ts` into internal engine modules so serialization/readback, resolved-output/effects, compositing, transform reconciliation, and mask/export helpers have clearer boundaries
+- [x] [impl+test] decompose `rendering/Canvas2DRuntime.ts` into internal engine modules so serialization/readback, resolved-output/effects, compositing, transform reconciliation, and mask/export helpers have clearer boundaries
   - suggested split under `rendering/canvas2d/`: `layerIO.ts`, `resolvedOutput.ts`, `composite.ts`, `reconcile.ts`, `maskAndExport.ts`
   - do not over-split public APIs early; prefer extracting cohesive internal modules first while keeping the runtime facade stable
 - [ ] [impl+test] extract pure transform/gizmo math out of `tools/TransformTool.ts` so the tool file becomes interaction orchestration over shared geometry helpers instead of a second geometry engine

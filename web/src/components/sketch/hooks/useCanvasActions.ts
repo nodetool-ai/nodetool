@@ -3,13 +3,14 @@
  *
  * Canvas-level handlers: crop, export, clear, fill, nudge, resize, zoom,
  * stroke start/end, and brightness/contrast/saturation adjustments.
+ *
+ * Internally composes four focused sub-hooks while maintaining the exact
+ * same return type and external API.
  */
 
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import {
-  isTransformOnlyTool,
-  layerAllowsTransformWhilePixelLocked,
   type LayerContentBounds,
   type LayerTransform,
   type Point,
@@ -17,131 +18,10 @@ import {
   type SketchDocument,
   type SketchTool
 } from "../types";
-import { useSketchStore } from "../state";
-import { getCanvasRasterBounds, getLayerCompositeOffset } from "../painting";
-import { getSelectionBounds, selectionHasAnyPixels } from "../selection";
-import {
-  buildSketchInternalClipboardCanvas,
-  drawSketchPasteOnLayerContext,
-  resolveSketchPasteImageCanvas,
-  writeImageCanvasToSystemClipboardPng
-} from "../sketchClipboard";
-import type { StrokeEndOptions } from "../tools/types";
-
-function getNonTransparentCanvasBounds(
-  canvas: HTMLCanvasElement
-): LayerContentBounds | null {
-  if (canvas.width === 0 || canvas.height === 0) {
-    return null;
-  }
-
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) {
-    return null;
-  }
-
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  let minX = canvas.width;
-  let minY = canvas.height;
-  let maxX = -1;
-  let maxY = -1;
-
-  for (let y = 0; y < canvas.height; y += 1) {
-    const rowOffset = y * canvas.width * 4;
-    for (let x = 0; x < canvas.width; x += 1) {
-      if (imageData[rowOffset + x * 4 + 3] === 0) {
-        continue;
-      }
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x);
-      maxY = Math.max(maxY, y);
-    }
-  }
-
-  if (maxX < minX || maxY < minY) {
-    return null;
-  }
-
-  const rasterBounds = getCanvasRasterBounds(canvas) ?? {
-    x: 0,
-    y: 0,
-    width: canvas.width,
-    height: canvas.height
-  };
-
-  return {
-    x: rasterBounds.x + minX,
-    y: rasterBounds.y + minY,
-    width: maxX - minX + 1,
-    height: maxY - minY + 1
-  };
-}
-
-function drawLayerSnapshotWithTransform(
-  ctx: CanvasRenderingContext2D,
-  source: HTMLCanvasElement,
-  compositeOffset: Point,
-  transform: LayerTransform
-): void {
-  const scaleX = transform.scaleX ?? 1;
-  const scaleY = transform.scaleY ?? 1;
-  const rotation = transform.rotation ?? 0;
-
-  if (scaleX !== 1 || scaleY !== 1 || rotation !== 0) {
-    const centerX = compositeOffset.x + source.width / 2;
-    const centerY = compositeOffset.y + source.height / 2;
-    ctx.translate(centerX, centerY);
-    ctx.rotate(rotation);
-    ctx.scale(scaleX, scaleY);
-    ctx.drawImage(source, -source.width / 2, -source.height / 2);
-    return;
-  }
-
-  ctx.drawImage(source, compositeOffset.x, compositeOffset.y);
-}
-
-function getTransformedLayerExtents(
-  source: HTMLCanvasElement,
-  compositeOffset: Point,
-  transform: LayerTransform
-): LayerContentBounds {
-  const scaleX = transform.scaleX ?? 1;
-  const scaleY = transform.scaleY ?? 1;
-  const rotation = transform.rotation ?? 0;
-  const centerX = compositeOffset.x + source.width / 2;
-  const centerY = compositeOffset.y + source.height / 2;
-
-  const corners = [
-    { x: compositeOffset.x, y: compositeOffset.y },
-    { x: compositeOffset.x + source.width, y: compositeOffset.y },
-    { x: compositeOffset.x + source.width, y: compositeOffset.y + source.height },
-    { x: compositeOffset.x, y: compositeOffset.y + source.height }
-  ];
-
-  const transformedCorners = corners.map((corner) => {
-    const localX = (corner.x - centerX) * scaleX;
-    const localY = (corner.y - centerY) * scaleY;
-    const rotatedX = localX * Math.cos(rotation) - localY * Math.sin(rotation);
-    const rotatedY = localX * Math.sin(rotation) + localY * Math.cos(rotation);
-    return {
-      x: centerX + rotatedX,
-      y: centerY + rotatedY
-    };
-  });
-
-  const minX = Math.min(...transformedCorners.map((corner) => corner.x));
-  const minY = Math.min(...transformedCorners.map((corner) => corner.y));
-  const maxX = Math.max(...transformedCorners.map((corner) => corner.x));
-  const maxY = Math.max(...transformedCorners.map((corner) => corner.y));
-
-  return {
-    x: Math.floor(minX),
-    y: Math.floor(minY),
-    width: Math.max(1, Math.ceil(maxX) - Math.floor(minX)),
-    height: Math.max(1, Math.ceil(maxY) - Math.floor(minY))
-  };
-}
+import { useExportSyncActions } from "./useExportSyncActions";
+import { useStrokeLifecycleActions } from "./useStrokeLifecycleActions";
+import { useTransformActions } from "./useTransformActions";
+import { useCanvasGeometryActions } from "./useCanvasGeometryActions";
 
 export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -192,1016 +72,105 @@ export function useCanvasActions({
   onExportImage,
   onExportMask
 }: UseCanvasActionsParams) {
-  interface PendingStrokeFinalize {
-    hasSnapshot: boolean;
-    data: string | null;
-    committedBounds?: LayerContentBounds | null;
-  }
+  // ─── Export sync (owns pendingExportSyncRef) ────────────────────
+  const exportSync = useExportSyncActions({
+    canvasRef,
+    onExportImage,
+    onExportMask
+  });
 
-  interface PendingExportSync {
-    image: boolean;
-    mask: boolean;
-  }
+  // ─── Stroke lifecycle (uses export sync ref for deferred export) ─
+  const strokeLifecycle = useStrokeLifecycleActions({
+    canvasRef,
+    document,
+    activeTool,
+    interactionTool,
+    pushHistory,
+    updateLayerData,
+    setLayerContentBounds,
+    pendingExportSyncRef: exportSync.pendingExportSyncRef,
+    onExportImage,
+    onExportMask
+  });
 
-  const pendingStrokeFinalizeRef = useRef<Map<string, PendingStrokeFinalize>>(new Map());
-  const pendingExportSyncRef = useRef<PendingExportSync>({ image: false, mask: false });
-  const layerThumbIdleFlushScheduledRef = useRef(false);
+  // ─── Transform actions (uses syncSketchOutputsNow) ─────────────
+  const transformActions = useTransformActions({
+    canvasRef,
+    document,
+    pushHistory,
+    updateLayerData,
+    offsetLayerTransform,
+    commitLayerTransform,
+    setLayerTransform,
+    setLayerContentBounds,
+    syncSketchOutputsNow: exportSync.syncSketchOutputsNow
+  });
 
-  const flushPendingStrokeFinalization = useCallback(() => {
-    const pendingEntries = Array.from(pendingStrokeFinalizeRef.current.entries());
-    pendingStrokeFinalizeRef.current.clear();
+  // ─── Geometry actions (canvas resize, zoom, crop, etc.) ────────
+  const geometryActions = useCanvasGeometryActions({
+    canvasRef,
+    document,
+    zoom,
+    pushHistory,
+    updateLayerData,
+    setDocument,
+    setZoom,
+    setPan,
+    resizeCanvas,
+    offsetAllPaintLayersTransform,
+    commitPixelLayerChange: strokeLifecycle.commitPixelLayerChange,
+    syncPixelLayerFromCanvas: strokeLifecycle.syncPixelLayerFromCanvas,
+    reconcileAllLayerTransforms: transformActions.reconcileAllLayerTransforms,
+    syncSketchOutputsNow: exportSync.syncSketchOutputsNow
+  });
 
-    if (pendingEntries.length === 0) {
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    for (const [layerId, pending] of pendingEntries) {
-      const nextData = pending.hasSnapshot
-        ? pending.data
-        : canvas?.getLayerData(layerId) ?? null;
-      updateLayerData(layerId, nextData);
-      if (pending.committedBounds) {
-        setLayerContentBounds(layerId, pending.committedBounds);
-      }
-    }
-
-  }, [canvasRef, updateLayerData, setLayerContentBounds]);
-
-  /**
-   * Encode pending layer pixels into document state for layer-panel thumbnails.
-   * Runs on an idle callback so it does not compete with cursor / pointer-up work.
-   * Stroke end only registers pending data; this is invoked when the pointer leaves
-   * the canvas (see SketchCanvas). Modal close still uses flushPendingCanvasSync.
-   */
-  const flushLayerThumbnailsWhenIdle = useCallback(() => {
-    if (layerThumbIdleFlushScheduledRef.current) {
-      return;
-    }
-    layerThumbIdleFlushScheduledRef.current = true;
-    const run = () => {
-      layerThumbIdleFlushScheduledRef.current = false;
-      flushPendingStrokeFinalization();
-    };
-    if (typeof window.requestIdleCallback === "function") {
-      window.requestIdleCallback(() => run(), { timeout: 1500 });
-    } else {
-      window.setTimeout(run, 0);
-    }
-  }, [flushPendingStrokeFinalization]);
-
-  const flushPendingExportSync = useCallback(() => {
-    const pending = pendingExportSyncRef.current;
-    pendingExportSyncRef.current = { image: false, mask: false };
-
-    if (!pending.image && !pending.mask) {
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
-    if (pending.image && onExportImage) {
-      onExportImage(canvas.flattenToDataUrl());
-    }
-    if (pending.mask && onExportMask) {
-      onExportMask(canvas.getMaskDataUrl());
-    }
-  }, [canvasRef, onExportImage, onExportMask]);
-
+  // ─── Combined flush (stroke finalization + export sync) ─────────
   const flushPendingCanvasSync = useCallback(() => {
-    flushPendingStrokeFinalization();
-    flushPendingExportSync();
-  }, [flushPendingStrokeFinalization, flushPendingExportSync]);
-
-  /** Immediate PNG/mask sync to parent (used after keyboard nudge session ends). */
-  const syncSketchOutputsNow = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-    if (onExportImage) {
-      onExportImage(canvas.flattenToDataUrl());
-    }
-    if (onExportMask) {
-      onExportMask(canvas.getMaskDataUrl());
-    }
-  }, [canvasRef, onExportImage, onExportMask]);
-
-  const pushTransformHistory = useCallback(
-    (label: string) => {
-      pushHistory(label, undefined, { restoreMode: "structure-only" });
-    },
-    [pushHistory]
-  );
-
-  const commitPixelLayerChange = useCallback(
-    (layerId: string, data: string | null, bounds?: LayerContentBounds) => {
-      updateLayerData(layerId, data);
-      if (bounds) {
-        setLayerContentBounds(layerId, bounds);
-      }
-    },
-    [updateLayerData, setLayerContentBounds]
-  );
-
-  const syncPixelLayerFromCanvas = useCallback(
-    (layerId: string, bounds?: LayerContentBounds) => {
-      const data = canvasRef.current?.getLayerData(layerId) ?? null;
-      commitPixelLayerChange(layerId, data, bounds);
-      return data;
-    },
-    [canvasRef, commitPixelLayerChange]
-  );
-
-  const handleCommitLayerTransform = useCallback(
-    (layerId: string, transform: Point) => {
-      commitLayerTransform(layerId, transform);
-    },
-    [commitLayerTransform]
-  );
-
-  // ─── Transform tool commit / cancel / reset ────────────────────────
-
-  /** Original transform saved when the transform tool activates. */
-  const transformOriginalRef = useRef<LayerTransform | null>(null);
-
-  /** Save the current layer transform as the baseline for cancel. */
-  const saveTransformOriginal = useCallback(() => {
-    const activeLayer = document.layers.find(
-      (l) => l.id === document.activeLayerId
-    );
-    if (activeLayer) {
-      transformOriginalRef.current = {
-        x: activeLayer.transform.x,
-        y: activeLayer.transform.y,
-        scaleX: activeLayer.transform.scaleX ?? 1,
-        scaleY: activeLayer.transform.scaleY ?? 1,
-        rotation: activeLayer.transform.rotation ?? 0
-      };
-    }
-  }, [document]);
-
-  /** Commit: bake the current scale/rotation into the pixel data and reset transform fields. */
-  const handleTransformCommit = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    const activeLayer = document.layers.find((l) => l.id === activeLayerId);
-    if (!activeLayer) {
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
-    // Reconcile (bake transform into pixels) and clear scale/rotation
-    const newData = canvas.reconcileLayerToDocumentSpace(activeLayerId);
-    if (newData !== null) {
-      updateLayerData(activeLayerId, newData);
-    }
-    setLayerTransform(activeLayerId, {
-      x: activeLayer.transform.x,
-      y: activeLayer.transform.y
-    });
-
-    transformOriginalRef.current = null;
-  }, [document, canvasRef, updateLayerData, setLayerTransform]);
-
-  /** Cancel: restore the original transform. */
-  const handleTransformCancel = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    const original = transformOriginalRef.current;
-    if (original) {
-      setLayerTransform(activeLayerId, original);
-    }
-    transformOriginalRef.current = null;
-  }, [document.activeLayerId, setLayerTransform]);
-
-  /** Reset: set transform to identity. */
-  const handleTransformReset = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    setLayerTransform(activeLayerId, { x: 0, y: 0 });
-  }, [document.activeLayerId, setLayerTransform]);
-
-  // ─── Stroke handlers ───────────────────────────────────────────────
-  const handleStrokeStart = useCallback(() => {
-    canvasRef.current?.drainPendingStrokeCommit();
-    const activeLayerId = document.activeLayerId;
-    const isTransformOnlyGesture = isTransformOnlyTool(interactionTool);
-    const activeLayerSnapshot =
-      !isTransformOnlyGesture && activeLayerId && canvasRef.current
-        ? canvasRef.current.snapshotLayerCanvas(activeLayerId)
-        : null;
-
-    const actionLabel = isTransformOnlyGesture
-      ? "move layer"
-      : `${activeTool} stroke`;
-    const layerSnapshots = activeLayerId
-      ? { [activeLayerId]: activeLayerSnapshot }
-      : undefined;
-
-    // pushHistory updates Zustand (and can trigger React). Doing that in the same
-    // turn as pointerdown competes with the first dab and compositing. The pixel
-    // snapshot must stay synchronous for undo; defer only the history commit.
-    window.requestAnimationFrame(() => {
-      pushHistory(
-        actionLabel,
-        layerSnapshots,
-        isTransformOnlyGesture ? { restoreMode: "structure-only" } : undefined
-      );
-    });
-  }, [document.activeLayerId, canvasRef, pushHistory, activeTool, interactionTool]);
-
-  const handleStrokeEnd = useCallback(
-    (
-      layerId: string,
-      data: string | null,
-      committedBounds?: LayerContentBounds,
-      options?: StrokeEndOptions
-    ) => {
-      if (onExportImage) {
-        pendingExportSyncRef.current.image = true;
-      }
-      if (onExportMask) {
-        pendingExportSyncRef.current.mask = true;
-      }
-
-      if (data !== null) {
-        // Caller already provided serialized data (rare fast-path).
-        commitPixelLayerChange(layerId, data, committedBounds);
-        pendingStrokeFinalizeRef.current.set(layerId, {
-          hasSnapshot: true,
-          data
-        });
-        return;
-      }
-
-      if (options?.syncDocumentFromCanvas === false) {
-        return;
-      }
-
-      // Canvas already has the correct pixels. Defer encode + Zustand update until
-      // the pointer leaves the canvas (flushLayerThumbnailsWhenIdle) or modal
-      // close (flushPendingCanvasSync) so pointer-up stays smooth.
-      pendingStrokeFinalizeRef.current.set(layerId, {
-        hasSnapshot: false,
-        data: null,
-        committedBounds: committedBounds ?? null
-      });
-    },
-    [onExportImage, onExportMask, commitPixelLayerChange]
-  );
-
-  const bakeLayerTransformIntoDocumentSpace = useCallback(
-    (layerId: string) => {
-      const layer = document.layers.find((entry) => entry.id === layerId);
-      if (!layer || !canvasRef.current) {
-        return;
-      }
-
-      const tx = layer.transform?.x ?? 0;
-      const ty = layer.transform?.y ?? 0;
-      if (tx === 0 && ty === 0) {
-        return;
-      }
-
-      const data = canvasRef.current.reconcileLayerToDocumentSpace(layerId);
-      commitLayerTransform(layerId, { x: 0, y: 0 });
-      setLayerContentBounds(layerId, {
-        x: 0,
-        y: 0,
-        width: document.canvas.width,
-        height: document.canvas.height
-      });
-      updateLayerData(layerId, data);
-    },
-    [
-      document.layers,
-      document.canvas.width,
-      document.canvas.height,
-      canvasRef,
-      commitLayerTransform,
-      setLayerContentBounds,
-      updateLayerData
-    ]
-  );
-
-  const reconcileAllLayerTransforms = useCallback(() => {
-    for (const layer of document.layers) {
-      bakeLayerTransformIntoDocumentSpace(layer.id);
-    }
-  }, [document.layers, bakeLayerTransformIntoDocumentSpace]);
-
-  const finalizeCanvasCrop = useCallback(
-    (x: number, y: number, width: number, height: number) => {
-      if (!canvasRef.current) {
-        return;
-      }
-      canvasRef.current.cropCanvas(x, y, width, height);
-      const state = useSketchStore.getState();
-      const nextDocument = {
-        ...state.document,
-        canvas: {
-          ...state.document.canvas,
-          width,
-          height
-        },
-        layers: state.document.layers.map((layer) => ({
-          ...layer,
-          transform: { x: 0, y: 0 },
-          contentBounds: {
-            x: 0,
-            y: 0,
-            width,
-            height
-          }
-        })),
-        metadata: {
-          ...state.document.metadata,
-          updatedAt: new Date().toISOString()
-        }
-      };
-      setDocument(nextDocument);
-      for (const layer of nextDocument.layers) {
-        const data = canvasRef.current.getLayerData(layer.id);
-        updateLayerData(layer.id, data);
-      }
-    },
-    [setDocument, updateLayerData, canvasRef]
-  );
-
-  // ─── Clear active layer (or selection area) ────────────────────────
-  const handleClearLayer = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    if (!activeLayerId || !canvasRef.current) {
-      return;
-    }
-    const layer = document.layers.find((entry) => entry.id === activeLayerId);
-    if (!layer) {
-      return;
-    }
-    const sel = useSketchStore.getState().selection;
-    if (sel && selectionHasAnyPixels(sel)) {
-      pushHistory("clear selection");
-      const offset = getLayerCompositeOffset(layer, {
-        width: Math.max(1, layer.contentBounds?.width ?? document.canvas.width),
-        height: Math.max(1, layer.contentBounds?.height ?? document.canvas.height)
-      });
-      canvasRef.current.clearLayerBySelectionMask(
-        activeLayerId,
-        offset.x,
-        offset.y,
-        sel
-      );
-      syncPixelLayerFromCanvas(activeLayerId);
-    } else {
-      pushHistory("clear layer");
-      canvasRef.current.clearLayer(activeLayerId);
-      commitPixelLayerChange(activeLayerId, null);
-    }
-  }, [
-    document.activeLayerId,
-    document.layers,
-    document.canvas.width,
-    document.canvas.height,
-    pushHistory,
-    commitPixelLayerChange,
-    syncPixelLayerFromCanvas,
-    canvasRef
-  ]);
-
-  // ─── Fill layer with color (respects selection) ─────────────────
-  const handleFillLayerWithColor = useCallback(
-    (color: string) => {
-      const activeLayerId = document.activeLayerId;
-      const layer = document.layers.find((l) => l.id === activeLayerId);
-      if (!activeLayerId || !canvasRef.current || !layer || layer.locked) {
-        return;
-      }
-      const sel = useSketchStore.getState().selection;
-      if (sel && selectionHasAnyPixels(sel)) {
-        pushHistory("fill selection");
-        const offset = getLayerCompositeOffset(layer, {
-          width: Math.max(1, layer.contentBounds?.width ?? document.canvas.width),
-          height: Math.max(1, layer.contentBounds?.height ?? document.canvas.height)
-        });
-        canvasRef.current.fillLayerBySelectionMask(
-          activeLayerId,
-          offset.x,
-          offset.y,
-          sel,
-          color
-        );
-      } else {
-        pushHistory("fill layer");
-        canvasRef.current.fillLayerWithColor(activeLayerId, color);
-      }
-      syncPixelLayerFromCanvas(activeLayerId);
-    },
-    [
-      document.activeLayerId,
-      document.layers,
-      document.canvas.width,
-      document.canvas.height,
-      pushHistory,
-      syncPixelLayerFromCanvas,
-      canvasRef
-    ]
-  );
-
-  // ─── Arrow key nudge for active layer ───────────────────────────
-  const handleNudgeLayer = useCallback(
-    (
-      dx: number,
-      dy: number,
-      options?: { recordHistory?: boolean; syncOutputs?: boolean }
-    ) => {
-      const recordHistory = options?.recordHistory !== false;
-      const syncOutputs = options?.syncOutputs !== false;
-      const activeLayerId = document.activeLayerId;
-      const layer = document.layers.find((l) => l.id === activeLayerId);
-      const blockedByLock =
-        layer?.locked && !layerAllowsTransformWhilePixelLocked(layer);
-      if (!activeLayerId || !canvasRef.current || !layer || blockedByLock) {
-        return;
-      }
-      if (recordHistory) {
-        pushTransformHistory("nudge layer");
-      }
-      offsetLayerTransform(activeLayerId, dx, dy);
-      if (!canvasRef.current) {
-        return;
-      }
-      if (syncOutputs) {
-        syncSketchOutputsNow();
-      }
-    },
-    [
-      document.activeLayerId,
-      document.layers,
-      pushTransformHistory,
-      offsetLayerTransform,
-      syncSketchOutputsNow,
-      canvasRef
-    ]
-  );
-
-  // ─── Export PNG download ───────────────────────────────────────────
-  const handleExportPng = useCallback(() => {
-    if (!canvasRef.current) {
-      return;
-    }
-    const dataUrl = canvasRef.current.flattenToDataUrl();
-    if (!dataUrl) {
-      return;
-    }
-    const link = window.document.createElement("a");
-    link.download = "image-editor-export.png";
-    link.href = dataUrl;
-    link.click();
-  }, [canvasRef]);
-
-  const handleTrimLayerToBounds = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    const layer = document.layers.find((entry) => entry.id === activeLayerId);
-    if (
-      !activeLayerId ||
-      !canvasRef.current ||
-      !layer ||
-      layer.locked ||
-      layer.type === "group" ||
-      layer.type === "mask"
-    ) {
-      return;
-    }
-
-    pushHistory("trim layer");
-    const trimmed = canvasRef.current.trimLayerToBounds(activeLayerId);
-    if (!trimmed) {
-      return;
-    }
-
-    commitPixelLayerChange(activeLayerId, trimmed.data, trimmed.bounds);
-    canvasRef.current.setLayerData(
-      activeLayerId,
-      trimmed.data,
-      trimmed.bounds
-    );
-
-    syncSketchOutputsNow();
-  }, [
-    document.activeLayerId,
-    document.layers,
-    pushHistory,
-    commitPixelLayerChange,
-    syncSketchOutputsNow,
-    canvasRef
-  ]);
-
-  // ─── Canvas resize ─────────────────────────────────────────────
-  /**
-   * The editor centers the artboard with translate(-50%, -50%) + pan + scale(zoom).
-   * When the canvas pixel size changes, that keeps the *geometric center* pinned unless
-   * we nudge pan so the top-left of the document stays stable on screen (normal resize).
-   * Alt+resize still shifts layer transforms; this pan correction applies in both cases.
-   */
-  const nudgePanForCanvasPixelDelta = useCallback(
-    (dW: number, dH: number) => {
-      if (dW === 0 && dH === 0) {
-        return;
-      }
-      const { pan: p } = useSketchStore.getState();
-      setPan({
-        x: p.x + (dW / 2) * zoom,
-        y: p.y + (dH / 2) * zoom
-      });
-    },
-    [setPan, zoom]
-  );
-
-  const handleCanvasResize = useCallback(
-    (width: number, height: number) => {
-      pushHistory("resize canvas");
-      const { document: doc } = useSketchStore.getState();
-      const dW = width - doc.canvas.width;
-      const dH = height - doc.canvas.height;
-      resizeCanvas(width, height);
-      nudgePanForCanvasPixelDelta(dW, dH);
-    },
-    [pushHistory, resizeCanvas, nudgePanForCanvasPixelDelta]
-  );
-
-  /** Push a single history snapshot before a drag-resize begins. */
-  const handleCanvasResizeStart = useCallback(() => {
-    pushHistory("resize canvas");
-  }, [pushHistory]);
-
-  /** Apply new canvas dimensions during a drag-resize (no history push). */
-  const handleCanvasResizeDrag = useCallback(
-    (
-      width: number,
-      height: number,
-      options?: { translateLayers?: Point; resizeFromCenter?: boolean }
-    ) => {
-      const { document: doc } = useSketchStore.getState();
-      const dW = width - doc.canvas.width;
-      const dH = height - doc.canvas.height;
-      if (dW === 0 && dH === 0) {
-        return;
-      }
-      resizeCanvas(width, height);
-      const t = options?.translateLayers;
-      if (t && (t.x !== 0 || t.y !== 0)) {
-        offsetAllPaintLayersTransform(t.x, t.y);
-      }
-      const hasLayerTranslate =
-        t != null && (t.x !== 0 || t.y !== 0);
-      if (!options?.resizeFromCenter && !hasLayerTranslate) {
-        nudgePanForCanvasPixelDelta(dW, dH);
-      }
-    },
-    [resizeCanvas, offsetAllPaintLayersTransform, nudgePanForCanvasPixelDelta]
-  );
-
-  // ─── Zoom handlers ─────────────────────────────────────────────────
-  const handleZoomIn = useCallback(() => setZoom(zoom * 1.3), [zoom, setZoom]);
-  const handleZoomOut = useCallback(() => setZoom(zoom / 1.3), [zoom, setZoom]);
-  const handleZoomReset = useCallback(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  }, [setZoom, setPan]);
-
-  // ─── Crop completion ───────────────────────────────────────────
-  const handleCropComplete = useCallback(
-    (x: number, y: number, width: number, height: number) => {
-      if (!canvasRef.current) {
-        return;
-      }
-      pushHistory("crop");
-      // Crop is an explicit destructive bake flow: transforms must be reconciled
-      // into document-space pixels before cropping the backing rasters.
-      reconcileAllLayerTransforms();
-      finalizeCanvasCrop(x, y, width, height);
-    },
-    [
-      pushHistory,
-      canvasRef,
-      reconcileAllLayerTransforms,
-      finalizeCanvasCrop
-    ]
-  );
-
-  const handleCropCanvasToActiveLayerVisiblePixels = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    const activeLayer = document.layers.find((layer) => layer.id === activeLayerId);
-    if (
-      !activeLayerId ||
-      !canvasRef.current ||
-      !activeLayer ||
-      activeLayer.type === "group" ||
-      activeLayer.type === "mask"
-    ) {
-      return;
-    }
-
-    const source = canvasRef.current.snapshotLayerCanvas(activeLayerId);
-    if (!source) {
-      return;
-    }
-
-    const probe = window.document.createElement("canvas");
-    probe.width = document.canvas.width;
-    probe.height = document.canvas.height;
-    const probeCtx = probe.getContext("2d");
-    if (!probeCtx) {
-      return;
-    }
-
-    const compositeOffset = getLayerCompositeOffset(
-      activeLayer,
-      { width: source.width, height: source.height },
-      source
-    );
-    drawLayerSnapshotWithTransform(
-      probeCtx,
-      source,
-      compositeOffset,
-      activeLayer.transform
-    );
-
-    const cropBounds = getNonTransparentCanvasBounds(probe);
-    if (!cropBounds) {
-      return;
-    }
-
-    pushHistory("crop to active layer visible pixels");
-    reconcileAllLayerTransforms();
-    finalizeCanvasCrop(
-      cropBounds.x,
-      cropBounds.y,
-      cropBounds.width,
-      cropBounds.height
-    );
-  }, [
-    document.activeLayerId,
-    document.layers,
-    document.canvas.width,
-    document.canvas.height,
-    canvasRef,
-    pushHistory,
-    reconcileAllLayerTransforms,
-    finalizeCanvasCrop
-  ]);
-
-  const handleCropCanvasToActiveLayerExtents = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    const activeLayer = document.layers.find((layer) => layer.id === activeLayerId);
-    if (
-      !activeLayerId ||
-      !canvasRef.current ||
-      !activeLayer ||
-      activeLayer.type === "group" ||
-      activeLayer.type === "mask"
-    ) {
-      return;
-    }
-
-    const source = canvasRef.current.snapshotLayerCanvas(activeLayerId);
-    if (!source) {
-      return;
-    }
-
-    const compositeOffset = getLayerCompositeOffset(
-      activeLayer,
-      { width: source.width, height: source.height },
-      source
-    );
-    const cropBounds = getTransformedLayerExtents(
-      source,
-      compositeOffset,
-      activeLayer.transform
-    );
-
-    pushHistory("crop to active layer extents");
-    reconcileAllLayerTransforms();
-    finalizeCanvasCrop(
-      cropBounds.x,
-      cropBounds.y,
-      cropBounds.width,
-      cropBounds.height
-    );
-  }, [
-    document.activeLayerId,
-    document.layers,
-    canvasRef,
-    pushHistory,
-    reconcileAllLayerTransforms,
-    finalizeCanvasCrop
-  ]);
-
-  // ─── Context menu ──────────────────────────────────────────────
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-
-  const handleContextMenu = useCallback((x: number, y: number) => {
-    setContextMenu({ x, y });
-  }, []);
-
-  const handleContextMenuClose = useCallback(() => {
-    setContextMenu(null);
-  }, []);
-
-  // ─── Clipboard (cut / copy / paste) ─────────────────────────────
-  const clipboardCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  /** Copy the selected region (or full layer) to the internal clipboard. */
-  const handleCopy = useCallback(() => {
-    if (!canvasRef.current) {
-      return;
-    }
-    const layerId = document.activeLayerId;
-    if (!layerId) {
-      return;
-    }
-    const layer = document.layers.find((l) => l.id === layerId);
-    if (!layer) {
-      return;
-    }
-    const snapshot = canvasRef.current.snapshotLayerCanvas(layerId);
-    if (!snapshot) {
-      return;
-    }
-
-    const sel = useSketchStore.getState().selection;
-    const tmp = buildSketchInternalClipboardCanvas({
-      snapshot,
-      layer,
-      documentCanvasWidth: document.canvas.width,
-      documentCanvasHeight: document.canvas.height,
-      selection: sel
-    });
-    if (!tmp) {
-      return;
-    }
-
-    clipboardCanvasRef.current = tmp;
-    writeImageCanvasToSystemClipboardPng(tmp);
-  }, [
-    canvasRef,
-    document.activeLayerId,
-    document.layers,
-    document.canvas.width,
-    document.canvas.height
-  ]);
-
-  /** Cut = copy + clear selection region. */
-  const handleCut = useCallback(() => {
-    handleCopy();
-    handleClearLayer();
-  }, [handleCopy, handleClearLayer]);
-
-  /**
-   * Paste from the OS clipboard and/or the in-app pixel buffer.
-   * @param preferInternalClipboardFirst — When true (Ctrl+Shift+V), use the in-app buffer first
-   *   so masked in-sketch copies keep correct alpha; default Ctrl+V prefers other apps' clipboard.
-   */
-  const handlePaste = useCallback(async (preferInternalClipboardFirst = false) => {
-    if (!canvasRef.current) {
-      return;
-    }
-    const layerId = document.activeLayerId;
-    if (!layerId) {
-      return;
-    }
-
-    const imageToPaste = await resolveSketchPasteImageCanvas({
-      internalBuffer: clipboardCanvasRef.current,
-      preferInternalClipboardFirst
-    });
-    if (!imageToPaste) {
-      return;
-    }
-
-    pushHistory("paste");
-
-    const pasteSnapshot = canvasRef.current.snapshotLayerCanvas(layerId);
-    if (!pasteSnapshot) {
-      return;
-    }
-    const ctx = pasteSnapshot.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
-    const layer = document.layers.find((l) => l.id === layerId);
-    if (!layer) {
-      return;
-    }
-    const offset = getLayerCompositeOffset(
-      layer,
-      {
-        width: document.canvas.width,
-        height: document.canvas.height
-      },
-      pasteSnapshot
-    );
-
-    const pasteDoc = canvasRef.current.getPasteAnchorDocumentPoint();
-    const sel = useSketchStore.getState().selection;
-    const bounds = sel ? getSelectionBounds(sel) : null;
-
-    drawSketchPasteOnLayerContext(ctx, imageToPaste, {
-      offset,
-      pasteAnchorDocument: pasteDoc,
-      selectionBounds: bounds
-    });
-
-    canvasRef.current.restoreLayerCanvas(layerId, pasteSnapshot);
-    syncPixelLayerFromCanvas(layerId);
-    canvasRef.current.redrawDisplay();
-  }, [
-    canvasRef,
-    document.activeLayerId,
-    document.canvas.height,
-    document.canvas.width,
-    document.layers,
-    pushHistory,
-    syncPixelLayerFromCanvas
-  ]);
-
-  /** Import a dropped or externally-provided image file into the active layer. */
-  const handleDropImage = useCallback(
-    async (file: File) => {
-      if (!canvasRef.current) {
-        return;
-      }
-      const layerId = document.activeLayerId;
-      if (!layerId) {
-        return;
-      }
-      if (!file.type.startsWith("image/")) {
-        return;
-      }
-
-      const bitmap = await createImageBitmap(file);
-      const tmp = window.document.createElement("canvas");
-      tmp.width = bitmap.width;
-      tmp.height = bitmap.height;
-      const tmpCtx = tmp.getContext("2d");
-      if (tmpCtx) {
-        tmpCtx.drawImage(bitmap, 0, 0);
-      }
-      bitmap.close();
-
-      pushHistory("drop image");
-
-      const snapshot = canvasRef.current.snapshotLayerCanvas(layerId);
-      if (!snapshot) {
-        return;
-      }
-      const ctx = snapshot.getContext("2d");
-      if (!ctx) {
-        return;
-      }
-
-      ctx.drawImage(tmp, 0, 0);
-
-      canvasRef.current.restoreLayerCanvas(layerId, snapshot);
-      syncPixelLayerFromCanvas(layerId);
-      canvasRef.current.redrawDisplay();
-    },
-    [canvasRef, document.activeLayerId, pushHistory, syncPixelLayerFromCanvas]
-  );
-
-  // ─── Adjustment preview (auto-apply with snapshot) ──────────────
-  const adjustmentBaseRef = useRef<HTMLCanvasElement | null>(null);
-  const [adjBrightness, setAdjBrightness] = useState(0);
-  const [adjContrast, setAdjContrast] = useState(0);
-  const [adjSaturation, setAdjSaturation] = useState(0);
-  const adjustDebounceRef = useRef<number | null>(null);
-
-  const handleAdjustmentPreview = useCallback(
-    (brightness: number, contrast: number, saturation: number) => {
-      if (!canvasRef.current) {
-        return;
-      }
-      const layerId = document.activeLayerId;
-      if (!layerId) {
-        return;
-      }
-      const allZero = brightness === 0 && contrast === 0 && saturation === 0;
-      if (allZero) {
-        // Restore original pixels when sliders return to zero (preview-only, no history)
-        if (adjustmentBaseRef.current !== null) {
-          canvasRef.current.restoreLayerCanvas(layerId, adjustmentBaseRef.current);
-          syncPixelLayerFromCanvas(layerId);
-        }
-        return;
-      }
-      // Take a snapshot before the first non-zero preview of this session
-      if (adjustmentBaseRef.current === null) {
-        adjustmentBaseRef.current = canvasRef.current.snapshotLayerCanvas(layerId);
-      }
-      if (adjustmentBaseRef.current) {
-        canvasRef.current.restoreLayerCanvas(layerId, adjustmentBaseRef.current);
-      }
-      canvasRef.current.applyAdjustments(brightness, contrast, saturation);
-      syncPixelLayerFromCanvas(layerId);
-    },
-    [
-      document.activeLayerId,
-      syncPixelLayerFromCanvas,
-      canvasRef
-    ]
-  );
-
-  /** Commit the current adjustment preview — exactly one undo step. */
-  const handleApplyAdjustments = useCallback(() => {
-    if (adjustmentBaseRef.current !== null) {
-      pushHistory("adjustments");
-    }
-    adjustmentBaseRef.current = null;
-    setAdjBrightness(0);
-    setAdjContrast(0);
-    setAdjSaturation(0);
-  }, [pushHistory]);
-
-  /** Cancel adjustment preview — restore the original pixels, no undo step. */
-  const handleCancelAdjustments = useCallback(() => {
-    if (!canvasRef.current) {
-      return;
-    }
-    const layerId = document.activeLayerId;
-    if (!layerId) {
-      return;
-    }
-    if (adjustmentBaseRef.current !== null) {
-      canvasRef.current.restoreLayerCanvas(layerId, adjustmentBaseRef.current);
-      syncPixelLayerFromCanvas(layerId);
-      adjustmentBaseRef.current = null;
-    }
-    setAdjBrightness(0);
-    setAdjContrast(0);
-    setAdjSaturation(0);
-  }, [document.activeLayerId, syncPixelLayerFromCanvas, canvasRef]);
-
-  // Auto-apply adjustments with 100ms debounce
-  useEffect(() => {
-    if (adjustDebounceRef.current !== null) {
-      clearTimeout(adjustDebounceRef.current);
-    }
-    adjustDebounceRef.current = window.setTimeout(() => {
-      handleAdjustmentPreview(adjBrightness, adjContrast, adjSaturation);
-      adjustDebounceRef.current = null;
-    }, 100);
-    return () => {
-      if (adjustDebounceRef.current !== null) {
-        clearTimeout(adjustDebounceRef.current);
-      }
-    };
-  }, [adjBrightness, adjContrast, adjSaturation, handleAdjustmentPreview]);
+    strokeLifecycle.flushPendingStrokeFinalization();
+    exportSync.flushPendingExportSync();
+  }, [strokeLifecycle.flushPendingStrokeFinalization, exportSync.flushPendingExportSync]);
 
   return {
-    handleStrokeStart,
-    handleStrokeEnd,
+    handleStrokeStart: strokeLifecycle.handleStrokeStart,
+    handleStrokeEnd: strokeLifecycle.handleStrokeEnd,
     flushPendingCanvasSync,
-    syncSketchOutputsNow,
-    flushLayerThumbnailsWhenIdle,
-    handleClearLayer,
-    handleFillLayerWithColor,
-    handleCommitLayerTransform,
-    handleNudgeLayer,
-    handleTrimLayerToBounds,
-    handleExportPng,
-    handleCanvasResize,
-    handleCanvasResizeStart,
-    handleCanvasResizeDrag,
-    handleZoomIn,
-    handleZoomOut,
-    handleZoomReset,
-    handleCropComplete,
-    handleCropCanvasToActiveLayerVisiblePixels,
-    handleCropCanvasToActiveLayerExtents,
-    contextMenu,
-    handleContextMenu,
-    handleContextMenuClose,
-    handleCopy,
-    handleCut,
-    handlePaste,
-    handleDropImage,
-    adjBrightness,
-    adjContrast,
-    adjSaturation,
-    setAdjBrightness,
-    setAdjContrast,
-    setAdjSaturation,
-    handleApplyAdjustments,
-    handleCancelAdjustments,
-    saveTransformOriginal,
-    handleTransformCommit,
-    handleTransformCancel,
-    handleTransformReset
+    syncSketchOutputsNow: exportSync.syncSketchOutputsNow,
+    flushLayerThumbnailsWhenIdle: strokeLifecycle.flushLayerThumbnailsWhenIdle,
+    handleClearLayer: geometryActions.handleClearLayer,
+    handleFillLayerWithColor: geometryActions.handleFillLayerWithColor,
+    handleCommitLayerTransform: transformActions.handleCommitLayerTransform,
+    handleNudgeLayer: transformActions.handleNudgeLayer,
+    handleTrimLayerToBounds: geometryActions.handleTrimLayerToBounds,
+    handleExportPng: exportSync.handleExportPng,
+    handleCanvasResize: geometryActions.handleCanvasResize,
+    handleCanvasResizeStart: geometryActions.handleCanvasResizeStart,
+    handleCanvasResizeDrag: geometryActions.handleCanvasResizeDrag,
+    handleZoomIn: geometryActions.handleZoomIn,
+    handleZoomOut: geometryActions.handleZoomOut,
+    handleZoomReset: geometryActions.handleZoomReset,
+    handleCropComplete: geometryActions.handleCropComplete,
+    handleCropCanvasToActiveLayerVisiblePixels:
+      geometryActions.handleCropCanvasToActiveLayerVisiblePixels,
+    handleCropCanvasToActiveLayerExtents:
+      geometryActions.handleCropCanvasToActiveLayerExtents,
+    contextMenu: geometryActions.contextMenu,
+    handleContextMenu: geometryActions.handleContextMenu,
+    handleContextMenuClose: geometryActions.handleContextMenuClose,
+    handleCopy: geometryActions.handleCopy,
+    handleCut: geometryActions.handleCut,
+    handlePaste: geometryActions.handlePaste,
+    handleDropImage: geometryActions.handleDropImage,
+    adjBrightness: geometryActions.adjBrightness,
+    adjContrast: geometryActions.adjContrast,
+    adjSaturation: geometryActions.adjSaturation,
+    setAdjBrightness: geometryActions.setAdjBrightness,
+    setAdjContrast: geometryActions.setAdjContrast,
+    setAdjSaturation: geometryActions.setAdjSaturation,
+    handleApplyAdjustments: geometryActions.handleApplyAdjustments,
+    handleCancelAdjustments: geometryActions.handleCancelAdjustments,
+    saveTransformOriginal: transformActions.saveTransformOriginal,
+    handleTransformCommit: transformActions.handleTransformCommit,
+    handleTransformCancel: transformActions.handleTransformCancel,
+    handleTransformReset: transformActions.handleTransformReset
   };
 }
