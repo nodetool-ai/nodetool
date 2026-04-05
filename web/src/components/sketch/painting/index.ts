@@ -46,3 +46,10 @@ export {
   sampleCompositeRGBA,
   hitTestLayerAtDocPoint
 } from "./sampleDocument";
+
+// ── Alpha-lock save/restore ────────────────────────────────────────────────
+export {
+  captureAlphaSnapshot,
+  restoreAlphaFromSnapshot
+} from "./alphaLock";
+export type { AlphaRestoreDirtyRect } from "./alphaLock";
