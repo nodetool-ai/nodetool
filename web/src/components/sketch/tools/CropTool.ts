@@ -76,6 +76,17 @@ export class CropTool implements ToolHandler {
     }
   }
 
+  /** Cancel an in-progress crop (e.g. ESC key). */
+  onCancel(ctx: ToolContext): void {
+    if (this.cropStart) {
+      ctx.clearGizmo();
+      ctx.clearOverlay();
+      ctx.drawSelectionOverlay();
+      this.cropStart = null;
+      this.cropEnd = null;
+    }
+  }
+
   onDeactivate(ctx: ToolContext): void {
     ctx.clearGizmo();
     this.cropStart = null;

@@ -1,6 +1,6 @@
 # Sketch Editor Roadmap
 
-> **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place; next work should stay focused on core contracts, parity, and shared tool/runtime seams before adding feature-heavy slices.
+> **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place; next work should stay focused on hardening core models — layer draw, render, selection, transform, coordinate mapping — before adding feature-heavy slices.
 > **Last updated**: 2026-04-05
 > **Execution note**: this file is the active roadmap/backlog. `REFACTOR-SKETCH-APP.md` is supporting implementation context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
 
@@ -13,6 +13,7 @@
 - keep ordinary raster workflows cheap and predictable
 - only run sketch-related tests for normal iteration, not full app tests
 - when changing shortcuts, edit src/components/sketch/SHORTCUTS.md
+- **harden before extending**: make core models and helpers solid with regression tests before adding new features on top of them
 
 ## PHASE 1: Current Priorities
 
@@ -45,20 +46,83 @@ Phase 1 "done means":
 - [ ] remove the remaining implicit legacy-runtime behavior from normal editing flow and replace it with explicit documented exceptions
 - [ ] keep running focused stylus / paint-after-move / preview-correctness smoke checks after each major runtime slice and treat regressions in brush feel as blockers
 
-## PHASE 1.2: Fixes
+### 1.2 - Fixes
 
-- [ ] Improve selection: only cut selection off for Rectangle at canvas bounds while creating a selection - lasso, ellipse, polygon should extend canvas
+- [x] Improve selection: rectangle clips at canvas bounds (correct), ellipse/lasso/polygon already extend beyond canvas (verified, no change needed)
 - [ ] Improve move tool: no preview while moving, selection marquee does not fit layer bounds
-- [ ] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag.
-- [ ] fix Fill tool: does not fill whole canvas - leaves some border
-- [ ] Crop tool: add ESC key to cancel current cropping
-- [ ] Move tool: fix gizmo that shows layer extends outside of canvas area. does not match layer bounds currently. hide the move gizmo when move tool is inactive
+- [x] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag — cursor now redraws immediately when settings change via useEffect on drawCursor callback
+- [x] fix Fill tool: expanded layer canvas to full document viewport before flood fill so compact contentBounds layers no longer leave unfilled borders
+- [x] Crop tool: add ESC key to cancel current cropping — onCancel wired through cancelActiveTool chain
+- [x] Move tool: gizmo now uses actual layer canvas dimensions instead of only contentBounds; gizmo already hidden on tool deactivation (verified)
 - [x] fix Layer preview: new transparent layer shows black preview. after drawing preview shows up correct with alpha grid
 - [x] all tooltips: add centralised setting for tooltip delay and set to 500ms
 - [x] Sketch node: input handles closer together, same spacing as output handles
 - [x] Gradient Tool: should respect current selection, not draw outside
 
-### 1.3 - Active feature work
+### 1.3 - Harden layer canvas lifecycle
+
+The layer canvas is the central data structure — every tool reads and writes it, compositing displays it, history snapshots it, export serializes it. Making this lifecycle rock-solid prevents cascading bugs in every feature above.
+
+Architecture note: `layerCanvasesRef.current` (React ref Map) and `Canvas2DRuntime.layerCanvases` (internal Map) share the **same Map reference** (established at construction in `useCompositing.ts:114`). `ensureLayerRasterBounds` writes to `layerCanvasesRef.current` which also updates the runtime's map. `getOrCreateLayerCanvas` in the runtime only creates when no canvas exists — it never downsizes an expanded canvas.
+
+- [x] add dedicated test suite for `layerBounds.ts`: cover `ensureLayerRasterBounds` (expansion, no-op when already large enough, content preservation after expansion), `getEffectiveLayerRasterBounds` (canvas metadata priority, fallback to contentBounds, fallback to canvas dimensions), `unionLayerBounds` (disjoint, overlapping, contained), `getDocumentViewportLayerBounds` (with and without layer transform offset)
+- [x] add tests for layer canvas lifecycle across operations: create layer → draw → move → draw again → undo → redo; verify canvas dimensions and raster bounds metadata stay consistent at each step
+- [x] add tests for `getOrCreateLayerCanvas` sizing decision chain: verify that `layer.contentBounds` takes priority, then stable raster size cache, then existing canvas, then document size fallback; verify that once a canvas is expanded it is not shrunk by a subsequent `getOrCreateLayerCanvas` call
+- [ ] verify that `drainPendingStrokeCommit` runs before every operation that reads layer pixel data (history push, export, flatten, merge); add test that a committed stroke is visible in the next history snapshot
+- [ ] audit all callers of `ensureLayerRasterBounds` (PaintSession, FillTool, ShapeTool, GradientTool, usePointerHandlerUtils) and verify each one uses the returned expanded bounds for CoordinateMapper, not the stale `layer.contentBounds`
+
+### 1.4 - Harden coordinate mapping
+
+`CoordinateMapper` is the single source of truth for document↔layer coordinate conversion. Every tool that places pixels, samples colors, or hit-tests selections must use it consistently. Current audit shows all paint tools use `CoordinateMapper` with `getEffectiveLayerRasterBounds` — but there is no regression coverage that enforces this stays true.
+
+- [x] add dedicated regression tests for `CoordinateMapper`: verify `docToLayer` / `layerToDoc` round-trip identity for translation-only, scale+rotation, and full affine transforms; verify that `offset` getter matches `docToLayer({0,0})` negation; verify singular matrix fallback returns identity
+- [x] add a cross-tool coordinate consistency test: for a layer with a non-trivial transform (e.g. translated + rotated), verify that PaintSession, FillTool, CloneStampTool, GradientTool, BlurTool, and ShapeTool all produce the same `docToLayer` result for the same document-space point — this catches any tool that constructs CoordinateMapper with different config
+- [ ] verify that overlay preview drawing (selection outlines, shape preview, gradient preview) uses the same coordinate mapping as the committed pixels — a preview drawn at screen position X should result in committed pixels at the same X after commit
+- [x] verify that `dirtyToDoc` rect conversion is consistent with the compositing offset used by `getLayerCompositeOffset` — dirty-region redraws should exactly cover the area that changed
+
+### 1.5 - Harden selection model
+
+The selection system (`Selection` type, mask creation, hit testing, constraint application) is used by every tool that respects selections. The mask creation functions are well-separated by mode, but the combination and constraint paths lack dedicated tests.
+
+- [x] add dedicated tests for `selectionHitTest`: verify correct results at selection boundary pixels, outside selection, at `originX/originY` offset, and with non-zero origin
+- [x] add dedicated tests for `combineMasks` in all four modes: replace, add (union), subtract, intersect; verify that combine result matches expected mask data for overlapping and non-overlapping inputs
+- [x] add tests for `applySelectionConstraint`: verify that pixels outside the selection mask are restored to pre-operation state after a fill or paint operation
+- [x] add tests for `selectionHasAnyPixels`: verify correct results for empty mask (all zeros), mask with a single selected pixel, and fully selected mask
+- [x] verify that selection `originX/originY` is handled consistently: when a selection is created at a non-zero document offset (e.g. ellipse at x=50,y=50), verify that `selectionHitTest`, `applySelectionConstraint`, and paint clipping all account for the origin correctly
+- [x] verify that each selection mode (rectangle, ellipse, lasso, polygon, magic wand) produces a mask with correct `width`, `height`, and `originX/originY` values relative to the document canvas
+
+### 1.6 - Harden compositing and rendering
+
+The compositing pipeline (`renderDocumentCompositeToContext`) is the single path for both display and export. The per-layer compositing involves offset calculation, transform application, effects evaluation, and active stroke blending. Making this path trustworthy means display and export always agree.
+
+- [x] add test that verifies display compositing and `flattenToDataUrl` produce identical pixel output for the same document state (ignoring checkerboard background) — this is the core display/export parity check
+- [x] add test that a layer with `contentBounds` offset at `(50, 50)` and transform at `(-10, -10)` composites at the correct document position (expected: top-left at `(40, 40)`) — this exercises the `getLayerCompositeOffset` + `drawWithTransform` pipeline
+- [ ] add test that the active stroke buffer composites at the correct opacity and blend mode during display, and that after commit, the committed layer matches the preview
+- [ ] add test that `getMaskDataUrl` returns only the mask layer content (not other layers) and respects the mask layer's transform and contentBounds offset
+- [x] add test that layer effects (`evaluateLayerEffects`) are applied during both display compositing and export — not just one path
+- [x] verify that `readbackComposite` (used by eyedropper and magic wand) samples the same pixels as the display shows, including layer transforms and effects
+
+### 1.7 - Harden transform model
+
+The transform model (`LayerTransform` with affine matrix) underpins move, transform tool, and coordinate mapping. The composition/decomposition round-trip and the reconciliation path need to be bulletproof.
+
+- [x] add test that `composeAffineMatrix` → `decomposeAffineMatrix` round-trips correctly for: identity, pure translation, pure rotation, pure scale, non-uniform scale, combined TRS, negative scale (flip)
+- [x] add test that `reconcileLayerToDocumentSpace` correctly bakes a translated+rotated layer into a document-sized canvas with identity transform — verify pixel data lands at the expected document coordinates
+- [ ] add test that `reconcileLayerToDocumentSpace` preserves transparency and does not introduce edge artifacts (e.g. anti-aliasing at canvas edges when blitting rotated content)
+- [ ] add test that after transform tool commit (which calls `reconcileLayerToDocumentSpace`), the undo entry correctly restores both the original canvas data AND the original transform values
+- [x] add test that `ensureTransformMatrix` fills in a correct matrix when called on a transform with only `x/y` (no matrix field) — and that CoordinateMapper handles both cases identically
+
+### 1.8 - Harden history and serialization
+
+The delta history system is the safety net for all editing. History entries capture canvas snapshots and layer structure; serialization persists documents across sessions. Both must faithfully represent the document state including contentBounds and transforms.
+
+- [x] add test for history delta correctness: push three history entries where only one layer changes each time; verify that `resolveLayerData` reconstructs the correct data for each layer at each history position
+- [x] add test that undo after a bounds-expanding stroke restores the original (smaller) canvas dimensions and contentBounds — not the expanded ones
+- [x] add test that redo after undo replays the stroke correctly, including the bounds expansion
+- [x] add test for `serializeLayerData` / `deserializeLayerData` round-trip: verify that bounds metadata, transform, and pixel data survive encode → decode
+- [x] add test that document serialization → deserialization preserves all layer contentBounds, transforms, effects, and pixel data — verify by comparing a freshly created document with one that has been serialized and deserialized
+
+### 1.9 - Active feature work
 
 - [ ] finish transform tool UX on top of the matrix-capable transform model: show live preview while transforming, keep commit/cancel reliable, and fix left/top handle scaling so it does not behave like right/bottom scaling
 - [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
