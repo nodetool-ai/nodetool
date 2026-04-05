@@ -5,7 +5,7 @@
  * - Canvas2D immediate startup
  * - Async WebGPU upgrade with fallback
  * - Device-loss recovery
- * - Zoom synchronisation
+ * - Zoom synchronization
  */
 
 import { useEffect, useRef, useState } from "react";

@@ -1,7 +1,7 @@
 /**
  * useLayerHydration
  *
- * Synchronises document layer data to off-screen canvases managed by the
+ * Synchronizes document layer data to off-screen canvases managed by the
  * runtime.  Owns the hydration state tracking refs and the two display
  * signatures used by the compositing trigger effects.
  */
