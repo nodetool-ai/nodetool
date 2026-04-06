@@ -1,17 +1,17 @@
 # Sketch Editor Roadmap
 
-> **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place, but transformed-layer move/transform correctness is not fully hardened yet; next work should stay focused on preview/commit parity, gizmo alignment, layer bounds, and output consistency before adding feature-heavy slices.
+> **Status**: the transform-aware layer foundation and WebGPU runtime baseline are in place, but transformed-layer move/transform correctness is still not fully hardened. Next work should stay focused on preview/commit parity, gizmo alignment, shared layer bounds, and output consistency before new feature-heavy slices.
 > **Last updated**: 2026-04-05
-> **Execution note**: this file is the active roadmap/backlog. `REFACTOR-SKETCH-APP.md` is supporting implementation context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
+> **Execution note**: this is the active sketch roadmap/backlog. `REFACTOR-SKETCH-APP.md` is supporting context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
 
 ## Principles
 
-- keep code clean and modular with separation of concerns
+- keep code clean, modular, and focused by responsibility
 - keep the document canvas fixed; off-canvas layer content must survive editing, history, and serialization
 - prefer shared transform-aware infrastructure over ad hoc per-tool fixes
 - treat WebGPU as the primary document renderer in Electron; keep Canvas 2D only for explicit helper paths where it is still the better tool
 - keep ordinary raster workflows cheap and predictable
-- only run sketch-related tests for normal iteration, not full app tests
+- run sketch-focused tests during normal iteration, not full app tests
 - when changing shortcuts, edit src/components/sketch/SHORTCUTS.md
 - **harden before extending**: make core models and helpers solid with regression tests before adding new features on top of them
 
@@ -26,37 +26,29 @@ Task labels used below:
 
 ### 1.1 - Core groundwork before new feature slices
 
-Guidance for Phase 1 work:
+Phase 1 guidance:
 
-- each task should remove duplicated rules or hidden exceptions, not add a second temporary path beside the old one
-- if a feature needs one-off transform math, sampling logic, export logic, or display exceptions, stop and move that missing contract back into Phase 1 first
-- prefer one shared runtime/tool/session boundary over per-tool fixes in pointer handlers, tool modules, or export helpers
-- move/transform gizmos, layer bounds overlays, and selection/marquee visuals must use the same resolved transformed extents as compositing; if alignment needs one-off math, move that missing contract back into Phase 1 first
-- every Phase 1 slice should add focused regression coverage for transformed layers, preview/commit parity, or output consistency when relevant
-- defer performance-only rewrites unless they remove architectural drift or unblock correctness
-- if a task reveals a product decision instead of a cleanup need, move it to a later phase with a short note instead of solving it implicitly
-
-Architectural direction for the remaining Phase 1 work:
-
-- do not do a broad rewrite; prefer small contract-tightening slices in shared helpers
+- remove duplicated rules and hidden exceptions; do not add a second temporary path beside the old one
+- if a feature needs one-off transform math, sampling logic, export logic, or display exceptions, move that missing contract back into Phase 1 first
 - if move, transform, compositing, hit testing, or overlays disagree, fix the shared geometry/preview/output seam instead of patching one tool
-- separate three concepts more clearly where needed: raw stored layer pixels, resolved display/export surface, and resolved geometry used for bounds/hit testing/gizmos
-- make sketch state-tier boundaries explicit where needed: stored document state, live runtime canvases, transient preview state, and resolved output should each have clear ownership and sync rules
+- keep these concepts distinct: raw stored layer pixels, resolved display/export surface, resolved geometry for bounds/hit testing/gizmos, and explicit state tiers for document state, live canvases, preview state, and resolved output
+- every Phase 1 slice should add focused regression coverage when it touches transformed layers, preview/commit parity, or output consistency
+- defer performance-only rewrites unless they remove architectural drift or unblock correctness; if a task turns into a product decision, move it to a later phase with a short note
 
-Preferred "core engine" seams to strengthen instead of adding more tool-local logic:
+Preferred shared seams:
 
-- `painting/CoordinateMapper.ts` remains the single document<->layer coordinate contract; no tool should add its own transform math once a point enters document space
-- `painting/resolvedLayerGeometry.ts` (new) or `painting/layerBounds.ts` (expanded) should become the single contract for effective raster bounds, composite offset, transformed document extents, and visual bounds/hit targets
-- `painting/transformPreview.ts` (new) should own preview-transform merge/update rules so move and transform tools cannot drift
-- `rendering/` should own resolved-output generation from raw layer canvas to effected/display/export/readback/thumbnail surface
-- `hooks/useCanvasActions.ts` + `sketchCanvasHooks/useCompositing.ts` should be the only place where state-tier ownership/sync rules are coordinated; tools should signal intent, not invent sync rules
+- `painting/CoordinateMapper.ts` remains the single document<->layer coordinate contract
+- `painting/resolvedLayerGeometry.ts` (new) should own effective raster bounds, composite offset, transformed extents, and visual bounds/hit targets
+- `painting/transformPreview.ts` (new) should own preview-transform merge/update rules
+- `rendering/` should own resolved-output generation from raw layer canvas to display/export/readback/thumbnail surface
+- `hooks/useCanvasActions.ts` plus `sketchCanvasHooks/useCompositing.ts` should coordinate state-tier ownership and sync rules; tools should signal intent, not invent sync policy
 
-Boundaries for existing Phase 1 work:
+Boundaries:
 
-- do not add new per-tool `getBounds` / `getExtents` / `getPreviewTransform` helpers if the same answer belongs in shared geometry or preview contracts
-- do not let `MoveTool.ts`, `TransformTool.ts`, selection overlays, or hit testing each define their own notion of layer extents
-- do not let thumbnail/export/readback code choose ad hoc between raw `layer.data`, layer canvas, and effected output; route that choice through one resolved-output seam
-- when a task fixes one tool, require at least one cross-tool or shared-helper regression test if the bug was caused by contract drift rather than one isolated typo
+- do not add per-tool `getBounds`, `getExtents`, or `getPreviewTransform` helpers when the answer belongs in shared geometry or preview contracts
+- do not let `MoveTool.ts`, `TransformTool.ts`, overlays, and hit testing each define their own layer extents
+- do not let thumbnail/export/readback code choose ad hoc between raw `layer.data`, layer canvas, and effected output; route that through one resolved-output seam
+- when fixing a cross-tool drift bug, add at least one shared-helper or cross-tool regression test
 
 Phase 1 "done means":
 
@@ -67,51 +59,80 @@ Phase 1 "done means":
 - shared hard-tool integration done means fill/clone/blur/adjustments use the same runtime/session seams as the simpler paint tools
 - sampling contract done means eyedropper/auto-pick/clone-stamp sampling agree on transformed layers, isolate state, and active stroke state
 
-Execution packages and checkoff rules:
+Execution order for remaining Phase 1 work:
 
 - [ ] **Package A — Core seam convergence**
-  - owns: the first open `1.1` items for preview/commit parity, transform preview ownership, state-tier boundaries, resolved output, and resolved-layer geometry
-  - concrete task area: open items in `1.1` from `make active-layer preview...` through `introduce one shared resolved-layer geometry helper`
-  - execution: treat these as one dependency cluster, not as isolated checklist items; they should be worked in an order that reduces drift rather than in strict bullet order
-  - checkoff rule: do not check off higher-level move/transform/gizmo correctness items until the shared seam they depend on is actually landed with behavior coverage
+  - do this first; it defines the shared preview, geometry, output, and state-boundary contracts the later tool fixes depend on
   - package is done when:
     - preview updates no longer replace full transform state during compositing
     - preview and commit use the same transform-resolution rules for transformed layers
     - state-tier ownership is explicit for editing, preview, history snapshot, thumbnail sync, and export/readback
     - a shared resolved-layer geometry seam exists and is used by the intended consumers
-    - a shared resolved-output seam exists for display/export/readback and any intended thumbnail/helper consumers
+    - a shared resolved-output seam exists for display/export/readback and helper consumers in scope for Phase 1
     - behavior tests cover preview vs commit for moved + scaled/rotated layers and catch seam drift
+  - tasks:
+    - [ ] [impl+test] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
+      - audit note: current move preview/commit coverage is strongest for translation-only paths; moving a layer with existing scale/rotation/matrix state still needs explicit hardening
+      - required follow-up: preserve the full existing `LayerTransform` during move preview and commit, then add regression coverage for move-after-scale/rotate and preview merge with existing transforms
+    - [ ] [impl+test] normalize transform preview ownership so move and transform preview use one contract for full-transform preservation and compositing
+      - suggested seam: keep preview state ownership in `SketchCanvas.tsx` / `useCompositing.ts`, and route preview writes through `painting/transformPreview.ts`
+      - done means preview paths never replace a full transform with translation-only state, and preview rendering uses the same transform resolution rules as commit/history/export
+      - boundary: `MoveTool.ts` and `TransformTool.ts` should request preview updates, but must not define separate transform-merge semantics
+    - [ ] [impl+test] clarify and enforce sketch state boundaries so stored document state, live layer canvases, deferred sync state, transient preview state, and resolved output cannot silently drift
+      - suggested seam: document the ownership rules in `hooks/useCanvasActions.ts` and `sketchCanvasHooks/useCompositing.ts`, then remove or centralize all ambiguous sync paths
+      - done means each editing flow has one clear source of truth at each stage (editing, preview, history snapshot, thumbnail sync, export/readback), and regression tests cover the boundary points where drift has already happened
+      - boundary: tools should tell the system "start gesture", "update preview", "commit pixels/transform", or "end gesture", not decide thumbnail/export/history synchronization on their own
+    - [ ] [impl+test] finish wiring `evaluateLayerEffects` / resolved-layer output through the remaining output paths so helper flows stay consistent with the main canvas, export, isolate preview, and merge/downstream bake paths
+      - note: effects already called in display and export via `renderDocumentCompositeToContext`; remaining gaps are curves/tonemap/bloom which need shader implementations (Phase 5 FX layer work)
+      - suggested seam: make the resolved-output contract explicit in `rendering/` with one helper for "raw layer canvas -> resolved surface used for display/export/readback/helper flows" so downstream code does not keep choosing between `layer.data` and effected runtime output ad hoc
+      - boundary: helper readback paths should consume the same resolved-output contract as display/export; layer-panel thumbnail behavior stays out of scope for this task and remains a later explicit product decision
+    - [ ] [impl+test] introduce one shared resolved-layer geometry helper so compositing, gizmos, overlays, and hit testing agree on transformed layer extents
+      - suggested seam: add `painting/resolvedLayerGeometry.ts` with one place to answer: effective raster bounds, composite offset, transformed document-space extents, and visual bounds for gizmos/hit targets
+      - use this shared contract from move/transform gizmos, selection/marquee alignment code, compositing helpers, and any layer hit testing that currently recomputes bounds ad hoc
+      - boundary: after this lands, tools and overlays should stop recomputing transformed layer extents locally except for trivial presentation-only offsets
+
 - [ ] **Package B — Dependent move/transform correctness**
-  - owns: `1.2` move fixes, `1.4` gizmo alignment coverage, `1.9` transform UX correctness, and the remaining transform/move refactors in `1.10`
-  - concrete task area: open items in `1.2`, `1.4` gizmo alignment coverage, `1.9`, and the transform/move-related open items in `1.10`
-  - execution: start only after Package A has produced the preview and geometry contracts these tasks are supposed to consume
-  - checkoff rule: these tasks are not done when one tool looks fixed in isolation; they are done when move, transform, overlays, and hit testing all consume the same shared seam
+  - start this after Package A lands the shared preview and geometry seams
+  - assume Package A seams already exist; do not solve missing seam work locally here
   - package is done when:
     - move preview and commit preserve existing scale/rotation/matrix state
     - move/scale gizmos align with the rendered transformed layer
     - selection/marquee overlays and hit targets align with the same resolved transformed extents
     - transform-tool left/top handle behavior is fixed and no longer behaves like right/bottom scaling
     - move and transform behavior are verified through shared-seam behavior tests, not only local tool tests
+  - tasks:
+    - [ ] [impl+test] Improve move tool: preserve existing scale/rotation/matrix during preview + commit on transformed layers; current move path is not fully correct beyond translation-only cases
+    - [ ] [impl+test] Improve move/transform bounds visuals: move gizmo, scale gizmo, and selection/marquee overlays are currently not aligned to the layer correctly; they must use the same resolved transformed bounds as compositing and hit testing
+      - this task should consume the shared resolved-layer geometry helper above, not add more one-off gizmo math inside `MoveTool.ts` or `TransformTool.ts`
+    - [ ] [test] add regression coverage for move/transform gizmo alignment: for translated, scaled, and rotated layers, verify gizmo bounds/handles use the same resolved document-space extents as compositing and hit testing
+    - [ ] [impl+test] finish transform tool UX on top of the matrix-capable transform model: keep live preview correct, keep commit/cancel reliable, make move/scale gizmos align with the actual transformed layer, and fix left/top handle scaling so it does not behave like right/bottom scaling
+    - [ ] [impl+test] extract pure transform/gizmo math out of `tools/TransformTool.ts` so the tool file becomes interaction orchestration over shared geometry helpers instead of a second geometry engine
+      - suggested split: `tools/transform/handleGeometry.ts`, `tools/transform/computeTransform.ts`, `tools/transform/cursorMapping.ts`
+      - after this, `TransformTool.ts` should own hit flow, drag state, and calls into shared contracts, not geometry policy
+    - [ ] [impl+test] simplify `tools/MoveTool.ts` once shared preview and resolved-geometry helpers exist so move interaction stops owning its own transform-merge and gizmo semantics
+      - boundary: move must request preview updates and geometry queries from shared helpers rather than defining transform preservation locally
+
 - [ ] **Package C — Proof and parity hardening**
-  - owns: the remaining open items in `1.3` through `1.8`
-  - concrete task area: open proof/parity items in `1.3`, `1.4`, `1.5`, `1.6`, and `1.8`
-  - execution: many of these can run in parallel, but treat them as "prove or reveal" tasks — a failing test may create follow-up implementation work in Package A or B
-  - checkoff rule: if a proof task reveals missing implementation work, reopen the relevant seam task instead of forcing the test to fit the current behavior
+  - use this package to prove the remaining seams hold; if a test exposes a real gap, reopen the seam task above instead of forcing the test to fit broken behavior
   - package is done when:
-    - remaining open proof/parity tasks in `1.3` through `1.8` are either checked off or converted into explicit implementation follow-up
-    - display/export/readback parity tests exist and pass for the intended scenarios
+    - remaining open proof/parity tasks are either checked off or converted into explicit implementation follow-up
     - selection constraint and selection-mode coverage exists and passes for the intended scenarios
-    - serialization helper round-trip coverage exists and passes
-    - no open proof task remains blocked by a known unresolved seam bug without that dependency being called out explicitly
+    - no proof task remains blocked by a known unresolved seam bug without that dependency being called out explicitly
+  - tasks:
+    - [ ] [impl+test] add tests for `applySelectionConstraint`: verify this against shared production logic rather than only conceptual/inlined test logic so fill/gradient selection clipping cannot drift
+      - suggested seam: extract a shared helper under `selection/` and test that production helper directly
+
 - [ ] **Package D — Refactor support**
-  - owns: `1.10`
-  - concrete task area: open refactor-support items in `1.10`
-  - execution: use these tasks to keep overloaded files from fighting the new seam work, but do them in support of Packages A and B rather than as a separate rewrite track
-  - checkoff rule: checking off a refactor task means the file split/boundary cleanup landed; it does **not** mean the higher-level behavior contract above it is finished
+  - pull this in only when it directly reduces friction for Packages A or B; it is support work, not a separate rewrite track
   - package is done when:
     - remaining overloaded-file refactors needed to support Packages A and B are complete
     - no shared seam logic is still duplicated across overloaded files just because it was easier to leave it there
     - the remaining high-pressure files mainly orchestrate or delegate rather than acting as mixed-responsibility policy layers
+  - tasks:
+    - [ ] [impl+test] watch `sketchCanvasHooks/usePointerHandlers.ts` for router creep; extract any new shared hover / gesture / tool-routing policy before it becomes another mixed-responsibility policy file
+      - only keep pointer-event routing and tool dispatch here; preview semantics, geometry rules, and sync decisions belong in their dedicated seams
+
+Completed groundwork already landed:
 
 - [x] centralize document-space <-> layer-space coordinate mapping so preview, commit, hit testing, overlays, and helper tools all follow one transform contract
   - all paint tools use `CoordinateMapper`; move auto-pick now uses shared `hitTestLayerAtDocPoint` with `CoordinateMapper`; eyedropper uses shared `sampleCompositeColor` via `readbackComposite`
@@ -119,28 +140,9 @@ Execution packages and checkoff rules:
 - [x] eliminate the remaining transformed-layer regressions and add focused regression coverage for move/nudge/draw/export/autosave roundtrips
   - regression tests in `__tests__/phase1TransformRegression.test.ts` and `__tests__/samplingContract.test.ts`
   - covers: move roundtrip, nudge accumulation, draw-after-move coordinate mapping, cross-tool consistency, affine transform roundtrips
-- [ ] [impl+test] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
-  - audit note: current move preview/commit coverage is strongest for translation-only paths; moving a layer with existing scale/rotation/matrix state still needs explicit hardening
-  - required follow-up: preserve the full existing `LayerTransform` during move preview and commit, then add regression coverage for move-after-scale/rotate and preview merge with existing transforms
-- [ ] [impl+test] normalize transform preview ownership so move and transform preview use one contract for full-transform preservation and compositing
-  - suggested seam: keep preview state ownership near `SketchCanvas.tsx` / `useCompositing.ts`, but route preview writes through one shared helper such as `painting/transformPreview.ts`
-  - done means preview paths never replace a full transform with translation-only state, and preview rendering uses the same transform resolution rules as commit/history/export
-  - boundary: `MoveTool.ts` and `TransformTool.ts` may request preview updates, but should not each define separate transform-merge semantics
-- [ ] [impl+test] clarify and enforce sketch state boundaries so stored document state, live layer canvases, deferred sync state, transient preview state, and resolved output cannot silently drift
-  - suggested seam: document the ownership rules close to `SketchCanvas.tsx`, `hooks/useCanvasActions.ts`, and `sketchCanvasHooks/useCompositing.ts`, then remove or centralize any remaining ambiguous sync paths
-  - done means each editing flow has one clear source of truth at each stage (editing, preview, history snapshot, thumbnail sync, export/readback), and regression tests cover the boundary points where drift has already happened
-  - boundary: tools should tell the system "start gesture", "update preview", "commit pixels/transform", or "end gesture", not decide thumbnail/export/history synchronization on their own
 - [x] keep document-output rendering separate from display chrome and route readback/export/isolate through one resolved-output path; display-only checkerboard/border logic must never leak into sampling or export
   - fixed eyedropper: removed display canvas fast path that leaked checkerboard colors; now always uses `readbackComposite`
   - `renderDocumentCompositeToContext` excludes chrome; `compositeToDisplay` adds it; `flattenToDataUrl` and `readbackComposite` use the chrome-free path
-- [ ] [impl+test] finish wiring `evaluateLayerEffects` / resolved-layer output through the remaining output paths so future thumbnails and helper flows stay consistent with the main canvas, export, isolate preview, and merge/downstream bake paths
-  - note: effects already called in display and export via `renderDocumentCompositeToContext`; remaining gaps are curves/tonemap/bloom which need shader implementations (Phase 5 FX layer work)
-  - suggested seam: make the resolved-output contract explicit in `rendering/` with one helper for "raw layer canvas -> resolved surface used for display/export/readback/thumbnails" so downstream code does not keep choosing between `layer.data` and effected runtime output ad hoc
-  - boundary: layer-panel thumbnails and helper readback paths should consume the same resolved-output contract as display/export unless a raw-data exception is explicitly documented
-- [ ] [impl+test] introduce one shared resolved-layer geometry helper so compositing, gizmos, overlays, and hit testing agree on transformed layer extents
-  - suggested seam: add `painting/resolvedLayerGeometry.ts` (or expand `painting/layerBounds.ts` if that keeps the contract tighter) with one place to answer: effective raster bounds, composite offset, transformed document-space extents, and visual bounds for gizmos/hit targets
-  - use this shared contract from move/transform gizmos, selection/marquee alignment code, compositing helpers, and any layer hit testing that currently recomputes bounds ad hoc
-  - boundary: after this lands, tools and overlays should stop recomputing transformed layer extents locally except for trivial presentation-only offsets
 - [x] route flood fill, clone stamp, blur, and adjustments through shared session boundaries even when their internal implementation stays CPU-backed
   - all use `CoordinateMapper` for coordinate mapping and `onStrokeStart`/`onStrokeEnd` for lifecycle
   - extracted shared `painting/alphaLock.ts` (`captureAlphaSnapshot`, `restoreAlphaFromSnapshot`) used by CloneStamp and Blur
@@ -156,17 +158,11 @@ Execution packages and checkoff rules:
   - 13 regression tests in `__tests__/phase1TransformRegression.test.ts` covering paint-after-move, sequential transforms, preview/commit parity
   - 8 alpha-lock tests in `__tests__/alphaLock.test.ts`
 
+Topical notes and completed checks by area remain below; the canonical remaining Phase 1 checklist is the execution-order packages above.
+
 ### 1.2 - Fixes
 
-Execution note:
-
-- treat the remaining open items in this section as Package B work; they depend on the preview/geometry/state-boundary seams above
-- do not check these off until they are implemented through shared contracts rather than local tool-specific fixes
-
 - [x] Improve selection: rectangle clips at canvas bounds (correct), ellipse/lasso/polygon already extend beyond canvas (verified, no change needed)
-- [ ] [impl+test] Improve move tool: preserve existing scale/rotation/matrix during preview + commit on transformed layers; current move path is not fully correct beyond translation-only cases
-- [ ] [impl+test] Improve move/transform bounds visuals: move gizmo, scale gizmo, and selection/marquee overlays are currently not aligned to the layer correctly; they must use the same resolved transformed bounds as compositing and hit testing
-  - this task should consume the shared resolved-layer geometry helper above, not add more one-off gizmo math inside `MoveTool.ts` or `TransformTool.ts`
 - [x] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag — cursor now redraws immediately when settings change via useEffect on drawCursor callback
 - [x] fix Fill tool: expanded layer canvas to full document viewport before flood fill so compact contentBounds layers no longer leave unfilled borders
 - [x] Crop tool: add ESC key to cancel current cropping — onCancel wired through cancelActiveTool chain
@@ -180,11 +176,6 @@ Execution note:
 ### 1.3 - Harden layer canvas lifecycle
 
 The layer canvas is the central data structure — every tool reads and writes it, compositing displays it, history snapshots it, export serializes it. Making this lifecycle rock-solid prevents cascading bugs in every feature above.
-
-Execution note:
-
-- treat the remaining open items across `1.3` through `1.8` as Package C proof/parity work unless the test reveals a real implementation gap
-- when one of these tasks is marked `[test-first]` or `[test]`, the expected outcome may still be "new implementation work needed" rather than "test added and done"
 
 Architecture note: `layerCanvasesRef.current` (React ref Map) and `Canvas2DRuntime.layerCanvases` (internal Map) share the **same Map reference** (established at construction in `useCompositing.ts:114`). `ensureLayerRasterBounds` writes to `layerCanvasesRef.current` which also updates the runtime's map. `getOrCreateLayerCanvas` in the runtime only creates when no canvas exists — it never downsizes an expanded canvas.
 
@@ -202,7 +193,6 @@ Architecture note: `layerCanvasesRef.current` (React ref Map) and `Canvas2DRunti
 - [x] add a cross-tool coordinate consistency test: for a layer with a non-trivial transform (e.g. translated + rotated), verify that PaintSession, FillTool, CloneStampTool, GradientTool, BlurTool, and ShapeTool all produce the same `docToLayer` result for the same document-space point — this catches any tool that constructs CoordinateMapper with different config
 - [x] verify that overlay preview drawing (selection outlines, shape preview, gradient preview) uses the same coordinate mapping as the committed pixels — a preview drawn at screen position X should result in committed pixels at the same X after commit
 - [x] verify that `dirtyToDoc` rect conversion is consistent with the compositing offset used by `getLayerCompositeOffset` — dirty-region redraws should exactly cover the area that changed
-- [ ] [test] add regression coverage for move/transform gizmo alignment: for translated, scaled, and rotated layers, verify gizmo bounds/handles use the same resolved document-space extents as compositing and hit testing
 
 ### 1.5 - Harden selection model
 
@@ -210,8 +200,6 @@ The selection system (`Selection` type, mask creation, hit testing, constraint a
 
 - [x] add dedicated tests for `selectionHitTest`: verify correct results at selection boundary pixels, outside selection, at `originX/originY` offset, and with non-zero origin
 - [x] add dedicated tests for `combineMasks` in all four modes: replace, add (union), subtract, intersect; verify that combine result matches expected mask data for overlapping and non-overlapping inputs
-- [ ] [impl+test] add tests for `applySelectionConstraint`: verify this against shared production logic rather than only conceptual/inlined test logic so fill/gradient selection clipping cannot drift
-  - suggested seam: if current selection constraint behavior is duplicated/private inside tool modules, extract a shared helper under `selection/` or `painting/` and test that production helper directly
 - [x] add tests for `selectionHasAnyPixels`: verify correct results for empty mask (all zeros), mask with a single selected pixel, and fully selected mask
 - [x] verify that selection `originX/originY` is handled consistently: when a selection is created at a non-zero document offset (e.g. ellipse at x=50,y=50), verify that `selectionHitTest`, `applySelectionConstraint`, and paint clipping all account for the origin correctly
 - [x] [test] verify that each selection mode (rectangle, ellipse, lasso, polygon, magic wand) produces a mask with correct `width`, `height`, and `originX/originY` values relative to the document canvas; current coverage is strongest for rectangle/ellipse/core mask ops and needs explicit lasso/magic-wand follow-up
@@ -249,18 +237,12 @@ The delta history system is the safety net for all editing. History entries capt
 
 ### 1.9 - Active feature work
 
-- [ ] [impl+test] finish transform tool UX on top of the matrix-capable transform model: keep live preview correct, keep commit/cancel reliable, make move/scale gizmos align with the actual transformed layer, and fix left/top handle scaling so it does not behave like right/bottom scaling
 - [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
 - [x] fix brush strokes not visible when holding shift for straight lines - they only appear after releasing shift key. also all layers become invisible during drawing of straight lines
 
 ### 1.10 - Targeted refactor phase for overloaded files
 
 These are not "clean up for its own sake" tasks. They are explicit support work for the shared geometry / preview / output / state-boundary contracts above. Do them when touching the related seams; avoid a separate broad rewrite branch.
-
-Execution note:
-
-- completed items in this section mean the file split or internal boundary cleanup landed successfully; they do not by themselves prove that the associated behavior contract is done
-- remaining items here should usually be pulled in only when they reduce friction for Package A or B, not worked as a separate queue ahead of seam correctness
 
 - [x] [impl+test] split `hooks/useCanvasActions.ts` by responsibility so gesture lifecycle, transform actions, export/output sync, and canvas-geometry actions stop competing in one file
   - suggested split: `useStrokeLifecycleActions.ts`, `useTransformActions.ts`, `useExportSyncActions.ts`, `useCanvasGeometryActions.ts`
@@ -271,13 +253,6 @@ Execution note:
 - [x] [impl+test] decompose `rendering/Canvas2DRuntime.ts` into internal engine modules so serialization/readback, resolved-output/effects, compositing, transform reconciliation, and mask/export helpers have clearer boundaries
   - suggested split under `rendering/canvas2d/`: `layerIO.ts`, `resolvedOutput.ts`, `composite.ts`, `reconcile.ts`, `maskAndExport.ts`
   - do not over-split public APIs early; prefer extracting cohesive internal modules first while keeping the runtime facade stable
-- [ ] [impl+test] extract pure transform/gizmo math out of `tools/TransformTool.ts` so the tool file becomes interaction orchestration over shared geometry helpers instead of a second geometry engine
-  - suggested split: `tools/transform/handleGeometry.ts`, `tools/transform/computeTransform.ts`, `tools/transform/cursorMapping.ts`
-  - after this, `TransformTool.ts` should mostly own hit flow, drag state, and calls into shared contracts
-- [ ] [impl+test] simplify `tools/MoveTool.ts` once shared preview and resolved-geometry helpers exist so move interaction stops owning its own transform-merge and gizmo semantics
-  - boundary: move should request preview updates and geometry queries from shared helpers rather than defining transform preservation locally
-- [ ] [impl+test] watch `sketchCanvasHooks/usePointerHandlers.ts` for router creep; extract any new shared hover / gesture / tool-routing policy before it becomes another mixed-responsibility policy file
-  - only keep pointer-event routing and tool dispatch here; preview semantics, geometry rules, and sync decisions belong in their dedicated seams
 
 ## PHASE 2 - FIXES
 
@@ -466,39 +441,37 @@ These are not current priorities, but they should stay visible so they can be re
 
 ## Agent orientation (where things live)
 
-**Base path:** `web/src/components/sketch/` (everything below is relative to that folder).
+**Base path:** `web/src/components/sketch/`
 
-### Architecture
+### Main flow
 
-1. **Workflow node** — `../node/SketchNode/SketchNode.tsx` hosts the editor inside the graph (props, I/O, layout).
-2. **Editor UI** — `SketchEditor.tsx` composes toolbar, layers panel, settings, shortcuts.
-3. **Canvas** — `SketchCanvas.tsx` mounts the `<canvas>` and pulls in the hook bundle under `sketchCanvasHooks/`.
-4. **State** — `state/` is a slice-based Zustand document store composed into `useSketchStore`; `hooks/*` wraps store updates and selectors.
-5. **Input → pixels** — pointer flow lives in `sketchCanvasHooks/`; tools in `tools/`; actual drawing in `painting/`; document compositing lives in `rendering/` with WebGPU as the intended primary runtime and Canvas 2D retained for targeted helper paths.
+1. `../node/SketchNode/SketchNode.tsx` hosts the editor inside the workflow graph.
+2. `SketchEditor.tsx` composes the editor UI.
+3. `SketchCanvas.tsx` mounts the canvas and wires the `sketchCanvasHooks/` bundle.
+4. `state/` holds the slice-based Zustand document store; `hooks/` wraps document actions/selectors.
+5. `sketchCanvasHooks/` routes pointer/compositing flow into `tools/`, `painting/`, and `rendering/`.
 
-### Folders
+### Folder guide
 
-- **`sketchCanvasHooks/`** — Pointer events, compositing, overlay, keyboard modifiers, imperative canvas API. Heaviest files: `usePointerHandlers.ts`, `usePointerHandlerUtils.ts`.
-- **`state/`** — slice-based store under `state/slices/` composed into `useSketchStore.ts`.
-- **`hooks/`** — `useCanvasActions.ts`, `useLayerActions.ts`, `useHistoryActions.ts`, `useSketchStoreSelectors.ts`.
-- **`rendering/`** — `WebGPURuntime.ts` / `initWebGPU.ts` / `shaders.ts` for the primary document runtime; `Canvas2DRuntime.ts` remains the reference/helper 2D path.
-- **`painting/`** — `PaintSession.ts`, `CoordinateMapper.ts`, brush/pencil/eraser engines, `layerBounds.ts`.
-- **`tools/`** — One module per tool; `toolDefinitions.ts` registers them; `tools/types.ts` for shared tool types.
-- **`types/`** — shared TypeScript types split by domain and re-exported from `index.ts`.
-- **`serialization/`** — Save/load document and layer payloads.
+- `sketchCanvasHooks/` — pointer routing, compositing, overlays, keyboard modifiers, imperative canvas API; key files include `usePointerHandlers.ts`, `useCompositing.ts`, `useTransformPreviewComposite.ts`, `useRedrawScheduler.ts`
+- `hooks/` — document/store action hooks; recent splits include `useStrokeLifecycleActions.ts`, `useTransformActions.ts`, `useExportSyncActions.ts`, `useCanvasGeometryActions.ts`
+- `state/` — slice-based store under `state/slices/`, composed into `useSketchStore.ts`
+- `tools/` — one module per tool plus shared tool types/registration
+- `painting/` — draw engines and shared paint math such as `PaintSession.ts`, `CoordinateMapper.ts`, `sampleDocument.ts`, `alphaLock.ts`, `layerBounds.ts`
+- `rendering/` — document runtime/compositing; `WebGPURuntime.ts` is the intended primary runtime, `Canvas2DRuntime.ts` plus `rendering/canvas2d/` remain the helper/reference 2D path
+- `serialization/` — save/load document and layer payloads
+- `types/` — shared TypeScript types
 
-### UI pieces (same folder, top-level files)
+### Useful top-level files
 
-Toolbar, layers list, color popover, tool settings: `SketchToolbar.tsx`, `SketchLayersPanel.tsx`, `LayerItem.tsx`, `ToolSettingsPanels.tsx`, `ColorPickerPopover.tsx`, `useEditorKeyboardShortcuts.ts`.
-
-### Planning files to checkoff
-
-- **Shortcuts:** `SHORTCUTS.md`
-- **Shipped features log:** `SKETCH_FEATURES_DONE.md`
+- UI shell: `SketchEditor.tsx`, `SketchCanvas.tsx`, `SketchToolbar.tsx`, `SketchLayersPanel.tsx`, `LayerItem.tsx`, `ToolSettingsPanels.tsx`, `ColorPickerPopover.tsx`
+- shortcuts: `SHORTCUTS.md`
+- shipped-feature log: `SKETCH_FEATURES_DONE.md`
 
 ### Data flow
 
-1. User acts on the canvas → `sketchCanvasHooks` routes by tool.
-2. Tools / painting call into `rendering` or mutate layer buffers via the store hooks.
-3. `useSketchStore` updates document state; compositing redraws.
-4. Persist / restore goes through `serialization/`.
+1. Canvas input enters through `sketchCanvasHooks/`.
+2. Tools and painting update preview state, layer buffers, or runtime requests.
+3. Store/actions coordinate document state and history.
+4. `rendering/` composites for display/export/readback.
+5. `serialization/` persists and restores document state.
