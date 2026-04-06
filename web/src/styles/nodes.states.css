@@ -8,27 +8,24 @@
     --node-primary-color,
     var(--palette-text-primary)
   ) !important;
-  /* box-shadow: 0 0 0 1px var(--node-primary-color, var(--palette-text-primary)),
-    0 10px 30px rgba(0, 0, 0, 0.2); */
+  filter: drop-shadow(
+    0 0 6px
+      color-mix(
+        in srgb,
+        var(--node-primary-color, var(--palette-primary-main)) 50%,
+        transparent
+      )
+  );
 }
 
 .react-flow__node:not(.selected) {
-  /* Match outline to header background color */
-  /* outline: 1px solid var(--c_node_header_bg) !important; */
-  /* outline: none; */
   box-shadow: none;
-  /* Increase brightness and add slight saturation toward primary */
-  /* outline-color: color-mix(
-    in srgb,
-    var(--c_node_header_bg) 82%,
-    var(--palette-primary-main) 18%
-  ) !important; */
-  /* outline-offset: 1px; */
+  filter: none;
 }
 
 /* Grouped nodes: use group header color for outline */
 .react-flow__node:has(.node-header.has-parent):not(.selected) {
-  outline-color: var(--c_node_header_bg_group) !important; /* fallback */
+  outline-color: var(--c_node_header_bg_group) !important;
   outline-color: color-mix(
     in srgb,
     var(--c_node_header_bg_group) 82%,
@@ -44,6 +41,7 @@
     var(--palette-primary-main) 18%
   ) !important;
   outline-offset: 1px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
 }
 
 /* Hover for grouped nodes keeps group header color */
@@ -112,3 +110,18 @@
 /* Loading styles are handled by Emotion in BaseNode.tsx
    The animation uses dynamic colors from node metadata and requires
    mask properties for the ring effect that are better expressed in JS */
+
+/* --------------------------------------------- */
+/* Reduced motion support                         */
+/* --------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__node {
+    transition: none !important;
+  }
+  .react-flow__node.selected {
+    filter: none;
+  }
+  .react-flow__node:hover:not(.selected) {
+    filter: none;
+  }
+}
