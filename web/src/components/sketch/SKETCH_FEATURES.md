@@ -69,22 +69,49 @@ Phase 1 "done means":
 
 Execution packages and checkoff rules:
 
-- **Package A — Core seam convergence**
-  - scope: the first open `1.1` items that define the shared contracts: preview/commit parity, transform preview ownership, state-tier boundaries, resolved output, and resolved-layer geometry
+- [ ] **Package A — Core seam convergence**
+  - owns: the first open `1.1` items for preview/commit parity, transform preview ownership, state-tier boundaries, resolved output, and resolved-layer geometry
+  - concrete task area: open items in `1.1` from `make active-layer preview...` through `introduce one shared resolved-layer geometry helper`
   - execution: treat these as one dependency cluster, not as isolated checklist items; they should be worked in an order that reduces drift rather than in strict bullet order
   - checkoff rule: do not check off higher-level move/transform/gizmo correctness items until the shared seam they depend on is actually landed with behavior coverage
-- **Package B — Dependent move/transform correctness**
-  - scope: `1.2` move fixes, `1.4` gizmo alignment coverage, `1.9` transform UX correctness, and the remaining transform/move refactors in `1.10`
+  - package is done when:
+    - preview updates no longer replace full transform state during compositing
+    - preview and commit use the same transform-resolution rules for transformed layers
+    - state-tier ownership is explicit for editing, preview, history snapshot, thumbnail sync, and export/readback
+    - a shared resolved-layer geometry seam exists and is used by the intended consumers
+    - a shared resolved-output seam exists for display/export/readback and any intended thumbnail/helper consumers
+    - behavior tests cover preview vs commit for moved + scaled/rotated layers and catch seam drift
+- [ ] **Package B — Dependent move/transform correctness**
+  - owns: `1.2` move fixes, `1.4` gizmo alignment coverage, `1.9` transform UX correctness, and the remaining transform/move refactors in `1.10`
+  - concrete task area: open items in `1.2`, `1.4` gizmo alignment coverage, `1.9`, and the transform/move-related open items in `1.10`
   - execution: start only after Package A has produced the preview and geometry contracts these tasks are supposed to consume
   - checkoff rule: these tasks are not done when one tool looks fixed in isolation; they are done when move, transform, overlays, and hit testing all consume the same shared seam
-- **Package C — Proof and parity hardening**
-  - scope: the remaining open items in `1.3` through `1.8`
+  - package is done when:
+    - move preview and commit preserve existing scale/rotation/matrix state
+    - move/scale gizmos align with the rendered transformed layer
+    - selection/marquee overlays and hit targets align with the same resolved transformed extents
+    - transform-tool left/top handle behavior is fixed and no longer behaves like right/bottom scaling
+    - move and transform behavior are verified through shared-seam behavior tests, not only local tool tests
+- [ ] **Package C — Proof and parity hardening**
+  - owns: the remaining open items in `1.3` through `1.8`
+  - concrete task area: open proof/parity items in `1.3`, `1.4`, `1.5`, `1.6`, and `1.8`
   - execution: many of these can run in parallel, but treat them as "prove or reveal" tasks — a failing test may create follow-up implementation work in Package A or B
   - checkoff rule: if a proof task reveals missing implementation work, reopen the relevant seam task instead of forcing the test to fit the current behavior
-- **Package D — Refactor support**
-  - scope: `1.10`
+  - package is done when:
+    - remaining open proof/parity tasks in `1.3` through `1.8` are either checked off or converted into explicit implementation follow-up
+    - display/export/readback parity tests exist and pass for the intended scenarios
+    - selection constraint and selection-mode coverage exists and passes for the intended scenarios
+    - serialization helper round-trip coverage exists and passes
+    - no open proof task remains blocked by a known unresolved seam bug without that dependency being called out explicitly
+- [ ] **Package D — Refactor support**
+  - owns: `1.10`
+  - concrete task area: open refactor-support items in `1.10`
   - execution: use these tasks to keep overloaded files from fighting the new seam work, but do them in support of Packages A and B rather than as a separate rewrite track
   - checkoff rule: checking off a refactor task means the file split/boundary cleanup landed; it does **not** mean the higher-level behavior contract above it is finished
+  - package is done when:
+    - remaining overloaded-file refactors needed to support Packages A and B are complete
+    - no shared seam logic is still duplicated across overloaded files just because it was easier to leave it there
+    - the remaining high-pressure files mainly orchestrate or delegate rather than acting as mixed-responsibility policy layers
 
 - [x] centralize document-space <-> layer-space coordinate mapping so preview, commit, hit testing, overlays, and helper tools all follow one transform contract
   - all paint tools use `CoordinateMapper`; move auto-pick now uses shared `hitTestLayerAtDocPoint` with `CoordinateMapper`; eyedropper uses shared `sampleCompositeColor` via `readbackComposite`
