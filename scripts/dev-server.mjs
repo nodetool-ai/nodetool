@@ -69,7 +69,7 @@ const child = spawn(tsxBin, ["--watch", entrypoints[mode]], {
     NODE_ENV: "development",
     // tsx resolves "development" condition in package.json exports,
     // loading .ts source instead of compiled .js from dist/
-    NODE_OPTIONS: [process.env.NODE_OPTIONS, "--conditions=development"].filter(Boolean).join(" "),
+    NODE_OPTIONS: [process.env.NODE_OPTIONS, "--conditions=nodetool-dev"].filter(Boolean).join(" "),
   },
 });
 

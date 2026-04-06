@@ -47,7 +47,10 @@
     "lint": "eslint packages/*/src",
     "workflow": "node ./scripts/run-workflow.mjs",
     "chat": "node ./packages/cli/dist/index.js",
-    "nodetool": "node ./packages/cli/dist/nodetool.js"
+    "nodetool": "node ./packages/cli/dist/nodetool.js",
+    "dev:chat": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/index.ts",
+    "dev:workflow": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts workflows run",
+    "dev:nodetool": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

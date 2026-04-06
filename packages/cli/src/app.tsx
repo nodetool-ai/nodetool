@@ -746,16 +746,25 @@ export function App({
       )}
 
       {/* Input area */}
-      {!streaming && (
-        <Box marginTop={1}>
-          <Text color="magenta" dimColor bold>{"❯ "}</Text>
-          <ReadlineInput
-            value={inputValue}
-            onChange={setInputValue}
-            onSubmit={handleSubmit}
-          />
-        </Box>
-      )}
+      <Box>
+        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
+      </Box>
+      <Box>
+        <Text color="magenta" dimColor bold>{"❯ "}</Text>
+        {streaming
+          ? <Text color="gray" dimColor> </Text>
+          : (
+            <ReadlineInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSubmit={handleSubmit}
+            />
+          )
+        }
+      </Box>
+      <Box>
+        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
+      </Box>
 
       {/* Status bar */}
       <Box>

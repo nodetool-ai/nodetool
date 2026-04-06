@@ -33,7 +33,7 @@ export const createStyles = (theme: Theme) =>
     },
 
     ".thread-date-group": {
-      padding: "0.5em 0.75em",
+      padding: "0.25em 0.75em",
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[300],
       textTransform: "uppercase",
@@ -42,7 +42,7 @@ export const createStyles = (theme: Theme) =>
 
     ".thread-item": {
       position: "relative",
-      padding: "0.6em 0.75em",
+      padding: "0.3em 0.75em",
       fontSize: theme.fontSizeSmall,
       width: "calc(100% - 12px)",
       borderLeft: `3px solid transparent`,
@@ -50,7 +50,7 @@ export const createStyles = (theme: Theme) =>
       transition:
         "background 0.18s ease, opacity 0.25s ease-out, transform 0.25s ease-out, max-height 0.25s ease-out, border-color 0.2s ease",
       borderRadius: 8,
-      maxHeight: "86px",
+      maxHeight: "56px",
       overflow: "hidden",
       outline: "none",
 
