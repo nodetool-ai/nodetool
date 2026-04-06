@@ -108,14 +108,14 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   return async () => {
     console.log("[globalSetup] Stopping backend server…");
     serverProcess.kill("SIGTERM");
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((done) => {
       const timer = setTimeout(() => {
         serverProcess.kill("SIGKILL");
-        resolve();
+        done();
       }, 5_000);
       serverProcess.once("exit", () => {
         clearTimeout(timer);
-        resolve();
+        done();
       });
     });
     console.log("[globalSetup] Backend server stopped");
