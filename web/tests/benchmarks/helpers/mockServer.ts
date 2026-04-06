@@ -1,17 +1,20 @@
 /**
- * Mock HTTP API server for documentation screenshot capture.
+ * Mock HTTP API server for documentation screenshot capture (legacy).
  *
- * Handles all API calls that the NodeTool React app makes at startup and
- * while navigating, returning realistic fake data so screenshots look like
- * a real populated application.
+ * NOTE: This mock server is no longer used by the screenshot automation.
+ * The real NodeTool backend is now started instead — see:
+ *   packages/websocket/src/screenshot-server.ts  (the backend entry point)
+ *   web/tests/globalSetup.ts                     (spawns the backend)
  *
- * Start the mock server:
+ * This file is kept for reference. It may be useful for lightweight local
+ * testing that does not require the full backend stack to be built.
+ *
+ * Legacy usage (no longer active):
  *   const { startMockServer } = await import('./mockServer');
  *   const server = await startMockServer(4444);
  *   // ... run tests ...
  *   await server.close();
  *
- * Then point Vite's proxy at it:
  *   PROXY_API_TARGET=http://localhost:4444 npm start
  */
 

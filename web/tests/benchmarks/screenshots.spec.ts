@@ -1,15 +1,16 @@
 /**
  * Documentation Screenshot Capture
  *
- * Takes screenshots of the real NodeTool UI. API calls are handled by a mock
- * HTTP server (started in globalSetup.ts) so no real backend is needed.
+ * Takes screenshots of the real NodeTool UI. API calls are handled by the
+ * real NodeTool backend (started by globalSetup.ts) running with an in-memory
+ * SQLite database pre-seeded with realistic mock data.
  *
  * Usage:
  *   npm run screenshots                    # Capture only missing screenshots
  *   npm run screenshots:force              # Re-capture every screenshot
  *   FORCE_SCREENSHOTS=true npx playwright test tests/benchmarks/screenshots.spec.ts
  *
- * playwright.config.ts auto-starts the Vite dev server pointed at the mock API.
+ * playwright.config.ts auto-starts the Vite dev server and the real backend.
  */
 
 import { test, Page } from "@playwright/test";
