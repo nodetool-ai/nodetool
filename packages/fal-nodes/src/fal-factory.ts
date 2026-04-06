@@ -72,6 +72,25 @@ function assetKind(
   return "none";
 }
 
+function defaultForPropType(propType: string): unknown {
+  switch (propType) {
+    case "bool":
+      return false;
+    case "int":
+    case "float":
+      return 0;
+    case "image":
+      return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
+    case "audio":
+      return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
+    case "video":
+      return { type: "video", uri: "", asset_id: null, data: null, metadata: null, duration: null, format: null };
+    default:
+      if (propType.startsWith("list[")) return [];
+      return "";
+  }
+}
+
 function castValue(value: unknown, propType: string): unknown {
   if (value === null || value === undefined) return value;
   if (propType.startsWith("list[") || propType.startsWith("dict[")) {
@@ -253,8 +272,26 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       value: true,
       configurable: true
     });
+  } else if (spec.outputType === "audio") {
+    Object.defineProperty(FalNodeClass, "metadataOutputTypes", {
+      value: { output: "audio" },
+      configurable: true
+    });
+    Object.defineProperty(FalNodeClass, "isStreamingOutput", {
+      value: true,
+      configurable: true
+    });
+  } else if (spec.outputType === "video") {
+    Object.defineProperty(FalNodeClass, "metadataOutputTypes", {
+      value: { output: "video" },
+      configurable: true
+    });
+    Object.defineProperty(FalNodeClass, "isStreamingOutput", {
+      value: true,
+      configurable: true
+    });
   } else if (spec.outputType === "model_3d") {
-    Object.defineProperty(FalNodeClass, "outputTypes", {
+    Object.defineProperty(FalNodeClass, "metadataOutputTypes", {
       value: { output: "model_3d" },
       configurable: true
     });
@@ -283,12 +320,7 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
 
     const propOptions: PropOptions = {
       type: field.propType,
-      default: field.default ?? (
-        field.propType === "bool" ? false :
-        field.propType === "int" || field.propType === "float" ? 0 :
-        field.propType.startsWith("list[") ? [] :
-        ""
-      )
+      default: field.default ?? defaultForPropType(field.propType)
     };
     if (field.description) propOptions.description = field.description;
     if (field.enumValues?.length)

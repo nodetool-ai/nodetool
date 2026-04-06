@@ -361,7 +361,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
     // Cleanup all on unmount
     return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       const urlMap = urlMapRef.current;
       if (urlMap && urlMap.size) {
         for (const [key, url] of urlMap.entries()) {

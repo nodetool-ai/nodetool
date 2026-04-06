@@ -190,7 +190,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }
       return lastResult;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.id]); // store is a stable ref that doesn't change
   const { hasChildren, someChildrenBypassed } = useNodes(childrenStatusSelector);
 

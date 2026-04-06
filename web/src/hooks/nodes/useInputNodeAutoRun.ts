@@ -250,7 +250,6 @@ export const useNodeAutoRun = (
 
     run({}, workflow, nodesWithCachedValues, downstream.edges);
     // getResult is stable from useResultsStore, no need to include in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     nodeType,
     nodeId,
