@@ -1,22 +1,37 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Box,
+  IconButton,
+  MenuItem,
+  Select,
   ToggleButton,
   ToggleButtonGroup,
   Slider,
+  Tooltip,
   Typography
 } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import SearchInput from "../../search/SearchInput";
 import {
   useModelManagerStore,
   ModelFilterStatus
 } from "../../../stores/ModelManagerStore";
+import type { ModelSortField } from "../../../stores/ModelManagerStore";
 import { useTheme } from "@mui/material/styles";
 
 interface ModelListHeaderProps {
   totalCount: number;
   filteredCount: number;
 }
+
+const SORT_OPTIONS: { value: ModelSortField; label: string }[] = [
+  { value: "name", label: "Name" },
+  { value: "size", label: "Size" },
+  { value: "downloads", label: "Downloads" },
+  { value: "likes", label: "Likes" }
+];
 
 const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   totalCount,
@@ -28,6 +43,10 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   const setMaxModelSizeGB = useModelManagerStore((state) => state.setMaxModelSizeGB);
   const filterStatus = useModelManagerStore((state) => state.filterStatus);
   const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
+  const sortField = useModelManagerStore((state) => state.sortField);
+  const setSortField = useModelManagerStore((state) => state.setSortField);
+  const sortDirection = useModelManagerStore((state) => state.sortDirection);
+  const toggleSortDirection = useModelManagerStore((state) => state.toggleSortDirection);
   const theme = useTheme();
 
   const handleSliderChange = (_: Event, value: number | number[]) => {
@@ -44,6 +63,13 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
     }
   };
 
+  const handleSortFieldChange = useCallback(
+    (event: SelectChangeEvent) => {
+      setSortField(event.target.value as ModelSortField);
+    },
+    [setSortField]
+  );
+
   return (
     <>
       <SearchInput
@@ -59,7 +85,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 6,
+          gap: 2,
           flex: 1,
           justifyContent: "flex-end",
           pr: 2
@@ -91,7 +117,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           aria-label="filter models"
           size="small"
           color="primary"
-          sx={{ 
+          sx={{
             height: "32px",
             background: theme.vars.palette.action.hover,
             backdropFilter: theme.vars.palette.glass.blur,
@@ -104,11 +130,11 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
                 backgroundColor: theme.vars.palette.action.selected,
                 color: theme.vars.palette.text.primary,
                 "&:hover": {
-                  backgroundColor: theme.vars.palette.action.activatedOpacity,
+                  backgroundColor: theme.vars.palette.action.activatedOpacity
                 }
               },
               "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover,
+                backgroundColor: theme.vars.palette.action.hover
               }
             }
           }}
@@ -136,7 +162,57 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           </ToggleButton>
         </ToggleButtonGroup>
 
-        <Box sx={{ width: 200, minWidth: 200, mr: 2, mt: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Select
+            value={sortField}
+            onChange={handleSortFieldChange}
+            size="small"
+            variant="outlined"
+            aria-label="Sort models by"
+            sx={{
+              height: "32px",
+              minWidth: 120,
+              fontSize: "0.875rem",
+              background: theme.vars.palette.action.hover,
+              borderRadius: "8px",
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: theme.vars.palette.divider
+              },
+              "& .MuiSelect-select": {
+                py: 0.5
+              }
+            }}
+          >
+            {SORT_OPTIONS.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+          <Tooltip
+            title={`Sort ${sortDirection === "asc" ? "ascending" : "descending"}`}
+          >
+            <IconButton
+              onClick={toggleSortDirection}
+              size="small"
+              aria-label="Toggle sort direction"
+              sx={{
+                color: theme.vars.palette.text.secondary,
+                "&:hover": {
+                  color: theme.vars.palette.text.primary
+                }
+              }}
+            >
+              {sortDirection === "asc" ? (
+                <ArrowUpwardIcon fontSize="small" />
+              ) : (
+                <ArrowDownwardIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        <Box sx={{ width: 160, minWidth: 160, mt: 1 }}>
           <Slider
             aria-label="Max model size in GB"
             value={maxModelSizeGB}
