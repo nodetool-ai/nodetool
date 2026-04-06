@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 export { loadKieNodesFromManifest, createKieNodeClass } from "./kie-factory.js";
 export type { KieManifestEntry } from "./kie-factory.js";
+export { getApiKey, kieExecuteTask } from "./kie-base.js";
 
 function loadManifest(): KieManifestEntry[] {
   const dir = dirname(fileURLToPath(import.meta.url));

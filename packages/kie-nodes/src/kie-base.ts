@@ -256,21 +256,28 @@ export async function kiePollSuno(
 
 export async function kieDownloadSunoResult(
   apiKey: string,
-  taskId: string
+  taskId: string,
+  maxAttempts = 10,
+  retryInterval = 3000
 ): Promise<{ data: string; taskId: string }> {
   const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
-  const res = await fetch(url, { headers: headers(apiKey) });
-  const data = (await res.json()) as Record<string, unknown>;
-  const clips = (
-    (data.data as Record<string, unknown>)?.response as Record<string, unknown>
-  )?.clips as Array<Record<string, unknown>>;
-  if (!clips?.length) throw new Error("No clips in Suno response");
-  const audioUrl = clips[0].audioUrl as string;
-  if (!audioUrl) throw new Error("No audioUrl in Suno clip");
-  const dlRes = await fetch(audioUrl);
-  if (!dlRes.ok) throw new Error(`Failed to download audio`);
-  const buf = Buffer.from(await dlRes.arrayBuffer());
-  return { data: buf.toString("base64"), taskId };
+  for (let i = 0; i < maxAttempts; i++) {
+    const res = await fetch(url, { headers: headers(apiKey) });
+    const data = (await res.json()) as Record<string, unknown>;
+    const clips = (
+      (data.data as Record<string, unknown>)?.response as Record<string, unknown>
+    )?.clips as Array<Record<string, unknown>>;
+    if (clips?.length) {
+      const audioUrl = clips[0].audioUrl as string;
+      if (!audioUrl) throw new Error("No audioUrl in Suno clip");
+      const dlRes = await fetch(audioUrl);
+      if (!dlRes.ok) throw new Error(`Failed to download audio`);
+      const buf = Buffer.from(await dlRes.arrayBuffer());
+      return { data: buf.toString("base64"), taskId };
+    }
+    if (i < maxAttempts - 1) await new Promise((r) => setTimeout(r, retryInterval));
+  }
+  throw new Error("No clips in Suno response after retries");
 }
 
 export async function kieExecuteSunoTask(
