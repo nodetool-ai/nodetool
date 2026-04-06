@@ -67,7 +67,13 @@ const getNodeDisplayName = (
 };
 
 export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
-  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  const selectedNodes = useNodes((state) => state.getSelectedNodes(), (a, b) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  });
   const edges = useEdges();
   // Subscribe to getMetadata method only - this is a stable reference
   const getMetadata = useMetadataStore((state) => state.getMetadata);
