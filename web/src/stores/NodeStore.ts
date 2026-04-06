@@ -264,19 +264,10 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
 export const createNodeStore = (
   workflow?: Workflow,
   state?: Partial<NodeStoreState>
-): NodeStore => {
-  const store = create<NodeStoreState>()(
-    (temporal as any)(
-      (
-        set: (
-          partial:
-            | NodeStoreState
-            | Partial<NodeStoreState>
-            | ((state: NodeStoreState) => NodeStoreState | Partial<NodeStoreState>),
-          replace?: boolean
-        ) => void,
-        get: () => NodeStoreState
-      ) => {
+): NodeStore =>
+  create<NodeStoreState>()(
+    temporal(
+      (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
         const nodeTypes = useMetadataStore.getState().nodeTypes;
         const addNodeType = useMetadataStore.getState().addNodeType;
@@ -1385,6 +1376,3 @@ export const createNodeStore = (
       }
     )
   ) as unknown as NodeStore;
-
-  return store;
-};
