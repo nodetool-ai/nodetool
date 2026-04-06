@@ -29,6 +29,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import AssetListView from "./AssetListView";
+import { EmptyState } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -345,6 +346,31 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   }
 
   // Default grid view
+  if (assets.length === 0) {
+    return (
+      <div
+        className="asset-grid-content"
+        css={styles(theme)}
+        ref={containerRef}
+        onContextMenu={handleContextMenu}
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}
+      >
+        <EmptyState
+          variant="no-data"
+          title="This folder is empty"
+          description="Drop files here or use the upload button to add assets"
+          size="small"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="asset-grid-content"
