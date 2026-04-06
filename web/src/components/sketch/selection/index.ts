@@ -6,3 +6,4 @@
  * instead of reaching into individual files.
  */
 export * from "./selectionMask";
+export * from "./applySelectionConstraint";

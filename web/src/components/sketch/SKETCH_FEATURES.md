@@ -123,15 +123,17 @@ Execution order for remaining Phase 1 work:
       - boundary: move must request preview updates and geometry queries from shared helpers rather than defining transform preservation locally
       - **landed**: removed local `docRectToGizmo` helper; gizmo now uses `getEffectiveRasterBounds` + `getTransformedExtents` from `resolvedLayerGeometry` for bounds, and `docRectToScreen` from shared `handleGeometry` for coordinate conversion; removed import of `getLayerCompositeOffset` in favor of resolved geometry seam
 
-- [ ] **Package C — Proof and parity hardening**
+- [x] **Package C — Proof and parity hardening**
   - use this package to prove the remaining seams hold; if a test exposes a real gap, reopen the seam task above instead of forcing the test to fit broken behavior
   - package is done when:
     - remaining open proof/parity tasks are either checked off or converted into explicit implementation follow-up
     - selection constraint and selection-mode coverage exists and passes for the intended scenarios
     - no proof task remains blocked by a known unresolved seam bug without that dependency being called out explicitly
   - tasks:
-    - [ ] [impl+test] add tests for `applySelectionConstraint`: verify this against shared production logic rather than only conceptual/inlined test logic so fill/gradient selection clipping cannot drift
+    - [x] [impl+test] add tests for `applySelectionConstraint`: verify this against shared production logic rather than only conceptual/inlined test logic so fill/gradient selection clipping cannot drift
       - suggested seam: extract a shared helper under `selection/` and test that production helper directly
+      - **landed**: extracted `applySelectionConstraint` (canvas-context variant) and `applySelectionConstraintToBuffers` (pure-data variant) into `selection/applySelectionConstraint.ts`; FillTool and GradientTool now import from the shared module; 15 tests in `__tests__/packageC-selectionConstraint.test.ts` cover inside/outside behavior, offset translation, mask-origin handling, threshold boundary, edge cases (empty/full/partial mask, transparent pixels), and parity verification
+  - summary: this package was pure test + extraction work; no implementation gaps were discovered — the duplicated `applySelectionConstraint` logic in FillTool and GradientTool was identical and correct, so the extraction was a clean deduplication with no behavioral changes
 
 - [ ] **Package D — Refactor support**
   - pull this in only when it directly reduces friction for Packages A or B; it is support work, not a separate rewrite track

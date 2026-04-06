@@ -16,40 +16,9 @@ import {
 } from "../painting/layerBounds";
 import {
   selectionHasAnyPixels,
-  selectionHitTest
+  selectionHitTest,
+  applySelectionConstraint
 } from "../selection";
-
-// ─── Selection masking for putImageData-based tools ──────────────────────────
-//
-// putImageData bypasses the canvas clipping path, so selection constraints
-// must be applied by restoring original pixel values outside the selection
-// after the draw call completes.
-
-function applySelectionConstraint(
-  ctx: CanvasRenderingContext2D,
-  beforeData: ImageData,
-  selection: Selection,
-  offsetX: number,
-  offsetY: number
-): void {
-  const afterData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
-  const after = afterData.data;
-  const before = beforeData.data;
-  const w = ctx.canvas.width;
-  const h = ctx.canvas.height;
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (!selectionHitTest(selection, x + offsetX, y + offsetY)) {
-        const i = (y * w + x) * 4;
-        after[i]     = before[i];
-        after[i + 1] = before[i + 1];
-        after[i + 2] = before[i + 2];
-        after[i + 3] = before[i + 3];
-      }
-    }
-  }
-  ctx.putImageData(afterData, 0, 0);
-}
 
 // ─── Flood Fill (moved from drawingUtils.ts) ─────────────────────────────────
 //
