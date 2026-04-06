@@ -327,32 +327,46 @@ const DataTable: React.FC<DataTableProps> = ({
   // Update data when it changes (without recreating tabulator)
   // Skip replaceData if the change came from Tabulator's own editing (to preserve history)
   useEffect(() => {
-    if (isTableReady && tabulatorRef.current && !isInternalEditRef.current) {
-      tabulatorRef.current.replaceData(data);
+    if (isTableReady && tabulatorRef.current && tableRef.current) {
+      try {
+        if (!isInternalEditRef.current) {
+          tabulatorRef.current.replaceData(data);
+        }
+      } catch {
+        // DOM may have been removed during async Tabulator operations
+      }
     }
   }, [data, isTableReady]);
 
   // Update columns when they change
   useEffect(() => {
-    if (isTableReady && tabulatorRef.current) {
-      tabulatorRef.current.setColumns(buildColumns());
+    if (isTableReady && tabulatorRef.current && tableRef.current) {
+      try {
+        tabulatorRef.current.setColumns(buildColumns());
+      } catch {
+        // DOM may have been removed during async Tabulator operations
+      }
     }
   }, [buildColumns, dataframe.columns, showSelect, showRowNumbers, isTableReady]);
 
   // Apply search filter
   useEffect(() => {
-    if (isTableReady && tabulatorRef.current) {
-      if (searchFilter && searchFilter.trim()) {
-        // Filter across all columns
-        const cols = dataframeRef.current.columns || [];
-        const filters = cols.map((col) => ({
-          field: col.name,
-          type: "like" as const,
-          value: searchFilter
-        }));
-        tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
-      } else {
-        tabulatorRef.current.clearFilter(true);
+    if (isTableReady && tabulatorRef.current && tableRef.current) {
+      try {
+        if (searchFilter && searchFilter.trim()) {
+          // Filter across all columns
+          const cols = dataframeRef.current.columns || [];
+          const filters = cols.map((col) => ({
+            field: col.name,
+            type: "like" as const,
+            value: searchFilter
+          }));
+          tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
+        } else {
+          tabulatorRef.current.clearFilter(true);
+        }
+      } catch {
+        // DOM may have been removed during async Tabulator operations
       }
     }
   }, [searchFilter, isTableReady]);

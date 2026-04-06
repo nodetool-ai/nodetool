@@ -658,6 +658,29 @@ app.listen({ port, host }, (err) => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// Graceful shutdown — ensure child processes (Python worker, etc.) are killed
+// ---------------------------------------------------------------------------
+
+async function shutdown(signal: string): Promise<void> {
+  log.info(`${signal} received — shutting down`);
+  pythonBridge.close();
+  try {
+    await app.close();
+  } catch {
+    // ignore close errors
+  }
+  process.exit(0);
+}
+
+process.on("SIGINT", () => void shutdown("SIGINT"));
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+
+// On Windows, Ctrl+C in some terminals fires SIGBREAK instead of SIGINT
+if (process.platform === "win32") {
+  process.on("SIGBREAK", () => void shutdown("SIGBREAK"));
+}
+
 // Start Python bridge eagerly if Python is installed.
 if (pythonBridge.hasPython()) {
   pythonBridge
