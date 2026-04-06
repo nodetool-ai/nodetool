@@ -158,9 +158,14 @@ function mergeMetadata(
 function getDecoratedProperties(nodeClass: NodeClass): PropertyMetadata[] {
   return nodeClass.getDeclaredProperties().map((entry) => {
     const opts = (entry as DeclaredPropertyMetadata).options;
+    const type = parseTypeString(opts.type);
+    // Attach enum values to TypeMetadata so the frontend can detect them
+    if (opts.values?.length) {
+      type.values = opts.values;
+    }
     const result: PropertyMetadata = {
       name: entry.name,
-      type: parseTypeString(opts.type),
+      type,
       required: opts.required ?? false,
       title: opts.title,
       description: opts.description,
