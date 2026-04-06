@@ -83,11 +83,10 @@ deployments:
 ### SSH/Local Process
 
 1. **Directory Creation**: Creates workspace and environment directories.
-2. **Micromamba Setup**: Downloads and installs `micromamba` locally in the workspace if missing.
-3. **Environment Creation**: Creates a Conda environment with system dependencies (ffmpeg, etc.).
-4. **Package Installation**: Installs `nodetool-core` and `nodetool-base` using `uv`.
-5. **Service Management**: Creates and enables a user-level `systemd` service (`nodetool-<name>.service`).
-6. **Health Check**: Verifies HTTP endpoint.
+2. **Node.js Setup**: Ensures Node.js 22.x is available.
+3. **Package Installation**: Installs npm dependencies and builds backend packages.
+4. **Service Management**: Creates and enables a user-level `systemd` service (`nodetool-<name>.service`).
+5. **Health Check**: Verifies HTTP endpoint.
 
 ## End-to-End: Local Docker Deployment
 

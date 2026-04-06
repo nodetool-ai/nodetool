@@ -17,7 +17,7 @@ Starts the NodeTool API server in production using pm2 for process management (a
 - Node.js and npm
 - pm2 (`npm install -g pm2`)
 - Built packages (`npm run build --workspaces --if-present`)
-- TLS certs: auto-detected from sibling `nodetool-core/cert.pem` and `key.pem`, or set `TLS_CERT`/`TLS_KEY`
+- TLS certs: set `TLS_CERT`/`TLS_KEY` environment variables, or place `cert.pem` and `key.pem` in the repo root
 
 **Usage:**
 

@@ -1,6 +1,6 @@
 # TS Workflow JSON Examples
 
-Run from `/Users/mg/workspace/nodetool-core/ts`.
+Run from the repository root.
 
 ```bash
 npm run build

@@ -721,22 +721,14 @@ cd electron && npm run build     # Production build
 
 ## Setting Up for E2E Tests
 
-E2E tests require both the Python backend and Node.js frontend to be running. Follow these steps:
+E2E tests use a mock API server and the Vite dev server. Follow these steps:
 
-### 1. Set Up Python Environment
+### 1. Build Backend Packages
 
 ```bash
-# Create conda environment (first time only)
-conda env create -f environment.yml -n nodetool
-
-# Activate the environment
-conda activate nodetool
-
-# Install nodetool packages
-uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
-
-# Verify installation
-nodetool --help
+nvm use                    # Activate Node 22
+npm install
+npm run build:packages     # Build all TS packages in dependency order
 ```
 
 ### 2. Install Web Dependencies
@@ -752,7 +744,7 @@ npx playwright install chromium
 ### 3. Run E2E Tests
 
 **Option A: Automatic Setup (Recommended)**
-The Playwright configuration automatically starts both servers:
+The Playwright configuration automatically starts the mock API server and Vite:
 
 ```bash
 cd web
@@ -764,8 +756,7 @@ Start servers manually for debugging:
 
 ```bash
 # Terminal 1: Start backend
-conda activate nodetool
-nodetool serve --port 7777
+npm run build:packages && node packages/websocket/dist/server.js
 
 # Terminal 2: Start frontend
 cd web
@@ -778,12 +769,12 @@ npx playwright test
 
 ### 4. Starting the NodeTool Server
 
-The NodeTool server is automatically started by Playwright when running tests, but you can also start it manually for debugging:
+The server is a TypeScript Fastify application in `packages/websocket/`:
 
 ```bash
-# Start the server on port 7777 (default)
-conda activate nodetool
-nodetool serve --port 7777
+# Build and start the server on port 7777 (default)
+npm run build:packages
+node packages/websocket/dist/server.js
 
 # The server provides:
 # - REST API endpoints at http://localhost:7777/api/
@@ -791,14 +782,6 @@ nodetool serve --port 7777
 # - WebSocket connections for workflow execution
 # - Models API for managing AI models
 ```
-
-**Server Installation Details:**
-
-The nodetool server comes from two packages:
-- `nodetool-core`: Core functionality and API server
-- `nodetool-base`: Base nodes and model integrations
-
-These are installed via `uv pip install` in the conda environment.
 
 ### 5. E2E Test Structure
 
