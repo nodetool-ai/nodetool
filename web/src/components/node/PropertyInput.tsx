@@ -488,7 +488,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
 
   // Calculate changed state: value differs from default
-  const isChanged = value !== property.default;
+  // Skip if no default is defined — nothing to compare against.
+  // Treat null defaults the same as undefined (common in dynamic/FalAI schemas
+  // where default is null but initial value is "" or [] or 0).
+  const isChanged = property.default != null && !isEqual(value, property.default);
 
   // Handle slider/number input change complete
   const handleChangeComplete = useCallback(() => {
