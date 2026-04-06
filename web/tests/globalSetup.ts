@@ -27,7 +27,8 @@ import { fileURLToPath } from "node:url";
 import * as net from "node:net";
 
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(CURRENT_DIR, "../../..");
+// CURRENT_DIR = web/tests — go up two levels to reach the repo root
+const REPO_ROOT = resolve(CURRENT_DIR, "../..");
 const SERVER_SCRIPT = resolve(
   REPO_ROOT,
   "packages/websocket/src/screenshot-server.ts"

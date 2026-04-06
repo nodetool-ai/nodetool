@@ -537,6 +537,14 @@ export async function handleWorkflowExamples(
     return errorResponse(405, "Method not allowed");
   }
   const workflows = buildExampleWorkflows(options);
+  // When no Python packages provide examples (e.g. standalone / screenshot mode),
+  // fall back to public workflows stored in the database so the templates grid
+  // is populated rather than empty.
+  if (workflows.length === 0) {
+    const [dbWorkflows] = await Workflow.paginatePublic({ limit: 50 });
+    const fallback = dbWorkflows.map((wf) => toWorkflowResponse(wf));
+    return jsonResponse({ workflows: fallback, next: null });
+  }
   return jsonResponse({ workflows, next: null });
 }
 
@@ -550,8 +558,15 @@ export async function handleWorkflowExamplesSearch(
   const url = new URL(request.url);
   const query = (url.searchParams.get("query") ?? "").toLowerCase().trim();
   const workflows = buildExampleWorkflows(options);
+  // Same DB fallback as handleWorkflowExamples above
+  const source: unknown[] =
+    workflows.length > 0
+      ? workflows
+      : (await Workflow.paginatePublic({ limit: 50 }))[0].map((wf) =>
+          toWorkflowResponse(wf)
+        );
   const filtered = query
-    ? workflows.filter((w) => {
+    ? source.filter((w) => {
         const wf = w as Record<string, unknown>;
         const name = String(wf.name ?? "").toLowerCase();
         const desc = String(wf.description ?? "").toLowerCase();
@@ -562,7 +577,7 @@ export async function handleWorkflowExamplesSearch(
           tags.some((t) => t.toLowerCase().includes(query))
         );
       })
-    : workflows;
+    : source;
   return jsonResponse({ workflows: filtered, next: null });
 }
 
