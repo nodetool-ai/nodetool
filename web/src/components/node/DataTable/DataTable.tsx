@@ -141,6 +141,9 @@ const DataTable: React.FC<DataTableProps> = ({
   const isInternalEditRef = useRef(false);
   // Track timeout for cleanup
   const editTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track what data Tabulator currently holds — prevents redundant replaceData
+  // after initial mount (Tabulator already loaded data via constructor)
+  const tabulatorDataRef = useRef<DictTableRow[] | null>(null);
   
   // Update undo/redo availability
   const updateHistoryState = useCallback(() => {
@@ -284,6 +287,8 @@ const DataTable: React.FC<DataTableProps> = ({
       }, 100);
     };
 
+    tabulatorDataRef.current = data; // track what data is currently in Tabulator
+
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: 200,
       data: data,
@@ -325,16 +330,17 @@ const DataTable: React.FC<DataTableProps> = ({
   }, []);
 
   // Update data when it changes (without recreating tabulator)
-  // Skip replaceData if the change came from Tabulator's own editing (to preserve history)
+  // Skip replaceData if: data already in Tabulator (constructor-loaded), internal edit, or DOM gone
   useEffect(() => {
-    if (isTableReady && tabulatorRef.current && tableRef.current) {
-      try {
-        if (!isInternalEditRef.current) {
-          tabulatorRef.current.replaceData(data);
-        }
-      } catch {
-        // DOM may have been removed during async Tabulator operations
+    if (!isTableReady || !tabulatorRef.current || !tableRef.current) return;
+    if (tabulatorDataRef.current === data) return; // already loaded, skip redundant call
+    tabulatorDataRef.current = data;
+    try {
+      if (!isInternalEditRef.current) {
+        tabulatorRef.current.replaceData(data);
       }
+    } catch {
+      // DOM may have been removed during async Tabulator operations
     }
   }, [data, isTableReady]);
 
