@@ -56,6 +56,13 @@ export const SHAPE_TOOLS: ToolDefinition[] = [
   segmentDef
 ];
 
+export const TOOLBAR_TOOL_GROUPS: readonly ToolDefinition[][] = [
+  [moveDef, transformDef, selectDef, cropDef],
+  [brushDef, pencilDef, eraserDef, fillDef, eyedropperDef],
+  [blurDef, cloneStampDef, adjustDef, gradientDef],
+  [shapeDef, segmentDef]
+];
+
 export const ALL_TOOL_DEFINITIONS: ToolDefinition[] = [
   ...PAINTING_TOOLS,
   ...SHAPE_TOOLS

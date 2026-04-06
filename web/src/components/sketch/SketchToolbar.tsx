@@ -19,7 +19,7 @@ import {
   Divider
 } from "@mui/material";
 import { SketchTool } from "./types";
-import { PAINTING_TOOLS, SHAPE_TOOLS, type ToolDefinition } from "./toolDefinitions";
+import { TOOLBAR_TOOL_GROUPS, type ToolDefinition } from "./toolDefinitions";
 import ColorSwatchPair from "./ColorSwatchPair";
 import { SKETCH_SPACING, SKETCH_SIZE, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 
@@ -36,6 +36,16 @@ const styles = (theme: Theme) =>
     width: `${BTN * 2 + 8 + 2}px`, // 2 cols + gap + border
     overflowY: "auto",
     flexShrink: 0,
+    "& .tool-sections": {
+      display: "flex",
+      flexDirection: "column",
+      gap: SKETCH_SPACING.md,
+    },
+    "& .tool-section": {
+      display: "flex",
+      flexDirection: "column",
+      gap: SKETCH_SPACING.sm,
+    },
     "& .MuiToggleButtonGroup-root": {
       display: "flex",
       flexDirection: "row",
@@ -118,18 +128,16 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
 
   return (
     <Box className="sketch-toolbar" css={styles(theme)}>
-
-      {/* ── Painting + Transform ── */}
-      <ToggleButtonGroup value={activeTool} exclusive onChange={handleToolChange} size="small" className="tool-group">
-        {PAINTING_TOOLS.map(renderToolButton)}
-      </ToggleButtonGroup>
-
-      <Divider flexItem />
-
-      {/* ── Shapes + Utilities ── */}
-      <ToggleButtonGroup value={activeTool} exclusive onChange={handleToolChange} size="small" className="tool-group">
-        {SHAPE_TOOLS.map(renderToolButton)}
-      </ToggleButtonGroup>
+      <Box className="tool-sections">
+        {TOOLBAR_TOOL_GROUPS.map((group, index) => (
+          <Box key={group.map((def) => def.tool).join("-")} className="tool-section">
+            <ToggleButtonGroup value={activeTool} exclusive onChange={handleToolChange} size="small" className="tool-group">
+              {group.map(renderToolButton)}
+            </ToggleButtonGroup>
+            {index < TOOLBAR_TOOL_GROUPS.length - 1 ? <Divider flexItem /> : null}
+          </Box>
+        ))}
+      </Box>
 
       <Divider flexItem />
 

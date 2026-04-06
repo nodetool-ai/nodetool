@@ -261,11 +261,15 @@ These are not "clean up for its own sake" tasks. They are explicit support work 
 
 ## PHASE 2 - FIXES
 
+- [ ] Blur tool currently only works with single click / dab, should also work with holding mouse / doing strokes
 - [ ] fix small delay when starting brush strokes - mouse cursor hangs for 50ms right after starting a stroke
 - [ ] rethink layer action buttons: sort, think about what should be in top and bottom groups, remove icons for crop canvas, but leave in context menu
 - [ ] rename duplicate layers "[layer name] copy 1", 2, 3 ...
 - [ ] remove Layer In / Layer Out from handle names, only layer name
 - [ ] Remove the default Image Input handle
+- [ ] adjust default settings for tools to sane values
+- [ ] default brush should not have any smoothing
+- [ ] Eraser shows all kinds of tool settings from brush and pencil together, should only show relevant settings from current erase mode
 
 
 ## 2.1 - FEATURES
