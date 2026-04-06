@@ -514,6 +514,21 @@ export class Canvas2DRuntime implements SketchRuntime {
     return result;
   }
 
+  getResolvedLayerOutput(
+    doc: SketchDocument,
+    layerId: string
+  ): ResolvedLayerBitmap | null {
+    const layer = doc.layers.find((l) => l.id === layerId);
+    if (!layer) {
+      return null;
+    }
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return null;
+    }
+    return this.evaluateLayerEffects(layerId, canvas, layer.effects);
+  }
+
   // ─── Composite readback ─────────────────────────────────────────────
 
   readbackComposite(

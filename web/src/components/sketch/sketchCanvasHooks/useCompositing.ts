@@ -17,6 +17,29 @@
  *   useTransformPreviewComposite – compositeToDisplay callback
  *   useRedrawScheduler          – rAF batching, dirty-rect merging
  *   useLayerHydration           – doc → layer canvas sync
+ *
+ * ## State-tier ownership (Package A contract)
+ *
+ * This hook coordinates compositing — it is the *consumer* of state, not the
+ * owner. The ownership tiers are:
+ *
+ * | Tier                | Source                          | How compositing uses it                |
+ * |---------------------|---------------------------------|----------------------------------------|
+ * | Document state      | `doc` prop (from store)         | Layer tree, visibility, opacity, effects |
+ * | Transform previews  | `transformPreviewByLayerId`     | Applied via `applyTransformPreviews` in compositing callback; never persisted |
+ * | Live layer canvases | `layerCanvasesRef` (runtime)    | Pixel source for compositing           |
+ * | Active stroke       | `activeStrokeRef`               | Overlaid onto layer during composite   |
+ * | Resolved output     | `evaluateLayerEffects` (runtime)| FX applied per-layer before compositing |
+ *
+ * ### Key invariants
+ * - Preview transforms are applied *only* during the compositing callback
+ *   via the shared `applyTransformPreviews` contract. They create a
+ *   temporary document snapshot; the original `doc` is never mutated.
+ * - The compositing callback must never write back to document state,
+ *   preview state, or layer canvases. It is a pure display path.
+ * - Export/readback paths (`flattenToDataUrl`, `readbackComposite`)
+ *   use the same `renderDocumentComposite` pipeline as display, minus
+ *   the display chrome (checkerboard, border). This ensures parity.
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";

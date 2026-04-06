@@ -3,11 +3,18 @@
  *
  * Builds the `compositeToDisplay` callback that applies transform previews
  * and composites all visible layers onto the display canvas.
+ *
+ * Preview transforms are applied via the shared `applyTransformPreviews`
+ * contract from `painting/transformPreview`. This ensures that preview
+ * rendering uses the same full-transform merge rules as commit paths —
+ * a layer with existing scale/rotation is never downgraded to
+ * translation-only during preview compositing.
  */
 
 import { useCallback } from "react";
 import type { SketchDocument, LayerTransform } from "../types";
 import type { SketchRuntime, DirtyRect, ActiveStrokeInfo } from "../rendering";
+import { applyTransformPreviews } from "../painting/transformPreview";
 
 export interface UseTransformPreviewCompositeParams {
   doc: SketchDocument;
@@ -70,19 +77,7 @@ export function useTransformPreviewComposite({
       if (!rt) {
         return;
       }
-      const hasTransformPreview =
-        Object.keys(transformPreviewByLayerId).length > 0;
-      const compositeDoc = hasTransformPreview
-        ? {
-            ...doc,
-            layers: doc.layers.map((layer) => {
-              const previewTransform = transformPreviewByLayerId[layer.id];
-              return previewTransform
-                ? { ...layer, transform: previewTransform }
-                : layer;
-            })
-          }
-        : doc;
+      const compositeDoc = applyTransformPreviews(doc, transformPreviewByLayerId) ?? doc;
       const activeStroke = activeStrokeRef.current;
       rt.compositeToDisplay(
         targetCanvas,

@@ -17,6 +17,7 @@ import {
 } from "../types";
 import { getLayerCompositeOffset } from "../painting";
 import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
+import { mergeTransformPreview } from "../painting/transformPreview";
 import { useSketchStore } from "../state/useSketchStore";
 /** Convert a document-space rect to gizmo canvas pixel coordinates. */
 function docRectToGizmo(
@@ -174,14 +175,18 @@ export class MoveTool implements ToolHandler {
     ctx.getOrCreateLayerCanvas(moveTargetLayer.id);
 
     this.moveStart = pt;
+    // Capture the *full* layer transform as the drag baseline so that
+    // preview and commit preserve existing scale/rotation/matrix state.
     this.moveLayerStartTransform = {
       x: moveTargetLayer.transform?.x ?? 0,
-      y: moveTargetLayer.transform?.y ?? 0
+      y: moveTargetLayer.transform?.y ?? 0,
+      scaleX: moveTargetLayer.transform?.scaleX ?? 1,
+      scaleY: moveTargetLayer.transform?.scaleY ?? 1,
+      rotation: moveTargetLayer.transform?.rotation ?? 0,
+      matrix: moveTargetLayer.transform?.matrix
     };
-    this.movePreviewTransform = {
-      x: moveTargetLayer.transform?.x ?? 0,
-      y: moveTargetLayer.transform?.y ?? 0
-    };
+    // Initial preview is the unchanged full transform.
+    this.movePreviewTransform = { ...this.moveLayerStartTransform };
     this.movePreviewLayerId = moveTargetLayer.id;
     ctx.clearLayerTransformPreview?.(moveTargetLayer.id);
     ctx.onStrokeStart();
@@ -206,10 +211,15 @@ export class MoveTool implements ToolHandler {
            ctx.doc.layers.find((l) => l.id === previewId))
         : null;
     if (layer) {
-      const previewTransform = {
-        x: Math.round(this.moveLayerStartTransform.x + dx),
-        y: Math.round(this.moveLayerStartTransform.y + dy)
-      };
+      // Use the shared merge contract so preview preserves the full
+      // transform (scale/rotation/matrix) from the drag baseline.
+      const previewTransform = mergeTransformPreview(
+        this.moveLayerStartTransform,
+        {
+          x: Math.round(this.moveLayerStartTransform.x + dx),
+          y: Math.round(this.moveLayerStartTransform.y + dy)
+        }
+      );
       this.movePreviewTransform = previewTransform;
       this.movePreviewLayerId = layer.id;
       // Live compositing preview — fast path that avoids a store update + React

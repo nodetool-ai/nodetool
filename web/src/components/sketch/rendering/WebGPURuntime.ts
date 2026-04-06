@@ -1182,6 +1182,13 @@ export class WebGPURuntime implements SketchRuntime {
     return this.cpuRuntime.evaluateLayerEffects(layerId, source, effects);
   }
 
+  getResolvedLayerOutput(
+    doc: import("../types").SketchDocument,
+    layerId: string
+  ): ResolvedLayerBitmap | null {
+    return this.cpuRuntime.getResolvedLayerOutput(doc, layerId);
+  }
+
   // ─── Composite readback ─────────────────────────────────────────────
 
   readbackComposite(
