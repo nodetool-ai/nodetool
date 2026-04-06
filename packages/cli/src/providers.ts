@@ -42,7 +42,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   gemini: "gemini-2.0-flash",
   mistral: "mistral-large-latest",
   groq: "llama-3.3-70b-versatile",
-  claude_agent: "claude-sonnet-4-20250514"
+  claude_agent: "claude-opus-4-6"
 };
 
 /** Resolve a secret: encrypted DB first (user "1"), then env var. */
