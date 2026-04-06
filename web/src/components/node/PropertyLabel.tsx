@@ -51,7 +51,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
 
   const isInspector = scope === "inspector";
   const labelFontSize = isInspector ? theme.fontSizeNormal : theme.fontSizeSmall;
-  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.5);
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1);
   // Auto-show inline descriptions in inspector scope
   const shouldShowInlineDescription = showDescriptionInline || isInspector;
 
