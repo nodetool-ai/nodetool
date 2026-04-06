@@ -55,7 +55,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
     try {
       setIsLoading(true);
       const data = await apiService.getWorkflow(workflowId);
-      setWorkflow(data);
+      setWorkflow(data ?? null);
     } catch (error) {
       console.error('Failed to load workflow:', error);
       Alert.alert('Error', 'Failed to load mini app. Check your connection and try again.');
