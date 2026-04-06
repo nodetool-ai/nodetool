@@ -88,6 +88,7 @@ export type {
   EmbeddingModel,
   ToolCall,
   ProviderTool,
+  ProviderSkill,
   Message,
   MessageContent,
   MessageTextContent,
@@ -102,6 +103,15 @@ export type {
   AudioChunk,
   ASRResult
 } from "./types.js";
+export {
+  parseFrontmatter,
+  loadSkillFromFile,
+  loadSkillsFromDirectory,
+  resolveSkillDirs,
+  discoverSkills,
+  resolveActiveSkills,
+  buildSkillSystemPrompt
+} from "./skill-loader.js";
 
 registerBuiltinProvider("openai", OpenAIProvider, {
   OPENAI_API_KEY: process.env["OPENAI_API_KEY"]

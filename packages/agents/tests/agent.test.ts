@@ -50,7 +50,10 @@ function createMockProvider(
     textToVideo: vi.fn(),
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
-    isContextLengthError: () => false
+    isContextLengthError: () => false,
+    setSkills: vi.fn(),
+    addSkill: vi.fn(),
+    getSkills: vi.fn().mockReturnValue([])
   } as any;
 }
 
@@ -702,7 +705,7 @@ describe("Agent", () => {
     expect(agent.getResults()).toEqual({ v: 1 });
   });
 
-  it("merges systemPrompt with skill system prompt when both are present", async () => {
+  it("sets discovered skills on the provider", async () => {
     // Create a skill directory with a matching skill
     const skillDir = path.join(tmpDir, "skills", "merge-skill");
     await fs.mkdir(skillDir, { recursive: true });
@@ -711,7 +714,6 @@ describe("Agent", () => {
       "---\nname: merge-skill\ndescription: Merging test skill for objective\n---\nMerge skill instructions."
     );
 
-    const capturedPrompts: string[] = [];
     const baseProvider = createMockProvider([
       [
         {
@@ -733,20 +735,11 @@ describe("Agent", () => {
       ],
       [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }]
     ]);
-    const providerSpy = {
-      ...baseProvider,
-      generateMessages: async function* (opts: any) {
-        if (opts.messages?.[0]?.content) {
-          capturedPrompts.push(opts.messages[0].content);
-        }
-        yield* baseProvider.generateMessages(opts);
-      }
-    } as any;
 
     const agent = new Agent({
       name: "merge-prompt-agent",
       objective: "Test merging skill instructions for objective",
-      provider: providerSpy,
+      provider: baseProvider,
       model: "test-model",
       workspace: tmpDir,
       systemPrompt: "Custom system prompt.",
@@ -758,10 +751,14 @@ describe("Agent", () => {
       // consume
     }
 
-    // The system prompt sent to planner should contain both the custom prompt and skill instructions
-    const firstPrompt = capturedPrompts[0] ?? "";
-    expect(firstPrompt).toContain("Custom system prompt.");
-    expect(firstPrompt).toContain("Merge skill instructions.");
+    // Skills should be set on the provider — the provider injects them into the system prompt
+    expect(baseProvider.setSkills).toHaveBeenCalledWith([
+      {
+        name: "merge-skill",
+        description: "Merging test skill for objective",
+        instructions: "Merge skill instructions."
+      }
+    ]);
   });
 
   it("creates workspace directory when not provided", async () => {

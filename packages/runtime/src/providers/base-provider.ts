@@ -7,6 +7,7 @@ import type {
   LanguageModel,
   Message,
   ProviderId,
+  ProviderSkill,
   ProviderStreamItem,
   ProviderTool,
   StreamingAudioChunk,
@@ -16,6 +17,7 @@ import type {
   TTSModel,
   VideoModel
 } from "./types.js";
+import { buildSkillSystemPrompt } from "./skill-loader.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
@@ -28,6 +30,7 @@ export abstract class BaseProvider {
   readonly provider: ProviderId;
   private _cost = 0;
   private _emitMessage: ((msg: unknown) => void) | null = null;
+  private _skills: ProviderSkill[] = [];
 
   setMessageEmitter(fn: (msg: unknown) => void): void {
     this._emitMessage = fn;
@@ -35,6 +38,56 @@ export abstract class BaseProvider {
 
   protected emitMessage(msg: unknown): void {
     if (this._emitMessage) this._emitMessage(msg);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Skill management
+  // ---------------------------------------------------------------------------
+
+  /** Replace the current skill set. */
+  setSkills(skills: ProviderSkill[]): void {
+    this._skills = [...skills];
+  }
+
+  /** Append a single skill. */
+  addSkill(skill: ProviderSkill): void {
+    this._skills.push(skill);
+  }
+
+  /** Return a copy of the current skills. */
+  getSkills(): ProviderSkill[] {
+    return [...this._skills];
+  }
+
+  /**
+   * Inject skill instructions into the messages array.
+   *
+   * If skills are set, their instructions are appended to the system message
+   * (or a new system message is prepended).  This is the default behaviour
+   * that works identically across all providers — the same approach Claude
+   * uses.  Subclasses may override for native skill support.
+   */
+  protected injectSkills(messages: Message[]): Message[] {
+    if (this._skills.length === 0) return messages;
+
+    const skillPrompt = buildSkillSystemPrompt(this._skills);
+    if (!skillPrompt) return messages;
+
+    const result = [...messages];
+    const systemIdx = result.findIndex((m) => m.role === "system");
+
+    if (systemIdx >= 0) {
+      const existing = result[systemIdx];
+      const content =
+        typeof existing.content === "string"
+          ? existing.content
+          : String(existing.content ?? "");
+      result[systemIdx] = { ...existing, content: `${content}\n\n${skillPrompt}` };
+    } else {
+      result.unshift({ role: "system", content: skillPrompt });
+    }
+
+    return result;
   }
 
   protected constructor(provider: ProviderId) {
@@ -168,22 +221,24 @@ export abstract class BaseProvider {
   ): Promise<Message> {
     const startTime = Date.now();
     const tracer = getTracer();
+    // Inject skills into the messages before the call
+    const effectiveArgs = { ...args, messages: this.injectSkills(args.messages) };
 
     const doCall = async (): Promise<Message> => {
-      if (!tracer) return this.generateMessage(args);
+      if (!tracer) return this.generateMessage(effectiveArgs);
       return tracer.startActiveSpan(
-        `llm.chat ${this.provider}/${args.model}`,
+        `llm.chat ${this.provider}/${effectiveArgs.model}`,
         async (span) => {
           span.setAttributes({
             "llm.provider": this.provider,
-            "llm.model": args.model,
-            "llm.request.message_count": args.messages.length,
-            "llm.request.tools_count": args.tools?.length ?? 0,
-            "llm.request.max_tokens": args.maxTokens ?? 0,
+            "llm.model": effectiveArgs.model,
+            "llm.request.message_count": effectiveArgs.messages.length,
+            "llm.request.tools_count": effectiveArgs.tools?.length ?? 0,
+            "llm.request.max_tokens": effectiveArgs.maxTokens ?? 0,
             "llm.request.stream": false
           });
           try {
-            const result = await this.generateMessage(args);
+            const result = await this.generateMessage(effectiveArgs);
             const content =
               typeof result.content === "string"
                 ? result.content
@@ -222,8 +277,8 @@ export abstract class BaseProvider {
         type: "llm_call",
         node_id: "",
         provider: this.provider,
-        model: args.model,
-        messages: args.messages.map((m) => ({
+        model: effectiveArgs.model,
+        messages: effectiveArgs.messages.map((m) => ({
           role: m.role,
           content: m.content
         })),
@@ -249,7 +304,9 @@ export abstract class BaseProvider {
     args: Parameters<this["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
     const startTime = Date.now();
-    log.debug("LLM call", { provider: this.provider, model: args.model });
+    // Inject skills into the messages before the call
+    const effectiveArgs = { ...args, messages: this.injectSkills(args.messages) };
+    log.debug("LLM call", { provider: this.provider, model: effectiveArgs.model });
     const tracer = getTracer();
 
     let fullResponse = "";
@@ -262,8 +319,8 @@ export abstract class BaseProvider {
 
     try {
       const source = tracer
-        ? this._tracedStream(args, tracer)
-        : this.generateMessages(args);
+        ? this._tracedStream(effectiveArgs, tracer)
+        : this.generateMessages(effectiveArgs);
 
       for await (const item of source) {
         // Accumulate text content from chunks
@@ -280,7 +337,7 @@ export abstract class BaseProvider {
       }
       log.debug("LLM call complete", {
         provider: this.provider,
-        model: args.model
+        model: effectiveArgs.model
       });
     } catch (err) {
       error = String(err);
@@ -290,8 +347,8 @@ export abstract class BaseProvider {
         type: "llm_call",
         node_id: "",
         provider: this.provider,
-        model: args.model,
-        messages: args.messages.map((m) => ({
+        model: effectiveArgs.model,
+        messages: effectiveArgs.messages.map((m) => ({
           role: m.role,
           content: m.content
         })),

@@ -5,7 +5,7 @@
  *
  * The Agent class takes a complex objective, decomposes it into a step-by-step
  * plan using TaskPlanner, then executes that plan via TaskExecutor.
- * Supports loading skills from the filesystem.
+ * Supports loading skills from the filesystem via the provider skill system.
  */
 
 import * as fs from "node:fs/promises";
@@ -13,6 +13,11 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { createLogger } from "@nodetool/config";
 import type { BaseProvider } from "@nodetool/runtime";
+import {
+  discoverSkills,
+  resolveActiveSkills
+} from "@nodetool/runtime";
+import type { ProviderSkill } from "@nodetool/runtime";
 
 const log = createLogger("nodetool.agents.agent");
 import type { ProcessingContext } from "@nodetool/runtime";
@@ -29,141 +34,23 @@ import { TaskExecutor } from "./task-executor.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task } from "./types.js";
 
-// ---------------------------------------------------------------------------
-// Skill types and helpers
-// ---------------------------------------------------------------------------
-
-export interface AgentSkill {
-  name: string;
-  description: string;
-  instructions: string;
+/**
+ * @deprecated Use `ProviderSkill` from `@nodetool/runtime` instead.
+ * Kept for backwards compatibility.
+ */
+export interface AgentSkill extends ProviderSkill {
   path: string;
 }
 
-const INVALID_SKILL_NAME_RE = /[^a-z0-9-]/;
-const XML_TAG_RE = /<[^>]+>/;
-const SKILL_RESERVED_TERMS = ["anthropic", "claude"];
-const SKILL_WORD_RE = /[a-z0-9]+/g;
+/**
+ * @deprecated Use `parseFrontmatter` from `@nodetool/runtime` instead.
+ */
+export { parseFrontmatter } from "@nodetool/runtime";
 
 /**
- * Parse minimal YAML frontmatter (key: value pairs).
+ * @deprecated Use `loadSkillsFromDirectory` from `@nodetool/runtime` instead.
  */
-export function parseFrontmatter(frontmatter: string): Record<string, string> {
-  const parsed: Record<string, string> = {};
-  for (const rawLine of frontmatter.split("\n")) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-    const colonIdx = line.indexOf(":");
-    if (colonIdx === -1) continue;
-    const key = line.slice(0, colonIdx).trim();
-    let value = line.slice(colonIdx + 1).trim();
-    // Strip surrounding quotes
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    parsed[key] = value;
-  }
-  return parsed;
-}
-
-function isValidSkillName(name: string): boolean {
-  if (!name || name.length > 64) return false;
-  if (INVALID_SKILL_NAME_RE.test(name)) return false;
-  const lowered = name.toLowerCase();
-  return !SKILL_RESERVED_TERMS.some((term) => lowered.includes(term));
-}
-
-function isValidSkillDescription(description: string): boolean {
-  if (!description || description.length > 1024) return false;
-  return !XML_TAG_RE.test(description);
-}
-
-/**
- * Load a single skill from a SKILL.md file.
- * Returns null if the file is invalid or cannot be read.
- */
-async function loadSkillFromFile(
-  skillFile: string
-): Promise<AgentSkill | null> {
-  let content: string;
-  try {
-    content = await fs.readFile(skillFile, "utf-8");
-  } catch {
-    return null;
-  }
-
-  if (!content.startsWith("---")) return null;
-
-  const parts = content.split("---", 3);
-  if (parts.length < 3) return null;
-
-  const metadata = parseFrontmatter(parts[1]);
-  const name = (metadata["name"] ?? "").trim();
-  const description = (metadata["description"] ?? "").trim();
-  const instructions = parts[2].trim();
-
-  if (!isValidSkillName(name)) return null;
-  if (!isValidSkillDescription(description)) return null;
-  if (!instructions) return null;
-
-  return { name, description, instructions, path: skillFile };
-}
-
-/**
- * Recursively find all SKILL.md files under a directory.
- */
-async function findSkillFiles(dir: string): Promise<string[]> {
-  const results: string[] = [];
-  let entries: import("node:fs").Dirent[];
-  try {
-    entries = await fs.readdir(dir, { withFileTypes: true });
-  } catch {
-    return results;
-  }
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...(await findSkillFiles(fullPath)));
-    } else if (entry.name === "SKILL.md") {
-      results.push(fullPath);
-    }
-  }
-  return results;
-}
-
-/**
- * Load all valid skills from a directory (recursively searches for SKILL.md files).
- */
-export async function loadSkillsFromDirectory(
-  dir: string
-): Promise<AgentSkill[]> {
-  const skillFiles = await findSkillFiles(dir);
-  const skills: AgentSkill[] = [];
-  for (const file of skillFiles) {
-    const skill = await loadSkillFromFile(file);
-    if (skill) skills.push(skill);
-  }
-  return skills;
-}
-
-// ---------------------------------------------------------------------------
-// Dedupe helper
-// ---------------------------------------------------------------------------
-
-function dedupePreserveOrder(items: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const item of items) {
-    if (!seen.has(item)) {
-      seen.add(item);
-      result.push(item);
-    }
-  }
-  return result;
-}
+export { loadSkillsFromDirectory } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
 // Agent
@@ -232,155 +119,14 @@ export class Agent extends BaseAgent {
   }
 
   /**
-   * Resolve skill directories from constructor args + environment + defaults.
-   */
-  private resolveSkillDirs(): string[] {
-    const resolved: string[] = [];
-
-    // Explicit dirs from constructor
-    for (const d of this.skillDirs) {
-      resolved.push(d.startsWith("~") ? d.replace("~", os.homedir()) : d);
-    }
-
-    // Environment variable
-    const envDirs = process.env["NODETOOL_AGENT_SKILL_DIRS"];
-    if (envDirs) {
-      for (const d of envDirs.split(path.delimiter)) {
-        const trimmed = d.trim();
-        if (trimmed) {
-          resolved.push(
-            trimmed.startsWith("~")
-              ? trimmed.replace("~", os.homedir())
-              : trimmed
-          );
-        }
-      }
-    }
-
-    // Default locations
-    resolved.push(
-      path.join(process.cwd(), ".claude", "skills"),
-      path.join(os.homedir(), ".claude", "skills"),
-      path.join(os.homedir(), ".codex", "skills")
-    );
-
-    return dedupePreserveOrder(resolved);
-  }
-
-  /**
-   * Discover all valid skills from resolved directories.
-   */
-  private async discoverSkills(): Promise<Map<string, AgentSkill>> {
-    const discovered = new Map<string, AgentSkill>();
-    const dirs = this.resolveSkillDirs();
-
-    for (const dir of dirs) {
-      try {
-        await fs.access(dir);
-      } catch {
-        continue; // directory doesn't exist
-      }
-      const skills = await loadSkillsFromDirectory(dir);
-      for (const skill of skills) {
-        if (!discovered.has(skill.name)) {
-          discovered.set(skill.name, skill);
-        }
-      }
-    }
-    return discovered;
-  }
-
-  /**
-   * Resolve active skills: explicit names first, then auto-match by objective words.
-   */
-  private resolveActiveSkills(
-    available: Map<string, AgentSkill>,
-    requested: string[] | undefined
-  ): AgentSkill[] {
-    // Merge explicit names from constructor + environment
-    const envRequested = process.env["NODETOOL_AGENT_SKILLS"] ?? "";
-    const envNames = envRequested
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const explicitNames = dedupePreserveOrder([
-      ...(requested ?? []),
-      ...envNames
-    ]);
-
-    if (explicitNames.length > 0) {
-      const active: AgentSkill[] = [];
-      for (const name of explicitNames) {
-        const skill = available.get(name);
-        if (skill) active.push(skill);
-      }
-      return active;
-    }
-
-    // Auto-select: check if disabled
-    const autoEnabled = !["0", "false", "no", "off"].includes(
-      (process.env["NODETOOL_AGENT_AUTO_SKILLS"] ?? "1").toLowerCase()
-    );
-    if (!autoEnabled) return [];
-
-    // Match objective words against skill description words
-    const objectiveWords = new Set(
-      (this.objective.toLowerCase().match(SKILL_WORD_RE) ?? []).filter(
-        (w) => w.length >= 4
-      )
-    );
-
-    const active: AgentSkill[] = [];
-    for (const skill of available.values()) {
-      const descWords = new Set(
-        (skill.description.toLowerCase().match(SKILL_WORD_RE) ?? []).filter(
-          (w) => w.length >= 4
-        )
-      );
-      for (const w of descWords) {
-        if (objectiveWords.has(w)) {
-          active.push(skill);
-          break;
-        }
-      }
-    }
-    return active;
-  }
-
-  /**
-   * Build system prompt segment from active skills.
-   */
-  private buildSkillSystemPrompt(skills: AgentSkill[]): string | null {
-    if (skills.length === 0) return null;
-    const sections = [
-      "# Agent Skills",
-      "Use these Skill instructions when relevant to the objective:"
-    ];
-    for (const skill of skills) {
-      sections.push(`\n## ${skill.name}\n${skill.instructions}`);
-    }
-    return sections.join("\n");
-  }
-
-  /**
    * Build effective objective enriched with skill summaries.
    */
-  private buildEffectiveObjective(skills: AgentSkill[]): string {
+  private buildEffectiveObjective(skills: ProviderSkill[]): string {
     if (skills.length === 0) return this.objective;
     const summaries = skills
       .map((s) => `- ${s.name}: ${s.description}`)
       .join("\n");
     return `${this.objective}\n\nRelevant Skills:\n${summaries}`;
-  }
-
-  /**
-   * Merge user system prompt with skill system prompt.
-   */
-  private mergeSystemPrompt(skillPrompt: string | null): string | undefined {
-    if (this.systemPrompt && skillPrompt) {
-      return `${this.systemPrompt}\n\n${skillPrompt}`;
-    }
-    return this.systemPrompt || skillPrompt || undefined;
   }
 
   async *execute(
@@ -391,15 +137,18 @@ export class Agent extends BaseAgent {
       objective: this.objective.slice(0, 80)
     });
 
-    // Discover and resolve skills
-    const availableSkills = await this.discoverSkills();
-    const activeSkills = this.resolveActiveSkills(
+    // Discover and resolve skills, then set them on the provider.
+    // The provider automatically injects skills into the system prompt
+    // for every LLM call (via generateMessageTraced / generateMessagesTraced).
+    const availableSkills = await discoverSkills(this.skillDirs);
+    const activeSkills = resolveActiveSkills(
       availableSkills,
+      this.objective,
       this.requestedSkills
     );
-    const skillSystemPrompt = this.buildSkillSystemPrompt(activeSkills);
+    this.provider.setSkills(activeSkills);
+
     const effectiveObjective = this.buildEffectiveObjective(activeSkills);
-    const mergedSystemPrompt = this.mergeSystemPrompt(skillSystemPrompt);
 
     // Ensure workspace directory exists
     const workspacePath =
@@ -425,7 +174,7 @@ export class Agent extends BaseAgent {
         model: this.planningModel,
         reasoningModel: this.reasoningModel,
         tools: this.tools,
-        systemPrompt: mergedSystemPrompt,
+        systemPrompt: this.systemPrompt,
         outputSchema: this.outputSchema,
         inputs: this.inputs
       });
@@ -485,7 +234,7 @@ export class Agent extends BaseAgent {
       context,
       tools: [...this.tools],
       task,
-      systemPrompt: mergedSystemPrompt,
+      systemPrompt: this.systemPrompt,
       inputs: this.inputs,
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,

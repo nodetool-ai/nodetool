@@ -73,6 +73,17 @@ export interface ProviderTool {
   type?: "function" | "code_interpreter";
 }
 
+/**
+ * A skill that can be loaded from a SKILL.md file and injected into the
+ * system prompt.  Works the same way across all providers — instructions
+ * are prepended to the system message so the model can follow them.
+ */
+export interface ProviderSkill {
+  name: string;
+  description: string;
+  instructions: string;
+}
+
 export interface MessageTextContent {
   type: "text";
   text: string;
