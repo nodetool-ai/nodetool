@@ -2,21 +2,22 @@
  * NodeTool Chat CLI — Ink-based terminal UI.
  *
  * Layout:
- *   ┌── nodetool chat ───────────────────────────────────────┐
- *   │ provider: anthropic • model: claude-... • agent: OFF   │
- *   ├────────────────────────────────────────────────────────┤
- *   │ [Static: past messages rendered with markdown]         │
- *   │                                                        │
- *   │ [Streaming: live token output + spinner]               │
- *   ├────────────────────────────────────────────────────────┤
- *   │ > user input with history                              │
- *   │   ↑↓ history  tab complete  /help for commands         │
- *   └────────────────────────────────────────────────────────┘
+ *   ╭─ nodetool ─────────────────── provider · model ─╮
+ *   │                                                  │
+ *   │  You: message                                    │
+ *   │                                                  │
+ *   │  response with markdown                          │
+ *   │                                                  │
+ *   │  ◆ tool_name result preview                      │
+ *   │                                                  │
+ *   ├──────────────────────────────────────────────────┤
+ *   │ › input                                          │
+ *   ╰──────────────────────────────────────────────────╯
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Text, Static, useApp, useInput } from "ink";
-import TextInput from "ink-text-input";
+import ReadlineInput from "./readline-input.js";
 import Spinner from "ink-spinner";
 import type { Message, ToolCall } from "@nodetool/runtime";
 import { ProcessingContext } from "@nodetool/runtime";
@@ -35,7 +36,7 @@ import {
   DataForSEOSearchTool, DataForSEONewsTool,
   SearchEmailTool, ArchiveEmailTool,
 } from "@nodetool/agents";
-import { createProvider, DEFAULT_MODELS, WebSocketProvider } from "./providers.js";
+import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient } from "./websocket-client.js";
 import { renderMarkdown } from "./markdown.js";
 import { saveSettings } from "./settings.js";
@@ -77,57 +78,43 @@ const COMMANDS = {
   "/quit":     "Exit the chat",
 } as const;
 
-const COMMAND_NAMES = Object.keys(COMMANDS);
-
 // ---------------------------------------------------------------------------
 // Individual message rendering
 // ---------------------------------------------------------------------------
 
 function UserMessage({ content }: { content: string }) {
-  const width = process.stdout.columns ?? 80;
   return (
-    <Box flexDirection="column">
-      <Box>
-        <Text color="cyan" bold>{">"} </Text>
-        <Text bold>{content}</Text>
-        <Text color="gray" dimColor>{" ".repeat(Math.max(0, width - content.length - 2))}</Text>
-      </Box>
+    <Box marginTop={1}>
+      <Text color="magenta" dimColor bold>{"❯ "}</Text>
+      <Text bold inverse>{" " + content + " "}</Text>
     </Box>
   );
 }
 
 function AssistantMessage({ content, rendered }: { content: string; rendered?: string }) {
   return (
-    <Box flexDirection="column" marginTop={1} marginBottom={1}>
-      <Box>
-        <Text color="green">{"●"} </Text>
-        <Text>{rendered ?? content}</Text>
-      </Box>
+    <Box marginTop={1}>
+      <Text color="green">{"● "}</Text>
+      <Text>{rendered ?? content}</Text>
     </Box>
   );
 }
 
 function ToolMessage({ toolName, content }: { toolName: string; content: string }) {
-  const lines = content.split("\n").slice(0, 5);
+  const preview = content.split("\n").slice(0, 3).join(" ").slice(0, 80);
   return (
-    <Box flexDirection="column" marginLeft={2} marginBottom={1}>
-      {lines.map((line, i) => (
-        <Box key={i}>
-          <Text color="gray" dimColor>{i === 0 ? "└ " : "  "}</Text>
-          {i === 0
-            ? <><Text color="white" dimColor>{toolName}  </Text><Text color="gray" dimColor>{line}</Text></>
-            : <Text color="gray" dimColor>{line}</Text>
-          }
-        </Box>
-      ))}
+    <Box marginTop={1}>
+      <Text color="green">{"● "}</Text>
+      <Text bold>{toolName}</Text>
+      <Text color="gray" dimColor>{" " + preview}</Text>
     </Box>
   );
 }
 
 function SystemMessage({ content }: { content: string }) {
   return (
-    <Box marginTop={1} marginBottom={1}>
-      <Text color="gray" dimColor>{content}</Text>
+    <Box>
+      <Text color="gray" dimColor>{"  " + content}</Text>
     </Box>
   );
 }
@@ -145,7 +132,7 @@ function ChatMessageItem({ msg }: { msg: ChatMessage }) {
 // Autocomplete menu
 // ---------------------------------------------------------------------------
 
-const CMD_WIDTH = 18;
+const CMD_WIDTH = 14;
 
 function AutocompleteMenu({
   matches,
@@ -155,15 +142,15 @@ function AutocompleteMenu({
   selectedIndex: number;
 }) {
   return (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginLeft={2}>
       {matches.map(({ cmd, desc }, i) => {
         const selected = i === selectedIndex;
         return (
           <Box key={cmd}>
             <Text color={selected ? "cyan" : "gray"} bold={selected}>
-              {cmd.padEnd(CMD_WIDTH)}
+              {selected ? "› " : "  "}{cmd.padEnd(CMD_WIDTH)}
             </Text>
-            <Text color={selected ? "cyan" : undefined} dimColor={!selected}>
+            <Text color="gray" dimColor>
               {desc}
             </Text>
           </Box>
@@ -180,13 +167,16 @@ function AutocompleteMenu({
 function HelpPanel() {
   return (
     <Box flexDirection="column" marginLeft={2} marginTop={1} marginBottom={1}>
+      <Text color="gray" dimColor bold>Commands</Text>
       {Object.entries(COMMANDS).map(([cmd, desc]) => (
         <Box key={cmd}>
-          <Text color="yellow">{cmd.padEnd(14)}</Text>
+          <Text color="cyan">{("  " + cmd).padEnd(16)}</Text>
           <Text color="gray" dimColor>{desc}</Text>
         </Box>
       ))}
-      <Box marginTop={1}><Text color="gray" dimColor>↑/↓ history · Tab: complete · Ctrl+C: exit</Text></Box>
+      <Box marginTop={1}>
+        <Text color="gray" dimColor>  ↑↓ history  ·  Tab complete  ·  Ctrl+C exit</Text>
+      </Box>
     </Box>
   );
 }
@@ -209,13 +199,7 @@ export function App({
   const [provider, setProvider] = useState(initialProvider);
   const [model, setModel] = useState(initialModel);
   const [agentMode, setAgentMode] = useState(initialAgentMode);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "system",
-      content: `Welcome to nodetool chat. Provider: ${initialProvider} • Model: ${initialModel}. Type /help for commands.`,
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [, setInputHistory] = useState<string[]>([]);
@@ -227,6 +211,25 @@ export function App({
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [acIndex, setAcIndex] = useState(0);
+  const [modelList, setModelList] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Fetch available models when provider changes
+  useEffect(() => {
+    let cancelled = false;
+    createProvider(provider).then(async (prov) => {
+      try {
+        const models = await prov.getAvailableLanguageModels();
+        if (!cancelled) {
+          setModelList(models.map((m) => ({ id: m.id, name: m.name })));
+        }
+      } catch {
+        if (!cancelled) setModelList([]);
+      }
+    }).catch(() => {
+      if (!cancelled) setModelList([]);
+    });
+    return () => { cancelled = true; };
+  }, [provider]);
 
   // WebSocket client state (when --url is passed)
   const wsClientRef = useRef<WebSocketChatClient | null>(null);
@@ -568,12 +571,44 @@ export function App({
   // ---------------------------------------------------------------------------
   // Keyboard: history navigation and tab completion
   // ---------------------------------------------------------------------------
-  // Autocomplete matches — derived from inputValue (close once a space is typed after command)
-  const acMatches = inputValue.startsWith("/") && !streaming && !inputValue.includes(" ")
-    ? Object.entries(COMMANDS)
-        .filter(([cmd]) => cmd.startsWith(inputValue.toLowerCase()))
-        .map(([cmd, desc]) => ({ cmd, desc }))
-    : [];
+  // Autocomplete: commands (/help, /provider, …) and arguments (/provider <name>)
+  type AcMatch = { cmd: string; desc: string; replaceAll?: string };
+  let acMatches: AcMatch[] = [];
+
+  if (!streaming && inputValue.startsWith("/")) {
+    const lower = inputValue.toLowerCase();
+    const spaceIdx = lower.indexOf(" ");
+
+    if (spaceIdx === -1) {
+      // Command completion: /pro → /provider
+      acMatches = Object.entries(COMMANDS)
+        .filter(([cmd]) => cmd.startsWith(lower))
+        .map(([cmd, desc]) => ({ cmd, desc }));
+    } else {
+      // Argument completion for specific commands
+      const cmd = lower.slice(0, spaceIdx);
+      const arg = lower.slice(spaceIdx + 1);
+
+      if (cmd === "/provider") {
+        acMatches = KNOWN_PROVIDERS
+          .filter((p) => p.startsWith(arg))
+          .map((p) => ({
+            cmd: p,
+            desc: DEFAULT_MODELS[p] ?? "",
+            replaceAll: `/provider ${p}`,
+          }));
+      } else if (cmd === "/model") {
+        acMatches = modelList
+          .filter((m) => m.id.toLowerCase().startsWith(arg))
+          .map((m) => ({
+            cmd: m.id,
+            desc: m.name !== m.id ? m.name : "",
+            replaceAll: `/model ${m.id}`,
+          }));
+      }
+    }
+  }
+
   const acOpen = acMatches.length > 0;
 
   useInput((input, key) => {
@@ -604,15 +639,15 @@ export function App({
       }
       if (key.tab) {
         const selected = acMatches[acIndex] ?? acMatches[0];
-        if (selected) setInputValue(selected.cmd + " ");
+        if (selected) setInputValue(selected.replaceAll ?? selected.cmd + " ");
         setAcIndex(0);
         return;
       }
       if (key.return) {
         const selected = acMatches[acIndex] ?? acMatches[0];
         if (selected) {
-          // Complete the command (add space so autocomplete closes), don't submit yet
-          setInputValue(selected.cmd + " ");
+          const completed = selected.replaceAll ?? selected.cmd + " ";
+          setInputValue(completed);
           setAcIndex(0);
         }
         return;
@@ -656,9 +691,17 @@ export function App({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+
+  const statusParts = [
+    provider,
+    model,
+    agentMode ? "agent" : null,
+    wsUrl ? "ws" : null,
+  ].filter(Boolean).join("  ");
+
   return (
     <Box flexDirection="column">
-      {/* Past messages — Static never re-renders past content */}
+      {/* Past messages */}
       <Static items={messages}>
         {(msg) => (
           <Box key={msg.id}>
@@ -672,23 +715,25 @@ export function App({
 
       {/* Live streaming area */}
       {streaming && (
-        <Box flexDirection="column" marginTop={1} marginBottom={1}>
-          <Box>
-            <Text color="green">{"●"} </Text>
-            <Text>{streamContent}</Text>
-          </Box>
-          {streamLabel && (
-            <Box marginLeft={2}>
-              <Text color="gray" dimColor><Spinner type="dots" /> {streamLabel}</Text>
+        <Box flexDirection="column" marginTop={1}>
+          {streamContent ? (
+            <Box>
+              <Text color="green">{"● "}</Text>
+              <Text>{streamContent}</Text>
             </Box>
-          )}
+          ) : null}
+          <Box>
+            <Text color="green">{"● "}</Text>
+            <Text color="gray" dimColor><Spinner type="dots" /> {streamLabel || "thinking"}</Text>
+          </Box>
         </Box>
       )}
 
       {/* Error display */}
       {error && (
-        <Box marginBottom={1}>
-          <Text color="red">✗ {error}</Text>
+        <Box marginTop={1}>
+          <Text color="red">{"● "}</Text>
+          <Text color="red">{error}</Text>
         </Box>
       )}
 
@@ -700,30 +745,24 @@ export function App({
         />
       )}
 
-      {/* Separator */}
-      <Box>
-        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
-      </Box>
-
-      {/* Input bar */}
-      <Box>
-        <Text color="cyan" bold>{"> "}</Text>
+      {/* Input area */}
+      <Box marginTop={1}>
+        <Text color="magenta" dimColor bold>{"❯ "}</Text>
         {streaming
           ? <Text color="gray" dimColor>{streamLabel || "thinking…"}</Text>
           : (
-            <TextInput
+            <ReadlineInput
               value={inputValue}
               onChange={setInputValue}
               onSubmit={handleSubmit}
-              placeholder=""
             />
           )
         }
       </Box>
 
-      {/* Bottom status */}
+      {/* Status bar */}
       <Box>
-        <Text color="gray" dimColor>  {agentMode ? "agent mode · " : ""}{wsUrl ? "ws · " : ""}{provider} · {model}</Text>
+        <Text color="gray" dimColor>{"  "}{statusParts}</Text>
       </Box>
     </Box>
   );

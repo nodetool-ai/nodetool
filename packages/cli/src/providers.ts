@@ -16,6 +16,7 @@ import {
   GeminiProvider,
   MistralProvider,
   GroqProvider,
+  ClaudeAgentProvider,
   BaseProvider as BaseProviderClass
 } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
@@ -28,7 +29,8 @@ export const KNOWN_PROVIDERS = [
   "ollama",
   "gemini",
   "mistral",
-  "groq"
+  "groq",
+  "claude_agent"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
@@ -39,7 +41,8 @@ export const DEFAULT_MODELS: Record<string, string> = {
   ollama: "llama3.2",
   gemini: "gemini-2.0-flash",
   mistral: "mistral-large-latest",
-  groq: "llama-3.3-70b-versatile"
+  groq: "llama-3.3-70b-versatile",
+  claude_agent: "claude-sonnet-4-20250514"
 };
 
 /** Resolve a secret: encrypted DB first (user "1"), then env var. */
@@ -75,6 +78,8 @@ export async function createProvider(
       return new GroqProvider({
         GROQ_API_KEY: await resolveKey("GROQ_API_KEY")
       });
+    case "claude_agent":
+      return new ClaudeAgentProvider();
     default:
       return new OllamaProvider({
         OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL")
