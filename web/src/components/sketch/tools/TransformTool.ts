@@ -17,131 +17,43 @@
  *
  * The gizmo is drawn on a dedicated screen-resolution canvas (`gizmoCanvasRef`)
  * so it is not clipped by the document-stack overflow and appears crisp at any zoom.
+ *
+ * Geometry policy is delegated to `tools/transform/` helpers and
+ * `painting/resolvedLayerGeometry` so this file owns only interaction
+ * orchestration.
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point, LayerTransform, LayerContentBounds } from "../types";
-import { layerAllowsTransformWhilePixelLocked, ensureTransformMatrix } from "../types";
+import { layerAllowsTransformWhilePixelLocked } from "../types";
 import TransformIcon from "@mui/icons-material/Transform";
-
-// ─── Handle types ─────────────────────────────────────────────────────────────
-
-export type TransformHandle =
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right"
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "rotate"
-  | "move";
-
-/** Screen-space radius for handle hit testing (CSS px). */
-const HANDLE_RADIUS = 8;
-/** Distance (in CSS px) of the rotation handle above the top edge. */
-const ROTATION_HANDLE_OFFSET = 24;
-/** Screen-space size of a handle square (CSS px). */
-const HANDLE_SIZE = 8;
-
-// ─── Geometry helpers ─────────────────────────────────────────────────────────
-
-interface Box {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-function layerDocBounds(
-  contentBounds: LayerContentBounds,
-  transform: LayerTransform
-): Box {
-  const tx = transform.x ?? 0;
-  const ty = transform.y ?? 0;
-  return {
-    x: contentBounds.x + tx,
-    y: contentBounds.y + ty,
-    width: contentBounds.width,
-    height: contentBounds.height
-  };
-}
-
-/** Rotate a point around a center. */
-function rotatePoint(px: number, py: number, cx: number, cy: number, angle: number): Point {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  const dx = px - cx;
-  const dy = py - cy;
-  return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
-}
-
-/** Snap angle to nearest 15° increment. */
-function snapAngle(angle: number): number {
-  const step = Math.PI / 12; // 15°
-  return Math.round(angle / step) * step;
-}
-
-/** Distance between two points. */
-function dist(a: Point, b: Point): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-/** CSS cursor for a given handle (accounting for rotation). */
-function cursorForHandle(handle: TransformHandle | null, rotation: number): string {
-  if (!handle) {
-    return "default";
-  }
-  if (handle === "move") {
-    return "move";
-  }
-  if (handle === "rotate") {
-    return "grab";
-  }
-  // For scale handles, pick a directional resize cursor rotated by the layer rotation
-  const baseDeg: Partial<Record<TransformHandle, number>> = {
-    "top": 0,
-    "top-right": 45,
-    "right": 90,
-    "bottom-right": 135,
-    "bottom": 180,
-    "bottom-left": 225,
-    "left": 270,
-    "top-left": 315
-  };
-  const base = baseDeg[handle] ?? 0;
-  // Normalize the total angle into a cursor bucket (8 directions, 45° each)
-  const totalDeg = ((base + (rotation * 180) / Math.PI) % 360 + 360) % 360;
-  const bucket = Math.round(totalDeg / 45) % 4;
-  const cursors = ["ns-resize", "nesw-resize", "ew-resize", "nwse-resize"];
-  return cursors[bucket];
-}
-
-/**
- * Anchor direction for each scale handle: the opposite edge stays fixed
- * while the dragged edge moves. { dx, dy } point from center toward the anchor.
- */
-const HANDLE_ANCHOR: Partial<Record<TransformHandle, { dx: number; dy: number }>> = {
-  "top-left":     { dx:  1, dy:  1 },
-  "top-right":    { dx: -1, dy:  1 },
-  "bottom-left":  { dx:  1, dy: -1 },
-  "bottom-right": { dx: -1, dy: -1 },
-  "left":         { dx:  1, dy:  0 },
-  "right":        { dx: -1, dy:  0 },
-  "top":          { dx:  0, dy:  1 },
-  "bottom":       { dx:  0, dy: -1 }
-};
+import {
+  getEffectiveRasterBounds,
+  getTransformedCenter
+} from "../painting/resolvedLayerGeometry";
+import {
+  type TransformHandle,
+  HANDLE_SIZE,
+  ROTATION_HANDLE_OFFSET,
+  hitTestHandles,
+  buildHandlePositions,
+  docToScreen,
+  scaledHalfExtents,
+  computeTransformForHandle
+} from "./transform";
+import { cursorForHandle } from "./transform/cursorMapping";
 
 // ─── TransformTool class ──────────────────────────────────────────────────────
+
+export { type TransformHandle } from "./transform/handleGeometry";
 
 export class TransformTool implements ToolHandler {
   readonly toolId = "transform" as const;
 
   /** Transform when the tool was activated (used by cancel). */
   private originalTransform: LayerTransform = { x: 0, y: 0 };
-  /** Bounding box when the tool was activated. */
-  private originalBounds: Box = { x: 0, y: 0, width: 0, height: 0 };
+  /** Raster bounds when the tool was activated (for scale computation). */
+  private rasterBounds: LayerContentBounds = { x: 0, y: 0, width: 0, height: 0 };
   /** Transform at the start of the current drag. */
   private dragStartTransform: LayerTransform = { x: 0, y: 0 };
   /** Which handle is being dragged. */
@@ -169,7 +81,13 @@ export class TransformTool implements ToolHandler {
       scaleY: layer.transform.scaleY ?? 1,
       rotation: layer.transform.rotation ?? 0
     };
-    this.originalBounds = layerDocBounds(layer.contentBounds, { x: 0, y: 0 });
+    // Use resolved raster bounds (shared seam) instead of bare contentBounds
+    const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
+    this.rasterBounds = getEffectiveRasterBounds(
+      layer,
+      layerCanvas,
+      ctx.doc.canvas
+    );
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
@@ -198,7 +116,12 @@ export class TransformTool implements ToolHandler {
     }
 
     const pt = event.point;
-    const handle = this.hitTestHandle(layer, pt, ctx.zoom);
+    const handle = hitTestHandles(
+      layer.transform,
+      this.rasterBounds,
+      pt,
+      ctx.zoom
+    );
     if (!handle) {
       return false;
     }
@@ -206,7 +129,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = handle;
     this.dragStart = pt;
     this.dragStartTransform = { ...layer.transform };
-    this.center = this.computeCenter(layer);
+    this.center = getTransformedCenter(layer.transform, this.rasterBounds);
     this.gestureActive = true;
     ctx.onStrokeStart();
     return true;
@@ -224,7 +147,16 @@ export class TransformTool implements ToolHandler {
 
     const shift = ctx.shiftHeldRef.current;
     const alt = ctx.altHeldRef.current;
-    const newTransform = this.computeTransform(pt, shift, alt);
+    const newTransform = computeTransformForHandle(
+      this.activeHandle,
+      this.dragStartTransform,
+      this.dragStart,
+      pt,
+      this.center,
+      this.rasterBounds,
+      shift,
+      alt
+    );
     ctx.onLayerTransformChange(layer.id, newTransform);
 
     // Redraw gizmo to reflect new handles
@@ -265,227 +197,18 @@ export class TransformTool implements ToolHandler {
     if (!layer) {
       return null;
     }
-    const handle = this.hitTestHandle(layer, docPoint, ctx.zoom);
+    const handle = hitTestHandles(
+      layer.transform,
+      this.rasterBounds,
+      docPoint,
+      ctx.zoom
+    );
     this.hoveredHandle = handle;
     const rot = layer.transform.rotation ?? 0;
     return handle ? cursorForHandle(handle, rot) : null;
   }
 
-  // ── Handle hit testing ─────────────────────────────────────────────────────
-
-  private hitTestHandle(
-    layer: { transform: LayerTransform; contentBounds: LayerContentBounds },
-    canvasPt: Point,
-    zoom: number
-  ): TransformHandle | null {
-    const bounds = layerDocBounds(layer.contentBounds, layer.transform);
-    const sx = layer.transform.scaleX ?? 1;
-    const sy = layer.transform.scaleY ?? 1;
-    const rot = layer.transform.rotation ?? 0;
-    const cx = bounds.x + (bounds.width * sx) / 2;
-    const cy = bounds.y + (bounds.height * sy) / 2;
-
-    const threshold = HANDLE_RADIUS / zoom;
-
-    // Build handle positions in document space (pre-rotation around center)
-    const w = bounds.width * sx;
-    const h = bounds.height * sy;
-    const left = cx - w / 2;
-    const right = cx + w / 2;
-    const top = cy - h / 2;
-    const bottom = cy + h / 2;
-
-    const handles: Array<{ pos: Point; handle: TransformHandle }> = [
-      // Rotation handle above top-center
-      { pos: rotatePoint(cx, top - ROTATION_HANDLE_OFFSET / zoom, cx, cy, rot), handle: "rotate" },
-      // Corners
-      { pos: rotatePoint(left, top, cx, cy, rot), handle: "top-left" },
-      { pos: rotatePoint(right, top, cx, cy, rot), handle: "top-right" },
-      { pos: rotatePoint(left, bottom, cx, cy, rot), handle: "bottom-left" },
-      { pos: rotatePoint(right, bottom, cx, cy, rot), handle: "bottom-right" },
-      // Edge midpoints
-      { pos: rotatePoint(cx, top, cx, cy, rot), handle: "top" },
-      { pos: rotatePoint(cx, bottom, cx, cy, rot), handle: "bottom" },
-      { pos: rotatePoint(left, cy, cx, cy, rot), handle: "left" },
-      { pos: rotatePoint(right, cy, cx, cy, rot), handle: "right" }
-    ];
-
-    for (const { pos, handle } of handles) {
-      if (dist(canvasPt, pos) <= threshold) {
-        return handle;
-      }
-    }
-
-    // Check if inside the bounding box (for move)
-    // Transform the click point into un-rotated space
-    const unrotated = rotatePoint(canvasPt.x, canvasPt.y, cx, cy, -rot);
-    if (
-      unrotated.x >= left &&
-      unrotated.x <= right &&
-      unrotated.y >= top &&
-      unrotated.y <= bottom
-    ) {
-      return "move";
-    }
-
-    return null;
-  }
-
-  private computeCenter(layer: {
-    transform: LayerTransform;
-    contentBounds: LayerContentBounds;
-  }): Point {
-    const bounds = layerDocBounds(layer.contentBounds, layer.transform);
-    const sx = layer.transform.scaleX ?? 1;
-    const sy = layer.transform.scaleY ?? 1;
-    return {
-      x: bounds.x + (bounds.width * sx) / 2,
-      y: bounds.y + (bounds.height * sy) / 2
-    };
-  }
-
-  // ── Transform computation ──────────────────────────────────────────────────
-
-  private computeTransform(cursor: Point, shift: boolean, alt: boolean): LayerTransform {
-    const ds = this.dragStartTransform;
-    const start = this.dragStart!;
-    const handle = this.activeHandle!;
-    const sx = ds.scaleX ?? 1;
-    const sy = ds.scaleY ?? 1;
-    const rot = ds.rotation ?? 0;
-
-    if (handle === "move") {
-      const dx = cursor.x - start.x;
-      const dy = cursor.y - start.y;
-      return ensureTransformMatrix({
-        ...ds,
-        x: Math.round(ds.x + dx),
-        y: Math.round(ds.y + dy)
-      });
-    }
-
-    if (handle === "rotate") {
-      const angleStart = Math.atan2(start.y - this.center.y, start.x - this.center.x);
-      const angleCursor = Math.atan2(cursor.y - this.center.y, cursor.x - this.center.x);
-      let newRot = rot + (angleCursor - angleStart);
-      if (shift) {
-        newRot = snapAngle(newRot);
-      }
-      return ensureTransformMatrix({ ...ds, rotation: newRot });
-    }
-
-    // Scale handles
-    const bounds = this.originalBounds;
-    const centerX = this.center.x;
-    const centerY = this.center.y;
-
-    // Un-rotate both start and cursor around the center
-    const uStart = rotatePoint(start.x, start.y, centerX, centerY, -rot);
-    const uCursor = rotatePoint(cursor.x, cursor.y, centerX, centerY, -rot);
-
-    let newSx = sx;
-    let newSy = sy;
-
-    const halfW = (bounds.width * sx) / 2;
-    const halfH = (bounds.height * sy) / 2;
-
-    // Corner handles: proportional scale
-    if (
-      handle === "top-left" ||
-      handle === "top-right" ||
-      handle === "bottom-left" ||
-      handle === "bottom-right"
-    ) {
-      const distStart = Math.hypot(uStart.x - centerX, uStart.y - centerY);
-      const distCursor = Math.hypot(uCursor.x - centerX, uCursor.y - centerY);
-      if (distStart > 1) {
-        const ratio = distCursor / distStart;
-        if (shift) {
-          // Proportional
-          newSx = sx * ratio;
-          newSy = sy * ratio;
-        } else {
-          // Independent X/Y based on direction
-          const dxStart = Math.abs(uStart.x - centerX);
-          const dyStart = Math.abs(uStart.y - centerY);
-          const dxCursor = Math.abs(uCursor.x - centerX);
-          const dyCursor = Math.abs(uCursor.y - centerY);
-          newSx = dxStart > 1 ? sx * (dxCursor / dxStart) : sx;
-          newSy = dyStart > 1 ? sy * (dyCursor / dyStart) : sy;
-        }
-      }
-    }
-
-    // Edge midpoint handles: axis-constrained
-    if (handle === "left" || handle === "right") {
-      if (halfW > 1) {
-        const dxCursor = Math.abs(uCursor.x - centerX);
-        newSx = (dxCursor / halfW) * sx;
-        if (shift) {
-          newSy = newSx;
-        }
-      }
-    }
-    if (handle === "top" || handle === "bottom") {
-      if (halfH > 1) {
-        const dyCursor = Math.abs(uCursor.y - centerY);
-        newSy = (dyCursor / halfH) * sy;
-        if (shift) {
-          newSx = newSy;
-        }
-      }
-    }
-
-    // Clamp scale to prevent zero/negative
-    newSx = Math.max(0.01, newSx);
-    newSy = Math.max(0.01, newSy);
-
-    // ALT modifier: scale from center (default behavior).
-    // Without ALT, anchor the opposite edge so it stays fixed.
-    const anchor = HANDLE_ANCHOR[handle];
-    if (!alt && anchor) {
-      const result = { ...ds, scaleX: newSx, scaleY: newSy };
-      // Compute the translation offset to keep the opposite edge fixed
-      const dScaleX = newSx - sx;
-      const dScaleY = newSy - sy;
-
-      // Offset = half the size change, in the anchor direction, rotated by layer rotation
-      const offsetX = (anchor.dx * dScaleX * bounds.width) / 2;
-      const offsetY = (anchor.dy * dScaleY * bounds.height) / 2;
-
-      // Rotate the offset by the current rotation
-      const cos = Math.cos(rot);
-      const sin = Math.sin(rot);
-      result.x = Math.round(ds.x + offsetX * cos - offsetY * sin);
-      result.y = Math.round(ds.y + offsetX * sin + offsetY * cos);
-
-      return ensureTransformMatrix(result);
-    }
-
-    return ensureTransformMatrix({ ...ds, scaleX: newSx, scaleY: newSy });
-  }
-
   // ── Gizmo drawing (screen-resolution canvas) ──────────────────────────────
-
-  /**
-   * Convert a document-space point to screen-space (gizmo canvas pixel coordinates).
-   * The gizmo canvas is backed at dpr × CSS-size to stay crisp.
-   */
-  private docToScreen(
-    docX: number,
-    docY: number,
-    ctx: ToolContext,
-    containerW: number,
-    containerH: number,
-    dpr: number
-  ): Point {
-    const docW = ctx.doc.canvas.width;
-    const docH = ctx.doc.canvas.height;
-    return {
-      x: ((docX - docW / 2) * ctx.zoom + containerW / 2 + ctx.pan.x) * dpr,
-      y: ((docY - docH / 2) * ctx.zoom + containerH / 2 + ctx.pan.y) * dpr
-    };
-  }
 
   private drawGizmo(ctx: ToolContext): void {
     ctx.drawGizmo((gc, dpr, containerW, containerH) => {
@@ -494,8 +217,9 @@ export class TransformTool implements ToolHandler {
   }
 
   /**
-   * Internal gizmo paint routine. Called via `ctx.drawGizmo()` which handles
-   * canvas acquisition, clearing, and DPR scaling.
+   * Internal gizmo paint routine. Uses shared resolved-geometry helpers
+   * for handle positions and bounds so gizmo aligns with the rendered
+   * transformed layer.
    */
   private paintGizmo(
     gc: CanvasRenderingContext2D,
@@ -509,25 +233,32 @@ export class TransformTool implements ToolHandler {
       return;
     }
 
-    const bounds = layerDocBounds(layer.contentBounds, layer.transform);
-    const sx = layer.transform.scaleX ?? 1;
-    const sy = layer.transform.scaleY ?? 1;
-    const rot = layer.transform.rotation ?? 0;
+    const transform = layer.transform;
+    const rot = transform.rotation ?? 0;
 
-    const w = bounds.width * sx;
-    const h = bounds.height * sy;
-    const docCx = bounds.x + w / 2;
-    const docCy = bounds.y + h / 2;
+    // Use shared geometry seam for center and extents
+    const center = getTransformedCenter(transform, this.rasterBounds);
+    const { hw, hh } = scaledHalfExtents(this.rasterBounds, transform);
 
     // Convert center to screen space
-    const screenCenter = this.docToScreen(docCx, docCy, ctx, containerW, containerH, dpr);
+    const screenCenter = docToScreen(
+      center.x,
+      center.y,
+      ctx.doc.canvas.width,
+      ctx.doc.canvas.height,
+      ctx.zoom,
+      ctx.pan,
+      containerW,
+      containerH,
+      dpr
+    );
 
     gc.save();
     gc.translate(screenCenter.x, screenCenter.y);
     gc.rotate(rot);
 
-    const screenW = w * ctx.zoom * dpr;
-    const screenH = h * ctx.zoom * dpr;
+    const screenW = hw * 2 * ctx.zoom * dpr;
+    const screenH = hh * 2 * ctx.zoom * dpr;
 
     // Bounding box
     gc.strokeStyle = "rgba(0, 120, 255, 0.8)";

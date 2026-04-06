@@ -96,7 +96,7 @@ Execution order for remaining Phase 1 work:
       - boundary: after this lands, tools and overlays should stop recomputing transformed layer extents locally except for trivial presentation-only offsets
       - **landed**: `painting/resolvedLayerGeometry.ts` provides `resolveLayerGeometry`, `getTransformedExtents`, `getTransformedCorners`, `getCompositeOffset`, `getEffectiveRasterBounds`, `getTransformedCenter`, and `buildLayerMatrix`; regression tests in `packageA-coreSeams.test.ts` verify extents/corners/center agreement
 
-- [ ] **Package B — Dependent move/transform correctness**
+- [x] **Package B — Dependent move/transform correctness**
   - start this after Package A lands the shared preview and geometry seams
   - assume Package A seams already exist; do not solve missing seam work locally here
   - package is done when:
@@ -106,16 +106,22 @@ Execution order for remaining Phase 1 work:
     - transform-tool left/top handle behavior is fixed and no longer behaves like right/bottom scaling
     - move and transform behavior are verified through shared-seam behavior tests, not only local tool tests
   - tasks:
-    - [ ] [impl+test] Improve move tool: preserve existing scale/rotation/matrix during preview + commit on transformed layers; current move path is not fully correct beyond translation-only cases
-    - [ ] [impl+test] Improve move/transform bounds visuals: move gizmo, scale gizmo, and selection/marquee overlays are currently not aligned to the layer correctly; they must use the same resolved transformed bounds as compositing and hit testing
+    - [x] [impl+test] Improve move tool: preserve existing scale/rotation/matrix during preview + commit on transformed layers; current move path is not fully correct beyond translation-only cases
+      - **landed**: `MoveTool.ts` already used `mergeTransformPreview` for preview/commit (Package A); now also uses `getEffectiveRasterBounds` and `getTransformedExtents` from `resolvedLayerGeometry` for gizmo bounds; local `docRectToGizmo` removed in favor of shared `docRectToScreen`; 6 regression tests in `packageB-moveTransformCorrectness.test.ts` verify full transform preservation for translated, scaled, rotated, and combined layers
+    - [x] [impl+test] Improve move/transform bounds visuals: move gizmo, scale gizmo, and selection/marquee overlays are currently not aligned to the layer correctly; they must use the same resolved transformed bounds as compositing and hit testing
       - this task should consume the shared resolved-layer geometry helper above, not add more one-off gizmo math inside `MoveTool.ts` or `TransformTool.ts`
-    - [ ] [test] add regression coverage for move/transform gizmo alignment: for translated, scaled, and rotated layers, verify gizmo bounds/handles use the same resolved document-space extents as compositing and hit testing
-    - [ ] [impl+test] finish transform tool UX on top of the matrix-capable transform model: keep live preview correct, keep commit/cancel reliable, make move/scale gizmos align with the actual transformed layer, and fix left/top handle scaling so it does not behave like right/bottom scaling
-    - [ ] [impl+test] extract pure transform/gizmo math out of `tools/TransformTool.ts` so the tool file becomes interaction orchestration over shared geometry helpers instead of a second geometry engine
+      - **landed**: both `MoveTool.ts` and `TransformTool.ts` now consume `resolvedLayerGeometry` (`getTransformedCenter`, `getTransformedExtents`, `getEffectiveRasterBounds`) and shared `tools/transform/handleGeometry.ts` for handle positions; local `layerDocBounds` helper removed from `TransformTool.ts`; gizmo bounds, hit targets, and overlay extents all derive from the same resolved geometry seam; regression tests verify `getLayerGizmoBounds` agrees with `resolveLayerGeometry` and handle corners match resolved corners for identity, scaled, and rotated transforms
+    - [x] [test] add regression coverage for move/transform gizmo alignment: for translated, scaled, and rotated layers, verify gizmo bounds/handles use the same resolved document-space extents as compositing and hit testing
+      - **landed**: 41 tests in `__tests__/packageB-moveTransformCorrectness.test.ts` covering: gizmo alignment (7 tests), hit testing alignment (5 tests), left/top handle correctness (7 tests), transform computation (5 tests), cursor mapping (5 tests), selection overlay alignment (3 tests), move-after-transform round-trip (3 tests), and move preview preservation (6 tests)
+    - [x] [impl+test] finish transform tool UX on top of the matrix-capable transform model: keep live preview correct, keep commit/cancel reliable, make move/scale gizmos align with the actual transformed layer, and fix left/top handle scaling so it does not behave like right/bottom scaling
+      - **landed**: left/top handle scaling fixed in `tools/transform/computeTransform.ts` using signed distance ratios instead of absolute distances; handles now use direction-aware `signX`/`signY` multipliers so dragging left/top inward correctly decreases scale and outward correctly increases scale; gizmo drawing uses `getTransformedCenter` + `scaledHalfExtents` from shared geometry seam; regression tests verify left/top/top-left handles, and that left/right and top/bottom produce symmetric scale changes
+    - [x] [impl+test] extract pure transform/gizmo math out of `tools/TransformTool.ts` so the tool file becomes interaction orchestration over shared geometry helpers instead of a second geometry engine
       - suggested split: `tools/transform/handleGeometry.ts`, `tools/transform/computeTransform.ts`, `tools/transform/cursorMapping.ts`
       - after this, `TransformTool.ts` should own hit flow, drag state, and calls into shared contracts, not geometry policy
-    - [ ] [impl+test] simplify `tools/MoveTool.ts` once shared preview and resolved-geometry helpers exist so move interaction stops owning its own transform-merge and gizmo semantics
+      - **landed**: created `tools/transform/handleGeometry.ts` (handle positions, hit testing, doc-to-screen, geometry primitives), `tools/transform/computeTransform.ts` (move/rotate/scale computation, unified dispatcher), `tools/transform/cursorMapping.ts` (CSS cursor logic), and `tools/transform/index.ts` barrel export; `TransformTool.ts` reduced to interaction orchestration (lifecycle, pointer events, gizmo painting) that delegates all geometry to shared helpers
+    - [x] [impl+test] simplify `tools/MoveTool.ts` once shared preview and resolved-geometry helpers exist so move interaction stops owning its own transform-merge and gizmo semantics
       - boundary: move must request preview updates and geometry queries from shared helpers rather than defining transform preservation locally
+      - **landed**: removed local `docRectToGizmo` helper; gizmo now uses `getEffectiveRasterBounds` + `getTransformedExtents` from `resolvedLayerGeometry` for bounds, and `docRectToScreen` from shared `handleGeometry` for coordinate conversion; removed import of `getLayerCompositeOffset` in favor of resolved geometry seam
 
 - [ ] **Package C — Proof and parity hardening**
   - use this package to prove the remaining seams hold; if a test exposes a real gap, reopen the seam task above instead of forcing the test to fit broken behavior
