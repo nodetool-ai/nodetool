@@ -12,6 +12,7 @@ import SwapHoriz from "@mui/icons-material/SwapHoriz";
 import { useNodes } from "../../contexts/NodeContext";
 import { ImageSizePresetsMenu } from "./ImageSizePresetsMenu";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import ConnectedBadge from "./ConnectedBadge";
 
 type ImageSizeValue = {
   width: number;
@@ -113,11 +114,14 @@ const ImageSizeProperty = (props: PropertyProps) => {
 
   if (isConnected) {
     return (
-      <PropertyLabel
-        name={property.name}
-        description={property.description}
-        id={id}
-      />
+      <div>
+        <PropertyLabel
+          name={property.name}
+          description={property.description}
+          id={id}
+        />
+        <ConnectedBadge />
+      </div>
     );
   }
 

@@ -17,7 +17,6 @@ export type SnippetCategory =
   | "UUID"
   | "HTTP"
   | "JSON"
-  | "Data Table"
   | "Streaming";
 
 export interface CodeSnippet {
@@ -40,7 +39,6 @@ export const SNIPPET_CATEGORIES: SnippetCategory[] = [
   "UUID",
   "HTTP",
   "JSON",
-  "Data Table",
   "Streaming",
 ];
 
@@ -1222,201 +1220,6 @@ return { output: current.length === 1 ? current[0] : current };`,
   },
 
   // ---------------------------------------------------------------------------
-  // Data Table (replaces data.ts dataframe nodes)
-  // ---------------------------------------------------------------------------
-  {
-    id: "data-filter-rows",
-    title: "Filter Rows",
-    description: "Filter rows matching a condition",
-    category: "Data Table",
-    code: `// rows = [{ name: "Alice", age: 30 }, ...]
-return { output: rows.filter(row => row.age > 25) };`,
-    tags: ["filter", "rows", "where", "condition", "dataframe"],
-  },
-  {
-    id: "data-slice-rows",
-    title: "Slice Rows",
-    description: "Get a subset of rows by index range",
-    category: "Data Table",
-    code: `return { output: rows.slice(start, end) };`,
-    tags: ["slice", "rows", "range", "offset", "limit", "paginate"],
-  },
-  {
-    id: "data-select-columns",
-    title: "Select Columns",
-    description: "Keep only specific columns from each row",
-    category: "Data Table",
-    code: `const cols = ["name", "age"];
-return { output: rows.map(row =>
-  Object.fromEntries(cols.map(c => [c, row[c]]))
-) };`,
-    tags: ["select", "columns", "project", "pick", "fields"],
-  },
-  {
-    id: "data-extract-column",
-    title: "Extract Column",
-    description: "Extract a single column as an array of values",
-    category: "Data Table",
-    code: `return { output: rows.map(row => row[column]) };`,
-    tags: ["extract", "column", "pluck", "values", "field"],
-  },
-  {
-    id: "data-add-column",
-    title: "Add Column",
-    description: "Add a computed column to each row",
-    category: "Data Table",
-    code: `return { output: rows.map(row => ({
-  ...row,
-  full_name: row.first + " " + row.last
-})) };`,
-    tags: ["add", "column", "computed", "derived", "transform"],
-  },
-  {
-    id: "data-rename-columns",
-    title: "Rename Columns",
-    description: "Rename column keys in each row",
-    category: "Data Table",
-    code: `const mapping = { old_name: "new_name", old_age: "new_age" };
-return { output: rows.map(row => {
-  const out = {};
-  for (const [k, v] of Object.entries(row)) {
-    out[mapping[k] || k] = v;
-  }
-  return out;
-}) };`,
-    tags: ["rename", "columns", "alias", "mapping"],
-  },
-  {
-    id: "data-sort-by",
-    title: "Sort by Column",
-    description: "Sort rows by a column (ascending or descending)",
-    category: "Data Table",
-    code: `const ascending = true;
-return { output: [...rows].sort((a, b) => {
-  const va = a[column], vb = b[column];
-  const cmp = va < vb ? -1 : va > vb ? 1 : 0;
-  return ascending ? cmp : -cmp;
-}) };`,
-    tags: ["sort", "order", "column", "ascending", "descending"],
-  },
-  {
-    id: "data-deduplicate",
-    title: "Drop Duplicates",
-    description: "Remove duplicate rows by key column",
-    category: "Data Table",
-    code: `const seen = new Set();
-return { output: rows.filter(row => {
-  const key = JSON.stringify(row[column]);
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return true;
-}) };`,
-    tags: ["deduplicate", "unique", "distinct", "drop", "duplicates"],
-  },
-  {
-    id: "data-drop-nulls",
-    title: "Drop Nulls",
-    description: "Remove rows containing null/undefined values",
-    category: "Data Table",
-    code: `return { output: rows.filter(row =>
-  Object.values(row).every(v => v !== null && v !== undefined)
-) };`,
-    tags: ["null", "drop", "clean", "missing", "na"],
-  },
-  {
-    id: "data-fill-nulls",
-    title: "Fill Nulls",
-    description: "Replace null/undefined values with a default",
-    category: "Data Table",
-    code: `const fill = 0; // or "", or "N/A"
-return { output: rows.map(row =>
-  Object.fromEntries(Object.entries(row).map(([k, v]) =>
-    [k, v ?? fill]
-  ))
-) };`,
-    tags: ["fill", "null", "default", "missing", "replace", "na"],
-  },
-  {
-    id: "data-group-aggregate",
-    title: "Group By & Aggregate",
-    description: "Group rows by a column and compute aggregates",
-    category: "Data Table",
-    code: `const groups = {};
-for (const row of rows) {
-  const key = row[groupColumn];
-  if (!groups[key]) groups[key] = [];
-  groups[key].push(row);
-}
-return { output: Object.entries(groups).map(([key, items]) => ({
-  [groupColumn]: key,
-  count: items.length,
-  sum: items.reduce((s, r) => s + (r[valueColumn] || 0), 0),
-  avg: items.reduce((s, r) => s + (r[valueColumn] || 0), 0) / items.length,
-})) };`,
-    tags: ["group", "aggregate", "sum", "count", "average", "groupby"],
-  },
-  {
-    id: "data-pivot",
-    title: "Pivot Table",
-    description: "Pivot rows to create a cross-tabulation",
-    category: "Data Table",
-    code: `const result = {};
-for (const row of rows) {
-  const rKey = row[rowColumn];
-  const cKey = row[colColumn];
-  if (!result[rKey]) result[rKey] = { [rowColumn]: rKey };
-  result[rKey][cKey] = row[valueColumn];
-}
-return { output: Object.values(result) };`,
-    tags: ["pivot", "cross", "tabulate", "reshape", "matrix"],
-  },
-  {
-    id: "data-join",
-    title: "Join Tables",
-    description: "Join two tables on a common key (inner join)",
-    category: "Data Table",
-    code: `const index = {};
-for (const row of right) {
-  index[row[key]] = row;
-}
-return { output: left
-  .filter(row => index[row[key]])
-  .map(row => ({ ...row, ...index[row[key]] }))
-};`,
-    tags: ["join", "merge", "inner", "lookup", "tables"],
-  },
-  {
-    id: "data-merge-append",
-    title: "Merge / Append Rows",
-    description: "Combine two tables by appending rows",
-    category: "Data Table",
-    code: `return { output: [...tableA, ...tableB] };`,
-    tags: ["merge", "append", "concat", "union", "combine"],
-  },
-  {
-    id: "data-csv-parse",
-    title: "Parse CSV",
-    description: "Parse CSV text into rows with auto-detected headers",
-    category: "Data Table",
-    code: `const lines = text.trim().split("\\n");
-const headers = lines[0].split(",").map(h => h.trim());
-const rows = lines.slice(1).map(line => {
-  const vals = line.split(",");
-  return Object.fromEntries(headers.map((h, i) => [h, vals[i]?.trim()]));
-});
-return { output: rows };`,
-    tags: ["csv", "parse", "import", "headers", "table"],
-  },
-  {
-    id: "data-find-row",
-    title: "Find Row",
-    description: "Find the first row matching a condition",
-    category: "Data Table",
-    code: `return { output: rows.find(row => row[column] === value) ?? null };`,
-    tags: ["find", "search", "first", "row", "lookup"],
-  },
-
-  // ---------------------------------------------------------------------------
   // Date & Time (dayjs-powered)
   // ---------------------------------------------------------------------------
   {
@@ -1523,20 +1326,6 @@ return { output: $.text().trim() };`,
     tags: ["html", "cheerio", "text", "strip", "plain"],
   },
   {
-    id: "html-extract-table",
-    title: "Extract Table from HTML",
-    description: "Parse an HTML table into rows of objects",
-    category: "Data Table",
-    code: `const $ = cheerio.load(html);
-const headers = $("table th").map((i, el) => $(el).text().trim()).get();
-const rows = $("table tbody tr").map((i, tr) => {
-  const cells = $(tr).find("td").map((j, td) => $(td).text().trim()).get();
-  return Object.fromEntries(headers.map((h, j) => [h, cells[j] ?? ""]));
-}).get();
-return { output: rows };`,
-    tags: ["html", "cheerio", "table", "parse", "scrape", "rows"],
-  },
-  {
     id: "html-select",
     title: "CSS Selector Query",
     description: "Extract content using CSS selectors",
@@ -1545,37 +1334,6 @@ return { output: rows };`,
 const results = $(selector).map((i, el) => $(el).text().trim()).get();
 return { output: results };`,
     tags: ["html", "cheerio", "css", "selector", "query", "dom"],
-  },
-
-  // ---------------------------------------------------------------------------
-  // CSV (csv-parse)
-  // ---------------------------------------------------------------------------
-  {
-    id: "csv-parse-robust",
-    title: "Parse CSV (robust)",
-    description: "Parse CSV with proper handling of quoted fields, escapes, and headers",
-    category: "Data Table",
-    code: `const rows = csvParse(text, {
-  columns: true,
-  skip_empty_lines: true,
-  trim: true
-});
-return { output: rows };`,
-    tags: ["csv", "parse", "csvParse", "robust", "quoted", "import"],
-  },
-  {
-    id: "csv-parse-custom-delimiter",
-    title: "Parse TSV / Custom Delimiter",
-    description: "Parse tab-separated or other delimited text",
-    category: "Data Table",
-    code: `const rows = csvParse(text, {
-  columns: true,
-  delimiter: "\\t",  // or ";", "|", etc.
-  skip_empty_lines: true,
-  trim: true
-});
-return { output: rows };`,
-    tags: ["csv", "tsv", "parse", "delimiter", "tab", "separated"],
   },
 
   // ---------------------------------------------------------------------------

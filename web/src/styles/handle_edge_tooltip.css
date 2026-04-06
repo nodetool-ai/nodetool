@@ -64,15 +64,33 @@
 }
 
 .react-flow.is-connecting .react-flow__node .react-flow__handle.is-connectable {
-  transform: translate(0, -50%) scale(1.1, 1);
+  transform: translate(0, -50%) scale(1.2, 1.1);
   opacity: 1;
+  box-shadow:
+    0 0 6px 2px currentColor,
+    0 0 12px 4px rgba(255, 255, 255, 0.1);
+  animation: handlePulse 1.5s ease-in-out infinite;
 }
 
 .react-flow.is-connecting
   .react-flow__node
   .react-flow__handle.not-connectable {
-  opacity: 0.8;
-  transform: translate(0, -50%) scale(0.5, 1);
+  opacity: 0.25;
+  transform: translate(0, -50%) scale(0.4, 0.6);
+  filter: grayscale(1);
+}
+
+@keyframes handlePulse {
+  0%, 100% {
+    box-shadow:
+      0 0 6px 2px currentColor,
+      0 0 12px 4px rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 8px 3px currentColor,
+      0 0 16px 6px rgba(255, 255, 255, 0.15);
+  }
 }
 
 /* edge */
@@ -81,13 +99,14 @@
   stroke: var(--palette-grey-400);
   stroke-width: 2.5 !important;
   transition:
-    stroke-opacity 0.3s ease-in-out,
-    stroke-width 0.2s ease-in-out;
+    stroke-opacity 0.2s ease-in-out,
+    stroke-width 0.15s ease-in-out,
+    filter 0.2s ease-in-out;
 }
 
 /* Dim static edges by default */
 .react-flow .react-flow__edges .react-flow__edge .react-flow__edge-path {
-  stroke-opacity: 0.6;
+  stroke-opacity: 0.5;
 }
 
 /* Keep selected edges fully visible */
@@ -103,14 +122,15 @@
   .react-flow__edges
   .react-flow__edge
   .react-flow__edge-path {
-  stroke-opacity: 0.25;
+  stroke-opacity: 0.15;
 }
 
 /* edge hover */
 .react-flow .react-flow__edge:hover .react-flow__edge-path {
   stroke-width: 4 !important;
   stroke-opacity: 1;
-  filter: saturate(1.2) brightness(1.2);
+  filter: saturate(1.3) brightness(1.15)
+    drop-shadow(0 0 3px rgba(255, 255, 255, 0.15));
 }
 
 /* edge selected */
@@ -119,11 +139,10 @@
   .react-flow__edge.selected
   .react-flow__edge-path {
   stroke: var(--palette-text-primary) !important;
-  /* stroke-dasharray: 6; */
   stroke-width: 3 !important;
   stroke-opacity: 1;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9))
-    drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8))
+    drop-shadow(0 0 4px rgba(255, 255, 255, 0.2));
 }
 
 /* Flow animation for edges on message_sent or running source node */
@@ -336,24 +355,18 @@
 .react-flow.is-connecting
   .react-flow__node
   .react-flow__handle-left.is-connectable {
-  height: calc(var(--handle_height) * 1.4);
-  width: calc(var(--handle_width) * 1.25) !important;
-  transform: translate(-2px, -50%) scale(1.15, 1);
+  height: calc(var(--handle_height) * 1.5);
+  width: calc(var(--handle_width) * 1.3) !important;
+  transform: translate(-2px, -50%) scale(1.2, 1.1);
   opacity: 1;
-  box-shadow:
-    0 0 8px rgba(255, 255, 255, 0.2),
-    0 1px 3px rgba(0, 0, 0, 0.3);
 }
 .react-flow.is-connecting
   .react-flow__node
   .react-flow__handle-right.is-connectable {
-  height: calc(var(--handle_height) * 1.4);
-  width: calc(var(--handle_width) * 1.25) !important;
-  transform: translate(2px, -50%) scale(1.15, 1);
+  height: calc(var(--handle_height) * 1.5);
+  width: calc(var(--handle_width) * 1.3) !important;
+  transform: translate(2px, -50%) scale(1.2, 1.1);
   opacity: 1;
-  box-shadow:
-    0 0 8px rgba(255, 255, 255, 0.2),
-    0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* STREAMING OUTPUT HANDLE - outputs that stream data continuously */
@@ -691,6 +704,10 @@ ul.multi-outputs li::marker {
   .react-flow
     .react-flow__edge.message-sent.pulse-active
     .react-flow__edge-path {
+    animation: none;
+  }
+
+  .react-flow.is-connecting .react-flow__node .react-flow__handle.is-connectable {
     animation: none;
   }
 }

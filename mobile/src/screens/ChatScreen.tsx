@@ -22,7 +22,6 @@ import { useTheme } from '../hooks/useTheme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 export default function ChatScreen({ navigation }: Props) {
-  // Use individual selectors to prevent re-renders when unrelated state changes
   const status = useChatStore(state => state.status);
   const error = useChatStore(state => state.error);
   const statusMessage = useChatStore(state => state.statusMessage);
@@ -38,12 +37,10 @@ export default function ChatScreen({ navigation }: Props) {
 
   const messages = getCurrentMessages();
 
-  // Connect on mount
   useEffect(() => {
     const initializeChat = async () => {
       try {
         await connect();
-        // Create initial thread if none exists
         if (!currentThreadId) {
           await createNewThread();
         }
@@ -55,7 +52,6 @@ export default function ChatScreen({ navigation }: Props) {
     initializeChat();
   }, [connect, currentThreadId, createNewThread]);
 
-  // Handle new chat
   const handleNewChat = useCallback(async () => {
     try {
       await createNewThread();
@@ -64,32 +60,31 @@ export default function ChatScreen({ navigation }: Props) {
     }
   }, [createNewThread]);
 
-  // Configure header with New Chat button
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity
             onPress={() => navigation.navigate('LanguageModelSelection')}
-            style={[styles.headerButton, { marginRight: 0, flexDirection: 'row', alignItems: 'center' }]}
+            style={[styles.modelButton, { backgroundColor: colors.primaryMuted }]}
             activeOpacity={0.7}
           >
-            <Text style={[styles.headerButtonText, { color: colors.text, marginRight: 2 }]}>
+            <Text style={[styles.modelButtonText, { color: colors.primary }]} numberOfLines={1}>
               {selectedModel ? selectedModel.name : 'Model'}
             </Text>
-            <Ionicons name="chevron-down-outline" size={14} color={colors.text} />
+            <Ionicons name="chevron-down-outline" size={13} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleNewChat}
             style={styles.headerButton}
             activeOpacity={0.7}
           >
-            <Ionicons name="add-outline" size={28} color={colors.text} />
+            <Ionicons name="add-circle-outline" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
       ),
     });
-  }, [navigation, handleNewChat, selectedModel, colors.text]);
+  }, [navigation, handleNewChat, selectedModel, colors.text, colors.primary, colors.primaryMuted]);
 
   const handleRefresh = useCallback(async () => {
     try {
@@ -120,11 +115,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  headerButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
+  modelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 4,
+    maxWidth: 160,
+  },
+  modelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 3,
   },
 });

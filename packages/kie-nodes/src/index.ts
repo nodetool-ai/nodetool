@@ -1,27 +1,27 @@
-import type { NodeClass, NodeRegistry } from "@nodetool/node-sdk";
+import type { NodeClass } from "@nodetool/node-sdk";
+import { loadKieNodesFromManifest } from "./kie-factory.js";
+import type { KieManifestEntry } from "./kie-factory.js";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-// Generated modules — will be populated after code generation
-export { KIE_IMAGE_NODES } from "./generated/image.js";
-export { KIE_AUDIO_NODES } from "./generated/audio.js";
-export { KIE_VIDEO_NODES } from "./generated/video.js";
+export { loadKieNodesFromManifest, createKieNodeClass } from "./kie-factory.js";
+export type { KieManifestEntry } from "./kie-factory.js";
 
-/** Register all Kie.ai nodes in a registry. */
-export function registerKieNodes(registry: NodeRegistry): void {
-  // Dynamic import to avoid circular deps at load time
-  const modules = [
-    import("./generated/image.js"),
-    import("./generated/audio.js"),
-    import("./generated/video.js")
-  ];
-  for (const mod of modules) {
-    void mod.then((m) => {
-      for (const [, value] of Object.entries(m)) {
-        if (Array.isArray(value)) {
-          for (const cls of value as NodeClass[]) {
-            registry.register(cls);
-          }
-        }
-      }
-    });
+function loadManifest(): KieManifestEntry[] {
+  const dir = dirname(fileURLToPath(import.meta.url));
+  const manifestPath = join(dir, "kie-manifest.json");
+  return JSON.parse(readFileSync(manifestPath, "utf8"));
+}
+
+export const KIE_NODES: readonly NodeClass[] = loadKieNodesFromManifest(
+  loadManifest()
+);
+
+export function registerKieNodes(registry: {
+  register: (nodeClass: NodeClass) => void;
+}): void {
+  for (const nodeClass of KIE_NODES) {
+    registry.register(nodeClass);
   }
 }

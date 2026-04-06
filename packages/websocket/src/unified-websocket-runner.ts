@@ -10,6 +10,7 @@ import {
   type NodeTypeResolver
 } from "@nodetool/kernel";
 import {
+  Asset,
   Job,
   Message,
   ModelChangeEvent,
@@ -217,11 +218,48 @@ function createRuntimeContext(opts: {
     | "workspace"
     | "raw";
 }): RuntimeProcessingContext {
-  return new RuntimeProcessingContext({
+  const storagePath = getAssetStoragePath();
+  const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
-    storage: new FileStorageAdapter(getAssetStoragePath())
+    storage: new FileStorageAdapter(storagePath)
   });
+
+  const MIME_TO_EXT: Record<string, string> = {
+    "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif",
+    "image/webp": "webp", "image/bmp": "bmp", "image/svg+xml": "svg",
+    "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav",
+    "audio/ogg": "ogg", "video/mp4": "mp4", "video/webm": "webm",
+    "application/pdf": "pdf", "text/plain": "txt", "text/html": "html",
+    "model/gltf-binary": "glb"
+  };
+
+  ctx.setModelInterfaces({
+    createAsset: async (args) => {
+      const { join } = await import("node:path");
+      const { writeFile, mkdir } = await import("node:fs/promises");
+      const asset = new Asset({
+        user_id: args.userId,
+        workflow_id: args.workflowId ?? null,
+        node_id: args.nodeId ?? null,
+        job_id: args.jobId ?? null,
+        name: args.name,
+        content_type: args.contentType,
+        parent_id: args.parentId ?? null
+      });
+      if (args.content) {
+        const ext = MIME_TO_EXT[args.contentType] ?? "bin";
+        const fileName = `${asset.id}.${ext}`;
+        await mkdir(storagePath, { recursive: true });
+        await writeFile(join(storagePath, fileName), args.content);
+        asset.size = args.content.length;
+      }
+      await asset.save();
+      return asset;
+    }
+  });
+
+  return ctx;
 }
 
 /**
@@ -1124,10 +1162,12 @@ export class UnifiedWebSocketRunner {
           });
         }
 
-        // Only relay output_update messages for actual output-type nodes.
-        // The kernel emits output_update for all nodes; the WebSocket API
-        // should only forward them for final output nodes (type contains "Output").
-        if (outbound.type === "output_update") {
+        // Skip messages for constant/input nodes — they produce trivial
+        // outputs that don't need to be relayed to the frontend.
+        if (
+          outbound.type === "output_update" ||
+          outbound.type === "node_update"
+        ) {
           const nodeId = String(outbound.node_id ?? "");
           const graphNodes =
             (
@@ -1137,8 +1177,20 @@ export class UnifiedWebSocketRunner {
             ).nodes ?? [];
           const node = graphNodes.find((n) => n.id === nodeId);
           const nodeType = typeof node?.type === "string" ? node.type : "";
-          if (!nodeType.includes("Output")) continue;
-          outputUpdateSeen = true;
+
+          // Skip constant and input nodes entirely
+          if (
+            nodeType.startsWith("nodetool.constant.") ||
+            nodeType.startsWith("nodetool.input.")
+          ) {
+            continue;
+          }
+
+          // Only relay output_update for Output-type nodes
+          if (outbound.type === "output_update") {
+            if (!nodeType.includes("Output")) continue;
+            outputUpdateSeen = true;
+          }
         }
         await this.sendMessage(outbound);
         if (outbound.type === "job_update") {

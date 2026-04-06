@@ -27,6 +27,7 @@ const { values } = parseArgs({
     all: { type: "boolean", default: false },
     "no-cache": { type: "boolean", default: false },
     "from-metadata": { type: "string" },
+    manifest: { type: "boolean", default: false },
     "output-dir": {
       type: "string",
       default: join(process.cwd(), "..", "replicate-nodes", "src", "generated")
@@ -189,12 +190,99 @@ async function generateFromMetadata(
 }
 
 // ---------------------------------------------------------------------------
+// Manifest generation (JSON instead of TS)
+// ---------------------------------------------------------------------------
+
+interface ManifestEntry {
+  endpointId: string;
+  className: string;
+  moduleName: string;
+  docstring: string;
+  tags: string[];
+  useCases: string[];
+  outputType: string;
+  inputFields: NodeSpec["inputFields"];
+  outputFields: NodeSpec["outputFields"];
+  enums: NodeSpec["enums"];
+}
+
+async function generateManifestFromMetadata(
+  metadataPath: string,
+  outputPath: string
+): Promise<void> {
+  const raw = await readFile(metadataPath, "utf-8");
+  const metadata: PackageMetadata = JSON.parse(raw);
+
+  const metaParser = new MetadataParser();
+  const generator = new NodeGenerator();
+  const configIndex = buildConfigIndex();
+  const moduleMap = metaParser.parseAll(metadata);
+
+  const manifest: ManifestEntry[] = [];
+
+  for (const [dashName, specs] of moduleMap) {
+    const dotName = dashName.replace(/-/g, ".");
+    const moduleConfig = allConfigs[dotName];
+    if (!moduleConfig) continue;
+
+    for (const spec of specs) {
+      const indexEntry = configIndex.get(spec.className);
+      let modelId = spec.endpointId;
+
+      if (moduleConfig.configs[modelId]) {
+        // Direct match
+      } else if (indexEntry && moduleConfig.configs[indexEntry.modelId]) {
+        modelId = indexEntry.modelId;
+      } else {
+        continue;
+      }
+
+      spec.endpointId = modelId;
+      const nodeConfig = moduleConfig.configs[modelId];
+      const applied = nodeConfig
+        ? generator.applyConfig(spec, nodeConfig)
+        : spec;
+
+      if (manifest.some((m) => m.className === applied.className)) continue;
+
+      manifest.push({
+        endpointId: applied.endpointId,
+        className: applied.className,
+        moduleName: dashName,
+        docstring: applied.docstring,
+        tags: applied.tags,
+        useCases: applied.useCases,
+        outputType: (nodeConfig?.returnType ?? applied.outputType),
+        inputFields: applied.inputFields,
+        outputFields: applied.outputFields,
+        enums: applied.enums
+      });
+    }
+  }
+
+  await writeFile(outputPath, JSON.stringify(manifest, null, 2));
+  console.log(`Wrote ${manifest.length} nodes to ${outputPath}`);
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
   const outputDir = values["output-dir"]!;
   const useCache = !values["no-cache"];
+
+  if (values.manifest && values["from-metadata"]) {
+    const manifestPath = join(
+      process.cwd(),
+      "..",
+      "replicate-nodes",
+      "src",
+      "replicate-manifest.json"
+    );
+    await generateManifestFromMetadata(values["from-metadata"], manifestPath);
+    return;
+  }
 
   if (values["from-metadata"]) {
     await generateFromMetadata(values["from-metadata"], outputDir);

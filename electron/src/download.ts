@@ -160,6 +160,8 @@ async function downloadFile(url: string, dest: string): Promise<void> {
         }
       });
 
+      response.on("error", handleError);
+
       response.pipe(file);
 
       file.on("finish", async () => {
@@ -184,7 +186,7 @@ async function downloadFile(url: string, dest: string): Promise<void> {
 
     function handleError(err: Error) {
       logMessage(`Error downloading file: ${err.message}`, "error");
-      file.close();
+      file.destroy();
       fs.unlink(dest).then(() => {
         reject(new Error(`Error downloading file: ${err.message}`));
       });

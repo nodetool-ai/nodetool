@@ -705,7 +705,7 @@ export const audioConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "ElevenLabsTextToSpeech",
-      modelId: "elevenlabs/text-to-speech",
+      modelId: "elevenlabs/text-to-speech-turbo-2-5",
       title: "ElevenLabs Text To Speech",
       description:
         "Generate speech using ElevenLabs AI via Kie.ai.\n\n    kie, elevenlabs, tts, text-to-speech, voice, audio, ai, speech synthesis\n\n    Creates natural-sounding speech from text using ElevenLabs' voice models.\n    Supports multiple voices, stability controls, and multilingual output.\n\n    Use cases:\n    - Generate voiceovers for videos and podcasts\n    - Create audiobooks and narrated content\n    - Produce natural-sounding speech for applications\n    - Generate speech in multiple languages and voices",
@@ -834,7 +834,7 @@ export const audioConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "ElevenLabsSoundEffect",
-      modelId: "elevenlabs/sound-effect",
+      modelId: "elevenlabs/sound-effect-v2",
       title: "ElevenLabs Sound Effect",
       description:
         "Generate sound effects using ElevenLabs AI via Kie.ai.\n\n    kie, elevenlabs, sound-effect, sfx, audio, ai\n\n    ElevenLabs Sound Effect V2 generates audio from text descriptions,\n    supporting clips up to 20+ seconds with seamless looping and 48kHz audio.\n\n    Use cases:\n    - Generate custom sound effects for videos\n    - Create ambient sounds for games and applications\n    - Produce foley effects from text descriptions\n    - Generate audio elements for creative projects",
@@ -931,7 +931,7 @@ export const audioConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "ElevenLabsV3Dialogue",
-      modelId: "elevenlabs/v3-dialogue",
+      modelId: "elevenlabs/text-to-dialogue-v3",
       title: "ElevenLabs V3 Dialogue",
       description:
         "Generate expressive dialogue using ElevenLabs V3 via Kie.ai.\n\n    kie, elevenlabs, v3, dialogue, tts, text-to-speech, multi-speaker, ai\n\n    ElevenLabs Eleven V3 enables expressive multilingual Text to Dialogue\n    with audio tag control, multi-speaker support, and natural delivery.\n\n    Use cases:\n    - Generate dialogue for storytelling applications\n    - Create multi-speaker audio content\n    - Produce expressive voiceovers with audio tags\n    - Generate natural conversation audio",

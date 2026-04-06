@@ -4,6 +4,7 @@ import { IDockviewPanelProps } from "dockview";
 import SearchErrorBoundary from "../../SearchErrorBoundary";
 import GlobalSearchResults from "../GlobalSearchResults";
 import AssetGridContent from "../AssetGridContent";
+import BreadcrumbNav from "../BreadcrumbNav";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
@@ -80,6 +81,7 @@ const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
         style={{ height: "100%" }}
         ref={containerRef}
       >
+        <BreadcrumbNav />
         {isGlobalSearchModeLocal && isGlobalSearchActiveLocal ? (
           <SearchErrorBoundary fallbackTitle="Search Results Error">
             <GlobalSearchResults

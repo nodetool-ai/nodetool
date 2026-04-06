@@ -6,6 +6,7 @@ import React, { useMemo, memo } from "react";
 import { Typography, Box } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
+import { formatFileSize } from "../../utils/formatUtils";
 
 interface StorageAnalyticsProps {
   assets: Asset[];
@@ -98,7 +99,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
       <div className="storage-stats">
         <div className="stat-item">
           <span className="stat-label">Total Size</span>
-          <span className="stat-value">{totalSize}</span>
+          <span className="stat-value">{formatFileSize(totalSize)}</span>
         </div>
 
         {folderCount > 0 && (

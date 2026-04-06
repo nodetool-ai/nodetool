@@ -13,13 +13,18 @@ import {
 /**
  * Resolves the path to the Node.js-based backend server entry point.
  * In packaged mode: resources/backend/server.mjs
- * In dev mode: ../../packages/websocket/dist/server.js (relative to electron/dist-electron/)
+ * In dev mode: ../../packages/websocket/src/server.ts (run via tsx)
  */
 function getNodeBackendPath(): string {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, "backend", "server.mjs");
   }
-  return path.join(__dirname, "..", "..", "packages", "websocket", "dist", "server.js");
+  return path.join(__dirname, "..", "..", "packages", "websocket", "src", "server.ts");
+}
+
+/** In dev mode we need tsx to run TypeScript source directly. */
+function isDevMode(): boolean {
+  return !app.isPackaged;
 }
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
@@ -411,20 +416,36 @@ async function startServer(): Promise<void> {
     STATIC_FOLDER: webPath,
     NODETOOL_PYTHON: pythonPath,
     LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
-    NODE_ENV: "production",
+    NODE_ENV: isDevMode() ? "development" : "production",
     NODE_PATH: backendNodeModules,
   };
 
-  backendWatchdog = new Watchdog({
-    name: "nodetool",
-    modulePath: backendEntryPoint,
-    env: backendEnv,
-    cwd: path.dirname(backendEntryPoint),
-    pidFilePath: PID_FILE_PATH,
-    healthUrl: `http://127.0.0.1:${selectedPort}/health`,
-    onOutput: (line) => handleServerOutput(Buffer.from(line)),
-    logOutput: false,
-  });
+  const watchdogOpts: import("./watchdog").WatchdogOptions = isDevMode()
+    ? {
+        // Dev mode: run TS source directly via tsx (no build step needed)
+        name: "nodetool",
+        command: path.join(__dirname, "..", "..", "node_modules", ".bin", "tsx"),
+        args: [backendEntryPoint],
+        env: backendEnv,
+        cwd: path.join(__dirname, "..", ".."),
+        pidFilePath: PID_FILE_PATH,
+        healthUrl: `http://127.0.0.1:${selectedPort}/health`,
+        onOutput: (line) => handleServerOutput(Buffer.from(line)),
+        logOutput: false,
+      }
+    : {
+        // Production: fork compiled JS via utilityProcess
+        name: "nodetool",
+        modulePath: backendEntryPoint,
+        env: backendEnv,
+        cwd: path.dirname(backendEntryPoint),
+        pidFilePath: PID_FILE_PATH,
+        healthUrl: `http://127.0.0.1:${selectedPort}/health`,
+        onOutput: (line) => handleServerOutput(Buffer.from(line)),
+        logOutput: false,
+      };
+
+  backendWatchdog = new Watchdog(watchdogOpts);
 
   try {
     logMessage("Calling watchdog.start() - this will wait for server to become healthy...");

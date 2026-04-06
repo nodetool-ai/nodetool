@@ -1,0 +1,6611 @@
+[
+  {
+    "className": "Flux2ProTextToImage",
+    "moduleName": "image",
+    "modelId": "flux-2/pro-text-to-image",
+    "title": "Flux 2 Pro Text To Image",
+    "description": "Generate images using Black Forest Labs' Flux 2 Pro Text-to-Image model via Kie.ai.\n\n    kie, flux, flux-2, flux-pro, black-forest-labs, image generation, ai, text-to-image\n\n    Use cases:\n    - Generate high-quality artistic images from text\n    - Create professional visual content\n    - Generate images with fine detail and artistic style",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "3:2",
+          "2:3",
+          "auto"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Resolution",
+        "description": "Output image resolution.",
+        "values": [
+          "1K",
+          "2K"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "Flux2ProImageToImage",
+    "moduleName": "image",
+    "modelId": "flux-2/pro-image-to-image",
+    "title": "Flux 2 Pro Image To Image",
+    "description": "Generate images using Black Forest Labs' Flux 2 Pro Image-to-Image model via Kie.ai.\n\n    kie, flux, flux-2, flux-pro, black-forest-labs, image generation, ai, image-to-image\n\n    Use cases:\n    - Transform existing images with text prompts\n    - Apply artistic styles to photos\n    - Create variations of existing images\n    - Enhance and modify images",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing how to transform the image."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Source images to transform (1-8 images supported)."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "3:2",
+          "2:3",
+          "auto"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Resolution",
+        "description": "Output image resolution.",
+        "values": [
+          "1K",
+          "2K"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "input_urls"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "Flux2FlexTextToImage",
+    "moduleName": "image",
+    "modelId": "flux-2/flex-text-to-image",
+    "title": "Flux 2 Flex Text To Image",
+    "description": "Generate images using Black Forest Labs' Flux 2 Flex Text-to-Image model via Kie.ai.\n\n    kie, flux, flux-2, flux-flex, black-forest-labs, image generation, ai, text-to-image\n\n    Use cases:\n    - Generate high-quality images from text with flexible parameters\n    - Create professional visual content\n    - Generate images with fine detail and artistic style",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "3:2",
+          "2:3",
+          "auto"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Resolution",
+        "description": "Output image resolution.",
+        "values": [
+          "1K",
+          "2K"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "Flux2FlexImageToImage",
+    "moduleName": "image",
+    "modelId": "flux-2/flex-image-to-image",
+    "title": "Flux 2 Flex Image To Image",
+    "description": "Generate images using Black Forest Labs' Flux 2 Flex Image-to-Image model via Kie.ai.\n\n    kie, flux, flux-2, flux-flex, black-forest-labs, image generation, ai, image-to-image\n\n    Use cases:\n    - Transform existing images with text prompts\n    - Apply artistic styles to photos\n    - Create variations of existing images\n    - Enhance and modify images",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing how to transform the image."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Source images to transform (1-8 images supported)."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "3:2",
+          "2:3",
+          "auto"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Resolution",
+        "description": "Output image resolution.",
+        "values": [
+          "1K",
+          "2K"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "input_urls"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "Seedream45TextToImage",
+    "moduleName": "image",
+    "modelId": "seedream/4.5-text-to-image",
+    "title": "Seedream 4.5 Text To Image",
+    "description": "Generate images using ByteDance's Seedream 4.5 Text-to-Image model via Kie.ai.\n\n    kie, seedream, bytedance, image generation, ai, text-to-image, 4k\n\n    Seedream 4.5 generates high-quality visuals up to 4K resolution with\n    improved detail fidelity, multi-image blending, and sharp text/face rendering.\n\n    Use cases:\n    - Generate creative and artistic images from text\n    - Create diverse visual content up to 4K\n    - Generate illustrations with unique styles",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "basic",
+        "title": "Quality",
+        "description": "Basic outputs 2K images, while High outputs 4K images.",
+        "values": [
+          "basic",
+          "high"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "Seedream45Edit",
+    "moduleName": "image",
+    "modelId": "seedream/4.5-edit",
+    "title": "Seedream 4.5 Edit",
+    "description": "Edit images using ByteDance's Seedream 4.5 Edit model via Kie.ai.\n\n    kie, seedream, bytedance, image editing, ai, image-to-image, 4k\n\n    Seedream 4.5 Edit allows you to modify existing images while maintaining\n    high quality and detail fidelity up to 4K resolution.\n\n    Use cases:\n    - Edit and enhance existing images\n    - Apply style changes to photos\n    - Modify specific regions of images\n    - Improve image quality and resolution",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing how to edit the image."
+      },
+      {
+        "name": "image_input",
+        "type": "list[image]",
+        "default": [],
+        "title": "Image Input",
+        "description": "The source images to edit."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the output image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "basic",
+        "title": "Quality",
+        "description": "Basic outputs 2K images, while High outputs 4K images.",
+        "values": [
+          "basic",
+          "high"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image_input",
+        "kind": "image",
+        "isList": false,
+        "paramName": "image_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "ZImage",
+    "moduleName": "image",
+    "modelId": "z-image",
+    "title": "Z-Image Turbo",
+    "description": "Generate images using Alibaba's Z-Image Turbo model via Kie.ai.\n\n    kie, z-image, zimage, alibaba, image generation, ai, text-to-image, photorealistic\n\n    Z-Image Turbo produces realistic, detail-rich images with very low latency.\n    It supports bilingual text (English/Chinese) in images with sharp text rendering.\n\n    Use cases:\n    - Generate high-quality photorealistic images quickly\n    - Create images with embedded text (English/Chinese)\n    - Generate detailed illustrations with low latency\n    - Product visualizations",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "NanoBanana",
+    "moduleName": "image",
+    "modelId": "google/nano-banana",
+    "title": "Nano Banana",
+    "description": "Generate images using Google's Nano Banana model (Gemini 2.5) via Kie.ai.\n\n    kie, nano-banana, google, gemini, image generation, ai, text-to-image, fast",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Image Size",
+        "description": "The size of the output image.",
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "3:4",
+          "4:3",
+          "3:2",
+          "2:3",
+          "5:4",
+          "4:5",
+          "21:9",
+          "auto"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ],
+    "paramNames": {
+      "image_size": "aspect_ratio"
+    }
+  },
+  {
+    "className": "NanoBananaPro",
+    "moduleName": "image",
+    "modelId": "nano-banana-pro",
+    "title": "Nano Banana Pro",
+    "description": "Generate images using Google's Nano Banana Pro model (Gemini 3.0) via Kie.ai.\n\n    kie, nano-banana-pro, google, gemini, image generation, ai, text-to-image, 4k, high-fidelity",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "image_input",
+        "type": "list[image]",
+        "default": [],
+        "title": "Image Input",
+        "description": "Optional image inputs for multimodal generation."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "2K",
+        "title": "Resolution",
+        "description": "Output image resolution.",
+        "values": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "FluxKontext",
+    "moduleName": "image",
+    "modelId": "flux-kontext/text-to-image",
+    "title": "Flux Kontext",
+    "description": "Generate images using Black Forest Labs' Flux Kontext model via Kie.ai.\n\n    kie, flux, flux-kontext, black-forest-labs, image generation, ai, text-to-image, editing\n\n    Flux Kontext supports Pro (speed-optimized) and Max (quality-focused) variants\n    with features like multiple aspect ratios, safety controls, and async processing.\n\n    Use cases:\n    - Generate high-quality artistic images\n    - Advanced image editing and generation\n    - Create professional visual content\n    - Generate images with fine detail and artistic style",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "mode",
+        "type": "enum",
+        "default": "pro",
+        "title": "Mode",
+        "description": "Generation mode: 'pro' for speed, 'max' for quality.",
+        "values": [
+          "pro",
+          "max"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineTextToImage",
+    "moduleName": "image",
+    "modelId": "grok-imagine/text-to-image",
+    "title": "Grok Imagine Text To Image",
+    "description": "Generate images using xAI's Grok Imagine Text-to-Image model via Kie.ai.\n\n    kie, grok, xai, image generation, ai, text-to-image, multimodal\n\n    Grok Imagine is a multimodal generative model that can generate images\n    from text prompts.\n\n    Use cases:\n    - Generate images from text descriptions\n    - Create visual content with AI",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineUpscale",
+    "moduleName": "image",
+    "modelId": "grok-imagine/upscale",
+    "title": "Grok Imagine Upscale",
+    "description": "Upscale images using xAI's Grok Imagine Upscale model via Kie.ai.\n\n    kie, grok, xai, upscale, enhance, image, ai, super-resolution\n\n    Grok Imagine Upscale enhances and upscales images to higher resolutions\n    while maintaining quality and detail.\n\n    Constraints:\n    - Only images generated by Kie AI models (via Grok Imagine) are supported for upscaling.",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The image to upscale. Must be an image previously generated by a Kie.ai node."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "QwenTextToImage",
+    "moduleName": "image",
+    "modelId": "qwen/text-to-image",
+    "title": "Qwen Text To Image",
+    "description": "Generate images using Qwen's Text-to-Image model via Kie.ai.\n\n    kie, qwen, alibaba, image generation, ai, text-to-image\n\n    Qwen's text-to-image model generates high-quality images from text descriptions.\n\n    Use cases:\n    - Generate images from text descriptions\n    - Create artistic and realistic images\n    - Generate illustrations and artwork",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "QwenImageToImage",
+    "moduleName": "image",
+    "modelId": "qwen/image-to-image",
+    "title": "Qwen Image To Image",
+    "description": "Transform images using Qwen's Image-to-Image model via Kie.ai.\n\n    kie, qwen, alibaba, image transformation, ai, image-to-image\n\n    Qwen's image-to-image model transforms images based on text prompts\n    while preserving the overall structure and style.\n\n    Use cases:\n    - Transform images with text guidance\n    - Apply artistic styles to photos\n    - Create variations of existing images",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing how to transform the image."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The source image to transform."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the output image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "TopazImageUpscale",
+    "moduleName": "image",
+    "modelId": "topaz/image-upscale",
+    "title": "Topaz Image Upscale",
+    "description": "Upscale and enhance images using Topaz Labs AI via Kie.ai.\n\n    kie, topaz, upscale, enhance, image, ai, super-resolution\n\n    Topaz Image Upscale uses advanced AI models to enlarge images\n    while preserving and enhancing detail.\n\n    Use cases:\n    - Upscale low-resolution images\n    - Enhance image quality and detail\n    - Enlarge images for print or display",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The image to upscale."
+      },
+      {
+        "name": "upscale_factor",
+        "type": "enum",
+        "default": "2",
+        "title": "Upscale Factor",
+        "description": "The upscaling factor (2x or 4x).",
+        "values": [
+          "2",
+          "4"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ],
+    "paramNames": {
+      "upscale_factor": "scale_factor"
+    }
+  },
+  {
+    "className": "RecraftRemoveBackground",
+    "moduleName": "image",
+    "modelId": "recraft/remove-background",
+    "title": "Recraft Remove Background",
+    "description": "Remove background from images using Recraft's model via Kie.ai.\n\n    kie, recraft, remove-background, image processing, ai\n\n    Use cases:\n    - Automatically remove backgrounds from photos\n    - Create transparent PNGs for design work\n    - Isolate subjects in images",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The image to remove the background from."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "IdeogramCharacter",
+    "moduleName": "image",
+    "modelId": "ideogram/character",
+    "title": "Ideogram Character",
+    "description": "Generate character images using Ideogram via Kie.ai.\n\n    kie, ideogram, character, image generation, ai, character consistency\n\n    Ideogram Character generates images of characters in different settings while\n    maintaining character consistency using reference images and text prompts.\n\n    Use cases:\n    - Generate character images in various settings\n    - Maintain character consistency across images\n    - Create character portraits with specific backgrounds",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description for the character image."
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Reference Images",
+        "description": "Reference images for character guidance."
+      },
+      {
+        "name": "rendering_speed",
+        "type": "enum",
+        "default": "BALANCED",
+        "title": "Rendering Speed",
+        "description": "Rendering speed preference.",
+        "values": [
+          "TURBO",
+          "BALANCED",
+          "QUALITY"
+        ]
+      },
+      {
+        "name": "style",
+        "type": "enum",
+        "default": "AUTO",
+        "title": "Style",
+        "description": "Generation style.",
+        "values": [
+          "AUTO",
+          "REALISTIC",
+          "FICTION"
+        ]
+      },
+      {
+        "name": "expand_prompt",
+        "type": "bool",
+        "default": true,
+        "title": "Expand Prompt",
+        "description": "Whether to expand/augment the prompt."
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "square_hd",
+        "title": "Image Size",
+        "description": "The size of the output image.",
+        "values": [
+          "square",
+          "square_hd",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Undesired elements to exclude from the image."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed for generation.",
+        "min": 0
+      }
+    ],
+    "uploads": [
+      {
+        "field": "reference_images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "input_urls"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ],
+    "paramNames": {
+      "image_size": "aspect_ratio"
+    }
+  },
+  {
+    "className": "IdeogramCharacterEdit",
+    "moduleName": "image",
+    "modelId": "ideogram/character-edit",
+    "title": "Ideogram Character Edit",
+    "description": "Edit masked character images using Ideogram via Kie.ai.\n\n    kie, ideogram, character-edit, image editing, ai, inpainting\n\n    Ideogram Character Edit allows you to fill masked parts of character images\n    while maintaining character consistency using reference images and text prompts.\n\n    Use cases:\n    - Edit specific parts of character images\n    - Fill masked areas with new content\n    - Maintain character consistency during edits",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description for the masked area."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "Base image with masked area to fill."
+      },
+      {
+        "name": "mask",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Mask",
+        "description": "Mask image indicating areas to edit."
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Reference Images",
+        "description": "Reference images for character guidance."
+      },
+      {
+        "name": "rendering_speed",
+        "type": "enum",
+        "default": "BALANCED",
+        "title": "Rendering Speed",
+        "description": "Rendering speed preference.",
+        "values": [
+          "TURBO",
+          "BALANCED",
+          "QUALITY"
+        ]
+      },
+      {
+        "name": "style",
+        "type": "enum",
+        "default": "AUTO",
+        "title": "Style",
+        "description": "Generation style.",
+        "values": [
+          "AUTO",
+          "REALISTIC",
+          "FICTION"
+        ]
+      },
+      {
+        "name": "expand_prompt",
+        "type": "bool",
+        "default": true,
+        "title": "Expand Prompt",
+        "description": "Whether to expand/augment the prompt."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed for generation.",
+        "min": 0
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      },
+      {
+        "field": "mask",
+        "kind": "image",
+        "paramName": "mask_url"
+      },
+      {
+        "field": "reference_images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "reference_image_urls"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "IdeogramCharacterRemix",
+    "moduleName": "image",
+    "modelId": "ideogram/character-remix",
+    "title": "Ideogram Character Remix",
+    "description": "Remix characters in images using Ideogram via Kie.ai.\n\n    kie, ideogram, character-remix, image generation, ai, remix\n\n    Ideogram Character Remix allows you to remix images while maintaining character consistency\n    using reference images and text prompts.",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description for remixing."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "Base image to remix."
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Reference Images",
+        "description": "Reference images for character guidance."
+      },
+      {
+        "name": "rendering_speed",
+        "type": "enum",
+        "default": "BALANCED",
+        "title": "Rendering Speed",
+        "description": "Rendering speed preference.",
+        "values": [
+          "TURBO",
+          "BALANCED",
+          "QUALITY"
+        ]
+      },
+      {
+        "name": "style",
+        "type": "enum",
+        "default": "AUTO",
+        "title": "Style",
+        "description": "Generation style.",
+        "values": [
+          "AUTO",
+          "GENERAL",
+          "REALISTIC",
+          "DESIGN"
+        ]
+      },
+      {
+        "name": "expand_prompt",
+        "type": "bool",
+        "default": true,
+        "title": "Expand Prompt",
+        "description": "Whether to expand/augment the prompt."
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "square_hd",
+        "title": "Image Size",
+        "description": "The size of the output image.",
+        "values": [
+          "square",
+          "square_hd",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.8,
+        "title": "Strength",
+        "description": "How strongly to apply the remix (0.0 to 1.0).",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Undesired elements to exclude from the image."
+      },
+      {
+        "name": "additional_images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Additional Images",
+        "description": "Additional image this."
+      },
+      {
+        "name": "reference_mask_urls",
+        "type": "str",
+        "default": "",
+        "title": "Reference Mask Urls",
+        "description": "URL(s) to masks for references (comma-separated)."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      },
+      {
+        "field": "reference_images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "reference_image_urls"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "IdeogramV3Reframe",
+    "moduleName": "image",
+    "modelId": "ideogram/v3-reframe",
+    "title": "Ideogram V3 Reframe",
+    "description": "Reframe images using Ideogram v3 via Kie.ai.\n\n    kie, ideogram, v3-reframe, image processing, ai, reframe\n\n    Use cases:\n    - Reframe and rescale existing images\n    - Change aspect ratio of images while maintaining quality",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "URL of the image to reframe."
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "square_hd",
+        "title": "Image Size",
+        "description": "Output resolution preset.",
+        "values": [
+          "square",
+          "square_hd",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "rendering_speed",
+        "type": "enum",
+        "default": "BALANCED",
+        "title": "Rendering Speed",
+        "description": "Rendering speed preference.",
+        "values": [
+          "TURBO",
+          "BALANCED",
+          "QUALITY"
+        ]
+      },
+      {
+        "name": "style",
+        "type": "enum",
+        "default": "AUTO",
+        "title": "Style",
+        "description": "Generation style.",
+        "values": [
+          "AUTO",
+          "GENERAL",
+          "REALISTIC",
+          "DESIGN"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "RNG seed."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "RecraftCrispUpscale",
+    "moduleName": "image",
+    "modelId": "recraft/crisp-upscale",
+    "title": "Recraft Crisp Upscale",
+    "description": "Upscale images using Recraft's Crisp Upscale model via Kie.ai.\n\n    kie, recraft, crisp-upscale, upscale, ai",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The image to upscale."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Imagen4Fast",
+    "moduleName": "image",
+    "modelId": "google/imagen4-fast",
+    "title": "Imagen 4 Fast",
+    "description": "Generate images using Google's Imagen 4 Fast model via Kie.ai.\n\n    kie, google, imagen, imagen4, fast, image generation, ai",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Undesired elements to exclude."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "Imagen4Ultra",
+    "moduleName": "image",
+    "modelId": "google/imagen4-ultra",
+    "title": "Imagen 4 Ultra",
+    "description": "Generate images using Google's Imagen 4 Ultra model via Kie.ai.\n\n    kie, google, imagen, imagen4, ultra, image generation, ai",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Undesired elements to exclude."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "RNG seed."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "Imagen4",
+    "moduleName": "image",
+    "modelId": "google/imagen4",
+    "title": "Imagen 4",
+    "description": "Generate images using Google's Imagen 4 model via Kie.ai.\n\n    kie, google, imagen, imagen4, image generation, ai",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Undesired elements to exclude."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "RNG seed."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "NanoBananaEdit",
+    "moduleName": "image",
+    "modelId": "google/nano-banana-edit",
+    "title": "Nano Banana Edit",
+    "description": "Edit images using Google's Nano Banana model via Kie.ai.\n\n    kie, google, nano-banana, nano-banana-edit, image editing, ai",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description of the changes to make."
+      },
+      {
+        "name": "image_input",
+        "type": "list[image]",
+        "default": [],
+        "title": "Image Input",
+        "description": "Images to edit."
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Image Size",
+        "description": "The size of the output image.",
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "3:4",
+          "4:3",
+          "3:2",
+          "2:3",
+          "5:4",
+          "4:5",
+          "21:9",
+          "auto"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image_input",
+        "kind": "image",
+        "isList": false,
+        "paramName": "image_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "GPTImage4oTextToImage",
+    "moduleName": "image",
+    "modelId": "gpt-image-4o/text-to-image",
+    "title": "GPT 4o Image Text To Image",
+    "description": "Generate images using OpenAI's GPT-4o Image model via Kie.ai.\n\n    kie, openai, gpt-4o, 4o-image, image generation, ai, text-to-image\n\n    The GPT-Image-1 model (ChatGPT 4o Image) understands both text and visual\n    context, allowing precise image creation with accurate text rendering\n    and consistent styles.\n\n    Use cases:\n    - Generate high-quality images from text descriptions\n    - Create images with precise text rendering\n    - Generate design and marketing materials\n    - Produce creative visuals with strong instruction following",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Size",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "3:2",
+          "2:3"
+        ]
+      },
+      {
+        "name": "n_variants",
+        "type": "int",
+        "default": 1,
+        "title": "N Variants",
+        "description": "Number of image variants to generate (1, 2, or 4).",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "is_enhance",
+        "type": "bool",
+        "default": false,
+        "title": "Is Enhance",
+        "description": "Enable prompt enhancement for more refined effects."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "GPTImage4oImageToImage",
+    "moduleName": "image",
+    "modelId": "gpt-image-4o/image-to-image",
+    "title": "GPT 4o Image Edit",
+    "description": "Edit images using OpenAI's GPT-4o Image model via Kie.ai.\n\n    kie, openai, gpt-4o, 4o-image, image editing, ai, image-to-image\n\n    The GPT-Image-1 model (ChatGPT 4o Image) enables precise image editing\n    with strong instruction following and accurate text rendering.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply specific modifications to images\n    - Add or modify text in images\n    - Create variations of existing visuals",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing how to edit the image."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Input images to edit (supports up to 5 images)."
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Size",
+        "description": "The aspect ratio of the output image.",
+        "values": [
+          "1:1",
+          "3:2",
+          "2:3"
+        ]
+      },
+      {
+        "name": "n_variants",
+        "type": "int",
+        "default": 1,
+        "title": "N Variants",
+        "description": "Number of image variants to generate (1, 2, or 4).",
+        "min": 1,
+        "max": 4
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "input_urls"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "GPTImage15TextToImage",
+    "moduleName": "image",
+    "modelId": "gpt-image/1.5-text-to-image",
+    "title": "GPT Image 1.5 Text To Image",
+    "description": "Generate images using OpenAI's GPT Image 1.5 model via Kie.ai.\n\n    kie, openai, gpt-image-1.5, image generation, ai, text-to-image\n\n    GPT Image 1.5 is OpenAI's flagship image generation model for high-quality\n    image creation and precise image editing, with strong instruction following\n    and improved text rendering.\n\n    Use cases:\n    - Generate high-quality images from text descriptions\n    - Create images with excellent text rendering\n    - Generate professional marketing and design materials\n    - Produce creative visuals with precise control",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "2:3",
+          "3:2"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "Image quality setting. Medium = balanced, High = slow/detailed.",
+        "values": [
+          "medium",
+          "high"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "GPTImage15ImageToImage",
+    "moduleName": "image",
+    "modelId": "gpt-image/1.5-image-to-image",
+    "title": "GPT Image 1.5 Edit",
+    "description": "Edit images using OpenAI's GPT Image 1.5 model via Kie.ai.\n\n    kie, openai, gpt-image-1.5, image editing, ai, image-to-image\n\n    GPT Image 1.5 enables precise image editing with strong instruction following\n    and improved text rendering capabilities.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply specific modifications with precise control\n    - Add or modify text in images accurately\n    - Create variations with high fidelity",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing how to edit the image."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Input images to edit (supports up to 16 images)."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the output image.",
+        "values": [
+          "1:1",
+          "2:3",
+          "3:2"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "Image quality setting. Medium = balanced, High = slow/detailed.",
+        "values": [
+          "medium",
+          "high"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "input_urls"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "IdeogramV3TextToImage",
+    "moduleName": "image",
+    "modelId": "ideogram/v3-text-to-image",
+    "title": "Ideogram V3 Text To Image",
+    "description": "Generate images using Ideogram V3 model via Kie.ai.\n\n    kie, ideogram, v3, image generation, ai, text-to-image\n\n    Ideogram V3 is the latest generation of Ideogram's image generation model,\n    offering text-to-image with improved consistency and creative control.\n\n    Use cases:\n    - Generate creative images from text descriptions\n    - Create images with excellent text rendering\n    - Produce artistic and design content",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Elements to avoid in the generated image."
+      },
+      {
+        "name": "rendering_speed",
+        "type": "enum",
+        "default": "BALANCED",
+        "title": "Rendering Speed",
+        "description": "Rendering speed preference.",
+        "values": [
+          "TURBO",
+          "BALANCED",
+          "QUALITY"
+        ]
+      },
+      {
+        "name": "style",
+        "type": "enum",
+        "default": "AUTO",
+        "title": "Style",
+        "description": "Generation style.",
+        "values": [
+          "AUTO",
+          "GENERAL",
+          "REALISTIC",
+          "DESIGN"
+        ]
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "square",
+        "title": "Image Size",
+        "description": "The resolution of the generated image.",
+        "values": [
+          "square",
+          "square_hd",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "expand_prompt",
+        "type": "bool",
+        "default": true,
+        "title": "Expand Prompt",
+        "description": "Whether to expand/augment the prompt with MagicPrompt."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for reproducible results. Use -1 for random."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ],
+    "conditionalFields": [
+      {
+        "field": "negative_prompt",
+        "condition": "truthy"
+      }
+    ]
+  },
+  {
+    "className": "IdeogramV3ImageToImage",
+    "moduleName": "image",
+    "modelId": "ideogram/v3-edit",
+    "title": "Ideogram V3 Image To Image",
+    "description": "Edit images using Ideogram V3 model via Kie.ai.\n\n    kie, ideogram, v3, image editing, ai, image-to-image\n\n    Ideogram V3 offers image editing capabilities with improved consistency\n    and creative control.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply style changes while maintaining structure\n    - Create variations of existing images",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing how to transform the image."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The source image to transform."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Elements to avoid in the output."
+      },
+      {
+        "name": "rendering_speed",
+        "type": "enum",
+        "default": "BALANCED",
+        "title": "Rendering Speed",
+        "description": "Rendering speed preference.",
+        "values": [
+          "TURBO",
+          "BALANCED",
+          "QUALITY"
+        ]
+      },
+      {
+        "name": "style",
+        "type": "enum",
+        "default": "AUTO",
+        "title": "Style",
+        "description": "Generation style.",
+        "values": [
+          "AUTO",
+          "GENERAL",
+          "REALISTIC",
+          "DESIGN"
+        ]
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "square",
+        "title": "Image Size",
+        "description": "The resolution of the output image.",
+        "values": [
+          "square",
+          "square_hd",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.5,
+        "title": "Strength",
+        "description": "Strength of the input image in the remix (0-1). Lower = more original preserved.",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "expand_prompt",
+        "type": "bool",
+        "default": true,
+        "title": "Expand Prompt",
+        "description": "Whether to expand/augment the prompt with MagicPrompt."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for reproducible results. Use -1 for random."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "Seedream40TextToImage",
+    "moduleName": "image",
+    "modelId": "bytedance/seedream-v4-text-to-image",
+    "title": "Seedream 4.0 Text To Image",
+    "description": "Generate images using ByteDance's Seedream 4.0 model via Kie.ai.\n\n    kie, seedream, bytedance, seedream-4, image generation, ai, text-to-image\n\n    Seedream 4.0 is ByteDance's image generation model that combines text-to-image\n    with batch consistency, high speed, and professional-quality outputs.\n\n    Use cases:\n    - Generate creative and artistic images from text\n    - Create professional visual content\n    - Produce consistent batch images",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "basic",
+        "title": "Quality",
+        "description": "Basic outputs 2K images, while High outputs 4K images.",
+        "values": [
+          "basic",
+          "high"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "Seedream40ImageToImage",
+    "moduleName": "image",
+    "modelId": "bytedance/seedream-v4-edit",
+    "title": "Seedream 4.0 Edit",
+    "description": "Edit images using ByteDance's Seedream 4.0 model via Kie.ai.\n\n    kie, seedream, bytedance, seedream-4, image editing, ai, image-to-image\n\n    Seedream 4.0 offers image-to-image capabilities with batch consistency\n    and professional-quality outputs.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply style changes to photos\n    - Create variations of existing images",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing how to transform the image."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The source image to transform."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the output image.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "basic",
+        "title": "Quality",
+        "description": "Basic outputs 2K images, while High outputs 4K images.",
+        "values": [
+          "basic",
+          "high"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "GenerateMusic",
+    "moduleName": "audio",
+    "modelId": "suno/generate",
+    "title": "Generate Music",
+    "description": "Generate music using Suno AI via Kie.ai.\n\n    kie, suno, music, audio, ai, generation, vocals, instrumental\n\n    Creates full tracks with vocals and instrumentals using Suno models.\n    Supports custom mode for strict lyric control and non-custom mode for easy prompts.\n\n    Use cases:\n    - Generate background music for projects\n    - Create AI-composed songs with vocals\n    - Produce instrumentals for content\n    - Generate music in various genres and styles",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "custom_mode",
+        "type": "bool",
+        "default": false,
+        "title": "Custom Mode",
+        "description": "Enable custom mode for detailed control over style and title."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea."
+      },
+      {
+        "name": "style",
+        "type": "str",
+        "default": "",
+        "title": "Style",
+        "description": "Music style specification (required in custom mode)."
+      },
+      {
+        "name": "title",
+        "type": "str",
+        "default": "",
+        "title": "Title",
+        "description": "Track title (required in custom mode, max 80 characters)."
+      },
+      {
+        "name": "instrumental",
+        "type": "bool",
+        "default": false,
+        "title": "Instrumental",
+        "description": "Generate instrumental-only (no vocals)."
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "V4_5PLUS",
+        "title": "Model",
+        "description": "Suno model version to use.",
+        "values": [
+          "V4",
+          "V4_5",
+          "V4_5PLUS",
+          "V4_5ALL",
+          "V5"
+        ]
+      },
+      {
+        "name": "negative_tags",
+        "type": "str",
+        "default": "",
+        "title": "Negative Tags",
+        "description": "Music styles or traits to exclude from the generated audio."
+      },
+      {
+        "name": "vocal_gender",
+        "type": "enum",
+        "default": "",
+        "title": "Vocal Gender",
+        "description": "Vocal gender preference (custom mode only).",
+        "values": [
+          "",
+          "m",
+          "f"
+        ]
+      },
+      {
+        "name": "style_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Style Weight",
+        "description": "Strength of adherence to style (0-1)."
+      },
+      {
+        "name": "weirdness_constraint",
+        "type": "float",
+        "default": 0,
+        "title": "Weirdness Constraint",
+        "description": "Creative deviation control (0-1)."
+      },
+      {
+        "name": "audio_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Audio Weight",
+        "description": "Balance weight for audio features (0-1)."
+      },
+      {
+        "name": "persona_id",
+        "type": "str",
+        "default": "",
+        "title": "Persona Id",
+        "description": "Persona ID to apply (custom mode only)."
+      }
+    ],
+    "useSuno": true,
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "prompt is required"
+      }
+    ],
+    "paramNames": {
+      "custom_mode": "customMode",
+      "negative_tags": "negativeTags",
+      "vocal_gender": "vocalGender",
+      "style_weight": "styleWeight",
+      "weirdness_constraint": "weirdnessConstraint",
+      "audio_weight": "audioWeight",
+      "persona_id": "personaId"
+    },
+    "conditionalFields": [
+      {
+        "field": "negative_tags",
+        "condition": "truthy"
+      },
+      {
+        "field": "vocal_gender",
+        "condition": "truthy"
+      },
+      {
+        "field": "style_weight",
+        "condition": "truthy"
+      },
+      {
+        "field": "weirdness_constraint",
+        "condition": "truthy"
+      },
+      {
+        "field": "audio_weight",
+        "condition": "truthy"
+      },
+      {
+        "field": "persona_id",
+        "condition": "truthy"
+      }
+    ]
+  },
+  {
+    "className": "ExtendMusic",
+    "moduleName": "audio",
+    "modelId": "suno/extend",
+    "title": "Extend Music",
+    "description": "Extend music using Suno AI via Kie.ai.\n\n    kie, suno, music, audio, ai, extension, continuation, remix\n\n    Extends an existing track by continuing from a specified time point.\n    Can reuse original parameters or override them with custom settings.",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "default_param_flag",
+        "type": "bool",
+        "default": false,
+        "title": "Default Param Flag",
+        "description": "If true, use custom parameters (prompt/style/title/continue_at). If false, inherit parameters from the source audio."
+      },
+      {
+        "name": "audio_id",
+        "type": "str",
+        "default": "",
+        "title": "Audio Id",
+        "description": "Audio ID to extend."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Description of the desired extension content."
+      },
+      {
+        "name": "style",
+        "type": "str",
+        "default": "",
+        "title": "Style",
+        "description": "Music style for the extension (required for custom params)."
+      },
+      {
+        "name": "title",
+        "type": "str",
+        "default": "",
+        "title": "Title",
+        "description": "Title for the extended track (required for custom params)."
+      },
+      {
+        "name": "continue_at",
+        "type": "float",
+        "default": 0,
+        "title": "Continue At",
+        "description": "Time in seconds to start extending from (required for custom params).",
+        "min": 0
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "V4_5PLUS",
+        "title": "Model",
+        "description": "Suno model version to use (must match source audio).",
+        "values": [
+          "V4",
+          "V4_5",
+          "V4_5PLUS",
+          "V4_5ALL",
+          "V5"
+        ]
+      },
+      {
+        "name": "negative_tags",
+        "type": "str",
+        "default": "",
+        "title": "Negative Tags",
+        "description": "Music styles or traits to exclude from the extension."
+      },
+      {
+        "name": "vocal_gender",
+        "type": "enum",
+        "default": "",
+        "title": "Vocal Gender",
+        "description": "Vocal gender preference.",
+        "values": [
+          "",
+          "m",
+          "f"
+        ]
+      },
+      {
+        "name": "style_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Style Weight",
+        "description": "Strength of adherence to style (0-1)."
+      },
+      {
+        "name": "weirdness_constraint",
+        "type": "float",
+        "default": 0,
+        "title": "Weirdness Constraint",
+        "description": "Creative deviation control (0-1)."
+      },
+      {
+        "name": "audio_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Audio Weight",
+        "description": "Balance weight for audio features (0-1)."
+      },
+      {
+        "name": "persona_id",
+        "type": "str",
+        "default": "",
+        "title": "Persona Id",
+        "description": "Persona ID to apply (custom params only)."
+      }
+    ],
+    "useSuno": true,
+    "validation": [
+      {
+        "field": "audio_id",
+        "rule": "not_empty",
+        "message": "audio_id is required"
+      }
+    ]
+  },
+  {
+    "className": "CoverAudio",
+    "moduleName": "audio",
+    "modelId": "suno/cover",
+    "title": "Cover Audio",
+    "description": "Cover an uploaded audio track using Suno AI via Kie.ai.\n\n    kie, suno, music, audio, ai, cover, upload, style transfer\n\n    Uploads a source track and generates a covered version in a new style while\n    retaining the original melody.",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "custom_mode",
+        "type": "bool",
+        "default": false,
+        "title": "Custom Mode",
+        "description": "Enable custom mode for detailed control over style and title."
+      },
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "Source audio to upload for covering."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Music description or lyrics. In custom mode, this is used as lyrics when instrumental is false. In non-custom mode, this is the core idea."
+      },
+      {
+        "name": "style",
+        "type": "str",
+        "default": "",
+        "title": "Style",
+        "description": "Music style specification (required in custom mode)."
+      },
+      {
+        "name": "title",
+        "type": "str",
+        "default": "",
+        "title": "Title",
+        "description": "Track title (required in custom mode)."
+      },
+      {
+        "name": "instrumental",
+        "type": "bool",
+        "default": false,
+        "title": "Instrumental",
+        "description": "Generate instrumental-only (no vocals)."
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "V4_5PLUS",
+        "title": "Model",
+        "description": "Suno model version to use.",
+        "values": [
+          "V4",
+          "V4_5",
+          "V4_5PLUS",
+          "V4_5ALL",
+          "V5"
+        ]
+      },
+      {
+        "name": "negative_tags",
+        "type": "str",
+        "default": "",
+        "title": "Negative Tags",
+        "description": "Music styles or traits to exclude from the generated audio."
+      },
+      {
+        "name": "vocal_gender",
+        "type": "enum",
+        "default": "",
+        "title": "Vocal Gender",
+        "description": "Vocal gender preference (custom mode only).",
+        "values": [
+          "",
+          "m",
+          "f"
+        ]
+      },
+      {
+        "name": "style_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Style Weight",
+        "description": "Strength of adherence to style (0-1)."
+      },
+      {
+        "name": "weirdness_constraint",
+        "type": "float",
+        "default": 0,
+        "title": "Weirdness Constraint",
+        "description": "Creative deviation control (0-1)."
+      },
+      {
+        "name": "audio_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Audio Weight",
+        "description": "Balance weight for audio features (0-1)."
+      },
+      {
+        "name": "persona_id",
+        "type": "str",
+        "default": "",
+        "title": "Persona Id",
+        "description": "Persona ID to apply (custom mode only)."
+      }
+    ],
+    "useSuno": true,
+    "uploads": [
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "audio",
+        "rule": "not_empty",
+        "message": "audio is required"
+      }
+    ],
+    "paramNames": {
+      "vocal_gender": "vocalGender"
+    },
+    "conditionalFields": [
+      {
+        "field": "vocal_gender",
+        "condition": "truthy"
+      }
+    ]
+  },
+  {
+    "className": "AddInstrumental",
+    "moduleName": "audio",
+    "modelId": "suno/add-instrumental",
+    "title": "Add Instrumental",
+    "description": "Add instrumental accompaniment to uploaded audio via Suno AI.\n\n    kie, suno, music, audio, ai, instrumental, accompaniment, upload\n\n    Uploads a source track (e.g., vocals/stems) and generates a backing track.",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "Source audio to upload for instrumental generation."
+      },
+      {
+        "name": "title",
+        "type": "str",
+        "default": "",
+        "title": "Title",
+        "description": "Title of the generated music."
+      },
+      {
+        "name": "tags",
+        "type": "str",
+        "default": "",
+        "title": "Tags",
+        "description": "Music styles or tags to include in the generated music."
+      },
+      {
+        "name": "negative_tags",
+        "type": "str",
+        "default": "",
+        "title": "Negative Tags",
+        "description": "Music styles or characteristics to exclude."
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "V4_5PLUS",
+        "title": "Model",
+        "description": "Suno model version to use.",
+        "values": [
+          "V4_5PLUS",
+          "V5"
+        ]
+      },
+      {
+        "name": "vocal_gender",
+        "type": "enum",
+        "default": "",
+        "title": "Vocal Gender",
+        "description": "Vocal gender preference.",
+        "values": [
+          "",
+          "m",
+          "f"
+        ]
+      },
+      {
+        "name": "style_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Style Weight",
+        "description": "Strength of adherence to style (0-1)."
+      },
+      {
+        "name": "weirdness_constraint",
+        "type": "float",
+        "default": 0,
+        "title": "Weirdness Constraint",
+        "description": "Creative deviation control (0-1)."
+      },
+      {
+        "name": "audio_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Audio Weight",
+        "description": "Balance weight for audio features (0-1)."
+      }
+    ],
+    "useSuno": true,
+    "uploads": [
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "audio",
+        "rule": "not_empty",
+        "message": "audio is required"
+      }
+    ],
+    "paramNames": {
+      "tags": "prompt",
+      "title": "style"
+    }
+  },
+  {
+    "className": "AddVocals",
+    "moduleName": "audio",
+    "modelId": "suno/add-vocals",
+    "title": "Add Vocals",
+    "description": "Add AI vocals to uploaded audio via Suno AI.\n\n    kie, suno, music, audio, ai, vocals, singing, upload\n\n    Uploads an instrumental track and generates vocal layers on top.",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "Source audio to upload for vocal generation."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Prompt describing lyric content and singing style."
+      },
+      {
+        "name": "title",
+        "type": "str",
+        "default": "",
+        "title": "Title",
+        "description": "Title of the generated music."
+      },
+      {
+        "name": "style",
+        "type": "str",
+        "default": "",
+        "title": "Style",
+        "description": "Music style for vocal generation."
+      },
+      {
+        "name": "tags",
+        "type": "str",
+        "default": "",
+        "title": "Tags",
+        "description": "Optional music tags to include in the generation."
+      },
+      {
+        "name": "negative_tags",
+        "type": "str",
+        "default": "",
+        "title": "Negative Tags",
+        "description": "Excluded music styles or elements."
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "V4_5PLUS",
+        "title": "Model",
+        "description": "Suno model version to use.",
+        "values": [
+          "V4_5PLUS",
+          "V5"
+        ]
+      },
+      {
+        "name": "vocal_gender",
+        "type": "enum",
+        "default": "",
+        "title": "Vocal Gender",
+        "description": "Vocal gender preference.",
+        "values": [
+          "",
+          "m",
+          "f"
+        ]
+      },
+      {
+        "name": "style_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Style Weight",
+        "description": "Strength of adherence to style (0-1)."
+      },
+      {
+        "name": "weirdness_constraint",
+        "type": "float",
+        "default": 0,
+        "title": "Weirdness Constraint",
+        "description": "Creative deviation control (0-1)."
+      },
+      {
+        "name": "audio_weight",
+        "type": "float",
+        "default": 0,
+        "title": "Audio Weight",
+        "description": "Balance weight for audio features (0-1)."
+      }
+    ],
+    "useSuno": true,
+    "uploads": [
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "audio",
+        "rule": "not_empty",
+        "message": "audio is required"
+      }
+    ],
+    "paramNames": {
+      "vocal_gender": "vocalGender"
+    },
+    "conditionalFields": [
+      {
+        "field": "vocal_gender",
+        "condition": "truthy"
+      }
+    ]
+  },
+  {
+    "className": "ReplaceMusicSection",
+    "moduleName": "audio",
+    "modelId": "suno/replace-section",
+    "title": "Replace Music Section",
+    "description": "Replace a section of a generated Suno track.\n\n    kie, suno, music, replace, edit, infill\n\n    Regenerates a time range and blends it into the original track.",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "task_id",
+        "type": "str",
+        "default": "",
+        "title": "Task Id",
+        "description": "Original music task ID."
+      },
+      {
+        "name": "audio_id",
+        "type": "str",
+        "default": "",
+        "title": "Audio Id",
+        "description": "Audio ID to replace."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Prompt describing the replacement segment content."
+      },
+      {
+        "name": "tags",
+        "type": "str",
+        "default": "",
+        "title": "Tags",
+        "description": "Music style tags."
+      },
+      {
+        "name": "title",
+        "type": "str",
+        "default": "",
+        "title": "Title",
+        "description": "Music title."
+      },
+      {
+        "name": "infill_start_s",
+        "type": "float",
+        "default": 0,
+        "title": "Infill Start S",
+        "description": "Start time point for replacement (seconds).",
+        "min": 0
+      },
+      {
+        "name": "infill_end_s",
+        "type": "float",
+        "default": 0,
+        "title": "Infill End S",
+        "description": "End time point for replacement (seconds).",
+        "min": 0
+      },
+      {
+        "name": "negative_tags",
+        "type": "str",
+        "default": "",
+        "title": "Negative Tags",
+        "description": "Excluded music styles for the replacement segment."
+      },
+      {
+        "name": "full_lyrics",
+        "type": "str",
+        "default": "",
+        "title": "Full Lyrics",
+        "description": "Full lyrics after modification."
+      }
+    ],
+    "useSuno": true,
+    "validation": [
+      {
+        "field": "task_id",
+        "rule": "not_empty",
+        "message": "task_id is required"
+      },
+      {
+        "field": "audio_id",
+        "rule": "not_empty",
+        "message": "audio_id is required"
+      }
+    ],
+    "paramNames": {
+      "tags": "style",
+      "infill_start_s": "start_time",
+      "infill_end_s": "end_time"
+    }
+  },
+  {
+    "className": "ElevenLabsTextToSpeech",
+    "moduleName": "audio",
+    "modelId": "elevenlabs/text-to-speech-turbo-2-5",
+    "title": "ElevenLabs Text To Speech",
+    "description": "Generate speech using ElevenLabs AI via Kie.ai.\n\n    kie, elevenlabs, tts, text-to-speech, voice, audio, ai, speech synthesis\n\n    Creates natural-sounding speech from text using ElevenLabs' voice models.\n    Supports multiple voices, stability controls, and multilingual output.\n\n    Use cases:\n    - Generate voiceovers for videos and podcasts\n    - Create audiobooks and narrated content\n    - Produce natural-sounding speech for applications\n    - Generate speech in multiple languages and voices",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "text",
+        "type": "str",
+        "default": "",
+        "title": "Text",
+        "description": "The text to convert to speech."
+      },
+      {
+        "name": "voice",
+        "type": "str",
+        "default": "Rachel",
+        "title": "Voice",
+        "description": "The voice ID to use for synthesis. Common voices: Rachel, Adam, Bella, Antoni."
+      },
+      {
+        "name": "stability",
+        "type": "float",
+        "default": 0.5,
+        "title": "Stability",
+        "description": "Stability of the voice output. Lower values are more expressive, higher values are more consistent.",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "similarity_boost",
+        "type": "float",
+        "default": 0.75,
+        "title": "Similarity Boost",
+        "description": "How closely to clone the voice characteristics. Higher values match the voice more closely.",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "style",
+        "type": "float",
+        "default": 0,
+        "title": "Style",
+        "description": "Style parameter for voice expression. Range 0.0 to 1.0.",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "speed",
+        "type": "float",
+        "default": 1,
+        "title": "Speed",
+        "description": "Speed of the speech. Range 0.5 to 1.5.",
+        "min": 0.5,
+        "max": 1.5
+      },
+      {
+        "name": "language_code",
+        "type": "str",
+        "default": "",
+        "title": "Language Code",
+        "description": "Language code for multilingual TTS (e.g., 'en', 'es', 'fr', 'de'). Leave empty for auto-detection."
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "text-to-speech-turbo-2-5",
+        "title": "Model",
+        "description": "ElevenLabs model version to use.",
+        "values": [
+          "text-to-speech-turbo-2-5",
+          "text-to-speech-multilingual-v2"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "text",
+        "rule": "not_empty",
+        "message": "text is required"
+      },
+      {
+        "field": "voice",
+        "rule": "not_empty",
+        "message": "voice_id is required"
+      }
+    ],
+    "paramNames": {
+      "voice": "voice_id",
+      "model": "model_id"
+    }
+  },
+  {
+    "className": "ElevenLabsAudioIsolation",
+    "moduleName": "audio",
+    "modelId": "elevenlabs/audio-isolation",
+    "title": "ElevenLabs Audio Isolation",
+    "description": "Isolate speech from audio using ElevenLabs AI via Kie.ai.\n\n    kie, elevenlabs, audio-isolation, speech, noise-removal, ai\n\n    ElevenLabs Audio Isolation uses AI to remove background noise, music,\n    and interference while preserving clear, natural speech.\n\n    Use cases:\n    - Clean up podcast and interview recordings\n    - Remove background noise from audio\n    - Isolate speech for professional recordings\n    - Prepare audio for transcription or production",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "Audio file to process for speech isolation."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "audio",
+        "rule": "not_empty",
+        "message": "audio is required"
+      }
+    ]
+  },
+  {
+    "className": "ElevenLabsSoundEffect",
+    "moduleName": "audio",
+    "modelId": "elevenlabs/sound-effect-v2",
+    "title": "ElevenLabs Sound Effect",
+    "description": "Generate sound effects using ElevenLabs AI via Kie.ai.\n\n    kie, elevenlabs, sound-effect, sfx, audio, ai\n\n    ElevenLabs Sound Effect V2 generates audio from text descriptions,\n    supporting clips up to 20+ seconds with seamless looping and 48kHz audio.\n\n    Use cases:\n    - Generate custom sound effects for videos\n    - Create ambient sounds for games and applications\n    - Produce foley effects from text descriptions\n    - Generate audio elements for creative projects",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "text",
+        "type": "str",
+        "default": "",
+        "title": "Text",
+        "description": "Text description of the sound effect to generate."
+      },
+      {
+        "name": "duration_seconds",
+        "type": "float",
+        "default": 5,
+        "title": "Duration Seconds",
+        "description": "Duration of the sound effect in seconds (up to 22 seconds).",
+        "min": 0.5,
+        "max": 22
+      },
+      {
+        "name": "prompt_influence",
+        "type": "float",
+        "default": 0.3,
+        "title": "Prompt Influence",
+        "description": "How strongly the prompt influences generation (0-1).",
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "validation": [
+      {
+        "field": "text",
+        "rule": "not_empty",
+        "message": "text is required"
+      }
+    ],
+    "conditionalFields": [
+      {
+        "field": "duration_seconds",
+        "condition": "truthy"
+      }
+    ]
+  },
+  {
+    "className": "ElevenLabsSpeechToText",
+    "moduleName": "audio",
+    "modelId": "elevenlabs/speech-to-text",
+    "title": "ElevenLabs Speech To Text",
+    "description": "Transcribe speech to text using ElevenLabs AI via Kie.ai.\n\n    kie, elevenlabs, speech-to-text, transcription, stt, ai\n\n    ElevenLabs Speech to Text (Scribe v1) delivers state-of-the-art transcription\n    with multilingual support, speaker diarization, and audio-event tagging.\n\n    Use cases:\n    - Transcribe podcasts and interviews\n    - Create subtitles for videos\n    - Convert audio recordings to text\n    - Generate meeting transcripts with speaker labels",
+    "outputType": "text",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "Audio file to transcribe."
+      },
+      {
+        "name": "language_code",
+        "type": "str",
+        "default": "",
+        "title": "Language Code",
+        "description": "Language code (e.g., 'en', 'es', 'fr'). Leave empty for auto-detection."
+      },
+      {
+        "name": "diarization",
+        "type": "bool",
+        "default": false,
+        "title": "Diarization",
+        "description": "Enable speaker diarization to identify different speakers."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "audio",
+        "rule": "not_empty",
+        "message": "audio is required"
+      }
+    ]
+  },
+  {
+    "className": "ElevenLabsV3Dialogue",
+    "moduleName": "audio",
+    "modelId": "elevenlabs/text-to-dialogue-v3",
+    "title": "ElevenLabs V3 Dialogue",
+    "description": "Generate expressive dialogue using ElevenLabs V3 via Kie.ai.\n\n    kie, elevenlabs, v3, dialogue, tts, text-to-speech, multi-speaker, ai\n\n    ElevenLabs Eleven V3 enables expressive multilingual Text to Dialogue\n    with audio tag control, multi-speaker support, and natural delivery.\n\n    Use cases:\n    - Generate dialogue for storytelling applications\n    - Create multi-speaker audio content\n    - Produce expressive voiceovers with audio tags\n    - Generate natural conversation audio",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "text",
+        "type": "str",
+        "default": "",
+        "title": "Text",
+        "description": "The dialogue text to convert to speech. Supports audio tags for control."
+      },
+      {
+        "name": "voice",
+        "type": "str",
+        "default": "Rachel",
+        "title": "Voice",
+        "description": "Primary voice ID to use for synthesis."
+      },
+      {
+        "name": "stability",
+        "type": "float",
+        "default": 0.5,
+        "title": "Stability",
+        "description": "Stability of the voice output (0-1).",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "similarity_boost",
+        "type": "float",
+        "default": 0.75,
+        "title": "Similarity Boost",
+        "description": "Voice clone similarity (0-1).",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "style",
+        "type": "float",
+        "default": 0,
+        "title": "Style",
+        "description": "Style expression parameter (0-1).",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "speed",
+        "type": "float",
+        "default": 1,
+        "title": "Speed",
+        "description": "Speech speed (0.5-1.5).",
+        "min": 0.5,
+        "max": 1.5
+      },
+      {
+        "name": "language_code",
+        "type": "str",
+        "default": "",
+        "title": "Language Code",
+        "description": "Language code for multilingual output. Leave empty for auto-detection."
+      }
+    ],
+    "validation": [
+      {
+        "field": "text",
+        "rule": "not_empty",
+        "message": "script is required"
+      }
+    ],
+    "paramNames": {
+      "text": "script",
+      "voice": "voice_assignments"
+    }
+  },
+  {
+    "className": "KlingTextToVideo",
+    "moduleName": "video",
+    "modelId": "kling-2.6/text-to-video",
+    "title": "Kling 2.6 Text To Video",
+    "description": "Generate videos from text using Kuaishou's Kling 2.6 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, text-to-video, 2.6\n\n    Kling 2.6 produces high-quality videos from text descriptions with\n    realistic motion, natural lighting, and cinematic detail.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Video duration in seconds.",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "768P"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for reproducible results. Use -1 for random seed."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "KlingImageToVideo",
+    "moduleName": "video",
+    "modelId": "kling-2.6/image-to-video",
+    "title": "Kling 2.6 Image To Video",
+    "description": "Generate videos from images using Kuaishou's Kling 2.6 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, image-to-video, 2.6\n\n    Transforms static images into dynamic videos with realistic motion\n    and temporal consistency while preserving the original visual style.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text prompt to guide the video generation."
+      },
+      {
+        "name": "image1",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image1",
+        "description": "First source image for the video generation."
+      },
+      {
+        "name": "image2",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image2",
+        "description": "Second source image (optional)."
+      },
+      {
+        "name": "image3",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image3",
+        "description": "Third source image (optional)."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": false,
+        "title": "Sound",
+        "description": "Whether to generate sound for the video."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Video duration in seconds."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image1",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image2",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image3",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      }
+    ]
+  },
+  {
+    "className": "KlingAIAvatarStandard",
+    "moduleName": "video",
+    "modelId": "kling/ai-avatar-standard",
+    "title": "Kling AIAvatar Standard",
+    "description": "Generate talking avatar videos using Kuaishou's Kling AI via Kie.ai.\n\n    kie, kling, kuaishou, avatar, video generation, ai, talking-head, lip-sync\n\n    Transforms a photo plus audio track into a lip-synced talking avatar video\n    with natural-looking speech animation and consistent identity.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The face/character image to animate."
+      },
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "The audio track for lip-syncing."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text to guide emotions and expressions."
+      },
+      {
+        "name": "mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Mode",
+        "description": "Generation mode: 'standard' or 'pro' for higher quality.",
+        "values": [
+          "standard",
+          "pro"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      },
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ]
+  },
+  {
+    "className": "KlingAIAvatarPro",
+    "moduleName": "video",
+    "modelId": "kling/ai-avatar-pro",
+    "title": "Kling AIAvatar Pro",
+    "description": "Generate talking avatar videos using Kuaishou's Kling AI via Kie.ai.\n\n    kie, kling, kuaishou, avatar, video generation, ai, talking-head, lip-sync\n\n    Transforms a photo plus audio track into a lip-synced talking avatar video\n    with natural-looking speech animation and consistent identity.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The face/character image to animate."
+      },
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "The audio track for lip-syncing."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text to guide emotions and expressions."
+      },
+      {
+        "name": "mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Mode",
+        "description": "Generation mode: 'standard' or 'pro' for higher quality.",
+        "values": [
+          "standard",
+          "pro"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      },
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineTextToVideo",
+    "moduleName": "video",
+    "modelId": "grok-imagine/text-to-video",
+    "title": "Grok Imagine Text To Video",
+    "description": "Generate videos from text using xAI's Grok Imagine model via Kie.ai.\n\n    kie, grok, xai, video generation, ai, text-to-video, multimodal\n\n    Grok Imagine generates videos from text prompts using xAI's\n    multimodal generation capabilities.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "medium",
+        "title": "Duration",
+        "description": "The duration tier of the video.",
+        "values": [
+          "short",
+          "medium",
+          "long"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineImageToVideo",
+    "moduleName": "video",
+    "modelId": "grok-imagine/image-to-video",
+    "title": "Grok Imagine Image To Video",
+    "description": "Generate videos from images using xAI's Grok Imagine model via Kie.ai.\n\n    kie, grok, xai, video generation, ai, image-to-video, multimodal\n\n    Grok Imagine transforms images into videos using xAI's\n    multimodal generation capabilities.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text guide for the animation."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The source image to animate."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "medium",
+        "title": "Duration",
+        "description": "The duration tier of the video.",
+        "values": [
+          "short",
+          "medium",
+          "long"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "SeedanceV1LiteTextToVideo",
+    "moduleName": "video",
+    "modelId": "bytedance/v1-lite-text-to-video",
+    "title": "Seedance V1 Lite Text To Video",
+    "description": "Bytedance 1.0 - text-to-video-lite via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, text-to-video, lite\n\n    Seedance V1 Lite offers efficient text-to-video generation\n    with good quality and faster processing times.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "21:9",
+          "9:21"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "SeedanceV1ProTextToVideo",
+    "moduleName": "video",
+    "modelId": "bytedance/v1-pro-text-to-video",
+    "title": "Seedance V1 Pro Text To Video",
+    "description": "Bytedance 1.0 - text-to-video-pro via Kie.ai.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "21:9",
+          "9:21"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "SeedanceV1LiteImageToVideo",
+    "moduleName": "video",
+    "modelId": "bytedance/v1-lite-image-to-video",
+    "title": "Seedance V1 Lite Image To Video",
+    "description": "Bytedance 1.0 - image-to-video-lite via Kie.ai.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "21:9",
+          "9:21"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text guide for the video generation."
+      },
+      {
+        "name": "image1",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image1",
+        "description": "First source image for the video generation."
+      },
+      {
+        "name": "image2",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image2",
+        "description": "Second source image (optional)."
+      },
+      {
+        "name": "image3",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image3",
+        "description": "Third source image (optional)."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image1",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image2",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image3",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      }
+    ]
+  },
+  {
+    "className": "SeedanceV1ProImageToVideo",
+    "moduleName": "video",
+    "modelId": "bytedance/v1-pro-image-to-video",
+    "title": "Seedance V1 Pro Image To Video",
+    "description": "Bytedance 1.0 - image-to-video-pro via Kie.ai.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "21:9",
+          "9:21"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text guide for the video generation."
+      },
+      {
+        "name": "image1",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image1",
+        "description": "First source image for the video generation."
+      },
+      {
+        "name": "image2",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image2",
+        "description": "Second source image (optional)."
+      },
+      {
+        "name": "image3",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image3",
+        "description": "Third source image (optional)."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image1",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image2",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image3",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      }
+    ]
+  },
+  {
+    "className": "SeedanceV1ProFastImageToVideo",
+    "moduleName": "video",
+    "modelId": "bytedance/v1-pro-fast-image-to-video",
+    "title": "Seedance V1 Pro Fast Image To Video",
+    "description": "Bytedance 1.0 - fast-image-to-video-pro via Kie.ai.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "21:9",
+          "9:21"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      },
+      {
+        "name": "image1",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image1",
+        "description": "First source image for the video generation."
+      },
+      {
+        "name": "image2",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image2",
+        "description": "Second source image (optional)."
+      },
+      {
+        "name": "image3",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image3",
+        "description": "Third source image (optional)."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image1",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image2",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image3",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      }
+    ]
+  },
+  {
+    "className": "Seedance2TextToVideo",
+    "moduleName": "video",
+    "modelId": "bytedance/seedance-2",
+    "title": "Seedance 2.0 Text To Video",
+    "description": "Generate videos from text using ByteDance's Seedance 2.0 model via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, text-to-video, 2.0\n\n    Seedance 2.0 is a multimodal AI video model optimized for fast and realistic\n    video generation with strong multi-shot consistency and dynamic camera control.\n\n    Use cases:\n    - Generate cinematic videos from text descriptions\n    - Create realistic content with natural motion\n    - Produce videos with optional audio generation",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the video to generate. (3-2500 characters)"
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Video aspect ratio.",
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution. 480p for faster generation, 720p for balance.",
+        "values": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "Video duration in seconds (4, 8, or 12).",
+        "values": [
+          "4",
+          "8",
+          "12"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": false,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio for the video. Enabling audio increases cost."
+      },
+      {
+        "name": "web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search",
+        "description": "Use online search to enhance generation."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Seedance2ImageToVideo",
+    "moduleName": "video",
+    "modelId": "bytedance/seedance-2",
+    "title": "Seedance 2.0 Image To Video",
+    "description": "Animate images into video using ByteDance's Seedance 2.0 model via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, image-to-video, 2.0\n\n    Seedance 2.0 transforms static images into dynamic videos with realistic motion\n    and temporal consistency. Supports first frame, last frame, and reference images.\n\n    Use cases:\n    - Animate product images or artwork\n    - Create videos from first/last frame images\n    - Generate motion from static scenes",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the video motion. (3-2500 characters)"
+      },
+      {
+        "name": "first_frame",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "First Frame",
+        "description": "First frame image to animate from."
+      },
+      {
+        "name": "last_frame",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Last Frame",
+        "description": "Last frame image (optional, for first+last frame mode)."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Video aspect ratio.",
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution. 480p for faster generation, 720p for balance.",
+        "values": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "Video duration in seconds (4, 8, or 12).",
+        "values": [
+          "4",
+          "8",
+          "12"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": false,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio for the video. Enabling audio increases cost."
+      },
+      {
+        "name": "web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search",
+        "description": "Use online search to enhance generation."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "first_frame",
+        "kind": "image",
+        "paramName": "first_frame_url"
+      },
+      {
+        "field": "last_frame",
+        "kind": "image",
+        "paramName": "last_frame_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "HailuoTextToVideoPro",
+    "moduleName": "video",
+    "modelId": "hailuo/2-3-text-to-video-pro",
+    "title": "Hailuo 2.3 Pro Text To Video",
+    "description": "Generate videos from text using MiniMax's Hailuo 2.3 Pro model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, text-to-video, pro\n\n    Hailuo 2.3 Pro offers the highest quality text-to-video generation with\n    realistic motion, detailed textures, and cinematic quality.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "6",
+        "title": "Duration",
+        "description": "The duration of the video in seconds. 10s is not supported for 1080p.",
+        "values": [
+          "6",
+          "10"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "768P",
+          "1080P"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "HailuoTextToVideoStandard",
+    "moduleName": "video",
+    "modelId": "hailuo/2-3-text-to-video-standard",
+    "title": "Hailuo 2.3 Standard Text To Video",
+    "description": "Generate videos from text using MiniMax's Hailuo 2.3 Standard model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, text-to-video, standard, fast",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "6",
+        "title": "Duration",
+        "description": "The duration of the video in seconds. 10s is not supported for 1080p.",
+        "values": [
+          "6",
+          "10"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "768P",
+          "1080P"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "HailuoImageToVideoPro",
+    "moduleName": "video",
+    "modelId": "hailuo/2-3-image-to-video-pro",
+    "title": "Hailuo 2.3 Pro Image To Video",
+    "description": "Generate videos from images using MiniMax's Hailuo 2.3 Pro model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, image-to-video, pro\n\n    Hailuo 2.3 Pro offers the highest quality image-to-video generation with\n    realistic motion, detailed textures, and cinematic quality.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The reference image to animate into a video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text to guide the video generation."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "6",
+        "title": "Duration",
+        "description": "The duration of the video in seconds. 10s is not supported for 1080p.",
+        "values": [
+          "6",
+          "10"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "768P",
+          "1080P"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "HailuoImageToVideoStandard",
+    "moduleName": "video",
+    "modelId": "hailuo/2-3-image-to-video-standard",
+    "title": "Hailuo 2.3 Standard Image To Video",
+    "description": "Generate videos from images using MiniMax's Hailuo 2.3 Standard model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, image-to-video, standard, fast\n\n    Hailuo 2.3 Standard offers efficient image-to-video generation with good quality\n    and faster processing times for practical use cases.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The reference image to animate into a video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text to guide the video generation."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "6",
+        "title": "Duration",
+        "description": "The duration of the video in seconds. 10s is not supported for 1080p.",
+        "values": [
+          "6",
+          "10"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "768P",
+          "1080P"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Kling25TurboTextToVideo",
+    "moduleName": "video",
+    "modelId": "kling/v2-5-turbo-text-to-video-pro",
+    "title": "Kling 2.5 Turbo Text To Video",
+    "description": "Generate videos from text using Kuaishou's Kling 2.5 Turbo model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, text-to-video, turbo\n\n    Kling 2.5 Turbo offers improved prompt adherence, fluid motion,\n    consistent artistic styles, and realistic physics simulation.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "Video duration in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Things to avoid in the generated video."
+      },
+      {
+        "name": "cfg_scale",
+        "type": "float",
+        "default": 0.5,
+        "title": "Cfg Scale",
+        "description": "The CFG scale for prompt adherence. Lower values allow more creativity.",
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Kling25TurboImageToVideo",
+    "moduleName": "video",
+    "modelId": "kling/v2-5-turbo-image-to-video-pro",
+    "title": "Kling 2.5 Turbo Image To Video",
+    "description": "Generate videos from images using Kuaishou's Kling 2.5 Turbo model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, image-to-video, turbo\n\n    Transforms a static image into a dynamic video while preserving\n    visual style, colors, lighting, and texture.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Text description to guide the video generation."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The source image to animate."
+      },
+      {
+        "name": "tail_image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Tail Image",
+        "description": "Tail frame image for the video (optional)."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "Video duration in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Elements to avoid in the video."
+      },
+      {
+        "name": "cfg_scale",
+        "type": "float",
+        "default": 0.5,
+        "title": "Cfg Scale",
+        "description": "The CFG scale for prompt adherence. Lower values allow more creativity.",
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Sora2ProTextToVideo",
+    "moduleName": "video",
+    "modelId": "sora-2-pro-text-to-video",
+    "title": "Sora 2 Pro Text To Video",
+    "description": "Generate videos from text using Sora 2 Pro via Kie.ai.\n\n    kie, sora, openai, video generation, ai, text-to-video, pro\n\n    Sora 2 Pro generates high-quality videos from text descriptions\n    with advanced motion and temporal consistency.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "landscape",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "landscape",
+          "portrait",
+          "square"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      },
+      {
+        "name": "n_frames",
+        "type": "enum",
+        "default": "10",
+        "title": "N Frames",
+        "description": "Number of frames for the video output.",
+        "values": [
+          "10",
+          "15"
+        ]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Sora2ProImageToVideo",
+    "moduleName": "video",
+    "modelId": "sora-2-pro-image-to-video",
+    "title": "Sora 2 Pro Image To Video",
+    "description": "Generate videos from images using Sora 2 Pro via Kie.ai.\n\n    kie, sora, openai, video generation, ai, image-to-video, pro\n\n    Sora 2 Pro transforms images into high-quality videos with\n    realistic motion and temporal consistency.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "landscape",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "landscape",
+          "portrait",
+          "square"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      },
+      {
+        "name": "n_frames",
+        "type": "enum",
+        "default": "10",
+        "title": "N Frames",
+        "description": "Number of frames for the video output.",
+        "values": [
+          "10",
+          "15"
+        ]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text guide for the video generation."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The source image to animate."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Sora2ProStoryboard",
+    "moduleName": "video",
+    "modelId": "sora-2-pro-storyboard",
+    "title": "Sora 2 Pro Storyboard",
+    "description": "Generate videos from storyboards using Sora 2 Pro via Kie.ai.\n\n    kie, sora, openai, video generation, ai, storyboard, pro\n\n    Sora 2 Pro creates videos from storyboard sequences with\n    consistent characters and scenes across frames.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "landscape",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "landscape",
+          "portrait",
+          "square"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      },
+      {
+        "name": "n_frames",
+        "type": "enum",
+        "default": "10",
+        "title": "N Frames",
+        "description": "Number of frames for the video output.",
+        "values": [
+          "10",
+          "15",
+          "25"
+        ]
+      },
+      {
+        "name": "shots",
+        "type": "str",
+        "default": "",
+        "title": "Shots",
+        "description": "The shots to generate, with columns: Scene, duration."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "The images to use for the video generation."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "image_urls"
+      }
+    ]
+  },
+  {
+    "className": "Sora2TextToVideo",
+    "moduleName": "video",
+    "modelId": "sora-2-text-to-video",
+    "title": "Sora 2 Text To Video",
+    "description": "Generate videos from text using Sora 2 Standard via Kie.ai.\n\n    kie, sora, openai, video generation, ai, text-to-video, standard\n\n    Sora 2 Standard generates quality videos from text descriptions\n    with efficient processing and good visual quality.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "landscape",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "landscape",
+          "portrait",
+          "square"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      },
+      {
+        "name": "n_frames",
+        "type": "enum",
+        "default": "10",
+        "title": "N Frames",
+        "description": "Number of frames for the video output.",
+        "values": [
+          "10",
+          "15"
+        ]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "WanMultiShotTextToVideoPro",
+    "moduleName": "video",
+    "modelId": "wan/multi-shot-text-to-video-pro",
+    "title": "Wan 2.1 Multi-Shot Text To Video",
+    "description": "Generate videos from text using Alibaba's Wan 2.1 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, multi-shot, 2.1\n\n    Wan 2.1 Multi-Shot generates complex videos with multiple shots\n    and scene transitions from text descriptions.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "remove_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Remove Watermark",
+        "description": "Whether to remove the watermark from the video."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Wan26TextToVideo",
+    "moduleName": "video",
+    "modelId": "wan/2-6-text-to-video",
+    "title": "Wan 2.6 Text To Video",
+    "description": "Generate videos from text using Alibaba's Wan 2.6 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, 2.6\n\n    Wan 2.6 generates high-quality videos from text descriptions\n    with advanced motion and visual fidelity.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5s",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5s",
+          "10"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "1080p",
+          "720p"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Wan26ImageToVideo",
+    "moduleName": "video",
+    "modelId": "wan/2-6-image-to-video",
+    "title": "Wan 2.6 Image To Video",
+    "description": "Generate videos from images using Alibaba's Wan 2.6 model via Kie.ai.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "image1",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image1",
+        "description": "First source image for the video generation."
+      },
+      {
+        "name": "image2",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image2",
+        "description": "Second source image (optional)."
+      },
+      {
+        "name": "image3",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image3",
+        "description": "Third source image (optional)."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "1080p",
+          "720p"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image1",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Wan26VideoToVideo",
+    "moduleName": "video",
+    "modelId": "wan/2-6-video-to-video",
+    "title": "Wan 2.6 Video To Video",
+    "description": "Generate videos from videos using Alibaba's Wan 2.6 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, video-to-video, 2.6\n\n    Wan 2.6 transforms and enhances existing videos with AI-powered\n    editing and style transfer capabilities.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the changes."
+      },
+      {
+        "name": "video1",
+        "type": "video",
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video1",
+        "description": "First source video for the video-to-video task."
+      },
+      {
+        "name": "video2",
+        "type": "video",
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video2",
+        "description": "Second source video (optional)."
+      },
+      {
+        "name": "video3",
+        "type": "video",
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video3",
+        "description": "Third source video (optional)."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "1080p",
+          "720p"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "video1",
+        "kind": "video",
+        "paramName": "video_url"
+      }
+    ]
+  },
+  {
+    "className": "TopazVideoUpscale",
+    "moduleName": "video",
+    "modelId": "topaz/video-upscale",
+    "title": "Topaz Video Upscale",
+    "description": "Upscale and enhance videos using Topaz Labs AI via Kie.ai.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "video",
+        "type": "video",
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video",
+        "description": "The video to upscale."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Target resolution for upscaling.",
+        "values": [
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "denoise",
+        "type": "bool",
+        "default": true,
+        "title": "Denoise",
+        "description": "Apply denoising to reduce artifacts."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "video",
+        "kind": "video",
+        "paramName": "video_url"
+      }
+    ]
+  },
+  {
+    "className": "InfinitalkV1",
+    "moduleName": "video",
+    "modelId": "infinitalk/from-audio",
+    "title": "Infinitalk V1",
+    "description": "Generate videos using Infinitalk v1 (image-to-video) via Kie.ai.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text guide for the video generation."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The source image."
+      },
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "The source audio track."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "480p",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "480p"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      },
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ]
+  },
+  {
+    "className": "Veo31TextToVideo",
+    "moduleName": "video",
+    "modelId": "veo-3-1/text-to-video",
+    "title": "Veo 31 Text To Video",
+    "description": "Generate videos from text using Google's Veo 3.1 via Kie.ai.\n\n    kie, google, veo, veo3, veo3.1, video generation, ai, text-to-video\n\n    Veo 3.1 offers native 9:16 vertical video support, multilingual prompt processing,\n    and significant cost savings (25% of Google's direct API pricing).",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "veo3_fast",
+        "title": "Model",
+        "description": "The model to use for video generation.",
+        "values": [
+          "veo3",
+          "veo3_fast"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Video aspect ratio.",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "call_back_url",
+        "type": "str",
+        "default": "",
+        "title": "Call Back Url",
+        "description": "Optional callback URL for task completion."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "RunwayGen3AlphaTextToVideo",
+    "moduleName": "video",
+    "modelId": "runway/gen3-alpha-text-to-video",
+    "title": "Runway Gen-3 Alpha Text To Video",
+    "description": "Generate videos from text using Runway's Gen-3 Alpha model via Kie.ai.\n\n    kie, runway, gen-3, gen3alpha, video generation, ai, text-to-video\n\n    Runway Gen-3 Alpha produces high-quality videos from text descriptions\n    with advanced motion and temporal consistency.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video. Required for text-to-video generation.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "720p",
+        "title": "Quality",
+        "description": "Video resolution. If 1080p is selected, 10-second video cannot be generated.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "water_mark",
+        "type": "str",
+        "default": "",
+        "title": "Water Mark",
+        "description": "Video watermark text content. An empty string indicates no watermark."
+      },
+      {
+        "name": "call_back_url",
+        "type": "str",
+        "default": "",
+        "title": "Call Back Url",
+        "description": "Optional callback URL to receive task completion updates."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "RunwayGen3AlphaImageToVideo",
+    "moduleName": "video",
+    "modelId": "runway/gen3-alpha-image-to-video",
+    "title": "Runway Gen-3 Alpha Image To Video",
+    "description": "Generate videos from images using Runway's Gen-3 Alpha model via Kie.ai.\n\n    kie, runway, gen-3, gen3alpha, video generation, ai, image-to-video\n\n    Runway Gen-3 Alpha transforms static images into dynamic videos\n    with realistic motion and temporal consistency.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "Reference image to base the video on."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text to guide the video generation. Maximum length is 1800 characters."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "720p",
+        "title": "Quality",
+        "description": "Video resolution. If 1080p is selected, 10-second video cannot be generated.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "water_mark",
+        "type": "str",
+        "default": "",
+        "title": "Water Mark",
+        "description": "Video watermark text content. An empty string indicates no watermark."
+      },
+      {
+        "name": "call_back_url",
+        "type": "str",
+        "default": "",
+        "title": "Call Back Url",
+        "description": "Optional callback URL to receive task completion updates."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "RunwayGen3AlphaExtendVideo",
+    "moduleName": "video",
+    "modelId": "runway/gen3-alpha-extend-video",
+    "title": "Runway Gen-3 Alpha Extend Video",
+    "description": "Extend videos using Runway's Gen-3 Alpha model via Kie.ai.\n\n    kie, runway, gen-3, gen3alpha, video generation, ai, video-extension\n\n    Runway Gen-3 Alpha can extend existing videos with additional generated content.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "video_url",
+        "type": "str",
+        "default": "",
+        "title": "Video Url",
+        "description": "The source video URL to extend."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "Continue the motion naturally with smooth transitions.",
+        "title": "Prompt",
+        "description": "Text prompt to guide the video extension. Maximum length is 1800 characters."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "Duration to extend the video by in seconds. If 10-second extension is selected, 1080p resolution cannot be used.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "720p",
+        "title": "Quality",
+        "description": "Video resolution. If 1080p is selected, 10-second extension cannot be generated.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "water_mark",
+        "type": "str",
+        "default": "",
+        "title": "Water Mark",
+        "description": "Video watermark text content. An empty string indicates no watermark."
+      },
+      {
+        "name": "call_back_url",
+        "type": "str",
+        "default": "",
+        "title": "Call Back Url",
+        "description": "Optional callback URL to receive task completion updates."
+      }
+    ]
+  },
+  {
+    "className": "RunwayAlephVideo",
+    "moduleName": "video",
+    "modelId": "runway/aleph-video",
+    "title": "Runway Aleph Video",
+    "description": "Generate videos using Runway's Aleph model via Kie.ai.\n\n    kie, runway, aleph, video generation, ai, text-to-video\n\n    Aleph is Runway's advanced video generation model offering\n    high-quality output with sophisticated motion handling.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video. Required for text-to-video generation.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "720p",
+        "title": "Quality",
+        "description": "Video resolution. If 1080p is selected, 10-second video cannot be generated.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "water_mark",
+        "type": "str",
+        "default": "",
+        "title": "Water Mark",
+        "description": "Video watermark text content. An empty string indicates no watermark."
+      },
+      {
+        "name": "call_back_url",
+        "type": "str",
+        "default": "",
+        "title": "Call Back Url",
+        "description": "Optional callback URL to receive task completion updates."
+      }
+    ]
+  },
+  {
+    "className": "LumaModifyVideo",
+    "moduleName": "video",
+    "modelId": "luma/modify-video",
+    "title": "Luma Modify Video",
+    "description": "Modify and enhance videos using Luma's API via Kie.ai.\n\n    kie, luma, video modification, ai, video-editing\n\n    Luma's video modification API allows for sophisticated video editing\n    and enhancement capabilities.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "video",
+        "type": "video",
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video",
+        "description": "The source video to modify."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "Enhance the video quality and add smooth motion.",
+        "title": "Prompt",
+        "description": "Text prompt describing the modifications to make."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the output video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "Duration of the modified video segment.",
+        "values": [
+          "5",
+          "10"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "video",
+        "kind": "video",
+        "paramName": "video_url"
+      }
+    ]
+  },
+  {
+    "className": "Veo31ImageToVideo",
+    "moduleName": "video",
+    "modelId": "veo-3-1/image-to-video",
+    "title": "Veo 3.1 Image To Video",
+    "description": "Generate videos from images using Google's Veo 3.1 model via Kie.ai.\n\n    kie, google, veo, veo3, veo3.1, video generation, ai, image-to-video, i2v\n\n    Supports single image (image comes alive) or two images (first and last frames transition).\n    For two images, the first image serves as the video's first frame and the second as the last frame.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "veo3_fast",
+        "title": "Model",
+        "description": "The model to use for video generation.",
+        "values": [
+          "veo3",
+          "veo3_fast"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Video aspect ratio.",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "call_back_url",
+        "type": "str",
+        "default": "",
+        "title": "Call Back Url",
+        "description": "Optional callback URL for task completion."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Optional text prompt describing how the image should come alive."
+      },
+      {
+        "name": "image1",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image1",
+        "description": "First source image. Required. Serves as the video's first frame."
+      },
+      {
+        "name": "image2",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image2",
+        "description": "Second source image (optional). If provided, serves as the video's last frame."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image1",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Veo31ReferenceToVideo",
+    "moduleName": "video",
+    "modelId": "veo-3-1/reference-to-video",
+    "title": "Veo 3.1 Reference To Video",
+    "description": "Generate videos from reference images using Google's Veo 3.1 Fast model via Kie.ai.\n\n    kie, google, veo, veo3, veo3.1, video generation, ai, reference-to-video, material-to-video\n\n    Material-to-video generation based on reference images. Only supports veo3_fast model\n    and requires 1-3 reference images.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "veo3_fast",
+        "title": "Model",
+        "description": "The model to use for video generation.",
+        "values": [
+          "veo3",
+          "veo3_fast"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Video aspect ratio.",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "call_back_url",
+        "type": "str",
+        "default": "",
+        "title": "Call Back Url",
+        "description": "Optional callback URL for task completion."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video content."
+      },
+      {
+        "name": "image1",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image1",
+        "description": "First reference image. Required. Minimum 1, maximum 3 images."
+      },
+      {
+        "name": "image2",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image2",
+        "description": "Second reference image (optional)."
+      },
+      {
+        "name": "image3",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image3",
+        "description": "Third reference image (optional)."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image1",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image2",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      },
+      {
+        "field": "image3",
+        "kind": "image",
+        "paramName": "image_urls",
+        "groupKey": "images"
+      }
+    ]
+  },
+  {
+    "className": "KlingMotionControl",
+    "moduleName": "video",
+    "modelId": "kling-2.6/motion-control",
+    "title": "Kling 2.6 Motion Control",
+    "description": "Generate videos with motion control using Kuaishou's Kling 2.6 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, motion-control, character-animation, 2.6\n\n    Kling Motion Control generates videos where character actions are guided by a reference video,\n    while the visual appearance is based on a reference image. Perfect for character animation\n    and motion transfer tasks.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "The cartoon character is dancing.",
+        "title": "Prompt",
+        "description": "A text description of the desired output. Maximum 2500 characters."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "Reference image. The characters, backgrounds, and other elements in the generated video are based on this image. Supports .jpg/.jpeg/.png, max 10MB, size needs to be greater than 300px, aspect ratio 2:5 to 5:2."
+      },
+      {
+        "name": "video",
+        "type": "video",
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video",
+        "description": "Reference video. The character actions in the generated video will be consistent with this reference video. Supports .mp4/.mov, max 100MB, 3-30 seconds duration depending on character_orientation."
+      },
+      {
+        "name": "character_orientation",
+        "type": "enum",
+        "default": "video",
+        "title": "Character Orientation",
+        "description": "Generate the orientation of the characters in the video. 'image': same orientation as the person in the picture (max 10s video). 'video': consistent with the orientation of the characters in the video (max 30s video).",
+        "values": [
+          "image",
+          "video"
+        ]
+      },
+      {
+        "name": "mode",
+        "type": "enum",
+        "default": "720p",
+        "title": "Mode",
+        "description": "Output resolution mode. Use '720p' for 720p or '1080p' for 1080p.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Kling21TextToVideo",
+    "moduleName": "video",
+    "modelId": "kling/v2-1-master-text-to-video",
+    "title": "Kling 2.1 Text To Video",
+    "description": "Generate videos from text using Kuaishou's Kling 2.1 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, text-to-video, 2.1\n\n    Kling 2.1 powers cutting-edge video generation with hyper-realistic motion,\n    advanced physics, and high-resolution outputs up to 1080p.\n\n    Use cases:\n    - Generate high-quality videos from text descriptions\n    - Create dynamic, professional-grade video content\n    - Produce videos with realistic motion and physics",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Video duration in seconds.",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720P",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "720P",
+          "1080P"
+        ]
+      },
+      {
+        "name": "mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Mode",
+        "description": "Generation mode: standard or pro for higher quality.",
+        "values": [
+          "standard",
+          "pro"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for reproducible results. Use -1 for random seed."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Kling21ImageToVideo",
+    "moduleName": "video",
+    "modelId": "kling/v2-1-master-image-to-video",
+    "title": "Kling 2.1 Image To Video",
+    "description": "Generate videos from images using Kuaishou's Kling 2.1 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, image-to-video, 2.1\n\n    Kling 2.1 transforms static images into dynamic videos with hyper-realistic\n    motion and advanced physics simulation.\n\n    Use cases:\n    - Animate static images with realistic motion\n    - Create videos from photos and artwork\n    - Produce dynamic content from still images",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "Text prompt to guide the video generation."
+      },
+      {
+        "name": "image1",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image1",
+        "description": "First source image for the video generation."
+      },
+      {
+        "name": "image2",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image2",
+        "description": "Second source image (optional)."
+      },
+      {
+        "name": "image3",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image3",
+        "description": "Third source image (optional)."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": false,
+        "title": "Sound",
+        "description": "Whether to generate sound for the video."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Video duration in seconds."
+      },
+      {
+        "name": "mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Mode",
+        "description": "Generation mode: standard or pro for higher quality.",
+        "values": [
+          "standard",
+          "pro"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image1",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Wan25TextToVideo",
+    "moduleName": "video",
+    "modelId": "wan/2-5-text-to-video",
+    "title": "Wan 2.5 Text To Video",
+    "description": "Generate videos from text using Alibaba's Wan 2.5 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, 2.5\n\n    Wan 2.5 is designed for cinematic AI video generation with native audio\n    synchronization including dialogue, ambient sound, and background music.\n\n    Use cases:\n    - Generate cinematic videos from text descriptions\n    - Create videos with synchronized audio\n    - Produce content for social media and advertising",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5s",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5s",
+          "10s"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "1080p",
+          "720p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Wan25ImageToVideo",
+    "moduleName": "video",
+    "modelId": "wan/2-5-image-to-video",
+    "title": "Wan 2.5 Image To Video",
+    "description": "Generate videos from images using Alibaba's Wan 2.5 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, 2.5\n\n    Wan 2.5 transforms images into cinematic videos with native audio\n    synchronization.\n\n    Use cases:\n    - Animate static images with cinematic quality\n    - Create videos from photos with audio\n    - Produce dynamic content from still images",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "image1",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image1",
+        "description": "First source image for the video generation."
+      },
+      {
+        "name": "image2",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image2",
+        "description": "Second source image (optional)."
+      },
+      {
+        "name": "image3",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image3",
+        "description": "Third source image (optional)."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5s",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5s",
+          "10s"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "1080p",
+          "720p"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image1",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "WanAnimate",
+    "moduleName": "video",
+    "modelId": "wan/2-2-animate-move",
+    "title": "Wan 2.2 Animate",
+    "description": "Generate character animation videos using Alibaba's Wan 2.2 Animate via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, animate, character\n\n    Wan 2.2 Animate generates realistic character videos with motion, expressions,\n    and lighting from static images.\n\n    Use cases:\n    - Animate character images with realistic motion\n    - Create character-driven video content\n    - Produce animated videos from portraits or character art",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "The character is moving naturally with realistic expressions.",
+        "title": "Prompt",
+        "description": "The text prompt describing the character animation."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "Character image to animate."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "3",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "3",
+          "5"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "WanSpeechToVideo",
+    "moduleName": "video",
+    "modelId": "wan/2-2-a14b-speech-to-video-turbo",
+    "title": "Wan 2.2 Speech To Video",
+    "description": "Generate videos from speech using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, speech-to-video, lip-sync\n\n    Wan 2.2 A14B Turbo Speech to Video turns static images and audio clips\n    into dynamic, expressive videos.\n\n    Use cases:\n    - Create talking head videos from images and audio\n    - Generate lip-synced content for presentations\n    - Produce dynamic videos from voice recordings",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "Character/face image to animate."
+      },
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "Audio file for speech/lip-sync."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      },
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ]
+  },
+  {
+    "className": "Wan22TextToVideo",
+    "moduleName": "video",
+    "modelId": "wan/2-2-a14b-text-to-video-turbo",
+    "title": "Wan 2.2 Text To Video",
+    "description": "Generate videos from text using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, 2.2\n\n    Wan 2.2 A14B Turbo delivers smooth 720p@24fps clips with cinematic quality,\n    stable motion, and consistent visual style.\n\n    Use cases:\n    - Generate high-quality videos from text\n    - Create content for diverse creative uses\n    - Produce consistent video clips with stable motion",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "3",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "3",
+          "5"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Wan22ImageToVideo",
+    "moduleName": "video",
+    "modelId": "wan/2-2-a14b-image-to-video-turbo",
+    "title": "Wan 2.2 Image To Video",
+    "description": "Generate videos from images using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, 2.2\n\n    Wan 2.2 A14B Turbo transforms images into smooth video clips with\n    cinematic quality and stable motion.\n\n    Use cases:\n    - Animate static images with smooth motion\n    - Create videos from photos or artwork\n    - Produce consistent video content from images",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "Source image for the video generation."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "3",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "3",
+          "5"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Hailuo02TextToVideo",
+    "moduleName": "video",
+    "modelId": "hailuo/02-text-to-video-pro",
+    "title": "Hailuo 02 Text To Video",
+    "description": "Generate videos from text using Minimax's Hailuo 02 model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, text-to-video\n\n    Hailuo 02 is Minimax's advanced AI video generation model that produces\n    short, cinematic clips with realistic motion and physics simulation.\n\n    Use cases:\n    - Generate cinematic video clips from text\n    - Create videos with realistic motion and physics\n    - Produce high-quality content up to 1080P",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Hailuo02ImageToVideo",
+    "moduleName": "video",
+    "modelId": "hailuo/02-image-to-video-pro",
+    "title": "Hailuo 02 Image To Video",
+    "description": "Generate videos from images using Minimax's Hailuo 02 model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, image-to-video\n\n    Hailuo 02 transforms images into cinematic clips with realistic motion\n    and physics simulation.\n\n    Use cases:\n    - Animate images with realistic motion\n    - Create videos from photos with physics simulation\n    - Produce dynamic content from still images",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A cinematic video with smooth motion, natural lighting, and high detail.",
+        "title": "Prompt",
+        "description": "The text prompt describing the video."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "Source image for the video generation."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "The duration of the video in seconds.",
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the video.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "Sora2WatermarkRemover",
+    "moduleName": "video",
+    "modelId": "sora-watermark-remover",
+    "title": "Sora 2 Watermark Remover",
+    "description": "Remove watermarks from Sora 2 videos using Kie.ai.\n\n    kie, sora, openai, video editing, watermark removal\n\n    Sora 2 Watermark Remover uses AI detection and motion tracking to remove\n    dynamic watermarks from Sora 2 videos while keeping frames smooth and natural.\n\n    Use cases:\n    - Remove watermarks from generated videos\n    - Clean up video content for final output\n    - Prepare videos for professional use",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "video",
+        "type": "video",
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video",
+        "description": "Video to remove watermark from. Must be publicly accessible."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "video",
+        "kind": "video",
+        "paramName": "video_url"
+      }
+    ]
+  }
+]

@@ -602,9 +602,6 @@ export {
   SaveAudioSegmentsNode,
   LIB_LIBROSA_SPECTRAL_NODES
 } from "./nodes/lib-audio-spectral.js";
-export { KIE_IMAGE_NODES } from "./nodes/kie-image.js";
-export { KIE_VIDEO_NODES } from "./nodes/kie-video.js";
-export { KIE_AUDIO_NODES } from "./nodes/kie-audio.js";
 export { KieAINode, KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
 export {
   CollectionNode,
@@ -689,9 +686,6 @@ import { LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-audio-effects.js";
 import { LIB_PDF_NODES } from "./nodes/lib-pdf.js";
 import { LIB_LIBROSA_SPECTRAL_NODES } from "./nodes/lib-audio-spectral.js";
-import { KIE_IMAGE_NODES } from "./nodes/kie-image.js";
-import { KIE_VIDEO_NODES } from "./nodes/kie-video.js";
-import { KIE_AUDIO_NODES } from "./nodes/kie-audio.js";
 import { KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
 import { VECTOR_NODES } from "./nodes/vector.js";
 import { VECTOR_FAISS_NODES } from "./nodes/vector-faiss.js";
@@ -754,9 +748,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
   ...LIB_LIBROSA_SPECTRAL_NODES,
-  ...KIE_IMAGE_NODES,
-  ...KIE_VIDEO_NODES,
-  ...KIE_AUDIO_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
   ...VECTOR_FAISS_NODES,

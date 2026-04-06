@@ -1543,7 +1543,7 @@ export class DescribeNode extends BaseNode {
         const n = values.length;
         const s = sum(values);
         const m = n > 0 ? s / n : 0;
-        const variance = n > 0 ? values.reduce((acc, v) => acc + (v - m) ** 2, 0) / n : 0;
+        const variance = n > 1 ? values.reduce((acc, v) => acc + (v - m) ** 2, 0) / (n - 1) : 0;
 
         const percentile = (p: number): number => {
           if (n === 0) return 0;

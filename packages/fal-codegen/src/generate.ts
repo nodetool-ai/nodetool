@@ -17,17 +17,22 @@ import { SchemaFetcher } from "./schema-fetcher.js";
 import { SchemaParser } from "./schema-parser.js";
 import { NodeGenerator } from "./node-generator.js";
 import { allConfigs } from "./configs/index.js";
-import type { ModuleConfig } from "./types.js";
+import type { ModuleConfig, NodeSpec } from "./types.js";
 
 const { values } = parseArgs({
   options: {
     module: { type: "string" },
     endpoint: { type: "string" },
     all: { type: "boolean", default: false },
+    manifest: { type: "boolean", default: false },
     "no-cache": { type: "boolean", default: false },
     "output-dir": {
       type: "string",
       default: join(process.cwd(), "..", "fal-nodes", "src", "generated")
+    },
+    "manifest-output": {
+      type: "string",
+      default: join(process.cwd(), "..", "fal-nodes", "src", "fal-manifest.json")
     }
   }
 });
@@ -77,9 +82,48 @@ async function generateModule(
   return specs.length;
 }
 
+async function generateManifest(
+  outputPath: string,
+  useCache: boolean
+): Promise<void> {
+  const fetcher = new SchemaFetcher();
+  const parser = new SchemaParser();
+  const generator = new NodeGenerator();
+
+  const allSpecs: Array<NodeSpec & { moduleName: string }> = [];
+
+  for (const [name, config] of Object.entries(allConfigs)) {
+    const dashName = name.replace(/_/g, "-");
+    console.log(`\n=== ${dashName} ===`);
+
+    for (const endpointId of Object.keys(config.configs)) {
+      try {
+        console.log(`  Fetching ${endpointId}...`);
+        const schema = await fetcher.fetchSchema(endpointId, useCache);
+        const spec = parser.parse(schema);
+        const nodeConfig = config.configs[endpointId];
+        const applied = nodeConfig
+          ? generator.applyConfig(spec, nodeConfig)
+          : spec;
+        allSpecs.push({ ...applied, moduleName: name });
+      } catch (e) {
+        console.error(`  ERROR: ${endpointId}: ${e}`);
+      }
+    }
+  }
+
+  await writeFile(outputPath, JSON.stringify(allSpecs, null, 2));
+  console.log(`\nWrote ${allSpecs.length} specs to ${outputPath}`);
+}
+
 async function main(): Promise<void> {
   const outputDir = values["output-dir"]!;
   const useCache = !values["no-cache"];
+
+  if (values.manifest) {
+    await generateManifest(values["manifest-output"]!, useCache);
+    return;
+  }
 
   if (values.all) {
     let total = 0;

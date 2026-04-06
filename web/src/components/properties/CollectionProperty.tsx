@@ -8,6 +8,7 @@ import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import Select from "../inputs/Select";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import ConnectedBadge from "./ConnectedBadge";
 
 const CollectionProperty = (props: PropertyProps) => {
   const id = `collection-${props.property.name}-${props.propertyIndex}`;
@@ -48,7 +49,9 @@ const CollectionProperty = (props: PropertyProps) => {
       />
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
-      {!isConnected && (
+      {isConnected ? (
+        <ConnectedBadge />
+      ) : (
         <Select
           value={selectValue}
           options={options}

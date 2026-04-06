@@ -322,7 +322,6 @@ const DataTable: React.FC<DataTableProps> = ({
       tabulatorRef.current = null;
       setIsTableReady(false);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update data when it changes (without recreating tabulator)

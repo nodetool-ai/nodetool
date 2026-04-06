@@ -29,9 +29,8 @@ export default function LanguageModelSelectionScreen() {
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { colors } = useTheme();
+  const { colors, shadows } = useTheme();
 
-  // Update header title based on step
   useLayoutEffect(() => {
     navigation.setOptions({
       title: step === 1 ? 'Select Provider' : selectedProvider || 'Select Model',
@@ -48,7 +47,6 @@ export default function LanguageModelSelectionScreen() {
     });
   }, [navigation, step, selectedProvider, colors.text]);
 
-  // Load providers on mount
   useEffect(() => {
     loadProviders();
   }, []);
@@ -105,12 +103,12 @@ export default function LanguageModelSelectionScreen() {
 
   const renderSearchBar = () => (
     <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-      <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-        <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+      <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.borderLight }]}>
+        <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
           placeholder={step === 1 ? 'Search providers...' : 'Search models...'}
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={colors.textTertiary}
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoCapitalize="none"
@@ -119,7 +117,7 @@ export default function LanguageModelSelectionScreen() {
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+            <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
           </TouchableOpacity>
         )}
       </View>
@@ -128,39 +126,51 @@ export default function LanguageModelSelectionScreen() {
 
   const renderProviderItem = ({ item }: { item: Provider }) => (
     <TouchableOpacity
-      style={[styles.item, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
+      style={[styles.item, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}
       onPress={() => handleProviderSelect(item.provider)}
       accessibilityRole="button"
       accessibilityLabel={`Select provider ${item.provider}`}
+      activeOpacity={0.7}
     >
+      <View style={[styles.itemIconWrap, { backgroundColor: colors.primaryMuted }]}>
+        <Ionicons name="cloud-outline" size={18} color={colors.primary} />
+      </View>
       <Text style={[styles.itemText, { color: colors.text }]}>{item.provider}</Text>
-      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+      <View style={[styles.itemChevron, { backgroundColor: colors.primaryLight }]}>
+        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+      </View>
     </TouchableOpacity>
   );
 
   const renderModelItem = ({ item }: { item: LanguageModel }) => (
     <TouchableOpacity
-      style={[styles.item, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
+      style={[styles.item, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}
       onPress={() => handleModelSelect(item)}
       accessibilityRole="button"
       accessibilityLabel={`Select model ${item.name}`}
+      activeOpacity={0.7}
     >
+      <View style={[styles.itemIconWrap, { backgroundColor: colors.accentMuted }]}>
+        <Ionicons name="sparkles-outline" size={16} color={colors.accent} />
+      </View>
       <View style={styles.modelInfo}>
         <Text style={[styles.itemText, { color: colors.text }]}>{item.name}</Text>
         {item.id !== item.name && (
-          <Text style={[styles.subText, { color: colors.textSecondary }]}>{item.id}</Text>
+          <Text style={[styles.subText, { color: colors.textTertiary }]}>{item.id}</Text>
         )}
       </View>
-      <Ionicons name="checkmark-circle-outline" size={20} color={colors.textSecondary} />
+      <Ionicons name="checkmark-circle-outline" size={20} color={colors.textTertiary} />
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <View style={[styles.loadingWrap, { backgroundColor: colors.primaryMuted }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          {step === 1 ? 'Loading providers...' : `Loading models...`}
+          {step === 1 ? 'Loading providers...' : 'Loading models...'}
         </Text>
       </View>
     );
@@ -168,13 +178,15 @@ export default function LanguageModelSelectionScreen() {
 
   const renderEmptyList = (type: string) => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="search-outline" size={48} color={colors.border} />
+      <View style={[styles.emptyIconWrap, { backgroundColor: colors.primaryMuted }]}>
+        <Ionicons name="search-outline" size={28} color={colors.primary} />
+      </View>
       <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
         {searchQuery ? `No ${type} matching "${searchQuery}"` : `No ${type} found`}
       </Text>
       {!searchQuery && (
         <TouchableOpacity
-          style={[styles.retryButton, { borderColor: colors.border }]}
+          style={[styles.retryButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
           onPress={step === 1 ? loadProviders : () => selectedProvider && handleProviderSelect(selectedProvider)}
         >
           <Ionicons name="refresh-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
@@ -187,10 +199,10 @@ export default function LanguageModelSelectionScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Step indicator */}
-      <View style={[styles.stepIndicator, { borderBottomColor: colors.border }]}>
-        <View style={[styles.stepDot, step === 1 && { backgroundColor: colors.primary }]} />
-        <View style={[styles.stepLine, { backgroundColor: colors.border }]} />
-        <View style={[styles.stepDot, step === 2 && { backgroundColor: colors.primary }]} />
+      <View style={[styles.stepIndicator, { borderBottomColor: colors.borderLight }]}>
+        <View style={[styles.stepDot, { backgroundColor: step === 1 ? colors.primary : colors.border }]} />
+        <View style={[styles.stepLine, { backgroundColor: step === 2 ? colors.primary : colors.border }]} />
+        <View style={[styles.stepDot, { backgroundColor: step === 2 ? colors.primary : colors.border }]} />
       </View>
 
       {((step === 1 && providers.length > 5) || (step === 2 && models.length > 5)) && renderSearchBar()}
@@ -226,27 +238,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  loadingWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   loadingText: {
-    marginTop: 12,
     fontSize: 15,
   },
   stepIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   stepDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(128, 128, 128, 0.3)',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   stepLine: {
-    width: 24,
+    width: 28,
     height: 2,
     marginHorizontal: 6,
+    borderRadius: 1,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -256,13 +275,13 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    height: 40,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    height: 42,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
@@ -270,41 +289,67 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   listContent: {
-    paddingVertical: 8,
+    padding: 16,
+    paddingTop: 12,
+    gap: 8,
   },
   item: {
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+  },
+  itemIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  itemChevron: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modelInfo: {
     flex: 1,
     marginRight: 12,
   },
   itemText: {
-    fontSize: 17,
+    fontSize: 16,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   subText: {
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 3,
   },
   emptyContainer: {
     alignItems: 'center',
     paddingTop: 60,
     gap: 12,
   },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   emptyText: {
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 15,
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     marginTop: 8,
   },

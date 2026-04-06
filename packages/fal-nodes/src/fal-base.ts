@@ -164,6 +164,27 @@ export function isRefSet(ref: unknown): boolean {
   return Boolean(r.data || r.uri || r.asset_id);
 }
 
+// ---------------------------------------------------------------------------
+// Build a proper ImageRef from a FAL image response object
+// ---------------------------------------------------------------------------
+
+export interface FalImageResult {
+  url: string;
+  width?: number;
+  height?: number;
+  content_type?: string;
+}
+
+export function falImageToRef(img: FalImageResult): Record<string, unknown> {
+  return {
+    type: "image",
+    uri: img.url,
+    width: img.width,
+    height: img.height,
+    mimeType: img.content_type
+  };
+}
+
 export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
     if (obj[k] == null || obj[k] === "") {
