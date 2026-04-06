@@ -474,7 +474,7 @@ export const MessageView: React.FC<
         {/* Message actions: timestamp + copy button */}
         {!Array.isArray(message.tool_calls) && (
           <div className="message-actions">
-            {message.role === "user" && formattedTime && (
+            {formattedTime && (
               <span className="message-timestamp">{formattedTime}</span>
             )}
             <CopyButton

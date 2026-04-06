@@ -318,7 +318,16 @@ const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
       <>
         {status === "loading" && progress === 0 && !hasAgentExecutionMessages && (
           <li key="loading-indicator" className="chat-message-list-item">
-            <LoadingIndicator />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 0" }}>
+              <LoadingIndicator />
+              <span style={{
+                fontSize: "0.85rem",
+                color: theme.vars.palette.text.secondary,
+                fontStyle: "italic"
+              }}>
+                Thinking...
+              </span>
+            </div>
           </li>
         )}
         {progress > 0 && !hasAgentExecutionMessages && (
