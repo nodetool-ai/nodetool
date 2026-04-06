@@ -322,17 +322,21 @@ export class SchemaParser {
         enumRef
       );
 
+      const propRec = prop as AnyRecord;
+      const fieldMin = propRec["minimum"] as number | undefined;
+      const fieldMax = propRec["maximum"] as number | undefined;
       fields.push({
         name,
         tsType,
         propType,
         default: defaultVal,
-        description:
-          ((prop as AnyRecord)["description"] as string | undefined) ?? "",
+        description: (propRec["description"] as string | undefined) ?? "",
         fieldType,
         required: required.includes(name),
         enumRef,
-        enumValues: enumRef ? enumValues : undefined
+        enumValues: enumRef ? enumValues : undefined,
+        ...(fieldMin !== undefined && { min: fieldMin }),
+        ...(fieldMax !== undefined && { max: fieldMax })
       });
     }
 

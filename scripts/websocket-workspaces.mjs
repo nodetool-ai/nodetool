@@ -15,6 +15,7 @@ export const websocketWorkspaces = [
   "@nodetool/replicate-nodes",
   "@nodetool/elevenlabs-nodes",
   "@nodetool/agents",
+  "@nodetool/kie-nodes",
   "@nodetool/base-nodes",
   "@nodetool/dsl",
   "@nodetool/chat",

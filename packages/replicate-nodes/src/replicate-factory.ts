@@ -37,6 +37,8 @@ export interface ReplicateFieldDef {
   enumValues?: string[];
   nestedAssetKey?: string;
   parentField?: string;
+  min?: number;
+  max?: number;
 }
 
 export interface ReplicateManifestEntry {
@@ -222,6 +224,8 @@ export function createReplicateNodeClass(
     };
     if (field.description) propOptions.description = field.description;
     if (field.enumValues?.length) propOptions.values = field.enumValues;
+    if (field.min !== undefined) propOptions.min = field.min;
+    if (field.max !== undefined) propOptions.max = field.max;
 
     registerDeclaredProperty(ReplicateNodeClass, field.name, propOptions);
   }

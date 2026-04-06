@@ -210,10 +210,15 @@ export async function kieSubmitSuno(
   apiKey: string,
   input: Record<string, unknown>
 ): Promise<string> {
+  // callBackUrl is always required by the Suno API. Since we poll for results
+  // we don't actually use it, so inject a placeholder if not already set.
+  const body = input.callBackUrl
+    ? input
+    : { ...input, callBackUrl: "https://nodetool.ai/kie-callback" };
   const res = await fetch(`${KIE_API_BASE}/api/v1/generate`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify(input)
+    body: JSON.stringify(body)
   });
   const data = (await res.json()) as Record<string, unknown>;
   if (data.code !== undefined) checkStatus(data);

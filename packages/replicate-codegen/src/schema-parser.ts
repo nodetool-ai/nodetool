@@ -85,7 +85,9 @@ export class SchemaParser {
         enumRef,
         enumValues: enumRef
           ? (propObj.enum as unknown[] | undefined)?.map(String)
-          : undefined
+          : undefined,
+        ...(propObj.minimum !== undefined && { min: propObj.minimum as number }),
+        ...(propObj.maximum !== undefined && { max: propObj.maximum as number })
       });
     }
 
