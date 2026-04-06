@@ -488,19 +488,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     ) {
       setShowResultOverlay(true);
     }
-    // When node completes with result, respect user's saved preference
-    // for regular non-output nodes.
+    // When node completes with result, show results by default
+    // for regular non-output nodes (unless user explicitly opted out).
     else if (
       result &&
       !nodeType.isOutputNode &&
       !nodeType.isConstantNode &&
       status === "completed"
     ) {
-      // Only show result overlay if user has explicitly saved that preference
-      if (data.showResultPreference === true) {
+      // Show result overlay by default; only hide if user explicitly chose inputs
+      if (data.showResultPreference !== false) {
         setShowResultOverlay(true);
       }
-      // Otherwise stay on inputs view (default behavior)
     }
   }, [
     result,
