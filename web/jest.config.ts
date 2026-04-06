@@ -1,5 +1,5 @@
 export default {
-  preset: "ts-jest/presets/default-esm",
+  preset: "ts-jest",
   testEnvironment: "jsdom",
   testEnvironmentOptions: {
     customExportConditions: ["node", "node-addons"],
@@ -45,7 +45,9 @@ export default {
     "^react-pdf$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^react-pdf/.*$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^.*components/asset_viewer/PDFViewer$": "<rootDir>/src/__mocks__/emptyModule.ts",
-    "^wavesurfer\\.js$": "<rootDir>/src/__mocks__/wavesurfer.ts"
+    "^wavesurfer\\.js$": "<rootDir>/src/__mocks__/wavesurfer.ts",
+    "^monaco-editor$": "<rootDir>/src/__mocks__/emptyModule.ts",
+    "^@monaco-editor/react$": "<rootDir>/src/__mocks__/emptyModule.ts"
   },
   setupFiles: ["<rootDir>/jest.setup.js"],
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
@@ -53,15 +55,13 @@ export default {
     "^.+\\.tsx?$": [
       "ts-jest",
       {
-        tsconfig: "tsconfig.json",
-        useESM: true
+        tsconfig: "tsconfig.test.json"
       }
     ]
   },
   transformIgnorePatterns: [
     "node_modules/(?!(react-markdown|remark-gfm|rehype-raw|react-syntax-highlighter|@nodetool)/)"
   ],
-  extensionsToTreatAsEsm: [".ts", ".tsx"],
   testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   collectCoverageFrom: [
