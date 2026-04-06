@@ -8,7 +8,9 @@ describe("ModelManagerStore", () => {
       modelSearchTerm: "",
       selectedModelType: "All",
       maxModelSizeGB: 0,
-      filterStatus: "all"
+      filterStatus: "all",
+      sortField: "name",
+      sortDirection: "asc"
     });
   });
 
@@ -20,6 +22,8 @@ describe("ModelManagerStore", () => {
       expect(state.selectedModelType).toBe("All");
       expect(state.maxModelSizeGB).toBe(0);
       expect(state.filterStatus).toBe("all");
+      expect(state.sortField).toBe("name");
+      expect(state.sortDirection).toBe("asc");
     });
   });
 
@@ -123,6 +127,48 @@ describe("ModelManagerStore", () => {
       });
 
       expect(useModelManagerStore.getState().filterStatus).toBe("all");
+    });
+  });
+
+  describe("sort field", () => {
+    test("should set sort field", () => {
+      act(() => {
+        useModelManagerStore.getState().setSortField("size");
+      });
+
+      expect(useModelManagerStore.getState().sortField).toBe("size");
+    });
+
+    test("should set sort field to downloads", () => {
+      act(() => {
+        useModelManagerStore.getState().setSortField("downloads");
+      });
+
+      expect(useModelManagerStore.getState().sortField).toBe("downloads");
+    });
+  });
+
+  describe("sort direction", () => {
+    test("should set sort direction", () => {
+      act(() => {
+        useModelManagerStore.getState().setSortDirection("desc");
+      });
+
+      expect(useModelManagerStore.getState().sortDirection).toBe("desc");
+    });
+
+    test("should toggle sort direction", () => {
+      act(() => {
+        useModelManagerStore.getState().toggleSortDirection();
+      });
+
+      expect(useModelManagerStore.getState().sortDirection).toBe("desc");
+
+      act(() => {
+        useModelManagerStore.getState().toggleSortDirection();
+      });
+
+      expect(useModelManagerStore.getState().sortDirection).toBe("asc");
     });
   });
 
