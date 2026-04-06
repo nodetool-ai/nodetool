@@ -438,26 +438,33 @@ export class Watchdog {
     }
   }
 
+  private _checkInProgress = false;
+
   private startMonitorLoop() {
     if (this.intervalId) clearInterval(this.intervalId);
     this.intervalId = setInterval(async () => {
-      if (this.stopped) return;
-      const pidAlive = await this.isPidAlive();
-      const healthy = await this.isHealthy();
+      if (this.stopped || this._checkInProgress) return;
+      this._checkInProgress = true;
+      try {
+        const pidAlive = await this.isPidAlive();
+        const healthy = await this.isHealthy();
 
-      if (!pidAlive || !healthy) {
-        logMessage(
-          `${this.opts.name} watchdog: detected unhealthy state (pidAlive=${pidAlive}, healthy=${healthy}), restarting...`
-        );
-        try {
-          await this.restart();
-        } catch (error) {
+        if (!pidAlive || !healthy) {
           logMessage(
-            `${this.opts.name} watchdog: restart failed: ${(error as Error).message
-            }`,
-            "error"
+            `${this.opts.name} watchdog: detected unhealthy state (pidAlive=${pidAlive}, healthy=${healthy}), restarting...`
           );
+          try {
+            await this.restart();
+          } catch (error) {
+            logMessage(
+              `${this.opts.name} watchdog: restart failed: ${(error as Error).message
+              }`,
+              "error"
+            );
+          }
         }
+      } finally {
+        this._checkInProgress = false;
       }
     }, this.opts.healthCheckIntervalMs);
   }

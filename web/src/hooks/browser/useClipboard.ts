@@ -101,9 +101,6 @@ export const useClipboard = () => {
           ? JSON.stringify(JSON.parse(data), null, 2)
           : data;
 
-        if (isFirefox) {
-          setClipboardData(outputData);
-        }
         setClipboardData(outputData);
 
         // Prefer new Electron API when available
