@@ -80,6 +80,25 @@ function assetKind(
   return "none";
 }
 
+function defaultForPropType(propType: string): unknown {
+  switch (propType) {
+    case "bool":
+      return false;
+    case "int":
+    case "float":
+      return 0;
+    case "image":
+      return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
+    case "audio":
+      return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
+    case "video":
+      return { type: "video", uri: "", asset_id: null, data: null, metadata: null, duration: null, format: null };
+    default:
+      if (propType.startsWith("list[")) return [];
+      return "";
+  }
+}
+
 function castValue(value: unknown, propType: string): unknown {
   if (value === null || value === undefined) return value;
   switch (propType) {
@@ -199,15 +218,7 @@ export function createReplicateNodeClass(
 
     const propOptions: PropOptions = {
       type: field.propType,
-      default:
-        field.default ??
-        (field.propType === "bool"
-          ? false
-          : field.propType === "int" || field.propType === "float"
-            ? 0
-            : field.propType.startsWith("list[")
-              ? []
-              : "")
+      default: field.default ?? defaultForPropType(field.propType)
     };
     if (field.description) propOptions.description = field.description;
     if (field.enumValues?.length) propOptions.values = field.enumValues;
