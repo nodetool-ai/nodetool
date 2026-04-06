@@ -24,6 +24,11 @@ interface PropertyLabelProps {
    * Defaults to "normal".
    */
   density?: "compact" | "normal";
+  /**
+   * When true, shows the description as inline text below the label instead
+   * of only in a tooltip. Useful in the Inspector where there is more space.
+   */
+  showDescriptionInline?: boolean;
 }
 
 const PropertyLabel: React.FC<PropertyLabelProps> = ({
@@ -32,7 +37,8 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   description,
   showTooltip = true,
   isDynamicProperty = false,
-  density = "normal"
+  density = "normal",
+  showDescriptionInline = false
 }) => {
   const theme = useTheme();
   const scope = useEditorScope();
@@ -43,9 +49,11 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     return titleizeString(name);
   }, [name, isDynamicProperty]);
 
-  const labelFontSize =
-    scope === "inspector" ? theme.fontSizeNormal : theme.fontSizeSmall;
+  const isInspector = scope === "inspector";
+  const labelFontSize = isInspector ? theme.fontSizeNormal : theme.fontSizeSmall;
   const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1.5);
+  // Auto-show inline descriptions in inspector scope
+  const shouldShowInlineDescription = showDescriptionInline || isInspector;
 
   return (
     <div
@@ -78,7 +86,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
       })}
     >
       <Tooltip
-        title={showTooltip ? description || "" : ""}
+        title={showTooltip && !shouldShowInlineDescription ? description || "" : ""}
         enterDelay={TOOLTIP_ENTER_DELAY * 2}
         enterNextDelay={TOOLTIP_ENTER_DELAY}
         placement="left"
@@ -106,6 +114,21 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           {formattedName}
         </label>
       </Tooltip>
+      {shouldShowInlineDescription && description && (
+        <span
+          css={css({
+            display: "block",
+            fontSize: theme.fontSizeSmaller,
+            color: theme.vars.palette.text.disabled,
+            lineHeight: 1.3,
+            marginTop: "1px",
+            marginBottom: theme.spacing(0.5),
+            userSelect: "none",
+          })}
+        >
+          {description}
+        </span>
+      )}
     </div>
   );
 };
