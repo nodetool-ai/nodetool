@@ -223,9 +223,11 @@ describe("MoveTool", () => {
     const ctx = makeToolContext();
     tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }));
     tool.onMove!(ctx, makePointerEvent({ point: { x: 20, y: 15 } }), []);
+    // Preview now includes the full transform (scale/rotation preserved via
+    // mergeTransformPreview) plus a matrix — not just {x, y}.
     expect(ctx.setLayerTransformPreview).toHaveBeenCalledWith(
       ctx.doc.activeLayerId,
-      { x: 10, y: 5 }
+      expect.objectContaining({ x: 10, y: 5, scaleX: 1, scaleY: 1, rotation: 0 })
     );
     // Store must NOT be updated on every move — only on pointer-up.
     expect(ctx.onLayerTransformChange).not.toHaveBeenCalled();
