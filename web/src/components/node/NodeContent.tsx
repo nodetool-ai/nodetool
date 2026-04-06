@@ -8,7 +8,6 @@ import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
 import ResultOverlay from "./ResultOverlay";
-import ResultPreviewStrip from "./ResultPreviewStrip";
 
 interface NodeContentProps {
   id: string;
@@ -298,10 +297,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
-      {/* Show compact result preview when inputs are displayed and result exists */}
-      {!isOutputNode && result && !isEmptyObject(result) && onShowResults && (
-        <ResultPreviewStrip result={result} onClick={onShowResults} />
-      )}
     </Box>
   );
 };
