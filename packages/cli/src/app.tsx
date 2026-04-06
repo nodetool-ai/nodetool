@@ -746,19 +746,16 @@ export function App({
       )}
 
       {/* Input area */}
-      <Box marginTop={1}>
-        <Text color="magenta" dimColor bold>{"❯ "}</Text>
-        {streaming
-          ? <Text color="gray" dimColor>{streamLabel || "thinking…"}</Text>
-          : (
-            <ReadlineInput
-              value={inputValue}
-              onChange={setInputValue}
-              onSubmit={handleSubmit}
-            />
-          )
-        }
-      </Box>
+      {!streaming && (
+        <Box marginTop={1}>
+          <Text color="magenta" dimColor bold>{"❯ "}</Text>
+          <ReadlineInput
+            value={inputValue}
+            onChange={setInputValue}
+            onSubmit={handleSubmit}
+          />
+        </Box>
+      )}
 
       {/* Status bar */}
       <Box>
