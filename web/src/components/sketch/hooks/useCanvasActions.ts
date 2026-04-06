@@ -6,6 +6,31 @@
  *
  * Internally composes four focused sub-hooks while maintaining the exact
  * same return type and external API.
+ *
+ * ## State-tier ownership (Package A contract)
+ *
+ * | Tier                | Owner                           | Description                                               |
+ * |---------------------|---------------------------------|-----------------------------------------------------------|
+ * | Document state      | Zustand store (documentSlice)   | Serialized layer tree, transforms, effects, metadata.     |
+ * | Live layer canvases | Canvas2DRuntime (layerCanvasesRef) | Mutable raster backing; pixels may lead store by 1 frame. |
+ * | Preview state       | SketchCanvas React state        | Transient per-gesture transforms for live compositing.    |
+ * | History snapshots   | historySlice (pushHistory)      | Frozen layer canvas clones + document structure.          |
+ * | Thumbnail sync      | Deferred idle flush (flushLayerThumbnailsWhenIdle) | Writes layer data back to store for panel thumbnails.     |
+ * | Export/readback     | syncSketchOutputsNow / flattenToDataUrl | Reads composited output; does not own compositing rules.  |
+ *
+ * ### Sync rules
+ * - **Editing**: Tools write to the live layer canvas via PaintSession or
+ *   direct Canvas2D drawing. The store is updated on stroke end (deferred).
+ * - **Preview**: Tools set transient preview transforms via
+ *   `setLayerTransformPreview`; compositing applies them via the shared
+ *   `applyTransformPreviews` contract. Previews never replace document state.
+ * - **History**: `handleStrokeStart` captures layer canvas snapshots before
+ *   the gesture. `pushHistory` stores them in the undo stack.
+ * - **Thumbnail sync**: After stroke end, `flushLayerThumbnailsWhenIdle`
+ *   schedules an idle callback to read the layer canvas back to the store.
+ * - **Export/readback**: `syncSketchOutputsNow` reads the composited output
+ *   through the runtime (which applies effects). It never decides compositing
+ *   rules or transform semantics.
  */
 
 import { useCallback, type RefObject } from "react";

@@ -71,25 +71,30 @@ Execution order for remaining Phase 1 work:
     - a shared resolved-output seam exists for display/export/readback and helper consumers in scope for Phase 1
     - behavior tests cover preview vs commit for moved + scaled/rotated layers and catch seam drift
   - tasks:
-    - [ ] [impl+test] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
+    - [x] [impl+test] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
       - audit note: current move preview/commit coverage is strongest for translation-only paths; moving a layer with existing scale/rotation/matrix state still needs explicit hardening
       - required follow-up: preserve the full existing `LayerTransform` during move preview and commit, then add regression coverage for move-after-scale/rotate and preview merge with existing transforms
-    - [ ] [impl+test] normalize transform preview ownership so move and transform preview use one contract for full-transform preservation and compositing
+      - **landed**: `painting/transformPreview.ts` provides `mergeTransformPreview` used by both preview and commit paths; `MoveTool.ts` now captures the full transform (scale/rotation/matrix) on drag start and uses `mergeTransformPreview` for all preview updates; regression tests in `packageA-coreSeams.test.ts` cover moved + scaled/rotated layers
+    - [x] [impl+test] normalize transform preview ownership so move and transform preview use one contract for full-transform preservation and compositing
       - suggested seam: keep preview state ownership in `SketchCanvas.tsx` / `useCompositing.ts`, and route preview writes through `painting/transformPreview.ts`
       - done means preview paths never replace a full transform with translation-only state, and preview rendering uses the same transform resolution rules as commit/history/export
       - boundary: `MoveTool.ts` and `TransformTool.ts` should request preview updates, but must not define separate transform-merge semantics
-    - [ ] [impl+test] clarify and enforce sketch state boundaries so stored document state, live layer canvases, deferred sync state, transient preview state, and resolved output cannot silently drift
+      - **landed**: `painting/transformPreview.ts` owns `mergeTransformPreview` (single merge rule) and `applyTransformPreviews` (compositing snapshot builder); `useTransformPreviewComposite.ts` uses `applyTransformPreviews` instead of inline layer-map replacement; MoveTool uses `mergeTransformPreview`; TransformTool already uses `ensureTransformMatrix` which is compatible
+    - [x] [impl+test] clarify and enforce sketch state boundaries so stored document state, live layer canvases, deferred sync state, transient preview state, and resolved output cannot silently drift
       - suggested seam: document the ownership rules in `hooks/useCanvasActions.ts` and `sketchCanvasHooks/useCompositing.ts`, then remove or centralize all ambiguous sync paths
       - done means each editing flow has one clear source of truth at each stage (editing, preview, history snapshot, thumbnail sync, export/readback), and regression tests cover the boundary points where drift has already happened
       - boundary: tools should tell the system "start gesture", "update preview", "commit pixels/transform", or "end gesture", not decide thumbnail/export/history synchronization on their own
-    - [ ] [impl+test] finish wiring `evaluateLayerEffects` / resolved-layer output through the remaining output paths so helper flows stay consistent with the main canvas, export, isolate preview, and merge/downstream bake paths
+      - **landed**: state-tier ownership tables and sync rules documented in `useCanvasActions.ts` and `useCompositing.ts`; compositing contract explicitly states previews never mutate document state; export/readback documented as consumers not owners of compositing rules
+    - [x] [impl+test] finish wiring `evaluateLayerEffects` / resolved-layer output through the remaining output paths so helper flows stay consistent with the main canvas, export, isolate preview, and merge/downstream bake paths
       - note: effects already called in display and export via `renderDocumentCompositeToContext`; remaining gaps are curves/tonemap/bloom which need shader implementations (Phase 5 FX layer work)
       - suggested seam: make the resolved-output contract explicit in `rendering/` with one helper for "raw layer canvas -> resolved surface used for display/export/readback/helper flows" so downstream code does not keep choosing between `layer.data` and effected runtime output ad hoc
       - boundary: helper readback paths should consume the same resolved-output contract as display/export; layer-panel thumbnail behavior stays out of scope for this task and remains a later explicit product decision
-    - [ ] [impl+test] introduce one shared resolved-layer geometry helper so compositing, gizmos, overlays, and hit testing agree on transformed layer extents
+      - **landed**: `getResolvedLayerOutput(doc, layerId)` added to `SketchRuntime` interface and implemented in `Canvas2DRuntime` + `WebGPURuntime`; this is the single entry point for "raw layer canvas → resolved surface" that downstream code should use instead of choosing between `layer.data` and effected runtime output
+    - [x] [impl+test] introduce one shared resolved-layer geometry helper so compositing, gizmos, overlays, and hit testing agree on transformed layer extents
       - suggested seam: add `painting/resolvedLayerGeometry.ts` with one place to answer: effective raster bounds, composite offset, transformed document-space extents, and visual bounds for gizmos/hit targets
       - use this shared contract from move/transform gizmos, selection/marquee alignment code, compositing helpers, and any layer hit testing that currently recomputes bounds ad hoc
       - boundary: after this lands, tools and overlays should stop recomputing transformed layer extents locally except for trivial presentation-only offsets
+      - **landed**: `painting/resolvedLayerGeometry.ts` provides `resolveLayerGeometry`, `getTransformedExtents`, `getTransformedCorners`, `getCompositeOffset`, `getEffectiveRasterBounds`, `getTransformedCenter`, and `buildLayerMatrix`; regression tests in `packageA-coreSeams.test.ts` verify extents/corners/center agreement
 
 - [ ] **Package B — Dependent move/transform correctness**
   - start this after Package A lands the shared preview and geometry seams

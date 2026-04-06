@@ -53,3 +53,26 @@ export {
   restoreAlphaFromSnapshot
 } from "./alphaLock";
 export type { AlphaRestoreDirtyRect } from "./alphaLock";
+
+// ── Transform preview contract ─────────────────────────────────────────────
+export {
+  mergeTransformPreview,
+  applyTransformPreviews,
+  createMovePreview,
+  isCompleteTransform
+} from "./transformPreview";
+
+// ── Resolved layer geometry ────────────────────────────────────────────────
+export {
+  getEffectiveRasterBounds,
+  getCompositeOffset,
+  getTransformedExtents,
+  getTransformedCorners,
+  getTransformedCenter,
+  resolveLayerGeometry,
+  buildLayerMatrix
+} from "./resolvedLayerGeometry";
+export type {
+  DocumentExtents,
+  ResolvedLayerGeometry
+} from "./resolvedLayerGeometry";
