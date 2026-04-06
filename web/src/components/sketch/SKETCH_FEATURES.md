@@ -67,6 +67,25 @@ Phase 1 "done means":
 - shared hard-tool integration done means fill/clone/blur/adjustments use the same runtime/session seams as the simpler paint tools
 - sampling contract done means eyedropper/auto-pick/clone-stamp sampling agree on transformed layers, isolate state, and active stroke state
 
+Execution packages and checkoff rules:
+
+- **Package A — Core seam convergence**
+  - scope: the first open `1.1` items that define the shared contracts: preview/commit parity, transform preview ownership, state-tier boundaries, resolved output, and resolved-layer geometry
+  - execution: treat these as one dependency cluster, not as isolated checklist items; they should be worked in an order that reduces drift rather than in strict bullet order
+  - checkoff rule: do not check off higher-level move/transform/gizmo correctness items until the shared seam they depend on is actually landed with behavior coverage
+- **Package B — Dependent move/transform correctness**
+  - scope: `1.2` move fixes, `1.4` gizmo alignment coverage, `1.9` transform UX correctness, and the remaining transform/move refactors in `1.10`
+  - execution: start only after Package A has produced the preview and geometry contracts these tasks are supposed to consume
+  - checkoff rule: these tasks are not done when one tool looks fixed in isolation; they are done when move, transform, overlays, and hit testing all consume the same shared seam
+- **Package C — Proof and parity hardening**
+  - scope: the remaining open items in `1.3` through `1.8`
+  - execution: many of these can run in parallel, but treat them as "prove or reveal" tasks — a failing test may create follow-up implementation work in Package A or B
+  - checkoff rule: if a proof task reveals missing implementation work, reopen the relevant seam task instead of forcing the test to fit the current behavior
+- **Package D — Refactor support**
+  - scope: `1.10`
+  - execution: use these tasks to keep overloaded files from fighting the new seam work, but do them in support of Packages A and B rather than as a separate rewrite track
+  - checkoff rule: checking off a refactor task means the file split/boundary cleanup landed; it does **not** mean the higher-level behavior contract above it is finished
+
 - [x] centralize document-space <-> layer-space coordinate mapping so preview, commit, hit testing, overlays, and helper tools all follow one transform contract
   - all paint tools use `CoordinateMapper`; move auto-pick now uses shared `hitTestLayerAtDocPoint` with `CoordinateMapper`; eyedropper uses shared `sampleCompositeColor` via `readbackComposite`
   - shared utilities in `painting/sampleDocument.ts`: `sampleCompositeColor`, `sampleCompositeRGBA`, `hitTestLayerAtDocPoint`
@@ -112,6 +131,11 @@ Phase 1 "done means":
 
 ### 1.2 - Fixes
 
+Execution note:
+
+- treat the remaining open items in this section as Package B work; they depend on the preview/geometry/state-boundary seams above
+- do not check these off until they are implemented through shared contracts rather than local tool-specific fixes
+
 - [x] Improve selection: rectangle clips at canvas bounds (correct), ellipse/lasso/polygon already extend beyond canvas (verified, no change needed)
 - [ ] [impl+test] Improve move tool: preserve existing scale/rotation/matrix during preview + commit on transformed layers; current move path is not fully correct beyond translation-only cases
 - [ ] [impl+test] Improve move/transform bounds visuals: move gizmo, scale gizmo, and selection/marquee overlays are currently not aligned to the layer correctly; they must use the same resolved transformed bounds as compositing and hit testing
@@ -129,6 +153,11 @@ Phase 1 "done means":
 ### 1.3 - Harden layer canvas lifecycle
 
 The layer canvas is the central data structure — every tool reads and writes it, compositing displays it, history snapshots it, export serializes it. Making this lifecycle rock-solid prevents cascading bugs in every feature above.
+
+Execution note:
+
+- treat the remaining open items across `1.3` through `1.8` as Package C proof/parity work unless the test reveals a real implementation gap
+- when one of these tasks is marked `[test-first]` or `[test]`, the expected outcome may still be "new implementation work needed" rather than "test added and done"
 
 Architecture note: `layerCanvasesRef.current` (React ref Map) and `Canvas2DRuntime.layerCanvases` (internal Map) share the **same Map reference** (established at construction in `useCompositing.ts:114`). `ensureLayerRasterBounds` writes to `layerCanvasesRef.current` which also updates the runtime's map. `getOrCreateLayerCanvas` in the runtime only creates when no canvas exists — it never downsizes an expanded canvas.
 
@@ -200,6 +229,11 @@ The delta history system is the safety net for all editing. History entries capt
 ### 1.10 - Targeted refactor phase for overloaded files
 
 These are not "clean up for its own sake" tasks. They are explicit support work for the shared geometry / preview / output / state-boundary contracts above. Do them when touching the related seams; avoid a separate broad rewrite branch.
+
+Execution note:
+
+- completed items in this section mean the file split or internal boundary cleanup landed successfully; they do not by themselves prove that the associated behavior contract is done
+- remaining items here should usually be pulled in only when they reduce friction for Package A or B, not worked as a separate queue ahead of seam correctness
 
 - [x] [impl+test] split `hooks/useCanvasActions.ts` by responsibility so gesture lifecycle, transform actions, export/output sync, and canvas-geometry actions stop competing in one file
   - suggested split: `useStrokeLifecycleActions.ts`, `useTransformActions.ts`, `useExportSyncActions.ts`, `useCanvasGeometryActions.ts`
