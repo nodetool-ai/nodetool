@@ -175,6 +175,9 @@ Topical notes and completed checks by area remain below; the canonical remaining
 
 ### 1.2 - Fixes
 
+- [ ] Blur tool not working, does nothing when clicking. should also work for strokes.
+- [ ] Clone Tool: draws at wrong position. also add small feedback at cursor when picking new position to clone.
+
 - [x] Improve selection: rectangle clips at canvas bounds (correct), ellipse/lasso/polygon already extend beyond canvas (verified, no change needed)
 - [x] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag — cursor now redraws immediately when settings change via useEffect on drawCursor callback
 - [x] fix Fill tool: expanded layer canvas to full document viewport before flood fill so compact contentBounds layers no longer leave unfilled borders
