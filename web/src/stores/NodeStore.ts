@@ -325,6 +325,10 @@ export const createNodeStore = (
         let lastNodesForSelectionCount: Node<NodeData>[] | null = null;
         let lastSelectionCount = 0;
 
+        let lastNodesForComfyCheck: Node<NodeData>[] | null = null;
+        let lastSettingsForComfyCheck: Record<string, unknown> | undefined = undefined;
+        let lastComfyCheckResult = false;
+
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
           missingModelFiles: [],
@@ -966,17 +970,34 @@ export const createNodeStore = (
             };
           },
           isComfyWorkflow: (): boolean => {
+            const nodes = get().nodes;
             const settings = get().workflow.settings as
               | Record<string, unknown>
               | undefined;
+
+            if (nodes === lastNodesForComfyCheck && settings === lastSettingsForComfyCheck) {
+              return lastComfyCheckResult;
+            }
+
+            lastNodesForComfyCheck = nodes;
+            lastSettingsForComfyCheck = settings;
+
             if (settings?.[COMFY_WORKFLOW_FLAG] === true) {
+              lastComfyCheckResult = true;
               return true;
             }
 
-            return get().nodes.some(
-              (node) =>
-                typeof node.type === "string" && node.type.startsWith("comfy.")
-            );
+            let isComfy = false;
+            for (let i = 0; i < nodes.length; i++) {
+              const node = nodes[i];
+              if (typeof node.type === "string" && node.type.startsWith("comfy.")) {
+                isComfy = true;
+                break;
+              }
+            }
+
+            lastComfyCheckResult = isComfy;
+            return isComfy;
           },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });

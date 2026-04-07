@@ -26,3 +26,7 @@
 ## 2024-05-24 - NodeStore `getSelectedNodeCount` `O(N)` Selection Optimization
 **Learning:** Functions exposed on the Zustand `store.getState()` (like `getSelectedNodeCount`) that compute derived state (`O(N)`) are extremely dangerous when subscribed to directly inside a component's `useNodes` hook (e.g. `const count = useNodes((state) => state.getSelectedNodeCount())`). Because Zustand evaluates selector functions on *every* store update (which is 60fps during dragging), an `O(N)` getter becomes `O(K * N)` per frame when `K` components subscribe to it.
 **Action:** When creating derived getters on a Zustand store, either use memoized selectors that components can consume or add a lightweight internal cache (`lastNodesForSelectionCount === get().nodes`) inside the getter itself so it only computes the `O(N)` operation once per state reference update.
+
+## 2026-04-07 - NodeStore isComfyWorkflow Optimization
+**Learning:** Zustand selectors that do an `O(N)` scan on the entire nodes array without caching (like `isComfyWorkflow` checking for `node.type.startsWith("comfy.")`) are evaluated on every store update. Components subscribing to them via `useNodes` run these functions at 60fps during node drag, blocking the main thread.
+**Action:** When creating derived state selectors like `isComfyWorkflow` that compute values from `nodes`, implement an internal cache (`lastNodesForComfyCheck === get().nodes`) inside the state creator so the `O(N)` scan only runs once per new array reference.
