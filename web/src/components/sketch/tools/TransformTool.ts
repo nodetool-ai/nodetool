@@ -124,6 +124,11 @@ export class TransformTool implements ToolHandler {
     ctx.drawSelectionOverlay();
   }
 
+  onViewportChange(ctx: ToolContext): void {
+    // Redraw gizmo when zoom/pan changes so it stays aligned with the layer.
+    this.drawGizmo(ctx);
+  }
+
   // ── Pointer events ─────────────────────────────────────────────────────────
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {

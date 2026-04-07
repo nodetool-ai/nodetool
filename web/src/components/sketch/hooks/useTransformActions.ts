@@ -15,6 +15,7 @@ import {
   type PushHistoryOptions,
   type SketchDocument
 } from "../types";
+import { deserializeLayerData } from "../rendering/canvas2d/layerIO";
 
 export interface UseTransformActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -88,14 +89,22 @@ export function useTransformActions({
     const newData = canvas.reconcileLayerToDocumentSpace(activeLayerId);
     if (newData !== null) {
       updateLayerData(activeLayerId, newData);
+      // Extract the bounds from the reconciled data and update the store
+      // so the layer's contentBounds match the baked pixel data.
+      const fallback = {
+        x: 0,
+        y: 0,
+        width: document.canvas.width,
+        height: document.canvas.height
+      };
+      const { bounds } = deserializeLayerData(newData, fallback);
+      setLayerContentBounds(activeLayerId, bounds);
     }
-    setLayerTransform(activeLayerId, {
-      x: activeLayer.transform.x,
-      y: activeLayer.transform.y
-    });
+    // After reconcile, the transform is baked into pixel data, so reset to identity.
+    setLayerTransform(activeLayerId, { x: 0, y: 0 });
 
     transformOriginalRef.current = null;
-  }, [document, canvasRef, updateLayerData, setLayerTransform]);
+  }, [document, canvasRef, updateLayerData, setLayerTransform, setLayerContentBounds]);
 
   /** Cancel: restore the original transform. */
   const handleTransformCancel = useCallback(() => {

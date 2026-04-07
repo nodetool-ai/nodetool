@@ -231,6 +231,9 @@ export interface SketchRuntime {
     saturation: number
   ): void;
 
+  /** Invert all color channels of the active layer while preserving alpha. */
+  invertLayerColors(doc: SketchDocument): void;
+
   /**
    * Bake the layer transform offset into the pixel data so that
    * (transform.x, transform.y) can be reset to (0, 0).

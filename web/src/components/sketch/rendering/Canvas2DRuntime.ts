@@ -38,7 +38,8 @@ import {
   cropLayers as cropLayersFn,
   flipLayer as flipLayerFn,
   nudgeLayer as nudgeLayerFn,
-  applyAdjustments as applyAdjustmentsFn
+  applyAdjustments as applyAdjustmentsFn,
+  invertLayerColors as invertLayerColorsFn
 } from "./canvas2d/reconcile";
 import {
   flattenToDataUrl as flattenToDataUrlFn,
@@ -487,6 +488,10 @@ export class Canvas2DRuntime implements SketchRuntime {
     saturation: number
   ): void {
     applyAdjustmentsFn(doc, this.layerCanvases, brightness, contrast, saturation);
+  }
+
+  invertLayerColors(doc: SketchDocument): void {
+    invertLayerColorsFn(doc, this.layerCanvases);
   }
 
   reconcileLayerToDocumentSpace(

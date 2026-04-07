@@ -808,6 +808,21 @@ export function useCanvasGeometryActions({
     setAdjSaturation(0);
   }, [document.activeLayerId, syncPixelLayerFromCanvas, canvasRef]);
 
+  /** Invert colors of the active layer. */
+  const handleInvertLayerColors = useCallback(() => {
+    if (!canvasRef.current) {
+      return;
+    }
+    const layerId = document.activeLayerId;
+    if (!layerId) {
+      return;
+    }
+    pushHistory("invert colors");
+    canvasRef.current.invertLayerColors();
+    syncPixelLayerFromCanvas(layerId);
+    syncSketchOutputsNow();
+  }, [document.activeLayerId, pushHistory, syncPixelLayerFromCanvas, syncSketchOutputsNow, canvasRef]);
+
   // Auto-apply adjustments with 100ms debounce
   useEffect(() => {
     if (adjustDebounceRef.current !== null) {
@@ -853,6 +868,7 @@ export function useCanvasGeometryActions({
     setAdjContrast,
     setAdjSaturation,
     handleApplyAdjustments,
-    handleCancelAdjustments
+    handleCancelAdjustments,
+    handleInvertLayerColors
   };
 }

@@ -58,12 +58,51 @@ export function reconcileLayerToDocumentSpace(
   source.height = canvas.height;
   const sourceCtx = source.getContext("2d");
 
+  if (!sourceCtx) {
+    return serializeLayerData(canvas.toDataURL("image/png"), {
+      x: 0,
+      y: 0,
+      width: canvas.width,
+      height: canvas.height
+    });
+  }
+  sourceCtx.drawImage(canvas, 0, 0);
+
+  // Compute the axis-aligned bounding box of the transformed content
+  // so that scaling/rotating beyond document bounds doesn't clip pixels.
+  const w = source.width;
+  const h = source.height;
+  const cx = tx + w / 2;
+  const cy = ty + h / 2;
+  const cos = Math.cos(rot);
+  const sin = Math.sin(rot);
+  const hw = (w * sx) / 2;
+  const hh = (h * sy) / 2;
+  // Four corners after scale+rotation around center
+  const corners = [
+    { x: cx + (-hw) * cos - (-hh) * sin, y: cy + (-hw) * sin + (-hh) * cos },
+    { x: cx + ( hw) * cos - (-hh) * sin, y: cy + ( hw) * sin + (-hh) * cos },
+    { x: cx + (-hw) * cos - ( hh) * sin, y: cy + (-hw) * sin + ( hh) * cos },
+    { x: cx + ( hw) * cos - ( hh) * sin, y: cy + ( hw) * sin + ( hh) * cos }
+  ];
+  const minX = Math.floor(Math.min(...corners.map((c) => c.x)));
+  const minY = Math.floor(Math.min(...corners.map((c) => c.y)));
+  const maxX = Math.ceil(Math.max(...corners.map((c) => c.x)));
+  const maxY = Math.ceil(Math.max(...corners.map((c) => c.y)));
+
+  // Use the union of the document bounds and the transformed AABB
+  // to ensure no content is lost while keeping the document area covered.
+  const outX = Math.min(0, minX);
+  const outY = Math.min(0, minY);
+  const outW = Math.max(doc.canvas.width, maxX) - outX;
+  const outH = Math.max(doc.canvas.height, maxY) - outY;
+
   const temp = window.document.createElement("canvas");
-  temp.width = doc.canvas.width;
-  temp.height = doc.canvas.height;
+  temp.width = outW;
+  temp.height = outH;
   const tempCtx = temp.getContext("2d");
 
-  if (!sourceCtx || !tempCtx) {
+  if (!tempCtx) {
     return serializeLayerData(canvas.toDataURL("image/png"), {
       x: 0,
       y: 0,
@@ -72,9 +111,20 @@ export function reconcileLayerToDocumentSpace(
     });
   }
 
-  sourceCtx.drawImage(canvas, 0, 0);
-  canvas.width = doc.canvas.width;
-  canvas.height = doc.canvas.height;
+  // Apply full transform with offset for expanded canvas
+  if (hasScaleOrRotation) {
+    const drawCx = cx - outX;
+    const drawCy = cy - outY;
+    tempCtx.translate(drawCx, drawCy);
+    tempCtx.rotate(rot);
+    tempCtx.scale(sx, sy);
+    tempCtx.drawImage(source, -w / 2, -h / 2);
+  } else {
+    tempCtx.drawImage(source, tx - outX, ty - outY);
+  }
+
+  canvas.width = outW;
+  canvas.height = outH;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     return serializeLayerData(canvas.toDataURL("image/png"), {
@@ -85,31 +135,19 @@ export function reconcileLayerToDocumentSpace(
     });
   }
 
-  // Apply full transform: translate to position, then scale/rotate around center
-  if (hasScaleOrRotation) {
-    const cx = tx + source.width / 2;
-    const cy = ty + source.height / 2;
-    tempCtx.translate(cx, cy);
-    tempCtx.rotate(rot);
-    tempCtx.scale(sx, sy);
-    tempCtx.drawImage(source, -source.width / 2, -source.height / 2);
-  } else {
-    tempCtx.drawImage(source, tx, ty);
-  }
-
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(temp, 0, 0);
   setCanvasRasterBounds(canvas, {
-    x: 0,
-    y: 0,
-    width: doc.canvas.width,
-    height: doc.canvas.height
+    x: outX,
+    y: outY,
+    width: outW,
+    height: outH
   });
   return serializeLayerData(canvas.toDataURL("image/png"), {
-    x: 0,
-    y: 0,
-    width: doc.canvas.width,
-    height: doc.canvas.height
+    x: outX,
+    y: outY,
+    width: outW,
+    height: outH
   });
 }
 
@@ -239,6 +277,41 @@ export function applyAdjustments(
     return;
   }
   tmpCtx.filter = `brightness(${b}) contrast(${c}) saturate(${s})`;
+  tmpCtx.drawImage(layerCanvas, 0, 0);
+  ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
+  ctx.drawImage(tmp, 0, 0);
+}
+
+// ─── Invert layer colors ─────────────────────────────────────────────────────
+
+/**
+ * Invert all color channels of the active layer while preserving alpha.
+ * Uses CSS filter `invert(1)` on a temporary canvas.
+ */
+export function invertLayerColors(
+  doc: SketchDocument,
+  layerCanvases: Map<string, HTMLCanvasElement>
+): void {
+  const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+  if (!activeLayer) {
+    return;
+  }
+  const layerCanvas = layerCanvases.get(activeLayer.id);
+  if (!layerCanvas) {
+    return;
+  }
+  const ctx = layerCanvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+  const tmp = window.document.createElement("canvas");
+  tmp.width = layerCanvas.width;
+  tmp.height = layerCanvas.height;
+  const tmpCtx = tmp.getContext("2d");
+  if (!tmpCtx) {
+    return;
+  }
+  tmpCtx.filter = "invert(1)";
   tmpCtx.drawImage(layerCanvas, 0, 0);
   ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
   ctx.drawImage(tmp, 0, 0);

@@ -33,7 +33,8 @@ export {
   cropLayers,
   flipLayer,
   nudgeLayer,
-  applyAdjustments
+  applyAdjustments,
+  invertLayerColors
 } from "./reconcile";
 
 export {

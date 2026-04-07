@@ -193,6 +193,7 @@ export function useCanvasActions({
     setAdjSaturation: geometryActions.setAdjSaturation,
     handleApplyAdjustments: geometryActions.handleApplyAdjustments,
     handleCancelAdjustments: geometryActions.handleCancelAdjustments,
+    handleInvertLayerColors: geometryActions.handleInvertLayerColors,
     saveTransformOriginal: transformActions.saveTransformOriginal,
     handleTransformCommit: transformActions.handleTransformCommit,
     handleTransformCancel: transformActions.handleTransformCancel,

@@ -113,6 +113,7 @@ export interface SketchCanvasRef {
     contrast: number,
     saturation: number
   ) => void;
+  invertLayerColors: () => void;
   fillLayerWithColor: (layerId: string, color: string) => void;
   fillLayerRect: (
     layerId: string,

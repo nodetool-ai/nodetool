@@ -258,6 +258,12 @@ export interface ToolHandler {
    */
   onDeactivate?(ctx: ToolContext): void;
 
+  /**
+   * Called when the viewport (zoom / pan) changes while the tool is active.
+   * Allows tools to update overlays that depend on screen-space coordinates.
+   */
+  onViewportChange?(ctx: ToolContext): void;
+
   // ── Async tool lifecycle (optional) ──────────────────────────────────
   //
   // Tools with long-running operations (e.g. SAM segmentation, AI inpaint)

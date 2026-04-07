@@ -189,9 +189,13 @@ export function computeScaleTransform(
     }
   }
 
-  // Clamp scale to prevent zero/negative
-  newSx = Math.max(0.01, newSx);
-  newSy = Math.max(0.01, newSy);
+  // Clamp to prevent zero scale (allow negative for mirroring)
+  if (Math.abs(newSx) < 0.01) {
+    newSx = newSx < 0 ? -0.01 : 0.01;
+  }
+  if (Math.abs(newSy) < 0.01) {
+    newSy = newSy < 0 ? -0.01 : 0.01;
+  }
 
   // ALT modifier: scale from center (default behavior).
   // Without ALT, anchor the opposite edge so it stays fixed.
