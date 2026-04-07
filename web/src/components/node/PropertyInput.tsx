@@ -60,9 +60,15 @@ const propertyInputContainerStyles = (theme: Theme) =>
     "&.property-input-container": {
       position: "relative",
     },
-    "&.property-input-container.value-changed": {
-      borderLeft: `2px solid ${theme.vars.palette.primary.main}`,
-      paddingLeft: 4,
+    "&.property-input-container.value-changed::before": {
+      content: '""',
+      position: "absolute",
+      left: -5,
+      top: 0,
+      bottom: 0,
+      width: 2,
+      backgroundColor: theme.vars.palette.primary.main,
+      opacity: 0.2,
       borderRadius: "2px",
     },
 

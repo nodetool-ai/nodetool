@@ -66,16 +66,13 @@
 .react-flow.is-connecting .react-flow__node .react-flow__handle.is-connectable {
   transform: translate(0, -50%) scale(1.2, 1.1);
   opacity: 1;
-  box-shadow:
-    0 0 6px 2px currentColor,
-    0 0 12px 4px rgba(255, 255, 255, 0.1);
-  animation: handlePulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 4px 1px color-mix(in srgb, currentColor 40%, transparent);
 }
 
 .react-flow.is-connecting
   .react-flow__node
   .react-flow__handle.not-connectable {
-  opacity: 0.25;
+  opacity: 0.15;
   transform: translate(0, -50%) scale(0.4, 0.6);
   filter: grayscale(1);
 }
@@ -84,12 +81,12 @@
   0%, 100% {
     box-shadow:
       0 0 6px 2px currentColor,
-      0 0 12px 4px rgba(255, 255, 255, 0.1);
+      0 0 12px 4px rgba(255, 255, 255, 0.02);
   }
   50% {
     box-shadow:
       0 0 8px 3px currentColor,
-      0 0 16px 6px rgba(255, 255, 255, 0.15);
+      0 0 16px 6px rgba(255, 255, 255, 0.03);
   }
 }
 

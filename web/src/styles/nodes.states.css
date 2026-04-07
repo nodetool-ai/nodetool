@@ -34,11 +34,10 @@
 }
 
 .react-flow__node:hover:not(.selected) {
-  outline: 2px solid var(--c_node_header_bg) !important;
-  outline-color: color-mix(
+  outline: 2px solid color-mix(
     in srgb,
-    var(--c_node_header_bg) 82%,
-    var(--palette-primary-main) 18%
+    var(--c_node_header_bg) 60%,
+    var(--palette-primary-main) 40%
   ) !important;
   outline-offset: 1px;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));

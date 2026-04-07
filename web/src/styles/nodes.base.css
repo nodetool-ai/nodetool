@@ -21,7 +21,7 @@
   border-radius: var(--rounded-node);
   background-color: transparent;
   transition: background-color 0.05s, box-shadow 0.15s ease-in-out,
-    filter 0.2s ease-in-out, outline-color 0.15s ease-in-out;
+    filter 0.2s ease-in-out;
 }
 
 .node-drag-handle {
