@@ -5,25 +5,6 @@ const originalFetch = global.fetch;
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-// Mock WebSocket so that tests don't fail trying to connect to 127.0.0.1:8188
-vi.mock("ws", () => {
-  return {
-    default: class MockWebSocket {
-      on(event: string, cb: Function) {
-        if (event === "open") setTimeout(cb, 0);
-        if (event === "message") {
-          setTimeout(() => cb(JSON.stringify({ type: "execution_success", data: { prompt_id: "abc123" } })), 10);
-          setTimeout(() => cb(JSON.stringify({ type: "execution_success", data: { prompt_id: "p1" } })), 10);
-        }
-      }
-      close() {}
-      removeAllListeners() {}
-    }
-  };
-});
-
-// Since vi.mock inside the file gets hoisted, we'll just leave it and adjust timing in tests
-
 afterAll(() => {
   global.fetch = originalFetch;
 });
@@ -74,13 +55,12 @@ describe("executeComfy", () => {
     const imgBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
     mockFetch.mockResolvedValueOnce(binaryResponse(imgBytes));
 
-    const { result: promise } = executeComfy(samplePrompt, "127.0.0.1:8188", undefined, 1000);
-    const result = await promise;
+    const result = await executeComfy(samplePrompt, "127.0.0.1:8188", 1, 0);
 
-    expect(result?.status).toBe("completed");
-    expect(result?.images).toHaveLength(1);
-    expect(result?.images![0].filename).toBe("out.png");
-    expect(result?.images![0].type).toBe("image");
+    expect(result.status).toBe("completed");
+    expect(result.images).toHaveLength(1);
+    expect(result.images![0].filename).toBe("out.png");
+    expect(result.images![0].type).toBe("image");
     expect(result.images![0].data).toBe(
       Buffer.from(imgBytes).toString("base64")
     );
@@ -90,12 +70,10 @@ describe("executeComfy", () => {
     mockFetch.mockReset();
     mockFetch.mockResolvedValueOnce(jsonResponse({ error: "bad" }, 400));
 
-    // Ensure timeout is short so we trigger the timeout case
-    const { result: promise } = executeComfy(samplePrompt, "127.0.0.1:8188", undefined, 5);
-    const result = await promise;
+    const result = await executeComfy(samplePrompt, "127.0.0.1:8188", 1, 0);
 
-    expect(result?.status).toBe("failed");
-    expect(result?.error).toContain("Submit failed");
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain("Submit failed");
   });
 
   it("works with full URL (e.g. RunPod Pod)", async () => {
@@ -108,15 +86,14 @@ describe("executeComfy", () => {
       })
     );
 
-    const { result: promise } = executeComfy(
+    const result = await executeComfy(
       samplePrompt,
       "https://pod123-8188.proxy.runpod.net",
-      undefined,
-      1000
+      1,
+      0
     );
-    const result = await promise;
 
-    expect(result?.status).toBe("completed");
+    expect(result.status).toBe("completed");
     // Verify it used the full URL, not prepended http://
     expect(mockFetch.mock.calls[0][0]).toBe(
       "https://pod123-8188.proxy.runpod.net/prompt"
@@ -130,10 +107,9 @@ describe("executeComfy", () => {
     // Poll returns empty
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
 
-    const { result: promise } = executeComfy(samplePrompt, "127.0.0.1:8188", undefined, 5);
-    const result = await promise;
+    const result = await executeComfy(samplePrompt, "127.0.0.1:8188", 1, 0);
 
-    expect(result?.status).toBe("failed");
-    expect(result?.error).toContain("Timeout");
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain("Timeout");
   });
 });

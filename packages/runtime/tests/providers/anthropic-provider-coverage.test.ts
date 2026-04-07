@@ -410,7 +410,7 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create: stream } } as any }
+      { client: { messages: { stream } } as any }
     );
 
     const out: unknown[] = [];
@@ -437,7 +437,7 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
   it("jsonSchema throws in streaming mode too", async () => {
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create: vi.fn() } } as any }
+      { client: { messages: { stream: vi.fn() } } as any }
     );
 
     const gen = provider.generateMessages({
@@ -476,7 +476,7 @@ describe("AnthropicProvider – getAvailableLanguageModels edge cases", () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 500 });
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { fetchFn, client: { messages: { create: vi.fn() } } as any }
+      { client: {} as any, fetchFn: fetchFn as any }
     );
 
     const models = await provider.getAvailableLanguageModels();
@@ -633,7 +633,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create: stream } } as any }
+      { client: { messages: { stream } } as any }
     );
 
     const out: unknown[] = [];
@@ -673,7 +673,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create: stream } } as any }
+      { client: { messages: { stream } } as any }
     );
 
     for await (const _item of provider.generateMessages({
@@ -750,7 +750,7 @@ describe("AnthropicProvider – streaming content_block_stop suppresses structur
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create: stream } } as any }
+      { client: { messages: { stream } } as any }
     );
 
     const out: unknown[] = [];

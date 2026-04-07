@@ -225,7 +225,7 @@ describe("Cost tracking – Anthropic generateMessages (streaming)", () => {
       { ANTHROPIC_API_KEY: "k" },
       {
         client: {
-          messages: { create: mockStream }
+          messages: { create: vi.fn(), stream: mockStream }
         } as any
       }
     );

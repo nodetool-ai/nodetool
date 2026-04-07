@@ -30,6 +30,7 @@ import type {
   ToolCall
 } from "./types.js";
 import * as sdk from "@anthropic-ai/claude-agent-sdk";
+import { z } from "zod";
 
 const log = createLogger("nodetool.runtime.providers.claude_agent");
 
