@@ -135,15 +135,16 @@ Execution order for remaining Phase 1 work:
       - **landed**: extracted `applySelectionConstraint` (canvas-context variant) and `applySelectionConstraintToBuffers` (pure-data variant) into `selection/applySelectionConstraint.ts`; FillTool and GradientTool now import from the shared module; 15 tests in `__tests__/packageC-selectionConstraint.test.ts` cover inside/outside behavior, offset translation, mask-origin handling, threshold boundary, edge cases (empty/full/partial mask, transparent pixels), and parity verification
   - summary: this package was pure test + extraction work; no implementation gaps were discovered — the duplicated `applySelectionConstraint` logic in FillTool and GradientTool was identical and correct, so the extraction was a clean deduplication with no behavioral changes
 
-- [ ] **Package D — Refactor support**
+- [x] **Package D — Refactor support**
   - pull this in only when it directly reduces friction for Packages A or B; it is support work, not a separate rewrite track
   - package is done when:
     - remaining overloaded-file refactors needed to support Packages A and B are complete
     - no shared seam logic is still duplicated across overloaded files just because it was easier to leave it there
     - the remaining high-pressure files mainly orchestrate or delegate rather than acting as mixed-responsibility policy layers
   - tasks:
-    - [ ] [impl+test] watch `sketchCanvasHooks/usePointerHandlers.ts` for router creep; extract any new shared hover / gesture / tool-routing policy before it becomes another mixed-responsibility policy file
+    - [x] [impl+test] watch `sketchCanvasHooks/usePointerHandlers.ts` for router creep; extract any new shared hover / gesture / tool-routing policy before it becomes another mixed-responsibility policy file
       - only keep pointer-event routing and tool dispatch here; preview semantics, geometry rules, and sync decisions belong in their dedicated seams
+      - **landed**: added declarative `showsBrushCursor` and `showsActiveStrokePreview` capability flags to `ToolHandler` interface; replaced hardcoded tool lists in `usePointerHandlers.ts` with capability queries; extracted TransformTool hover cursor into generic `onHoverMove` dispatch; updated `useOverlayRenderer.ts` to use `showsBrushCursor` capability; removed `TransformTool` import from pointer handler; 36 regression tests in `packageD-refactorSupport.test.ts`
 
 Completed groundwork already landed:
 
@@ -269,10 +270,12 @@ These are not "clean up for its own sake" tasks. They are explicit support work 
 
 ## PHASE 2 - FIXES
 
-- [ ] Blur tool currently only works with single click / dab, should also work with holding mouse / doing strokes
+- [x] Blur tool currently only works with single click / dab, should also work with holding mouse / doing strokes
+  - **landed**: removed snapshot-based blur source so blur reads from the current layer state on each dab, allowing the effect to accumulate as the user paints continuously; BlurTool.ts no longer creates a `blurSourceCanvas` snapshot in `onDown`
 - [ ] fix small delay when starting brush strokes - mouse cursor hangs for 50ms right after starting a stroke
 - [ ] rethink layer action buttons: sort, think about what should be in top and bottom groups, remove icons for crop canvas, but leave in context menu
-- [ ] rename duplicate layers "[layer name] copy 1", 2, 3 ...
+- [x] rename duplicate layers "[layer name] copy 1", 2, 3 ...
+  - **landed**: `duplicateLayer` in `documentSlice.ts` now strips existing "copy N" / "Copy" suffixes to find the base name, then generates `[base] copy N` with a unique counter; tests in `packageD-refactorSupport.test.ts` verify first duplicate, multiple duplicates, duplicate-of-duplicate, and custom names
 - [ ] remove Layer In / Layer Out from handle names, only layer name
 - [ ] Remove the default Image Input handle
 - [ ] adjust default settings for tools to sane values
