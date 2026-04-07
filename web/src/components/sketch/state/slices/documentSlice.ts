@@ -263,10 +263,19 @@ export const createDocumentSlice: StateCreator<
       if (!layer) {
         return state;
       }
+      // Generate a unique copy name with numeric suffix: "name copy 1", "name copy 2", ...
+      const baseName = layer.name.replace(/ copy \d+$/, "").replace(/ Copy$/, "");
+      const existingNames = new Set(state.document.layers.map((l) => l.name));
+      let copyName = `${baseName} copy 1`;
+      let counter = 1;
+      while (existingNames.has(copyName)) {
+        counter++;
+        copyName = `${baseName} copy ${counter}`;
+      }
       const newLayer: Layer = {
         ...layer,
         id: generateLayerId(),
-        name: `${layer.name} Copy`,
+        name: copyName,
         locked: false,
         exposedAsInput: true,
         exposedAsOutput: true,

@@ -13,6 +13,7 @@ import type {
   Point,
   Selection
 } from "../types";
+import { getToolHandler } from "../tools";
 import { drawShapeOnCtx } from "../tools/ShapeTool";
 import { drawGradient } from "../tools/GradientTool";
 import {
@@ -522,14 +523,9 @@ export function useOverlayRenderer({
 
       ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
 
-      // Only show brush cursor for brush/pencil/eraser/blur/clone_stamp tools
-      if (
-        interactionTool !== "brush" &&
-        interactionTool !== "pencil" &&
-        interactionTool !== "eraser" &&
-        interactionTool !== "blur" &&
-        interactionTool !== "clone_stamp"
-      ) {
+      // Only show brush cursor for tools that declare showsBrushCursor capability
+      const handler = getToolHandler(interactionTool);
+      if (!handler.showsBrushCursor) {
         return;
       }
 

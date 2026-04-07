@@ -12,6 +12,8 @@ import CreateIcon from "@mui/icons-material/Create";
 
 export class PencilTool implements ToolHandler {
   readonly toolId = "pencil" as const;
+  readonly showsBrushCursor = true;
+  readonly showsActiveStrokePreview = true;
 
   private engine = new PencilEngine({
     ...DEFAULT_PENCIL_SETTINGS,

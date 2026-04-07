@@ -208,6 +208,19 @@ export class TransformTool implements ToolHandler {
     return handle ? cursorForHandle(handle, rot) : null;
   }
 
+  /**
+   * Update cursor based on which handle is under the pointer during hover.
+   * Encapsulates transform-specific hover policy so usePointerHandlers can
+   * dispatch generically via `handler.onHoverMove`.
+   */
+  onHoverMove(ctx: ToolContext, event: ToolPointerEvent): void {
+    const cursor = this.getHoverCursor(ctx, event.point);
+    const el = ctx.containerRef.current;
+    if (el) {
+      el.style.cursor = cursor ?? "default";
+    }
+  }
+
   // ── Gizmo drawing (screen-resolution canvas) ──────────────────────────────
 
   private drawGizmo(ctx: ToolContext): void {
