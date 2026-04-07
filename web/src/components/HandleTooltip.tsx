@@ -77,10 +77,10 @@ const HandleTooltip = memo(function HandleTooltip({
     };
   }, []);
 
-  const prettyName = displayName ?? paramName
+  const prettyName = displayName ?? (paramName
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+    .join(" "));
   
   const displayType = formatTypeString(typeMetadata);
   // Use "float" for color when displaying "number" (float|int union), 

@@ -443,14 +443,13 @@ export function combineMasks(
     }
   }
 
-  const result: Selection = { width: uW, height: uH, data: out.data };
-  if (uMinX !== 0) {
-    result.originX = uMinX;
-  }
-  if (uMinY !== 0) {
-    result.originY = uMinY;
-  }
-  return result;
+  return {
+    width: uW,
+    height: uH,
+    data: out.data,
+    originX: uMinX,
+    originY: uMinY
+  };
 }
 
 export function invertMaskInPlace(mask: Selection): void {
