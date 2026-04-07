@@ -20,11 +20,17 @@ const BoolProperty = (props: PropertyProps) => {
         position: "relative",
         padding: 0,
         display: "flex",
+        flexDirection: "column",
         alignItems: "flex-start",
-        gap: "5px",
         borderRadius: ".2em",
       }}
     >
+      <PropertyLabel
+        name={property.name}
+        description={property.description}
+        density="compact"
+        id={id}
+      />
       <NodeSwitch
         id={id}
         inputProps={{ "aria-labelledby": id }}
@@ -32,12 +38,6 @@ const BoolProperty = (props: PropertyProps) => {
         onChange={handleChange}
         name={property.name}
         changed={changed}
-      />
-      <PropertyLabel
-        name={property.name}
-        description={property.description}
-        density="compact"
-        id={id}
       />
     </div>
   );

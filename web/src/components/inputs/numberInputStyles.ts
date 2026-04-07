@@ -29,16 +29,15 @@ export const numberInputStyles = (theme: Theme) =>
     },
 
     ".value": {
-      marginTop: "-3px",
+      marginTop: 0,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeNormal
     },
 
     ".slider-value": {
       display: "flex",
-      justifyContent: "flex-start",
-      alignItems: "center",
-      gap: "8px",
+      flexDirection: "column",
+      alignItems: "flex-start",
       outline: "none !important",
       width: "100%",
       marginBottom: 0,
@@ -50,33 +49,33 @@ export const numberInputStyles = (theme: Theme) =>
       position: "relative",
       display: "flex",
       alignItems: "center",
+      width: "100%",
       minWidth: "30px",
       minHeight: "20px" // Ensure stable height
     },
 
     ".slider-value .property-label": {
-      flexGrow: 1,
-      width: "auto",
+      width: "100%",
       height: "auto",
       margin: 0,
       padding: 0
     },
 
     ".slider-value .value": {
-      display: "flex", // Use flex to match input
-      alignItems: "center", // Center text vertically
+      display: "flex",
+      alignItems: "center",
       color: theme.vars.palette.grey[100],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       lineHeight: "20px",
       height: "20px",
-      textAlign: "right",
+      textAlign: "left",
       flexShrink: 0,
       minWidth: "10px",
       letterSpacing: "normal",
       fontWeight: 400,
       padding: 0,
-      marginTop: "-6px"
+      marginTop: 0
     },
 
     // Changed state: value differs from default
@@ -96,10 +95,10 @@ export const numberInputStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       lineHeight: "20px !important",
       height: "20px !important",
-      marginLeft: "1.25em !important",
-      marginTop: "-6px !important",
+      marginLeft: "0 !important",
+      marginTop: "0 !important",
       padding: "0 !important",
-      textAlign: "right",
+      textAlign: "left",
       maxWidth: "100px",
       zIndex: 10,
       letterSpacing: "normal",
@@ -120,7 +119,13 @@ export const numberInputStyles = (theme: Theme) =>
       display: "block",
       width: "100%",
       marginTop: 0,
-      height: "4px"
+      height: "4px",
+      opacity: 0,
+      transition: "opacity 0.15s"
+    },
+
+    "&:hover .range-container-wrapper": {
+      opacity: 1
     },
 
     ".range-container": {
@@ -151,5 +156,10 @@ export const numberInputStyles = (theme: Theme) =>
     ".range-container.dragging .range-indicator": {
       backgroundColor: theme.vars.palette.primary.main,
       height: "100%"
+    },
+
+    // Always show slider when dragging
+    "&:has(.range-container.dragging) .range-container-wrapper": {
+      opacity: 1
     }
   });
