@@ -18,6 +18,8 @@ import {
 
 export class EraserTool implements ToolHandler {
   readonly toolId = "eraser" as const;
+  readonly showsBrushCursor = true;
+  readonly showsActiveStrokePreview = true;
 
   private engine = new EraserEngine(
     DEFAULT_ERASER_SETTINGS,

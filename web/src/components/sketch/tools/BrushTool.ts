@@ -12,6 +12,8 @@ import BrushIcon from "@mui/icons-material/Brush";
 
 export class BrushTool implements ToolHandler {
   readonly toolId = "brush" as const;
+  readonly showsBrushCursor = true;
+  readonly showsActiveStrokePreview = true;
 
   private engine = new BrushEngine({
     ...DEFAULT_BRUSH_SETTINGS,
