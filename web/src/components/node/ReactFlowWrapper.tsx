@@ -114,12 +114,7 @@ const ReactFlowWrapper = ({
     )
   );
 
-  const [isVisible, setIsVisible] = useState(true);
   const [isSelecting] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(!!storedViewport || nodes.length === 0);
-  }, [workflowId, storedViewport, nodes]);
 
   const reactFlowInstance = useReactFlow();
   const pendingNodeType = useNodePlacementStore(
@@ -166,11 +161,9 @@ const ReactFlowWrapper = ({
       left: 0,
       top: 0,
       right: 0,
-      bottom: 0,
-      opacity: isVisible ? 1 : 0,
-      transition: "opacity 50ms 1s ease-out"
+      bottom: 0
     }),
-    [isVisible]
+    []
   );
 
   const reactFlowStyle = useMemo(
@@ -526,10 +519,6 @@ const ReactFlowWrapper = ({
         </Typography>
       </div>
     );
-  }
-
-  if (!active) {
-    return null;
   }
 
   return (

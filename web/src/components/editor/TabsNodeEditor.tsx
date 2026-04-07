@@ -282,6 +282,8 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       : undefined
   );
 
+  const nodeStores = useWorkflowManager((state) => state.nodeStores);
+
   // Autosave hook integration
   const getWorkflowForAutosave = useCallback(() => {
     if (!activeNodeStore) {
@@ -477,7 +479,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
             css={generateCSS}
             style={{ flex: 1, minHeight: 0, minWidth: 0 }}
           >
-            {activeFileTab ? (
+            {activeFileTab && (
               <Box
                 key={`file-${activeFileTab.asset.id}`}
                 sx={{
@@ -493,29 +495,39 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
               >
                 <FileTabContent asset={activeFileTab.asset} />
               </Box>
-            ) : (
-              <Box
-                key={currentWorkflowId}
-                sx={{
-                  overflow: "hidden",
-                  position: "absolute",
-                  width: "100%",
-                  height: "100%",
-                  minHeight: 0,
-                  minWidth: 0,
-                  display: "flex",
-                  flexDirection: "column"
-                }}
-              >
-                {activeNodeStore && (
-                  <NodeContext.Provider value={activeNodeStore}>
+            )}
+            {openWorkflows.map((workflow) => {
+              const store = nodeStores[workflow.id];
+              if (!store) return null;
+              const isActive =
+                workflow.id === currentWorkflowId && !activeFileTab;
+              return (
+                <Box
+                  key={workflow.id}
+                  sx={{
+                    overflow: "hidden",
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    minHeight: 0,
+                    minWidth: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    opacity: isActive ? 1 : 0,
+                    pointerEvents: isActive ? "auto" : "none",
+                    zIndex: isActive ? 1 : 0
+                  }}
+                >
+                  <NodeContext.Provider value={store}>
                     <ReactFlowProvider>
                       <ContextMenuProvider>
                         <ConnectableNodesProvider>
                           <KeyboardProvider>
-                            <div className="status-message-container">
-                              <StatusMessage />
-                            </div>
+                            {isActive && (
+                              <div className="status-message-container">
+                                <StatusMessage />
+                              </div>
+                            )}
                             <div
                               style={{
                                 flex: 1,
@@ -526,20 +538,19 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                               }}
                             >
                               <NodeEditor
-                                workflowId={currentWorkflowId!}
-                                active={true}
+                                workflowId={workflow.id}
+                                active={isActive}
                               />
                             </div>
-
-                            <FloatingToolBar />
+                            {isActive && <FloatingToolBar />}
                           </KeyboardProvider>
                         </ConnectableNodesProvider>
                       </ContextMenuProvider>
                     </ReactFlowProvider>
                   </NodeContext.Provider>
-                )}
-              </Box>
-            )}
+                </Box>
+              );
+            })}
           </div>
         )}
       </div>
