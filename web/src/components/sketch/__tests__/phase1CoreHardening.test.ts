@@ -544,19 +544,25 @@ describe("Phase 1.5 – selection model hardening", () => {
     });
 
     it("combineMasks handles different-origin base via alignment", () => {
-      // Base mask: 20×20 at origin (20, 30), filled rect at (5, 5, 10, 10)
+      // Base mask: 20×20 at origin (20, 30), filled rect at buffer (5, 5, 10, 10)
       const base = sel;
 
       // Overlay mask: document-sized 20×20 at origin (0, 0)
-      // Fill region that overlaps: doc (25, 35) to (34, 44) → buf (25, 35) to (19, 19) clipped
-      // Simpler: fill the whole overlay
+      // Fill the whole overlay
       const overlay = rectSelectionMask(20, 20, 0, 0, 20, 20);
 
       // "add" should produce result with both contributions
+      // Union bounding box: (0,0) to (40,50) → 40×50
       const result = combineMasks(base, overlay, "add");
-      expect(result.width).toBe(20);
-      expect(result.height).toBe(20);
+      expect(result.width).toBe(40);
+      expect(result.height).toBe(50);
       expect(validateSelectionMask(result)).toBe(true);
+      // Overlay pixel at doc (0,0) should be selected
+      const rox = result.originX ?? 0;
+      const roy = result.originY ?? 0;
+      expect(result.data[(0 - roy) * result.width + (0 - rox)]).toBe(255);
+      // Base pixel at doc (25,35) should also be selected (255 from both)
+      expect(result.data[(35 - roy) * result.width + (25 - rox)]).toBe(255);
     });
   });
 
@@ -672,9 +678,12 @@ describe("Phase 1.5 – selection model hardening", () => {
 
     it("ellipseSelectionMask has correct dimensions", () => {
       const mask = ellipseSelectionMask(100, 100, 10, 10, 50, 50);
-      expect(mask.width).toBe(100);
-      expect(mask.height).toBe(100);
-      expect(mask.data.length).toBe(10000);
+      // Mask covers the ellipse bounding box with origin offset
+      expect(mask.width).toBe(50);
+      expect(mask.height).toBe(50);
+      expect(mask.data.length).toBe(2500);
+      expect(mask.originX).toBe(10);
+      expect(mask.originY).toBe(10);
     });
 
     it("center pixel of rect selection is selected", () => {
@@ -694,14 +703,19 @@ describe("Phase 1.5 – selection model hardening", () => {
 
     it("ellipse center pixel is selected", () => {
       const mask = ellipseSelectionMask(100, 100, 10, 10, 50, 50);
-      // Center of the ellipse bounding box: (35, 35)
-      const centerIdx = 35 * 100 + 35;
+      const ox = mask.originX ?? 0;
+      const oy = mask.originY ?? 0;
+      // Center of the ellipse bounding box: document coord (35, 35)
+      const centerIdx = (35 - oy) * mask.width + (35 - ox);
       expect(mask.data[centerIdx]).toBeGreaterThanOrEqual(128);
     });
 
     it("ellipse corner pixel outside is not selected", () => {
       const mask = ellipseSelectionMask(100, 100, 10, 10, 50, 50);
-      expect(mask.data[0]).toBe(0);
+      const ox = mask.originX ?? 0;
+      const oy = mask.originY ?? 0;
+      // (10, 10) is the top-left corner of the bounding box — outside the ellipse
+      expect(mask.data[(10 - oy) * mask.width + (10 - ox)]).toBe(0);
     });
   });
 

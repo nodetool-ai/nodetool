@@ -40,6 +40,9 @@ const formatTypeString = (typeMetadata: TypeMetadata): string => {
 type HandleTooltipProps = {
   typeMetadata: TypeMetadata;
   paramName: string;
+  /** Optional display name override. When set, the tooltip shows this instead of
+   *  the auto-formatted paramName. */
+  displayName?: string;
   className?: string;
   children: React.ReactNode;
   handlePosition: "left" | "right";
@@ -50,6 +53,7 @@ type HandleTooltipProps = {
 const HandleTooltip = memo(function HandleTooltip({
   typeMetadata,
   paramName,
+  displayName,
   className = "",
   children,
   handlePosition,
@@ -73,7 +77,7 @@ const HandleTooltip = memo(function HandleTooltip({
     };
   }, []);
 
-  const prettyName = paramName
+  const prettyName = displayName ?? paramName
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");

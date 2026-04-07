@@ -6,8 +6,8 @@
  * and opens the full editor in a modal on click.
  *
  * Features:
- * - Loads connected input_image into editor as base layer
  * - Exports flattened image and mask as node properties for downstream consumption
+ * - Supports per-layer input/output handles for connecting images
  * - Persists sketch document state for reopen/edit/continue
  */
 
@@ -41,7 +41,6 @@ import { SketchModal } from "../../sketch";
 import { useSketchStore } from "../../sketch";
 import {
   SketchDocument,
-  SKETCH_NODE_INPUT_IMAGE_LAYER_NAME,
   createDefaultDocument,
   createDefaultLayer,
   deserializeDocument,
@@ -472,7 +471,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     null
   );
   const documentRef = useRef<SketchDocument | null>(null);
-  const inputImageLoadedRef = useRef<string | null>(null);
   /** Last applied `layer_in_*` source URI per layer id (avoid reload loops). */
   const layerInputUriLoadedRef = useRef<Record<string, string>>({});
   /** When this changes, sketch node handles / edge ids must sync to the workflow. */
@@ -513,27 +511,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   // ─── Resolve source node IDs for all image inputs ─────────────────
   // Connected values live on the SOURCE node's result, not this node's own
   // result. Find the relevant incoming edges and subscribe to their results.
-  const inputImageConnection = useMemo(
-    () =>
-      edges.find(
-        (e) => e.target === props.id && e.targetHandle === "input_image"
-      ) ?? null,
-    [edges, props.id]
-  );
-
-  const inputImageSourceResult = useResultsStore((state) => {
-    if (!inputImageConnection?.source) {
-      return undefined;
-    }
-    return (
-      state.getOutputResult(
-        props.data.workflow_id,
-        inputImageConnection.source
-      ) ??
-      state.getResult(props.data.workflow_id, inputImageConnection.source) ??
-      state.getPreview(props.data.workflow_id, inputImageConnection.source)
-    );
-  });
 
   const incomingLayerInEdges = useMemo(
     () =>
@@ -820,192 +797,10 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
   const displayPreviewUri = outputImageUri ?? previewUrl;
 
-  const staticProps = props.data.properties;
   // `documentRef` tracks the latest live editor state without forcing React
   // re-renders on every stroke. Prefer it over `editorDocument`, which is
   // just the snapshot used to open the modal or stage async hydration updates.
   const currentDocument = documentRef.current ?? editorDocument ?? sketchDoc;
-
-  // ─── Resolve input_image URI ───────────────────────────────────────
-  const inputImageUri = useMemo((): string | null => {
-    // Priority 1: connected upstream node result (the correct source)
-    const fromResult = extractImageUri(
-      resolveConnectedOutputValue(
-        inputImageSourceResult,
-        inputImageConnection?.sourceHandle
-      )
-    );
-    if (fromResult) {
-      return fromResult;
-    }
-    if (
-      inputImageConnection?.source &&
-      isLiteralSourceNode(findNode(inputImageConnection.source)?.type)
-    ) {
-      const fallbackValue = resolveNodePropertyValue(
-        findNode(inputImageConnection.source),
-        inputImageConnection.sourceHandle
-      );
-      const fromFallback = extractImageUri(fallbackValue);
-      if (fromFallback) {
-        return fromFallback;
-      }
-    }
-    // Priority 2: static property set without a live connection
-    return extractImageUri(
-      (staticProps as Record<string, unknown> | undefined)?.input_image
-    );
-  }, [findNode, inputImageConnection, inputImageSourceResult, staticProps]);
-
-  // ─── Load input_image into sketch document when it changes ────────
-  useEffect(() => {
-    if (!inputImageUri || inputImageUri === inputImageLoadedRef.current) {
-      return;
-    }
-
-    inputImageLoadedRef.current = inputImageUri;
-
-    // Load the image and get its natural dimensions for auto-resize
-    const doc = documentRef.current || sketchDoc;
-    loadImageWithDimensions(inputImageUri)
-      .then(({ data: layerData, naturalWidth, naturalHeight }) => {
-        const imageReference = {
-          uri: inputImageUri,
-          naturalWidth,
-          naturalHeight,
-          objectFit: "contain" as const
-        };
-
-        // Auto-resize canvas to match input image dimensions
-        const canvasWidth = naturalWidth > 0 ? naturalWidth : doc.canvas.width;
-        const canvasHeight =
-          naturalHeight > 0 ? naturalHeight : doc.canvas.height;
-
-        const contentBounds = {
-          x: 0,
-          y: 0,
-          width: canvasWidth,
-          height: canvasHeight
-        };
-
-        // Insert input layer at the bottom (index 0) if not already present
-        const existingInputIdx = doc.layers.findIndex(
-          (l) => l.name === SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
-        );
-        let updatedLayers;
-        if (existingInputIdx >= 0) {
-          const prev = doc.layers[existingInputIdx];
-          updatedLayers = [...doc.layers];
-          updatedLayers[existingInputIdx] = {
-            ...prev,
-            data: layerData,
-            locked: true,
-            imageReference,
-            contentBounds,
-            transform: { x: 0, y: 0 }
-          };
-        } else {
-          const inputLayer = createDefaultLayer(
-            SKETCH_NODE_INPUT_IMAGE_LAYER_NAME,
-            "raster",
-            canvasWidth,
-            canvasHeight
-          );
-          inputLayer.data = layerData;
-          inputLayer.locked = true;
-          inputLayer.imageReference = imageReference;
-          inputLayer.contentBounds = contentBounds;
-          updatedLayers = [inputLayer, ...doc.layers];
-        }
-
-        const updatedDoc = ensureEditableActiveLayer({
-          ...doc,
-          canvas: {
-            ...doc.canvas,
-            width: canvasWidth,
-            height: canvasHeight
-          },
-          layers: updatedLayers,
-          metadata: { ...doc.metadata, updatedAt: new Date().toISOString() }
-        });
-
-        documentRef.current = updatedDoc;
-        const serialized = serializeDocument(updatedDoc);
-        updateNodeProperties(props.id, {
-          sketch_data: serialized,
-          [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
-        });
-
-        // Push the loaded layer into the editor.
-        // If the modal is open, update the live Zustand store so the canvas
-        // hydrates immediately without wiping any user edits on other layers.
-        // If the modal is closed, update editorDocument state so the correct
-        // document is ready the next time the user opens the editor.
-        if (isModalOpen) {
-          const storeState = useSketchStore.getState();
-          const currentDoc = storeState.document;
-          const existingStoreIdx = currentDoc.layers.findIndex(
-            (l) => l.name === SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
-          );
-          const mergedLayers =
-            existingStoreIdx >= 0
-              ? currentDoc.layers.map((l, i) =>
-                  i === existingStoreIdx
-                    ? {
-                        ...l,
-                        data: layerData,
-                        locked: true,
-                        imageReference,
-                        contentBounds,
-                        transform: { x: 0, y: 0 }
-                      }
-                    : l
-                )
-              : [
-                  (() => {
-                    const il = createDefaultLayer(
-                      SKETCH_NODE_INPUT_IMAGE_LAYER_NAME,
-                      "raster",
-                      canvasWidth,
-                      canvasHeight
-                    );
-                    il.data = layerData;
-                    il.locked = true;
-                    il.imageReference = imageReference;
-                    il.contentBounds = contentBounds;
-                    return il;
-                  })(),
-                  ...currentDoc.layers
-                ];
-          storeState.setDocument(
-            ensureEditableActiveLayer({
-              ...currentDoc,
-              canvas: {
-                ...currentDoc.canvas,
-                width: canvasWidth,
-                height: canvasHeight
-              },
-              layers: mergedLayers,
-              metadata: {
-                ...currentDoc.metadata,
-                updatedAt: new Date().toISOString()
-              }
-            })
-          );
-        } else {
-          setEditorDocument(updatedDoc);
-        }
-      })
-      .catch((err) => {
-        console.warn(
-          "[SketchNode] Failed to load input_image:",
-          inputImageUri,
-          err
-        );
-        // Allow retry if the URI changes again
-        inputImageLoadedRef.current = null;
-      });
-  }, [inputImageUri, sketchDoc, props.id, updateNodeProperties, isModalOpen]);
 
   // ─── Load per-layer images from `layer_in_<layerName>` handles ─────
   useEffect(() => {
@@ -1082,9 +877,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
           });
 
-          // Mirror the fix from the input_image effect: push the updated layer
-          // into the live editor store when open, or prepare editorDocument for
-          // the next open when the modal is closed.
+          // Push the updated layer into the live editor store when open, or
+          // prepare editorDocument for the next open when the modal is closed.
           if (isModalOpen) {
             const storeState = useSketchStore.getState();
             const currentDoc = storeState.document;
@@ -1371,25 +1165,12 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             </div>
 
             <div className="sketch-input-handles">
-              <HandleTooltip
-                typeMetadata={imageTypeMetadata}
-                paramName="input_image"
-                handlePosition="left"
-              >
-                <Handle
-                  type="target"
-                  id="input_image"
-                  position={Position.Left}
-                  isConnectable={true}
-                  className={Slugify("image")}
-                />
-              </HandleTooltip>
-
               {exposedInputLayers.map((layer) => (
                 <HandleTooltip
                   key={`input-${layer.id}`}
                   typeMetadata={imageTypeMetadata}
                   paramName={getLayerInputHandleName(layer.name)}
+                  displayName={layer.name}
                   handlePosition="left"
                 >
                   <Handle
@@ -1429,6 +1210,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                     type: outputImageTypeMetadata,
                     stream: false
                   }}
+                  displayName={layer.name}
                 />
               ))}
             </div>
