@@ -38,7 +38,7 @@ export class CloneStampTool implements ToolHandler {
     onSetup: (ctx, info) => this.handleSetup(ctx, info),
     onDraw: (info) => this.handleDraw(info),
     onTeardown: () => this.handleTeardown(),
-    useSelectionClipOnMove: false
+    useSelectionClipOnMove: true
   });
 
   // ── Helpers ───────────────────────────────────────────────────────────

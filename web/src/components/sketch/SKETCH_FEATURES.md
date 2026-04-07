@@ -32,12 +32,12 @@ Completed Phase 1 packages, hardening work, and earlier shipped fixes have been 
 
 Do these first. Recent clone/blur bugs showed that helper paint tools still duplicate too much lifecycle and sampling logic outside the shared seams.
 
-- [ ] unify helper paint-tool stroke/session behavior so `CloneStampTool.ts` and `BlurTool.ts` stop carrying ad hoc copies of lifecycle, mapper setup, dirty-rect redraw, and alpha-lock behavior that already belong in shared paint/session boundaries
-- [ ] reduce remaining duplicated alpha-lock and per-stroke orchestration logic between `PaintSession.ts`, `CloneStampTool.ts`, and `BlurTool.ts`
-- [ ] harden affine dirty-region redraw behavior so transformed layers do not rely on translation-only invalidation assumptions during paint/helper-tool updates
-- [ ] add focused regression coverage for clone/blur correctness on transformed or bounds-expanded layers
-- [ ] add focused regression coverage for clone stamp anchoring across pan/zoom, second-stroke re-anchor, and `active_layer` vs `composited` sampling
-- [ ] verify and lock down selection parity for blur vs clone so both tools follow one documented clipping/selection rule
+- [x] unify helper paint-tool stroke/session behavior so `CloneStampTool.ts` and `BlurTool.ts` stop carrying ad hoc copies of lifecycle, mapper setup, dirty-rect redraw, and alpha-lock behavior that already belong in shared paint/session boundaries
+- [x] reduce remaining duplicated alpha-lock and per-stroke orchestration logic between `PaintSession.ts`, `CloneStampTool.ts`, and `BlurTool.ts`
+- [x] harden affine dirty-region redraw behavior so transformed layers do not rely on translation-only invalidation assumptions during paint/helper-tool updates
+- [x] add focused regression coverage for clone/blur correctness on transformed or bounds-expanded layers
+- [x] add focused regression coverage for clone stamp anchoring across pan/zoom, second-stroke re-anchor, and `active_layer` vs `composited` sampling
+- [x] verify and lock down selection parity for blur vs clone so both tools follow one documented clipping/selection rule
 
 ### 1.2 - Remaining correctness and UX fixes
 
