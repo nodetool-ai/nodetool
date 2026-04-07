@@ -23,6 +23,7 @@ import {
 
 export class BlurTool implements ToolHandler {
   readonly toolId = "blur" as const;
+  readonly showsBrushCursor = true;
 
   // Stroke state
   private lastPoint: Point | null = null;
@@ -93,18 +94,9 @@ export class BlurTool implements ToolHandler {
       this.alphaSnapshot = null;
     }
 
-    // Create blur source snapshot
-    const layerCanvasForBlur = ctx.getOrCreateLayerCanvas(activeLayer.id);
-    const blurSnapshot = window.document.createElement("canvas");
-    blurSnapshot.width = layerCanvasForBlur.width;
-    blurSnapshot.height = layerCanvasForBlur.height;
-    const blurSnapshotCtx = blurSnapshot.getContext("2d");
-    if (blurSnapshotCtx) {
-      blurSnapshotCtx.drawImage(layerCanvasForBlur, 0, 0);
-      this.blurSourceCanvas = blurSnapshot;
-    } else {
-      this.blurSourceCanvas = null;
-    }
+    // No source snapshot: blur reads from the current layer state on each dab,
+    // allowing the effect to accumulate as the user paints continuously.
+    this.blurSourceCanvas = null;
 
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const paintCtx = layerCanvas.getContext("2d");

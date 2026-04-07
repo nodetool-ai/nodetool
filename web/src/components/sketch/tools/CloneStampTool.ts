@@ -28,6 +28,7 @@ import {
 
 export class CloneStampTool implements ToolHandler {
   readonly toolId = "clone_stamp" as const;
+  readonly showsBrushCursor = true;
 
   // Clone-specific state
   private cloneSource: Point | null = null;

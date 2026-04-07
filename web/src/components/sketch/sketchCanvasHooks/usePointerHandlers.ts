@@ -20,7 +20,6 @@ import {
 } from "../types";
 import type { ActiveStrokeInfo } from "./useCompositing";
 import { getToolHandler } from "../tools";
-import { TransformTool } from "../tools/TransformTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { SelectTool } from "../tools/SelectTool";
 import { sampleColorHex } from "../tools/EyedropperTool";
@@ -37,7 +36,8 @@ import {
   pointerHasPaintContact
 } from "../pointerPen";
 
-/** Matches `useOverlayRenderer` brush-ring tools (software cursor). */
+/** Matches `useOverlayRenderer` brush-ring tools (software cursor).
+ * @deprecated Prefer querying `handler.showsBrushCursor` from the tool handler. */
 function interactionToolShowsBrushCursor(t: SketchTool): boolean {
   return (
     t === "brush" ||
@@ -475,12 +475,11 @@ export function usePointerHandlers({
       }
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
-      // Post-delegation: active stroke preview for paint tools
+      // Post-delegation: active stroke preview for tools that declare the capability
+      const downHandler = getToolHandler(interactionTool);
       if (
         started &&
-        (interactionTool === "brush" ||
-          interactionTool === "pencil" ||
-          interactionTool === "eraser") &&
+        downHandler.showsActiveStrokePreview &&
         activeStrokeRef.current
       ) {
         drawActiveStrokePreview();
@@ -539,24 +538,9 @@ export function usePointerHandlers({
 
       // ─── Non-drawing hover dispatches ─────────────────────────────────
       if (!isDrawingRef.current) {
-        // Select tool: polygon lasso rubber-band preview
-        if (interactionTool === "select") {
-          const handler = getToolHandler("select");
-          handler.onHoverMove?.(toolCtxRef.current, buildToolPointerEvent(e));
-        }
-
-        // Transform tool: update cursor based on which handle is under the pointer
-        if (interactionTool === "transform") {
-          const handler = getToolHandler(interactionTool);
-          if (handler instanceof TransformTool) {
-            const docPt = screenToCanvas(e.clientX, e.clientY);
-            const cursor = handler.getHoverCursor(toolCtxRef.current, docPt);
-            const el = containerRef.current;
-            if (el) {
-              el.style.cursor = cursor ?? "default";
-            }
-          }
-        }
+        // Generic hover dispatch: any tool with onHoverMove receives hover events
+        const handler = getToolHandler(interactionTool);
+        handler.onHoverMove?.(toolCtxRef.current, buildToolPointerEvent(e));
         return;
       }
 
@@ -568,18 +552,14 @@ export function usePointerHandlers({
         buildCoalescedEvents(e)
       );
 
-      // Post-delegation: active stroke preview for paint tools
-      if (
-        (interactionTool === "brush" ||
-          interactionTool === "pencil" ||
-          interactionTool === "eraser") &&
-        activeStrokeRef.current
-      ) {
+      // Post-delegation: active stroke preview for tools that declare the capability
+      const moveHandler = getToolHandler(interactionTool);
+      if (moveHandler.showsActiveStrokePreview && activeStrokeRef.current) {
         drawActiveStrokePreview();
       }
 
       // Post-delegation: cursor update for brush-cursor tools during drawing
-      if (interactionToolShowsBrushCursor(interactionTool)) {
+      if (moveHandler.showsBrushCursor) {
         const r = containerRef.current?.getBoundingClientRect();
         if (r) {
           mousePositionRef.current = {
@@ -643,12 +623,9 @@ export function usePointerHandlers({
         });
       }
 
-      // Post-delegation: active stroke preview for paint tools
-      if (
-        interactionTool === "brush" ||
-        interactionTool === "pencil" ||
-        interactionTool === "eraser"
-      ) {
+      // Post-delegation: active stroke preview for tools that declare the capability
+      const upHandler = getToolHandler(interactionTool);
+      if (upHandler.showsActiveStrokePreview) {
         // Shift-line continuation keeps `activeStrokeRef` until the next non-shift
         // stroke; WebGPU hides the active layer while it is set, so the 2D overlay
         // must keep showing the merged preview — do not clear it in that case.
