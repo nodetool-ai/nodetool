@@ -8,6 +8,11 @@
 
 import type { Point, CloneStampSettings } from "../types";
 
+/** When provided, source samples use document space: `layerToDoc(destLayer) + offset`. */
+export type CloneStampSourceOptions = {
+  layerToDoc: (p: Point) => Point;
+};
+
 // ─── Module-level cache ─────────────────────────────────────────────────────
 
 const cloneMaskCache = new Map<string, Uint8ClampedArray>();
@@ -20,7 +25,8 @@ export function drawCloneStampStroke(
   settings: CloneStampSettings,
   ctx: CanvasRenderingContext2D,
   sourceCanvas: HTMLCanvasElement,
-  offset: Point
+  offset: Point,
+  sourceOptions?: CloneStampSourceOptions | null
 ): void {
   const r = settings.size / 2;
   const opacity = settings.opacity;
@@ -69,12 +75,14 @@ export function drawCloneStampStroke(
   const maskData = getCloneMaskData();
 
   const stampPoint = (point: Point) => {
-    // Source coordinates = paint point + offset
-    const sx = point.x + offset.x;
-    const sy = point.y + offset.y;
-
     const px = Math.round(point.x - r);
     const py = Math.round(point.y - r);
+    // Backing-raster source: sample at dest + offset. Composited (doc-sized) source: sample at doc(dest)+offset.
+    const srcAnchor = sourceOptions
+      ? sourceOptions.layerToDoc(point)
+      : point;
+    const sx = srcAnchor.x + offset.x;
+    const sy = srcAnchor.y + offset.y;
     const srcPx = Math.round(sx - r);
     const srcPy = Math.round(sy - r);
 

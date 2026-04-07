@@ -22,6 +22,10 @@ import {
   PENCIL_PIXEL_CURSOR_MIN_ZOOM
 } from "../drawingUtils";
 import {
+  clientToDocumentCanvas,
+  documentCanvasToClient
+} from "../tools/transform/handleGeometry";
+import {
   drawSelectionMaskOutline,
   drawSelectionPolylineOutline,
   drawSelectionEllipseOutline,
@@ -599,15 +603,33 @@ export function useOverlayRenderer({
       // ── Pencil pixel-snap cursor at high zoom ─────────────────────────
       if (isPencilHighZoom) {
         // Show a pixel-aligned square cursor that snaps to the grid
-        const display = overlayCanvasRef.current;
-        if (display) {
-          const dRect = display.getBoundingClientRect();
-          const offsetLeft = (dRect.left - cRect.left) * scaleX;
-          const offsetTop = (dRect.top - cRect.top) * scaleY;
-          const docX = Math.floor((localX - offsetLeft) / zoom);
-          const docY = Math.floor((localY - offsetTop) / zoom);
-          const pixelScreenX = docX * zoom + offsetLeft;
-          const pixelScreenY = docY * zoom + offsetTop;
+        const container = containerRef.current;
+        if (container) {
+          const contRect = container.getBoundingClientRect();
+          const docW = doc.canvas.width;
+          const docH = doc.canvas.height;
+          const docPt = clientToDocumentCanvas(
+            clientX,
+            clientY,
+            contRect,
+            zoom,
+            pan,
+            docW,
+            docH
+          );
+          const docX = Math.floor(docPt.x);
+          const docY = Math.floor(docPt.y);
+          const tlClient = documentCanvasToClient(
+            docX,
+            docY,
+            contRect,
+            zoom,
+            pan,
+            docW,
+            docH
+          );
+          const pixelScreenX = (tlClient.x - cRect.left) * scaleX;
+          const pixelScreenY = (tlClient.y - cRect.top) * scaleY;
           const pixelSize = size * zoom;
 
           ctx.save();
@@ -679,13 +701,22 @@ export function useOverlayRenderer({
           ? cloneHandler.getCloneSource()
           : null;
         if (cloneSource) {
-          const display = overlayCanvasRef.current;
-          if (display) {
-            const dRect = display.getBoundingClientRect();
-            const offsetLeft = (dRect.left - cRect.left) * scaleX;
-            const offsetTop = (dRect.top - cRect.top) * scaleY;
-            const srcX = cloneSource.x * zoom + offsetLeft;
-            const srcY = cloneSource.y * zoom + offsetTop;
+          const container = containerRef.current;
+          if (container) {
+            const contRect = container.getBoundingClientRect();
+            const docW = doc.canvas.width;
+            const docH = doc.canvas.height;
+            const srcClient = documentCanvasToClient(
+              cloneSource.x,
+              cloneSource.y,
+              contRect,
+              zoom,
+              pan,
+              docW,
+              docH
+            );
+            const srcX = (srcClient.x - cRect.left) * scaleX;
+            const srcY = (srcClient.y - cRect.top) * scaleY;
             const crossLen = 8;
             ctx.save();
             // Outer white stroke for contrast
@@ -719,9 +750,13 @@ export function useOverlayRenderer({
       doc.toolSettings.eraser,
       doc.toolSettings.blur,
       doc.toolSettings.cloneStamp,
+      doc.canvas.width,
+      doc.canvas.height,
       zoom,
+      pan,
       cursorCanvasRef,
-      overlayCanvasRef
+      overlayCanvasRef,
+      containerRef
     ]
   );
 

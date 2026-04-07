@@ -245,6 +245,9 @@ export function usePointerHandlers({
     drawActiveStrokePreview
   } = usePointerHandlerUtils({
     zoom,
+    pan,
+    containerRef,
+    doc,
     displayCanvasRef,
     overlayCanvasRef,
     activeStrokeRef,
@@ -252,7 +255,6 @@ export function usePointerHandlers({
     mirrorY,
     symmetryMode,
     symmetryRays,
-    doc,
     layerCanvasesRef,
     selection,
     getOrCreateLayerCanvas,

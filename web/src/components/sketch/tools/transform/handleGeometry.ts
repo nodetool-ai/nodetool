@@ -223,6 +223,52 @@ export function docToScreen(
   };
 }
 
+type ContainerRect = Pick<DOMRectReadOnly, "left" | "top" | "width" | "height">;
+
+/**
+ * Viewport client position → document canvas coordinates. Matches the pan/zoom
+ * model in {@link docToScreen} (CSS space, `dpr = 1`) and wheel-zoom anchoring
+ * in `usePointerHandlers`.
+ */
+export function clientToDocumentCanvas(
+  clientX: number,
+  clientY: number,
+  containerRect: ContainerRect,
+  zoom: number,
+  pan: Point,
+  docCanvasWidth: number,
+  docCanvasHeight: number
+): Point {
+  const mx = clientX - containerRect.left;
+  const my = clientY - containerRect.top;
+  const cw = containerRect.width;
+  const ch = containerRect.height;
+  return {
+    x: (mx - cw / 2 - pan.x) / zoom + docCanvasWidth / 2,
+    y: (my - ch / 2 - pan.y) / zoom + docCanvasHeight / 2
+  };
+}
+
+/** Document canvas coordinates → viewport client (inverse of {@link clientToDocumentCanvas}). */
+export function documentCanvasToClient(
+  docX: number,
+  docY: number,
+  containerRect: ContainerRect,
+  zoom: number,
+  pan: Point,
+  docCanvasWidth: number,
+  docCanvasHeight: number
+): Point {
+  const mx =
+    (docX - docCanvasWidth / 2) * zoom + containerRect.width / 2 + pan.x;
+  const my =
+    (docY - docCanvasHeight / 2) * zoom + containerRect.height / 2 + pan.y;
+  return {
+    x: containerRect.left + mx,
+    y: containerRect.top + my
+  };
+}
+
 /**
  * Convert a document-space rect (AABB) to gizmo canvas pixel coordinates.
  */

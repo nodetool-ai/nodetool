@@ -31,6 +31,7 @@ import {
   usePointerHandlers,
   selectionAntCanvasMarginCssPx
 } from "./sketchCanvasHooks";
+import { clientToDocumentCanvas } from "./tools/transform/handleGeometry";
 import type { StrokeEndOptions } from "./tools/types";
 import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
@@ -496,15 +497,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const updateCursorDocPosFromClient = useCallback(
       (clientX: number, clientY: number) => {
-        const display = displayCanvasRef.current;
-        if (display) {
-          const rect = display.getBoundingClientRect();
-          const dx = (clientX - rect.left) / zoom;
-          const dy = (clientY - rect.top) / zoom;
-          setCursorDocPos({ x: Math.floor(dx), y: Math.floor(dy) });
+        const container = containerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          const p = clientToDocumentCanvas(
+            clientX,
+            clientY,
+            rect,
+            zoom,
+            pan,
+            doc.canvas.width,
+            doc.canvas.height
+          );
+          setCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
         }
       },
-      [displayCanvasRef, zoom]
+      [containerRef, zoom, pan, doc.canvas.width, doc.canvas.height]
     );
 
     const handlePointerMoveWithCoords = useCallback(

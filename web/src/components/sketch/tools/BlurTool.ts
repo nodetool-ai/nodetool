@@ -15,6 +15,10 @@ import {
 } from "../drawingUtils";
 import type { BlurTempCanvases, DirtyRectTracker } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import {
+  ensureLayerRasterBounds,
+  getDocumentViewportLayerBounds
+} from "../painting/layerBounds";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
 import {
   coalescedStrokePressure,
@@ -76,10 +80,14 @@ export class BlurTool implements ToolHandler {
     this.paintStrokeHasMoved = false;
     this.strokeDirtyRect = { current: null };
 
-    // Build coordinate mapper for this layer
+    const rasterBounds = ensureLayerRasterBounds(
+      ctx,
+      activeLayer,
+      getDocumentViewportLayerBounds(activeLayer, doc)
+    );
     this.mapper = new CoordinateMapper({
-      layerTransform: activeLayer.transform,
-      rasterBounds: activeLayer.contentBounds
+      layerTransform: activeLayer.transform ?? { x: 0, y: 0 },
+      rasterBounds
     });
 
     ctx.onStrokeStart();

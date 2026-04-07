@@ -20,6 +20,10 @@ import {
 } from "../drawingUtils";
 import type { DirtyRectTracker } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import {
+  ensureLayerRasterBounds,
+  getDocumentViewportLayerBounds
+} from "../painting/layerBounds";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
 import {
   coalescedStrokePressure,
@@ -32,7 +36,10 @@ export class CloneStampTool implements ToolHandler {
 
   // Clone-specific state
   private cloneSource: Point | null = null;
-  private cloneOffset: Point | null = null;
+  /** Document-space delta (clone source − first stroke point); used with composited sampling. */
+  private cloneDeltaDoc: Point | null = null;
+  /** Backing-raster delta; used with active-layer sampling. */
+  private cloneDeltaLayer: Point | null = null;
   private cloneSourceCanvas: HTMLCanvasElement | null = null;
 
   // Stroke state
@@ -63,11 +70,35 @@ export class CloneStampTool implements ToolHandler {
     ctx: CanvasRenderingContext2D
   ): void {
     const sourceCanvas = this.cloneSourceCanvas;
-    const offset = this.cloneOffset;
-    if (!sourceCanvas || !offset) {
+    if (!sourceCanvas || !this.mapper) {
       return;
     }
-    drawCloneStampStrokeUtil(from, to, settings, ctx, sourceCanvas, offset);
+    if (settings.sampling === "composited") {
+      if (!this.cloneDeltaDoc) {
+        return;
+      }
+      drawCloneStampStrokeUtil(
+        from,
+        to,
+        settings,
+        ctx,
+        sourceCanvas,
+        this.cloneDeltaDoc,
+        { layerToDoc: (p) => this.mapper!.layerToDoc(p) }
+      );
+    } else {
+      if (!this.cloneDeltaLayer) {
+        return;
+      }
+      drawCloneStampStrokeUtil(
+        from,
+        to,
+        settings,
+        ctx,
+        sourceCanvas,
+        this.cloneDeltaLayer
+      );
+    }
   }
 
   /**
@@ -76,7 +107,8 @@ export class CloneStampTool implements ToolHandler {
    */
   setCloneSource(point: Point): void {
     this.cloneSource = point;
-    this.cloneOffset = null;
+    this.cloneDeltaDoc = null;
+    this.cloneDeltaLayer = null;
   }
 
   /** Returns the current clone source point (for overlay rendering). */
@@ -103,16 +135,26 @@ export class CloneStampTool implements ToolHandler {
     }
 
     const pt = event.point;
+    const rasterBounds = ensureLayerRasterBounds(
+      ctx,
+      activeLayer,
+      getDocumentViewportLayerBounds(activeLayer, doc)
+    );
     this.mapper = new CoordinateMapper({
-      layerTransform: activeLayer.transform,
-      rasterBounds: activeLayer.contentBounds
+      layerTransform: activeLayer.transform ?? { x: 0, y: 0 },
+      rasterBounds
     });
 
-    // Calculate offset from source to destination on first stroke
-    if (!this.cloneOffset) {
-      this.cloneOffset = {
+    if (!this.cloneDeltaDoc) {
+      this.cloneDeltaDoc = {
         x: this.cloneSource.x - pt.x,
         y: this.cloneSource.y - pt.y
+      };
+      const srcL = this.mapper.docToLayer(this.cloneSource);
+      const dstL = this.mapper.docToLayer(pt);
+      this.cloneDeltaLayer = {
+        x: srcL.x - dstL.x,
+        y: srcL.y - dstL.y
       };
     }
 
