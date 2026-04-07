@@ -189,6 +189,7 @@ export class CloneStampTool implements ToolHandler {
     const layerCtx = layerCanvas.getContext("2d");
     if (layerCtx) {
       this.drawCloneStampStroke(localPt, localPt, doc.toolSettings.cloneStamp, layerCtx);
+      ctx.invalidateLayer?.(activeLayer.id);
       ctx.redraw();
     }
 
@@ -238,6 +239,7 @@ export class CloneStampTool implements ToolHandler {
     }
 
     // Dirty-rect compositing (map from layer-space back to doc-space)
+    ctx.invalidateLayer?.(doc.activeLayerId);
     const dirty = this.strokeDirtyRect.current;
     if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY && this.mapper) {
       const docDirty = this.mapper.dirtyToDoc(dirty);

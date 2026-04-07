@@ -1,3 +1,9 @@
+## Recently Shipped
+
+- [x] **Blur tool**: fixed — now correctly applies effect on click and stroke (was silently no-op in WebGPU mode due to missing `invalidateLayer`)
+- [x] **Clone Stamp tool**: fixed — now correctly renders on click and stroke (same `invalidateLayer` fix)
+- [x] **Clone Stamp cursor feedback**: crosshair indicator now appears at the clone source position (set via Alt+click) while the tool is active
+
 ## Appendix: Shipped — Phase 1 (MVP)
 
 > Goal delivered: stable editor foundation with image + mask output.

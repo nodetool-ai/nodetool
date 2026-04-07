@@ -178,6 +178,7 @@ Topical notes and completed checks by area remain below; the canonical remaining
 
 - [ ] Blur tool not working, does nothing when clicking. should also work for strokes.
 - [ ] Clone Tool: draws at wrong position. also add small feedback at cursor when picking new position to clone.
+- [ ] Selection Tool: ellipse should not be cut off at canvas border after drawing selection
 
 - [x] Improve selection: rectangle clips at canvas bounds (correct), ellipse/lasso/polygon already extend beyond canvas (verified, no change needed)
 - [x] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag — cursor now redraws immediately when settings change via useEffect on drawCursor callback
@@ -279,10 +280,10 @@ These are not "clean up for its own sake" tasks. They are explicit support work 
 - [ ] rethink layer action buttons: sort, think about what should be in top and bottom groups, remove icons for crop canvas, but leave in context menu
 - [x] rename duplicate layers "[layer name] copy 1", 2, 3 ...
   - **landed**: `duplicateLayer` in `documentSlice.ts` now strips existing "copy N" / "Copy" suffixes to find the base name, then generates `[base] copy N` with a unique counter; tests in `packageD-refactorSupport.test.ts` verify first duplicate, multiple duplicates, duplicate-of-duplicate, and custom names
-- [ ] remove Layer In / Layer Out from handle names, only layer name
-- [ ] Remove the default Image Input handle
-- [ ] adjust default settings for tools to sane values
-- [ ] default brush should not have any smoothing
+- [ ] Sketch Node: remove "Layer In" / "Layer Out" from handle names, only layer name
+- [ ] Sketch Node: Remove the default "Image Input" handle on the sketch node
+- [ ] adjust default settings for all tools to sane values
+- [ ] default brush should not have any smoothing assist
 - [ ] Eraser shows all kinds of tool settings from brush and pencil together, should only show relevant settings from current erase mode
 
 

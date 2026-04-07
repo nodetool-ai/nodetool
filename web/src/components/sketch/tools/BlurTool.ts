@@ -116,6 +116,7 @@ export class BlurTool implements ToolHandler {
       if (hasSelClip) {
         paintCtx.restore();
       }
+      ctx.invalidateLayer?.(activeLayer.id);
       ctx.redraw();
     }
 
@@ -173,6 +174,7 @@ export class BlurTool implements ToolHandler {
     }
 
     // Dirty-rect compositing (map from layer-space back to doc-space)
+    ctx.invalidateLayer?.(activeLayer.id);
     const dirty = this.strokeDirtyRect.current;
     if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY) {
       const docDirty = this.mapper.dirtyToDoc(dirty);

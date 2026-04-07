@@ -56,7 +56,9 @@ import {
   pressureMinScaleFromSliderUnit,
   pressureMinScaleToSliderUnit,
   resolveStrokeAssistSettings,
-  createStrokeAssistPreset
+  createStrokeAssistPreset,
+  colorToHex6,
+  mergeRgbHexIntoColor
 } from "./types";
 import type { SamModelInfo } from "./sam";
 
@@ -64,6 +66,14 @@ import type { SamModelInfo } from "./sam";
 
 /** Reusable no-op function to avoid allocations in optional prop fallbacks. */
 const noop = () => {};
+
+/** Matches {@link drawEraserStroke} / document migration so panel mode matches actual erase behavior. */
+function effectiveEraserMode(
+  settings: EraserSettings
+): EraserMode {
+  const raw = settings as EraserSettings & { tip?: EraserMode };
+  return settings.mode ?? raw.tip ?? "brush";
+}
 
 export function getToolSettingsLabel(tool: SketchTool): string {
   switch (tool) {
@@ -245,6 +255,8 @@ interface BrushSettingsPanelProps {
   onChange: (settings: Partial<BrushSettings>) => void;
   /** Hide size + brush opacity (e.g. eraser uses `toolSettings.eraser` for those). */
   omitPaintSliders?: boolean;
+  /** Hide stroke assist; eraser keeps assist on `toolSettings.eraser` only (see EraserEngine). */
+  omitStrokeAssist?: boolean;
 }
 
 interface PencilSettingsPanelProps {
@@ -252,6 +264,8 @@ interface PencilSettingsPanelProps {
   onChange: (settings: Partial<PencilSettings>) => void;
   /** Hide size + pencil opacity (e.g. eraser uses `toolSettings.eraser` for those). */
   omitPaintSliders?: boolean;
+  /** Hide stroke assist; eraser keeps assist on `toolSettings.eraser` only (see EraserEngine). */
+  omitStrokeAssist?: boolean;
 }
 
 interface EraserSettingsPanelProps {
@@ -456,7 +470,8 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
 export const BrushSettingsPanel = memo(function BrushSettingsPanel({
   settings,
   onChange,
-  omitPaintSliders = false
+  omitPaintSliders = false,
+  omitStrokeAssist = false
 }: BrushSettingsPanelProps) {
   return (
     <>
@@ -564,7 +579,9 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           </Box>
         </>
       )}
-      <StrokeAssistSettingsPanel settings={settings} onChange={onChange} />
+      {!omitStrokeAssist ? (
+        <StrokeAssistSettingsPanel settings={settings} onChange={onChange} />
+      ) : null}
     </>
   );
 });
@@ -574,7 +591,8 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
 export const PencilSettingsPanel = memo(function PencilSettingsPanel({
   settings,
   onChange,
-  omitPaintSliders = false
+  omitPaintSliders = false,
+  omitStrokeAssist = false
 }: PencilSettingsPanelProps) {
   return (
     <>
@@ -609,7 +627,9 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
           </Box>
         </>
       )}
-      <StrokeAssistSettingsPanel settings={settings} onChange={onChange} />
+      {!omitStrokeAssist ? (
+        <StrokeAssistSettingsPanel settings={settings} onChange={onChange} />
+      ) : null}
     </>
   );
 });
@@ -620,10 +640,11 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
   settings,
   onChange
 }: EraserSettingsPanelProps) {
+  const mode = effectiveEraserMode(settings);
   return (
     <>
       <ToggleButtonGroup
-        value={settings.mode ?? "brush"}
+        value={mode}
         exclusive
         onChange={(_, v) => {
           if (v) {
@@ -714,7 +735,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
           value={colorToHex6(settings.strokeColor)}
           onChange={(e) =>
             onChange({
-              strokeColor: mergeColor(settings.strokeColor, e.target.value)
+              strokeColor: mergeRgbHexIntoColor(e.target.value, settings.strokeColor)
             })
           }
         />
@@ -754,7 +775,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
                 value={colorToHex6(settings.fillColor)}
                 onChange={(e) =>
                   onChange({
-                    fillColor: mergeColor(settings.fillColor, e.target.value)
+                    fillColor: mergeRgbHexIntoColor(e.target.value, settings.fillColor)
                   })
                 }
               />
@@ -1726,7 +1747,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
     );
   }
   if (activeTool === "eraser") {
-    const eraserMode = eraserSettings.mode ?? "brush";
+    const eraserMode = effectiveEraserMode(eraserSettings);
     return (
       <>
         <EraserSettingsPanel
@@ -1738,12 +1759,14 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
             settings={brushSettings}
             onChange={onBrushSettingsChange}
             omitPaintSliders
+            omitStrokeAssist
           />
         ) : (
           <PencilSettingsPanel
             settings={pencilSettings}
             onChange={onPencilSettingsChange}
             omitPaintSliders
+            omitStrokeAssist
           />
         )}
       </>

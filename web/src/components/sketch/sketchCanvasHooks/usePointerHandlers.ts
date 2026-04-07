@@ -380,6 +380,7 @@ export function usePointerHandlers({
         if (handler instanceof CloneStampTool) {
           const pt = screenToCanvas(e.clientX, e.clientY);
           handler.setCloneSource(pt);
+          drawCursor(e.clientX, e.clientY);
         }
         return;
       }

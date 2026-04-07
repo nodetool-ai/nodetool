@@ -14,6 +14,7 @@ import type {
   Selection
 } from "../types";
 import { getToolHandler } from "../tools";
+import { CloneStampTool } from "../tools/CloneStampTool";
 import { drawShapeOnCtx } from "../tools/ShapeTool";
 import { drawGradient } from "../tools/GradientTool";
 import {
@@ -670,6 +671,46 @@ export function useOverlayRenderer({
       ctx.arc(localX, localY, 1.5, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
       ctx.fill();
+
+      // Clone stamp: draw a crosshair at the clone source position
+      if (interactionTool === "clone_stamp") {
+        const cloneHandler = getToolHandler("clone_stamp");
+        const cloneSource = cloneHandler instanceof CloneStampTool
+          ? cloneHandler.getCloneSource()
+          : null;
+        if (cloneSource) {
+          const display = overlayCanvasRef.current;
+          if (display) {
+            const dRect = display.getBoundingClientRect();
+            const offsetLeft = (dRect.left - cRect.left) * scaleX;
+            const offsetTop = (dRect.top - cRect.top) * scaleY;
+            const srcX = cloneSource.x * zoom + offsetLeft;
+            const srcY = cloneSource.y * zoom + offsetTop;
+            const crossLen = 8;
+            ctx.save();
+            // Outer white stroke for contrast
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(srcX - crossLen, srcY);
+            ctx.lineTo(srcX + crossLen, srcY);
+            ctx.moveTo(srcX, srcY - crossLen);
+            ctx.lineTo(srcX, srcY + crossLen);
+            ctx.stroke();
+            // Inner colored stroke
+            ctx.strokeStyle = "rgba(80, 180, 255, 0.9)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            // Small circle at center
+            ctx.beginPath();
+            ctx.arc(srcX, srcY, 3, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
     },
     [
       interactionTool,
