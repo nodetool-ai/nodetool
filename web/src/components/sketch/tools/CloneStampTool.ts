@@ -22,7 +22,8 @@ import type { DirtyRectTracker } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import {
   ensureLayerRasterBounds,
-  getDocumentViewportLayerBounds
+  getDocumentViewportLayerBounds,
+  getLayerCompositeOffset
 } from "../painting/layerBounds";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
 import {
@@ -62,6 +63,13 @@ export class CloneStampTool implements ToolHandler {
   private stabilizerBuffer: Point[] = [];
 
   // ── Drawing wrapper ──────────────────────────────────────────────────
+
+  private snapPoint(point: Point): Point {
+    return {
+      x: Math.round(point.x),
+      y: Math.round(point.y)
+    };
+  }
 
   private drawCloneStampStroke(
     from: Point,
@@ -106,7 +114,8 @@ export class CloneStampTool implements ToolHandler {
    * by the pointer handler dispatcher.
    */
   setCloneSource(point: Point): void {
-    this.cloneSource = point;
+    // Clone stamp is pixel-copying, so keep the source anchored to whole pixels.
+    this.cloneSource = this.snapPoint(point);
     this.cloneDeltaDoc = null;
     this.cloneDeltaLayer = null;
   }
@@ -135,6 +144,7 @@ export class CloneStampTool implements ToolHandler {
     }
 
     const pt = event.point;
+    const snappedPt = this.snapPoint(pt);
     const rasterBounds = ensureLayerRasterBounds(
       ctx,
       activeLayer,
@@ -145,18 +155,17 @@ export class CloneStampTool implements ToolHandler {
       rasterBounds
     });
 
-    if (!this.cloneDeltaDoc) {
-      this.cloneDeltaDoc = {
-        x: this.cloneSource.x - pt.x,
-        y: this.cloneSource.y - pt.y
-      };
-      const srcL = this.mapper.docToLayer(this.cloneSource);
-      const dstL = this.mapper.docToLayer(pt);
-      this.cloneDeltaLayer = {
-        x: srcL.x - dstL.x,
-        y: srcL.y - dstL.y
-      };
-    }
+    // No "aligned" mode in the UI, so each stroke re-anchors from the saved source.
+    this.cloneDeltaDoc = {
+      x: this.cloneSource.x - snappedPt.x,
+      y: this.cloneSource.y - snappedPt.y
+    };
+    const srcL = this.mapper.docToLayer(this.cloneSource);
+    const dstL = this.mapper.docToLayer(snappedPt);
+    this.cloneDeltaLayer = {
+      x: Math.round(srcL.x - dstL.x),
+      y: Math.round(srcL.y - dstL.y)
+    };
 
     // Create source canvas snapshot
     const settings = doc.toolSettings.cloneStamp;
@@ -175,10 +184,11 @@ export class CloneStampTool implements ToolHandler {
           }
           const lc = ctx.layerCanvasesRef.current.get(layer.id);
           if (lc) {
-            const useReconciledActiveTransform =
-              layer.id === activeLayer.id &&
-              ((activeLayer.transform?.x ?? 0) !== 0 ||
-                (activeLayer.transform?.y ?? 0) !== 0);
+            const compositeOffset = getLayerCompositeOffset(
+              layer,
+              { width: lc.width, height: lc.height },
+              lc
+            );
             tmpCtx.save();
             tmpCtx.globalAlpha =
               layer.opacity *
@@ -186,11 +196,7 @@ export class CloneStampTool implements ToolHandler {
             tmpCtx.globalCompositeOperation = blendModeToComposite(
               layer.blendMode || "normal"
             );
-            tmpCtx.drawImage(
-              lc,
-              useReconciledActiveTransform ? 0 : (layer.transform?.x ?? 0),
-              useReconciledActiveTransform ? 0 : (layer.transform?.y ?? 0)
-            );
+            tmpCtx.drawImage(lc, compositeOffset.x, compositeOffset.y);
             tmpCtx.restore();
           }
         }
@@ -208,8 +214,8 @@ export class CloneStampTool implements ToolHandler {
       this.cloneSourceCanvas = snapshot;
     }
 
-    this.lastPoint = pt;
-    this.lastSmoothedPoint = pt;
+    this.lastPoint = snappedPt;
+    this.lastSmoothedPoint = snappedPt;
     this.currentPressure = normalizePointerPressure(event.nativeEvent);
     this.paintStrokeHasMoved = false;
     this.stabilizerBuffer = [];
@@ -226,7 +232,7 @@ export class CloneStampTool implements ToolHandler {
     }
 
     // Initial dab (map document-space point to layer-local)
-    const localPt = this.mapper.docToLayer(pt);
+    const localPt = this.mapper.docToLayer(snappedPt);
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const layerCtx = layerCanvas.getContext("2d");
     if (layerCtx) {
@@ -259,7 +265,7 @@ export class CloneStampTool implements ToolHandler {
     }
 
     for (const eventPoint of coalescedPoints) {
-      const pt = eventPoint.point;
+      const pt = this.snapPoint(eventPoint.point);
       if (
         !this.paintStrokeHasMoved &&
         this.lastPoint &&
@@ -296,7 +302,7 @@ export class CloneStampTool implements ToolHandler {
     const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
 
     // Save stroke endpoint for Shift+click straight line
-    this.lastStrokeEnd = event.point;
+    this.lastStrokeEnd = this.snapPoint(event.point);
 
     // Clear clone source canvas (per-stroke)
     this.cloneSourceCanvas = null;
