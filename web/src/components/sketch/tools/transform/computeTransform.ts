@@ -201,15 +201,18 @@ export function computeScaleTransform(
     const dScaleX = newSx - sx;
     const dScaleY = newSy - sy;
 
-    // Offset = half the size change, in the anchor direction, rotated by layer rotation
+    // Offset = half the size change in the anchor direction.
+    // The anchor direction points TOWARD the edge that should stay fixed,
+    // so the translation must move in the OPPOSITE direction (negate the offset)
+    // to keep that edge stationary.
     const offsetX = (anchor.dx * dScaleX * rasterBounds.width) / 2;
     const offsetY = (anchor.dy * dScaleY * rasterBounds.height) / 2;
 
-    // Rotate the offset by the current rotation
+    // Rotate the negated offset by the current rotation
     const cos = Math.cos(rot);
     const sin = Math.sin(rot);
-    result.x = Math.round(dragStartTransform.x + offsetX * cos - offsetY * sin);
-    result.y = Math.round(dragStartTransform.y + offsetX * sin + offsetY * cos);
+    result.x = Math.round(dragStartTransform.x - offsetX * cos + offsetY * sin);
+    result.y = Math.round(dragStartTransform.y - offsetX * sin - offsetY * cos);
 
     return ensureTransformMatrix(result);
   }
