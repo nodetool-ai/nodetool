@@ -38,6 +38,7 @@ import {
   applySelectionMaskAlpha,
   selectionHasAnyPixels
 } from "../selection";
+import { restoreAlphaFromSnapshot } from "./alphaLock";
 
 // ─── Session state ──────────────────────────────────────────────────────────
 
@@ -506,33 +507,7 @@ export class PaintSession {
         if (layer.alphaLock && capturedAlphaSnapshot) {
           const lCanvas = ctx.layerCanvasesRef.current.get(layer.id);
           if (lCanvas) {
-            const lCtx = lCanvas.getContext("2d");
-            if (lCtx) {
-              const dr = capturedDirtyRect ?? {
-                minX: 0,
-                minY: 0,
-                maxX: lCanvas.width,
-                maxY: lCanvas.height
-              };
-              const x = Math.max(0, dr.minX);
-              const y = Math.max(0, dr.minY);
-              const width = Math.min(lCanvas.width - x, dr.maxX - x);
-              const height = Math.min(lCanvas.height - y, dr.maxY - y);
-              if (width > 0 && height > 0) {
-                const currentData = lCtx.getImageData(x, y, width, height);
-                for (let yy = 0; yy < height; yy++) {
-                  for (let xx = 0; xx < width; xx++) {
-                    const li = (yy * width + xx) * 4 + 3;
-                    const si = ((y + yy) * lCanvas.width + (x + xx)) * 4 + 3;
-                    currentData.data[li] = Math.min(
-                      currentData.data[li],
-                      capturedAlphaSnapshot.data[si]
-                    );
-                  }
-                }
-                lCtx.putImageData(currentData, x, y);
-              }
-            }
+            restoreAlphaFromSnapshot(lCanvas, capturedAlphaSnapshot, capturedDirtyRect);
           }
         }
 
@@ -716,40 +691,11 @@ export class PaintSession {
       return;
     }
 
-    const layerCtx = layerCanvas.getContext("2d");
-    if (!layerCtx) {
-      this.alphaSnapshot = null;
-      return;
-    }
-
-    const dirtyRect = this.engine.getDirtyRect() ?? {
-      minX: 0,
-      minY: 0,
-      maxX: layerCanvas.width,
-      maxY: layerCanvas.height
-    };
-
-    const x = Math.max(0, dirtyRect.minX);
-    const y = Math.max(0, dirtyRect.minY);
-    const width = Math.min(layerCanvas.width - x, dirtyRect.maxX - x);
-    const height = Math.min(layerCanvas.height - y, dirtyRect.maxY - y);
-
-    if (width > 0 && height > 0) {
-      const currentData = layerCtx.getImageData(x, y, width, height);
-      const snapshot = this.alphaSnapshot;
-      for (let yy = 0; yy < height; yy++) {
-        for (let xx = 0; xx < width; xx++) {
-          const localIndex = (yy * width + xx) * 4 + 3;
-          const snapshotIndex =
-            ((y + yy) * layerCanvas.width + (x + xx)) * 4 + 3;
-          currentData.data[localIndex] = Math.min(
-            currentData.data[localIndex],
-            snapshot.data[snapshotIndex]
-          );
-        }
-      }
-      layerCtx.putImageData(currentData, x, y);
-    }
+    restoreAlphaFromSnapshot(
+      layerCanvas,
+      this.alphaSnapshot,
+      this.engine.getDirtyRect()
+    );
 
     this.alphaSnapshot = null;
   }
