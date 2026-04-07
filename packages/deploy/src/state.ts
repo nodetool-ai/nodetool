@@ -190,7 +190,9 @@ export class StateManager {
       const config = await this.loadConfig();
       const deployment = config.deployments[deploymentName];
       if (!deployment) return null;
-      return { ...deployment.state } as Record<string, unknown>;
+      return {
+        ...revalidateState(deployment, deployment.state as Record<string, unknown>)
+      } as Record<string, unknown>;
     });
   }
 

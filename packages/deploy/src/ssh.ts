@@ -77,12 +77,22 @@ interface SSH2Client {
   end(): void;
 }
 
-interface SSH2ClientConstructor {
+export interface SSH2ClientConstructor {
   new (): SSH2Client;
 }
 
 // Lazy-load ssh2 so the module can be imported even if ssh2 isn't installed.
 let _ClientCtor: SSH2ClientConstructor | null = null;
+
+/**
+ * Override the ssh2 Client constructor — for use in tests only.
+ * Calling this bypasses the lazy require("ssh2") lookup entirely.
+ */
+export function _setClientCtorForTest(
+  ctor: SSH2ClientConstructor | null
+): void {
+  _ClientCtor = ctor;
+}
 
 function getClientCtor(): SSH2ClientConstructor {
   if (!_ClientCtor) {
