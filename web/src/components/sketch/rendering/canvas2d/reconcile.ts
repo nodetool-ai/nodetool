@@ -53,18 +53,22 @@ export function reconcileLayerToDocumentSpace(
     });
   }
 
+  /** Fallback: serialize the canvas as-is when a context cannot be obtained. */
+  const fallbackSerialize = () =>
+    serializeLayerData(canvas.toDataURL("image/png"), {
+      x: 0,
+      y: 0,
+      width: canvas.width,
+      height: canvas.height
+    });
+
   const source = window.document.createElement("canvas");
   source.width = canvas.width;
   source.height = canvas.height;
   const sourceCtx = source.getContext("2d");
 
   if (!sourceCtx) {
-    return serializeLayerData(canvas.toDataURL("image/png"), {
-      x: 0,
-      y: 0,
-      width: canvas.width,
-      height: canvas.height
-    });
+    return fallbackSerialize();
   }
   sourceCtx.drawImage(canvas, 0, 0);
 
@@ -85,10 +89,18 @@ export function reconcileLayerToDocumentSpace(
     { x: cx + (-hw) * cos - ( hh) * sin, y: cy + (-hw) * sin + ( hh) * cos },
     { x: cx + ( hw) * cos - ( hh) * sin, y: cy + ( hw) * sin + ( hh) * cos }
   ];
-  const minX = Math.floor(Math.min(...corners.map((c) => c.x)));
-  const minY = Math.floor(Math.min(...corners.map((c) => c.y)));
-  const maxX = Math.ceil(Math.max(...corners.map((c) => c.x)));
-  const maxY = Math.ceil(Math.max(...corners.map((c) => c.y)));
+  let bMinX = corners[0].x, bMinY = corners[0].y;
+  let bMaxX = corners[0].x, bMaxY = corners[0].y;
+  for (let i = 1; i < 4; i++) {
+    if (corners[i].x < bMinX) { bMinX = corners[i].x; }
+    if (corners[i].y < bMinY) { bMinY = corners[i].y; }
+    if (corners[i].x > bMaxX) { bMaxX = corners[i].x; }
+    if (corners[i].y > bMaxY) { bMaxY = corners[i].y; }
+  }
+  const minX = Math.floor(bMinX);
+  const minY = Math.floor(bMinY);
+  const maxX = Math.ceil(bMaxX);
+  const maxY = Math.ceil(bMaxY);
 
   // Use the union of the document bounds and the transformed AABB
   // to ensure no content is lost while keeping the document area covered.
@@ -103,12 +115,7 @@ export function reconcileLayerToDocumentSpace(
   const tempCtx = temp.getContext("2d");
 
   if (!tempCtx) {
-    return serializeLayerData(canvas.toDataURL("image/png"), {
-      x: 0,
-      y: 0,
-      width: canvas.width,
-      height: canvas.height
-    });
+    return fallbackSerialize();
   }
 
   // Apply full transform with offset for expanded canvas
@@ -127,12 +134,7 @@ export function reconcileLayerToDocumentSpace(
   canvas.height = outH;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    return serializeLayerData(canvas.toDataURL("image/png"), {
-      x: 0,
-      y: 0,
-      width: canvas.width,
-      height: canvas.height
-    });
+    return fallbackSerialize();
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
