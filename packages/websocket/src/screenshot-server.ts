@@ -364,7 +364,9 @@ await initMasterKey();
 await seedDatabase();
 
 // Resolve the example workflows directory from the repo (no Python needed).
-// __dirname = packages/websocket/src → go up 3 levels to the repo root.
+// This file is compiled to packages/websocket/dist/screenshot-server.js, so
+// __dirname resolves to packages/websocket/dist. Going up 3 levels reaches the
+// monorepo root (packages/websocket/dist → packages/websocket → packages → root).
 const REPO_ROOT = resolve(__dirname, "..", "..", "..");
 const EXAMPLES_DIR = resolve(
   REPO_ROOT,

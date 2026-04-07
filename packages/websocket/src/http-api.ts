@@ -483,7 +483,8 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
     files = readdirSync(examplesDir)
       .filter((f) => f.toLowerCase().endsWith(".json"))
       .sort((a, b) => a.localeCompare(b));
-  } catch {
+  } catch (err) {
+    log.warn(`Failed to read examples directory ${examplesDir}: ${err}`);
     return [];
   }
   for (const file of files) {
@@ -522,8 +523,8 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
         html_app: null,
         etag: null
       });
-    } catch {
-      // skip invalid JSON files
+    } catch (err) {
+      log.debug(`Skipping invalid example workflow file ${file}: ${err}`);
     }
   }
   return workflows;

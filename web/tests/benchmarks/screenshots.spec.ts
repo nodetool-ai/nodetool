@@ -201,7 +201,8 @@ if (process.env.JEST_WORKER_ID) {
     test("Settings dialog", async ({ page }) => {
       test.skip(shouldSkip("settings-dialog.png"), "Already captured");
       await gotoPage(page, "/");
-      // Open settings by clicking the gear icon button (tooltip: "Settings")
+      // Click the gear icon button whose accessible name is "Settings"
+      // (rendered by SettingsMenu with Tooltip title="Settings")
       await page.getByRole("button", { name: /^settings$/i }).click();
       await waitForAnimation(page, 600);
       await saveScreenshot(page, "settings-dialog.png");
@@ -210,7 +211,7 @@ if (process.env.JEST_WORKER_ID) {
     test("Settings – API keys tab", async ({ page }) => {
       test.skip(shouldSkip("settings-api-keys.png"), "Already captured");
       await gotoPage(page, "/");
-      // Open settings by clicking the gear icon button (tooltip: "Settings")
+      // Click the gear icon button whose accessible name is "Settings"
       await page.getByRole("button", { name: /^settings$/i }).click();
       await waitForAnimation(page, 600);
       const apiKeysTab = page
