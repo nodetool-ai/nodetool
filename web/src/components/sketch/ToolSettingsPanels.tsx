@@ -25,8 +25,13 @@ import {
   ToggleButtonGroup,
   Checkbox,
   FormControlLabel,
-  Button
+  Button,
+  IconButton,
+  Tooltip
 } from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import {
   SketchTool,
   ShapeToolType,
@@ -1119,33 +1124,39 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         <Typography className="setting-label">Rotation</Typography>
         <Typography className="setting-value">{rotDeg}°</Typography>
       </Box>
-      <Box sx={{ display: "flex", gap: "4px", ml: 1 }}>
-        <Button
-          size="small"
-          variant="outlined"
-          color="success"
-          onClick={onCommit}
-          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
-        >
-          ✓ Commit
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          color="error"
-          onClick={onCancel}
-          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
-        >
-          ✗ Cancel
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={onReset}
-          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
-        >
-          Reset
-        </Button>
+      <Box sx={{ display: "flex", gap: "2px", ml: 1 }}>
+        <Tooltip title="Commit (Enter)" placement="bottom">
+          <IconButton
+            size="small"
+            color="success"
+            onClick={onCommit}
+            sx={{ padding: "3px" }}
+          >
+            <CheckIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Cancel (Esc)" placement="bottom">
+          <IconButton
+            size="small"
+            color="error"
+            onClick={onCancel}
+            sx={{ padding: "3px" }}
+          >
+            <CloseIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Reset" placement="bottom">
+          <IconButton
+            size="small"
+            onClick={onReset}
+            sx={{
+              color: SKETCH_COLORS.textSecondary,
+              padding: "3px"
+            }}
+          >
+            <RestartAltIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
       </Box>
     </>
   );

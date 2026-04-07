@@ -577,6 +577,65 @@ describe("Package B: left/top handle correctness", () => {
 
     expect(resultBottom.scaleY ?? 1).toBeCloseTo(resultTop.scaleY ?? 1, 5);
   });
+
+  it("left handle anchor offset keeps the right edge fixed", () => {
+    const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
+    const center = getTransformedCenter(transform, bounds);
+
+    // Drag left handle outward (to the left) to grow
+    const leftStart = { x: center.x - 50, y: center.y };
+    const leftOut = { x: center.x - 70, y: center.y };
+    const result = computeScaleTransform(
+      transform,
+      leftStart,
+      leftOut,
+      center,
+      bounds,
+      "left",
+      false,
+      false // alt=false, so opposite edge should be anchored
+    );
+
+    // The right edge position in document space should stay fixed.
+    // Scale is applied around the center of the raster bounds, so:
+    // right_edge = (tx + bx + bw/2) + bw * scaleX / 2
+    const originalRightEdge =
+      transform.x + bounds.x + bounds.width / 2 +
+      (bounds.width * (transform.scaleX ?? 1)) / 2;
+    const newRightEdge =
+      result.x + bounds.x + bounds.width / 2 +
+      (bounds.width * (result.scaleX ?? 1)) / 2;
+    expect(newRightEdge).toBeCloseTo(originalRightEdge, 0);
+  });
+
+  it("top handle anchor offset keeps the bottom edge fixed", () => {
+    const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
+    const center = getTransformedCenter(transform, bounds);
+
+    // Drag top handle outward (upward) to grow
+    const topStart = { x: center.x, y: center.y - 50 };
+    const topOut = { x: center.x, y: center.y - 70 };
+    const result = computeScaleTransform(
+      transform,
+      topStart,
+      topOut,
+      center,
+      bounds,
+      "top",
+      false,
+      false // alt=false, so opposite edge should be anchored
+    );
+
+    // The bottom edge position in document space should stay fixed.
+    // bottom_edge = (ty + by + bh/2) + bh * scaleY / 2
+    const originalBottomEdge =
+      transform.y + bounds.y + bounds.height / 2 +
+      (bounds.height * (transform.scaleY ?? 1)) / 2;
+    const newBottomEdge =
+      result.y + bounds.y + bounds.height / 2 +
+      (bounds.height * (result.scaleY ?? 1)) / 2;
+    expect(newBottomEdge).toBeCloseTo(originalBottomEdge, 0);
+  });
 });
 
 // ─── Transform computation correctness ───────────────────────────────────────
@@ -680,10 +739,16 @@ describe("Package B: transform computation correctness", () => {
       false // alt = false → anchor opposite edge
     );
 
-    // Translation should be adjusted to anchor the left edge
+    // Scale should increase (dragged right handle outward)
     expect(result.scaleX).toBeGreaterThan(1);
-    // x should shift to compensate for the anchor
+    // x should shift to compensate for the anchor (keeps left edge fixed)
     expect(result.x).not.toBe(0);
+    // The left edge should remain at its original position
+    const originalLeftEdge =
+      transform.x + bounds.x + bounds.width / 2 - (bounds.width * (transform.scaleX ?? 1)) / 2;
+    const newLeftEdge =
+      result.x + bounds.x + bounds.width / 2 - (bounds.width * (result.scaleX ?? 1)) / 2;
+    expect(newLeftEdge).toBeCloseTo(originalLeftEdge, 0);
   });
 });
 

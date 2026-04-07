@@ -66,6 +66,12 @@ export class TransformTool implements ToolHandler {
   private gestureActive = false;
   /** Currently hovered handle (for cursor feedback). */
   private hoveredHandle: TransformHandle | null = null;
+  /**
+   * Latest transform applied during a drag gesture. Used by gizmo drawing
+   * so the gizmo matches the composited preview instead of lagging behind
+   * the store. Cleared on up / deactivate.
+   */
+  private liveTransform: LayerTransform | null = null;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -83,14 +89,28 @@ export class TransformTool implements ToolHandler {
     };
     // Use resolved raster bounds (shared seam) instead of bare contentBounds
     const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
-    this.rasterBounds = getEffectiveRasterBounds(
+    const rasterBounds = getEffectiveRasterBounds(
       layer,
       layerCanvas,
       ctx.doc.canvas
     );
+    // For gizmo sizing, prefer contentBounds when they represent a smaller
+    // area than the full raster. This ensures small layers get a gizmo that
+    // wraps their actual content instead of spanning the full canvas.
+    const cb = layer.contentBounds;
+    if (
+      cb.width > 0 &&
+      cb.height > 0 &&
+      (cb.width < rasterBounds.width || cb.height < rasterBounds.height)
+    ) {
+      this.rasterBounds = { ...cb };
+    } else {
+      this.rasterBounds = rasterBounds;
+    }
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
+    this.liveTransform = null;
     this.drawGizmo(ctx);
   }
 
@@ -98,6 +118,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
+    this.liveTransform = null;
     ctx.clearGizmo();
     ctx.clearOverlay();
     ctx.drawSelectionOverlay();
@@ -116,8 +137,9 @@ export class TransformTool implements ToolHandler {
     }
 
     const pt = event.point;
+    const currentTransform = this.liveTransform ?? layer.transform;
     const handle = hitTestHandles(
-      layer.transform,
+      currentTransform,
       this.rasterBounds,
       pt,
       ctx.zoom
@@ -128,8 +150,8 @@ export class TransformTool implements ToolHandler {
 
     this.activeHandle = handle;
     this.dragStart = pt;
-    this.dragStartTransform = { ...layer.transform };
-    this.center = getTransformedCenter(layer.transform, this.rasterBounds);
+    this.dragStartTransform = { ...currentTransform };
+    this.center = getTransformedCenter(currentTransform, this.rasterBounds);
     this.gestureActive = true;
     ctx.onStrokeStart();
     return true;
@@ -157,6 +179,8 @@ export class TransformTool implements ToolHandler {
       shift,
       alt
     );
+    // Store the live transform so the gizmo matches the composited preview.
+    this.liveTransform = newTransform;
     ctx.onLayerTransformChange(layer.id, newTransform);
 
     // Redraw gizmo to reflect new handles
@@ -197,14 +221,15 @@ export class TransformTool implements ToolHandler {
     if (!layer) {
       return null;
     }
+    const transform = this.liveTransform ?? layer.transform;
     const handle = hitTestHandles(
-      layer.transform,
+      transform,
       this.rasterBounds,
       docPoint,
       ctx.zoom
     );
     this.hoveredHandle = handle;
-    const rot = layer.transform.rotation ?? 0;
+    const rot = transform.rotation ?? 0;
     return handle ? cursorForHandle(handle, rot) : null;
   }
 
@@ -246,7 +271,9 @@ export class TransformTool implements ToolHandler {
       return;
     }
 
-    const transform = layer.transform;
+    // Use the live preview transform during drag so the gizmo matches
+    // the composited preview. Fall back to the stored transform otherwise.
+    const transform = this.liveTransform ?? layer.transform;
     const rot = transform.rotation ?? 0;
 
     // Use shared geometry seam for center and extents
