@@ -34,23 +34,26 @@ export const createStyles = (theme: Theme) =>
 
     ".thread-date-group": {
       padding: "0.25em 0.75em",
+      marginTop: "0.75em",
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[300],
       textTransform: "uppercase",
-      letterSpacing: "0.06em"
+      letterSpacing: "0.06em",
+      "&:first-of-type": {
+        marginTop: 0
+      }
     },
 
     ".thread-item": {
       position: "relative",
-      padding: "0.3em 0.75em",
+      padding: "0.4em 0.75em",
       fontSize: theme.fontSizeSmall,
       width: "calc(100% - 12px)",
       borderLeft: `3px solid transparent`,
       cursor: "pointer",
       transition:
         "background 0.18s ease, opacity 0.25s ease-out, transform 0.25s ease-out, max-height 0.25s ease-out, border-color 0.2s ease",
-      borderRadius: 8,
-      maxHeight: "56px",
+      borderRadius: 6,
       overflow: "hidden",
       outline: "none",
 
@@ -77,40 +80,44 @@ export const createStyles = (theme: Theme) =>
         marginTop: 0,
         marginBottom: 0
       },
-      ".date": {
-        fontSize: theme.fontSizeTiny,
-        marginTop: "0.1em",
-        textTransform: "uppercase",
-        color: theme.vars.palette.grey[300]
-      },
       p: {
-        fontWeight: 400
+        fontWeight: 400,
+        margin: 0
       }
     },
 
     ".thread-title": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
+      lineHeight: 1.3,
       color: theme.vars.palette.grey[0],
-      marginBottom: "0.25em",
+      margin: 0,
       display: "-webkit-box",
       WebkitLineClamp: 1,
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      paddingRight: "36px"
+      paddingRight: "28px"
     },
 
     ".date": {
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.grey[300]
+      fontSize: theme.fontSizeTiny,
+      lineHeight: 1.2,
+      color: theme.vars.palette.grey[300],
+      margin: 0
     },
 
-    ".delete-button": {
+    // DeleteButton renders: Tooltip > span > IconButton.delete-button
+    // Position the span wrapper absolutely so it doesn't affect li height.
+    "span:has(> .delete-button)": {
       position: "absolute",
       right: "0.35em",
       top: "50%",
       transform: "translateY(-50%)",
+      zIndex: 1
+    },
+
+    ".delete-button": {
       opacity: 0,
       padding: "4px",
       minWidth: "unset",
@@ -120,7 +127,7 @@ export const createStyles = (theme: Theme) =>
       "&:hover": {
         color: theme.vars.palette.error.main,
         backgroundColor: theme.vars.palette.grey[500],
-        transform: "translateY(-50%) scale(1.05)"
+        transform: "scale(1.05)"
       },
 
       svg: { fontSize: "1.2em" }

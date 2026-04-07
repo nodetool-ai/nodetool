@@ -19,7 +19,10 @@ import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
 import { initDb } from "@nodetool/models";
 import { getSecret } from "@nodetool/security";
-import { getDefaultDbPath } from "@nodetool/config";
+import { getDefaultDbPath, configureLogging } from "@nodetool/config";
+
+// Configure logging early so NODETOOL_LOG_LEVEL and NODETOOL_LOG_FILE are picked up.
+configureLogging();
 
 // Initialize OpenLLMetry before any LLM SDK calls are made.
 // No-op if TRACELOOP_API_KEY / OTEL_EXPORTER_OTLP_ENDPOINT is not set.

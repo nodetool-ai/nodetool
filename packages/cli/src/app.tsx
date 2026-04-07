@@ -51,6 +51,7 @@ export interface ChatMessage {
   role: "user" | "assistant" | "tool" | "system";
   content: string;
   toolName?: string;
+  toolArgs?: Record<string, unknown>;
   rendered?: string; // pre-rendered markdown
 }
 
@@ -100,13 +101,26 @@ function AssistantMessage({ content, rendered }: { content: string; rendered?: s
   );
 }
 
-function ToolMessage({ toolName, content }: { toolName: string; content: string }) {
-  const preview = content.split("\n").slice(0, 3).join(" ").slice(0, 80);
+function ToolMessage({ toolName, toolArgs, content }: { toolName: string; toolArgs?: Record<string, unknown>; content: string }) {
+  const argsStr = toolArgs
+    ? Object.entries(toolArgs)
+        .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+        .join(", ")
+    : "";
+  const preview = content.split("\n").slice(0, 3).join(" ").slice(0, 200);
   return (
-    <Box marginTop={1}>
-      <Text color="green">{"● "}</Text>
-      <Text bold>{toolName}</Text>
-      <Text color="gray" dimColor>{" " + preview}</Text>
+    <Box flexDirection="column" marginTop={1}>
+      <Box>
+        <Text color="green">{"● "}</Text>
+        <Text bold>{toolName}</Text>
+        {argsStr ? <Text color="gray" dimColor>{"("}{argsStr}{")"}</Text> : null}
+      </Box>
+      {preview ? (
+        <Box marginLeft={2}>
+          <Text color="gray" dimColor>{"└ "}</Text>
+          <Text color="gray" dimColor>{preview}</Text>
+        </Box>
+      ) : null}
     </Box>
   );
 }
@@ -123,7 +137,7 @@ function ChatMessageItem({ msg }: { msg: ChatMessage }) {
   switch (msg.role) {
     case "user":      return <UserMessage content={msg.content} />;
     case "assistant": return <AssistantMessage content={msg.content} rendered={msg.rendered} />;
-    case "tool":      return <ToolMessage toolName={msg.toolName ?? "tool"} content={msg.content} />;
+    case "tool":      return <ToolMessage toolName={msg.toolName ?? "tool"} toolArgs={msg.toolArgs} content={msg.content} />;
     case "system":    return <SystemMessage content={msg.content} />;
   }
 }
@@ -241,6 +255,7 @@ export function App({
   const modelRef = useRef(model);
   const agentModeRef = useRef(agentMode);
   const abortRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   // Guard against double-submit: useInput autocomplete Enter + TextInput onSubmit fire for the same keypress
   const submittingRef = useRef(false);
 
@@ -271,7 +286,7 @@ export function App({
   const genId = () => `msg-${++nextId.current}`;
 
   // Add a message to the display history
-  const addMessage = useCallback(async (role: ChatMessage["role"], content: string, opts?: { toolName?: string }) => {
+  const addMessage = useCallback(async (role: ChatMessage["role"], content: string, opts?: { toolName?: string; toolArgs?: Record<string, unknown> }) => {
     let rendered: string | undefined;
     if (role === "assistant") {
       rendered = await renderMarkdown(content);
@@ -282,6 +297,7 @@ export function App({
       content,
       rendered,
       toolName: opts?.toolName,
+      toolArgs: opts?.toolArgs,
     }]);
   }, []);
 
@@ -434,6 +450,8 @@ export function App({
     await addMessage("user", trimmed);
 
     abortRef.current = false;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     setStreaming(true);
     setStreamContent("");
     setStreamLabel("thinking");
@@ -494,6 +512,7 @@ export function App({
         const wsClient = wsClientRef.current;
         let assistantContent = "";
         const toolSchemas = tools.map(t => t.toProviderTool());
+        const pendingToolArgs = new Map<string, Record<string, unknown>>();
         for await (const event of wsClient.chat(trimmed, threadId, modelRef.current, providerRef.current, toolSchemas)) {
           if (abortRef.current) break;
           if (event.type === "chunk") {
@@ -501,10 +520,13 @@ export function App({
             setStreamContent(assistantContent);
             setStreamLabel("streaming");
           } else if (event.type === "tool_call") {
+            pendingToolArgs.set(event.id, event.args);
             setStreamLabel(`tool: ${event.name}`);
           } else if (event.type === "tool_result") {
             const preview = event.content.length > 100 ? event.content.slice(0, 100) + "…" : event.content;
-            await addMessage("tool", preview, { toolName: event.name });
+            const args = pendingToolArgs.get(event.id);
+            pendingToolArgs.delete(event.id);
+            await addMessage("tool", preview, { toolName: event.name, toolArgs: args });
             setStreamLabel("thinking");
           } else if (event.type === "error") {
             throw new Error(event.message);
@@ -529,6 +551,7 @@ export function App({
           provider: prov,
           context: ctx,
           tools,
+          signal: abortController.signal,
           callbacks: {
             onChunk: (text) => {
               if (abortRef.current) throw new Error("aborted");
@@ -543,7 +566,7 @@ export function App({
               const preview = typeof result === "string"
                 ? result
                 : JSON.stringify(result).slice(0, 100);
-              addMessage("tool", preview, { toolName: tc.name });
+              addMessage("tool", preview, { toolName: tc.name, toolArgs: tc.args });
             },
           },
         });
@@ -565,6 +588,7 @@ export function App({
       setStreamContent("");
       setStreamLabel("");
       submittingRef.current = false;
+      abortControllerRef.current = null;
     }
   }, [handleCommand, addMessage, workspaceDir, enabledTools]);
 
@@ -616,9 +640,16 @@ export function App({
     if (key.escape || (key.ctrl && input === "c")) {
       if (streaming) {
         abortRef.current = true;
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
         if (wsClientRef.current) {
           wsClientRef.current.stop(agentModeRef.current ? undefined : threadId);
         }
+        // Immediately reset UI — don't wait for async cleanup
+        setStreaming(false);
+        setStreamContent("");
+        setStreamLabel("");
+        submittingRef.current = false;
       } else {
         saveSettings({ provider, model, agentMode }).then(() => exit());
       }
@@ -647,7 +678,12 @@ export function App({
         const selected = acMatches[acIndex] ?? acMatches[0];
         if (selected) {
           const completed = selected.replaceAll ?? selected.cmd + " ";
-          setInputValue(completed);
+          // Submit complete commands directly; partial ones go into input for editing
+          if (completed.trimEnd() in COMMANDS) {
+            handleSubmit(completed);
+          } else {
+            setInputValue(completed);
+          }
           setAcIndex(0);
         }
         return;
@@ -723,8 +759,7 @@ export function App({
             </Box>
           ) : null}
           <Box>
-            <Text color="green">{"● "}</Text>
-            <Text color="gray" dimColor><Spinner type="dots" /> {streamLabel || "thinking"}</Text>
+            <Text color="gray" dimColor>{"  "}<Spinner type="dots" /> {streamLabel || "thinking"}</Text>
           </Box>
         </Box>
       )}

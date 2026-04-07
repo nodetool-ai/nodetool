@@ -137,6 +137,8 @@ export abstract class BaseProvider {
       name: string,
       args: Record<string, unknown>
     ) => Promise<string>;
+    /** Optional signal to abort the request. */
+    signal?: AbortSignal;
   }): Promise<Message>;
 
   abstract generateMessages(args: {
@@ -160,6 +162,8 @@ export abstract class BaseProvider {
       name: string,
       args: Record<string, unknown>
     ) => Promise<string>;
+    /** Optional signal to abort the request. */
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem>;
 
   /** Traced wrapper around generateMessage. Use this instead of calling generateMessage directly. */
@@ -249,7 +253,14 @@ export abstract class BaseProvider {
     args: Parameters<this["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
     const startTime = Date.now();
-    log.debug("LLM call", { provider: this.provider, model: args.model });
+    log.info("LLM call", {
+      provider: this.provider,
+      model: args.model,
+      toolCount: (args as Record<string, unknown>).tools
+        ? ((args as Record<string, unknown>).tools as unknown[]).length
+        : 0,
+      hasOnToolCall: !!(args as Record<string, unknown>).onToolCall
+    });
     const tracer = getTracer();
 
     let fullResponse = "";

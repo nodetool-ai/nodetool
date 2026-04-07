@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { tmpdir } from "node:os";
 import { getSecret } from "@nodetool/security";
 import { getSetting } from "./settings-api.js";
 import { pack, unpack } from "msgpackr";
@@ -1636,36 +1637,73 @@ export class UnifiedWebSocketRunner {
 
     const provider = await this.resolveProvider(providerId, userId);
 
-    // Build provider-format tool schemas from raw tool data, filtering out entries with no name
+    // Extract tool names from raw tool data — supports both string[] and object[]
     const rawTools = Array.isArray(data.tools) ? data.tools : [];
-    const providerToolSchemas: ProviderTool[] = rawTools
+    const toolNames: string[] = rawTools
       .map((t) => {
+        if (typeof t === "string") return t;
         const tool = t as Record<string, unknown>;
-        return {
-          name: typeof tool.name === "string" ? tool.name : "",
-          description:
-            typeof tool.description === "string" ? tool.description : undefined,
-          inputSchema:
-            typeof tool.inputSchema === "object"
-              ? (tool.inputSchema as Record<string, unknown>)
-              : undefined
-        };
+        return typeof tool.name === "string" ? tool.name : "";
       })
-      .filter((t) => t.name.length > 0);
+      .filter((n) => n.length > 0);
+    log.info("Chat tools from client", {
+      rawToolCount: rawTools.length,
+      rawToolTypes: rawTools.map((t) => typeof t),
+      toolNames
+    });
 
     // Resolve server-side Tool instances for execution
-    const toolNames = providerToolSchemas.map((t) => t.name).filter(Boolean);
     let serverTools: Tool[] = [];
     if (toolNames.length > 0 && this.resolveTools) {
       serverTools = await this.resolveTools(toolNames, userId);
     }
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));
+    log.info("Resolved server tools", {
+      requested: toolNames,
+      resolved: serverTools.map((t) => t.name),
+      hasResolveTools: !!this.resolveTools
+    });
+
+    // Build provider-format tool schemas from resolved Tool instances + client tools
+    const providerToolSchemas: ProviderTool[] = serverTools.map((t) =>
+      t.toProviderTool()
+    );
+    // Only include client tools (ui_*) when a workflow is active
+    const clientToolNames = workflowId
+      ? Object.keys(this.clientToolsManifest)
+      : [];
+    if (workflowId) {
+      for (const [name, manifest] of Object.entries(this.clientToolsManifest)) {
+        providerToolSchemas.push({
+          name,
+          description:
+            typeof manifest.description === "string"
+              ? manifest.description
+              : undefined,
+          inputSchema:
+            typeof manifest.inputSchema === "object"
+              ? (manifest.inputSchema as Record<string, unknown>)
+              : undefined
+        });
+      }
+    }
+    log.info("Provider tool schemas", {
+      serverToolCount: serverTools.length,
+      clientToolCount: clientToolNames.length,
+      clientTools: clientToolNames,
+      totalSchemas: providerToolSchemas.length,
+      schemaNames: providerToolSchemas.map((t) => t.name)
+    });
 
     // Create a processing context for tool execution
+    const chatWorkspaceDir =
+      workflowId && this.workspaceResolver
+        ? await this.workspaceResolver(workflowId, userId)
+        : tmpdir();
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
-      workspaceDir: null
+      workspaceDir: chatWorkspaceDir
     });
 
     // Prepend system prompt if first message isn't system role — matches Python
@@ -1725,7 +1763,48 @@ export class UnifiedWebSocketRunner {
             shouldIncludeTools && providerToolSchemas.length > 0
               ? providerToolSchemas
               : undefined,
-          threadId
+          threadId,
+          onToolCall:
+            shouldIncludeTools && providerToolSchemas.length > 0
+              ? async (name: string, args: Record<string, unknown>) => {
+                  let toolResult: unknown;
+                  const serverTool = serverToolMap.get(name);
+                  if (serverTool) {
+                    try {
+                      toolResult = await serverTool.process(ctx, args);
+                    } catch (err) {
+                      const errMsg =
+                        err instanceof Error ? err.message : String(err);
+                      toolResult = { error: errMsg };
+                    }
+                  } else if (this.clientToolsManifest[name]) {
+                    // Client-side tool — send to UI via ToolBridge
+                    const callId = `call_${Date.now()}`;
+                    await this.sendMessage({
+                      type: "tool_call",
+                      thread_id: threadId,
+                      tool_call_id: callId,
+                      name,
+                      args
+                    });
+                    const clientResult = await this.toolBridge.createWaiter(
+                      callId,
+                      300_000
+                    );
+                    toolResult =
+                      clientResult.result ?? clientResult.content ?? clientResult;
+                  } else {
+                    toolResult = { error: `Tool "${name}" not available` };
+                  }
+                  const processed = await this.processToolResult(
+                    toolResult,
+                    ctx
+                  );
+                  return typeof processed === "string"
+                    ? processed
+                    : JSON.stringify(processed);
+                }
+              : undefined
         });
 
         // Phase 1: Stream chunks and collect tool calls
@@ -1750,78 +1829,97 @@ export class UnifiedWebSocketRunner {
             // --- Tool call from provider (collect, don't execute yet) ---
             const tc = item as ProviderToolCall;
             log.info("Tool call", { tool: tc.name, args: tc.args });
-
-            // Build assistant Message with tool_calls and send to client immediately
-            const assistantMsgData: Record<string, unknown> = {
-              type: "message",
-              role: "assistant",
-              tool_calls: [
-                { id: tc.id, name: tc.name, args: tc.args, result: null }
-              ],
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model
-            };
-            await this.saveMessageToDb(assistantMsgData);
-            await this.sendMessage(assistantMsgData);
-
-            // Add assistant message to unprocessed for next provider round
-            unprocessedMessages.push({
-              role: "assistant",
-              content: null,
-              toolCalls: [{ id: tc.id, name: tc.name, args: tc.args }],
-              toolCallId: null,
-              threadId
-            });
-
             pendingToolCalls.push({ tc });
           }
+        }
+
+        // Build ONE assistant message with ALL tool calls (OpenAI requires this)
+        if (pendingToolCalls.length > 0) {
+          const allToolCalls = pendingToolCalls.map(({ tc }) => ({
+            id: tc.id,
+            name: tc.name,
+            args: tc.args,
+            result: null
+          }));
+          const assistantMsgData: Record<string, unknown> = {
+            type: "message",
+            role: "assistant",
+            content: content || null,
+            tool_calls: allToolCalls,
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model
+          };
+          await this.saveMessageToDb(assistantMsgData);
+          await this.sendMessage(assistantMsgData);
+
+          unprocessedMessages.push({
+            role: "assistant",
+            content: content || null,
+            toolCalls: pendingToolCalls.map(({ tc }) => ({
+              id: tc.id,
+              name: tc.name,
+              args: tc.args
+            })),
+            toolCallId: null,
+            threadId
+          });
         }
 
         // Phase 2: Execute all collected tool calls in parallel
         if (pendingToolCalls.length > 0) {
           const executeOne = async ({ tc }: PendingToolCall) => {
-            let toolResult: unknown;
-            const serverTool = serverToolMap.get(tc.name);
-            if (serverTool) {
-              try {
-                toolResult = await serverTool.process(ctx, tc.args);
-              } catch (err) {
-                const errMsg = err instanceof Error ? err.message : String(err);
-                log.error("Tool execution failed", {
-                  tool: tc.name,
-                  error: errMsg
+            try {
+              let toolResult: unknown;
+              const serverTool = serverToolMap.get(tc.name);
+              if (serverTool) {
+                try {
+                  toolResult = await serverTool.process(ctx, tc.args);
+                } catch (err) {
+                  const errMsg =
+                    err instanceof Error ? err.message : String(err);
+                  log.error("Tool execution failed", {
+                    tool: tc.name,
+                    error: errMsg
+                  });
+                  toolResult = { error: errMsg };
+                }
+              } else if (this.clientToolsManifest[tc.name]) {
+                // Client-side tool via ToolBridge
+                await this.sendMessage({
+                  type: "tool_call",
+                  thread_id: threadId,
+                  tool_call_id: tc.id,
+                  name: tc.name,
+                  args: tc.args
                 });
-                toolResult = { error: errMsg };
+                const clientResult = await this.toolBridge.createWaiter(
+                  tc.id,
+                  300_000
+                );
+                toolResult =
+                  clientResult.result ?? clientResult.content ?? clientResult;
+              } else {
+                toolResult = { error: `Tool "${tc.name}" not available` };
               }
-            } else if (this.clientToolsManifest[tc.name]) {
-              // Client-side tool via ToolBridge
-              await this.sendMessage({
-                type: "tool_call",
-                thread_id: threadId,
-                tool_call_id: tc.id,
-                name: tc.name,
-                args: tc.args
-              });
-              const clientResult = await this.toolBridge.createWaiter(
-                tc.id,
-                300_000
+
+              // Process tool result — handle asset-like objects, dates, etc.
+              const processedResult = await this.processToolResult(
+                toolResult,
+                ctx
               );
-              toolResult =
-                clientResult.result ?? clientResult.content ?? clientResult;
-            } else {
-              toolResult = { error: `Tool "${tc.name}" not available` };
+              const toolResultJson = JSON.stringify(processedResult);
+
+              return { tc, toolResultJson };
+            } catch (err) {
+              const errMsg = err instanceof Error ? err.message : String(err);
+              log.error("Tool executeOne failed", {
+                tool: tc.name,
+                error: errMsg
+              });
+              return { tc, toolResultJson: JSON.stringify({ error: errMsg }) };
             }
-
-            // Process tool result — handle asset-like objects, dates, etc.
-            const processedResult = await this.processToolResult(
-              toolResult,
-              ctx
-            );
-            const toolResultJson = JSON.stringify(processedResult);
-
-            return { tc, toolResultJson };
           };
 
           const results = await Promise.all(pendingToolCalls.map(executeOne));
@@ -2586,10 +2684,14 @@ export class UnifiedWebSocketRunner {
     }
 
     // Create ProcessingContext for agent execution
+    const agentWorkspaceDir =
+      workflowId && this.workspaceResolver
+        ? await this.workspaceResolver(workflowId, userId)
+        : tmpdir();
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
-      workspaceDir: null
+      workspaceDir: agentWorkspaceDir
     });
 
     try {
