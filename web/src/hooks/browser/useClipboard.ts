@@ -110,7 +110,6 @@ export const useClipboard = () => {
         throw new Error("Clipboard content is not valid JSON");
       }
 
-      if (isFirefox) {
         setClipboardData(outputData);
       }
       setClipboardData(outputData);

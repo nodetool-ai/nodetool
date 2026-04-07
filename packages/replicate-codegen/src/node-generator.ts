@@ -86,6 +86,9 @@ function buildPropDecorator(field: FieldDef): string {
     parts.push(`description: ${JSON.stringify(safeDesc)}`);
   }
 
+  if (field.min !== undefined) parts.push(`min: ${field.min}`);
+  if (field.max !== undefined) parts.push(`max: ${field.max}`);
+
   return `  @prop({ ${parts.join(", ")} })`;
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -54,13 +54,39 @@ function isPortInUse(hostname, portNumber) {
   });
 }
 
+function killTree(pid) {
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/F", "/T", "/PID", String(pid)], { stdio: "ignore" });
+  } else {
+    try { process.kill(-pid, "SIGTERM"); } catch { /* already gone */ }
+  }
+}
+
 function run(command, args, cwd) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(command, args, {
       cwd,
       stdio: "inherit",
       shell: process.platform === "win32",
+      // On non-Windows, create a new process group so we can kill the tree
+      detached: process.platform !== "win32",
     });
+
+    // On Windows, register a handler to force-kill the whole process tree
+    if (process.platform === "win32" && child.pid) {
+      const pid = child.pid;
+      const killOnExit = () => killTree(pid);
+      process.once("SIGINT", killOnExit);
+      process.once("SIGTERM", killOnExit);
+      process.once("SIGBREAK", killOnExit);
+      process.once("exit", killOnExit);
+      child.once("exit", () => {
+        process.off("SIGINT", killOnExit);
+        process.off("SIGTERM", killOnExit);
+        process.off("SIGBREAK", killOnExit);
+        process.off("exit", killOnExit);
+      });
+    }
 
     child.on("error", rejectRun);
     child.on("exit", (code) => {

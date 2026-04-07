@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { CodeBlock } from "./CodeBlock";
 
 // Define a more specific type for the props coming from ReactMarkdown's 'pre' renderer
@@ -9,7 +9,7 @@ interface PreRendererProps {
   [key: string]: any;
 }
 
-export const PreRenderer: React.FC<PreRendererProps> = ({
+export const PreRenderer: React.FC<PreRendererProps> = memo(({
   node: _node,
   children,
   ...props
@@ -45,4 +45,6 @@ export const PreRenderer: React.FC<PreRendererProps> = ({
     // The inner <code>, if any, will be handled by the CodeBlock component without the _isFromPre flag.
     return <pre {...props}>{children}</pre>;
   }
-};
+});
+
+PreRenderer.displayName = "PreRenderer";

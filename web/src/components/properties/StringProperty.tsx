@@ -11,6 +11,7 @@ import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import ConnectedBadge from "./ConnectedBadge";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -74,8 +75,7 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isDynamicProperty,
-  changed
+  isDynamicProperty
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -107,6 +107,7 @@ const StringProperty = ({
             description={property.description}
             id={id}
           />
+          <ConnectedBadge />
         </div>
       </div>
     );
@@ -167,7 +168,6 @@ const StringProperty = ({
             minRows={3}
             maxRows={3}
             autoFocus={false}
-            changed={changed}
           />
         </div>
       </div>

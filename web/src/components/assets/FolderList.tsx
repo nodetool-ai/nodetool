@@ -7,7 +7,7 @@ import {
   Box
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import React, { useCallback, useState, memo, useMemo } from "react";
+import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
 import FolderItem from "./FolderItem";
 import useAssets from "../../serverState/useAssets";
 import useAuth from "../../stores/useAuth";
@@ -148,6 +148,18 @@ const styles = (theme: Theme) =>
     }
   });
 
+interface FolderNode extends Asset {
+  children?: FolderNode[];
+}
+
+type RootFolder = {
+  id: string;
+  name: string;
+  content_type: string;
+  parent_id: string;
+  children: FolderNode[];
+};
+
 interface FolderListProps {
   isHorizontal?: boolean;
 }
@@ -167,6 +179,50 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     new Set()
   );
 
+  // Auto-expand ancestors when the selected folder changes
+  useEffect(() => {
+    if (!folderTree || selectedFolderIds.length === 0) return;
+    const targetId = selectedFolderIds[0];
+    if (!targetId || targetId === currentUser?.id) return;
+
+    // Build parent lookup from the tree
+    const parentMap = new Map<string, string>();
+    const buildParentMap = (nodes: FolderNode[], parentId: string) => {
+      for (const node of nodes) {
+        parentMap.set(node.id, parentId);
+        if (node.children) {
+          buildParentMap(node.children, node.id);
+        }
+      }
+    };
+    const rootNodes = Object.values(folderTree) as FolderNode[];
+    buildParentMap(rootNodes, currentUser?.id ?? "root");
+
+    // Walk up from target to root, collecting ancestor IDs to expand
+    const ancestorIds: string[] = [];
+    let currentId: string | undefined = targetId;
+    while (currentId && currentId !== currentUser?.id) {
+      const pid = parentMap.get(currentId);
+      if (!pid) break;
+      if (pid !== currentUser?.id) {
+        ancestorIds.push(pid);
+      }
+      currentId = pid;
+    }
+
+    if (ancestorIds.length > 0) {
+      setExpandedFolderIds((prev) => {
+        const next = new Set(prev);
+        for (const id of ancestorIds) {
+          next.add(id);
+        }
+        // Only update if we actually added new IDs
+        if (next.size === prev.size) return prev;
+        return next;
+      });
+    }
+  }, [selectedFolderIds, folderTree, currentUser?.id]);
+
   const handleSelect = useCallback((folder: Asset | RootFolder) => {
     if ((folder as Asset).user_id !== undefined) {
       navigateToFolder(folder as Asset);
@@ -174,17 +230,6 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       navigateToFolderId(folder.id);
     }
   }, [navigateToFolder, navigateToFolderId]);
-
-  interface FolderNode extends Asset {
-    children?: FolderNode[];
-  }
-  type RootFolder = {
-    id: string;
-    name: string;
-    content_type: string;
-    parent_id: string;
-    children: FolderNode[];
-  };
 
   const hasChildNodes = useCallback(
     (folder: FolderNode | RootFolder): folder is FolderNode & { children: FolderNode[] } => {

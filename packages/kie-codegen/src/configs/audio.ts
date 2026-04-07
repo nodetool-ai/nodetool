@@ -63,7 +63,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use.",
-          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"]
+          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"]
         },
         {
           name: "negative_tags",
@@ -71,7 +71,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Negative Tags",
           description:
-            "Music styles or traits to exclude from the generated audio."
+            "Music styles or traits to exclude from the generated audio. Max 200 characters (V4 model limit)."
         },
         {
           name: "vocal_gender",
@@ -86,21 +86,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "persona_id",
@@ -199,7 +205,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use (must match source audio).",
-          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"]
+          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"]
         },
         {
           name: "negative_tags",
@@ -221,21 +227,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "persona_id",
@@ -324,7 +336,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use.",
-          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"]
+          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"]
         },
         {
           name: "negative_tags",
@@ -332,7 +344,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Negative Tags",
           description:
-            "Music styles or traits to exclude from the generated audio."
+            "Music styles or traits to exclude from the generated audio. Max 200 characters (V4 model limit)."
         },
         {
           name: "vocal_gender",
@@ -347,21 +359,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "persona_id",
@@ -456,21 +474,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         }
       ],
       uploads: [
@@ -572,21 +596,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         }
       ],
       uploads: [

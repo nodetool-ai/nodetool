@@ -29,6 +29,8 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
+import * as sdk from "@anthropic-ai/claude-agent-sdk";
+import { z } from "zod";
 
 const log = createLogger("nodetool.runtime.providers.claude_agent");
 
@@ -228,22 +230,6 @@ export class ClaudeAgentProvider extends BaseProvider {
     return { systemPrompt, prompt };
   }
 
-  /**
-   * Dynamically import the Agent SDK. Throws a descriptive error if not installed.
-   */
-  private async getSdk(): Promise<
-    typeof import("@anthropic-ai/claude-agent-sdk")
-  > {
-    try {
-      return await import("@anthropic-ai/claude-agent-sdk");
-    } catch {
-      throw new Error(
-        "Claude Agent SDK (@anthropic-ai/claude-agent-sdk) is not installed or Claude Code " +
-          "is not available. Install Claude Code and run: npm install @anthropic-ai/claude-agent-sdk"
-      );
-    }
-  }
-
   /** Look up an existing Claude session for the given threadId. */
   getSessionId(threadId: string | null): string | undefined {
     if (!threadId) return undefined;
@@ -327,7 +313,6 @@ export class ClaudeAgentProvider extends BaseProvider {
     /** Callback for tool execution. Required when tools are provided. */
     onToolCall?: OnToolCall;
   }): AsyncGenerator<ProviderStreamItem> {
-    const sdk = await this.getSdk();
     const hasTools = (args.tools?.length ?? 0) > 0 && !!args.onToolCall;
     const { systemPrompt, prompt } = this.extractPrompt(args.messages);
     const threadId = args.threadId ?? null;

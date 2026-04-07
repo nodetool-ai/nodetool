@@ -8,12 +8,13 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { Box, Typography, useMediaQuery } from "@mui/material";
+import { Box, Typography, useMediaQuery, Button } from "@mui/material";
 import { AlertBanner } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
+import WelcomePlaceholder from "./WelcomePlaceholder";
 import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
@@ -309,6 +310,31 @@ const GlobalChat: React.FC = () => {
     [switchThread, navigate]
   );
 
+  const handleSuggestionClick = useCallback(
+    (suggestion: string) => {
+      sendMessage({
+        type: "message",
+        name: "",
+        role: "user",
+        provider: selectedModel?.provider,
+        model: selectedModel?.id,
+        content: [{ type: "text", text: suggestion }],
+        tools: selectedTools.length > 0 ? selectedTools : undefined,
+        collections:
+          selectedCollections.length > 0 ? selectedCollections : undefined,
+        agent_mode: agentMode
+      }).catch((err) => {
+        log.error("Failed to send suggestion:", err);
+      });
+    },
+    [sendMessage, selectedModel, selectedTools, selectedCollections, agentMode]
+  );
+
+  const welcomePlaceholder = useMemo(
+    () => <WelcomePlaceholder onSuggestionClick={handleSuggestionClick} />,
+    [handleSuggestionClick]
+  );
+
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((error) => {
@@ -470,26 +496,43 @@ const GlobalChat: React.FC = () => {
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        {!alertDismissed &&
-          (error &&
-            <AlertBanner
-              className="global-chat-status-alert"
-              severity="error"
-              onClose={() => setAlertDismissed(true)}
-              sx={{
-                position: "absolute",
-                top: "5rem",
-                left: "50%",
-                transform: "translateX(-50%)",
-                maxWidth: "600px",
-                width: "100%",
-                zIndex: 1001,
-                flexShrink: 0
-              }}
-            >
-              {error}
-            </AlertBanner>
-          )}
+        {!alertDismissed && error && (
+          <AlertBanner
+            className="global-chat-status-alert"
+            severity="error"
+            onClose={() => setAlertDismissed(true)}
+            sx={{
+              position: "absolute",
+              top: "5rem",
+              left: "50%",
+              transform: "translateX(-50%)",
+              maxWidth: "600px",
+              width: "100%",
+              zIndex: 1001,
+              flexShrink: 0
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+              <Typography variant="body2" component="span">
+                {error}
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                color="inherit"
+                onClick={() => {
+                  setAlertDismissed(true);
+                  connect().catch((err) => {
+                    log.error("Retry connection failed:", err);
+                  });
+                }}
+                sx={{ ml: "auto", whiteSpace: "nowrap", minWidth: "auto" }}
+              >
+                Retry
+              </Button>
+            </Box>
+          </AlertBanner>
+        )}
 
         <Box
           className="chat-container"
@@ -553,6 +596,7 @@ const GlobalChat: React.FC = () => {
               currentTaskUpdate={taskUpdateForDisplay}
               currentLogUpdate={currentLogUpdate}
               workflowId={workflowId}
+              noMessagesPlaceholder={welcomePlaceholder}
             />
           </Box>
         </Box>

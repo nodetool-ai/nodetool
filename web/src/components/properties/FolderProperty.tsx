@@ -17,7 +17,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
 import dialogStyles from "../../styles/DialogStyles";
 import isEqual from "lodash/isEqual";
-import { NodeSelect, NodeMenuItem } from "../editor_ui";
+import Select from "../inputs/Select";
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 
 const FolderProperty = (props: PropertyProps) => {
@@ -99,17 +99,22 @@ const FolderProperty = (props: PropertyProps) => {
   );
 
   const handleFolderSelect = useCallback(
-    (
-      event:
-        | React.ChangeEvent<HTMLInputElement>
-        | (Event & { target: { value: unknown; name: string } })
-    ) => {
+    (value: string) => {
       props.onChange({
         type: "folder",
-        asset_id: event.target.value as string
+        asset_id: value
       });
     },
     [props]
+  );
+
+  const folderOptions = useMemo(
+    () =>
+      data?.assets.map((folder) => ({
+        value: folder.id,
+        label: folder.name
+      })) || [],
+    [data?.assets]
   );
 
   const theme = useTheme();
@@ -123,19 +128,12 @@ const FolderProperty = (props: PropertyProps) => {
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
       <div style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
-        <NodeSelect
-          id={id}
-          labelId={id}
-          name=""
+        <Select
+          options={folderOptions}
           value={selectValue}
           onChange={handleFolderSelect}
-        >
-          {data?.assets.map((folder) => (
-            <NodeMenuItem key={folder.id} value={folder.id}>
-              {folder.name}
-            </NodeMenuItem>
-          ))}
-        </NodeSelect>
+          placeholder="Select a folder"
+        />
         <Button
           onClick={handleOpenMenu}
           sx={{

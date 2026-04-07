@@ -80,7 +80,6 @@ async function requestUserConsent(
     }
   })();
 
-  // eslint-disable-next-line no-alert
   return window.confirm(
     `Allow Claude Agent to run ${toolName}?\n\nArguments:\n${prettyArgs}`
   );

@@ -1090,10 +1090,12 @@ export function initializeIpcHandlers(): void {
           `[localhost-proxy] WS open ${connectionId} ${parsedUrl.toString()}`,
           "info",
         );
-        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-          connectionId,
-          event: "open",
-        });
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+            connectionId,
+            event: "open",
+          });
+        }
       });
 
       socket.on("message", (data) => {
@@ -1103,11 +1105,13 @@ export function initializeIpcHandlers(): void {
             : Array.isArray(data)
               ? Buffer.concat(data).toString("utf8")
               : Buffer.from(data as any).toString("utf8");
-        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-          connectionId,
-          event: "message",
-          data: textData,
-        });
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+            connectionId,
+            event: "message",
+            data: textData,
+          });
+        }
         logMessage(
           `[localhost-proxy] WS message ${connectionId} (${textData.length} bytes)`,
           "info",
@@ -1119,11 +1123,13 @@ export function initializeIpcHandlers(): void {
           `[localhost-proxy] WS error ${connectionId}: ${error.message}`,
           "error",
         );
-        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-          connectionId,
-          event: "error",
-          error: error.message,
-        });
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+            connectionId,
+            event: "error",
+            error: error.message,
+          });
+        }
       });
 
       socket.on("close", (code, reason) => {
@@ -1131,12 +1137,14 @@ export function initializeIpcHandlers(): void {
           `[localhost-proxy] WS close ${connectionId} code=${code} reason=${reason.toString("utf8")}`,
           "info",
         );
-        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-          connectionId,
-          event: "close",
-          code,
-          reason: reason.toString("utf8"),
-        });
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+            connectionId,
+            event: "close",
+            code,
+            reason: reason.toString("utf8"),
+          });
+        }
         cleanupLocalhostProxyWsConnection(connectionId);
       });
 

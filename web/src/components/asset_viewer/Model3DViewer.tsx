@@ -322,7 +322,6 @@ function Model({ url, wireframe, onLoad, onClick, onDoubleClick }: ModelProps) {
 
   return (
     <>
-      {/* eslint-disable-next-line react/no-unknown-property */}
       <primitive object={clonedScene} onClick={handleClick} onDoubleClick={handleDoubleClick} />
     </>
   );
@@ -391,7 +390,6 @@ function SceneHelpers({ showGrid, showAxes }: SceneHelpersProps) {
           infiniteGrid={true}
         />
       )}
-      {/* eslint-disable-next-line react/no-unknown-property */}
       {showAxes && <axesHelper args={[2]} />}
     </>
   );
@@ -787,7 +785,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 }
               >
                 {/* Lighting based on preset */}
-                {/* eslint-disable-next-line react/no-unknown-property */}
                 <ambientLight intensity={0.3} />
                 <Environment
                   preset={lightingPreset}

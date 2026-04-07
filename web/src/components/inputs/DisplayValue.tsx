@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { formatFloat } from "./NumberInput.utils";
 
 interface DisplayValueProps {
@@ -7,7 +7,7 @@ interface DisplayValueProps {
   decimalPlaces: number;
 }
 
-const DisplayValue: React.FC<DisplayValueProps> = ({
+const DisplayValue: React.FC<DisplayValueProps> = memo(({
   value,
   isFloat,
   decimalPlaces: _decimalPlaces
@@ -19,6 +19,8 @@ const DisplayValue: React.FC<DisplayValueProps> = ({
         : value
       : "NaN"}
   </div>
-);
+));
+
+DisplayValue.displayName = "DisplayValue";
 
 export default DisplayValue;

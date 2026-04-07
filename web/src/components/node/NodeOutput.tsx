@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, memo, useRef } from "react";
-import { Handle, Position, useHandleConnections } from "@xyflow/react";
+import { Handle, Position, useNodeConnections } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
@@ -93,7 +93,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
     };
   }, []);
 
-  const connections = useHandleConnections({ type: "source", id: output.name });
+  const connections = useNodeConnections({ handleType: "source", handleId: output.name });
   const isConnected = connections.length > 0;
 
   const {

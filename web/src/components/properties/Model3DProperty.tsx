@@ -9,6 +9,7 @@ import { memo, useState, useCallback } from "react";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import ConnectedBadge from "./ConnectedBadge";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
 import { Button, TextField, Tooltip } from "@mui/material";
@@ -201,6 +202,7 @@ const Model3DProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
+      {isConnected && <ConnectedBadge />}
       {!isConnected && (
         <div className="drop-container">
           {showUrlInput && (

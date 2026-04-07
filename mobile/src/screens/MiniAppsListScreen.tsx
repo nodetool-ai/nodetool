@@ -28,12 +28,11 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
-  const { colors } = useTheme();
+  const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  // Debounce search input
   const handleSearchChange = useCallback((text: string) => {
     setSearchQuery(text);
     if (searchTimerRef.current) {
@@ -60,9 +59,9 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
       const data = await apiService.getWorkflows();
       const workflowsList = Array.isArray(data) ? data : (data?.workflows || []);
       setWorkflows(workflowsList);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load workflows:', error);
-      const errorMessage = error.message || 'Network Error';
+      const errorMessage = error instanceof Error ? error.message : 'Network Error';
       setLoadError(errorMessage);
       Alert.alert(
         'Connection Error',
@@ -90,7 +89,6 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
     initialize();
   }, [loadWorkflows]);
 
-  // Cleanup debounce timer
   useEffect(() => {
     return () => {
       if (searchTimerRef.current) {
@@ -111,31 +109,39 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
 
   const renderWorkflowItem = ({ item }: { item: Workflow }) => (
     <TouchableOpacity
-      style={[styles.workflowCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
+      style={[
+        styles.workflowCard,
+        shadows.small,
+        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
+      ]}
       onPress={() => handleWorkflowPress(item)}
       accessibilityRole="button"
       accessibilityLabel={`Open ${item.name}${item.description ? `: ${item.description}` : ''}`}
       activeOpacity={0.7}
     >
       <View style={[styles.workflowIcon, { backgroundColor: colors.primaryMuted }]}>
-        <Ionicons name="cube-outline" size={22} color={colors.primary} />
+        <Ionicons name="cube-outline" size={20} color={colors.primary} />
       </View>
       <View style={styles.workflowContent}>
         <Text style={[styles.workflowName, { color: colors.text }]}>{item.name}</Text>
-        {item.description && (
+        {item.description ? (
           <Text style={[styles.workflowDescription, { color: colors.textSecondary }]} numberOfLines={2}>
             {item.description}
           </Text>
-        )}
+        ) : null}
       </View>
-      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+      <View style={[styles.chevronContainer, { backgroundColor: colors.primaryLight }]}>
+        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+      </View>
     </TouchableOpacity>
   );
 
   if (isLoading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <View style={[styles.loadingIconWrap, { backgroundColor: colors.primaryMuted }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading mini apps...</Text>
       </View>
     );
@@ -147,58 +153,66 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
         styles.header,
         {
           backgroundColor: colors.surfaceHeader,
-          borderBottomColor: colors.border,
-          paddingTop: insets.top + 10
+          borderBottomColor: colors.borderLight,
+          paddingTop: insets.top + 12,
         }
       ]}>
-        <Text style={[styles.title, { color: colors.text }]}>Mini Apps</Text>
+        <View>
+          <Text style={[styles.title, { color: colors.text }]}>Mini Apps</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            {workflows.length > 0 ? `${workflows.length} available` : 'Your workflows'}
+          </Text>
+        </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity
-            style={styles.headerButton}
+            style={[styles.headerButton, { backgroundColor: colors.primaryMuted }]}
             onPress={() => navigation.navigate('Chat')}
             accessibilityRole="button"
             accessibilityLabel="Open chat"
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={26} color={colors.text} />
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.headerButton}
+            style={[styles.headerButton, { backgroundColor: colors.primaryMuted }]}
             onPress={() => navigation.navigate('Settings')}
             accessibilityRole="button"
             accessibilityLabel="Open settings"
           >
-            <Ionicons name="settings-outline" size={26} color={colors.text} />
+            <Ionicons name="settings-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
 
       {workflows.length === 0 ? (
         <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-          <Ionicons name="apps-outline" size={64} color={colors.border} style={{ marginBottom: 16 }} />
+          <View style={[styles.emptyIconWrap, { backgroundColor: colors.primaryMuted }]}>
+            <Ionicons name="apps-outline" size={40} color={colors.primary} />
+          </View>
           <Text style={[styles.emptyText, { color: colors.text }]}>
             {loadError ? 'Connection failed' : 'No mini apps found'}
           </Text>
           <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
             {loadError
-              ? 'Could not connect to the server. Check your settings and try again.'
-              : 'Make sure your server is running and configured correctly'}
+              ? 'Could not connect to the server.\nCheck your settings and try again.'
+              : 'Make sure your server is running\nand configured correctly.'}
           </Text>
           <View style={styles.emptyButtons}>
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.primary }]}
+              style={[styles.button, shadows.small, { backgroundColor: colors.primary }]}
               onPress={loadWorkflows}
               accessibilityRole="button"
               accessibilityLabel="Retry loading"
             >
-              <Ionicons name="refresh-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Ionicons name="refresh-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
               <Text style={styles.buttonText}>Retry</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.buttonOutline, { borderColor: colors.border }]}
+              style={[styles.buttonOutline, { borderColor: colors.border, backgroundColor: colors.surface }]}
               onPress={() => navigation.navigate('Settings')}
               accessibilityRole="button"
               accessibilityLabel="Go to Settings"
             >
+              <Ionicons name="settings-outline" size={16} color={colors.text} style={{ marginRight: 6 }} />
               <Text style={[styles.buttonOutlineText, { color: colors.text }]}>Settings</Text>
             </TouchableOpacity>
           </View>
@@ -207,12 +221,12 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
         <>
           {workflows.length > 3 && (
             <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-              <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-                <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+              <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.borderLight }]}>
+                <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
                 <TextInput
                   style={[styles.searchInput, { color: colors.text }]}
                   placeholder="Search mini apps..."
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.textTertiary}
                   value={searchQuery}
                   onChangeText={handleSearchChange}
                   autoCapitalize="none"
@@ -222,7 +236,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => { setSearchQuery(''); setDebouncedQuery(''); }} accessibilityLabel="Clear search">
-                    <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                    <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -244,9 +258,11 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
             ListEmptyComponent={
               searchQuery.length > 0 ? (
                 <View style={styles.noResultsContainer}>
-                  <Ionicons name="search-outline" size={48} color={colors.border} />
+                  <View style={[styles.noResultsIconWrap, { backgroundColor: colors.primaryMuted }]}>
+                    <Ionicons name="search-outline" size={28} color={colors.primary} />
+                  </View>
                   <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
-                    No results for "{searchQuery}"
+                    No results for &quot;{searchQuery}&quot;
                   </Text>
                 </View>
               ) : null
@@ -266,70 +282,107 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   headerButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  loadingIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
+    fontSize: 15,
   },
   listContent: {
     padding: 16,
+    paddingTop: 12,
   },
   workflowCard: {
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   workflowIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   workflowContent: {
     flex: 1,
+    marginRight: 8,
   },
   workflowName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    letterSpacing: -0.2,
+    marginBottom: 2,
   },
   workflowDescription: {
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  chevronContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   emptyText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
   emptySubtext: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
     lineHeight: 22,
   },
   emptyButtons: {
@@ -340,22 +393,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 13,
+    borderRadius: 12,
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   buttonOutline: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+    borderRadius: 12,
     borderWidth: 1,
   },
   buttonOutlineText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   searchContainer: {
@@ -366,13 +421,13 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    height: 40,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    height: 42,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
@@ -384,7 +439,14 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     gap: 12,
   },
+  noResultsIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   noResultsText: {
-    fontSize: 16,
+    fontSize: 15,
   },
 });

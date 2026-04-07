@@ -210,10 +210,15 @@ export async function kieSubmitSuno(
   apiKey: string,
   input: Record<string, unknown>
 ): Promise<string> {
+  // callBackUrl is always required by the Suno API. Since we poll for results
+  // we don't actually use it, so inject a placeholder if not already set.
+  const body = input.callBackUrl
+    ? input
+    : { ...input, callBackUrl: "https://nodetool.ai/kie-callback" };
   const res = await fetch(`${KIE_API_BASE}/api/v1/generate`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify(input)
+    body: JSON.stringify(body)
   });
   const data = (await res.json()) as Record<string, unknown>;
   if (data.code !== undefined) checkStatus(data);
@@ -249,40 +254,6 @@ export async function kiePollSuno(
   throw new Error(`Suno task timed out`);
 }
 
-export async function kieDownloadSunoResult(
-  apiKey: string,
-  taskId: string,
-  pollData?: Record<string, unknown>
-): Promise<{ data: string; taskId: string }> {
-  let data: Record<string, unknown>;
-  if (pollData) {
-    data = pollData;
-  } else {
-    const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
-    const res = await fetch(url, { headers: headers(apiKey) });
-    data = (await res.json()) as Record<string, unknown>;
-  }
-  const dataField = data.data as Record<string, unknown>;
-  const responseField = dataField?.response as Record<string, unknown> | undefined;
-  // Try all known response shapes (API has used clips, sunoData over time)
-  const clips = (
-    responseField?.clips ??
-    responseField?.sunoData ??
-    dataField?.clips ??
-    dataField?.sunoData
-  ) as Array<Record<string, unknown>> | undefined;
-  if (!clips?.length) {
-    console.error("Suno response data:", JSON.stringify(data, null, 2));
-    throw new Error(`No clips in Suno response. Keys: ${Object.keys(dataField ?? {}).join(", ")}`);
-  }
-  const audioUrl = clips[0].audioUrl as string;
-  if (!audioUrl) throw new Error(`No audioUrl in Suno clip. Clip keys: ${Object.keys(clips[0]).join(", ")}`);
-  const dlRes = await fetch(audioUrl);
-  if (!dlRes.ok) throw new Error(`Failed to download audio`);
-  const buf = Buffer.from(await dlRes.arrayBuffer());
-  return { data: buf.toString("base64"), taskId };
-}
-
 export async function kieExecuteSunoTask(
   apiKey: string,
   input: Record<string, unknown>,
@@ -290,8 +261,18 @@ export async function kieExecuteSunoTask(
   maxAttempts = 120
 ): Promise<{ data: string; taskId: string }> {
   const taskId = await kieSubmitSuno(apiKey, input);
-  const pollData = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
-  return kieDownloadSunoResult(apiKey, taskId, pollData);
+  const pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
+  // Polling response: data.response.sunoData[].audioUrl
+  const sunoData = (
+    (pollResult.data as Record<string, unknown>)?.response as Record<string, unknown>
+  )?.sunoData as Array<Record<string, unknown>>;
+  if (!sunoData?.length) throw new Error("No sunoData in Suno response");
+  const audioUrl = sunoData[0].audioUrl as string;
+  if (!audioUrl) throw new Error("No audioUrl in Suno response");
+  const dlRes = await fetch(audioUrl);
+  if (!dlRes.ok) throw new Error(`Failed to download audio: ${dlRes.status}`);
+  const buf = Buffer.from(await dlRes.arrayBuffer());
+  return { data: buf.toString("base64"), taskId };
 }
 
 export async function kieImageRef(base64: string): Promise<Record<string, unknown>> {
