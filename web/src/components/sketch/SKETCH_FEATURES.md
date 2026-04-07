@@ -47,7 +47,7 @@ Do these after the helper-tool architecture blockers above.
 - [x] Sketch Node: remove `Layer In` / `Layer Out` from handle names so only the layer name is shown
 - [x] Sketch Node: remove the default `Image Input` handle on the sketch node
 - [x] rethink layer action buttons: sort them, decide what belongs in the top and bottom groups, remove crop-canvas icons from the main group, but keep crop in the context menu
-- [ ] fix small delay when starting brush strokes; mouse cursor hangs for about 50 ms right after starting a stroke. verify whether it still exists while working on this area
+- [x] fix small delay when starting brush strokes; mouse cursor hangs for about 50 ms right after starting a stroke. verify whether it still exists while working on this area
 ## PHASE 2 - Transform Foundation
 
 ### 2.1 - Transform preview/commit parity

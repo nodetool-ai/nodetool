@@ -6,19 +6,21 @@
  * - PaintEngine interface compliance for BrushEngine/PencilEngine/EraserEngine
  * - PaintSession lifecycle (begin → move → end)
  * - Stroke buffer creation for buffered engines
+ * - Stroke buffer pool (acquire/release) for reduced allocation cost
  * - Direct painting for non-buffered engines (pencil)
  * - Alpha-lock snapshot and restore
  * - Shift+click straight line through PaintSession
  * - Dirty-rect tracking through PaintSession
  * - BrushTool/PencilTool/EraserTool integration with PaintSession
  * - ShapeTool transform-aware commit
+ * - Stroke start uses deferred redraw (requestRedraw) not synchronous redraw
  */
 
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { BrushEngine } from "../painting/BrushEngine";
 import { PencilEngine } from "../painting/PencilEngine";
 import { EraserEngine } from "../painting/EraserEngine";
-import { PaintSession } from "../painting/PaintSession";
+import { PaintSession, acquireStrokeBuffer, releaseStrokeBuffer } from "../painting/PaintSession";
 import { BrushTool } from "../tools/BrushTool";
 import { PencilTool } from "../tools/PencilTool";
 import { EraserTool } from "../tools/EraserTool";
@@ -866,5 +868,129 @@ describe("ShapeTool (transform-aware commit)", () => {
     } finally {
       getContextSpy.mockRestore();
     }
+  });
+});
+
+// ─── Stroke-start latency regression tests ─────────────────────────────────
+
+describe("PaintSession stroke-start latency optimizations", () => {
+  it("begin() uses requestRedraw (deferred) instead of synchronous redraw", () => {
+    const engine = new BrushEngine({
+      size: 10,
+      opacity: 1,
+      hardness: 0.8,
+      color: "#000000",
+      brushType: "round",
+      pressureSensitivity: true,
+      pressureAffects: "size",
+      roundness: 1,
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
+    });
+    const session = new PaintSession(engine);
+    const ctx = makeToolContext();
+    session.begin(ctx, makePointerEvent());
+
+    // The synchronous redraw must NOT be called during begin();
+    // only the deferred requestRedraw should fire.
+    expect(ctx.redraw).not.toHaveBeenCalled();
+    expect(ctx.requestRedraw).toHaveBeenCalled();
+  });
+
+  it("move() continues to use deferred or dirty redraw, not synchronous redraw", () => {
+    const engine = new BrushEngine({
+      size: 10,
+      opacity: 1,
+      hardness: 0.8,
+      color: "#000000",
+      brushType: "round",
+      pressureSensitivity: true,
+      pressureAffects: "size",
+      roundness: 1,
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
+    });
+    const session = new PaintSession(engine);
+    const ctx = makeToolContext();
+    session.begin(ctx, makePointerEvent());
+
+    (ctx.redraw as jest.Mock).mockClear();
+    (ctx.requestRedraw as jest.Mock).mockClear();
+
+    session.move(
+      ctx,
+      makePointerEvent({ point: { x: 30, y: 30 } }),
+      [makePointerEvent({ point: { x: 30, y: 30 } })]
+    );
+
+    expect(ctx.redraw).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Stroke buffer pool tests ──────────────────────────────────────────────
+
+describe("Stroke buffer pool (acquireStrokeBuffer / releaseStrokeBuffer)", () => {
+  it("acquireStrokeBuffer returns a canvas of the requested size", () => {
+    const canvas = acquireStrokeBuffer(100, 200);
+    expect(canvas.width).toBe(100);
+    expect(canvas.height).toBe(200);
+  });
+
+  it("releaseStrokeBuffer allows the same canvas to be reused", () => {
+    const canvas = acquireStrokeBuffer(64, 64);
+    releaseStrokeBuffer(canvas);
+    const reused = acquireStrokeBuffer(64, 64);
+    expect(reused).toBe(canvas);
+  });
+
+  it("recycled canvas is cleared before reuse", () => {
+    const canvas = acquireStrokeBuffer(4, 4);
+    const drawCtx = canvas.getContext("2d")!;
+    drawCtx.fillStyle = "#ff0000";
+    drawCtx.fillRect(0, 0, 4, 4);
+
+    releaseStrokeBuffer(canvas);
+    const reused = acquireStrokeBuffer(4, 4);
+    const pixel = reused.getContext("2d")!.getImageData(0, 0, 1, 1).data;
+    expect(pixel[3]).toBe(0); // alpha should be 0 (cleared)
+  });
+
+  it("resizes recycled canvas when dimensions differ", () => {
+    const canvas = acquireStrokeBuffer(64, 64);
+    releaseStrokeBuffer(canvas);
+    const reused = acquireStrokeBuffer(128, 256);
+    expect(reused).toBe(canvas);
+    expect(reused.width).toBe(128);
+    expect(reused.height).toBe(256);
+  });
+
+  it("does not exceed pool limit", () => {
+    const canvases: HTMLCanvasElement[] = [];
+    // Release more than the pool limit (3)
+    for (let i = 0; i < 5; i++) {
+      canvases.push(acquireStrokeBuffer(32, 32));
+    }
+    for (const c of canvases) {
+      releaseStrokeBuffer(c);
+    }
+    // Acquire back — only up to pool max should be recycled
+    const recycled = new Set<HTMLCanvasElement>();
+    for (let i = 0; i < 5; i++) {
+      recycled.add(acquireStrokeBuffer(32, 32));
+    }
+    // At least some should be recycled (pool max is 3)
+    const originalSet = new Set(canvases);
+    let recycledCount = 0;
+    for (const c of recycled) {
+      if (originalSet.has(c)) {
+        recycledCount++;
+      }
+    }
+    expect(recycledCount).toBeLessThanOrEqual(3);
+    expect(recycledCount).toBeGreaterThan(0);
   });
 });
