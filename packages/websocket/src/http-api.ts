@@ -6,7 +6,7 @@ import {
 } from "node:http";
 import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
 import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 import { workflowToDsl } from "@nodetool/dsl";
@@ -100,6 +100,13 @@ export interface HttpApiOptions {
   storage?: StorageHandlerOptions;
   /** NodeRegistry to use for unified metadata. If not provided, Python metadata is used. */
   registry?: NodeRegistry;
+  /**
+   * Path to a directory of example workflow JSON files (e.g.
+   * `packages/base-nodes/nodetool/examples/nodetool-base`).
+   * When set, `handleWorkflowExamples` reads these files directly instead of
+   * relying on Python package metadata, so no Python installation is needed.
+   */
+  examplesDir?: string;
 }
 
 // Lazily created storage handler — recreated if options change
@@ -463,7 +470,70 @@ interface ExampleMetadata {
   tags?: string[];
 }
 
+/**
+ * Read example workflow metadata from a directory of JSON files.
+ * Returns lightweight objects (no graph data) suitable for the /examples list.
+ */
+function buildExamplesFromDir(examplesDir: string): unknown[] {
+  if (!existsSync(examplesDir)) return [];
+  const now = new Date().toISOString();
+  const workflows: unknown[] = [];
+  let files: string[];
+  try {
+    files = readdirSync(examplesDir)
+      .filter((f) => f.toLowerCase().endsWith(".json"))
+      .sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  }
+  for (const file of files) {
+    try {
+      const raw = readFileSync(nodePath.join(examplesDir, file), "utf8");
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const name =
+        typeof parsed.name === "string"
+          ? parsed.name
+          : file.replace(/\.json$/i, "");
+      workflows.push({
+        id: file,
+        access: "public",
+        created_at: now,
+        updated_at: now,
+        name,
+        tool_name: null,
+        description:
+          typeof parsed.description === "string" ? parsed.description : "",
+        tags: Array.isArray(parsed.tags)
+          ? parsed.tags.filter((t: unknown) => typeof t === "string")
+          : [],
+        thumbnail: null,
+        thumbnail_url: null,
+        graph: { nodes: [], edges: [] },
+        input_schema: null,
+        output_schema: null,
+        settings: null,
+        package_name:
+          typeof parsed.package_name === "string" ? parsed.package_name : null,
+        path: null,
+        run_mode: null,
+        workspace_id: null,
+        required_providers: null,
+        required_models: null,
+        html_app: null,
+        etag: null
+      });
+    } catch {
+      // skip invalid JSON files
+    }
+  }
+  return workflows;
+}
+
 function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
+  // If a static examples directory is configured, use it directly — no Python needed.
+  if (options.examplesDir) {
+    return buildExamplesFromDir(options.examplesDir);
+  }
   const loaded = loadPythonPackageMetadata({
     roots: options.metadataRoots,
     maxDepth: options.metadataMaxDepth
@@ -537,14 +607,6 @@ export async function handleWorkflowExamples(
     return errorResponse(405, "Method not allowed");
   }
   const workflows = buildExampleWorkflows(options);
-  // When no Python packages provide examples (e.g. standalone / screenshot mode),
-  // fall back to public workflows stored in the database so the templates grid
-  // is populated rather than empty.
-  if (workflows.length === 0) {
-    const [dbWorkflows] = await Workflow.paginatePublic({ limit: 50 });
-    const fallback = dbWorkflows.map((wf) => toWorkflowResponse(wf));
-    return jsonResponse({ workflows: fallback, next: null });
-  }
   return jsonResponse({ workflows, next: null });
 }
 
@@ -558,15 +620,8 @@ export async function handleWorkflowExamplesSearch(
   const url = new URL(request.url);
   const query = (url.searchParams.get("query") ?? "").toLowerCase().trim();
   const workflows = buildExampleWorkflows(options);
-  // Same DB fallback as handleWorkflowExamples above
-  const source: unknown[] =
-    workflows.length > 0
-      ? workflows
-      : (await Workflow.paginatePublic({ limit: 50 }))[0].map((wf) =>
-          toWorkflowResponse(wf)
-        );
   const filtered = query
-    ? source.filter((w) => {
+    ? workflows.filter((w) => {
         const wf = w as Record<string, unknown>;
         const name = String(wf.name ?? "").toLowerCase();
         const desc = String(wf.description ?? "").toLowerCase();
@@ -577,7 +632,7 @@ export async function handleWorkflowExamplesSearch(
           tags.some((t) => t.toLowerCase().includes(query))
         );
       })
-    : source;
+    : workflows;
   return jsonResponse({ workflows: filtered, next: null });
 }
 

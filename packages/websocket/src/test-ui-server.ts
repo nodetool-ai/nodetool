@@ -1015,8 +1015,13 @@ function detectNearbyMetadataRoots(cwd: string): string[] {
 }
 
 function hasNodetoolBaseExamplesLayout(root: string): boolean {
-  return existsSync(
-    path.join(root, "src", "nodetool", "examples", "nodetool-base")
+  // Installed/editable package layout: src/nodetool/examples/nodetool-base
+  return (
+    existsSync(
+      path.join(root, "src", "nodetool", "examples", "nodetool-base")
+    ) ||
+    // Monorepo layout: nodetool/examples/nodetool-base (e.g. packages/base-nodes/)
+    existsSync(path.join(root, "nodetool", "examples", "nodetool-base"))
   );
 }
 
@@ -1028,6 +1033,14 @@ function detectNearbyNodetoolBaseRoot(cwd: string): string | null {
     const parent = path.dirname(cur);
     if (parent === cur) break;
     cur = parent;
+  }
+
+  // Also check packages/base-nodes relative to the monorepo root
+  for (const candidate of [...candidates]) {
+    const baseNodesCandidate = path.join(candidate, "packages", "base-nodes");
+    if (existsSync(baseNodesCandidate)) {
+      candidates.add(baseNodesCandidate);
+    }
   }
 
   const workspaceRoot = path.resolve(cwd, "..", "..", "..", "..");
@@ -1060,14 +1073,18 @@ function resolveExamplesDir(options: TestUiServerOptions): string | null {
   }
   const baseRoot = detectNearbyNodetoolBaseRoot(process.cwd());
   if (!baseRoot) return null;
-  const dir = path.join(
+  // Try monorepo layout first (packages/base-nodes/nodetool/examples/nodetool-base)
+  const monoDir = path.join(baseRoot, "nodetool", "examples", "nodetool-base");
+  if (existsSync(monoDir)) return monoDir;
+  // Fall back to installed/editable layout (src/nodetool/examples/nodetool-base)
+  const srcDir = path.join(
     baseRoot,
     "src",
     "nodetool",
     "examples",
     "nodetool-base"
   );
-  return existsSync(dir) ? dir : null;
+  return existsSync(srcDir) ? srcDir : null;
 }
 
 function listExampleWorkflows(
@@ -1155,7 +1172,10 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,
-    registry
+    registry,
+    // Pass the resolved examples directory so handleWorkflowExamples can serve
+    // examples directly from the filesystem without requiring Python metadata.
+    ...(examplesDir ? { examplesDir } : {})
   };
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
 

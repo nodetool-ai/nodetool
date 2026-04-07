@@ -201,7 +201,8 @@ if (process.env.JEST_WORKER_ID) {
     test("Settings dialog", async ({ page }) => {
       test.skip(shouldSkip("settings-dialog.png"), "Already captured");
       await gotoPage(page, "/");
-      await page.keyboard.press("Control+,");
+      // Open settings by clicking the gear icon button (tooltip: "Settings")
+      await page.getByRole("button", { name: /^settings$/i }).click();
       await waitForAnimation(page, 600);
       await saveScreenshot(page, "settings-dialog.png");
     });
@@ -209,7 +210,8 @@ if (process.env.JEST_WORKER_ID) {
     test("Settings – API keys tab", async ({ page }) => {
       test.skip(shouldSkip("settings-api-keys.png"), "Already captured");
       await gotoPage(page, "/");
-      await page.keyboard.press("Control+,");
+      // Open settings by clicking the gear icon button (tooltip: "Settings")
+      await page.getByRole("button", { name: /^settings$/i }).click();
       await waitForAnimation(page, 600);
       const apiKeysTab = page
         .getByRole("tab")

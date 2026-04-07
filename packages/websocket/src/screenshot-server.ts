@@ -29,6 +29,11 @@ import {
 } from "@nodetool/models";
 import { initMasterKey, encryptFernet, getMasterKey } from "@nodetool/security";
 import { createTestUiServer } from "./test-ui-server.js";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const USER_ID = "1";
 const PORT = Number(process.env.PORT ?? 7777);
@@ -358,8 +363,24 @@ await initMasterKey();
 // Seed mock data
 await seedDatabase();
 
+// Resolve the example workflows directory from the repo (no Python needed).
+// __dirname = packages/websocket/src → go up 3 levels to the repo root.
+const REPO_ROOT = resolve(__dirname, "..", "..", "..");
+const EXAMPLES_DIR = resolve(
+  REPO_ROOT,
+  "packages",
+  "base-nodes",
+  "nodetool",
+  "examples",
+  "nodetool-base"
+);
+
 // Start the actual backend server
-const srv = createTestUiServer({ port: PORT, host: HOST });
+const srv = createTestUiServer({
+  port: PORT,
+  host: HOST,
+  ...(existsSync(EXAMPLES_DIR) ? { examplesDir: EXAMPLES_DIR } : {})
+});
 await srv.listen();
 
 console.log(
