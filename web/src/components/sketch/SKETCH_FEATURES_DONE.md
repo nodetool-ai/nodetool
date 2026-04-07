@@ -4,6 +4,44 @@
 - [x] **Clone Stamp tool**: fixed — now correctly renders on click and stroke (same `invalidateLayer` fix)
 - [x] **Clone Stamp cursor feedback**: crosshair indicator now appears at the clone source position (set via Alt+click) while the tool is active
 
+## Archived From Active Roadmap (2026-04-07)
+
+These blocks were moved out of `SKETCH_FEATURES.md` so the active roadmap can stay focused on the next pending work from top to bottom.
+
+### Completed Phase 1 package work
+
+- [x] Package A — Core seam convergence
+- [x] Package B — Dependent move/transform correctness
+- [x] Package C — Proof and parity hardening
+- [x] Package D — Refactor support
+
+### Completed Phase 1 groundwork themes
+
+- [x] shared coordinate mapping, preview/commit parity, and resolved-output seams landed
+- [x] transformed-layer move/transform regression coverage landed
+- [x] document-output rendering separated from display-only chrome
+- [x] helper-tool sampling paths routed through shared coordinate contracts
+- [x] targeted overloaded-file refactors landed for compositing, canvas actions, and pointer routing
+
+### Completed active-roadmap sections moved out of the backlog
+
+- [x] `1.3 - Harden layer canvas lifecycle`
+- [x] `1.4 - Harden coordinate mapping`
+- [x] `1.5 - Harden selection model`
+- [x] `1.6 - Harden compositing and rendering`
+- [x] `1.7 - Harden transform model`
+- [x] `1.8 - Harden history and serialization`
+- [x] `1.9 - Active feature work`
+- [x] `1.10 - Targeted refactor phase for overloaded files`
+
+### Completed Phase 2 fixes moved out of the active backlog
+
+- [x] blur tool works for strokes, not only a single dab
+- [x] duplicate layers renamed as `[layer name] copy N`
+- [x] tool defaults adjusted to sane values
+- [x] default brush smoothing assist disabled
+- [x] eraser settings now only show controls relevant to the current erase mode
+
 ## Appendix: Shipped — Phase 1 (MVP)
 
 > Goal delivered: stable editor foundation with image + mask output.
@@ -33,9 +71,9 @@
 
 ### Painting & Drawing Tools
 
-- [o] Add `S` for clone stamp.
-- [o] Add `J` for healing brush / spot heal.
-- [o] Add `Shift + 0–9` to set brush flow.
+- [ ] Add `S` for clone stamp.
+- [ ] Add `J` for healing brush / spot heal.
+- [ ] Add `Shift + 0–9` to set brush flow.
 - [x] Brush tool — size (1–200), opacity (0–1), hardness (0–1), color picker
 - [x] Pencil tool — size (1–10), opacity (0–1), color picker
 - [x] Eraser tool — size (1–200), opacity (0–1), hardness (0–1)
