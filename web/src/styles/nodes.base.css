@@ -109,6 +109,10 @@
   border-color: var(--palette-primary-main);
   color: var(--palette-primary-contrastText);
 }
+/* Hide add button while connecting */
+.react-flow.is-connecting .output-add-button {
+  display: none;
+}
 
 .react-flow__node-toolbar button {
   opacity: 0.7;
