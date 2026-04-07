@@ -110,8 +110,6 @@ export const useClipboard = () => {
         throw new Error("Clipboard content is not valid JSON");
       }
 
-        setClipboardData(outputData);
-      }
       setClipboardData(outputData);
 
       try {
