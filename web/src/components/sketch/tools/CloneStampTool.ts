@@ -1,10 +1,9 @@
 /**
  * CloneStampTool – clones pixels from a source point to the brush location.
  *
- * Extracted from usePointerHandlers:
- *   handlePointerDown (~line 838-920) – clone stamp stroke start
- *   handlePointerMove (~line 1326-1328)
- *   handlePointerUp   (~line 1411-1413)
+ * Delegates all shared stroke lifecycle (coordinate mapping, alpha-lock,
+ * dirty-rect, pressure, onStrokeStart/onStrokeEnd) to HelperToolSession.
+ * Only clone-specific source setup and draw logic lives here.
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
@@ -18,18 +17,9 @@ import {
   drawCloneStampStroke as drawCloneStampStrokeUtil,
   blendModeToComposite
 } from "../drawingUtils";
-import type { DirtyRectTracker } from "../drawingUtils";
-import { CoordinateMapper } from "../painting/CoordinateMapper";
-import {
-  ensureLayerRasterBounds,
-  getDocumentViewportLayerBounds,
-  getLayerCompositeOffset
-} from "../painting/layerBounds";
-import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
-import {
-  coalescedStrokePressure,
-  normalizePointerPressure
-} from "../pointerPen";
+import { HelperToolSession } from "../painting/HelperToolSession";
+import type { HelperSetupInfo, HelperDrawInfo } from "../painting/HelperToolSession";
+import { getLayerCompositeOffset } from "../painting/layerBounds";
 
 export class CloneStampTool implements ToolHandler {
   readonly toolId = "clone_stamp" as const;
@@ -43,26 +33,15 @@ export class CloneStampTool implements ToolHandler {
   private cloneDeltaLayer: Point | null = null;
   private cloneSourceCanvas: HTMLCanvasElement | null = null;
 
-  // Stroke state
-  private lastPoint: Point | null = null;
-  private lastSmoothedPoint: Point | null = null;
-  private currentPressure = 0.5;
-  private paintStrokeHasMoved = false;
-  private lastStrokeEnd: Point | null = null;
+  // Shared session
+  private session = new HelperToolSession({
+    onSetup: (ctx, info) => this.handleSetup(ctx, info),
+    onDraw: (info) => this.handleDraw(info),
+    onTeardown: () => this.handleTeardown(),
+    useSelectionClipOnMove: false
+  });
 
-  // Transform-aware coordinate mapper
-  private mapper: CoordinateMapper | null = null;
-
-  // Alpha lock
-  private alphaSnapshot: ImageData | null = null;
-
-  // Dirty rect tracking
-  private strokeDirtyRect: DirtyRectTracker = { current: null };
-
-  // Stabilizer
-  private stabilizerBuffer: Point[] = [];
-
-  // ── Drawing wrapper ──────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────
 
   private snapPoint(point: Point): Point {
     return {
@@ -78,7 +57,8 @@ export class CloneStampTool implements ToolHandler {
     ctx: CanvasRenderingContext2D
   ): void {
     const sourceCanvas = this.cloneSourceCanvas;
-    if (!sourceCanvas || !this.mapper) {
+    const mapper = this.session.coordinateMapper;
+    if (!sourceCanvas || !mapper) {
       return;
     }
     if (settings.sampling === "composited") {
@@ -92,7 +72,7 @@ export class CloneStampTool implements ToolHandler {
         ctx,
         sourceCanvas,
         this.cloneDeltaDoc,
-        { layerToDoc: (p) => this.mapper!.layerToDoc(p) }
+        { layerToDoc: (p) => mapper.layerToDoc(p) }
       );
     } else {
       if (!this.cloneDeltaLayer) {
@@ -114,7 +94,6 @@ export class CloneStampTool implements ToolHandler {
    * by the pointer handler dispatcher.
    */
   setCloneSource(point: Point): void {
-    // Clone stamp is pixel-copying, so keep the source anchored to whole pixels.
     this.cloneSource = this.snapPoint(point);
     this.cloneDeltaDoc = null;
     this.cloneDeltaLayer = null;
@@ -125,43 +104,23 @@ export class CloneStampTool implements ToolHandler {
     return this.cloneSource;
   }
 
-  // ── Handlers ─────────────────────────────────────────────────────────
+  // ── HelperToolSession callbacks ──────────────────────────────────────
 
-  onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
+  private handleSetup(ctx: ToolContext, info: HelperSetupInfo): boolean {
     if (!this.cloneSource) {
       return false;
     }
 
     const { doc } = ctx;
-    const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-    if (!activeLayer) {
-      return false;
-    }
+    const snappedPt = this.snapPoint(info.point);
 
-    // Locked layers reject pixel edits.
-    if (activeLayer.locked) {
-      return false;
-    }
-
-    const pt = event.point;
-    const snappedPt = this.snapPoint(pt);
-    const rasterBounds = ensureLayerRasterBounds(
-      ctx,
-      activeLayer,
-      getDocumentViewportLayerBounds(activeLayer, doc)
-    );
-    this.mapper = new CoordinateMapper({
-      layerTransform: activeLayer.transform ?? { x: 0, y: 0 },
-      rasterBounds
-    });
-
-    // No "aligned" mode in the UI, so each stroke re-anchors from the saved source.
+    // Compute document-space and layer-space deltas for clone offset.
     this.cloneDeltaDoc = {
       x: this.cloneSource.x - snappedPt.x,
       y: this.cloneSource.y - snappedPt.y
     };
-    const srcL = this.mapper.docToLayer(this.cloneSource);
-    const dstL = this.mapper.docToLayer(snappedPt);
+    const srcL = info.mapper.docToLayer(this.cloneSource);
+    const dstL = info.mapper.docToLayer(snappedPt);
     this.cloneDeltaLayer = {
       x: Math.round(srcL.x - dstL.x),
       y: Math.round(srcL.y - dstL.y)
@@ -203,7 +162,7 @@ export class CloneStampTool implements ToolHandler {
       }
       this.cloneSourceCanvas = tmp;
     } else {
-      const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
+      const layerCanvas = ctx.getOrCreateLayerCanvas(info.layer.id);
       const snapshot = window.document.createElement("canvas");
       snapshot.width = layerCanvas.width;
       snapshot.height = layerCanvas.height;
@@ -214,122 +173,46 @@ export class CloneStampTool implements ToolHandler {
       this.cloneSourceCanvas = snapshot;
     }
 
-    this.lastPoint = snappedPt;
-    this.lastSmoothedPoint = snappedPt;
-    this.currentPressure = normalizePointerPressure(event.nativeEvent);
-    this.paintStrokeHasMoved = false;
-    this.stabilizerBuffer = [];
-    this.strokeDirtyRect = { current: null };
-
-    ctx.onStrokeStart();
-
-    // Alpha lock snapshot
-    if (activeLayer.alphaLock) {
-      const lc = ctx.getOrCreateLayerCanvas(activeLayer.id);
-      this.alphaSnapshot = captureAlphaSnapshot(lc);
-    } else {
-      this.alphaSnapshot = null;
-    }
-
     // Initial dab (map document-space point to layer-local)
-    const localPt = this.mapper.docToLayer(snappedPt);
-    const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
-    const layerCtx = layerCanvas.getContext("2d");
-    if (layerCtx) {
-      this.drawCloneStampStroke(localPt, localPt, doc.toolSettings.cloneStamp, layerCtx);
-      ctx.invalidateLayer?.(activeLayer.id);
-      ctx.redraw();
-    }
+    const localPt = info.mapper.docToLayer(snappedPt);
+    this.drawCloneStampStroke(localPt, localPt, doc.toolSettings.cloneStamp, info.paintCtx);
 
     return true;
   }
 
+  private handleDraw(info: HelperDrawInfo): void {
+    const { doc } = info.ctx;
+    const snappedFrom = this.snapPoint(info.docFrom);
+    const snappedTo = this.snapPoint(info.docTo);
+    const mapper = this.session.coordinateMapper;
+    if (!mapper) {
+      return;
+    }
+    const localFrom = mapper.docToLayer(snappedFrom);
+    const localTo = mapper.docToLayer(snappedTo);
+    this.drawCloneStampStroke(localFrom, localTo, doc.toolSettings.cloneStamp, info.paintCtx);
+  }
+
+  private handleTeardown(): void {
+    this.cloneSourceCanvas = null;
+  }
+
+  // ── Handlers ─────────────────────────────────────────────────────────
+
+  onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
+    return this.session.begin(ctx, event);
+  }
+
   onMove(
     ctx: ToolContext,
-    _event: ToolPointerEvent,
+    event: ToolPointerEvent,
     coalescedPoints: ToolPointerEvent[]
   ): void {
-    if (!this.lastPoint || !this.mapper) {
-      return;
-    }
-    const { doc } = ctx;
-    const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-    if (!activeLayer) {
-      return;
-    }
-
-    const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
-    const paintCtx = layerCanvas.getContext("2d");
-    if (!paintCtx) {
-      return;
-    }
-
-    for (const eventPoint of coalescedPoints) {
-      const pt = this.snapPoint(eventPoint.point);
-      if (
-        !this.paintStrokeHasMoved &&
-        this.lastPoint &&
-        (pt.x !== this.lastPoint.x || pt.y !== this.lastPoint.y)
-      ) {
-        this.paintStrokeHasMoved = true;
-      }
-      this.currentPressure = coalescedStrokePressure(
-        {
-          pointerType: eventPoint.nativeEvent.pointerType,
-          pressure: eventPoint.pressure
-        } as PointerEvent,
-        this.currentPressure || 0.5
-      );
-      const localFrom = this.mapper.docToLayer(this.lastPoint);
-      const localTo = this.mapper.docToLayer(pt);
-      this.drawCloneStampStroke(localFrom, localTo, doc.toolSettings.cloneStamp, paintCtx);
-      this.lastPoint = pt;
-    }
-
-    // Dirty-rect compositing (map from layer-space back to doc-space)
-    ctx.invalidateLayer?.(doc.activeLayerId);
-    const dirty = this.strokeDirtyRect.current;
-    if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY && this.mapper) {
-      const docDirty = this.mapper.dirtyToDoc(dirty);
-      ctx.redrawDirty(docDirty.x, docDirty.y, docDirty.w, docDirty.h);
-    } else {
-      ctx.requestRedraw();
-    }
+    this.session.move(ctx, event, coalescedPoints);
   }
 
   onUp(ctx: ToolContext, event: ToolPointerEvent): void {
-    const { doc } = ctx;
-    const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-
-    // Save stroke endpoint for Shift+click straight line
-    this.lastStrokeEnd = this.snapPoint(event.point);
-
-    // Clear clone source canvas (per-stroke)
-    this.cloneSourceCanvas = null;
-
-    this.lastPoint = null;
-    this.lastSmoothedPoint = null;
-    this.paintStrokeHasMoved = false;
-    this.mapper = null;
-
-    // Alpha lock: restore original alpha channel
-    if (activeLayer?.alphaLock && this.alphaSnapshot) {
-      const layerCanvas = ctx.layerCanvasesRef.current.get(activeLayer.id);
-      if (layerCanvas) {
-        restoreAlphaFromSnapshot(
-          layerCanvas,
-          this.alphaSnapshot,
-          this.strokeDirtyRect.current
-        );
-      }
-      this.alphaSnapshot = null;
-    }
-    this.strokeDirtyRect = { current: null };
-    ctx.redraw();
-
-    if (activeLayer) {
-      ctx.onStrokeEnd(activeLayer.id, null);
-    }
+    this.session.end(ctx, event);
   }
 }
 

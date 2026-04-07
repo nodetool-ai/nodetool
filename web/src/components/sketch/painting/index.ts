@@ -54,6 +54,16 @@ export {
 } from "./alphaLock";
 export type { AlphaRestoreDirtyRect } from "./alphaLock";
 
+// ── Helper-tool session (clone stamp, blur, etc.) ──────────────────────────
+export { HelperToolSession } from "./HelperToolSession";
+export type {
+  HelperOnSetup,
+  HelperOnDraw,
+  HelperOnTeardown,
+  HelperSetupInfo,
+  HelperDrawInfo
+} from "./HelperToolSession";
+
 // ── Transform preview contract ─────────────────────────────────────────────
 export {
   mergeTransformPreview,
