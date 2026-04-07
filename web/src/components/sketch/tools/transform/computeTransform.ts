@@ -126,9 +126,6 @@ export function computeScaleTransform(
     handle === "bottom-right"
   ) {
     // Use signed distance from center to preserve direction for left/top handles.
-    // The sign of the direction vector component tells us which side of center
-    // the handle is on; when the cursor crosses center the scale naturally
-    // flips (clamped to min-scale later).
     const signX =
       handle === "top-left" || handle === "bottom-left" ? -1 : 1;
     const signY =
@@ -139,22 +136,30 @@ export function computeScaleTransform(
     const cursorDx = (uCursor.x - center.x) * signX;
     const cursorDy = (uCursor.y - center.y) * signY;
 
+    // Use the handle's known position (hw, hh) as the reference to avoid
+    // amplification when the click doesn't land exactly on the handle center.
+    // The cursor delta is applied to the handle position for 1:1 tracking.
+    const handleRefX = hw;
+    const handleRefY = hh;
+    const deltaX = cursorDx - startDx;
+    const deltaY = cursorDy - startDy;
+
     if (shift) {
-      // Proportional: use radial distance ratio
-      const distStart = Math.hypot(startDx, startDy);
-      const distCursor = Math.hypot(cursorDx, cursorDy);
-      if (distStart > 1) {
-        const ratio = distCursor / distStart;
+      // Proportional: use radial distance ratio from handle reference
+      const origDist = Math.hypot(handleRefX, handleRefY);
+      if (origDist > 1) {
+        const virtualDist = Math.hypot(handleRefX + deltaX, handleRefY + deltaY);
+        const ratio = virtualDist / origDist;
         newSx = sx * ratio;
         newSy = sy * ratio;
       }
     } else {
-      // Independent X/Y
-      if (Math.abs(startDx) > 1) {
-        newSx = sx * (cursorDx / startDx);
+      // Independent X/Y — apply delta to handle reference position
+      if (handleRefX > 1) {
+        newSx = sx * ((handleRefX + deltaX) / handleRefX);
       }
-      if (Math.abs(startDy) > 1) {
-        newSy = sy * (cursorDy / startDy);
+      if (handleRefY > 1) {
+        newSy = sy * ((handleRefY + deltaY) / handleRefY);
       }
     }
   }
@@ -162,13 +167,12 @@ export function computeScaleTransform(
   // Edge midpoint handles: axis-constrained
   if (handle === "left" || handle === "right") {
     if (hw > 1) {
-      // Use signed distance for left handle to properly invert direction
       const sign = handle === "left" ? -1 : 1;
       const startDx = (uStart.x - center.x) * sign;
       const cursorDx = (uCursor.x - center.x) * sign;
-      if (Math.abs(startDx) > 1) {
-        newSx = sx * (cursorDx / startDx);
-      }
+      const deltaX = cursorDx - startDx;
+      // Use handle reference position for 1:1 tracking
+      newSx = sx * ((hw + deltaX) / hw);
       if (shift) {
         newSy = newSx;
       }
@@ -176,22 +180,25 @@ export function computeScaleTransform(
   }
   if (handle === "top" || handle === "bottom") {
     if (hh > 1) {
-      // Use signed distance for top handle to properly invert direction
       const sign = handle === "top" ? -1 : 1;
       const startDy = (uStart.y - center.y) * sign;
       const cursorDy = (uCursor.y - center.y) * sign;
-      if (Math.abs(startDy) > 1) {
-        newSy = sy * (cursorDy / startDy);
-      }
+      const deltaY = cursorDy - startDy;
+      // Use handle reference position for 1:1 tracking
+      newSy = sy * ((hh + deltaY) / hh);
       if (shift) {
         newSx = newSy;
       }
     }
   }
 
-  // Clamp scale to prevent zero/negative
-  newSx = Math.max(0.01, newSx);
-  newSy = Math.max(0.01, newSy);
+  // Clamp to prevent zero scale (allow negative for mirroring)
+  if (Math.abs(newSx) < 0.01) {
+    newSx = newSx < 0 ? -0.01 : 0.01;
+  }
+  if (Math.abs(newSy) < 0.01) {
+    newSy = newSy < 0 ? -0.01 : 0.01;
+  }
 
   // ALT modifier: scale from center (default behavior).
   // Without ALT, anchor the opposite edge so it stays fixed.

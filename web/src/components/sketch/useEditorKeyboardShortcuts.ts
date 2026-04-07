@@ -85,6 +85,8 @@ export interface UseEditorKeyboardShortcutsParams {
   togglePanelsHidden: () => void;
   /** Cancel the active tool's in-progress operation (e.g. crop drag). */
   cancelActiveTool?: () => void;
+  /** Invert all color channels of the active layer. */
+  handleInvertLayerColors: () => void;
 }
 
 export function useEditorKeyboardShortcuts(
@@ -242,6 +244,11 @@ export function useEditorKeyboardShortcuts(
         if (e.key.toLowerCase() === "i" && e.shiftKey) {
           e.preventDefault();
           useSketchStore.getState().invertSelection();
+        }
+        // Ctrl+I → invert layer colors
+        if (e.key.toLowerCase() === "i" && !e.shiftKey) {
+          e.preventDefault();
+          paramsRef.current.handleInvertLayerColors();
         }
         // Ctrl+Backspace → fill with background color (Photoshop convention)
         if (e.key === "Backspace") {

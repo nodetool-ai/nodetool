@@ -59,14 +59,14 @@ Do not start advanced transform modes until these tasks are done.
 - [x] fix top/left transform scaling; this remains a valid active bug
 - [x] change transform `Commit`, `Cancel`, and `Reset` from text buttons to icon actions once the interaction semantics are stable
 - [ ] fix zoom tool: zooming is noticeable slow
-- [ ] fix transform tool: zooming loses the transform gizmo
+- [x] fix transform tool: zooming loses the transform gizmo
 - [ ] fix transform tool: moving and scaling is very slow. (moving with Move Tool is snappy)
-- [ ] fix transform tool: confirm sometimes cuts off parts of layer. transformations should not delete layer parts.
-- [ ] fix transform tool: confirm transformation moves layer
-- [ ] fix transform tool: scaling is faster than mouse delta, causing transform handles to move away from mouse. the mouse position should dictate where handles go.
-- [ ] fix transform tool: scaling negatively should mirror - currently does not go beyond zero
+- [x] fix transform tool: confirm sometimes cuts off parts of layer. transformations should not delete layer parts.
+- [x] fix transform tool: confirm transformation moves layer
+- [x] fix transform tool: scaling is faster than mouse delta, causing transform handles to move away from mouse. the mouse position should dictate where handles go.
+- [x] fix transform tool: scaling negatively should mirror - currently does not go beyond zero
 - [ ] fix Selection tool: starting a new selection AND ending a selection freezes shortly
-- [ ] add CTRL + i shortcut to inverse layer colors
+- [x] add CTRL + i shortcut to inverse layer colors
 
 ### 2.2 - Transform lifecycle shortcuts
 

@@ -90,6 +90,10 @@ Only mark a shortcut as implemented when the behavior really exists in the sketc
 - [ ] `Caps Lock` cross-hair cursor
 - [ ] `/` toggle lock transparent pixels
 
+## Adjustments
+
+- [x] `Ctrl+I` invert layer colors
+
 ## Clipboard & Import
 
 - [x] `Ctrl+C` copy selection / layer

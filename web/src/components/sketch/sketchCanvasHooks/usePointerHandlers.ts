@@ -846,6 +846,18 @@ export function usePointerHandlers({
     prevActiveToolRef.current = activeTool;
   }, [activeTool]);
 
+  // ─── Viewport change notification (zoom / pan) ─────────────────
+  const prevZoomRef = useRef(zoom);
+  const prevPanRef = useRef(pan);
+  useEffect(() => {
+    if (prevZoomRef.current !== zoom || prevPanRef.current !== pan) {
+      prevZoomRef.current = zoom;
+      prevPanRef.current = pan;
+      const handler = getToolHandler(interactionTool);
+      handler.onViewportChange?.(toolCtxRef.current);
+    }
+  }, [zoom, pan, interactionTool]);
+
   /** Cancel the active tool's in-progress operation (e.g. crop drag, transform). */
   const cancelActiveTool = useCallback(() => {
     const handler = getToolHandler(activeTool);

@@ -806,14 +806,16 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
     runtime.reconcileLayerToDocumentSpace("layer-1", doc);
 
     const reconciledCanvas = layerCanvases.get("layer-1")!;
-    expect(reconciledCanvas.width).toBe(128);
-    expect(reconciledCanvas.height).toBe(128);
+    // Canvas may expand to fit the full AABB of the scaled content
+    // (preserves content beyond document bounds instead of clipping).
+    expect(reconciledCanvas.width).toBeGreaterThanOrEqual(128);
+    expect(reconciledCanvas.height).toBeGreaterThanOrEqual(128);
 
     // Corners far from the scaled content should be transparent
     const cornerPixel = readPixel(reconciledCanvas, 0, 0);
     expect(cornerPixel[3]).toBe(0);
 
-    const farCorner = readPixel(reconciledCanvas, 127, 127);
+    const farCorner = readPixel(reconciledCanvas, reconciledCanvas.width - 1, reconciledCanvas.height - 1);
     expect(farCorner[3]).toBe(0);
   });
 

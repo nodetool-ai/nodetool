@@ -142,6 +142,10 @@ export function useCanvasImperativeHandle({
         runtime.applyAdjustments(doc, brightness, contrast, saturation);
         redraw();
       },
+      invertLayerColors: () => {
+        runtime.invertLayerColors(doc);
+        redraw();
+      },
       fillLayerWithColor: (layerId: string, color: string) => {
         runtime.fillLayerWithColor(layerId, color);
         redraw();
