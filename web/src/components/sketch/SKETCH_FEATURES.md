@@ -54,10 +54,10 @@ Do these after the helper-tool architecture blockers above.
 
 Do not start advanced transform modes until these tasks are done.
 
-- [ ] keep the updated layer preview correct while scaling, moving, and future advanced transform modes; preview behavior must not diverge from commit/history/export
-- [ ] make the transform tool gizmo adapt to layer size so small layers do not get a full-canvas gizmo
-- [ ] fix top/left transform scaling; this remains a valid active bug
-- [ ] change transform `Commit`, `Cancel`, and `Reset` from text buttons to icon actions once the interaction semantics are stable
+- [x] keep the updated layer preview correct while scaling, moving, and future advanced transform modes; preview behavior must not diverge from commit/history/export
+- [x] make the transform tool gizmo adapt to layer size so small layers do not get a full-canvas gizmo
+- [x] fix top/left transform scaling; this remains a valid active bug
+- [x] change transform `Commit`, `Cancel`, and `Reset` from text buttons to icon actions once the interaction semantics are stable
 
 ### 2.2 - Transform lifecycle shortcuts
 
