@@ -28,7 +28,7 @@ const BoolProperty = (props: PropertyProps) => {
       <PropertyLabel
         name={property.name}
         description={property.description}
-        density="compact"
+        density="normal"
         id={id}
       />
       <NodeSwitch
