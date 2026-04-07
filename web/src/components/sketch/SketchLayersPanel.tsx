@@ -43,7 +43,6 @@ import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
 import LockIcon from "@mui/icons-material/Lock";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
-import CropFreeIcon from "@mui/icons-material/CropFree";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -853,6 +852,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               </IconButton>
             </span>
           </Tooltip>
+          <Tooltip title="Flatten Visible" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <IconButton size="small" onClick={onFlattenVisible}>
+              <LayersIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
           <Tooltip
             title={
               maskLayerId === activeLayerId
@@ -907,39 +911,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
             >
               <FitScreenIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Crop Canvas To Visible Pixels" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton
-              size="small"
-              onClick={onCropCanvasToActiveLayerVisiblePixels}
-              disabled={
-                !activeLayer ||
-                activeLayer.type === "group" ||
-                activeLayer.type === "mask"
-              }
-            >
-              <CropFreeIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Crop Canvas To Layer Extents" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton
-              size="small"
-              onClick={onCropCanvasToActiveLayerExtents}
-              disabled={
-                !activeLayer ||
-                activeLayer.type === "group" ||
-                activeLayer.type === "mask"
-              }
-            >
-              <CropFreeIcon
-                sx={{ fontSize: "1.125rem", transform: "scale(0.9)" }}
-              />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Flatten Visible" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton size="small" onClick={onFlattenVisible}>
-              <LayersIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
         </Box>

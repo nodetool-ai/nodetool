@@ -391,28 +391,44 @@ describe("rectSelectionMask", () => {
 /* ================================================================== */
 /*  ellipseSelectionMask – shape verification                         */
 /* ================================================================== */
+
+/** Read mask value at document coordinate (dx, dy). */
+function readMaskAt(sel: Selection, dx: number, dy: number): number {
+  const ox = sel.originX ?? 0;
+  const oy = sel.originY ?? 0;
+  const lx = dx - ox;
+  const ly = dy - oy;
+  if (lx < 0 || lx >= sel.width || ly < 0 || ly >= sel.height) {
+    return 0;
+  }
+  return sel.data[ly * sel.width + lx];
+}
+
 describe("ellipseSelectionMask", () => {
-  it("produces correct dimensions", () => {
+  it("produces correct dimensions matching ellipse bounding box", () => {
     const sel = ellipseSelectionMask(20, 20, 2, 2, 10, 10);
-    expect(sel.width).toBe(20);
-    expect(sel.height).toBe(20);
+    // Mask covers the ellipse bounding box, not the full canvas
+    expect(sel.width).toBe(10);
+    expect(sel.height).toBe(10);
+    expect(sel.originX).toBe(2);
+    expect(sel.originY).toBe(2);
   });
 
   it("center pixel of ellipse is selected", () => {
     const sel = ellipseSelectionMask(20, 20, 5, 5, 10, 10);
-    // center at ~(10, 10)
-    expect(sel.data[10 * 20 + 10]).toBe(255);
+    // center at document coord ~(10, 10)
+    expect(readMaskAt(sel, 10, 10)).toBe(255);
   });
 
   it("corners outside ellipse are not selected", () => {
     const sel = ellipseSelectionMask(20, 20, 5, 5, 10, 10);
-    // top-left corner of canvas
-    expect(sel.data[0]).toBe(0);
+    // top-left corner of canvas is outside the mask
+    expect(readMaskAt(sel, 0, 0)).toBe(0);
   });
 
-  it("data length matches width * height", () => {
+  it("data length matches width * height of ellipse bounding box", () => {
     const sel = ellipseSelectionMask(16, 16, 0, 0, 8, 8);
-    expect(sel.data.length).toBe(16 * 16);
+    expect(sel.data.length).toBe(8 * 8);
   });
 });
 
