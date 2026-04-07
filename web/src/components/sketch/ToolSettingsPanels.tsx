@@ -1128,12 +1128,9 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         <Tooltip title="Commit (Enter)" placement="bottom">
           <IconButton
             size="small"
+            color="success"
             onClick={onCommit}
-            sx={{
-              color: "#66bb6a",
-              padding: "3px",
-              "&:hover": { backgroundColor: "rgba(76, 175, 80, 0.12)" }
-            }}
+            sx={{ padding: "3px" }}
           >
             <CheckIcon sx={{ fontSize: 18 }} />
           </IconButton>
@@ -1141,12 +1138,9 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         <Tooltip title="Cancel (Esc)" placement="bottom">
           <IconButton
             size="small"
+            color="error"
             onClick={onCancel}
-            sx={{
-              color: "#ef5350",
-              padding: "3px",
-              "&:hover": { backgroundColor: "rgba(244, 67, 54, 0.12)" }
-            }}
+            sx={{ padding: "3px" }}
           >
             <CloseIcon sx={{ fontSize: 18 }} />
           </IconButton>
@@ -1157,8 +1151,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
             onClick={onReset}
             sx={{
               color: SKETCH_COLORS.textSecondary,
-              padding: "3px",
-              "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.08)" }
+              padding: "3px"
             }}
           >
             <RestartAltIcon sx={{ fontSize: 18 }} />
