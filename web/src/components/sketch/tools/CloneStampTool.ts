@@ -11,7 +11,8 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
-  type Point
+  type Point,
+  type CloneStampSettings
 } from "../types";
 import {
   drawCloneStampStroke as drawCloneStampStrokeUtil,
@@ -53,7 +54,7 @@ export class CloneStampTool implements ToolHandler {
   private drawCloneStampStroke(
     from: Point,
     to: Point,
-    settings: import("../types").CloneStampSettings,
+    settings: CloneStampSettings,
     ctx: CanvasRenderingContext2D
   ): void {
     const sourceCanvas = this.cloneSourceCanvas;
@@ -92,6 +93,7 @@ export class CloneStampTool implements ToolHandler {
   /**
    * Set the clone source point. Called externally when Alt+click is detected
    * by the pointer handler dispatcher.
+   * Clone stamp is pixel-copying, so keep the source anchored to whole pixels.
    */
   setCloneSource(point: Point): void {
     this.cloneSource = this.snapPoint(point);

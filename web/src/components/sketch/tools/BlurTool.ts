@@ -7,13 +7,14 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
-import type { BlurSettings } from "../types";
+import type { BlurSettings, Point } from "../types";
 import BlurOnIcon from "@mui/icons-material/BlurOn";
 import {
   drawBlurStroke as drawBlurStrokeUtil
 } from "../drawingUtils";
 import type { BlurTempCanvases } from "../drawingUtils";
 import { HelperToolSession } from "../painting/HelperToolSession";
+import type { HelperSetupInfo, HelperDrawInfo } from "../painting/HelperToolSession";
 
 export class BlurTool implements ToolHandler {
   readonly toolId = "blur" as const;
@@ -34,8 +35,8 @@ export class BlurTool implements ToolHandler {
   // ── Drawing wrapper ──────────────────────────────────────────────────
 
   private drawBlurStroke(
-    from: import("../types").Point,
-    to: import("../types").Point,
+    from: Point,
+    to: Point,
     settings: BlurSettings,
     layerCanvas: HTMLCanvasElement
   ): void {
@@ -55,7 +56,7 @@ export class BlurTool implements ToolHandler {
 
   private handleSetup(
     ctx: ToolContext,
-    info: import("../painting/HelperToolSession").HelperSetupInfo
+    info: HelperSetupInfo
   ): boolean {
     // No source snapshot: blur reads from the current layer state on each dab,
     // allowing the effect to accumulate as the user paints continuously.
@@ -77,7 +78,7 @@ export class BlurTool implements ToolHandler {
   }
 
   private handleDraw(
-    info: import("../painting/HelperToolSession").HelperDrawInfo
+    info: HelperDrawInfo
   ): void {
     const { doc } = info.ctx;
     this.drawBlurStroke(info.localFrom, info.localTo, doc.toolSettings.blur, info.layerCanvas);
