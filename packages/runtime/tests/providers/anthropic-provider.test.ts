@@ -251,7 +251,7 @@ describe("AnthropicProvider", () => {
       { ANTHROPIC_API_KEY: "k" },
       {
         client: {
-          messages: { stream }
+          messages: { create: stream }
         } as any
       }
     );
@@ -488,7 +488,7 @@ describe("AnthropicProvider", () => {
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: {} as any }
+      { client: { messages: { create: vi.fn() } } as any }
     );
 
     const msg: Message = { role: "tool", content: "x" };
