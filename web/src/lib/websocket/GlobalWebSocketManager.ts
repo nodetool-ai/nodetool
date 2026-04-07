@@ -306,7 +306,7 @@ class GlobalWebSocketManager extends EventEmitter {
 
   subscribeEvent(
     event: GlobalWebSocketEvent,
-    listener: (...args: unknown[]) => void
+    listener: (...args: any[]) => void
   ): () => void {
     this.addListener(event, listener);
     return () => {
