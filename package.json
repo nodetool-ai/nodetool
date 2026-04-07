@@ -50,7 +50,10 @@
     "nodetool": "node ./packages/cli/dist/nodetool.js",
     "generate:fal": "npm run generate --workspace=packages/fal-codegen",
     "generate:replicate": "npm run generate --workspace=packages/replicate-codegen -- --all && npm run extract-manifest --workspace=packages/replicate-nodes",
-    "generate:kie": "npm run generate --workspace=packages/kie-codegen -- --all"
+    "generate:kie": "npm run generate --workspace=packages/kie-codegen -- --all",
+    "dev:chat": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/index.ts",
+    "dev:workflow": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts workflows run",
+    "dev:nodetool": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -6,12 +6,12 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "development": "./src/index.ts",
+      "nodetool-dev": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
     "./secret": {
-      "development": "./src/secret.ts",
+      "nodetool-dev": "./src/secret.ts",
       "import": "./dist/secret.js",
       "types": "./dist/secret.d.ts"
     }
