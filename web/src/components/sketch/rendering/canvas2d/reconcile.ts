@@ -8,6 +8,7 @@
 import type { LayerContentBounds, SketchDocument } from "../../types";
 import {
   getCanvasRasterBounds,
+  getLayerCompositeOffset,
   setCanvasRasterBounds
 } from "../../painting/layerBounds";
 import { serializeLayerData } from "./layerIO";
@@ -338,12 +339,18 @@ export function invertLayerColors(
   const selH = selection.height;
   const mask = selection.data;
 
-  // The layer canvas coordinate system maps to the layer-local raster space.
-  // The selection mask is in document space.
-  // For a standard layer (contentBounds.x/y = 0), these align directly.
-  // For offset layers, we account for contentBounds.
-  const cbx = activeLayer.contentBounds.x;
-  const cby = activeLayer.contentBounds.y;
+  // Map layer-local raster pixels → document space so we can look up the
+  // selection mask (which lives in document space).  The full document offset
+  // includes both contentBounds (backing raster position) *and* any pending
+  // layer transform translation — exactly the same contract used by
+  // clearLayerBySelectionMask / fillLayerBySelectionMask via
+  // getLayerCompositeOffset.
+  const compositeOffset = getLayerCompositeOffset(activeLayer, {
+    width: w,
+    height: h
+  });
+  const cbx = compositeOffset.x;
+  const cby = compositeOffset.y;
 
   for (let y = 0; y < h; y++) {
     // Map layer-local raster row → document row

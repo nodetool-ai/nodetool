@@ -382,13 +382,50 @@ export function combineMasks(
     return cloneSelectionMask(overlay);
   }
 
-  // Compute the union bounding box of both masks (they may have different
-  // dimensions and origins, e.g. an ellipse that extends beyond canvas).
   const oox = overlay.originX ?? 0;
   const ooy = overlay.originY ?? 0;
   const box = base.originX ?? 0;
   const boy = base.originY ?? 0;
 
+  // ── Fast path: both masks share the same dimensions and origin ──
+  // This is the common case (canvas-sized selections at origin 0,0).
+  // Operate directly on typed arrays without union-buffer allocation.
+  if (
+    box === oox &&
+    boy === ooy &&
+    base.width === overlay.width &&
+    base.height === overlay.height
+  ) {
+    const n = base.width * base.height;
+    const out = new Uint8ClampedArray(n);
+    const bd = base.data;
+    const od = overlay.data;
+    if (op === "add") {
+      for (let i = 0; i < n; i++) {
+        out[i] = Math.min(255, bd[i] + od[i]);
+      }
+    } else if (op === "subtract") {
+      for (let i = 0; i < n; i++) {
+        out[i] = Math.max(0, bd[i] - od[i]);
+      }
+    } else {
+      // intersect
+      for (let i = 0; i < n; i++) {
+        out[i] = Math.min(bd[i], od[i]);
+      }
+    }
+    return {
+      width: base.width,
+      height: base.height,
+      data: out,
+      originX: box,
+      originY: boy
+    };
+  }
+
+  // ── General path: masks may differ in size/origin ──
+  // Compute the union bounding box of both masks (they may have different
+  // dimensions and origins, e.g. an ellipse that extends beyond canvas).
   const uMinX = Math.min(oox, box);
   const uMinY = Math.min(ooy, boy);
   const uMaxX = Math.max(oox + overlay.width, box + base.width);
@@ -398,33 +435,41 @@ export function combineMasks(
 
   const out = createEmptyMask(uW, uH);
 
-  // Copy base into the union buffer
+  // Copy base into the union buffer — use subarray + set for bulk row copy
+  const baseDx = box - uMinX;
+  const baseDy = boy - uMinY;
   for (let by = 0; by < base.height; by++) {
-    const dy = boy + by - uMinY;
+    const dy = baseDy + by;
     if (dy < 0 || dy >= uH) {
       continue;
     }
-    const srcRow = by * base.width;
-    const dstRow = dy * uW;
-    for (let bx = 0; bx < base.width; bx++) {
-      const dx = box + bx - uMinX;
-      if (dx < 0 || dx >= uW) {
-        continue;
+    const srcOff = by * base.width;
+    const dstOff = dy * uW + baseDx;
+    // When the base row falls entirely within the union buffer, use bulk set
+    if (baseDx >= 0 && baseDx + base.width <= uW) {
+      out.data.set(base.data.subarray(srcOff, srcOff + base.width), dstOff);
+    } else {
+      for (let bx = 0; bx < base.width; bx++) {
+        const dx = baseDx + bx;
+        if (dx >= 0 && dx < uW) {
+          out.data[dy * uW + dx] = base.data[srcOff + bx];
+        }
       }
-      out.data[dstRow + dx] = base.data[srcRow + bx];
     }
   }
 
-  // Combine overlay into the union buffer
+  // Combine overlay into the union buffer — only iterate overlay rows/cols
+  const overlayDx = oox - uMinX;
+  const overlayDy = ooy - uMinY;
   for (let oy = 0; oy < overlay.height; oy++) {
-    const dy = ooy + oy - uMinY;
+    const dy = overlayDy + oy;
     if (dy < 0 || dy >= uH) {
       continue;
     }
     const srcRow = oy * overlay.width;
     const dstRow = dy * uW;
     for (let ox = 0; ox < overlay.width; ox++) {
-      const dx = oox + ox - uMinX;
+      const dx = overlayDx + ox;
       if (dx < 0 || dx >= uW) {
         continue;
       }
