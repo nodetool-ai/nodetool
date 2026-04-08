@@ -30,11 +30,11 @@ Completed Phase 1 packages, hardening work, and earlier shipped fixes have been 
 
 Do these before more transform-heavy work. The goal is to reduce brittleness in `TransformTool` and nearby overlay tools by sharing only the stable gizmo primitives, not by forcing all tools into one generic interaction framework.
 
-- [ ] [impl] extract shared gizmo-core viewport/document-to-screen conversion and overlay-canvas drawing helpers so `TransformTool.ts`, `MoveTool.ts`, and `CropTool.ts` stop carrying ad hoc mapping and paint setup
-- [ ] [impl] split `TransformTool.ts` further so drag/session orchestration, hover-hit policy, and gizmo paint/layout no longer live together in one class
-- [ ] [impl+test] add shared gizmo paint primitives for box outlines, square handles, circular rotation handles, and hover/active styling so transform gizmo rendering stops being hand-written inline
-- [ ] [impl+test] migrate `TransformTool.ts` to the shared gizmo core first, then adopt the same primitives in `MoveTool.ts` and `CropTool.ts` only where it simplifies code without forcing a shared gesture lifecycle
-- [ ] [test] add focused regression coverage for gizmo hit testing, hover cursor behavior, and redraw alignment during pan/zoom/live transform preview
+- [x] [impl] extract shared gizmo-core viewport/document-to-screen conversion and overlay-canvas drawing helpers so `TransformTool.ts`, `MoveTool.ts`, and `CropTool.ts` stop carrying ad hoc mapping and paint setup
+- [x] [impl] split `TransformTool.ts` further so drag/session orchestration, hover-hit policy, and gizmo paint/layout no longer live together in one class
+- [x] [impl+test] add shared gizmo paint primitives for box outlines, square handles, circular rotation handles, and hover/active styling so transform gizmo rendering stops being hand-written inline
+- [x] [impl+test] migrate `TransformTool.ts` to the shared gizmo core first, then adopt the same primitives in `MoveTool.ts` and `CropTool.ts` only where it simplifies code without forcing a shared gesture lifecycle
+- [x] [test] add focused regression coverage for gizmo hit testing, hover cursor behavior, and redraw alignment during pan/zoom/live transform preview
 
 ### Follow-up core hardening after gizmo core
 
