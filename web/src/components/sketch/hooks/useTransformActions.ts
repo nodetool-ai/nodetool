@@ -2,11 +2,14 @@
  * useTransformActions
  *
  * Handles transform lifecycle (save/commit/cancel/reset), layer nudge,
- * and baking layer transforms into document-space pixels.
+ * baking layer transforms into document-space pixels, and in-transform
+ * undo/redo plus quick transform operations (rotate, flip).
  */
 
 import { useCallback, useRef, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
+import { getToolHandler } from "../tools";
+import { TransformTool } from "../tools/TransformTool";
 import {
   layerAllowsTransformWhilePixelLocked,
   type LayerContentBounds,
@@ -206,6 +209,89 @@ export function useTransformActions({
     ]
   );
 
+  // ── In-transform undo/redo ─────────────────────────────────────────────
+
+  /** Undo the last handle adjustment while still in transform mode. */
+  const handleTransformUndo = useCallback(() => {
+    const handler = getToolHandler("transform");
+    if (!(handler instanceof TransformTool)) {
+      return;
+    }
+    const activeLayerId = document.activeLayerId;
+    const layer = document.layers.find((l) => l.id === activeLayerId);
+    if (!layer) {
+      return;
+    }
+    const currentTransform = handler.getLiveTransform() ?? layer.transform;
+    const restored = handler.undoLastAdjustment(currentTransform);
+    if (restored) {
+      setLayerTransform(activeLayerId, restored);
+    }
+  }, [document.activeLayerId, document.layers, setLayerTransform]);
+
+  /** Redo the last undone handle adjustment while still in transform mode. */
+  const handleTransformRedo = useCallback(() => {
+    const handler = getToolHandler("transform");
+    if (!(handler instanceof TransformTool)) {
+      return;
+    }
+    const activeLayerId = document.activeLayerId;
+    const layer = document.layers.find((l) => l.id === activeLayerId);
+    if (!layer) {
+      return;
+    }
+    const currentTransform = handler.getLiveTransform() ?? layer.transform;
+    const restored = handler.redoLastAdjustment(currentTransform);
+    if (restored) {
+      setLayerTransform(activeLayerId, restored);
+    }
+  }, [document.activeLayerId, document.layers, setLayerTransform]);
+
+  // ── Quick transform operations (for transform context menu) ─────────────
+
+  /** Rotate the active layer's transform by the given angle in radians. */
+  const handleTransformRotate = useCallback(
+    (angleRad: number) => {
+      const activeLayerId = document.activeLayerId;
+      const layer = document.layers.find((l) => l.id === activeLayerId);
+      if (!layer) {
+        return;
+      }
+      const current = layer.transform;
+      const newRotation = (current.rotation ?? 0) + angleRad;
+      setLayerTransform(activeLayerId, { ...current, rotation: newRotation });
+    },
+    [document.activeLayerId, document.layers, setLayerTransform]
+  );
+
+  /** Flip the active layer's transform horizontally (negate scaleX). */
+  const handleTransformFlipH = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    const layer = document.layers.find((l) => l.id === activeLayerId);
+    if (!layer) {
+      return;
+    }
+    const current = layer.transform;
+    setLayerTransform(activeLayerId, {
+      ...current,
+      scaleX: -(current.scaleX ?? 1)
+    });
+  }, [document.activeLayerId, document.layers, setLayerTransform]);
+
+  /** Flip the active layer's transform vertically (negate scaleY). */
+  const handleTransformFlipV = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    const layer = document.layers.find((l) => l.id === activeLayerId);
+    if (!layer) {
+      return;
+    }
+    const current = layer.transform;
+    setLayerTransform(activeLayerId, {
+      ...current,
+      scaleY: -(current.scaleY ?? 1)
+    });
+  }, [document.activeLayerId, document.layers, setLayerTransform]);
+
   return {
     transformOriginalRef,
     saveTransformOriginal,
@@ -216,6 +302,11 @@ export function useTransformActions({
     handleNudgeLayer,
     pushTransformHistory,
     bakeLayerTransformIntoDocumentSpace,
-    reconcileAllLayerTransforms
+    reconcileAllLayerTransforms,
+    handleTransformUndo,
+    handleTransformRedo,
+    handleTransformRotate,
+    handleTransformFlipH,
+    handleTransformFlipV
   };
 }

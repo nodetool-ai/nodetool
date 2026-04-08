@@ -566,6 +566,20 @@ export function useCanvasGeometryActions({
     setContextMenu(null);
   }, []);
 
+  // ─── Transform context menu (right-click inside bounding box) ──
+  const [transformContextMenu, setTransformContextMenu] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const handleTransformContextMenu = useCallback((x: number, y: number) => {
+    setTransformContextMenu({ x, y });
+  }, []);
+
+  const handleTransformContextMenuClose = useCallback(() => {
+    setTransformContextMenu(null);
+  }, []);
+
   // ─── Clipboard (cut / copy / paste) ─────────────────────────────
   const clipboardCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -857,6 +871,9 @@ export function useCanvasGeometryActions({
     contextMenu,
     handleContextMenu,
     handleContextMenuClose,
+    transformContextMenu,
+    handleTransformContextMenu,
+    handleTransformContextMenuClose,
     handleCopy,
     handleCut,
     handlePaste,

@@ -91,6 +91,10 @@ export interface UseEditorKeyboardShortcutsParams {
   handleTransformCommit?: () => void;
   /** Cancel the current transform (restore original). */
   handleTransformCancel?: () => void;
+  /** Undo the last handle adjustment while still in transform mode. */
+  handleTransformUndo?: () => void;
+  /** Redo the last undone handle adjustment while still in transform mode. */
+  handleTransformRedo?: () => void;
 }
 
 export function useEditorKeyboardShortcuts(
@@ -208,7 +212,15 @@ export function useEditorKeyboardShortcuts(
       if (e.ctrlKey || e.metaKey) {
         if (e.key === "z") {
           e.preventDefault();
-          if (e.shiftKey) {
+          const currentTool = useSketchStore.getState().activeTool;
+          if (currentTool === "transform") {
+            // In transform mode, undo/redo operates on handle adjustments
+            if (e.shiftKey) {
+              paramsRef.current.handleTransformRedo?.();
+            } else {
+              paramsRef.current.handleTransformUndo?.();
+            }
+          } else if (e.shiftKey) {
             paramsRef.current.handleRedo();
           } else {
             paramsRef.current.handleUndo();
@@ -216,7 +228,12 @@ export function useEditorKeyboardShortcuts(
         }
         if (e.key === "y") {
           e.preventDefault();
-          paramsRef.current.handleRedo();
+          const currentTool = useSketchStore.getState().activeTool;
+          if (currentTool === "transform") {
+            paramsRef.current.handleTransformRedo?.();
+          } else {
+            paramsRef.current.handleRedo();
+          }
         }
         if (e.key === "0") {
           e.preventDefault();
