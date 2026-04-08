@@ -25,8 +25,19 @@ Task labels used below:
 ## Active Roadmap
 
 Completed Phase 1 packages, hardening work, and earlier shipped fixes have been moved to `SKETCH_FEATURES_DONE.md` so this file stays focused on the next work to execute from top to bottom.
-- [ ] fix: Selection mask tool is still slow, especially with bigger canvas. especiall adding + removing from mask. if this is a fundamental problem with cpu processing, propose a short plan in SKETCH_FEATURES.md file
-- [ ] fix: Invert with Selection mask active: inverts pixels at wrong position, outside masked area. Investigate if core features, refactor, helpers or comments can be strengtened to prevent this kind of problems
+- [x] fix: Selection mask tool is still slow, especially with bigger canvas. especiall adding + removing from mask. if this is a fundamental problem with cpu processing, propose a short plan in SKETCH_FEATURES.md file
+  - **Done:** Added fast-path in `combineMasks()` for same-size/same-origin masks (the common case). Eliminates union buffer allocation + base copy; runs a single flat loop. Also added `TypedArray.subarray()+set()` row-bulk copies in the general path. See perf plan below.
+- [x] fix: Invert with Selection mask active: inverts pixels at wrong position, outside masked area. Investigate if core features, refactor, helpers or comments can be strengtened to prevent this kind of problems
+  - **Root cause:** `invertLayerColors()` used only `contentBounds.x/y` for layer→document mapping, ignoring the layer `transform.x/y` offset. Other mask operations (`clearLayerBySelectionMask`, `fillLayerBySelectionMask`) correctly use `getLayerCompositeOffset()` which includes both. Fixed by switching to `getLayerCompositeOffset()`. Regression tests added.
+  - **Hardening:** All per-pixel selection-constrained operations should go through the shared `getLayerCompositeOffset()` helper. JSDoc comments updated to document the mapping chain.
+
+### Selection mask performance plan
+
+The `combineMasks()` fast-path covers the most common hot path (add/subtract on same-size canvas-origin masks). Further gains for truly large canvases need GPU involvement:
+
+1. **Short term (done):** typed-array fast-path in `combineMasks()`. Single-pass flat loop; no union buffer allocation when masks share size/origin.
+2. **Medium term:** move selection combine operations to an OffscreenCanvas compositing path using canvas `globalCompositeOperation` (`lighter` for add, `destination-out` for subtract, `destination-in` for intersect). This offloads the per-pixel work to the browser's GPU compositor. Requires careful threshold re-mapping since canvas compositing works on RGBA, not single-channel masks.
+3. **Long term:** if WebGPU is available, run selection combine as a compute shader. This is the ultimate solution for 4K+ canvases but adds complexity. Only worthwhile if profiling shows the medium-term path is still too slow.
 
 ## NEXT UP - GIZMO CORE HARDENING
 
