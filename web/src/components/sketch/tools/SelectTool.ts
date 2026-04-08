@@ -64,10 +64,34 @@ export class SelectTool implements ToolHandler {
   private marqueeDocDragSeen = false;
   private marqueePointerDownClient: { x: number; y: number } | null = null;
 
+  // Deferred selection-clear timer (cancelled on tool switch / deactivate)
+  private selectionClearTimer: ReturnType<typeof setTimeout> | null = null;
+
   /** Clear in-progress polygon (called when selection is reset externally, e.g. Escape). */
   clearPolygon(): void {
     this.lassoPoints = [];
     this.selectionDragModifiers = null;
+  }
+
+  /** Cancel any pending deferred selection clear. */
+  private cancelDeferredClear(): void {
+    if (this.selectionClearTimer !== null) {
+      clearTimeout(this.selectionClearTimer);
+      this.selectionClearTimer = null;
+    }
+  }
+
+  /** Schedule a deferred selection clear for responsive pointer-down. */
+  private deferSelectionClear(ctx: ToolContext): void {
+    this.cancelDeferredClear();
+    this.selectionClearTimer = setTimeout(() => {
+      this.selectionClearTimer = null;
+      ctx.onSelectionChange?.(null);
+    }, 0);
+  }
+
+  onDeactivate?(): void {
+    this.cancelDeferredClear();
   }
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
@@ -142,7 +166,7 @@ export class SelectTool implements ToolHandler {
       };
       if (!ctx.shiftHeldRef.current && !ctx.altHeldRef.current) {
         // Defer state update so the pointer-down returns immediately.
-        setTimeout(() => ctx.onSelectionChange?.(null), 0);
+        this.deferSelectionClear(ctx);
       }
       return true;
     }
@@ -161,7 +185,7 @@ export class SelectTool implements ToolHandler {
         };
         if (!ctx.shiftHeldRef.current && !ctx.altHeldRef.current) {
           // Defer state update so the pointer-down returns immediately.
-          setTimeout(() => ctx.onSelectionChange?.(null), 0);
+          this.deferSelectionClear(ctx);
         }
       }
       this.lassoPoints = [...this.lassoPoints, pt];
@@ -200,7 +224,7 @@ export class SelectTool implements ToolHandler {
       // Defer the state update so the pointer-down returns immediately.
       // The drawOverlaySelection call in onMove clears the overlay visually,
       // and the new selection replaces the old one on commit anyway.
-      setTimeout(() => ctx.onSelectionChange?.(null), 0);
+      this.deferSelectionClear(ctx);
     }
     return true;
   }
