@@ -2,43 +2,23 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import EditorToolbar from "../EditorToolbar";
-import mockTheme from "../../../__mocks__/themeMock";
-
-// Mock MUI components
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children, title }: { children: React.ReactNode; title?: string }) => (
-    <div data-tooltip={title}>{children}</div>
-  )
-}));
-
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, "aria-label": ariaLabel, ...rest }: any) => (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-      aria-label={ariaLabel}
-      data-testid="icon-button"
-      {...rest}
-    >
-      {children}
-    </button>
-  )
-}));
-
-jest.mock("@mui/material/Box", () => ({
-  __esModule: true,
-  default: ({ children, className }: any) => (
-    <div className={className}>
-      {children}
-    </div>
-  )
-}));
+import { createTheme, extendTheme } from "@mui/material/styles";
 
 describe("EditorToolbar", () => {
   const renderWithTheme = (props: any = {}) => {
+    const mockTheme = extendTheme({
+      colorSchemes: {
+        light: {
+          palette: {
+            background: { default: '#000000' },
+            primary: { main: '#1976d2', light: '#42a5f5' },
+            grey: { 100: '#f5f5f5', 300: '#e0e0e0', 600: '#757575' },
+            common: { white: '#ffffff' }
+          }
+        }
+      }
+    });
+
     return render(
       <ThemeProvider theme={mockTheme}>
         <EditorToolbar {...props} />
@@ -49,10 +29,12 @@ describe("EditorToolbar", () => {
   it("has proper ARIA labels for accessibility", () => {
     renderWithTheme({ readOnly: false });
 
-    expect(screen.getByLabelText("Undo")).toBeInTheDocument();
-    expect(screen.getByLabelText("Redo")).toBeInTheDocument();
-    expect(screen.getByLabelText("Find & Replace")).toBeInTheDocument();
-    expect(screen.getByLabelText("Toggle Word Wrap")).toBeInTheDocument();
-    expect(screen.getByLabelText("Format as Code Block")).toBeInTheDocument();
+    // Material-UI Tooltip sets aria-label on the wrapper, while we explicitly set it on the button
+    // This query matches both elements, so we use getAllByLabelText
+    expect(screen.getAllByLabelText("Undo")[0]).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Redo")[0]).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Find & Replace")[0]).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Toggle Word Wrap")[0]).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Format as Code Block")[0]).toBeInTheDocument();
   });
 });
