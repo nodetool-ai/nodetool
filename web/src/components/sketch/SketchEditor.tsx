@@ -26,6 +26,7 @@ import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
 import SketchCanvasContextMenu from "./SketchCanvasContextMenu";
+import TransformContextMenu from "./TransformContextMenu";
 import SketchToolbar from "./SketchToolbar";
 import SketchToolTopBar from "./SketchToolTopBar";
 import SketchLayersPanel from "./SketchLayersPanel";
@@ -355,7 +356,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     cancelActiveTool: () => canvasRef.current?.cancelActiveTool(),
     handleInvertLayerColors: canvasActions.handleInvertLayerColors,
     handleTransformCommit: canvasActions.handleTransformCommit,
-    handleTransformCancel: canvasActions.handleTransformCancel
+    handleTransformCancel: canvasActions.handleTransformCancel,
+    handleTransformUndo: canvasActions.handleTransformUndo,
+    handleTransformRedo: canvasActions.handleTransformRedo
   });
 
   // ─── Foreground color change (syncs to active tool settings) ───────
@@ -518,6 +521,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
               onLayerContentBoundsChange={store.setLayerContentBounds}
               onBrushSizeChange={colorActions.handleBrushSizeChange}
               onContextMenu={canvasActions.handleContextMenu}
+              onTransformContextMenu={canvasActions.handleTransformContextMenu}
               onCropComplete={canvasActions.handleCropComplete}
               onEyedropperPick={colorActions.handleEyedropperPick}
               selection={store.selection}
@@ -656,6 +660,26 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onRedo={handleRedo}
         onClearLayer={canvasActions.handleClearLayer}
         onExportPng={canvasActions.handleExportPng}
+      />
+
+      <TransformContextMenu
+        open={canvasActions.transformContextMenu !== null}
+        position={canvasActions.transformContextMenu}
+        onClose={canvasActions.handleTransformContextMenuClose}
+        onTransformCommit={() => {
+          canvasActions.handleTransformCommit();
+          store.setActiveTool("move");
+        }}
+        onTransformCancel={() => {
+          canvasActions.handleTransformCancel();
+          store.setActiveTool("move");
+        }}
+        onTransformReset={canvasActions.handleTransformReset}
+        onRotate90CW={() => canvasActions.handleTransformRotate(Math.PI / 2)}
+        onRotate90CCW={() => canvasActions.handleTransformRotate(-Math.PI / 2)}
+        onRotate180={() => canvasActions.handleTransformRotate(Math.PI)}
+        onFlipHorizontal={canvasActions.handleTransformFlipH}
+        onFlipVertical={canvasActions.handleTransformFlipV}
       />
     </Box>
   );

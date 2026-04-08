@@ -182,6 +182,8 @@ export interface SketchCanvasProps {
   ) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
+  /** Called on right-click inside the transform bounding box (when transform tool is active). */
+  onTransformContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (
     x: number,
     y: number,
@@ -232,6 +234,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onLayerContentBoundsChange,
       onBrushSizeChange,
       onContextMenu,
+      onTransformContextMenu,
       onCropComplete,
       onEyedropperPick,
       selection,
@@ -427,6 +430,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onLayerContentBoundsChange,
       onBrushSizeChange,
       onContextMenu,
+      onTransformContextMenu,
       onCropComplete,
       onEyedropperPick,
       isolatedLayerId,

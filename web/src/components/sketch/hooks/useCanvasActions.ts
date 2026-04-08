@@ -181,6 +181,9 @@ export function useCanvasActions({
     contextMenu: geometryActions.contextMenu,
     handleContextMenu: geometryActions.handleContextMenu,
     handleContextMenuClose: geometryActions.handleContextMenuClose,
+    transformContextMenu: geometryActions.transformContextMenu,
+    handleTransformContextMenu: geometryActions.handleTransformContextMenu,
+    handleTransformContextMenuClose: geometryActions.handleTransformContextMenuClose,
     handleCopy: geometryActions.handleCopy,
     handleCut: geometryActions.handleCut,
     handlePaste: geometryActions.handlePaste,
@@ -197,6 +200,11 @@ export function useCanvasActions({
     saveTransformOriginal: transformActions.saveTransformOriginal,
     handleTransformCommit: transformActions.handleTransformCommit,
     handleTransformCancel: transformActions.handleTransformCancel,
-    handleTransformReset: transformActions.handleTransformReset
+    handleTransformReset: transformActions.handleTransformReset,
+    handleTransformUndo: transformActions.handleTransformUndo,
+    handleTransformRedo: transformActions.handleTransformRedo,
+    handleTransformRotate: transformActions.handleTransformRotate,
+    handleTransformFlipH: transformActions.handleTransformFlipH,
+    handleTransformFlipV: transformActions.handleTransformFlipV
   };
 }

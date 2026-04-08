@@ -78,8 +78,8 @@ Add the core transform lifecycle only after `2.1` is stable.
 - [x] `Ctrl+T` / `Cmd+T` enters Free Transform
 - [x] `Enter` / `Return` commits the transformation
 - [x] `Esc` cancels the transformation
-- [ ] `Ctrl+Z` / `Cmd+Z` undoes the last handle adjustment while still in transform mode
-- [ ] right-click inside the bounding box opens a context menu with transform actions
+- [x] `Ctrl+Z` / `Cmd+Z` undoes the last handle adjustment while still in transform mode
+- [x] right-click inside the bounding box opens a context menu with transform actions
 
 ### 2.3 - Advanced transform modes and modifier rules
 
