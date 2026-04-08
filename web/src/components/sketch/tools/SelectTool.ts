@@ -141,7 +141,8 @@ export class SelectTool implements ToolHandler {
         alt: ctx.altHeldRef.current
       };
       if (!ctx.shiftHeldRef.current && !ctx.altHeldRef.current) {
-        ctx.onSelectionChange?.(null);
+        // Defer state update so the pointer-down returns immediately.
+        setTimeout(() => ctx.onSelectionChange?.(null), 0);
       }
       return true;
     }
@@ -159,7 +160,8 @@ export class SelectTool implements ToolHandler {
           alt: ctx.altHeldRef.current
         };
         if (!ctx.shiftHeldRef.current && !ctx.altHeldRef.current) {
-          ctx.onSelectionChange?.(null);
+          // Defer state update so the pointer-down returns immediately.
+          setTimeout(() => ctx.onSelectionChange?.(null), 0);
         }
       }
       this.lassoPoints = [...this.lassoPoints, pt];
@@ -195,7 +197,10 @@ export class SelectTool implements ToolHandler {
       this.marqueeCombineAtDown.alt
     );
     if (marqueeOpAtDown === "replace") {
-      ctx.onSelectionChange?.(null);
+      // Defer the state update so the pointer-down returns immediately.
+      // The drawOverlaySelection call in onMove clears the overlay visually,
+      // and the new selection replaces the old one on commit anyway.
+      setTimeout(() => ctx.onSelectionChange?.(null), 0);
     }
     return true;
   }

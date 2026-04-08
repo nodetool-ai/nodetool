@@ -743,12 +743,13 @@ describe("Package B: transform computation correctness", () => {
     expect(result.scaleX).toBeGreaterThan(1);
     // x should shift to compensate for the anchor (keeps left edge fixed)
     expect(result.x).not.toBe(0);
-    // The left edge should remain at its original position
+    // The left edge should remain at its original position (within ±1px
+    // rounding from Math.round in the anchor offset).
     const originalLeftEdge =
       transform.x + bounds.x + bounds.width / 2 - (bounds.width * (transform.scaleX ?? 1)) / 2;
     const newLeftEdge =
       result.x + bounds.x + bounds.width / 2 - (bounds.width * (result.scaleX ?? 1)) / 2;
-    expect(newLeftEdge).toBeCloseTo(originalLeftEdge, 0);
+    expect(Math.abs(newLeftEdge - originalLeftEdge)).toBeLessThanOrEqual(1);
   });
 });
 

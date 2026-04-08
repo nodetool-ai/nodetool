@@ -244,8 +244,24 @@ export function useCompositing({
   }, [bootstrapPhaseActive, backend]);
 
   // Redraw when zoom changes so the checkerboard pattern rescales.
+  // Debounce zoom-triggered redraws: CSS `transform: scale(zoom)` already
+  // provides instant visual feedback. The full recomposite is only needed
+  // to update the checkerboard grid-line alignment, so we can skip it
+  // during rapid scroll/pinch and only composite once the zoom stabilizes.
+  const zoomRedrawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    requestRedraw();
+    if (zoomRedrawTimerRef.current !== null) {
+      clearTimeout(zoomRedrawTimerRef.current);
+    }
+    zoomRedrawTimerRef.current = setTimeout(() => {
+      zoomRedrawTimerRef.current = null;
+      requestRedraw();
+    }, 50);
+    return () => {
+      if (zoomRedrawTimerRef.current !== null) {
+        clearTimeout(zoomRedrawTimerRef.current);
+      }
+    };
   }, [externalZoom, requestRedraw]);
 
   // ─── Cleanup ───────────────────────────────────────────────────────

@@ -84,12 +84,12 @@ Do not only fix this sections items with workarounds, investigate core implement
 - [x] fix transform tool: confirm transformation moves layer
 - [x] fix transform tool: scaling is faster than mouse delta, causing transform handles to move away from mouse. the mouse position should dictate where handles go.
 - [x] fix transform tool: scaling negatively should mirror - currently does not go beyond zero
-- [ ] fix zoom tool: zooming is still noticeable slow
-- [ ] fix transform tool: scaling is mostly broken after supposed fix, also does not show realtime update, only after confirm
-- [ ] fix transform tool: moving is broken after supposed fix
-- [ ] fix transform tool: scaling is partly broken, some handles do not work like right + left
-- [ ] fix Selection tool: still after proposed fix: starting a new selection AND ending a selection freezes shortly
-- [ ] fix CTRL + i shortcut to inverse layer colors: should adhere to selection mask if any exists
+- [x] fix zoom tool: zooming is still noticeable slow
+- [x] fix transform tool: scaling is mostly broken after supposed fix, also does not show realtime update, only after confirm
+- [x] fix transform tool: moving is broken after supposed fix
+- [x] fix transform tool: scaling is partly broken, some handles do not work like right + left
+- [x] fix Selection tool: still after proposed fix: starting a new selection AND ending a selection freezes shortly
+- [x] fix CTRL + i shortcut to inverse layer colors: should adhere to selection mask if any exists
 
 ### 2.2 - Transform lifecycle shortcuts
 

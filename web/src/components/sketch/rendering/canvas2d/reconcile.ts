@@ -288,11 +288,15 @@ export function applyAdjustments(
 
 /**
  * Invert all color channels of the active layer while preserving alpha.
- * Uses CSS filter `invert(1)` on a temporary canvas.
+ * When a selection mask is provided, only pixels within the selection
+ * (mask value ≥ 128) are inverted; others are left unchanged.
+ * Uses CSS filter `invert(1)` on a temporary canvas, then blends via
+ * the selection mask when present.
  */
 export function invertLayerColors(
   doc: SketchDocument,
-  layerCanvases: Map<string, HTMLCanvasElement>
+  layerCanvases: Map<string, HTMLCanvasElement>,
+  selection?: { width: number; height: number; data: Uint8ClampedArray; originX?: number; originY?: number } | null
 ): void {
   const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
   if (!activeLayer) {
@@ -306,17 +310,68 @@ export function invertLayerColors(
   if (!ctx) {
     return;
   }
-  const tmp = window.document.createElement("canvas");
-  tmp.width = layerCanvas.width;
-  tmp.height = layerCanvas.height;
-  const tmpCtx = tmp.getContext("2d");
-  if (!tmpCtx) {
+
+  if (!selection) {
+    // No selection — invert the entire layer using CSS filter
+    const tmp = window.document.createElement("canvas");
+    tmp.width = layerCanvas.width;
+    tmp.height = layerCanvas.height;
+    const tmpCtx = tmp.getContext("2d");
+    if (!tmpCtx) {
+      return;
+    }
+    tmpCtx.filter = "invert(1)";
+    tmpCtx.drawImage(layerCanvas, 0, 0);
+    ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
+    ctx.drawImage(tmp, 0, 0);
     return;
   }
-  tmpCtx.filter = "invert(1)";
-  tmpCtx.drawImage(layerCanvas, 0, 0);
-  ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
-  ctx.drawImage(tmp, 0, 0);
+
+  // Selection present — invert only selected pixels using imageData
+  const w = layerCanvas.width;
+  const h = layerCanvas.height;
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const pixels = imageData.data;
+  const selOriginX = selection.originX ?? 0;
+  const selOriginY = selection.originY ?? 0;
+  const selW = selection.width;
+  const selH = selection.height;
+  const mask = selection.data;
+
+  // The layer canvas coordinate system maps to the layer-local raster space.
+  // The selection mask is in document space.
+  // For a standard layer (contentBounds.x/y = 0), these align directly.
+  // For offset layers, we account for contentBounds.
+  const cbx = activeLayer.contentBounds.x;
+  const cby = activeLayer.contentBounds.y;
+
+  for (let y = 0; y < h; y++) {
+    // Map layer-local raster row → document row
+    const docY = y + cby;
+    // Map document row → selection mask row
+    const selY = docY - selOriginY;
+    if (selY < 0 || selY >= selH) {
+      continue;
+    }
+    const rowOff = selY * selW;
+    for (let x = 0; x < w; x++) {
+      const docX = x + cbx;
+      const selX = docX - selOriginX;
+      if (selX < 0 || selX >= selW) {
+        continue;
+      }
+      const maskVal = mask[rowOff + selX];
+      if (maskVal < 128) {
+        continue;
+      }
+      const idx = (y * w + x) * 4;
+      pixels[idx] = 255 - pixels[idx];         // R
+      pixels[idx + 1] = 255 - pixels[idx + 1]; // G
+      pixels[idx + 2] = 255 - pixels[idx + 2]; // B
+      // Alpha (idx + 3) is preserved
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
 }
 
 export type { LayerContentBounds };
