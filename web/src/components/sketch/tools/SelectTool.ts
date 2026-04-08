@@ -316,27 +316,32 @@ export class SelectTool implements ToolHandler {
       if (!last || last.x !== pt.x || last.y !== pt.y) {
         pts.push(pt);
       }
+      // Clear the visual overlay immediately so the UI feels responsive,
+      // then schedule the heavy mask generation on the next frame.
       ctx.clearOverlay();
-      ctx.drawSelectionOverlay();
       this.selectStart = null;
       if (selectStartRef) {
         selectStartRef.current = null;
       }
-      if (pts.length >= 3 && ctx.onSelectionChange) {
-        const bin = polygonToBinaryMask(cw, ch, pts);
-        const overlay: Selection = { width: cw, height: ch, data: bin };
-        if (selectionHasAnyPixels(overlay)) {
-          const mod = this.selectionDragModifiers;
-          this.selectionDragModifiers = null;
-          const op = selectionCombineMode(
-            mod?.shift ?? ctx.shiftHeldRef.current,
-            mod?.alt ?? ctx.altHeldRef.current
-          );
-          const base = op === "replace" ? null : selection ?? null;
-          ctx.onSelectionChange(combineMasks(base, overlay, op));
-        }
-      }
+      const mod = this.selectionDragModifiers;
       this.selectionDragModifiers = null;
+      if (pts.length >= 3 && ctx.onSelectionChange) {
+        requestAnimationFrame(() => {
+          const bin = polygonToBinaryMask(cw, ch, pts);
+          const overlay: Selection = { width: cw, height: ch, data: bin };
+          if (selectionHasAnyPixels(overlay)) {
+            const op = selectionCombineMode(
+              mod?.shift ?? false,
+              mod?.alt ?? false
+            );
+            const base = op === "replace" ? null : selection ?? null;
+            ctx.onSelectionChange!(combineMasks(base, overlay, op));
+          }
+          ctx.drawSelectionOverlay();
+        });
+      } else {
+        ctx.drawSelectionOverlay();
+      }
       return;
     }
 
@@ -358,6 +363,7 @@ export class SelectTool implements ToolHandler {
             })
           : { start: anchor, end: pt };
       const { x, y, w, h } = marqueeRectFromDocPoints(mStart, mEnd);
+      // Clear visual overlay immediately for responsive UI feedback.
       ctx.clearOverlay();
       this.selectStart = null;
       if (selectStartRef) {
@@ -379,16 +385,23 @@ export class SelectTool implements ToolHandler {
         ctx.onSelectionChange &&
         (!isMarqueeShape || marqueeDragged)
       ) {
-        const overlay =
-          selMode === "ellipse"
-            ? ellipseSelectionMask(cw, ch, x, y, w, h)
-            : rectSelectionMask(cw, ch, x, y, w, h);
-        if (selectionHasAnyPixels(overlay)) {
-          const base = op === "replace" ? null : selection ?? null;
-          ctx.onSelectionChange(combineMasks(base, overlay, op));
-        }
+        // Defer mask generation to the next frame so the browser can
+        // paint the cleared overlay before doing the heavy computation.
+        const capturedSelection = selection;
+        requestAnimationFrame(() => {
+          const overlay =
+            selMode === "ellipse"
+              ? ellipseSelectionMask(cw, ch, x, y, w, h)
+              : rectSelectionMask(cw, ch, x, y, w, h);
+          if (selectionHasAnyPixels(overlay)) {
+            const base = op === "replace" ? null : capturedSelection ?? null;
+            ctx.onSelectionChange!(combineMasks(base, overlay, op));
+          }
+          ctx.drawSelectionOverlay();
+        });
+      } else {
+        ctx.drawSelectionOverlay();
       }
-      ctx.drawSelectionOverlay();
     }
   }
 

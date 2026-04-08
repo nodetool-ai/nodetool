@@ -653,33 +653,67 @@ export function usePointerHandlers({
 
   // ─── Wheel zoom ────────────────────────────────────────────────────
 
+  // Accumulate wheel deltas and apply them once per animation frame.
+  // This prevents multiple wheel events per frame from each causing
+  // separate state updates and React re-renders.
+  const zoomRafRef = useRef<number | null>(null);
+  const pendingZoomRef = useRef<{
+    deltaY: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
+
   const handleZoomWheel = useCallback(
     (
       event: Pick<WheelEvent, "deltaY" | "clientX" | "clientY" | "preventDefault">
     ) => {
       event.preventDefault();
-      const factor = 1.3;
-      const wheelDelta = event.deltaY > 0 ? 1 / factor : factor;
-      const newZoom = Math.max(
-        SKETCH_ZOOM_MIN,
-        Math.min(SKETCH_ZOOM_MAX, zoom * wheelDelta)
-      );
-      const container = containerRef.current;
-      if (container) {
-        const rect = container.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const offsetX = mouseX - centerX - pan.x;
-        const offsetY = mouseY - centerY - pan.y;
-        const zoomRatio = newZoom / zoom;
-        onPanChange({
-          x: pan.x + offsetX * (1 - zoomRatio),
-          y: pan.y + offsetY * (1 - zoomRatio)
+      // Accumulate delta; keep the latest pointer position for centering.
+      const pending = pendingZoomRef.current;
+      if (pending) {
+        pending.deltaY += event.deltaY;
+        pending.clientX = event.clientX;
+        pending.clientY = event.clientY;
+      } else {
+        pendingZoomRef.current = {
+          deltaY: event.deltaY,
+          clientX: event.clientX,
+          clientY: event.clientY
+        };
+      }
+      if (zoomRafRef.current === null) {
+        zoomRafRef.current = requestAnimationFrame(() => {
+          zoomRafRef.current = null;
+          const p = pendingZoomRef.current;
+          if (!p) {
+            return;
+          }
+          pendingZoomRef.current = null;
+
+          const factor = 1.3;
+          const wheelDelta = p.deltaY > 0 ? 1 / factor : factor;
+          const newZoom = Math.max(
+            SKETCH_ZOOM_MIN,
+            Math.min(SKETCH_ZOOM_MAX, zoom * wheelDelta)
+          );
+          const container = containerRef.current;
+          if (container) {
+            const rect = container.getBoundingClientRect();
+            const mouseX = p.clientX - rect.left;
+            const mouseY = p.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const offsetX = mouseX - centerX - pan.x;
+            const offsetY = mouseY - centerY - pan.y;
+            const zoomRatio = newZoom / zoom;
+            onPanChange({
+              x: pan.x + offsetX * (1 - zoomRatio),
+              y: pan.y + offsetY * (1 - zoomRatio)
+            });
+          }
+          onZoomChange(newZoom);
         });
       }
-      onZoomChange(newZoom);
     },
     [zoom, pan, onZoomChange, onPanChange, containerRef]
   );
