@@ -30,21 +30,21 @@ Completed Phase 1 packages, hardening work, and earlier shipped fixes have been 
 
 Do these before more transform-heavy work. The goal is to reduce brittleness in `TransformTool` and nearby overlay tools by sharing only the stable gizmo primitives, not by forcing all tools into one generic interaction framework.
 
-- [impl] extract shared gizmo-core viewport/document-to-screen conversion and overlay-canvas drawing helpers so `TransformTool.ts`, `MoveTool.ts`, and `CropTool.ts` stop carrying ad hoc mapping and paint setup
-- [impl] split `TransformTool.ts` further so drag/session orchestration, hover-hit policy, and gizmo paint/layout no longer live together in one class
-- [impl+test] add shared gizmo paint primitives for box outlines, square handles, circular rotation handles, and hover/active styling so transform gizmo rendering stops being hand-written inline
-- [impl+test] migrate `TransformTool.ts` to the shared gizmo core first, then adopt the same primitives in `MoveTool.ts` and `CropTool.ts` only where it simplifies code without forcing a shared gesture lifecycle
-- [test] add focused regression coverage for gizmo hit testing, hover cursor behavior, and redraw alignment during pan/zoom/live transform preview
+- [ ] [impl] extract shared gizmo-core viewport/document-to-screen conversion and overlay-canvas drawing helpers so `TransformTool.ts`, `MoveTool.ts`, and `CropTool.ts` stop carrying ad hoc mapping and paint setup
+- [ ] [impl] split `TransformTool.ts` further so drag/session orchestration, hover-hit policy, and gizmo paint/layout no longer live together in one class
+- [ ] [impl+test] add shared gizmo paint primitives for box outlines, square handles, circular rotation handles, and hover/active styling so transform gizmo rendering stops being hand-written inline
+- [ ] [impl+test] migrate `TransformTool.ts` to the shared gizmo core first, then adopt the same primitives in `MoveTool.ts` and `CropTool.ts` only where it simplifies code without forcing a shared gesture lifecycle
+- [ ] [test] add focused regression coverage for gizmo hit testing, hover cursor behavior, and redraw alignment during pan/zoom/live transform preview
 
 ### Follow-up core hardening after gizmo core
 
 Only do these after the gizmo-core slice reveals that the boundaries are stable enough to share further. Keep them narrow and evidence-driven.
 
-- [impl] extract a shared tool-runtime context builder so `usePointerHandlers.ts` and `tools/types.ts` stop maintaining parallel callback/ref contracts for the same tool surface
-- [impl+test] centralize preview-session lifecycle for start/update/commit/cancel/clear so `MoveTool.ts`, `TransformTool.ts`, and selection-move preview follow one cleanup and stale-preview contract
-- [impl+test] centralize selection overlay -> mask -> combine -> apply flow so `SelectTool.ts` stops repeating marquee/lasso/polygon/magic-wand finalization logic
-- [impl+test] add a shared modifier-intent layer for transform and selection semantics so tools consume semantic flags like `fromCenter`, `constrain`, and `combineMode` instead of interpreting raw modifier refs ad hoc
-- [test] add focused regression coverage for cancel/supersede/stale-session cleanup across preview tools so aborted gestures cannot leave stale gizmos, previews, or delayed selection commits behind
+- [ ] [impl] extract a shared tool-runtime context builder so `usePointerHandlers.ts` and `tools/types.ts` stop maintaining parallel callback/ref contracts for the same tool surface
+- [ ] [impl+test] centralize preview-session lifecycle for start/update/commit/cancel/clear so `MoveTool.ts`, `TransformTool.ts`, and selection-move preview follow one cleanup and stale-preview contract
+- [ ] [impl+test] centralize selection overlay -> mask -> combine -> apply flow so `SelectTool.ts` stops repeating marquee/lasso/polygon/magic-wand finalization logic
+- [ ] [impl+test] add a shared modifier-intent layer for transform and selection semantics so tools consume semantic flags like `fromCenter`, `constrain`, and `combineMode` instead of interpreting raw modifier refs ad hoc
+- [ ] [test] add focused regression coverage for cancel/supersede/stale-session cleanup across preview tools so aborted gestures cannot leave stale gizmos, previews, or delayed selection commits behind
 
 ## PHASE 1 - Architecture Stability Before Transform-Heavy Work
 
