@@ -33,15 +33,13 @@ import {
 } from "../painting/resolvedLayerGeometry";
 import {
   type TransformHandle,
-  HANDLE_SIZE,
-  ROTATION_HANDLE_OFFSET,
   hitTestHandles,
-  buildHandlePositions,
   docToScreen,
   scaledHalfExtents,
   computeTransformForHandle
 } from "./transform";
 import { cursorForHandle } from "./transform/cursorMapping";
+import { drawTransformGizmo } from "./gizmo";
 
 // ─── TransformTool class ──────────────────────────────────────────────────────
 
@@ -369,9 +367,9 @@ export class TransformTool implements ToolHandler {
   }
 
   /**
-   * Internal gizmo paint routine. Uses shared resolved-geometry helpers
-   * for handle positions and bounds so gizmo aligns with the rendered
-   * transformed layer.
+   * Internal gizmo paint routine. Uses shared gizmo primitives and
+   * resolved-geometry helpers for handle positions and bounds so gizmo
+   * aligns with the rendered transformed layer.
    */
   private paintGizmo(
     gc: CanvasRenderingContext2D,
@@ -407,76 +405,11 @@ export class TransformTool implements ToolHandler {
       dpr
     );
 
-    gc.save();
-    gc.translate(screenCenter.x, screenCenter.y);
-    gc.rotate(rot);
-
     const screenW = hw * 2 * ctx.zoom * dpr;
     const screenH = hh * 2 * ctx.zoom * dpr;
-
-    // Bounding box
-    gc.strokeStyle = "rgba(0, 120, 255, 0.8)";
-    gc.lineWidth = 1 * dpr;
-    gc.setLineDash([4 * dpr, 4 * dpr]);
-    gc.strokeRect(-screenW / 2, -screenH / 2, screenW, screenH);
-    gc.setLineDash([]);
-
-    // Handle size in screen pixels
-    const hs = HANDLE_SIZE * dpr;
     const hoveredHandle = this.activeHandle ?? this.hoveredHandle;
 
-    // Corner handles (filled squares)
-    const cornerHandles: Array<{ pos: Point; handle: TransformHandle }> = [
-      { pos: { x: -screenW / 2, y: -screenH / 2 }, handle: "top-left" },
-      { pos: { x: screenW / 2, y: -screenH / 2 }, handle: "top-right" },
-      { pos: { x: -screenW / 2, y: screenH / 2 }, handle: "bottom-left" },
-      { pos: { x: screenW / 2, y: screenH / 2 }, handle: "bottom-right" }
-    ];
-    for (const { pos, handle } of cornerHandles) {
-      const isHovered = hoveredHandle === handle;
-      gc.fillStyle = isHovered ? "rgba(0, 120, 255, 0.15)" : "#ffffff";
-      gc.strokeStyle = "rgba(0, 120, 255, 1)";
-      gc.lineWidth = (isHovered ? 2 : 1) * dpr;
-      gc.fillRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
-      gc.strokeRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
-    }
-
-    // Edge midpoint handles (filled squares)
-    const midHandles: Array<{ pos: Point; handle: TransformHandle }> = [
-      { pos: { x: 0, y: -screenH / 2 }, handle: "top" },
-      { pos: { x: 0, y: screenH / 2 }, handle: "bottom" },
-      { pos: { x: -screenW / 2, y: 0 }, handle: "left" },
-      { pos: { x: screenW / 2, y: 0 }, handle: "right" }
-    ];
-    for (const { pos, handle } of midHandles) {
-      const isHovered = hoveredHandle === handle;
-      gc.fillStyle = isHovered ? "rgba(0, 120, 255, 0.15)" : "#ffffff";
-      gc.strokeStyle = "rgba(0, 120, 255, 1)";
-      gc.lineWidth = (isHovered ? 2 : 1) * dpr;
-      gc.fillRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
-      gc.strokeRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
-    }
-
-    // Rotation handle: circle above top-center with connecting line
-    const rotYOffset = ROTATION_HANDLE_OFFSET * dpr;
-    const rotY = -screenH / 2 - rotYOffset;
-    gc.beginPath();
-    gc.moveTo(0, -screenH / 2);
-    gc.lineTo(0, rotY);
-    gc.strokeStyle = "rgba(0, 120, 255, 0.6)";
-    gc.lineWidth = 1 * dpr;
-    gc.stroke();
-
-    const isRotHovered = hoveredHandle === "rotate";
-    gc.beginPath();
-    gc.arc(0, rotY, hs * 0.7, 0, Math.PI * 2);
-    gc.fillStyle = isRotHovered ? "rgba(0, 120, 255, 0.15)" : "#ffffff";
-    gc.fill();
-    gc.strokeStyle = "rgba(0, 120, 255, 1)";
-    gc.lineWidth = (isRotHovered ? 2 : 1) * dpr;
-    gc.stroke();
-
-    gc.restore();
+    drawTransformGizmo(gc, screenCenter, screenW, screenH, rot, hoveredHandle, dpr);
   }
 }
 
