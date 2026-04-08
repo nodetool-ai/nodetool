@@ -822,7 +822,7 @@ export function useCanvasGeometryActions({
     setAdjSaturation(0);
   }, [document.activeLayerId, syncPixelLayerFromCanvas, canvasRef]);
 
-  /** Invert colors of the active layer. */
+  /** Invert colors of the active layer (respects selection mask). */
   const handleInvertLayerColors = useCallback(() => {
     if (!canvasRef.current) {
       return;
@@ -831,8 +831,10 @@ export function useCanvasGeometryActions({
     if (!layerId) {
       return;
     }
+    const sel = useSketchStore.getState().selection;
+    const hasSelection = sel && selectionHasAnyPixels(sel);
     pushHistory("invert colors");
-    canvasRef.current.invertLayerColors();
+    canvasRef.current.invertLayerColors(hasSelection ? sel : null);
     syncPixelLayerFromCanvas(layerId);
     syncSketchOutputsNow();
   }, [document.activeLayerId, pushHistory, syncPixelLayerFromCanvas, syncSketchOutputsNow, canvasRef]);

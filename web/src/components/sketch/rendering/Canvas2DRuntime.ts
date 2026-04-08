@@ -490,8 +490,8 @@ export class Canvas2DRuntime implements SketchRuntime {
     applyAdjustmentsFn(doc, this.layerCanvases, brightness, contrast, saturation);
   }
 
-  invertLayerColors(doc: SketchDocument): void {
-    invertLayerColorsFn(doc, this.layerCanvases);
+  invertLayerColors(doc: SketchDocument, selection?: { width: number; height: number; data: Uint8ClampedArray; originX?: number; originY?: number } | null): void {
+    invertLayerColorsFn(doc, this.layerCanvases, selection);
   }
 
   reconcileLayerToDocumentSpace(

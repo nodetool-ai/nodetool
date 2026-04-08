@@ -25,10 +25,11 @@ import {
   getTransformedExtents
 } from "../painting/resolvedLayerGeometry";
 import { docRectToScreen } from "./transform/handleGeometry";
+import { drawOffCanvasIndicator } from "./gizmo";
 import { useSketchStore } from "../state/useSketchStore";
 
 /** Paint a dashed outline for off-canvas layer extents on the gizmo canvas.
- *  Uses shared resolved-geometry seam for bounds. */
+ *  Uses shared resolved-geometry seam for bounds and shared gizmo primitives. */
 function paintOffCanvasGizmo(
   ctx: ToolContext,
   layerId: string,
@@ -78,13 +79,7 @@ function paintOffCanvasGizmo(
       dpr
     );
 
-    gc.save();
-    gc.strokeStyle = "rgba(255, 200, 0, 0.75)";
-    gc.lineWidth = dpr;
-    gc.setLineDash([4 * dpr, 3 * dpr]);
-    gc.strokeRect(r.x, r.y, r.w, r.h);
-    gc.setLineDash([]);
-    gc.restore();
+    drawOffCanvasIndicator(gc, r, dpr);
   });
 }
 

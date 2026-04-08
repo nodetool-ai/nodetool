@@ -33,12 +33,17 @@ export type TransformHandle =
   | "rotate"
   | "move";
 
-/** Screen-space radius for handle hit testing (CSS px). */
-export const HANDLE_RADIUS = 8;
-/** Distance (in CSS px) of the rotation handle above the top edge. */
-export const ROTATION_HANDLE_OFFSET = 24;
-/** Screen-space size of a handle square (CSS px). */
-export const HANDLE_SIZE = 8;
+// Import sizing constants from the shared gizmo module (single source of truth).
+import {
+  HANDLE_HIT_RADIUS,
+  ROTATION_HANDLE_OFFSET as GIZMO_ROTATION_OFFSET,
+  HANDLE_SIZE as GIZMO_HANDLE_SIZE
+} from "../gizmo/gizmoConstants";
+
+// Re-export with the names that existing consumers expect.
+export const HANDLE_RADIUS = HANDLE_HIT_RADIUS;
+export const ROTATION_HANDLE_OFFSET = GIZMO_ROTATION_OFFSET;
+export const HANDLE_SIZE = GIZMO_HANDLE_SIZE;
 
 // ─── Geometry primitives ──────────────────────────────────────────────────────
 

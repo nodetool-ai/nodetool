@@ -18,9 +18,14 @@
  * The gizmo is drawn on a dedicated screen-resolution canvas (`gizmoCanvasRef`)
  * so it is not clipped by the document-stack overflow and appears crisp at any zoom.
  *
- * Geometry policy is delegated to `tools/transform/` helpers and
- * `painting/resolvedLayerGeometry` so this file owns only interaction
- * orchestration.
+ * Responsibilities are split across dedicated modules:
+ *   - Gizmo paint/layout: `transform/transformGizmoPainter.ts`
+ *   - Hover hit-test / cursor: `transform/transformHoverPolicy.ts`
+ *   - Geometry computation: `transform/computeTransform.ts`
+ *   - Shared primitives: `gizmo/gizmoPrimitives.ts`
+ *
+ * This file owns only interaction orchestration (pointer events, lifecycle,
+ * undo/redo stacks, preview management).
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
@@ -33,15 +38,17 @@ import {
 } from "../painting/resolvedLayerGeometry";
 import {
   type TransformHandle,
-  HANDLE_SIZE,
-  ROTATION_HANDLE_OFFSET,
   hitTestHandles,
-  buildHandlePositions,
-  docToScreen,
-  scaledHalfExtents,
   computeTransformForHandle
 } from "./transform";
-import { cursorForHandle } from "./transform/cursorMapping";
+import {
+  paintTransformGizmo,
+  GizmoRedrawScheduler
+} from "./transform/transformGizmoPainter";
+import {
+  getTransformHoverInfo,
+  applyCursorFeedback
+} from "./transform/transformHoverPolicy";
 
 // ─── TransformTool class ──────────────────────────────────────────────────────
 
@@ -74,8 +81,8 @@ export class TransformTool implements ToolHandler {
   private liveTransform: LayerTransform | null = null;
   /** Layer ID being dragged (for preview path). */
   private dragLayerId: string | null = null;
-  /** Whether a gizmo redraw is already scheduled via rAF. */
-  private gizmoRedrawScheduled = false;
+  /** Batched gizmo redraw scheduler. */
+  private gizmoScheduler = new GizmoRedrawScheduler();
 
   // ── In-transform undo/redo stacks ─────────────────────────────────────────
   /** Stack of transforms recorded before each handle adjustment (for in-transform undo). */
@@ -211,13 +218,7 @@ export class TransformTool implements ToolHandler {
     ctx.setLayerTransformPreview?.(layer.id, newTransform);
 
     // Batch gizmo redraws with rAF to avoid redundant per-event paints
-    if (!this.gizmoRedrawScheduled) {
-      this.gizmoRedrawScheduled = true;
-      requestAnimationFrame(() => {
-        this.gizmoRedrawScheduled = false;
-        this.drawGizmo(ctx);
-      });
-    }
+    this.gizmoScheduler.scheduleRedraw(() => this.drawGizmo(ctx));
   }
 
   onUp(ctx: ToolContext): void {
@@ -336,15 +337,9 @@ export class TransformTool implements ToolHandler {
       return null;
     }
     const transform = this.liveTransform ?? layer.transform;
-    const handle = hitTestHandles(
-      transform,
-      this.rasterBounds,
-      docPoint,
-      ctx.zoom
-    );
-    this.hoveredHandle = handle;
-    const rot = transform.rotation ?? 0;
-    return handle ? cursorForHandle(handle, rot) : null;
+    const info = getTransformHoverInfo(docPoint, transform, this.rasterBounds, ctx.zoom);
+    this.hoveredHandle = info.handle;
+    return info.cursor;
   }
 
   /**
@@ -354,129 +349,19 @@ export class TransformTool implements ToolHandler {
    */
   onHoverMove(ctx: ToolContext, event: ToolPointerEvent): void {
     const cursor = this.getHoverCursor(ctx, event.point);
-    const el = ctx.containerRef.current;
-    if (el) {
-      el.style.cursor = cursor ?? "default";
-    }
+    applyCursorFeedback(ctx, cursor);
   }
 
-  // ── Gizmo drawing (screen-resolution canvas) ──────────────────────────────
+  // ── Gizmo drawing ─────────────────────────────────────────────────────────
 
   private drawGizmo(ctx: ToolContext): void {
-    ctx.drawGizmo((gc, dpr, containerW, containerH) => {
-      this.paintGizmo(gc, dpr, containerW, containerH, ctx);
-    });
-  }
-
-  /**
-   * Internal gizmo paint routine. Uses shared resolved-geometry helpers
-   * for handle positions and bounds so gizmo aligns with the rendered
-   * transformed layer.
-   */
-  private paintGizmo(
-    gc: CanvasRenderingContext2D,
-    dpr: number,
-    containerW: number,
-    containerH: number,
-    ctx: ToolContext
-  ): void {
     const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (!layer) {
       return;
     }
-
-    // Use the live preview transform during drag so the gizmo matches
-    // the composited preview. Fall back to the stored transform otherwise.
     const transform = this.liveTransform ?? layer.transform;
-    const rot = transform.rotation ?? 0;
-
-    // Use shared geometry seam for center and extents
-    const center = getTransformedCenter(transform, this.rasterBounds);
-    const { hw, hh } = scaledHalfExtents(this.rasterBounds, transform);
-
-    // Convert center to screen space
-    const screenCenter = docToScreen(
-      center.x,
-      center.y,
-      ctx.doc.canvas.width,
-      ctx.doc.canvas.height,
-      ctx.zoom,
-      ctx.pan,
-      containerW,
-      containerH,
-      dpr
-    );
-
-    gc.save();
-    gc.translate(screenCenter.x, screenCenter.y);
-    gc.rotate(rot);
-
-    const screenW = hw * 2 * ctx.zoom * dpr;
-    const screenH = hh * 2 * ctx.zoom * dpr;
-
-    // Bounding box
-    gc.strokeStyle = "rgba(0, 120, 255, 0.8)";
-    gc.lineWidth = 1 * dpr;
-    gc.setLineDash([4 * dpr, 4 * dpr]);
-    gc.strokeRect(-screenW / 2, -screenH / 2, screenW, screenH);
-    gc.setLineDash([]);
-
-    // Handle size in screen pixels
-    const hs = HANDLE_SIZE * dpr;
     const hoveredHandle = this.activeHandle ?? this.hoveredHandle;
-
-    // Corner handles (filled squares)
-    const cornerHandles: Array<{ pos: Point; handle: TransformHandle }> = [
-      { pos: { x: -screenW / 2, y: -screenH / 2 }, handle: "top-left" },
-      { pos: { x: screenW / 2, y: -screenH / 2 }, handle: "top-right" },
-      { pos: { x: -screenW / 2, y: screenH / 2 }, handle: "bottom-left" },
-      { pos: { x: screenW / 2, y: screenH / 2 }, handle: "bottom-right" }
-    ];
-    for (const { pos, handle } of cornerHandles) {
-      const isHovered = hoveredHandle === handle;
-      gc.fillStyle = isHovered ? "rgba(0, 120, 255, 0.15)" : "#ffffff";
-      gc.strokeStyle = "rgba(0, 120, 255, 1)";
-      gc.lineWidth = (isHovered ? 2 : 1) * dpr;
-      gc.fillRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
-      gc.strokeRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
-    }
-
-    // Edge midpoint handles (filled squares)
-    const midHandles: Array<{ pos: Point; handle: TransformHandle }> = [
-      { pos: { x: 0, y: -screenH / 2 }, handle: "top" },
-      { pos: { x: 0, y: screenH / 2 }, handle: "bottom" },
-      { pos: { x: -screenW / 2, y: 0 }, handle: "left" },
-      { pos: { x: screenW / 2, y: 0 }, handle: "right" }
-    ];
-    for (const { pos, handle } of midHandles) {
-      const isHovered = hoveredHandle === handle;
-      gc.fillStyle = isHovered ? "rgba(0, 120, 255, 0.15)" : "#ffffff";
-      gc.strokeStyle = "rgba(0, 120, 255, 1)";
-      gc.lineWidth = (isHovered ? 2 : 1) * dpr;
-      gc.fillRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
-      gc.strokeRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
-    }
-
-    // Rotation handle: circle above top-center with connecting line
-    const rotYOffset = ROTATION_HANDLE_OFFSET * dpr;
-    const rotY = -screenH / 2 - rotYOffset;
-    gc.beginPath();
-    gc.moveTo(0, -screenH / 2);
-    gc.lineTo(0, rotY);
-    gc.strokeStyle = "rgba(0, 120, 255, 0.6)";
-    gc.lineWidth = 1 * dpr;
-    gc.stroke();
-
-    const isRotHovered = hoveredHandle === "rotate";
-    gc.beginPath();
-    gc.arc(0, rotY, hs * 0.7, 0, Math.PI * 2);
-    gc.fillStyle = isRotHovered ? "rgba(0, 120, 255, 0.15)" : "#ffffff";
-    gc.fill();
-    gc.strokeStyle = "rgba(0, 120, 255, 1)";
-    gc.lineWidth = (isRotHovered ? 2 : 1) * dpr;
-    gc.stroke();
-
-    gc.restore();
+    paintTransformGizmo(ctx, transform, this.rasterBounds, hoveredHandle);
   }
 }
 

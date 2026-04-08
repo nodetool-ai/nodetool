@@ -30,11 +30,11 @@ Completed Phase 1 packages, hardening work, and earlier shipped fixes have been 
 
 Do these before more transform-heavy work. The goal is to reduce brittleness in `TransformTool` and nearby overlay tools by sharing only the stable gizmo primitives, not by forcing all tools into one generic interaction framework.
 
-- [ ] [impl] extract shared gizmo-core viewport/document-to-screen conversion and overlay-canvas drawing helpers so `TransformTool.ts`, `MoveTool.ts`, and `CropTool.ts` stop carrying ad hoc mapping and paint setup
-- [ ] [impl] split `TransformTool.ts` further so drag/session orchestration, hover-hit policy, and gizmo paint/layout no longer live together in one class
-- [ ] [impl+test] add shared gizmo paint primitives for box outlines, square handles, circular rotation handles, and hover/active styling so transform gizmo rendering stops being hand-written inline
-- [ ] [impl+test] migrate `TransformTool.ts` to the shared gizmo core first, then adopt the same primitives in `MoveTool.ts` and `CropTool.ts` only where it simplifies code without forcing a shared gesture lifecycle
-- [ ] [test] add focused regression coverage for gizmo hit testing, hover cursor behavior, and redraw alignment during pan/zoom/live transform preview
+- [x] [impl] extract shared gizmo-core viewport/document-to-screen conversion and overlay-canvas drawing helpers so `TransformTool.ts`, `MoveTool.ts`, and `CropTool.ts` stop carrying ad hoc mapping and paint setup
+- [x] [impl] split `TransformTool.ts` further so drag/session orchestration, hover-hit policy, and gizmo paint/layout no longer live together in one class
+- [x] [impl+test] add shared gizmo paint primitives for box outlines, square handles, circular rotation handles, and hover/active styling so transform gizmo rendering stops being hand-written inline
+- [x] [impl+test] migrate `TransformTool.ts` to the shared gizmo core first, then adopt the same primitives in `MoveTool.ts` and `CropTool.ts` only where it simplifies code without forcing a shared gesture lifecycle
+- [x] [test] add focused regression coverage for gizmo hit testing, hover cursor behavior, and redraw alignment during pan/zoom/live transform preview
 
 ### Follow-up core hardening after gizmo core
 
@@ -84,12 +84,12 @@ Do not only fix this sections items with workarounds, investigate core implement
 - [x] fix transform tool: confirm transformation moves layer
 - [x] fix transform tool: scaling is faster than mouse delta, causing transform handles to move away from mouse. the mouse position should dictate where handles go.
 - [x] fix transform tool: scaling negatively should mirror - currently does not go beyond zero
-- [ ] fix zoom tool: zooming is still noticeable slow
-- [ ] fix transform tool: scaling is mostly broken after supposed fix, also does not show realtime update, only after confirm
-- [ ] fix transform tool: moving is broken after supposed fix
-- [ ] fix transform tool: scaling is partly broken, some handles do not work like right + left
-- [ ] fix Selection tool: still after proposed fix: starting a new selection AND ending a selection freezes shortly
-- [ ] fix CTRL + i shortcut to inverse layer colors: should adhere to selection mask if any exists
+- [x] fix zoom tool: zooming is still noticeable slow
+- [x] fix transform tool: scaling is mostly broken after supposed fix, also does not show realtime update, only after confirm
+- [x] fix transform tool: moving is broken after supposed fix
+- [x] fix transform tool: scaling is partly broken, some handles do not work like right + left
+- [x] fix Selection tool: still after proposed fix: starting a new selection AND ending a selection freezes shortly
+- [x] fix CTRL + i shortcut to inverse layer colors: should adhere to selection mask if any exists
 
 ### 2.2 - Transform lifecycle shortcuts
 

@@ -1158,8 +1158,8 @@ export class WebGPURuntime implements SketchRuntime {
     }
   }
 
-  invertLayerColors(doc: SketchDocument): void {
-    this.cpuRuntime.invertLayerColors(doc);
+  invertLayerColors(doc: SketchDocument, selection?: { width: number; height: number; data: Uint8ClampedArray; originX?: number; originY?: number } | null): void {
+    this.cpuRuntime.invertLayerColors(doc, selection);
     if (doc.activeLayerId) {
       this.markLayerDirty(doc.activeLayerId);
     }

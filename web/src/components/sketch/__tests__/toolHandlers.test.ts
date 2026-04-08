@@ -395,11 +395,15 @@ describe("EyedropperTool", () => {
 
 describe("SelectTool", () => {
   it("starts a new selection on pointer down", () => {
+    jest.useFakeTimers();
     const tool = new SelectTool();
     const ctx = makeToolContext();
     const result = tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
     expect(result).toBe(true);
+    // Selection clear is deferred to avoid blocking the pointer-down handler
+    jest.runAllTimers();
     expect(ctx.onSelectionChange).toHaveBeenCalledWith(null);
+    jest.useRealTimers();
   });
 
   it("starts moving selection when clicking inside existing selection", () => {

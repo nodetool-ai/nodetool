@@ -126,7 +126,7 @@ export function useTransformActions({
   }, [document.activeLayerId, setLayerTransform]);
 
   const handleCommitLayerTransform = useCallback(
-    (layerId: string, transform: Point) => {
+    (layerId: string, transform: LayerTransform) => {
       commitLayerTransform(layerId, transform);
     },
     [commitLayerTransform]
