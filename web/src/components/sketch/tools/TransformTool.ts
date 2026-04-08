@@ -77,6 +77,12 @@ export class TransformTool implements ToolHandler {
   /** Whether a gizmo redraw is already scheduled via rAF. */
   private gizmoRedrawScheduled = false;
 
+  // ── In-transform undo/redo stacks ─────────────────────────────────────────
+  /** Stack of transforms recorded before each handle adjustment (for in-transform undo). */
+  private adjustmentUndoStack: LayerTransform[] = [];
+  /** Stack of transforms recorded when undoing an adjustment (for in-transform redo). */
+  private adjustmentRedoStack: LayerTransform[] = [];
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   onActivate(ctx: ToolContext): void {
@@ -115,6 +121,8 @@ export class TransformTool implements ToolHandler {
     this.hoveredHandle = null;
     this.gestureActive = false;
     this.liveTransform = null;
+    this.adjustmentUndoStack = [];
+    this.adjustmentRedoStack = [];
     this.drawGizmo(ctx);
   }
 
@@ -124,6 +132,8 @@ export class TransformTool implements ToolHandler {
     this.gestureActive = false;
     this.liveTransform = null;
     this.dragLayerId = null;
+    this.adjustmentUndoStack = [];
+    this.adjustmentRedoStack = [];
     ctx.clearGizmo();
     ctx.clearOverlay();
     ctx.drawSelectionOverlay();
@@ -164,6 +174,9 @@ export class TransformTool implements ToolHandler {
     this.center = getTransformedCenter(currentTransform, this.rasterBounds);
     this.gestureActive = true;
     this.dragLayerId = layer.id;
+    // Record the pre-drag transform for in-transform undo; clear redo stack.
+    this.adjustmentUndoStack.push({ ...currentTransform });
+    this.adjustmentRedoStack = [];
     ctx.onStrokeStart();
     return true;
   }
@@ -239,6 +252,78 @@ export class TransformTool implements ToolHandler {
   /** Refresh the gizmo (e.g. after external transform change). */
   refreshOverlay(ctx: ToolContext): void {
     this.drawGizmo(ctx);
+  }
+
+  // ── In-transform undo/redo ────────────────────────────────────────────────
+
+  /** Whether there are undoable handle adjustments in the current transform session. */
+  hasUndoableAdjustments(): boolean {
+    return this.adjustmentUndoStack.length > 0;
+  }
+
+  /** Whether there are redoable handle adjustments in the current transform session. */
+  hasRedoableAdjustments(): boolean {
+    return this.adjustmentRedoStack.length > 0;
+  }
+
+  /**
+   * Undo the last handle adjustment within the current transform session.
+   * Returns the transform to apply, or null if the undo stack is empty.
+   * The current transform is pushed onto the redo stack.
+   */
+  undoLastAdjustment(currentTransform: LayerTransform): LayerTransform | null {
+    if (this.adjustmentUndoStack.length === 0) {
+      return null;
+    }
+    // Push current state onto redo stack before restoring
+    this.adjustmentRedoStack.push({ ...currentTransform });
+    const previous = this.adjustmentUndoStack.pop()!;
+    // Update liveTransform so gizmo drawing uses the restored state
+    this.liveTransform = previous;
+    return { ...previous };
+  }
+
+  /**
+   * Redo the last undone handle adjustment within the current transform session.
+   * Returns the transform to apply, or null if the redo stack is empty.
+   * The current transform is pushed onto the undo stack.
+   */
+  redoLastAdjustment(currentTransform: LayerTransform): LayerTransform | null {
+    if (this.adjustmentRedoStack.length === 0) {
+      return null;
+    }
+    // Push current state onto undo stack before re-applying
+    this.adjustmentUndoStack.push({ ...currentTransform });
+    const next = this.adjustmentRedoStack.pop()!;
+    // Update liveTransform so gizmo drawing uses the restored state
+    this.liveTransform = next;
+    return { ...next };
+  }
+
+  /**
+   * Test whether a document-space point falls inside the transform bounding box.
+   * Used by the pointer handler to decide whether to show the transform context menu.
+   */
+  isPointInsideBoundingBox(ctx: ToolContext, docPoint: Point): boolean {
+    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+    if (!layer) {
+      return false;
+    }
+    const transform = this.liveTransform ?? layer.transform;
+    const handle = hitTestHandles(
+      transform,
+      this.rasterBounds,
+      docPoint,
+      ctx.zoom
+    );
+    // hitTestHandles returns "move" when inside the bounding box, or a named
+    // handle when on a handle — both count as "inside".
+    return handle !== null;
+  }
+
+  /** Get the current live transform (for external undo/redo consumers). */
+  getLiveTransform(): LayerTransform | null {
+    return this.liveTransform ? { ...this.liveTransform } : null;
   }
 
   /**

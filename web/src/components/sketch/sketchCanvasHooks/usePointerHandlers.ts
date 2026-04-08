@@ -22,6 +22,7 @@ import type { ActiveStrokeInfo } from "./useCompositing";
 import { getToolHandler } from "../tools";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { SelectTool } from "../tools/SelectTool";
+import { TransformTool } from "../tools/TransformTool";
 import { sampleColorHex } from "../tools/EyedropperTool";
 import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
@@ -106,6 +107,8 @@ export interface UsePointerHandlersParams {
   ) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
+  /** Called on right-click inside the transform bounding box (when transform tool is active). */
+  onTransformContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (
     x: number,
     y: number,
@@ -197,6 +200,7 @@ export function usePointerHandlers({
   onLayerContentBoundsChange,
   onBrushSizeChange,
   onContextMenu,
+  onTransformContextMenu,
   onCropComplete,
   onEyedropperPick,
   isolatedLayerId,
@@ -768,11 +772,23 @@ export function usePointerHandlers({
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
+      // When the transform tool is active, check if the right-click is inside the
+      // transform bounding box. If so, show the transform-specific context menu.
+      if (interactionTool === "transform" && onTransformContextMenu) {
+        const handler = getToolHandler("transform");
+        if (handler instanceof TransformTool) {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          if (handler.isPointInsideBoundingBox(toolCtxRef.current, pt)) {
+            onTransformContextMenu(e.clientX, e.clientY);
+            return;
+          }
+        }
+      }
       if (onContextMenu) {
         onContextMenu(e.clientX, e.clientY);
       }
     },
-    [onContextMenu]
+    [onContextMenu, onTransformContextMenu, interactionTool, screenToCanvas]
   );
 
   // ─── Double-click (polygon lasso close) ────────────────────────────
