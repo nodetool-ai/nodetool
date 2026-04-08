@@ -210,9 +210,9 @@ export function useEditorKeyboardShortcuts(
       }
 
       if (e.ctrlKey || e.metaKey) {
+        const currentTool = useSketchStore.getState().activeTool;
         if (e.key === "z") {
           e.preventDefault();
-          const currentTool = useSketchStore.getState().activeTool;
           if (currentTool === "transform") {
             // In transform mode, undo/redo operates on handle adjustments
             if (e.shiftKey) {
@@ -228,7 +228,6 @@ export function useEditorKeyboardShortcuts(
         }
         if (e.key === "y") {
           e.preventDefault();
-          const currentTool = useSketchStore.getState().activeTool;
           if (currentTool === "transform") {
             paramsRef.current.handleTransformRedo?.();
           } else {

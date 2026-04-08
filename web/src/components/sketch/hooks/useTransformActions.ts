@@ -211,41 +211,44 @@ export function useTransformActions({
 
   // ── In-transform undo/redo ─────────────────────────────────────────────
 
-  /** Undo the last handle adjustment while still in transform mode. */
-  const handleTransformUndo = useCallback(() => {
+  /** Helper: get the TransformTool handler and current active layer transform. */
+  const getTransformToolState = useCallback(() => {
     const handler = getToolHandler("transform");
     if (!(handler instanceof TransformTool)) {
-      return;
+      return null;
     }
     const activeLayerId = document.activeLayerId;
     const layer = document.layers.find((l) => l.id === activeLayerId);
     if (!layer) {
-      return;
+      return null;
     }
     const currentTransform = handler.getLiveTransform() ?? layer.transform;
-    const restored = handler.undoLastAdjustment(currentTransform);
-    if (restored) {
-      setLayerTransform(activeLayerId, restored);
+    return { handler, activeLayerId, layer, currentTransform };
+  }, [document.activeLayerId, document.layers]);
+
+  /** Undo the last handle adjustment while still in transform mode. */
+  const handleTransformUndo = useCallback(() => {
+    const state = getTransformToolState();
+    if (!state) {
+      return;
     }
-  }, [document.activeLayerId, document.layers, setLayerTransform]);
+    const restored = state.handler.undoLastAdjustment(state.currentTransform);
+    if (restored) {
+      setLayerTransform(state.activeLayerId, restored);
+    }
+  }, [getTransformToolState, setLayerTransform]);
 
   /** Redo the last undone handle adjustment while still in transform mode. */
   const handleTransformRedo = useCallback(() => {
-    const handler = getToolHandler("transform");
-    if (!(handler instanceof TransformTool)) {
+    const state = getTransformToolState();
+    if (!state) {
       return;
     }
-    const activeLayerId = document.activeLayerId;
-    const layer = document.layers.find((l) => l.id === activeLayerId);
-    if (!layer) {
-      return;
-    }
-    const currentTransform = handler.getLiveTransform() ?? layer.transform;
-    const restored = handler.redoLastAdjustment(currentTransform);
+    const restored = state.handler.redoLastAdjustment(state.currentTransform);
     if (restored) {
-      setLayerTransform(activeLayerId, restored);
+      setLayerTransform(state.activeLayerId, restored);
     }
-  }, [document.activeLayerId, document.layers, setLayerTransform]);
+  }, [getTransformToolState, setLayerTransform]);
 
   // ── Quick transform operations (for transform context menu) ─────────────
 

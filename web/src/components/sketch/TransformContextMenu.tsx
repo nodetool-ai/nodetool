@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
-import { SKETCH_FONT, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
+import { SKETCH_FONT } from "./sketchStyles";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
