@@ -102,6 +102,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     onStrokeEnd: jest.fn(),
     onLayerTransformChange: jest.fn(),
     setLayerTransformPreview: jest.fn(),
+    clearLayerTransformPreview: jest.fn(),
     onLayerContentBoundsChange: jest.fn(),
     onBrushSizeChange: jest.fn(),
     onContextMenu: jest.fn(),
@@ -315,6 +316,15 @@ describe("TransformTool", () => {
     tool.onActivate!(ctx);
     tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
     tool.onMove!(ctx, makePointerEvent({ point: { x: 42, y: 37 } }));
+    // During drag, the transform is applied via the preview-only path
+    // (setLayerTransformPreview) for performance — not via onLayerTransformChange.
+    expect(ctx.setLayerTransformPreview).toHaveBeenCalledWith(
+      doc.activeLayerId,
+      expect.objectContaining({ x: 10, y: 5 })
+    );
+    // The document commit happens on pointer-up.
+    expect(ctx.onLayerTransformChange).not.toHaveBeenCalled();
+    tool.onUp!(ctx);
     expect(ctx.onLayerTransformChange).toHaveBeenCalledWith(
       doc.activeLayerId,
       expect.objectContaining({ x: 10, y: 5 })

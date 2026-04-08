@@ -87,6 +87,10 @@ export interface UseEditorKeyboardShortcutsParams {
   cancelActiveTool?: () => void;
   /** Invert all color channels of the active layer. */
   handleInvertLayerColors: () => void;
+  /** Commit the current transform (bake into pixels). */
+  handleTransformCommit?: () => void;
+  /** Cancel the current transform (restore original). */
+  handleTransformCancel?: () => void;
 }
 
 export function useEditorKeyboardShortcuts(
@@ -272,6 +276,11 @@ export function useEditorKeyboardShortcuts(
           e.preventDefault();
           paramsRef.current.handlePaste(e.shiftKey);
         }
+        // Ctrl+T / Cmd+T → enter Free Transform mode
+        if (e.key.toLowerCase() === "t" && !e.shiftKey && !e.altKey) {
+          e.preventDefault();
+          paramsRef.current.setActiveTool("transform");
+        }
       } else if (e.altKey) {
         // Alt+Backspace → fill with foreground color (Photoshop convention)
         if (e.key === "Backspace") {
@@ -344,10 +353,28 @@ export function useEditorKeyboardShortcuts(
           }
         } else {
           switch (e.key) {
-            case "Escape":
-              paramsRef.current.cancelActiveTool?.();
-              useSketchStore.getState().setSelection(null);
+            case "Escape": {
+              const currentTool = useSketchStore.getState().activeTool;
+              if (currentTool === "transform") {
+                // Cancel the transform and switch back to a neutral tool
+                paramsRef.current.handleTransformCancel?.();
+                paramsRef.current.setActiveTool("move");
+              } else {
+                paramsRef.current.cancelActiveTool?.();
+                useSketchStore.getState().setSelection(null);
+              }
               break;
+            }
+            case "Enter": {
+              const currentTool = useSketchStore.getState().activeTool;
+              if (currentTool === "transform") {
+                e.preventDefault();
+                // Commit the current transform (bake into pixels)
+                paramsRef.current.handleTransformCommit?.();
+                paramsRef.current.setActiveTool("move");
+              }
+              break;
+            }
             case "b":
               paramsRef.current.setActiveTool("brush");
               break;

@@ -353,7 +353,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     resetColors: store.resetColors,
     togglePanelsHidden: store.togglePanelsHidden,
     cancelActiveTool: () => canvasRef.current?.cancelActiveTool(),
-    handleInvertLayerColors: canvasActions.handleInvertLayerColors
+    handleInvertLayerColors: canvasActions.handleInvertLayerColors,
+    handleTransformCommit: canvasActions.handleTransformCommit,
+    handleTransformCancel: canvasActions.handleTransformCancel
   });
 
   // ─── Foreground color change (syncs to active tool settings) ───────

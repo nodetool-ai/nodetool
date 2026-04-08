@@ -72,6 +72,10 @@ export class TransformTool implements ToolHandler {
    * the store. Cleared on up / deactivate.
    */
   private liveTransform: LayerTransform | null = null;
+  /** Layer ID being dragged (for preview path). */
+  private dragLayerId: string | null = null;
+  /** Whether a gizmo redraw is already scheduled via rAF. */
+  private gizmoRedrawScheduled = false;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -119,6 +123,7 @@ export class TransformTool implements ToolHandler {
     this.hoveredHandle = null;
     this.gestureActive = false;
     this.liveTransform = null;
+    this.dragLayerId = null;
     ctx.clearGizmo();
     ctx.clearOverlay();
     ctx.drawSelectionOverlay();
@@ -158,6 +163,7 @@ export class TransformTool implements ToolHandler {
     this.dragStartTransform = { ...currentTransform };
     this.center = getTransformedCenter(currentTransform, this.rasterBounds);
     this.gestureActive = true;
+    this.dragLayerId = layer.id;
     ctx.onStrokeStart();
     return true;
   }
@@ -168,7 +174,7 @@ export class TransformTool implements ToolHandler {
     }
     const pt = event.point;
     const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
-    if (!layer || !ctx.onLayerTransformChange) {
+    if (!layer) {
       return;
     }
 
@@ -186,15 +192,33 @@ export class TransformTool implements ToolHandler {
     );
     // Store the live transform so the gizmo matches the composited preview.
     this.liveTransform = newTransform;
-    ctx.onLayerTransformChange(layer.id, newTransform);
+    // Use the preview-only path during drag (like MoveTool) to avoid
+    // committing to the document store on every pointer-move event.
+    // This avoids an expensive React re-render + compositing cascade per frame.
+    ctx.setLayerTransformPreview?.(layer.id, newTransform);
 
-    // Redraw gizmo to reflect new handles
-    this.drawGizmo(ctx);
+    // Batch gizmo redraws with rAF to avoid redundant per-event paints
+    if (!this.gizmoRedrawScheduled) {
+      this.gizmoRedrawScheduled = true;
+      requestAnimationFrame(() => {
+        this.gizmoRedrawScheduled = false;
+        this.drawGizmo(ctx);
+      });
+    }
   }
 
   onUp(ctx: ToolContext): void {
+    // Commit the final transform to the document store (was preview-only during drag).
+    const dragLayerId = this.dragLayerId;
+    const finalTransform = this.liveTransform;
+    if (dragLayerId && finalTransform && ctx.onLayerTransformChange) {
+      ctx.onLayerTransformChange(dragLayerId, finalTransform);
+    }
+    ctx.clearLayerTransformPreview?.(dragLayerId ?? undefined);
+
     this.activeHandle = null;
     this.dragStart = null;
+    this.dragLayerId = null;
 
     const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (layer) {

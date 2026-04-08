@@ -58,23 +58,23 @@ Do not start advanced transform modes until these tasks are done.
 - [x] make the transform tool gizmo adapt to layer size so small layers do not get a full-canvas gizmo
 - [x] fix top/left transform scaling; this remains a valid active bug
 - [x] change transform `Commit`, `Cancel`, and `Reset` from text buttons to icon actions once the interaction semantics are stable
-- [ ] fix zoom tool: zooming is noticeable slow
+- [x] fix zoom tool: zooming is noticeable slow
 - [x] fix transform tool: zooming loses the transform gizmo
-- [ ] fix transform tool: moving and scaling is very slow. (moving with Move Tool is snappy)
+- [x] fix transform tool: moving and scaling is very slow. (moving with Move Tool is snappy)
 - [x] fix transform tool: confirm sometimes cuts off parts of layer. transformations should not delete layer parts.
 - [x] fix transform tool: confirm transformation moves layer
 - [x] fix transform tool: scaling is faster than mouse delta, causing transform handles to move away from mouse. the mouse position should dictate where handles go.
 - [x] fix transform tool: scaling negatively should mirror - currently does not go beyond zero
-- [ ] fix Selection tool: starting a new selection AND ending a selection freezes shortly
+- [x] fix Selection tool: starting a new selection AND ending a selection freezes shortly
 - [x] add CTRL + i shortcut to inverse layer colors
 
 ### 2.2 - Transform lifecycle shortcuts
 
 Add the core transform lifecycle only after `2.1` is stable.
 
-- [ ] `Ctrl+T` / `Cmd+T` enters Free Transform
-- [ ] `Enter` / `Return` commits the transformation
-- [ ] `Esc` cancels the transformation
+- [x] `Ctrl+T` / `Cmd+T` enters Free Transform
+- [x] `Enter` / `Return` commits the transformation
+- [x] `Esc` cancels the transformation
 - [ ] `Ctrl+Z` / `Cmd+Z` undoes the last handle adjustment while still in transform mode
 - [ ] right-click inside the bounding box opens a context menu with transform actions
 
