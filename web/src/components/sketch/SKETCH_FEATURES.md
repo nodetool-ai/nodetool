@@ -25,6 +25,8 @@ Task labels used below:
 ## Active Roadmap
 
 Completed Phase 1 packages, hardening work, and earlier shipped fixes have been moved to `SKETCH_FEATURES_DONE.md` so this file stays focused on the next work to execute from top to bottom.
+- [ ] fix: Selection mask tool is still slow, especially with bigger canvas. especiall adding + removing from mask. if this is a fundamental problem with cpu processing, propose a short plan in SKETCH_FEATURES.md file
+- [ ] fix: Invert with Selection mask active: inverts pixels at wrong position, outside masked area. Investigate if core features, refactor, helpers or comments can be strengtened to prevent this kind of problems
 
 ## NEXT UP - GIZMO CORE HARDENING
 
