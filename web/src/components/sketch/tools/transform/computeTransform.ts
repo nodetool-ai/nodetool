@@ -118,6 +118,12 @@ export function computeScaleTransform(
   let newSx = sx;
   let newSy = sy;
 
+  // When Alt is NOT held, the opposite edge is anchored (only one side moves).
+  // The cursor delta affects only ONE half of the layer, so we halve the delta
+  // for the scale computation. With Alt (scale from center), both sides move
+  // so the full delta is used.
+  const edgeFactor = alt ? 1 : 0.5;
+
   // Corner handles
   if (
     handle === "top-left" ||
@@ -141,8 +147,8 @@ export function computeScaleTransform(
     // The cursor delta is applied to the handle position for 1:1 tracking.
     const handleRefX = hw;
     const handleRefY = hh;
-    const deltaX = cursorDx - startDx;
-    const deltaY = cursorDy - startDy;
+    const deltaX = (cursorDx - startDx) * edgeFactor;
+    const deltaY = (cursorDy - startDy) * edgeFactor;
 
     if (shift) {
       // Proportional: use radial distance ratio from handle reference
@@ -170,7 +176,7 @@ export function computeScaleTransform(
       const sign = handle === "left" ? -1 : 1;
       const startDx = (uStart.x - center.x) * sign;
       const cursorDx = (uCursor.x - center.x) * sign;
-      const deltaX = cursorDx - startDx;
+      const deltaX = (cursorDx - startDx) * edgeFactor;
       // Use handle reference position for 1:1 tracking
       newSx = sx * ((hw + deltaX) / hw);
       if (shift) {
@@ -183,7 +189,7 @@ export function computeScaleTransform(
       const sign = handle === "top" ? -1 : 1;
       const startDy = (uStart.y - center.y) * sign;
       const cursorDy = (uCursor.y - center.y) * sign;
-      const deltaY = cursorDy - startDy;
+      const deltaY = (cursorDy - startDy) * edgeFactor;
       // Use handle reference position for 1:1 tracking
       newSy = sy * ((hh + deltaY) / hh);
       if (shift) {

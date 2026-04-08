@@ -231,8 +231,9 @@ export interface SketchRuntime {
     saturation: number
   ): void;
 
-  /** Invert all color channels of the active layer while preserving alpha. */
-  invertLayerColors(doc: SketchDocument): void;
+  /** Invert all color channels of the active layer while preserving alpha.
+   *  When a selection mask is provided, only selected pixels are inverted. */
+  invertLayerColors(doc: SketchDocument, selection?: { width: number; height: number; data: Uint8ClampedArray; originX?: number; originY?: number } | null): void;
 
   /**
    * Bake the layer transform offset into the pixel data so that
