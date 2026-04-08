@@ -248,18 +248,18 @@ export function useCompositing({
   // provides instant visual feedback. The full recomposite is only needed
   // to update the checkerboard grid-line alignment, so we can skip it
   // during rapid scroll/pinch and only composite once the zoom stabilizes.
-  const zoomRedrawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const zoomDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (zoomRedrawTimerRef.current !== null) {
-      clearTimeout(zoomRedrawTimerRef.current);
+    if (zoomDebounceTimerRef.current !== null) {
+      clearTimeout(zoomDebounceTimerRef.current);
     }
-    zoomRedrawTimerRef.current = setTimeout(() => {
-      zoomRedrawTimerRef.current = null;
+    zoomDebounceTimerRef.current = setTimeout(() => {
+      zoomDebounceTimerRef.current = null;
       requestRedraw();
     }, 50);
     return () => {
-      if (zoomRedrawTimerRef.current !== null) {
-        clearTimeout(zoomRedrawTimerRef.current);
+      if (zoomDebounceTimerRef.current !== null) {
+        clearTimeout(zoomDebounceTimerRef.current);
       }
     };
   }, [externalZoom, requestRedraw]);
