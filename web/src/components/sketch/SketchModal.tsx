@@ -7,7 +7,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -122,14 +122,18 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const symmetryRays = useSketchStore((s) => s.symmetryRays);
   const setSymmetryMode = useSketchStore((s) => s.setSymmetryMode);
   const setSymmetryRays = useSketchStore((s) => s.setSymmetryRays);
-  const canUndo = useSketchStore((s) => s.canUndo);
-  const canRedo = useSketchStore((s) => s.canRedo);
+  const canUndo = useSketchStore((s) => s.canUndo());
+  const canRedo = useSketchStore((s) => s.canRedo());
   const activeTool = useSketchStore((s) => s.activeTool);
-  const penPressure = useSketchStore((s) => ({
-    ...DEFAULT_PEN_PRESSURE,
-    ...s.toolSettings?.penPressure
-  }));
+  const rawPenPressure = useSketchStore((s) => s.toolSettings?.penPressure);
   const setPenPressure = useSketchStore((s) => s.setPenPressure);
+  const penPressure = useMemo(
+    () => ({
+      ...DEFAULT_PEN_PRESSURE,
+      ...rawPenPressure
+    }),
+    [rawPenPressure]
+  );
   const headerPenPressureOn = penPressure.pressureSensitivity !== false;
 
   // Derive label from mode
@@ -251,14 +255,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
         <Box sx={{ display: "flex", alignItems: "center", gap: "2px" }}>
           <Tooltip title="Undo (Ctrl+Z)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span>
-              <IconButton size="small" onClick={() => editorRef.current?.undo()} disabled={!canUndo()}>
+              <IconButton size="small" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
                 <UndoIcon sx={{ fontSize: "18px" }} />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title="Redo (Ctrl+Y)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span>
-              <IconButton size="small" onClick={() => editorRef.current?.redo()} disabled={!canRedo()}>
+              <IconButton size="small" onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
                 <RedoIcon sx={{ fontSize: "18px" }} />
               </IconButton>
             </span>

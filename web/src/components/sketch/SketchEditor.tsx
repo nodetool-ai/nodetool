@@ -31,10 +31,18 @@ import SketchToolbar from "./SketchToolbar";
 import SketchToolTopBar from "./SketchToolTopBar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useEditorKeyboardShortcuts } from "./useEditorKeyboardShortcuts";
-import type { SketchDocument, SketchTool } from "./types";
+import type {
+  LayerContentBounds,
+  LayerTransform,
+  Point,
+  Selection,
+  SketchDocument,
+  SketchTool
+} from "./types";
 import { isShapeTool } from "./types";
 import { getToolHandler } from "./tools";
 import type { SegmentTool } from "./tools/SegmentTool";
+import type { StrokeEndOptions } from "./tools/types";
 import {
   useSketchStoreSelectors,
   useHistoryActions,
@@ -43,6 +51,7 @@ import {
   useColorActions,
   useSegmentation
 } from "./hooks";
+import { useSketchStore } from "./state";
 import { selectionHasAnyPixels } from "./selection";
 
 const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
@@ -93,6 +102,142 @@ export interface SketchEditorProps {
   onExportImage?: (dataUrl: string) => void;
   onExportMask?: (dataUrl: string | null) => void;
 }
+
+interface SketchCanvasPaneProps {
+  canvasReady: boolean;
+  canvasRef: React.RefObject<SketchCanvasRef | null>;
+  document: SketchDocument;
+  activeTool: SketchTool;
+  interactionTool: SketchTool;
+  mirrorX: boolean;
+  mirrorY: boolean;
+  symmetryMode: string;
+  symmetryRays: number;
+  isolatedLayerId?: string | null;
+  selection: Selection | null;
+  foregroundColor: string;
+  onZoomChange: (zoom: number) => void;
+  onPanChange: (pan: { x: number; y: number }) => void;
+  onStrokeStart: () => void;
+  onStrokeEnd: (
+    layerId: string,
+    data: string | null,
+    committedBounds?: LayerContentBounds,
+    options?: StrokeEndOptions
+  ) => void;
+  onCanvasLeave: () => void;
+  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
+  onLayerContentBoundsChange: (
+    layerId: string,
+    contentBounds: LayerContentBounds
+  ) => void;
+  onBrushSizeChange?: (size: number) => void;
+  onContextMenu?: (x: number, y: number) => void;
+  onTransformContextMenu?: (x: number, y: number) => void;
+  onCropComplete?: (x: number, y: number, width: number, height: number) => void;
+  onEyedropperPick?: (color: string) => void;
+  onSelectionChange?: (sel: Selection | null) => void;
+  onAutoPickLayer?: (layerId: string) => void;
+  onDropImage?: (file: File) => void;
+  onCanvasResizeStart?: () => void;
+  onCanvasResize?: (
+    width: number,
+    height: number,
+    options?: { translateLayers?: Point; resizeFromCenter?: boolean }
+  ) => void;
+  segmentation: ReturnType<typeof useSegmentation>;
+}
+
+const SketchCanvasPane = memo(function SketchCanvasPane({
+  canvasReady,
+  canvasRef,
+  document,
+  activeTool,
+  interactionTool,
+  mirrorX,
+  mirrorY,
+  symmetryMode,
+  symmetryRays,
+  isolatedLayerId,
+  selection,
+  foregroundColor,
+  onZoomChange,
+  onPanChange,
+  onStrokeStart,
+  onStrokeEnd,
+  onCanvasLeave,
+  onLayerTransformChange,
+  onLayerContentBoundsChange,
+  onBrushSizeChange,
+  onContextMenu,
+  onTransformContextMenu,
+  onCropComplete,
+  onEyedropperPick,
+  onSelectionChange,
+  onAutoPickLayer,
+  onDropImage,
+  onCanvasResizeStart,
+  onCanvasResize,
+  segmentation
+}: SketchCanvasPaneProps) {
+  const zoom = useSketchStore((s) => s.zoom);
+  const pan = useSketchStore((s) => s.pan);
+
+  useEffect(() => {
+    if (segmentation.status !== "previewing" || !segmentation.result) {
+      return;
+    }
+    const overlayCanvas = canvasRef.current?.getOverlayCanvas();
+    if (!overlayCanvas) {
+      return;
+    }
+    const ctx = overlayCanvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    segmentation.drawMaskPreview(ctx, zoom, pan);
+  }, [segmentation, zoom, pan, canvasRef]);
+
+  if (!canvasReady) {
+    return null;
+  }
+
+  return (
+    <SketchCanvas
+      ref={canvasRef}
+      className="sketch-editor__canvas"
+      document={document}
+      activeTool={activeTool}
+      interactionTool={interactionTool}
+      zoom={zoom}
+      pan={pan}
+      mirrorX={mirrorX}
+      mirrorY={mirrorY}
+      symmetryMode={symmetryMode}
+      symmetryRays={symmetryRays}
+      isolatedLayerId={isolatedLayerId}
+      onZoomChange={onZoomChange}
+      onPanChange={onPanChange}
+      onStrokeStart={onStrokeStart}
+      onStrokeEnd={onStrokeEnd}
+      onCanvasLeave={onCanvasLeave}
+      onLayerTransformChange={onLayerTransformChange}
+      onLayerContentBoundsChange={onLayerContentBoundsChange}
+      onBrushSizeChange={onBrushSizeChange}
+      onContextMenu={onContextMenu}
+      onTransformContextMenu={onTransformContextMenu}
+      onCropComplete={onCropComplete}
+      onEyedropperPick={onEyedropperPick}
+      selection={selection}
+      onSelectionChange={onSelectionChange}
+      onAutoPickLayer={onAutoPickLayer}
+      foregroundColor={foregroundColor}
+      onDropImage={onDropImage}
+      onCanvasResizeStart={onCanvasResizeStart}
+      onCanvasResize={onCanvasResize}
+    />
+  );
+});
 
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function SketchEditor({
   initialDocument,
@@ -204,7 +349,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     document: store.document,
     activeTool: store.activeTool,
     interactionTool,
-    zoom: store.zoom,
     pushHistory: store.pushHistory,
     updateLayerData: store.updateLayerData,
     offsetLayerTransform: store.offsetLayerTransform,
@@ -308,22 +452,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
       onDocumentChange({ ...store.document, toolSettings: liveToolSettingsRef.current });
     }
   }, [store.document, onDocumentChange, canvasReady]);
-
-  // ─── Mask preview overlay when segmentation is previewing ──────────
-  useEffect(() => {
-    if (segmentation.status !== "previewing" || !segmentation.result) {
-      return;
-    }
-    const overlayCanvas = canvasRef.current?.getOverlayCanvas();
-    if (!overlayCanvas) {
-      return;
-    }
-    const ctx = overlayCanvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    segmentation.drawMaskPreview(ctx, store.zoom, store.pan);
-  }, [segmentation, store.zoom, store.pan]);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({
@@ -498,49 +626,46 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           className="sketch-editor__canvas-region"
           sx={{ flex: 1, position: "relative", overflow: "hidden" }}
         >
-          {canvasReady ? (
-            <SketchCanvas
-              ref={canvasRef}
-              className="sketch-editor__canvas"
-              document={store.document}
-              activeTool={store.activeTool}
-              interactionTool={interactionTool}
-              zoom={store.zoom}
-              pan={store.pan}
-              mirrorX={store.mirrorX}
-              mirrorY={store.mirrorY}
-              symmetryMode={store.symmetryMode}
-              symmetryRays={store.symmetryRays}
-              isolatedLayerId={store.isolatedLayerId}
-              onZoomChange={store.setZoom}
-              onPanChange={store.setPan}
-              onStrokeStart={canvasActions.handleStrokeStart}
-              onStrokeEnd={canvasActions.handleStrokeEnd}
-              onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
-              onLayerTransformChange={canvasActions.handleCommitLayerTransform}
-              onLayerContentBoundsChange={store.setLayerContentBounds}
-              onBrushSizeChange={colorActions.handleBrushSizeChange}
-              onContextMenu={canvasActions.handleContextMenu}
-              onTransformContextMenu={canvasActions.handleTransformContextMenu}
-              onCropComplete={canvasActions.handleCropComplete}
-              onEyedropperPick={colorActions.handleEyedropperPick}
-              selection={store.selection}
-              onSelectionChange={store.setSelection}
-              onAutoPickLayer={store.setActiveLayer}
-              foregroundColor={store.foregroundColor}
-              onDropImage={canvasActions.handleDropImage}
-              onCanvasResizeStart={
-                canvasResizeHandlesEnabled
-                  ? canvasActions.handleCanvasResizeStart
-                  : undefined
-              }
-              onCanvasResize={
-                canvasResizeHandlesEnabled
-                  ? canvasActions.handleCanvasResizeDrag
-                  : undefined
-              }
-            />
-          ) : null}
+          <SketchCanvasPane
+            canvasReady={canvasReady}
+            canvasRef={canvasRef}
+            document={store.document}
+            activeTool={store.activeTool}
+            interactionTool={interactionTool}
+            mirrorX={store.mirrorX}
+            mirrorY={store.mirrorY}
+            symmetryMode={store.symmetryMode}
+            symmetryRays={store.symmetryRays}
+            isolatedLayerId={store.isolatedLayerId}
+            selection={store.selection}
+            foregroundColor={store.foregroundColor}
+            onZoomChange={store.setZoom}
+            onPanChange={store.setPan}
+            onStrokeStart={canvasActions.handleStrokeStart}
+            onStrokeEnd={canvasActions.handleStrokeEnd}
+            onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
+            onLayerTransformChange={canvasActions.handleCommitLayerTransform}
+            onLayerContentBoundsChange={store.setLayerContentBounds}
+            onBrushSizeChange={colorActions.handleBrushSizeChange}
+            onContextMenu={canvasActions.handleContextMenu}
+            onTransformContextMenu={canvasActions.handleTransformContextMenu}
+            onCropComplete={canvasActions.handleCropComplete}
+            onEyedropperPick={colorActions.handleEyedropperPick}
+            onSelectionChange={store.setSelection}
+            onAutoPickLayer={store.setActiveLayer}
+            onDropImage={canvasActions.handleDropImage}
+            onCanvasResizeStart={
+              canvasResizeHandlesEnabled
+                ? canvasActions.handleCanvasResizeStart
+                : undefined
+            }
+            onCanvasResize={
+              canvasResizeHandlesEnabled
+                ? canvasActions.handleCanvasResizeDrag
+                : undefined
+            }
+            segmentation={segmentation}
+          />
         </Box>
       </Box>
 

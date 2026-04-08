@@ -149,7 +149,6 @@ export function getTransformedLayerExtents(
 export interface UseCanvasGeometryActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
-  zoom: number;
   pushHistory: (
     label: string,
     layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>,
@@ -177,7 +176,6 @@ export interface UseCanvasGeometryActionsParams {
 export function useCanvasGeometryActions({
   canvasRef,
   document,
-  zoom,
   pushHistory,
   updateLayerData,
   setDocument,
@@ -364,13 +362,13 @@ export function useCanvasGeometryActions({
       if (dW === 0 && dH === 0) {
         return;
       }
-      const { pan: p } = useSketchStore.getState();
+      const { pan: p, zoom } = useSketchStore.getState();
       setPan({
         x: p.x + (dW / 2) * zoom,
         y: p.y + (dH / 2) * zoom
       });
     },
-    [setPan, zoom]
+    [setPan]
   );
 
   const handleCanvasResize = useCallback(
@@ -417,10 +415,16 @@ export function useCanvasGeometryActions({
   );
 
   // ─── Zoom handlers ─────────────────────────────────────────────
-  const handleZoomIn = useCallback(() => setZoom(zoom * 1.3), [zoom, setZoom]);
+  const handleZoomIn = useCallback(() => {
+    const { zoom } = useSketchStore.getState();
+    setZoom(zoom * 1.3);
+  }, [setZoom]);
   const handleZoomOut = useCallback(
-    () => setZoom(zoom / 1.3),
-    [zoom, setZoom]
+    () => {
+      const { zoom } = useSketchStore.getState();
+      setZoom(zoom / 1.3);
+    },
+    [setZoom]
   );
   const handleZoomReset = useCallback(() => {
     setZoom(1);

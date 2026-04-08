@@ -27,8 +27,6 @@ export function useSketchStoreSelectors() {
   const liveToolSettings = useSketchStore((s) => s.toolSettings);
   const activeTool = useSketchStore((s) => s.activeTool);
   const transientMoveModifierHeld = useSketchStore((s) => s.transientMoveModifierHeld);
-  const zoom = useSketchStore((s) => s.zoom);
-  const pan = useSketchStore((s) => s.pan);
   const setDocument = useSketchStore((s) => s.setDocument);
   const setActiveTool = useSketchStore((s) => s.setActiveTool);
   const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
@@ -150,8 +148,6 @@ export function useSketchStoreSelectors() {
     document,
     activeTool,
     transientMoveModifierHeld,
-    zoom,
-    pan,
     setDocument,
     setActiveTool,
     setBrushSettings,

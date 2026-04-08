@@ -1,7 +1,7 @@
 # Sketch Editor Roadmap
 
 > **Status**: the transform-aware foundation is in place, but the next important work is to finish helper-tool architecture cleanup, close remaining redraw/sampling gaps, and only then continue with transform-heavy features.
-> **Last updated**: 2026-04-07
+> **Last updated**: 2026-04-09
 > **Execution note**: this is the active sketch roadmap/backlog. `REFACTOR-SKETCH-APP.md` is supporting context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
 
 ## Principles
@@ -38,6 +38,21 @@ The `combineMasks()` fast-path covers the most common hot path (add/subtract on 
 1. **Short term (done):** typed-array fast-path in `combineMasks()`. Single-pass flat loop; no union buffer allocation when masks share size/origin.
 2. **Medium term:** move selection combine operations to an OffscreenCanvas compositing path using canvas `globalCompositeOperation` (`lighter` for add, `destination-out` for subtract, `destination-in` for intersect). This offloads the per-pixel work to the browser's GPU compositor. Requires careful threshold re-mapping since canvas compositing works on RGBA, not single-channel masks.
 3. **Long term:** if WebGPU is available, run selection combine as a compute shader. This is the ultimate solution for 4K+ canvases but adds complexity. Only worthwhile if profiling shows the medium-term path is still too slow.
+
+- [ ] [impl+test] store subscription hardening pass 1: make `SketchEditor.tsx`, `SketchModal.tsx`, and `hooks/useSketchStoreSelectors.ts` stop acting like broad subscription aggregators; hot state such as `zoom`, `pan`, `selection`, and similar fast-changing UI state should be consumed in the narrowest subtree that actually needs it
+- [ ] [impl+test] store subscription hardening pass 2: audit sketch UI props and split shell vs hot-path consumers so canvas/runtime overlays can subscribe to viewport and selection state without forcing toolbar, layers panel, modal chrome, or other editor shell pieces to rerender
+- [ ] [impl+test] store subscription hardening pass 3: stop returning fresh selector objects/functions from Zustand subscriptions in sketch hot paths; move object merging/derived view models behind local `useMemo` or focused child components so unrelated store writes do not invalidate whole subtrees
+- [ ] [impl+test] store subscription hardening pass 4: add focused regression coverage for sketch rerender boundaries so plain `setZoom`, `setPan`, `setSelection`, and similar hot-path store writes prove that only the intended subtree rerenders
+- [ ] [impl] document and enforce sketch store usage rules: broad shell components should subscribe only to stable/slow state, hot mutable state should stay near `SketchCanvas`/overlay consumers, and selector helpers should avoid bundling unrelated state just for convenience
+- [ ] [impl+test] store/document split hardening: reduce broad `store.document` fanout through `SketchEditor.tsx` and nearby shells so layer list, active layer, canvas metadata, transform state, and autosave/export plumbing do not all rerender together by default
+- [ ] [impl+test] store/selection split hardening: keep committed selection state and live selection preview state separate so marquee/lasso/move/add/subtract flows can update overlays and preview refs without forcing full editor-shell subscriptions on every mask mutation
+- [ ] [impl+test] store/tool-settings split hardening: narrow `toolSettings` subscriptions so top bars, modal chrome, cursor/canvas hot paths, and non-active tool panels do not all rerender from one paint-tool slider or mode change
+- [ ] [impl] replace `hooks/useSketchStoreSelectors.ts` convenience bundling with clearer shell-level selector helpers or focused child subscriptions so new work cannot silently reintroduce broad hot-state dependencies into `SketchEditor.tsx`
+- [ ] [impl+test] audit `usePointerHandlers.ts`, `SketchCanvas.tsx`, and overlay/runtime bridge props for committed-store vs transient-preview boundaries so interaction state, buffer-heavy state, and UI shell state stop crossing the same prop chain by default
+- [ ] [impl+test] add regression coverage for document-, selection-, and tool-settings-driven rerender boundaries in `SketchEditor.tsx`, `SketchModal.tsx`, and `SketchCanvas.tsx` so future store wiring changes cannot quietly bring back full-editor invalidation
+- [ ] [impl] review autosave/export sync and other store-to-prop snapshot flows so persisted document snapshots stop depending on broad shell subscriptions when only localized hot state changed
+- [ ] fix: Selection mask tool is still slow, especially with bigger canvas. especiall adding + removing from mask. if this is a fundamental problem with cpu processing, propose a short plan in SKETCH_FEATURES.md file
+- [ ] fix: Invert with Selection mask active: inverts pixels at wrong position, outside masked area. Investigate if core features, refactor, helpers or comments can be strengtened to prevent this kind of problems
 
 ## NEXT UP - GIZMO CORE HARDENING
 
