@@ -277,7 +277,7 @@ export function useEditorKeyboardShortcuts(
           paramsRef.current.handlePaste(e.shiftKey);
         }
         // Ctrl+T / Cmd+T → enter Free Transform mode
-        if (e.key.toLowerCase() === "t" && !e.shiftKey) {
+        if (e.key.toLowerCase() === "t" && !e.shiftKey && !e.altKey) {
           e.preventDefault();
           paramsRef.current.setActiveTool("transform");
         }
