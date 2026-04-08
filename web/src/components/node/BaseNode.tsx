@@ -465,6 +465,22 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
 
+  // Only auto-switch to result view for nodes with visual output types
+  const VISUAL_OUTPUT_TYPES = new Set([
+    "image",
+    "video",
+    "audio",
+    "model_3d",
+    "model3d"
+  ]);
+  const hasVisualOutput = useMemo(
+    () =>
+      metadata?.outputs?.some((o: OutputSlot) =>
+        VISUAL_OUTPUT_TYPES.has(o.type.type)
+      ) ?? false,
+    [metadata]
+  );
+
   // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
     if (suppressResultOverlay) {
@@ -488,15 +504,15 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     ) {
       setShowResultOverlay(true);
     }
-    // When node completes with result, show results by default
-    // for regular non-output nodes (unless user explicitly opted out).
+    // When node completes with a visual result, show results by default
+    // (unless user explicitly opted out). Non-visual nodes stay on inputs.
     else if (
       result &&
+      hasVisualOutput &&
       !nodeType.isOutputNode &&
       !nodeType.isConstantNode &&
       status === "completed"
     ) {
-      // Show result overlay by default; only hide if user explicitly chose inputs
       if (data.showResultPreference !== false) {
         setShowResultOverlay(true);
       }
@@ -504,6 +520,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [
     result,
     isConstantInputLockedResult,
+    hasVisualOutput,
     nodeType.isOutputNode,
     nodeType.isConstantNode,
     status,

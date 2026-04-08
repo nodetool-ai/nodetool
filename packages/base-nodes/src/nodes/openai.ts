@@ -299,9 +299,9 @@ export class CreateImageNode extends BaseNode {
 
     const item = data.data[0];
     if (item.b64_json) {
-      return { output: { data: `data:image/png;base64,${item.b64_json}` } };
+      return { output: { type: "image", data: `data:image/png;base64,${item.b64_json}` } };
     } else if (item.url) {
-      return { output: { uri: item.url } };
+      return { output: { type: "image", uri: item.url } };
     }
     throw new Error("No image data in response");
   }
@@ -433,9 +433,9 @@ export class EditImageNode extends BaseNode {
 
     const item = data.data[0];
     if (item.b64_json) {
-      return { output: { data: `data:image/png;base64,${item.b64_json}` } };
+      return { output: { type: "image", data: `data:image/png;base64,${item.b64_json}` } };
     } else if (item.url) {
-      return { output: { uri: item.url } };
+      return { output: { type: "image", uri: item.url } };
     }
     throw new Error("No image data in response");
   }
@@ -537,7 +537,7 @@ export class TextToSpeechNode extends BaseNode {
 
     const arrayBuf = await res.arrayBuffer();
     const b64 = Buffer.from(arrayBuf).toString("base64");
-    return { output: { data: `data:audio/mp3;base64,${b64}` } };
+    return { output: { type: "audio", data: `data:audio/mp3;base64,${b64}` } };
   }
 }
 

@@ -124,8 +124,6 @@ export abstract class BaseProvider {
     /** Force the model to call a specific tool by name, or "any" to require any tool call. */
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -148,8 +146,6 @@ export abstract class BaseProvider {
     /** Force the model to call a specific tool by name, or "any" to require any tool call. */
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;

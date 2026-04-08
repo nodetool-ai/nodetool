@@ -314,7 +314,6 @@ export {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ResearchAgentNode,
   AGENT_NODES
 } from "./nodes/agents.js";
 export {

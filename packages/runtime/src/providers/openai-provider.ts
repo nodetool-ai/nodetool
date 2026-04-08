@@ -655,8 +655,6 @@ export class OpenAIProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -667,18 +665,12 @@ export class OpenAIProvider extends BaseProvider {
       model,
       tools = [],
       maxTokens = 16384,
-      responseFormat,
-      jsonSchema,
       temperature,
       topP,
       presencePenalty,
       frequencyPenalty,
       audio
     } = args;
-
-    if (responseFormat && jsonSchema) {
-      throw new Error("responseFormat and jsonSchema are mutually exclusive");
-    }
 
     const messages = this.convertSystemToUserForOModels(args.messages, model);
     const openaiMessages = await Promise.all(
@@ -693,14 +685,8 @@ export class OpenAIProvider extends BaseProvider {
       stream_options: { include_usage: true }
     };
 
-    if (responseFormat) {
-      request.response_format = responseFormat;
-    } else if (jsonSchema) {
-      request.response_format = {
-        type: "json_schema",
-        json_schema: jsonSchema
-      };
-    }
+    const hasTools =
+      tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
@@ -712,7 +698,7 @@ export class OpenAIProvider extends BaseProvider {
       request.modalities = ["text", "audio"];
     }
 
-    if (tools.length > 0 && (await this.hasToolSupport(model))) {
+    if (hasTools) {
       request.tools = this.formatTools(tools);
     }
 
@@ -800,8 +786,6 @@ export class OpenAIProvider extends BaseProvider {
     tools?: ProviderTool[];
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -812,17 +796,11 @@ export class OpenAIProvider extends BaseProvider {
       tools = [],
       toolChoice,
       maxTokens = 16384,
-      responseFormat,
-      jsonSchema,
       temperature,
       topP,
       presencePenalty,
       frequencyPenalty
     } = args;
-
-    if (responseFormat && jsonSchema) {
-      throw new Error("responseFormat and jsonSchema are mutually exclusive");
-    }
 
     const messages = this.convertSystemToUserForOModels(args.messages, model);
     const openaiMessages = await Promise.all(
@@ -836,21 +814,15 @@ export class OpenAIProvider extends BaseProvider {
       max_completion_tokens: maxTokens
     };
 
-    if (responseFormat) {
-      request.response_format = responseFormat;
-    } else if (jsonSchema) {
-      request.response_format = {
-        type: "json_schema",
-        json_schema: jsonSchema
-      };
-    }
+    const hasTools =
+      tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
     if (presencePenalty != null) request.presence_penalty = presencePenalty;
     if (frequencyPenalty != null) request.frequency_penalty = frequencyPenalty;
 
-    if (tools.length > 0 && (await this.hasToolSupport(model))) {
+    if (hasTools) {
       request.tools = this.formatTools(tools);
       if (toolChoice) {
         request.tool_choice =

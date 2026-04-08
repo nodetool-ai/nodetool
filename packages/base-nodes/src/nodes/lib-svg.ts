@@ -778,6 +778,7 @@ export class SVGToImageLibNode extends BaseNode {
     const doc = svgDocument(content, width, height, viewBox);
     return {
       output: {
+        type: "image",
         data: Buffer.from(doc, "utf-8").toString("base64"),
         mimeType: "image/svg+xml",
         width,

@@ -468,48 +468,8 @@ describe("OpenAIProvider – generateMessages with audio", () => {
   });
 });
 
-describe("OpenAIProvider – generateMessages with jsonSchema and responseFormat", () => {
-  it("throws when both responseFormat and jsonSchema provided", async () => {
-    const provider = new OpenAIProvider(
-      { OPENAI_API_KEY: "k" },
-      { client: { chat: { completions: { create: vi.fn() } } } as any }
-    );
-
-    const gen = provider.generateMessages({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: "hi" }],
-      responseFormat: { type: "json_object" },
-      jsonSchema: { type: "object" }
-    });
-    await expect(gen.next()).rejects.toThrow("mutually exclusive");
-  });
-
-  it("sets json_schema response_format when jsonSchema is provided", async () => {
-    const stream = makeAsyncIterable([
-      { choices: [{ delta: { content: "{}" }, finish_reason: "stop" }] }
-    ]);
-    const create = vi.fn().mockResolvedValue(stream);
-
-    const provider = new OpenAIProvider(
-      { OPENAI_API_KEY: "k" },
-      { client: { chat: { completions: { create } } } as any }
-    );
-
-    const out: unknown[] = [];
-    for await (const item of provider.generateMessages({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: "hi" }],
-      jsonSchema: { name: "test", schema: { type: "object" } }
-    })) {
-      out.push(item);
-    }
-
-    expect(create.mock.calls[0][0].response_format).toEqual({
-      type: "json_schema",
-      json_schema: { name: "test", schema: { type: "object" } }
-    });
-  });
-});
+// responseFormat/jsonSchema removed from provider interface — structured output
+// is handled at the caller level via extractJson or result tools.
 
 describe("OpenAIProvider – generateMessage with options", () => {
   it("passes temperature, topP, presencePenalty, frequencyPenalty", async () => {
@@ -536,22 +496,6 @@ describe("OpenAIProvider – generateMessage with options", () => {
     expect(req.top_p).toBe(0.9);
     expect(req.presence_penalty).toBe(0.1);
     expect(req.frequency_penalty).toBe(0.2);
-  });
-
-  it("throws when both responseFormat and jsonSchema", async () => {
-    const provider = new OpenAIProvider(
-      { OPENAI_API_KEY: "k" },
-      { client: { chat: { completions: { create: vi.fn() } } } as any }
-    );
-
-    await expect(
-      provider.generateMessage({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: "hi" }],
-        responseFormat: { type: "json_object" },
-        jsonSchema: { type: "object" }
-      })
-    ).rejects.toThrow("mutually exclusive");
   });
 
   it("throws when no choices returned", async () => {
@@ -1387,7 +1331,7 @@ describe("OpenAIProvider – resolveVideoSize invalid aspect", () => {
   });
 });
 
-describe("OpenAIProvider – generateMessages with tools and responseFormat", () => {
+describe("OpenAIProvider – generateMessages with tools", () => {
   it("includes tools in streaming request", async () => {
     const stream = makeAsyncIterable([
       {
@@ -1426,31 +1370,6 @@ describe("OpenAIProvider – generateMessages with tools and responseFormat", ()
 
     expect(create.mock.calls[0][0].tools).toBeDefined();
     expect(out.length).toBeGreaterThan(0);
-  });
-
-  it("sets response_format when responseFormat is provided", async () => {
-    const stream = makeAsyncIterable([
-      { choices: [{ delta: { content: "{}" }, finish_reason: "stop" }] }
-    ]);
-    const create = vi.fn().mockResolvedValue(stream);
-
-    const provider = new OpenAIProvider(
-      { OPENAI_API_KEY: "k" },
-      { client: { chat: { completions: { create } } } as any }
-    );
-
-    const out: unknown[] = [];
-    for await (const item of provider.generateMessages({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" }
-    })) {
-      out.push(item);
-    }
-
-    expect(create.mock.calls[0][0].response_format).toEqual({
-      type: "json_object"
-    });
   });
 
   it("passes temperature/topP/presencePenalty/frequencyPenalty in streaming", async () => {

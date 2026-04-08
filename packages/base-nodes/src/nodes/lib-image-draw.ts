@@ -46,7 +46,7 @@ function createDrawNode(desc: Desc): NodeClass {
         })
           .png()
           .toBuffer();
-        return { output: { data: buf.toString("base64") } };
+        return { output: { type: "image", data: buf.toString("base64") } };
       }
 
       const baseObj = pickImage(

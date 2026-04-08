@@ -1880,12 +1880,33 @@ export class ExtractAudioVideoNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const bytes = videoBytes(this.video);
-    const half = Math.floor(bytes.length / 2);
-    return {
-      output: {
-        data: Buffer.from(bytes.slice(0, half)).toString("base64")
-      }
-    };
+    if (bytes.length === 0) return { output: { data: null } };
+
+    const input = await withTempFile(".mp4", bytes);
+    const outputDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-audio-out-")
+    );
+    const outputPath = path.join(outputDir, "output.wav");
+    try {
+      await execFile(
+        "ffmpeg",
+        ["-y", "-i", input.path, "-vn", "-acodec", "pcm_s16le", outputPath],
+        { maxBuffer: 50 * 1024 * 1024 }
+      );
+      const audioBytes = new Uint8Array(await fs.readFile(outputPath));
+      return {
+        output: {
+          type: "audio",
+          data: Buffer.from(audioBytes).toString("base64"),
+          uri: "",
+          asset_id: null,
+          metadata: null
+        }
+      };
+    } finally {
+      await input.cleanup();
+      await fs.rm(outputDir, { recursive: true, force: true });
+    }
   }
 }
 

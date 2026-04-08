@@ -449,7 +449,7 @@ export class TextToVideoGeminiNode extends BaseNode {
 
     const operation = (await res.json()) as Record<string, unknown>;
     const videoData = await pollVideoOperation(apiKey, operation);
-    return { output: { data: videoData } };
+    return { output: { type: "video", data: videoData } };
   }
 }
 
@@ -552,7 +552,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
 
     const operation = (await res.json()) as Record<string, unknown>;
     const videoData = await pollVideoOperation(apiKey, operation);
-    return { output: { data: videoData } };
+    return { output: { type: "video", data: videoData } };
   }
 }
 

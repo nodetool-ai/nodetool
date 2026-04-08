@@ -380,8 +380,6 @@ export class GeminiProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -391,8 +389,6 @@ export class GeminiProvider extends BaseProvider {
       model,
       tools = [],
       maxTokens = 16384,
-      responseFormat,
-      jsonSchema,
       temperature,
       topP
     } = args;
@@ -417,10 +413,6 @@ export class GeminiProvider extends BaseProvider {
     };
     if (temperature != null) generationConfig.temperature = temperature;
     if (topP != null) generationConfig.topP = topP;
-    if (responseFormat || jsonSchema) {
-      generationConfig.responseMimeType = "application/json";
-      if (jsonSchema) generationConfig.responseSchema = jsonSchema;
-    }
     body.generationConfig = generationConfig;
 
     log.debug("Gemini request", { model });
@@ -464,8 +456,6 @@ export class GeminiProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;

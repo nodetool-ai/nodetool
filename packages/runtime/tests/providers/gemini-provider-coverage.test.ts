@@ -306,46 +306,6 @@ describe("GeminiProvider – formatTools deduplication", () => {
   });
 });
 
-describe("GeminiProvider – generateMessage with responseFormat", () => {
-  it("sets responseMimeType for responseFormat", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }]
-      })
-    );
-
-    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
-
-    await provider.generateMessage({
-      model: "gemini-2.0-flash",
-      messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" }
-    });
-
-    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
-    expect(body.generationConfig.responseMimeType).toBe("application/json");
-  });
-
-  it("sets responseSchema for jsonSchema", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      makeFetchResponse({
-        candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }]
-      })
-    );
-
-    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
-
-    await provider.generateMessage({
-      model: "gemini-2.0-flash",
-      messages: [{ role: "user", content: "json" }],
-      jsonSchema: { type: "object", properties: { ok: { type: "boolean" } } }
-    });
-
-    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
-    expect(body.generationConfig.responseMimeType).toBe("application/json");
-    expect(body.generationConfig.responseSchema).toBeDefined();
-  });
-});
 
 describe("GeminiProvider – generateMessage error handling", () => {
   it("throws on API error in response body", async () => {

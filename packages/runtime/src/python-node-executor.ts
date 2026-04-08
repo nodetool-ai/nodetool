@@ -111,6 +111,15 @@ async function loadMediaRefBytes(
   value: MediaRefValue,
   context?: ProcessingContext
 ): Promise<Uint8Array | null> {
+  // Inline base64 data takes priority over uri
+  const data = (value as Record<string, unknown>).data;
+  if (typeof data === "string" && data.length > 0) {
+    return new Uint8Array(Buffer.from(data, "base64"));
+  }
+  if (data instanceof Uint8Array) {
+    return data;
+  }
+
   if (!value.uri) {
     return null;
   }
