@@ -53,20 +53,23 @@ Do these after the helper-tool architecture blockers above.
 ### 2.1 - Transform preview/commit parity
 
 Do not start advanced transform modes until these tasks are done.
+Do not only fix this sections items with workarounds, investigate core implementations if needed.
 
 - [x] keep the updated layer preview correct while scaling, moving, and future advanced transform modes; preview behavior must not diverge from commit/history/export
 - [x] make the transform tool gizmo adapt to layer size so small layers do not get a full-canvas gizmo
 - [x] fix top/left transform scaling; this remains a valid active bug
 - [x] change transform `Commit`, `Cancel`, and `Reset` from text buttons to icon actions once the interaction semantics are stable
-- [x] fix zoom tool: zooming is noticeable slow
 - [x] fix transform tool: zooming loses the transform gizmo
-- [x] fix transform tool: moving and scaling is very slow. (moving with Move Tool is snappy)
 - [x] fix transform tool: confirm sometimes cuts off parts of layer. transformations should not delete layer parts.
 - [x] fix transform tool: confirm transformation moves layer
 - [x] fix transform tool: scaling is faster than mouse delta, causing transform handles to move away from mouse. the mouse position should dictate where handles go.
 - [x] fix transform tool: scaling negatively should mirror - currently does not go beyond zero
-- [x] fix Selection tool: starting a new selection AND ending a selection freezes shortly
-- [x] add CTRL + i shortcut to inverse layer colors
+- [ ] fix zoom tool: zooming is still noticeable slow
+- [ ] fix transform tool: scaling is mostly broken after supposed fix, also does not show realtime update, only after confirm
+- [ ] fix transform tool: moving is broken after supposed fix
+- [ ] fix transform tool: scaling is partly broken, some handles do not work like right + left
+- [ ] fix Selection tool: still after proposed fix: starting a new selection AND ending a selection freezes shortly
+- [ ] fix CTRL + i shortcut to inverse layer colors: should adhere to selection mask if any exists
 
 ### 2.2 - Transform lifecycle shortcuts
 
