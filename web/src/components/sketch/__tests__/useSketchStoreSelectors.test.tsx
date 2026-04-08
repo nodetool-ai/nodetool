@@ -29,4 +29,21 @@ describe("useSketchStoreSelectors", () => {
 
     expect(renders).toBe(1);
   });
+
+  it("does not rerender on unrelated zoom updates", () => {
+    let renders = 0;
+
+    renderHook(() => {
+      renders += 1;
+      return useSketchStoreSelectors();
+    });
+
+    expect(renders).toBe(1);
+
+    act(() => {
+      useSketchStore.getState().setZoom(2);
+    });
+
+    expect(renders).toBe(1);
+  });
 });

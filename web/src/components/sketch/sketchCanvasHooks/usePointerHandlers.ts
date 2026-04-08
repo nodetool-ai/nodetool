@@ -216,6 +216,18 @@ export function usePointerHandlers({
   drawCursorRef.current = drawCursor;
   const interactionToolCursorRef = useRef(interactionTool);
   interactionToolCursorRef.current = interactionTool;
+  const setPanningCursor = useCallback(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.style.cursor = "grabbing";
+    }
+  }, [containerRef]);
+  const clearPanningCursor = useCallback(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.style.cursor = "";
+    }
+  }, [containerRef]);
 
   // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
@@ -419,6 +431,7 @@ export function usePointerHandlers({
         (e.button === 0 && spaceHeldRef.current)
       ) {
         isPanningRef.current = true;
+        setPanningCursor();
         if (spaceHeldRef.current) {
           isSpacePanningRef.current = true;
         }
@@ -502,6 +515,7 @@ export function usePointerHandlers({
       onEyedropperPick,
       activeStrokeRef,
       drawActiveStrokePreview,
+      setPanningCursor,
       spaceHeldRef,
       sKeyHeldRef,
     ]
@@ -597,6 +611,7 @@ export function usePointerHandlers({
     (e: React.PointerEvent) => {
       if (isPanningRef.current) {
         isPanningRef.current = false;
+        clearPanningCursor();
         return;
       }
 
@@ -652,6 +667,7 @@ export function usePointerHandlers({
       appendSelectionOverlay,
       drawActiveStrokePreview,
       activeStrokeRef,
+      clearPanningCursor,
     ]
   );
 
@@ -761,9 +777,10 @@ export function usePointerHandlers({
   }, [cursorCanvasRef]);
 
   const handlePointerLeave = useCallback(() => {
+    clearPanningCursor();
     clearCursorOverlay();
     onCanvasLeave?.();
-  }, [clearCursorOverlay, onCanvasLeave]);
+  }, [clearPanningCursor, clearCursorOverlay, onCanvasLeave]);
 
   const handleMouseLeave = useCallback(() => {
     clearCursorOverlay();

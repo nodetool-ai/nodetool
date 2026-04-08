@@ -31,10 +31,18 @@ import SketchToolbar from "./SketchToolbar";
 import SketchToolTopBar from "./SketchToolTopBar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useEditorKeyboardShortcuts } from "./useEditorKeyboardShortcuts";
-import type { SketchDocument, SketchTool } from "./types";
+import type {
+  LayerContentBounds,
+  LayerTransform,
+  Point,
+  Selection,
+  SketchDocument,
+  SketchTool
+} from "./types";
 import { isShapeTool } from "./types";
 import { getToolHandler } from "./tools";
 import type { SegmentTool } from "./tools/SegmentTool";
+import type { StrokeEndOptions } from "./tools/types";
 import {
   useSketchStoreSelectors,
   useHistoryActions,
@@ -101,13 +109,12 @@ interface SketchCanvasPaneProps {
   document: SketchDocument;
   activeTool: SketchTool;
   interactionTool: SketchTool;
-  zoom: number;
   mirrorX: boolean;
   mirrorY: boolean;
   symmetryMode: string;
   symmetryRays: number;
   isolatedLayerId?: string | null;
-  selection: ReturnType<typeof useSketchStore.getState>["selection"];
+  selection: Selection | null;
   foregroundColor: string;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: { x: number; y: number }) => void;
@@ -115,28 +122,28 @@ interface SketchCanvasPaneProps {
   onStrokeEnd: (
     layerId: string,
     data: string | null,
-    committedBounds?: import("./types").LayerContentBounds,
-    options?: import("./tools/types").StrokeEndOptions
+    committedBounds?: LayerContentBounds,
+    options?: StrokeEndOptions
   ) => void;
   onCanvasLeave: () => void;
-  onLayerTransformChange?: (layerId: string, transform: import("./types").LayerTransform) => void;
+  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
   onLayerContentBoundsChange: (
     layerId: string,
-    contentBounds: import("./types").LayerContentBounds
+    contentBounds: LayerContentBounds
   ) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
   onTransformContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (x: number, y: number, width: number, height: number) => void;
   onEyedropperPick?: (color: string) => void;
-  onSelectionChange?: (sel: import("./types").Selection | null) => void;
+  onSelectionChange?: (sel: Selection | null) => void;
   onAutoPickLayer?: (layerId: string) => void;
   onDropImage?: (file: File) => void;
   onCanvasResizeStart?: () => void;
   onCanvasResize?: (
     width: number,
     height: number,
-    options?: { translateLayers?: import("./types").Point; resizeFromCenter?: boolean }
+    options?: { translateLayers?: Point; resizeFromCenter?: boolean }
   ) => void;
   segmentation: ReturnType<typeof useSegmentation>;
 }
@@ -147,7 +154,6 @@ const SketchCanvasPane = memo(function SketchCanvasPane({
   document,
   activeTool,
   interactionTool,
-  zoom,
   mirrorX,
   mirrorY,
   symmetryMode,
@@ -174,6 +180,7 @@ const SketchCanvasPane = memo(function SketchCanvasPane({
   onCanvasResize,
   segmentation
 }: SketchCanvasPaneProps) {
+  const zoom = useSketchStore((s) => s.zoom);
   const pan = useSketchStore((s) => s.pan);
 
   useEffect(() => {
@@ -342,7 +349,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     document: store.document,
     activeTool: store.activeTool,
     interactionTool,
-    zoom: store.zoom,
     pushHistory: store.pushHistory,
     updateLayerData: store.updateLayerData,
     offsetLayerTransform: store.offsetLayerTransform,
@@ -626,7 +632,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             document={store.document}
             activeTool={store.activeTool}
             interactionTool={interactionTool}
-            zoom={store.zoom}
             mirrorX={store.mirrorX}
             mirrorY={store.mirrorY}
             symmetryMode={store.symmetryMode}

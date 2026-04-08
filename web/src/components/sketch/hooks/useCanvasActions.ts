@@ -54,7 +54,6 @@ export interface UseCanvasActionsParams {
   activeTool: SketchTool;
   /** Effective gesture tool (spring-loaded move uses "move" while activeTool may stay "brush"). */
   interactionTool: SketchTool;
-  zoom: number;
   pushHistory: (
     label: string,
     layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>,
@@ -82,7 +81,6 @@ export function useCanvasActions({
   document,
   activeTool,
   interactionTool,
-  zoom,
   pushHistory,
   updateLayerData,
   offsetLayerTransform,
@@ -135,7 +133,6 @@ export function useCanvasActions({
   const geometryActions = useCanvasGeometryActions({
     canvasRef,
     document,
-    zoom,
     pushHistory,
     updateLayerData,
     setDocument,
