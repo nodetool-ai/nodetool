@@ -25,6 +25,7 @@ import { SelectTool } from "../tools/SelectTool";
 import { TransformTool } from "../tools/TransformTool";
 import { sampleColorHex } from "../tools/EyedropperTool";
 import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
+import { buildToolContext } from "../tools/buildToolContext";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
 import type { SelectionMoveAntsRef, GizmoDrawCallback } from "./useOverlayRenderer";
@@ -355,9 +356,9 @@ export function usePointerHandlers({
   // the latest values without needing all ToolContext properties in
   // their dependency arrays.
   const toolCtxRef = useRef<ToolContext>(null!);
-  toolCtxRef.current = {
+  toolCtxRef.current = buildToolContext({
     doc,
-    activeTool: interactionTool,
+    interactionTool,
     zoom,
     pan,
     mirrorX,
@@ -414,7 +415,7 @@ export function usePointerHandlers({
     selectStartRef,
     lassoPointsRef,
     getFullCompositeImageData,
-  };
+  });
 
   // ─── Tool pointer event helpers ────────────────────────────────────
   const buildToolPointerEvent = (e: React.PointerEvent): ToolPointerEvent => ({

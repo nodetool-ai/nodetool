@@ -19,6 +19,23 @@ export type {
   ToolIconComponent
 } from "./types";
 
+export {
+  selectionCombineMode,
+  selectionCombineModeFromSnapshot,
+  captureModifiers,
+  shapeConstraintFromRefs,
+  type ModifierSnapshot,
+  type ShapeConstraintIntent
+} from "./modifierIntent";
+
+export {
+  applySelectionFinalization,
+  scheduleSelectionFinalization,
+  type SelectionFinalizationParams
+} from "./selectionFinalization";
+
+export { buildToolContext, type BuildToolContextParams } from "./buildToolContext";
+
 export { EyedropperTool } from "./EyedropperTool";
 export { MoveTool } from "./MoveTool";
 export { TransformTool } from "./TransformTool";
