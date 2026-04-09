@@ -17,6 +17,9 @@ export { useColorIntentRouter } from "./useColorIntentRouter";
 export { useSegmentation } from "./useSegmentation";
 export { useEditorLifecycle } from "./useEditorLifecycle";
 export { useToolChromeActions } from "./useToolChromeActions";
+export { useEditorSession } from "./useEditorSession";
+export { useEditorCommands } from "./useEditorCommands";
+export { useTransformAdapter } from "./useTransformAdapter";
 export {
   useHistoryStoreActions,
   useLayerStoreActions,
