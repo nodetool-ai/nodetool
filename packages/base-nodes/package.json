@@ -40,7 +40,7 @@
     "ndarray": "^1.0.19",
     "ndarray-ops": "^1.2.2",
     "node-web-audio-api": "^1.0.8",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^8.0.5",
     "pdfjs-dist": "^5.5.207",
     "playwright": "^1.58.2",
     "sharp": "^0.34.4",
