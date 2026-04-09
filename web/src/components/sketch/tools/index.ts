@@ -36,6 +36,12 @@ export {
 
 export { buildToolContext, type BuildToolContextParams } from "./buildToolContext";
 
+export {
+  createPreviewSession,
+  type PreviewSession,
+  type PreviewSessionState
+} from "./previewSession";
+
 export { EyedropperTool } from "./EyedropperTool";
 export { MoveTool } from "./MoveTool";
 export { TransformTool } from "./TransformTool";
