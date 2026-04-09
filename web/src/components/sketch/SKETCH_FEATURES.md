@@ -165,8 +165,10 @@ Add the core transform lifecycle only after `2.1` is stable.
 Do not start these until preview parity, gizmo sizing, and lifecycle shortcuts are working cleanly.
 
 - [x] transform tool: add ENTER and ESC shortcuts to confirm / cancel transformation (already implemented in 2.2 above)
-- [ ] implement the base modifier-key contract for transform interactions
-- [ ] support scale behavior for free, proportional, axis-only, and from-center cases
+- [x] implement the base modifier-key contract for transform interactions
+  - **Done:** `modifierIntent.ts` provides centralized modifier-key interpretation (`ModifierSnapshot`, `selectionCombineMode()`, `shapeConstraintFromRefs()`). `TransformTool.ts` captures `shift` and `alt` modifiers during drag via `ctx.shiftHeldRef` and `ctx.altHeldRef`. `computeTransform.ts` consumes these for proportional lock, scale-from-center, and rotation snap.
+- [x] support scale behavior for free, proportional, axis-only, and from-center cases
+  - **Done:** `computeScaleTransform()` in `computeTransform.ts` implements all four modes: free (independent X/Y without Shift), proportional (Shift held — radial distance ratio), axis-only (edge midpoint handles constrain to single axis), and from-center (Alt held — `edgeFactor = 1` scales both sides symmetrically).
 - [ ] support rotate behavior, including `Shift` snapping and pivot-point changes
 - [ ] support distort behavior on corner handles
 - [ ] support skew behavior on side handles
@@ -177,10 +179,12 @@ Do not start these until preview parity, gizmo sizing, and lifecycle shortcuts a
 
 Modifier-key target behavior to preserve while implementing the items above:
 
-- [ ] no modifier -> scale (default)
+- [x] no modifier -> scale (default)
+  - **Done:** Default handle interaction applies scale. `computeTransformForHandle()` dispatches to `computeScaleTransform()` for all handle types except `move` and `rotate`.
 - [ ] `Ctrl` / `Cmd` -> independent vertex control (`Distort` on corners, `Skew` on edges)
 - [ ] `Shift` -> constrain (proportional scale, 15-degree rotation snap, axis-lock distortion)
-- [ ] `Alt` / `Option` -> from center / symmetrical
+- [x] `Alt` / `Option` -> from center / symmetrical
+  - **Done:** `computeScaleTransform()` uses `edgeFactor = alt ? 1 : 0.5` so Alt scales from center (both sides move) while no-Alt anchors the opposite edge.
 - [ ] `Ctrl+Shift` / `Cmd+Shift` -> skew on sides, constrained distort on corners
 - [ ] `Ctrl+Alt+Shift` / `Cmd+Option+Shift` -> perspective
 - [ ] cursor position determines behavior: outside box = rotate, inside = move, on handle = transform
