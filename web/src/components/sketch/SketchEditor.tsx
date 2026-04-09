@@ -482,6 +482,11 @@ interface ConnectedContextMenuProps {
   onRedo: () => void;
   onClearLayer: () => void;
   onExportPng: () => void;
+  onFillSelectionWithForeground: () => void;
+  onNewLayer: () => void;
+  onLayerViaCopy: () => void;
+  onLayerViaCut: () => void;
+  onFreeTransform: () => void;
 }
 
 const ConnectedContextMenu = memo(function ConnectedContextMenu(
@@ -520,6 +525,11 @@ const ConnectedContextMenu = memo(function ConnectedContextMenu(
   const convertSelectionToBorderOutline = useSketchStore(
     (s) => s.convertSelectionToBorderOutline
   );
+  const deselectSelection = useCallback(
+    () => useSketchStore.getState().setSelection(null),
+    []
+  );
+  const reselectSelection = useSketchStore((s) => s.reselectLastSelection);
 
   return (
     <SketchCanvasContextMenu
@@ -559,6 +569,13 @@ const ConnectedContextMenu = memo(function ConnectedContextMenu(
       onFeatherSelection={featherCurrentSelection}
       onSmoothSelectionBorders={smoothCurrentSelectionBorders}
       onStrokeSelectionBorder={convertSelectionToBorderOutline}
+      onDeselectSelection={deselectSelection}
+      onReselectSelection={reselectSelection}
+      onFillSelectionWithForeground={props.onFillSelectionWithForeground}
+      onNewLayer={props.onNewLayer}
+      onLayerViaCopy={props.onLayerViaCopy}
+      onLayerViaCut={props.onLayerViaCut}
+      onFreeTransform={props.onFreeTransform}
       onAdjustBrightnessChange={props.onAdjustBrightnessChange}
       onAdjustContrastChange={props.onAdjustContrastChange}
       onAdjustSaturationChange={props.onAdjustSaturationChange}
@@ -953,6 +970,36 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     handler.clearPrompts();
   }, []);
 
+  // ─── Selection context-menu action callbacks ───────────────────────
+  const handleFillSelectionWithForeground = useCallback(() => {
+    const fg = useSketchStore.getState().foregroundColor;
+    canvasActions.handleFillLayerWithColor(fg);
+  }, [canvasActions]);
+
+  const handleNewLayerFromContextMenu = useCallback(() => {
+    layerActions.handleAddLayer();
+  }, [layerActions]);
+
+  const handleLayerViaCopy = useCallback(async () => {
+    // Copy sets the internal clipboard buffer synchronously.
+    canvasActions.handleCopy();
+    layerActions.handleAddLayer();
+    // preferInternalClipboardFirst=true so the in-app buffer is used,
+    // avoiding async OS clipboard read for this operation.
+    await canvasActions.handlePaste(true);
+  }, [canvasActions, layerActions]);
+
+  const handleLayerViaCut = useCallback(async () => {
+    // Cut = copy + clear; both are synchronous for the internal buffer.
+    canvasActions.handleCut();
+    layerActions.handleAddLayer();
+    await canvasActions.handlePaste(true);
+  }, [canvasActions, layerActions]);
+
+  const handleFreeTransform = useCallback(() => {
+    setActiveTool("transform" as SketchTool);
+  }, [setActiveTool]);
+
   // ─── Cancel adjustment preview if tool changes away from "adjust" ──
   const prevAdjustToolRef = useRef(activeTool);
   useEffect(() => {
@@ -1054,7 +1101,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     handleTransformCommit: canvasActions.handleTransformCommit,
     handleTransformCancel: canvasActions.handleTransformCancel,
     handleTransformUndo: canvasActions.handleTransformUndo,
-    handleTransformRedo: canvasActions.handleTransformRedo
+    handleTransformRedo: canvasActions.handleTransformRedo,
+    handleLayerViaCopy,
+    handleLayerViaCut
   });
 
   // ─── Imperative handle for modal header actions ─────────────────────
@@ -1212,6 +1261,11 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onRedo={handleRedo}
         onClearLayer={canvasActions.handleClearLayer}
         onExportPng={canvasActions.handleExportPng}
+        onFillSelectionWithForeground={handleFillSelectionWithForeground}
+        onNewLayer={handleNewLayerFromContextMenu}
+        onLayerViaCopy={handleLayerViaCopy}
+        onLayerViaCut={handleLayerViaCut}
+        onFreeTransform={handleFreeTransform}
       />
 
       <TransformContextMenu
