@@ -8,8 +8,19 @@ const modelListItemStyles = (theme: Theme) =>
       marginBottom: "0.35em",
       boxSizing: "border-box",
       wordBreak: "break-word",
-      maxHeight: "calc(100% - 0.75em)", // Ensure it fits within the react-window item size minus margin
-      overflow: "hidden", // Prevent content from spilling out
+      maxHeight: "calc(100% - 0.75em)",
+      overflow: "hidden",
+      borderLeft: "3px solid transparent",
+      borderRadius: "4px",
+      transition: "background-color 0.15s ease, border-color 0.15s ease",
+
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover
+      },
+
+      "&.downloaded": {
+        borderLeftColor: theme.vars.palette.success.main
+      },
 
       "&.compact": {
         padding: ".5em .75em"

@@ -207,7 +207,7 @@ describe("useSketchStore", () => {
       });
       const layers = useSketchStore.getState().document.layers;
       expect(layers).toHaveLength(2);
-      expect(layers[1].name).toBe("Background Copy");
+      expect(layers[1].name).toBe("Background copy 1");
     });
 
     it("unlocks duplicated locked layers", () => {
@@ -242,7 +242,7 @@ describe("useSketchStore", () => {
 
       const layers = useSketchStore.getState().document.layers;
       expect(layers).toHaveLength(2);
-      expect(layers[1].name).toBe("Background Copy");
+      expect(layers[1].name).toBe("Background copy 1");
       expect(layers[1].locked).toBe(false);
       expect(layers[1].exposedAsInput).toBe(true);
       expect(layers[1].exposedAsOutput).toBe(true);

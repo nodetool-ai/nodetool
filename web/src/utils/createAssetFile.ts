@@ -2,7 +2,7 @@ import log from "loglevel";
 import type { Chunk } from "../stores/ApiTypes";
 import { authHeader } from "../stores/ApiClient";
 import { client } from "../stores/ApiClient";
-import { resolveAssetUri } from "../components/node/output/hooks";
+import { resolveAssetUri, isAssetUri } from "../utils/resolveAssetUri";
 
 interface AssetFileResult {
   file: File;
@@ -396,7 +396,7 @@ const isExternalUrl = (url: string): boolean => {
 };
 
 const fetchBinaryFromUri = async (uri: string): Promise<Uint8Array> => {
-  const resolvedUri = resolveDownloadUri(resolveAssetUri(uri));
+  const resolvedUri = resolveDownloadUri(resolveAssetUri(uri) ?? uri);
   const external = isExternalUrl(resolvedUri);
 
   const fetchOptions: RequestInit = external
@@ -432,16 +432,16 @@ const createSingleAssetFile = async (
 
   const typedOutput = output && typeof output === "object" ? output as TypedOutput : null;
   const outputUri = typeof typedOutput?.uri === "string" ? typedOutput.uri : undefined;
-  const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
+  const outputIsAssetUri = isAssetUri(outputUri);
   let desiredFilename = typedOutput?.filename;
 
   const shouldFetchFromUri =
     typeof outputUri === "string" &&
-    !isAssetUri &&
+    !outputIsAssetUri &&
     (isDataEmpty || stringLooksLikeUrl || data === output);
   const shouldDownloadAsset =
     typeof typedOutput?.asset_id === "string" &&
-    (isDataEmpty || data === output || isAssetUri);
+    (isDataEmpty || data === output || outputIsAssetUri);
 
 
   if (shouldDownloadAsset) {

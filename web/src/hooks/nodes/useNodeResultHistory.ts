@@ -11,18 +11,13 @@ import { useMemo } from "react";
 import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
 import { HistoricalResult } from "../../stores/NodeResultHistoryStore";
 import { useNodeAssets } from "../../serverState/useNodeAssets";
+import { resolveAssetUri } from "../../utils/resolveAssetUri";
 
 const resolveHistoryUri = (uri: string): string | null => {
-  if (uri.startsWith("asset://")) {
-    const assetId = uri.slice("asset://".length);
-    return `/api/storage/${assetId}`;
-  }
-
   if (uri.startsWith("memory://")) {
     return null;
   }
-
-  return uri;
+  return resolveAssetUri(uri);
 };
 
 const normalizeHistoryResultUris = (value: unknown): unknown => {

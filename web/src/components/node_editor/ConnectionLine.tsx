@@ -7,11 +7,12 @@ import {
   getSimpleBezierPath
 } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
+import { colorForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
 
 const CONTROL_EDGE_COLOR = "#f59e0b";
-const DEFAULT_EDGE_COLOR = "#111";
+const DEFAULT_EDGE_COLOR = "#888";
 
 const ConnectionLine: ConnectionLineComponent = ({
   fromX,
@@ -24,10 +25,12 @@ const ConnectionLine: ConnectionLineComponent = ({
 }) => {
   const connectType = useConnectionStore((state) => state.connectType);
   const className = connectType?.type || undefined;
-  
-  // Use amber color for control edges, black for regular edges
+
+  // Use type-aware color: amber for control, data-type color for regular, fallback to grey
   const strokeColor = useMemo(() => {
-    return connectType?.type === "control" ? CONTROL_EDGE_COLOR : DEFAULT_EDGE_COLOR;
+    if (connectType?.type === "control") return CONTROL_EDGE_COLOR;
+    if (connectType?.type) return colorForType(connectType.type);
+    return DEFAULT_EDGE_COLOR;
   }, [connectType?.type]);
 
   let dAttr = "";
@@ -41,7 +44,6 @@ const ConnectionLine: ConnectionLineComponent = ({
   };
 
   if (connectionLineType === ConnectionLineType.Bezier) {
-    // we assume the destination position is opposite to the source position
     [dAttr] = getBezierPath(pathParams);
   } else if (connectionLineType === ConnectionLineType.Step) {
     [dAttr] = getSmoothStepPath({
@@ -55,29 +57,37 @@ const ConnectionLine: ConnectionLineComponent = ({
   } else {
     dAttr = `M${fromX},${fromY} ${toX},${toY}`;
   }
-  const width = 12;
-  const height = 12;
-  const offsetX = width / 2;
-  const offsetY = height / 2;
+  const radius = 6;
+  const isControl = connectType?.type === "control";
 
   return (
     <g className={"custom-connection-line"}>
+      {/* Glow effect behind the connection line */}
       <path
         fill="none"
         stroke={strokeColor}
-        strokeDasharray={connectType?.type === "control" ? "8 4" : undefined}
+        strokeWidth={6}
+        strokeOpacity={0.15}
+        d={dAttr}
+      />
+      <path
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth={2.5}
+        strokeDasharray={isControl ? "8 4" : undefined}
         className={Slugify(className || "")}
         d={dAttr}
       />
-      <rect
-        style={{ zIndex: "0" }}
-        className={Slugify(className || "")}
-        x={toX - offsetX}
-        y={toY - offsetY}
-        width={width}
-        height={height}
-        rx="1"
+      {/* Circular cursor indicator */}
+      <circle
+        cx={toX}
+        cy={toY}
+        r={radius}
         fill={strokeColor}
+        fillOpacity={0.9}
+        stroke={strokeColor}
+        strokeWidth={1.5}
+        strokeOpacity={0.4}
       />
     </g>
   );

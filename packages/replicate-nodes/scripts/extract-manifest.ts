@@ -6,7 +6,7 @@
 
 import { writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { getDeclaredPropertiesForClass } from "@nodetool/node-sdk";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -38,6 +38,8 @@ interface ManifestEntry {
     fieldType: string;
     required: boolean;
     enumValues?: string[];
+    min?: number;
+    max?: number;
   }>;
   outputFields: never[];
   enums: never[];
@@ -47,7 +49,7 @@ async function main() {
   const manifest: ManifestEntry[] = [];
 
   for (const modName of modules) {
-    const mod = await import(join(generatedDir, `${modName}.ts`));
+    const mod = await import(pathToFileURL(join(generatedDir, `${modName}.ts`)).href);
     const arrayKey = Object.keys(mod).find((k) => k.startsWith("REPLICATE_"));
     if (!arrayKey) continue;
 
@@ -91,7 +93,9 @@ async function main() {
         required: false,
         ...(p.options.values?.length
           ? { enumValues: p.options.values.map(String) }
-          : {})
+          : {}),
+        ...(p.options.min !== undefined ? { min: p.options.min } : {}),
+        ...(p.options.max !== undefined ? { max: p.options.max } : {})
       }));
 
       manifest.push({

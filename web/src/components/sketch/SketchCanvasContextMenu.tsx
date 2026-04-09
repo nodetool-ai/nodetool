@@ -17,6 +17,15 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
+import InvertColorsIcon from "@mui/icons-material/InvertColors";
+import DeselectIcon from "@mui/icons-material/Deselect";
+import RestoreIcon from "@mui/icons-material/Restore";
+import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ContentCutIcon from "@mui/icons-material/ContentCut";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
+import TransformIcon from "@mui/icons-material/Transform";
+import HighlightAltIcon from "@mui/icons-material/HighlightAlt";
 import {
   BrushSettings,
   BlurSettings,
@@ -74,6 +83,54 @@ function ColorPreview({ label, color }: { label: string; color: string }) {
         {label}
       </Typography>
     </Stack>
+  );
+}
+
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
+const cmdKey = isMac ? "⌘" : "Ctrl+";
+
+interface SelectionMenuItemProps {
+  icon: React.ReactNode;
+  label: string;
+  shortcut?: string;
+  disabled?: boolean;
+  onClick: () => void;
+}
+
+function SelectionMenuItem({ icon, label, shortcut, disabled, onClick }: SelectionMenuItemProps) {
+  return (
+    <ButtonBase
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        width: "100%",
+        px: 1,
+        py: 0.5,
+        borderRadius: "6px",
+        justifyContent: "flex-start",
+        textAlign: "left",
+        opacity: disabled ? 0.4 : 1,
+        "&:hover": {
+          backgroundColor: "action.hover"
+        }
+      }}
+    >
+      <Box sx={{ flex: "0 0 auto", display: "flex", color: "text.secondary" }}>
+        {icon}
+      </Box>
+      <Typography sx={{ flex: 1, fontSize: SKETCH_FONT.md, fontWeight: 500, color: "text.primary" }}>
+        {label}
+      </Typography>
+      {shortcut && (
+        <Typography sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap" }}>
+          {shortcut}
+        </Typography>
+      )}
+    </ButtonBase>
   );
 }
 
@@ -203,6 +260,14 @@ export interface SketchCanvasContextMenuProps {
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
+  onDeselectSelection: () => void;
+  onReselectSelection: () => void;
+  onFillSelectionWithForeground: () => void;
+  onNewLayer: () => void;
+  onLayerViaCopy: () => void;
+  onLayerViaCut: () => void;
+  onFreeTransform: () => void;
+  onTransformSelection?: () => void;
   onAdjustBrightnessChange?: (value: number) => void;
   onAdjustContrastChange?: (value: number) => void;
   onAdjustSaturationChange?: (value: number) => void;
@@ -270,6 +335,14 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onFeatherSelection,
   onSmoothSelectionBorders,
   onStrokeSelectionBorder,
+  onDeselectSelection,
+  onReselectSelection,
+  onFillSelectionWithForeground,
+  onNewLayer,
+  onLayerViaCopy,
+  onLayerViaCut,
+  onFreeTransform,
+  onTransformSelection,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -610,6 +683,86 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 ))}
               </Box>
             </Box>
+
+            {/* Selection actions (visible when select tool is active or selection exists) */}
+            {(activeTool === "select" || hasActiveSelection) && (
+              <Box
+                className="sketch-context-menu__selection-actions"
+                sx={{
+                  borderRadius: "8px",
+                  px: 1.15,
+                  py: 1.1
+                }}
+              >
+                <SectionLabel>Selection</SectionLabel>
+                <Stack spacing={0.3}>
+                  <SelectionMenuItem
+                    icon={<InvertColorsIcon sx={{ fontSize: 16 }} />}
+                    label="Select Inverse"
+                    shortcut={`${cmdKey}⇧I`}
+                    onClick={() => { onInvertSelection(); onClose(); }}
+                  />
+                  <SelectionMenuItem
+                    icon={<DeselectIcon sx={{ fontSize: 16 }} />}
+                    label="Deselect"
+                    shortcut={`${cmdKey}D`}
+                    disabled={!hasActiveSelection}
+                    onClick={() => { onDeselectSelection(); onClose(); }}
+                  />
+                  <SelectionMenuItem
+                    icon={<RestoreIcon sx={{ fontSize: 16 }} />}
+                    label="Reselect"
+                    shortcut={`${cmdKey}⇧D`}
+                    onClick={() => { onReselectSelection(); onClose(); }}
+                  />
+                  <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
+                  <SelectionMenuItem
+                    icon={<ContentCopyIcon sx={{ fontSize: 16 }} />}
+                    label="Layer via Copy"
+                    shortcut={`${cmdKey}J`}
+                    disabled={!hasActiveSelection}
+                    onClick={() => { onLayerViaCopy(); onClose(); }}
+                  />
+                  <SelectionMenuItem
+                    icon={<ContentCutIcon sx={{ fontSize: 16 }} />}
+                    label="Layer via Cut"
+                    shortcut={`${cmdKey}⇧J`}
+                    disabled={!hasActiveSelection}
+                    onClick={() => { onLayerViaCut(); onClose(); }}
+                  />
+                  <SelectionMenuItem
+                    icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
+                    label="New Layer..."
+                    onClick={() => { onNewLayer(); onClose(); }}
+                  />
+                  <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
+                  <SelectionMenuItem
+                    icon={<TransformIcon sx={{ fontSize: 16 }} />}
+                    label="Free Transform"
+                    shortcut={`${cmdKey}T`}
+                    onClick={() => { onFreeTransform(); onClose(); }}
+                  />
+                  <SelectionMenuItem
+                    icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
+                    label="Transform Selection"
+                    disabled={!hasActiveSelection || !onTransformSelection}
+                    onClick={() => { onTransformSelection?.(); onClose(); }}
+                  />
+                  <SelectionMenuItem
+                    icon={<FormatColorFillIcon sx={{ fontSize: 16 }} />}
+                    label="Fill"
+                    disabled={!hasActiveSelection}
+                    onClick={() => { onFillSelectionWithForeground(); onClose(); }}
+                  />
+                  <SelectionMenuItem
+                    icon={<InvertColorsIcon sx={{ fontSize: 16, transform: "scaleX(-1)" }} />}
+                    label="Stroke"
+                    disabled={!hasActiveSelection}
+                    onClick={() => { onStrokeSelectionBorder(); onClose(); }}
+                  />
+                </Stack>
+              </Box>
+            )}
 
             <Box
               className="sketch-context-menu__canvas-actions"

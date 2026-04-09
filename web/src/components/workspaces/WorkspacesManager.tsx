@@ -28,6 +28,8 @@ import AddIcon from "@mui/icons-material/Add";
 import FolderIcon from "@mui/icons-material/Folder";
 import CheckIcon from "@mui/icons-material/Check";
 import CancelIcon from "@mui/icons-material/Cancel";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
@@ -263,12 +265,23 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
 
   // Update workspace mutation
   const updateMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string }) => {
+    mutationFn: async (data: {
+      id: string;
+      name?: string;
+      is_default?: boolean;
+    }) => {
+      const body: { name?: string; is_default?: boolean } = {};
+      if (data.name !== undefined) {
+        body.name = data.name;
+      }
+      if (data.is_default !== undefined) {
+        body.is_default = data.is_default;
+      }
       const { data: result, error } = await client.PUT(
         "/api/workspaces/{workspace_id}",
         {
           params: { path: { workspace_id: data.id } },
-          body: { name: data.name }
+          body
         }
       );
       if (error) {
@@ -379,6 +392,23 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     setDeleteConfirmOpen(false);
     setWorkspaceToDelete(null);
   }, []);
+
+  const handleToggleDefault = useCallback(
+    (workspace: WorkspaceResponse) => {
+      if (workspace.is_default) {
+        return; // Already default, don't un-default
+      }
+      updateMutation.mutate({ id: workspace.id, is_default: true });
+    },
+    [updateMutation]
+  );
+
+  const createToggleDefaultHandler = useCallback(
+    (workspace: WorkspaceResponse) => {
+      return () => handleToggleDefault(workspace);
+    },
+    [handleToggleDefault]
+  );
 
   const handleStartEdit = useCallback((workspace: WorkspaceResponse) => {
     setEditingId(workspace.id);
@@ -542,14 +572,6 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                                   {workspace.path}
                                 </Typography>
                                 <span className="workspace-badges">
-                                  {workspace.is_default && (
-                                    <Chip
-                                      size="small"
-                                      label="Default"
-                                      color="primary"
-                                      variant="outlined"
-                                    />
-                                  )}
                                   {!workspace.is_accessible && (
                                     <Chip
                                       size="small"
@@ -564,6 +586,32 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           />
                         </div>
                         <ListItemSecondaryAction>
+                          <Tooltip
+                            title={
+                              workspace.is_default
+                                ? "Default workspace"
+                                : "Set as default"
+                            }
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={createToggleDefaultHandler(workspace)}
+                              sx={{
+                                color: workspace.is_default
+                                  ? "warning.main"
+                                  : "text.secondary",
+                                "&:hover": {
+                                  color: "warning.main"
+                                }
+                              }}
+                            >
+                              {workspace.is_default ? (
+                                <StarIcon fontSize="small" />
+                              ) : (
+                                <StarBorderIcon fontSize="small" />
+                              )}
+                            </IconButton>
+                          </Tooltip>
                           <Tooltip title="Edit">
                             <IconButton
                               size="small"

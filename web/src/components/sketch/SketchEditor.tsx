@@ -4,8 +4,26 @@
  * Main sketch editor component that composes the canvas, toolbar, and layers panel.
  * Manages the editor state via the sketch store and handles keyboard shortcuts.
  *
- * After refactor: orchestration and component wiring only. All store selection,
- * history, layer, canvas, and color logic lives in focused controller hooks.
+ * ## Subscription architecture (passes 1 & 2)
+ *
+ * Shell components (toolbar, top bar, layers panel) subscribe directly to the
+ * store slices they need via narrow connected wrappers defined below. This means
+ * a hot-path change (e.g. `zoom`, `pan`, `selection`, or a tool-settings slider)
+ * does **not** force the entire editor tree to re-render — only the subtree that
+ * actually consumes the changed value is invalidated.
+ *
+ * SketchEditor itself subscribes only to the state needed for its own effects
+ * and action-hook creation (`document`, `activeTool`, `transientMoveModifierHeld`,
+ * `toolSettings` via ref). Children are wired through connected components.
+ *
+ * ## Refactor structure
+ *
+ * - **useEditorLifecycle** owns bootstrap (document seeding, canvas-ready gating),
+ *   autosave, tool-transition side effects, and resize-handle preference.
+ * - **useToolChromeActions** centralizes per-tool settings setters and selection
+ *   actions shared between ConnectedToolTopBar and ConnectedContextMenu.
+ * - **useEditorStoreActions** groups the flat action grab-bag into focused bundles
+ *   for history, layer, canvas, color, and session concerns.
  */
 
 /** @jsxImportSource @emotion/react */
@@ -16,53 +34,50 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useLayoutEffect,
   useMemo,
-  useRef,
-  useState
+  useRef
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
 import SketchCanvasContextMenu from "./SketchCanvasContextMenu";
+import TransformContextMenu from "./TransformContextMenu";
 import SketchToolbar from "./SketchToolbar";
 import SketchToolTopBar from "./SketchToolTopBar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useEditorKeyboardShortcuts } from "./useEditorKeyboardShortcuts";
-import type { SketchDocument, SketchTool } from "./types";
-import { isShapeTool } from "./types";
+import type {
+  BlendMode,
+  LayerContentBounds,
+  LayerTransform,
+  Point,
+  SketchDocument,
+  SketchTool
+} from "./types";
 import { getToolHandler } from "./tools";
 import type { SegmentTool } from "./tools/SegmentTool";
+import type { StrokeEndOptions } from "./tools/types";
 import {
-  useSketchStoreSelectors,
+  useResolvedToolSettings,
   useHistoryActions,
   useLayerActions,
   useCanvasActions,
   useColorActions,
-  useSegmentation
+  useColorIntentRouter,
+  useSegmentation,
+  useEditorLifecycle,
+  useToolChromeActions,
+  useHistoryStoreActions,
+  useLayerStoreActions,
+  useCanvasStoreActions,
+  useColorStoreActions,
+  useSessionStoreActions
 } from "./hooks";
-import { selectionHasAnyPixels } from "./selection";
-
-const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
-  "nodetool-sketch-canvas-resize-handles";
-
-function readCanvasResizeHandlesEnabled(): boolean {
-  if (typeof window === "undefined") {
-    return true;
-  }
-  try {
-    const raw = window.localStorage.getItem(
-      SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY
-    );
-    if (raw === null) {
-      return true;
-    }
-    return raw === "1" || raw === "true";
-  } catch {
-    return true;
-  }
-}
+import { useSketchStore } from "./state";
+import {
+  useDisplayedActiveLayerTransform
+} from "./activeLayerTransform";
 
 const styles = (theme: Theme) =>
   css({
@@ -93,6 +108,555 @@ export interface SketchEditorProps {
   onExportMask?: (dataUrl: string | null) => void;
 }
 
+// ─── Connected shell components ─────────────────────────────────────
+//
+// Each connected component subscribes directly to only the store slices
+// it needs, so changes in other slices (zoom, pan, document, selection)
+// do not force unrelated shell pieces to re-render.
+
+/**
+ * ConnectedToolbar — subscribes to activeTool + colors only.
+ * Does NOT re-render on document, toolSettings, selection, or viewport changes.
+ */
+const ConnectedToolbar = memo(function ConnectedToolbar() {
+  const activeTool = useSketchStore((s) => s.activeTool);
+  const foregroundColor = useSketchStore((s) => s.foregroundColor) || "#ffffff";
+  const backgroundColor = useSketchStore((s) => s.backgroundColor) || "#000000";
+  const setActiveTool = useSketchStore((s) => s.setActiveTool);
+  const setBackgroundColor = useSketchStore((s) => s.setBackgroundColor);
+  const swapColors = useSketchStore((s) => s.swapColors);
+  const resetColors = useSketchStore((s) => s.resetColors);
+  const handleFgColorChange = useColorIntentRouter();
+
+  return (
+    <SketchToolbar
+      activeTool={activeTool}
+      onToolChange={setActiveTool}
+      foregroundColor={foregroundColor}
+      backgroundColor={backgroundColor}
+      onForegroundColorChange={handleFgColorChange}
+      onBackgroundColorChange={setBackgroundColor}
+      onSwapColors={swapColors}
+      onResetColors={resetColors}
+    />
+  );
+});
+
+/**
+ * ConnectedToolTopBar — subscribes to activeTool, individual tool-setting
+ * sub-objects (via narrow selectors), panelsHidden, and hasActiveSelection.
+ * Does NOT re-render on document, viewport, color changes, or unrelated
+ * tool-setting slider changes (e.g. brush size while eraser is active).
+ * Action callbacks that depend on document are passed in as props; their
+ * individual references are stable via `useCallback`.
+ */
+interface ConnectedToolTopBarProps {
+  adjBrightness: number;
+  adjContrast: number;
+  adjSaturation: number;
+  onAdjustBrightnessChange: (v: number) => void;
+  onAdjustContrastChange: (v: number) => void;
+  onAdjustSaturationChange: (v: number) => void;
+  onAdjustApply: () => void;
+  onAdjustCancel: () => void;
+  onTransformCommit: () => void;
+  onTransformCancel: () => void;
+  onTransformReset: () => void;
+  segmentation: ReturnType<typeof useSegmentation>;
+  onRunSegmentation: () => void;
+  onClearSegmentPrompts: () => void;
+}
+
+const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
+  props: ConnectedToolTopBarProps
+) {
+  const activeTool = useSketchStore((s) => s.activeTool);
+  const panelsHidden = useSketchStore((s) => s.panelsHidden);
+  const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
+  const toolSettings = useResolvedToolSettings();
+  const activeLayerTransform = useDisplayedActiveLayerTransform();
+
+  const {
+    setBrushSettings,
+    setPencilSettings,
+    setEraserSettings,
+    setShapeSettings,
+    setFillSettings,
+    setBlurSettings,
+    setGradientSettings,
+    setCloneStampSettings,
+    setSelectSettings,
+    setSegmentSettings,
+    invertSelection,
+    featherCurrentSelection,
+    smoothCurrentSelectionBorders,
+    convertSelectionToBorderOutline
+  } = useToolChromeActions();
+
+  if (panelsHidden) {
+    return null;
+  }
+
+  return (
+    <SketchToolTopBar
+      activeTool={activeTool}
+      brushSettings={toolSettings.brush}
+      pencilSettings={toolSettings.pencil}
+      eraserSettings={toolSettings.eraser}
+      shapeSettings={toolSettings.shape}
+      fillSettings={toolSettings.fill}
+      blurSettings={toolSettings.blur}
+      gradientSettings={toolSettings.gradient}
+      cloneStampSettings={toolSettings.cloneStamp}
+      selectSettings={toolSettings.select}
+      hasActiveSelection={hasActiveSelection}
+      adjustBrightness={props.adjBrightness}
+      adjustContrast={props.adjContrast}
+      adjustSaturation={props.adjSaturation}
+      onBrushSettingsChange={setBrushSettings}
+      onPencilSettingsChange={setPencilSettings}
+      onEraserSettingsChange={setEraserSettings}
+      onShapeSettingsChange={setShapeSettings}
+      onFillSettingsChange={setFillSettings}
+      onBlurSettingsChange={setBlurSettings}
+      onGradientSettingsChange={setGradientSettings}
+      onCloneStampSettingsChange={setCloneStampSettings}
+      onSelectSettingsChange={setSelectSettings}
+      onInvertSelection={invertSelection}
+      onFeatherSelection={featherCurrentSelection}
+      onSmoothSelectionBorders={smoothCurrentSelectionBorders}
+      onStrokeSelectionBorder={convertSelectionToBorderOutline}
+      onAdjustBrightnessChange={props.onAdjustBrightnessChange}
+      onAdjustContrastChange={props.onAdjustContrastChange}
+      onAdjustSaturationChange={props.onAdjustSaturationChange}
+      onAdjustApply={props.onAdjustApply}
+      onAdjustCancel={props.onAdjustCancel}
+      transformScaleX={activeLayerTransform.scaleX ?? 1}
+      transformScaleY={activeLayerTransform.scaleY ?? 1}
+      transformRotation={activeLayerTransform.rotation ?? 0}
+      onTransformCommit={props.onTransformCommit}
+      onTransformCancel={props.onTransformCancel}
+      onTransformReset={props.onTransformReset}
+      segmentSettings={toolSettings.segment}
+      onSegmentSettingsChange={setSegmentSettings}
+      segmentationStatus={props.segmentation.status}
+      segmentModelInfo={props.segmentation.modelInfo}
+      onRunSegmentation={props.onRunSegmentation}
+      onApplySegmentResult={props.segmentation.applyResult}
+      onDiscardSegmentResult={props.segmentation.discardResult}
+      onCancelSegmentation={props.segmentation.cancelSegmentation}
+      onClearSegmentPrompts={props.onClearSegmentPrompts}
+      onCheckSegmentModel={props.segmentation.checkModel}
+    />
+  );
+});
+
+/**
+ * ConnectedLayersPanel — subscribes to narrow document sub-fields (layers,
+ * activeLayerId, maskLayerId, canvas dimensions), selectedLayerIds,
+ * isolatedLayerId, panelsHidden, foregroundColor, and activeTool.
+ * Does NOT re-render on toolSettings, viewport, or selection changes.
+ * Canvas-metadata changes (activeLayerId, maskLayerId, canvas dimensions) only
+ * trigger a rerender when they actually change, not on every layer-data mutation.
+ */
+interface ConnectedLayersPanelProps {
+  onClearLayer: () => void;
+  onFlipHorizontal: () => void;
+  onFlipVertical: () => void;
+  onMergeDown: () => void;
+  onFlattenVisible: () => void;
+  onTrimLayerToBounds: () => void;
+  onCropCanvasToActiveLayerVisiblePixels: () => void;
+  onCropCanvasToActiveLayerExtents: () => void;
+  onCanvasResize: (width: number, height: number) => void;
+  onToggleVisibility: (layerId: string) => void;
+  onAddLayer: () => void;
+  onRemoveLayer: (layerId: string) => void;
+  onDuplicateLayer: (layerId: string) => void;
+  onReorderLayers: (fromIndex: number, toIndex: number) => void;
+  onSetMaskLayer: (layerId: string | null) => void;
+  onToggleAlphaLock: (layerId: string) => void;
+  onToggleExposedInput: (layerId: string) => void;
+  onToggleExposedOutput: (layerId: string) => void;
+  onLayerOpacityChange: (layerId: string, opacity: number) => void;
+  onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
+  onRenameLayer: (layerId: string, name: string) => void;
+  onAddGroup: () => void;
+  onToggleGroupCollapsed: (groupId: string) => void;
+  onMoveLayerToGroup: (layerId: string, groupId: string | null) => void;
+  onUngroupLayer: (groupId: string) => void;
+  onGroupSelectedLayers: () => void;
+  onDeleteSelectedLayers: () => void;
+  canvasResizeHandlesEnabled: boolean;
+  onCanvasResizeHandlesEnabledChange: (enabled: boolean) => void;
+}
+
+const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
+  props: ConnectedLayersPanelProps
+) {
+  const panelsHidden = useSketchStore((s) => s.panelsHidden);
+  // Narrow document field selectors — only rerender when the specific field changes
+  const layers = useSketchStore((s) => s.document.layers);
+  const activeLayerId = useSketchStore((s) => s.document.activeLayerId);
+  const maskLayerId = useSketchStore((s) => s.document.maskLayerId);
+  const canvasWidth = useSketchStore((s) => s.document.canvas.width);
+  const canvasHeight = useSketchStore((s) => s.document.canvas.height);
+  const selectedLayerIds = useSketchStore((s) => s.selectedLayerIds);
+  const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
+  const foregroundColor =
+    useSketchStore((s) => s.foregroundColor) || "#ffffff";
+  const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
+  const toggleLayerInSelection = useSketchStore(
+    (s) => s.toggleLayerInSelection
+  );
+  const selectLayerRangeInPanelOrder = useSketchStore(
+    (s) => s.selectLayerRangeInPanelOrder
+  );
+  const toggleIsolateLayer = useSketchStore((s) => s.toggleIsolateLayer);
+  const handleFgColorChange = useColorIntentRouter();
+
+  if (panelsHidden) {
+    return null;
+  }
+
+  return (
+    <SketchLayersPanel
+      foregroundColor={foregroundColor}
+      onForegroundColorChange={handleFgColorChange}
+      layers={layers}
+      activeLayerId={activeLayerId}
+      selectedLayerIds={selectedLayerIds}
+      maskLayerId={maskLayerId}
+      isolatedLayerId={isolatedLayerId}
+      onSelectLayer={setActiveLayer}
+      onToggleLayerInSelection={toggleLayerInSelection}
+      onSelectLayerRangeInPanelOrder={selectLayerRangeInPanelOrder}
+      onToggleVisibility={props.onToggleVisibility}
+      onAddLayer={props.onAddLayer}
+      onRemoveLayer={props.onRemoveLayer}
+      onDuplicateLayer={props.onDuplicateLayer}
+      onReorderLayers={props.onReorderLayers}
+      onSetMaskLayer={props.onSetMaskLayer}
+      onToggleAlphaLock={props.onToggleAlphaLock}
+      onToggleIsolateLayer={toggleIsolateLayer}
+      onToggleExposedInput={props.onToggleExposedInput}
+      onToggleExposedOutput={props.onToggleExposedOutput}
+      onLayerOpacityChange={props.onLayerOpacityChange}
+      onLayerBlendModeChange={props.onLayerBlendModeChange}
+      onRenameLayer={props.onRenameLayer}
+      onClearLayer={props.onClearLayer}
+      onFlipHorizontal={props.onFlipHorizontal}
+      onFlipVertical={props.onFlipVertical}
+      onMergeDown={props.onMergeDown}
+      onFlattenVisible={props.onFlattenVisible}
+      onTrimLayerToBounds={props.onTrimLayerToBounds}
+      onCropCanvasToActiveLayerVisiblePixels={
+        props.onCropCanvasToActiveLayerVisiblePixels
+      }
+      onCropCanvasToActiveLayerExtents={
+        props.onCropCanvasToActiveLayerExtents
+      }
+      canvasWidth={canvasWidth}
+      canvasHeight={canvasHeight}
+      onCanvasResize={props.onCanvasResize}
+      canvasResizeHandlesEnabled={props.canvasResizeHandlesEnabled}
+      onCanvasResizeHandlesEnabledChange={
+        props.onCanvasResizeHandlesEnabledChange
+      }
+      onAddGroup={props.onAddGroup}
+      onToggleGroupCollapsed={props.onToggleGroupCollapsed}
+      onMoveLayerToGroup={props.onMoveLayerToGroup}
+      onUngroupLayer={props.onUngroupLayer}
+      onGroupSelectedLayers={props.onGroupSelectedLayers}
+      onDeleteSelectedLayers={props.onDeleteSelectedLayers}
+    />
+  );
+});
+
+/**
+ * ConnectedContextMenu — subscribes to activeTool, toolSettings,
+ * hasActiveSelection (boolean), foregroundColor, backgroundColor,
+ * canUndo, canRedo.
+ * Does NOT re-render on document, viewport, panelsHidden, or full
+ * selection mask changes.
+ */
+interface ConnectedContextMenuProps {
+  open: boolean;
+  position: { x: number; y: number } | null;
+  adjBrightness: number;
+  adjContrast: number;
+  adjSaturation: number;
+  onClose: () => void;
+  onAdjustBrightnessChange: (v: number) => void;
+  onAdjustContrastChange: (v: number) => void;
+  onAdjustSaturationChange: (v: number) => void;
+  onAdjustApply: () => void;
+  onAdjustCancel: () => void;
+  onTransformCommit: () => void;
+  onTransformCancel: () => void;
+  onTransformReset: () => void;
+  segmentation: ReturnType<typeof useSegmentation>;
+  onRunSegmentation: () => void;
+  onClearSegmentPrompts: () => void;
+  onSwapColors: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  onClearLayer: () => void;
+  onExportPng: () => void;
+  onFillSelectionWithForeground: () => void;
+  onNewLayer: () => void;
+  onLayerViaCopy: () => void;
+  onLayerViaCut: () => void;
+  onFreeTransform: () => void;
+}
+
+const ConnectedContextMenu = memo(function ConnectedContextMenu(
+  props: ConnectedContextMenuProps
+) {
+  const activeTool = useSketchStore((s) => s.activeTool);
+  const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
+  const toolSettings = useResolvedToolSettings();
+  const foregroundColor =
+    useSketchStore((s) => s.foregroundColor) || "#ffffff";
+  const backgroundColor =
+    useSketchStore((s) => s.backgroundColor) || "#000000";
+  const activeLayerTransform = useDisplayedActiveLayerTransform();
+  const canUndo = useSketchStore((s) => s.canUndo());
+  const canRedo = useSketchStore((s) => s.canRedo());
+
+  const setActiveTool = useSketchStore((s) => s.setActiveTool);
+  const {
+    setBrushSettings,
+    setPencilSettings,
+    setEraserSettings,
+    setShapeSettings,
+    setFillSettings,
+    setBlurSettings,
+    setGradientSettings,
+    setCloneStampSettings,
+    setSelectSettings,
+    setSegmentSettings,
+    invertSelection,
+    featherCurrentSelection,
+    smoothCurrentSelectionBorders,
+    convertSelectionToBorderOutline
+  } = useToolChromeActions();
+  const deselectSelection = useCallback(
+    () => useSketchStore.getState().setSelection(null),
+    []
+  );
+  const reselectSelection = useSketchStore((s) => s.reselectLastSelection);
+
+  return (
+    <SketchCanvasContextMenu
+      className="sketch-editor__context-menu"
+      open={props.open}
+      position={props.position}
+      activeTool={activeTool}
+      brushSettings={toolSettings.brush}
+      pencilSettings={toolSettings.pencil}
+      eraserSettings={toolSettings.eraser}
+      shapeSettings={toolSettings.shape}
+      fillSettings={toolSettings.fill}
+      blurSettings={toolSettings.blur}
+      gradientSettings={toolSettings.gradient}
+      cloneStampSettings={toolSettings.cloneStamp}
+      selectSettings={toolSettings.select}
+      hasActiveSelection={hasActiveSelection}
+      adjustBrightness={props.adjBrightness}
+      adjustContrast={props.adjContrast}
+      adjustSaturation={props.adjSaturation}
+      foregroundColor={foregroundColor}
+      backgroundColor={backgroundColor}
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onClose={props.onClose}
+      onToolChange={setActiveTool}
+      onBrushSettingsChange={setBrushSettings}
+      onPencilSettingsChange={setPencilSettings}
+      onEraserSettingsChange={setEraserSettings}
+      onShapeSettingsChange={setShapeSettings}
+      onFillSettingsChange={setFillSettings}
+      onBlurSettingsChange={setBlurSettings}
+      onGradientSettingsChange={setGradientSettings}
+      onCloneStampSettingsChange={setCloneStampSettings}
+      onSelectSettingsChange={setSelectSettings}
+      onInvertSelection={invertSelection}
+      onFeatherSelection={featherCurrentSelection}
+      onSmoothSelectionBorders={smoothCurrentSelectionBorders}
+      onStrokeSelectionBorder={convertSelectionToBorderOutline}
+      onDeselectSelection={deselectSelection}
+      onReselectSelection={reselectSelection}
+      onFillSelectionWithForeground={props.onFillSelectionWithForeground}
+      onNewLayer={props.onNewLayer}
+      onLayerViaCopy={props.onLayerViaCopy}
+      onLayerViaCut={props.onLayerViaCut}
+      onFreeTransform={props.onFreeTransform}
+      onAdjustBrightnessChange={props.onAdjustBrightnessChange}
+      onAdjustContrastChange={props.onAdjustContrastChange}
+      onAdjustSaturationChange={props.onAdjustSaturationChange}
+      onAdjustApply={props.onAdjustApply}
+      onAdjustCancel={props.onAdjustCancel}
+      transformScaleX={activeLayerTransform.scaleX ?? 1}
+      transformScaleY={activeLayerTransform.scaleY ?? 1}
+      transformRotation={activeLayerTransform.rotation ?? 0}
+      onTransformCommit={props.onTransformCommit}
+      onTransformCancel={props.onTransformCancel}
+      onTransformReset={props.onTransformReset}
+      segmentSettings={toolSettings.segment}
+      onSegmentSettingsChange={setSegmentSettings}
+      segmentationStatus={props.segmentation.status}
+      segmentModelInfo={props.segmentation.modelInfo}
+      onRunSegmentation={props.onRunSegmentation}
+      onApplySegmentResult={props.segmentation.applyResult}
+      onDiscardSegmentResult={props.segmentation.discardResult}
+      onCancelSegmentation={props.segmentation.cancelSegmentation}
+      onClearSegmentPrompts={props.onClearSegmentPrompts}
+      onCheckSegmentModel={props.segmentation.checkModel}
+      onSwapColors={props.onSwapColors}
+      onUndo={props.onUndo}
+      onRedo={props.onRedo}
+      onClearLayer={props.onClearLayer}
+      onExportPng={props.onExportPng}
+    />
+  );
+});
+
+interface SketchCanvasPaneProps {
+  canvasReady: boolean;
+  canvasRef: React.RefObject<SketchCanvasRef | null>;
+  document: SketchDocument;
+  activeTool: SketchTool;
+  interactionTool: SketchTool;
+  onZoomChange: (zoom: number) => void;
+  onPanChange: (pan: { x: number; y: number }) => void;
+  onStrokeStart: () => void;
+  onStrokeEnd: (
+    layerId: string,
+    data: string | null,
+    committedBounds?: LayerContentBounds,
+    options?: StrokeEndOptions
+  ) => void;
+  onCanvasLeave: () => void;
+  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
+  onLayerContentBoundsChange: (
+    layerId: string,
+    contentBounds: LayerContentBounds
+  ) => void;
+  onBrushSizeChange?: (size: number) => void;
+  onContextMenu?: (x: number, y: number) => void;
+  onTransformContextMenu?: (x: number, y: number) => void;
+  onCropComplete?: (x: number, y: number, width: number, height: number) => void;
+  onEyedropperPick?: (color: string) => void;
+  onAutoPickLayer?: (layerId: string) => void;
+  onDropImage?: (file: File) => void;
+  onCanvasResizeStart?: () => void;
+  onCanvasResize?: (
+    width: number,
+    height: number,
+    options?: { translateLayers?: Point; resizeFromCenter?: boolean }
+  ) => void;
+  segmentation: ReturnType<typeof useSegmentation>;
+}
+
+/**
+ * SketchCanvasPane subscribes directly to hot viewport state (zoom, pan)
+ * and canvas-specific state (mirror, symmetry, selection, foreground, isolated)
+ * so the parent SketchEditor doesn't need to forward them.
+ */
+const SketchCanvasPane = memo(function SketchCanvasPane({
+  canvasReady,
+  canvasRef,
+  document,
+  activeTool,
+  interactionTool,
+  onZoomChange,
+  onPanChange,
+  onStrokeStart,
+  onStrokeEnd,
+  onCanvasLeave,
+  onLayerTransformChange,
+  onLayerContentBoundsChange,
+  onBrushSizeChange,
+  onContextMenu,
+  onTransformContextMenu,
+  onCropComplete,
+  onEyedropperPick,
+  onAutoPickLayer,
+  onDropImage,
+  onCanvasResizeStart,
+  onCanvasResize,
+  segmentation
+}: SketchCanvasPaneProps) {
+  // Subscribe directly to hot/canvas-specific state
+  const zoom = useSketchStore((s) => s.zoom);
+  const pan = useSketchStore((s) => s.pan);
+  const mirrorX = useSketchStore((s) => s.mirrorX);
+  const mirrorY = useSketchStore((s) => s.mirrorY);
+  const symmetryMode = useSketchStore((s) => s.symmetryMode);
+  const symmetryRays = useSketchStore((s) => s.symmetryRays);
+  const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
+  const selection = useSketchStore((s) => s.selection);
+  const foregroundColor =
+    useSketchStore((s) => s.foregroundColor) || "#ffffff";
+  const setSelection = useSketchStore((s) => s.setSelection);
+
+  useEffect(() => {
+    if (segmentation.status !== "previewing" || !segmentation.result) {
+      return;
+    }
+    const overlayCanvas = canvasRef.current?.getOverlayCanvas();
+    if (!overlayCanvas) {
+      return;
+    }
+    const ctx = overlayCanvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    segmentation.drawMaskPreview(ctx, zoom, pan);
+  }, [segmentation, zoom, pan, canvasRef]);
+
+  if (!canvasReady) {
+    return null;
+  }
+
+  return (
+    <SketchCanvas
+      ref={canvasRef}
+      className="sketch-editor__canvas"
+      document={document}
+      activeTool={activeTool}
+      interactionTool={interactionTool}
+      zoom={zoom}
+      pan={pan}
+      mirrorX={mirrorX}
+      mirrorY={mirrorY}
+      symmetryMode={symmetryMode}
+      symmetryRays={symmetryRays}
+      isolatedLayerId={isolatedLayerId}
+      onZoomChange={onZoomChange}
+      onPanChange={onPanChange}
+      onStrokeStart={onStrokeStart}
+      onStrokeEnd={onStrokeEnd}
+      onCanvasLeave={onCanvasLeave}
+      onLayerTransformChange={onLayerTransformChange}
+      onLayerContentBoundsChange={onLayerContentBoundsChange}
+      onBrushSizeChange={onBrushSizeChange}
+      onContextMenu={onContextMenu}
+      onTransformContextMenu={onTransformContextMenu}
+      onCropComplete={onCropComplete}
+      onEyedropperPick={onEyedropperPick}
+      selection={selection}
+      onSelectionChange={setSelection}
+      onAutoPickLayer={onAutoPickLayer}
+      foregroundColor={foregroundColor}
+      onDropImage={onDropImage}
+      onCanvasResizeStart={onCanvasResizeStart}
+      onCanvasResize={onCanvasResize}
+    />
+  );
+});
+
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function SketchEditor({
   initialDocument,
   onDocumentChange,
@@ -101,63 +665,38 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
 }, ref) {
   const theme = useTheme();
   const canvasRef = useRef<SketchCanvasRef>(null);
-  // Snapshot of the document as it was when the editor first loaded
-  const initialDocumentRef = useRef(initialDocument);
-  /**
-   * The sketch store is global and survives modal unmount. SketchCanvas must not
-   * mount until `initialDocument` is applied in a layout effect; otherwise the
-   * compositor hydrates from stale store state and stays blank while the node
-   * preview (built from props) still looks correct.
-   */
-  const [canvasReady, setCanvasReady] = useState(false);
-  const [canvasResizeHandlesEnabled, setCanvasResizeHandlesEnabled] = useState(
-    readCanvasResizeHandlesEnabled
-  );
 
-  const handleCanvasResizeHandlesEnabledChange = useCallback(
-    (enabled: boolean) => {
-      setCanvasResizeHandlesEnabled(enabled);
-      try {
-        window.localStorage.setItem(
-          SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY,
-          enabled ? "1" : "0"
-        );
-      } catch {
-        // localStorage may be unavailable (private mode, etc.)
-      }
-    },
-    []
-  );
+  // ─── Focused store action bundles ───────────────────────────────────
+  const historyStore = useHistoryStoreActions();
+  const layerStore = useLayerStoreActions();
+  const canvasStore = useCanvasStoreActions();
+  const colorStore = useColorStoreActions();
+  const sessionStore = useSessionStoreActions();
 
-  // ─── Store selectors ────────────────────────────────────────────────
-  const store = useSketchStoreSelectors();
-
-  const hasActiveSelection = useMemo(
-    () => selectionHasAnyPixels(store.selection),
-    [store.selection]
+  // ─── Narrow store selectors ──────────────────────────────────────────
+  // SketchEditor subscribes only to state it needs for its own effects
+  // and action-hook creation. Children subscribe via connected components.
+  const document = useSketchStore((s) => s.document);
+  const activeTool = useSketchStore((s) => s.activeTool);
+  const transientMoveModifierHeld = useSketchStore(
+    (s) => s.transientMoveModifierHeld
   );
 
   /** Pointer/cursor routing: spring-loaded Ctrl/Cmd+drag move without changing `activeTool`. */
   const interactionTool = useMemo<SketchTool>(
     () =>
-      store.transientMoveModifierHeld && store.activeTool !== "move"
+      transientMoveModifierHeld && activeTool !== "move"
         ? "move"
-        : store.activeTool,
-    [store.transientMoveModifierHeld, store.activeTool]
+        : activeTool,
+    [transientMoveModifierHeld, activeTool]
   );
-
-  const activeLayerTransform = useMemo(() => {
-    const layer = store.document.layers.find(
-      (l) => l.id === store.document.activeLayerId
-    );
-    return layer?.transform ?? { x: 0, y: 0 };
-  }, [store.document]);
 
   // Keep a ref to live toolSettings so the autosave effect can include them
   // without adding toolSettings as a dependency (which would cause autosave to
   // fire on every brush slider tick).
-  const liveToolSettingsRef = useRef(store.toolSettings);
-  liveToolSettingsRef.current = store.toolSettings;
+  const liveToolSettings = useSketchStore((s) => s.toolSettings);
+  const liveToolSettingsRef = useRef(liveToolSettings);
+  liveToolSettingsRef.current = liveToolSettings;
 
   // ─── Flush ref (filled in after canvasActions is created) ──────────
   const flushBeforeUndoRef = useRef<() => void>(() => {});
@@ -165,56 +704,55 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   // ─── History actions ────────────────────────────────────────────────
   const { handleUndo, handleRedo } = useHistoryActions({
     canvasRef,
-    undo: store.undo,
-    redo: store.redo,
+    undo: historyStore.undo,
+    redo: historyStore.redo,
     flushBeforeUndo: useCallback(() => flushBeforeUndoRef.current(), [])
   });
 
   // ─── Layer actions ──────────────────────────────────────────────────
   const layerActions = useLayerActions({
     canvasRef,
-    document: store.document,
-    pushHistory: store.pushHistory,
-    addLayer: store.addLayer,
-    removeLayer: store.removeLayer,
-    duplicateLayer: store.duplicateLayer,
-    reorderLayers: store.reorderLayers,
-    toggleLayerVisibility: store.toggleLayerVisibility,
-    setLayerOpacity: store.setLayerOpacity,
-    setLayerBlendMode: store.setLayerBlendMode,
-    renameLayer: store.renameLayer,
-    updateLayerData: store.updateLayerData,
-    setMaskLayer: store.setMaskLayer,
-    toggleAlphaLock: store.toggleAlphaLock,
-    toggleLayerExposedInput: store.toggleLayerExposedInput,
-    toggleLayerExposedOutput: store.toggleLayerExposedOutput,
-    mergeLayerDown: store.mergeLayerDown,
-    flattenVisible: store.flattenVisible,
-    addGroup: store.addGroup,
-    toggleGroupCollapsed: store.toggleGroupCollapsed,
-    moveLayerToGroup: store.moveLayerToGroup,
-    ungroupLayer: store.ungroupLayer,
-    groupLayers: store.groupLayers
+    document,
+    pushHistory: historyStore.pushHistory,
+    addLayer: layerStore.addLayer,
+    removeLayer: layerStore.removeLayer,
+    duplicateLayer: layerStore.duplicateLayer,
+    reorderLayers: layerStore.reorderLayers,
+    toggleLayerVisibility: layerStore.toggleLayerVisibility,
+    setLayerOpacity: layerStore.setLayerOpacity,
+    setLayerBlendMode: layerStore.setLayerBlendMode,
+    renameLayer: layerStore.renameLayer,
+    updateLayerData: layerStore.updateLayerData,
+    setMaskLayer: layerStore.setMaskLayer,
+    toggleAlphaLock: layerStore.toggleAlphaLock,
+    toggleLayerExposedInput: layerStore.toggleLayerExposedInput,
+    toggleLayerExposedOutput: layerStore.toggleLayerExposedOutput,
+    mergeLayerDown: layerStore.mergeLayerDown,
+    flattenVisible: layerStore.flattenVisible,
+    addGroup: layerStore.addGroup,
+    toggleGroupCollapsed: layerStore.toggleGroupCollapsed,
+    moveLayerToGroup: layerStore.moveLayerToGroup,
+    ungroupLayer: layerStore.ungroupLayer,
+    groupLayers: layerStore.groupLayers
   });
 
   // ─── Canvas actions ─────────────────────────────────────────────────
   const canvasActions = useCanvasActions({
     canvasRef,
-    document: store.document,
-    activeTool: store.activeTool,
+    document,
+    activeTool,
     interactionTool,
-    zoom: store.zoom,
-    pushHistory: store.pushHistory,
-    updateLayerData: store.updateLayerData,
-    offsetLayerTransform: store.offsetLayerTransform,
-    commitLayerTransform: store.commitLayerTransform,
-    setLayerTransform: store.setLayerTransform,
-    setLayerContentBounds: store.setLayerContentBounds,
-    setDocument: store.setDocument,
-    setZoom: store.setZoom,
-    setPan: store.setPan,
-    resizeCanvas: store.resizeCanvas,
-    offsetAllPaintLayersTransform: store.offsetAllPaintLayersTransform,
+    pushHistory: historyStore.pushHistory,
+    updateLayerData: layerStore.updateLayerData,
+    offsetLayerTransform: layerStore.offsetLayerTransform,
+    commitLayerTransform: layerStore.commitLayerTransform,
+    setLayerTransform: layerStore.setLayerTransform,
+    setLayerContentBounds: layerStore.setLayerContentBounds,
+    setDocument: sessionStore.setDocument,
+    setZoom: canvasStore.setZoom,
+    setPan: canvasStore.setPan,
+    resizeCanvas: canvasStore.resizeCanvas,
+    offsetAllPaintLayersTransform: canvasStore.offsetAllPaintLayersTransform,
     onExportImage,
     onExportMask
   });
@@ -224,22 +762,39 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
 
   // ─── Color actions ──────────────────────────────────────────────────
   const colorActions = useColorActions({
-    activeTool: store.activeTool,
-    setForegroundColor: store.setForegroundColor,
-    setBrushSettings: store.setBrushSettings,
-    setPencilSettings: store.setPencilSettings,
-    setEraserSettings: store.setEraserSettings,
-    setFillSettings: store.setFillSettings,
-    setBlurSettings: store.setBlurSettings,
-    setCloneStampSettings: store.setCloneStampSettings,
-    setShapeSettings: store.setShapeSettings,
-    setGradientSettings: store.setGradientSettings
+    activeTool,
+    setForegroundColor: colorStore.setForegroundColor,
+    setBrushSettings: colorStore.setBrushSettings,
+    setPencilSettings: colorStore.setPencilSettings,
+    setEraserSettings: colorStore.setEraserSettings,
+    setFillSettings: colorStore.setFillSettings,
+    setBlurSettings: colorStore.setBlurSettings,
+    setCloneStampSettings: colorStore.setCloneStampSettings,
+    setShapeSettings: colorStore.setShapeSettings,
+    setGradientSettings: colorStore.setGradientSettings
   });
 
   // ─── Segmentation actions ──────────────────────────────────────────
   const segmentation = useSegmentation({
     canvasRef,
-    pushHistory: store.pushHistory
+    pushHistory: historyStore.pushHistory
+  });
+
+  // ─── Editor lifecycle (bootstrap, autosave, tool transitions) ──────
+  const {
+    canvasReady,
+    initialDocumentRef,
+    canvasResizeHandlesEnabled,
+    handleCanvasResizeHandlesEnabledChange
+  } = useEditorLifecycle({
+    initialDocument,
+    onDocumentChange,
+    setDocument: sessionStore.setDocument,
+    activeTool,
+    document,
+    canvasActions,
+    segmentation,
+    liveToolSettingsRef
   });
 
   const handleRunSegmentation = useCallback(() => {
@@ -255,74 +810,35 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     handler.clearPrompts();
   }, []);
 
-  // ─── Cancel adjustment preview if tool changes away from "adjust" ──
-  const prevAdjustToolRef = useRef(store.activeTool);
-  useEffect(() => {
-    if (
-      prevAdjustToolRef.current === "adjust" &&
-      store.activeTool !== "adjust"
-    ) {
-      canvasActions.handleCancelAdjustments();
-    }
-    // Save transform baseline when switching to "transform"
-    if (
-      prevAdjustToolRef.current !== "transform" &&
-      store.activeTool === "transform"
-    ) {
-      canvasActions.saveTransformOriginal();
-    }
-    // Cancel transform when switching away from "transform"
-    if (
-      prevAdjustToolRef.current === "transform" &&
-      store.activeTool !== "transform"
-    ) {
-      canvasActions.handleTransformCancel();
-    }
-    // Auto-check model availability when switching to segment tool
-    if (
-      prevAdjustToolRef.current !== "segment" &&
-      store.activeTool === "segment"
-    ) {
-      segmentation.checkModel();
-    }
-    prevAdjustToolRef.current = store.activeTool;
-  }, [store.activeTool, canvasActions, segmentation]);
+  // ─── Selection context-menu action callbacks ───────────────────────
+  const handleFillSelectionWithForeground = useCallback(() => {
+    const fg = useSketchStore.getState().foregroundColor;
+    canvasActions.handleFillLayerWithColor(fg);
+  }, [canvasActions]);
 
-  // ─── Seed global store from prop before SketchCanvas mounts ─────────
-  const { setDocument } = store;
-  useLayoutEffect(() => {
-    initialDocumentRef.current = initialDocument;
-    if (initialDocument) {
-      setDocument(initialDocument);
-    }
-    setCanvasReady(true);
-  }, [initialDocument, setDocument]);
+  const handleNewLayerFromContextMenu = useCallback(() => {
+    layerActions.handleAddLayer();
+  }, [layerActions]);
 
-  // ─── Autosave on document changes ──────────────────────────────────
-  useEffect(() => {
-    if (onDocumentChange && canvasReady) {
-      // Merge live toolSettings into the persisted document so callers receive
-      // the current tool state without toolSettings mutations triggering this
-      // effect on every slider tick.
-      onDocumentChange({ ...store.document, toolSettings: liveToolSettingsRef.current });
-    }
-  }, [store.document, onDocumentChange, canvasReady]);
+  const handleLayerViaCopy = useCallback(async () => {
+    // Copy sets the internal clipboard buffer synchronously.
+    canvasActions.handleCopy();
+    layerActions.handleAddLayer();
+    // preferInternalClipboardFirst=true so the in-app buffer is used,
+    // avoiding async OS clipboard read for this operation.
+    await canvasActions.handlePaste(true);
+  }, [canvasActions, layerActions]);
 
-  // ─── Mask preview overlay when segmentation is previewing ──────────
-  useEffect(() => {
-    if (segmentation.status !== "previewing" || !segmentation.result) {
-      return;
-    }
-    const overlayCanvas = canvasRef.current?.getOverlayCanvas();
-    if (!overlayCanvas) {
-      return;
-    }
-    const ctx = overlayCanvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    segmentation.drawMaskPreview(ctx, store.zoom, store.pan);
-  }, [segmentation, store.zoom, store.pan]);
+  const handleLayerViaCut = useCallback(async () => {
+    // Cut = copy + clear; both are synchronous for the internal buffer.
+    canvasActions.handleCut();
+    layerActions.handleAddLayer();
+    await canvasActions.handlePaste(true);
+  }, [canvasActions, layerActions]);
+
+  const handleFreeTransform = useCallback(() => {
+    sessionStore.setActiveTool("transform" as SketchTool);
+  }, [sessionStore]);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({
@@ -339,59 +855,28 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     handlePaste: canvasActions.handlePaste,
     handleNudgeLayer: canvasActions.handleNudgeLayer,
     syncSketchOutputsNow: canvasActions.syncSketchOutputsNow,
-    setActiveTool: store.setActiveTool,
-    setZoom: store.setZoom,
-    setMirrorX: store.setMirrorX,
-    setMirrorY: store.setMirrorY,
-    setBrushSettings: store.setBrushSettings,
-    setPencilSettings: store.setPencilSettings,
-    setEraserSettings: store.setEraserSettings,
-    setShapeSettings: store.setShapeSettings,
-    setBlurSettings: store.setBlurSettings,
-    setCloneStampSettings: store.setCloneStampSettings,
-    swapColors: store.swapColors,
-    resetColors: store.resetColors,
-    togglePanelsHidden: store.togglePanelsHidden,
-    cancelActiveTool: () => canvasRef.current?.cancelActiveTool()
+    setActiveTool: sessionStore.setActiveTool,
+    setZoom: canvasStore.setZoom,
+    setMirrorX: canvasStore.setMirrorX,
+    setMirrorY: canvasStore.setMirrorY,
+    setBrushSettings: colorStore.setBrushSettings,
+    setPencilSettings: colorStore.setPencilSettings,
+    setEraserSettings: colorStore.setEraserSettings,
+    setShapeSettings: colorStore.setShapeSettings,
+    setBlurSettings: colorStore.setBlurSettings,
+    setCloneStampSettings: colorStore.setCloneStampSettings,
+    swapColors: colorStore.swapColors,
+    resetColors: colorStore.resetColors,
+    togglePanelsHidden: sessionStore.togglePanelsHidden,
+    cancelActiveTool: () => canvasRef.current?.cancelActiveTool(),
+    handleInvertLayerColors: canvasActions.handleInvertLayerColors,
+    handleTransformCommit: canvasActions.handleTransformCommit,
+    handleTransformCancel: canvasActions.handleTransformCancel,
+    handleTransformUndo: canvasActions.handleTransformUndo,
+    handleTransformRedo: canvasActions.handleTransformRedo,
+    handleLayerViaCopy,
+    handleLayerViaCut
   });
-
-  // ─── Foreground color change (syncs to active tool settings) ───────
-  const {
-    activeTool,
-    setForegroundColor,
-    setBrushSettings,
-    setPencilSettings,
-    setFillSettings,
-    setShapeSettings,
-    setGradientSettings
-  } = store;
-  const handleFgColorChange = useCallback(
-    (color: string) => {
-      setForegroundColor(color);
-      if (activeTool === "brush") {
-        setBrushSettings({ color });
-      } else if (activeTool === "pencil") {
-        setPencilSettings({ color });
-      } else if (activeTool === "fill") {
-        setFillSettings({ color });
-      } else if (isShapeTool(activeTool)) {
-        setShapeSettings({ strokeColor: color });
-      } else if (activeTool === "gradient") {
-        setGradientSettings({ startColor: color });
-      } else {
-        setBrushSettings({ color });
-      }
-    },
-    [
-      activeTool,
-      setForegroundColor,
-      setBrushSettings,
-      setPencilSettings,
-      setFillSettings,
-      setShapeSettings,
-      setGradientSettings
-    ]
-  );
 
   // ─── Imperative handle for modal header actions ─────────────────────
   useImperativeHandle(
@@ -409,7 +894,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
       discardToInitial: () => {
         const doc = initialDocumentRef.current;
         if (!doc) { return; }
-        store.setDocument(doc);
+        sessionStore.setDocument(doc);
         if (canvasRef.current) {
           for (const layer of doc.layers) {
             canvasRef.current.setLayerData(layer.id, layer.data ?? null);
@@ -417,242 +902,159 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         }
       }
     }),
-    [handleUndo, handleRedo, canvasActions, layerActions, store]
+    [handleUndo, handleRedo, canvasActions, layerActions, sessionStore]
   );
 
   return (
     <Box className="sketch-editor" css={styles(theme)}>
-      {/* SketchToolbar is always rendered — colors must stay visible */}
-      <SketchToolbar
-        activeTool={store.activeTool}
-        onToolChange={store.setActiveTool}
-        foregroundColor={store.foregroundColor}
-        backgroundColor={store.backgroundColor}
-        onForegroundColorChange={handleFgColorChange}
-        onBackgroundColorChange={store.setBackgroundColor}
-        onSwapColors={store.swapColors}
-        onResetColors={store.resetColors}
-      />
+      {/* ConnectedToolbar subscribes to its own state — no prop drilling */}
+      <ConnectedToolbar />
 
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {!store.panelsHidden && (
-          <SketchToolTopBar
-            activeTool={store.activeTool}
-            brushSettings={store.toolSettings.brush}
-            pencilSettings={store.toolSettings.pencil}
-            eraserSettings={store.toolSettings.eraser}
-            shapeSettings={store.toolSettings.shape}
-            fillSettings={store.toolSettings.fill}
-            blurSettings={store.toolSettings.blur}
-            gradientSettings={store.toolSettings.gradient}
-            cloneStampSettings={store.toolSettings.cloneStamp}
-            selectSettings={store.toolSettings.select}
-            hasActiveSelection={hasActiveSelection}
-            adjustBrightness={canvasActions.adjBrightness}
-            adjustContrast={canvasActions.adjContrast}
-            adjustSaturation={canvasActions.adjSaturation}
-            onBrushSettingsChange={store.setBrushSettings}
-            onPencilSettingsChange={store.setPencilSettings}
-            onEraserSettingsChange={store.setEraserSettings}
-            onShapeSettingsChange={store.setShapeSettings}
-            onFillSettingsChange={store.setFillSettings}
-            onBlurSettingsChange={store.setBlurSettings}
-            onGradientSettingsChange={store.setGradientSettings}
-            onCloneStampSettingsChange={store.setCloneStampSettings}
-            onSelectSettingsChange={store.setSelectSettings}
-            onInvertSelection={store.invertSelection}
-            onFeatherSelection={store.featherCurrentSelection}
-            onSmoothSelectionBorders={store.smoothCurrentSelectionBorders}
-            onStrokeSelectionBorder={store.convertSelectionToBorderOutline}
-            onAdjustBrightnessChange={canvasActions.setAdjBrightness}
-            onAdjustContrastChange={canvasActions.setAdjContrast}
-            onAdjustSaturationChange={canvasActions.setAdjSaturation}
-            onAdjustApply={canvasActions.handleApplyAdjustments}
-            onAdjustCancel={canvasActions.handleCancelAdjustments}
-            transformScaleX={activeLayerTransform.scaleX ?? 1}
-            transformScaleY={activeLayerTransform.scaleY ?? 1}
-            transformRotation={activeLayerTransform.rotation ?? 0}
-            onTransformCommit={canvasActions.handleTransformCommit}
-            onTransformCancel={canvasActions.handleTransformCancel}
-            onTransformReset={canvasActions.handleTransformReset}
-            segmentSettings={store.toolSettings.segment}
-            onSegmentSettingsChange={store.setSegmentSettings}
-            segmentationStatus={segmentation.status}
-            segmentModelInfo={segmentation.modelInfo}
-            onRunSegmentation={handleRunSegmentation}
-            onApplySegmentResult={segmentation.applyResult}
-            onDiscardSegmentResult={segmentation.discardResult}
-            onCancelSegmentation={segmentation.cancelSegmentation}
-            onClearSegmentPrompts={handleClearSegmentPrompts}
-            onCheckSegmentModel={segmentation.checkModel}
-          />
-        )}
+        {/* ConnectedToolTopBar handles its own panelsHidden check */}
+        <ConnectedToolTopBar
+          adjBrightness={canvasActions.adjBrightness}
+          adjContrast={canvasActions.adjContrast}
+          adjSaturation={canvasActions.adjSaturation}
+          onAdjustBrightnessChange={canvasActions.setAdjBrightness}
+          onAdjustContrastChange={canvasActions.setAdjContrast}
+          onAdjustSaturationChange={canvasActions.setAdjSaturation}
+          onAdjustApply={canvasActions.handleApplyAdjustments}
+          onAdjustCancel={canvasActions.handleCancelAdjustments}
+          onTransformCommit={canvasActions.handleTransformCommit}
+          onTransformCancel={canvasActions.handleTransformCancel}
+          onTransformReset={canvasActions.handleTransformReset}
+          segmentation={segmentation}
+          onRunSegmentation={handleRunSegmentation}
+          onClearSegmentPrompts={handleClearSegmentPrompts}
+        />
 
         <Box
           className="sketch-editor__canvas-region"
           sx={{ flex: 1, position: "relative", overflow: "hidden" }}
         >
-          {canvasReady ? (
-            <SketchCanvas
-              ref={canvasRef}
-              className="sketch-editor__canvas"
-              document={store.document}
-              activeTool={store.activeTool}
-              interactionTool={interactionTool}
-              zoom={store.zoom}
-              pan={store.pan}
-              mirrorX={store.mirrorX}
-              mirrorY={store.mirrorY}
-              symmetryMode={store.symmetryMode}
-              symmetryRays={store.symmetryRays}
-              isolatedLayerId={store.isolatedLayerId}
-              onZoomChange={store.setZoom}
-              onPanChange={store.setPan}
-              onStrokeStart={canvasActions.handleStrokeStart}
-              onStrokeEnd={canvasActions.handleStrokeEnd}
-              onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
-              onLayerTransformChange={canvasActions.handleCommitLayerTransform}
-              onLayerContentBoundsChange={store.setLayerContentBounds}
-              onBrushSizeChange={colorActions.handleBrushSizeChange}
-              onContextMenu={canvasActions.handleContextMenu}
-              onCropComplete={canvasActions.handleCropComplete}
-              onEyedropperPick={colorActions.handleEyedropperPick}
-              selection={store.selection}
-              onSelectionChange={store.setSelection}
-              onAutoPickLayer={store.setActiveLayer}
-              foregroundColor={store.foregroundColor}
-              onDropImage={canvasActions.handleDropImage}
-              onCanvasResizeStart={
-                canvasResizeHandlesEnabled
-                  ? canvasActions.handleCanvasResizeStart
-                  : undefined
-              }
-              onCanvasResize={
-                canvasResizeHandlesEnabled
-                  ? canvasActions.handleCanvasResizeDrag
-                  : undefined
-              }
-            />
-          ) : null}
+          <SketchCanvasPane
+            canvasReady={canvasReady}
+            canvasRef={canvasRef}
+            document={document}
+            activeTool={activeTool}
+            interactionTool={interactionTool}
+            onZoomChange={canvasStore.setZoom}
+            onPanChange={canvasStore.setPan}
+            onStrokeStart={canvasActions.handleStrokeStart}
+            onStrokeEnd={canvasActions.handleStrokeEnd}
+            onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
+            onLayerTransformChange={canvasActions.handleCommitLayerTransform}
+            onLayerContentBoundsChange={layerStore.setLayerContentBounds}
+            onBrushSizeChange={colorActions.handleBrushSizeChange}
+            onContextMenu={canvasActions.handleContextMenu}
+            onTransformContextMenu={canvasActions.handleTransformContextMenu}
+            onCropComplete={canvasActions.handleCropComplete}
+            onEyedropperPick={colorActions.handleEyedropperPick}
+            onAutoPickLayer={layerStore.setActiveLayer}
+            onDropImage={canvasActions.handleDropImage}
+            onCanvasResizeStart={
+              canvasResizeHandlesEnabled
+                ? canvasActions.handleCanvasResizeStart
+                : undefined
+            }
+            onCanvasResize={
+              canvasResizeHandlesEnabled
+                ? canvasActions.handleCanvasResizeDrag
+                : undefined
+            }
+            segmentation={segmentation}
+          />
         </Box>
       </Box>
 
-      {!store.panelsHidden && (
-        <SketchLayersPanel
-          foregroundColor={store.foregroundColor}
-          onForegroundColorChange={handleFgColorChange}
-          layers={store.document.layers}
-          activeLayerId={store.document.activeLayerId}
-          selectedLayerIds={store.selectedLayerIds}
-          maskLayerId={store.document.maskLayerId}
-          isolatedLayerId={store.isolatedLayerId}
-          onSelectLayer={store.setActiveLayer}
-          onToggleLayerInSelection={store.toggleLayerInSelection}
-          onSelectLayerRangeInPanelOrder={store.selectLayerRangeInPanelOrder}
-          onToggleVisibility={layerActions.handleToggleVisibility}
-          onAddLayer={layerActions.handleAddLayer}
-          onRemoveLayer={layerActions.handleRemoveLayer}
-          onDuplicateLayer={layerActions.handleDuplicateLayer}
-          onReorderLayers={layerActions.handleReorderLayers}
-          onSetMaskLayer={layerActions.handleSetMaskLayer}
-          onToggleAlphaLock={layerActions.handleToggleAlphaLock}
-          onToggleIsolateLayer={store.toggleIsolateLayer}
-          onToggleExposedInput={layerActions.handleToggleExposedInput}
-          onToggleExposedOutput={layerActions.handleToggleExposedOutput}
-          onLayerOpacityChange={layerActions.handleSetLayerOpacity}
-          onLayerBlendModeChange={layerActions.handleSetLayerBlendMode}
-          onRenameLayer={layerActions.handleRenameLayer}
-          onClearLayer={canvasActions.handleClearLayer}
-          onFlipHorizontal={layerActions.handleFlipHorizontal}
-          onFlipVertical={layerActions.handleFlipVertical}
-          onMergeDown={layerActions.handleMergeDown}
-          onFlattenVisible={layerActions.handleFlattenVisible}
-          onTrimLayerToBounds={canvasActions.handleTrimLayerToBounds}
-          onCropCanvasToActiveLayerVisiblePixels={
-            canvasActions.handleCropCanvasToActiveLayerVisiblePixels
-          }
-          onCropCanvasToActiveLayerExtents={
-            canvasActions.handleCropCanvasToActiveLayerExtents
-          }
-          canvasWidth={store.document.canvas.width}
-          canvasHeight={store.document.canvas.height}
-          onCanvasResize={canvasActions.handleCanvasResize}
-          canvasResizeHandlesEnabled={canvasResizeHandlesEnabled}
-          onCanvasResizeHandlesEnabledChange={
-            handleCanvasResizeHandlesEnabledChange
-          }
-          onAddGroup={layerActions.handleAddGroup}
-          onToggleGroupCollapsed={layerActions.handleToggleGroupCollapsed}
-          onMoveLayerToGroup={layerActions.handleMoveLayerToGroup}
-          onUngroupLayer={layerActions.handleUngroupLayer}
-          onGroupSelectedLayers={layerActions.handleGroupSelectedLayers}
-          onDeleteSelectedLayers={layerActions.handleDeleteSelectedLayers}
-        />
-      )}
+      {/* ConnectedLayersPanel handles its own panelsHidden check */}
+      <ConnectedLayersPanel
+        onClearLayer={canvasActions.handleClearLayer}
+        onFlipHorizontal={layerActions.handleFlipHorizontal}
+        onFlipVertical={layerActions.handleFlipVertical}
+        onMergeDown={layerActions.handleMergeDown}
+        onFlattenVisible={layerActions.handleFlattenVisible}
+        onTrimLayerToBounds={canvasActions.handleTrimLayerToBounds}
+        onCropCanvasToActiveLayerVisiblePixels={
+          canvasActions.handleCropCanvasToActiveLayerVisiblePixels
+        }
+        onCropCanvasToActiveLayerExtents={
+          canvasActions.handleCropCanvasToActiveLayerExtents
+        }
+        onCanvasResize={canvasActions.handleCanvasResize}
+        onToggleVisibility={layerActions.handleToggleVisibility}
+        onAddLayer={layerActions.handleAddLayer}
+        onRemoveLayer={layerActions.handleRemoveLayer}
+        onDuplicateLayer={layerActions.handleDuplicateLayer}
+        onReorderLayers={layerActions.handleReorderLayers}
+        onSetMaskLayer={layerActions.handleSetMaskLayer}
+        onToggleAlphaLock={layerActions.handleToggleAlphaLock}
+        onToggleExposedInput={layerActions.handleToggleExposedInput}
+        onToggleExposedOutput={layerActions.handleToggleExposedOutput}
+        onLayerOpacityChange={layerActions.handleSetLayerOpacity}
+        onLayerBlendModeChange={layerActions.handleSetLayerBlendMode}
+        onRenameLayer={layerActions.handleRenameLayer}
+        onAddGroup={layerActions.handleAddGroup}
+        onToggleGroupCollapsed={layerActions.handleToggleGroupCollapsed}
+        onMoveLayerToGroup={layerActions.handleMoveLayerToGroup}
+        onUngroupLayer={layerActions.handleUngroupLayer}
+        onGroupSelectedLayers={layerActions.handleGroupSelectedLayers}
+        onDeleteSelectedLayers={layerActions.handleDeleteSelectedLayers}
+        canvasResizeHandlesEnabled={canvasResizeHandlesEnabled}
+        onCanvasResizeHandlesEnabledChange={
+          handleCanvasResizeHandlesEnabledChange
+        }
+      />
 
-      <SketchCanvasContextMenu
-        className="sketch-editor__context-menu"
+      <ConnectedContextMenu
         open={canvasActions.contextMenu !== null}
         position={canvasActions.contextMenu}
-        activeTool={store.activeTool}
-        brushSettings={store.toolSettings.brush}
-        pencilSettings={store.toolSettings.pencil}
-        eraserSettings={store.toolSettings.eraser}
-        shapeSettings={store.toolSettings.shape}
-        fillSettings={store.toolSettings.fill}
-        blurSettings={store.toolSettings.blur}
-        gradientSettings={store.toolSettings.gradient}
-        cloneStampSettings={store.toolSettings.cloneStamp}
-        selectSettings={store.toolSettings.select}
-        hasActiveSelection={hasActiveSelection}
-        adjustBrightness={canvasActions.adjBrightness}
-        adjustContrast={canvasActions.adjContrast}
-        adjustSaturation={canvasActions.adjSaturation}
-        foregroundColor={store.foregroundColor}
-        backgroundColor={store.backgroundColor}
-        canUndo={store.canUndo()}
-        canRedo={store.canRedo()}
+        adjBrightness={canvasActions.adjBrightness}
+        adjContrast={canvasActions.adjContrast}
+        adjSaturation={canvasActions.adjSaturation}
         onClose={canvasActions.handleContextMenuClose}
-        onToolChange={store.setActiveTool}
-        onBrushSettingsChange={store.setBrushSettings}
-        onPencilSettingsChange={store.setPencilSettings}
-        onEraserSettingsChange={store.setEraserSettings}
-        onShapeSettingsChange={store.setShapeSettings}
-        onFillSettingsChange={store.setFillSettings}
-        onBlurSettingsChange={store.setBlurSettings}
-        onGradientSettingsChange={store.setGradientSettings}
-        onCloneStampSettingsChange={store.setCloneStampSettings}
-        onSelectSettingsChange={store.setSelectSettings}
-        onInvertSelection={store.invertSelection}
-        onFeatherSelection={store.featherCurrentSelection}
-        onSmoothSelectionBorders={store.smoothCurrentSelectionBorders}
-        onStrokeSelectionBorder={store.convertSelectionToBorderOutline}
         onAdjustBrightnessChange={canvasActions.setAdjBrightness}
         onAdjustContrastChange={canvasActions.setAdjContrast}
         onAdjustSaturationChange={canvasActions.setAdjSaturation}
         onAdjustApply={canvasActions.handleApplyAdjustments}
         onAdjustCancel={canvasActions.handleCancelAdjustments}
-        transformScaleX={activeLayerTransform.scaleX ?? 1}
-        transformScaleY={activeLayerTransform.scaleY ?? 1}
-        transformRotation={activeLayerTransform.rotation ?? 0}
         onTransformCommit={canvasActions.handleTransformCommit}
         onTransformCancel={canvasActions.handleTransformCancel}
         onTransformReset={canvasActions.handleTransformReset}
-        segmentSettings={store.toolSettings.segment}
-        onSegmentSettingsChange={store.setSegmentSettings}
-        segmentationStatus={segmentation.status}
-        segmentModelInfo={segmentation.modelInfo}
+        segmentation={segmentation}
         onRunSegmentation={handleRunSegmentation}
-        onApplySegmentResult={segmentation.applyResult}
-        onDiscardSegmentResult={segmentation.discardResult}
-        onCancelSegmentation={segmentation.cancelSegmentation}
         onClearSegmentPrompts={handleClearSegmentPrompts}
-        onCheckSegmentModel={segmentation.checkModel}
-        onSwapColors={store.swapColors}
+        onSwapColors={colorStore.swapColors}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onClearLayer={canvasActions.handleClearLayer}
         onExportPng={canvasActions.handleExportPng}
+        onFillSelectionWithForeground={handleFillSelectionWithForeground}
+        onNewLayer={handleNewLayerFromContextMenu}
+        onLayerViaCopy={handleLayerViaCopy}
+        onLayerViaCut={handleLayerViaCut}
+        onFreeTransform={handleFreeTransform}
+      />
+
+      <TransformContextMenu
+        open={canvasActions.transformContextMenu !== null}
+        position={canvasActions.transformContextMenu}
+        onClose={canvasActions.handleTransformContextMenuClose}
+        onTransformCommit={() => {
+          canvasActions.handleTransformCommit();
+          sessionStore.setActiveTool("move");
+        }}
+        onTransformCancel={() => {
+          canvasActions.handleTransformCancel();
+          sessionStore.setActiveTool("move");
+        }}
+        onTransformReset={canvasActions.handleTransformReset}
+        onRotate90CW={() => canvasActions.handleTransformRotate(Math.PI / 2)}
+        onRotate90CCW={() => canvasActions.handleTransformRotate(-Math.PI / 2)}
+        onRotate180={() => canvasActions.handleTransformRotate(Math.PI)}
+        onFlipHorizontal={canvasActions.handleTransformFlipH}
+        onFlipVertical={canvasActions.handleTransformFlipV}
       />
     </Box>
   );

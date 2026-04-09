@@ -13,12 +13,18 @@ import type {
   Point,
   Selection
 } from "../types";
+import { getToolHandler } from "../tools";
+import { CloneStampTool } from "../tools/CloneStampTool";
 import { drawShapeOnCtx } from "../tools/ShapeTool";
 import { drawGradient } from "../tools/GradientTool";
 import {
   drawPixelGrid,
   PENCIL_PIXEL_CURSOR_MIN_ZOOM
 } from "../drawingUtils";
+import {
+  clientToDocumentCanvas,
+  documentCanvasToClient
+} from "../tools/transform/handleGeometry";
 import {
   drawSelectionMaskOutline,
   drawSelectionPolylineOutline,
@@ -522,14 +528,9 @@ export function useOverlayRenderer({
 
       ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
 
-      // Only show brush cursor for brush/pencil/eraser/blur/clone_stamp tools
-      if (
-        interactionTool !== "brush" &&
-        interactionTool !== "pencil" &&
-        interactionTool !== "eraser" &&
-        interactionTool !== "blur" &&
-        interactionTool !== "clone_stamp"
-      ) {
+      // Only show brush cursor for tools that declare showsBrushCursor capability
+      const handler = getToolHandler(interactionTool);
+      if (!handler.showsBrushCursor) {
         return;
       }
 
@@ -602,15 +603,33 @@ export function useOverlayRenderer({
       // ── Pencil pixel-snap cursor at high zoom ─────────────────────────
       if (isPencilHighZoom) {
         // Show a pixel-aligned square cursor that snaps to the grid
-        const display = overlayCanvasRef.current;
-        if (display) {
-          const dRect = display.getBoundingClientRect();
-          const offsetLeft = (dRect.left - cRect.left) * scaleX;
-          const offsetTop = (dRect.top - cRect.top) * scaleY;
-          const docX = Math.floor((localX - offsetLeft) / zoom);
-          const docY = Math.floor((localY - offsetTop) / zoom);
-          const pixelScreenX = docX * zoom + offsetLeft;
-          const pixelScreenY = docY * zoom + offsetTop;
+        const container = containerRef.current;
+        if (container) {
+          const contRect = container.getBoundingClientRect();
+          const docW = doc.canvas.width;
+          const docH = doc.canvas.height;
+          const docPt = clientToDocumentCanvas(
+            clientX,
+            clientY,
+            contRect,
+            zoom,
+            pan,
+            docW,
+            docH
+          );
+          const docX = Math.floor(docPt.x);
+          const docY = Math.floor(docPt.y);
+          const tlClient = documentCanvasToClient(
+            docX,
+            docY,
+            contRect,
+            zoom,
+            pan,
+            docW,
+            docH
+          );
+          const pixelScreenX = (tlClient.x - cRect.left) * scaleX;
+          const pixelScreenY = (tlClient.y - cRect.top) * scaleY;
           const pixelSize = size * zoom;
 
           ctx.save();
@@ -674,6 +693,55 @@ export function useOverlayRenderer({
       ctx.arc(localX, localY, 1.5, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
       ctx.fill();
+
+      // Clone stamp: draw a crosshair at the clone source position
+      if (interactionTool === "clone_stamp") {
+        const cloneHandler = getToolHandler("clone_stamp");
+        const cloneSource = cloneHandler instanceof CloneStampTool
+          ? cloneHandler.getCloneSource()
+          : null;
+        if (cloneSource) {
+          const container = containerRef.current;
+          if (container) {
+            const contRect = container.getBoundingClientRect();
+            const docW = doc.canvas.width;
+            const docH = doc.canvas.height;
+            const srcClient = documentCanvasToClient(
+              cloneSource.x,
+              cloneSource.y,
+              contRect,
+              zoom,
+              pan,
+              docW,
+              docH
+            );
+            const srcX = (srcClient.x - cRect.left) * scaleX;
+            const srcY = (srcClient.y - cRect.top) * scaleY;
+            const crossLen = 8;
+            ctx.save();
+            // Outer white stroke for contrast
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(srcX - crossLen, srcY);
+            ctx.lineTo(srcX + crossLen, srcY);
+            ctx.moveTo(srcX, srcY - crossLen);
+            ctx.lineTo(srcX, srcY + crossLen);
+            ctx.stroke();
+            // Inner colored stroke
+            ctx.strokeStyle = "rgba(80, 180, 255, 0.9)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            // Small circle at center
+            ctx.beginPath();
+            ctx.arc(srcX, srcY, 3, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
     },
     [
       interactionTool,
@@ -682,9 +750,13 @@ export function useOverlayRenderer({
       doc.toolSettings.eraser,
       doc.toolSettings.blur,
       doc.toolSettings.cloneStamp,
+      doc.canvas.width,
+      doc.canvas.height,
       zoom,
+      pan,
       cursorCanvasRef,
-      overlayCanvasRef
+      overlayCanvasRef,
+      containerRef
     ]
   );
 

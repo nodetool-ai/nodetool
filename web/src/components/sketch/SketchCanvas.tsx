@@ -31,10 +31,15 @@ import {
   usePointerHandlers,
   selectionAntCanvasMarginCssPx
 } from "./sketchCanvasHooks";
+import { clientToDocumentCanvas } from "./tools/transform/handleGeometry";
 import type { StrokeEndOptions } from "./tools/types";
 import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
+import {
+  setActiveLayerTransformPreview,
+  clearActiveLayerTransformPreview
+} from "./activeLayerTransform";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -112,6 +117,7 @@ export interface SketchCanvasRef {
     contrast: number,
     saturation: number
   ) => void;
+  invertLayerColors: (selection?: { width: number; height: number; data: Uint8ClampedArray; originX?: number; originY?: number } | null) => void;
   fillLayerWithColor: (layerId: string, color: string) => void;
   fillLayerRect: (
     layerId: string,
@@ -152,8 +158,38 @@ export interface SketchCanvasRef {
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
+/**
+ * Props for `SketchCanvas`.
+ *
+ * ## Boundary contract
+ *
+ * `SketchCanvas` is the bridge between committed store state (passed as props
+ * from `SketchCanvasPane`) and the rendering/interaction hooks:
+ *
+ * - **Compositing** (`useCompositing`) receives the bare `doc` prop — it does
+ *   NOT see `toolSettings` changes. This prevents slider ticks from triggering
+ *   expensive compositing redraws.
+ * - **Pointer handlers** (`usePointerHandlers`) receive `docWithTools` (doc +
+ *   live toolSettings) but capture it in a ref (`toolCtxRef`). Tool handlers
+ *   always read the latest state without causing hook re-renders.
+ * - **Overlay renderer** (`useOverlayRenderer`) receives `docWithTools` so
+ *   cursor/ring previews update on tool settings changes.
+ * - **Transient preview state** (transform previews, cursor position) is local
+ *   `useState`/`useRef` inside this component — never stored in Zustand.
+ *
+ * The single Zustand subscription in this component is `toolSettings`, which
+ * is merged into `docWithTools` via `useMemo`. All other state arrives as props.
+ *
+ * Props are grouped by concern:
+ */
 export interface SketchCanvasProps {
+  // ── Committed document state ───────────────────────────────────────
   document: SketchDocument;
+  selection?: Selection | null;
+  isolatedLayerId?: string | null;
+  foregroundColor?: string;
+
+  // ── Viewport / tool state ──────────────────────────────────────────
   activeTool: SketchTool;
   /** Effective tool for pointer hit-testing and cursor (e.g. spring move while `activeTool` stays brush). */
   interactionTool: SketchTool;
@@ -163,7 +199,8 @@ export interface SketchCanvasProps {
   mirrorY: boolean;
   symmetryMode: string;
   symmetryRays: number;
-  isolatedLayerId?: string | null;
+
+  // ── Store-to-parent event callbacks ────────────────────────────────
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
@@ -180,6 +217,8 @@ export interface SketchCanvasProps {
   ) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
+  /** Called on right-click inside the transform bounding box (when transform tool is active). */
+  onTransformContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (
     x: number,
     y: number,
@@ -187,12 +226,8 @@ export interface SketchCanvasProps {
     height: number
   ) => void;
   onEyedropperPick?: (color: string) => void;
-  selection?: Selection | null;
   onSelectionChange?: (sel: Selection | null) => void;
   onAutoPickLayer?: (layerId: string) => void;
-  foregroundColor?: string;
-  /** Merged onto the root container (e.g. for layout hooks / E2E). */
-  className?: string;
   /** Called when the pointer leaves the canvas area (e.g. refresh layer thumbnails off the hot path). */
   onCanvasLeave?: () => void;
   /** Called when an image file is dropped onto the canvas. */
@@ -205,6 +240,10 @@ export interface SketchCanvasProps {
     height: number,
     options?: { translateLayers?: Point; resizeFromCenter?: boolean }
   ) => void;
+
+  // ── Layout / testing ───────────────────────────────────────────────
+  /** Merged onto the root container (e.g. for layout hooks / E2E). */
+  className?: string;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -230,6 +269,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onLayerContentBoundsChange,
       onBrushSizeChange,
       onContextMenu,
+      onTransformContextMenu,
       onCropComplete,
       onEyedropperPick,
       selection,
@@ -255,12 +295,20 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [doc, liveToolSettings]
     );
 
-    const [transformPreviewByLayerId, setTransformPreviewByLayerId] = useState<
-      Record<string, LayerTransform>
-    >({});
+    const transformPreviewByLayerIdRef = useRef<Record<string, LayerTransform>>({});
+    const requestPreviewRedrawRef = useRef<() => void>(() => {});
+    /**
+     * Ref to the runtime's invalidateLayer — populated after useCompositing.
+     * Used by setLayerTransformPreview to force-invalidate a layer's GPU
+     * texture when the preview first activates, ensuring stale textures from
+     * startup/image-load timing races are re-synced before compositing.
+     */
+    const invalidateLayerRef = useRef<(layerId: string) => void>(() => {});
 
-    const setLayerTransformPreview = useCallback((layerId: string, transform: LayerTransform) => {
-      setTransformPreviewByLayerId((current) => {
+    const setLayerTransformPreview = useCallback(
+      (layerId: string, transform: LayerTransform) => {
+        setActiveLayerTransformPreview({ layerId, transform });
+        const current = transformPreviewByLayerIdRef.current;
         const existing = current[layerId];
         if (
           existing &&
@@ -270,28 +318,46 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           (existing.scaleY ?? 1) === (transform.scaleY ?? 1) &&
           Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
         ) {
-          return current;
+          return;
         }
-        return { ...current, [layerId]: transform };
-      });
-    }, []);
+        // When a layer is first added to the preview map (start of a new drag),
+        // force-invalidate its rendering data so the GPU texture is re-synced
+        // from the CPU canvas. This prevents stale textures from startup timing
+        // races where an image loaded after the initial GPU texture upload.
+        if (!existing) {
+          invalidateLayerRef.current(layerId);
+        }
+        transformPreviewByLayerIdRef.current = {
+          ...current,
+          [layerId]: transform
+        };
+        requestPreviewRedrawRef.current();
+      },
+      []
+    );
 
-    const clearLayerTransformPreview = useCallback((layerId?: string) => {
-      setTransformPreviewByLayerId((current) => {
+    const clearLayerTransformPreview = useCallback(
+      (layerId?: string) => {
+        clearActiveLayerTransformPreview();
+        const current = transformPreviewByLayerIdRef.current;
         if (layerId == null) {
           if (Object.keys(current).length === 0) {
-            return current;
+            return;
           }
-          return {};
+          transformPreviewByLayerIdRef.current = {};
+          requestPreviewRedrawRef.current();
+          return;
         }
         if (!(layerId in current)) {
-          return current;
+          return;
         }
         const next = { ...current };
         delete next[layerId];
-        return next;
-      });
-    }, []);
+        transformPreviewByLayerIdRef.current = next;
+        requestPreviewRedrawRef.current();
+      },
+      []
+    );
 
     // ─── Shared refs (created here to avoid circular deps between hooks) ─
     const containerRef = useRef<HTMLDivElement>(null);
@@ -328,8 +394,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       zoom,
       isolatedLayerId,
       activeStrokeRef,
-      transformPreviewByLayerId
+      transformPreviewByLayerIdRef
     });
+    requestPreviewRedrawRef.current = requestRedraw;
+    invalidateLayerRef.current = invalidateLayer;
 
     // ─── Pointer handlers (provides shiftHeldRef, altHeldRef, selectStartRef) ─
     // These refs are needed by the overlay renderer, so we extract them first
@@ -425,6 +493,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onLayerContentBoundsChange,
       onBrushSizeChange,
       onContextMenu,
+      onTransformContextMenu,
       onCropComplete,
       onEyedropperPick,
       isolatedLayerId,
@@ -496,15 +565,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const updateCursorDocPosFromClient = useCallback(
       (clientX: number, clientY: number) => {
-        const display = displayCanvasRef.current;
-        if (display) {
-          const rect = display.getBoundingClientRect();
-          const dx = (clientX - rect.left) / zoom;
-          const dy = (clientY - rect.top) / zoom;
-          setCursorDocPos({ x: Math.floor(dx), y: Math.floor(dy) });
+        const container = containerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          const p = clientToDocumentCanvas(
+            clientX,
+            clientY,
+            rect,
+            zoom,
+            pan,
+            doc.canvas.width,
+            doc.canvas.height
+          );
+          setCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
         }
       },
-      [displayCanvasRef, zoom]
+      [containerRef, zoom, pan, doc.canvas.width, doc.canvas.height]
     );
 
     const handlePointerMoveWithCoords = useCallback(

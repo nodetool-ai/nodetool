@@ -289,7 +289,10 @@ export function marqueeAdjustedDocPoints(
   return { start: anchor, end: { x: ex, y: ey } };
 }
 
-/** Filled axis-aligned ellipse inside pixel bounds [x,x+rw)×[y,y+rh). */
+/** Filled axis-aligned ellipse inside pixel bounds [x,x+rw)×[y,y+rh).
+ *  The mask may extend beyond canvas bounds so the marching-ants outline
+ *  renders the full ellipse curve instead of clipping to straight edges.
+ */
 export function ellipseSelectionMask(
   canvasW: number,
   canvasH: number,
@@ -298,29 +301,38 @@ export function ellipseSelectionMask(
   rw: number,
   rh: number
 ): Selection {
-  const m = createEmptyMask(canvasW, canvasH);
   if (rw < 1 || rh < 1) {
-    return m;
+    return createEmptyMask(canvasW, canvasH);
   }
   const cx = x + rw / 2;
   const cy = y + rh / 2;
   const rx = rw / 2;
   const ry = rh / 2;
-  const x0 = Math.max(0, Math.floor(x));
-  const y0 = Math.max(0, Math.floor(y));
-  const x1 = Math.min(canvasW, Math.ceil(x + rw));
-  const y1 = Math.min(canvasH, Math.ceil(y + rh));
-  for (let py = y0; py < y1; py++) {
-    const row = py * canvasW;
-    for (let px = x0; px < x1; px++) {
+
+  // Use the full ellipse bounding box so the outline is not clipped at
+  // canvas edges.  originX / originY shift the grid so indices stay positive.
+  const bx0 = Math.floor(x);
+  const by0 = Math.floor(y);
+  const bx1 = Math.ceil(x + rw);
+  const by1 = Math.ceil(y + rh);
+
+  const maskW = bx1 - bx0;
+  const maskH = by1 - by0;
+  const n = maskW * maskH;
+  const data = new Uint8ClampedArray(n);
+
+  for (let py = by0; py < by1; py++) {
+    const row = (py - by0) * maskW;
+    for (let px = bx0; px < bx1; px++) {
       const nx = (px + 0.5 - cx) / rx;
       const ny = (py + 0.5 - cy) / ry;
       if (nx * nx + ny * ny <= 1) {
-        m.data[row + px] = 255;
+        data[row + (px - bx0)] = 255;
       }
     }
   }
-  return m;
+
+  return { width: maskW, height: maskH, data, originX: bx0, originY: by0 };
 }
 
 export type SelectionCombineOp = "replace" | "add" | "subtract" | "intersect";
@@ -367,47 +379,121 @@ export function combineMasks(
   op: SelectionCombineOp
 ): Selection {
   if (op === "replace" || !base || !validateSelectionMask(base)) {
-    const c = cloneSelectionMask(overlay);
-    return { width: c.width, height: c.height, data: c.data };
+    return cloneSelectionMask(overlay);
   }
-  const docW = overlay.width;
-  const docH = overlay.height;
+
+  const oox = overlay.originX ?? 0;
+  const ooy = overlay.originY ?? 0;
   const box = base.originX ?? 0;
   const boy = base.originY ?? 0;
-  const needsAlign =
-    box !== 0 ||
-    boy !== 0 ||
-    base.width !== docW ||
-    base.height !== docH;
-  const baseAligned: Selection = needsAlign
-    ? selectionToDocumentAligned(base, docW, docH)
-    : cloneSelectionMask(base);
+
+  // ── Fast path: both masks share the same dimensions and origin ──
+  // This is the common case (canvas-sized selections at origin 0,0).
+  // Operate directly on typed arrays without union-buffer allocation.
   if (
-    baseAligned.width !== overlay.width ||
-    baseAligned.height !== overlay.height
+    box === oox &&
+    boy === ooy &&
+    base.width === overlay.width &&
+    base.height === overlay.height
   ) {
-    const c = cloneSelectionMask(overlay);
-    return { width: c.width, height: c.height, data: c.data };
-  }
-  const out = cloneSelectionMask(baseAligned);
-  const n = out.data.length;
-  for (let i = 0; i < n; i++) {
-    const b = out.data[i];
-    const o = overlay.data[i];
-    let v = 0;
+    const n = base.width * base.height;
+    const out = new Uint8ClampedArray(n);
+    const bd = base.data;
+    const od = overlay.data;
     if (op === "add") {
-      v = Math.min(255, b + o);
+      for (let i = 0; i < n; i++) {
+        out[i] = Math.min(255, bd[i] + od[i]);
+      }
     } else if (op === "subtract") {
-      v = Math.max(0, b - o);
+      for (let i = 0; i < n; i++) {
+        out[i] = Math.max(0, bd[i] - od[i]);
+      }
     } else {
-      v = Math.min(b, o);
+      // intersect
+      for (let i = 0; i < n; i++) {
+        out[i] = Math.min(bd[i], od[i]);
+      }
     }
-    out.data[i] = v;
+    return {
+      width: base.width,
+      height: base.height,
+      data: out,
+      originX: box,
+      originY: boy
+    };
   }
+
+  // ── General path: masks may differ in size/origin ──
+  // Compute the union bounding box of both masks (they may have different
+  // dimensions and origins, e.g. an ellipse that extends beyond canvas).
+  const uMinX = Math.min(oox, box);
+  const uMinY = Math.min(ooy, boy);
+  const uMaxX = Math.max(oox + overlay.width, box + base.width);
+  const uMaxY = Math.max(ooy + overlay.height, boy + base.height);
+  const uW = uMaxX - uMinX;
+  const uH = uMaxY - uMinY;
+
+  const out = createEmptyMask(uW, uH);
+
+  // Copy base into the union buffer — use subarray + set for bulk row copy
+  const baseDx = box - uMinX;
+  const baseDy = boy - uMinY;
+  for (let by = 0; by < base.height; by++) {
+    const dy = baseDy + by;
+    if (dy < 0 || dy >= uH) {
+      continue;
+    }
+    const srcOff = by * base.width;
+    const dstOff = dy * uW + baseDx;
+    // When the base row falls entirely within the union buffer, use bulk set
+    if (baseDx >= 0 && baseDx + base.width <= uW) {
+      out.data.set(base.data.subarray(srcOff, srcOff + base.width), dstOff);
+    } else {
+      for (let bx = 0; bx < base.width; bx++) {
+        const dx = baseDx + bx;
+        if (dx >= 0 && dx < uW) {
+          out.data[dy * uW + dx] = base.data[srcOff + bx];
+        }
+      }
+    }
+  }
+
+  // Combine overlay into the union buffer — only iterate overlay rows/cols
+  const overlayDx = oox - uMinX;
+  const overlayDy = ooy - uMinY;
+  for (let oy = 0; oy < overlay.height; oy++) {
+    const dy = overlayDy + oy;
+    if (dy < 0 || dy >= uH) {
+      continue;
+    }
+    const srcRow = oy * overlay.width;
+    const dstRow = dy * uW;
+    for (let ox = 0; ox < overlay.width; ox++) {
+      const dx = overlayDx + ox;
+      if (dx < 0 || dx >= uW) {
+        continue;
+      }
+      const idx = dstRow + dx;
+      const b = out.data[idx];
+      const o = overlay.data[srcRow + ox];
+      let v = 0;
+      if (op === "add") {
+        v = Math.min(255, b + o);
+      } else if (op === "subtract") {
+        v = Math.max(0, b - o);
+      } else {
+        v = Math.min(b, o);
+      }
+      out.data[idx] = v;
+    }
+  }
+
   return {
-    width: out.width,
-    height: out.height,
-    data: out.data
+    width: uW,
+    height: uH,
+    data: out.data,
+    originX: uMinX,
+    originY: uMinY
   };
 }
 

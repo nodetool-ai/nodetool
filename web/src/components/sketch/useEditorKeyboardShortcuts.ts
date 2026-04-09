@@ -85,6 +85,20 @@ export interface UseEditorKeyboardShortcutsParams {
   togglePanelsHidden: () => void;
   /** Cancel the active tool's in-progress operation (e.g. crop drag). */
   cancelActiveTool?: () => void;
+  /** Invert all color channels of the active layer. */
+  handleInvertLayerColors: () => void;
+  /** Commit the current transform (bake into pixels). */
+  handleTransformCommit?: () => void;
+  /** Cancel the current transform (restore original). */
+  handleTransformCancel?: () => void;
+  /** Undo the last handle adjustment while still in transform mode. */
+  handleTransformUndo?: () => void;
+  /** Redo the last undone handle adjustment while still in transform mode. */
+  handleTransformRedo?: () => void;
+  /** Layer via Copy: duplicate selected region to a new layer. */
+  handleLayerViaCopy?: () => void;
+  /** Layer via Cut: move selected region to a new layer. */
+  handleLayerViaCut?: () => void;
 }
 
 export function useEditorKeyboardShortcuts(
@@ -200,9 +214,17 @@ export function useEditorKeyboardShortcuts(
       }
 
       if (e.ctrlKey || e.metaKey) {
+        const currentTool = useSketchStore.getState().activeTool;
         if (e.key === "z") {
           e.preventDefault();
-          if (e.shiftKey) {
+          if (currentTool === "transform") {
+            // In transform mode, undo/redo operates on handle adjustments
+            if (e.shiftKey) {
+              paramsRef.current.handleTransformRedo?.();
+            } else {
+              paramsRef.current.handleTransformUndo?.();
+            }
+          } else if (e.shiftKey) {
             paramsRef.current.handleRedo();
           } else {
             paramsRef.current.handleUndo();
@@ -210,7 +232,11 @@ export function useEditorKeyboardShortcuts(
         }
         if (e.key === "y") {
           e.preventDefault();
-          paramsRef.current.handleRedo();
+          if (currentTool === "transform") {
+            paramsRef.current.handleTransformRedo?.();
+          } else {
+            paramsRef.current.handleRedo();
+          }
         }
         if (e.key === "0") {
           e.preventDefault();
@@ -243,6 +269,11 @@ export function useEditorKeyboardShortcuts(
           e.preventDefault();
           useSketchStore.getState().invertSelection();
         }
+        // Ctrl+I → invert layer colors
+        if (e.key.toLowerCase() === "i" && !e.shiftKey) {
+          e.preventDefault();
+          paramsRef.current.handleInvertLayerColors();
+        }
         // Ctrl+Backspace → fill with background color (Photoshop convention)
         if (e.key === "Backspace") {
           e.preventDefault();
@@ -264,6 +295,20 @@ export function useEditorKeyboardShortcuts(
         if (e.key === "v") {
           e.preventDefault();
           paramsRef.current.handlePaste(e.shiftKey);
+        }
+        // Ctrl+J → Layer via Copy, Ctrl+Shift+J → Layer via Cut
+        if (e.key.toLowerCase() === "j") {
+          e.preventDefault();
+          if (e.shiftKey) {
+            paramsRef.current.handleLayerViaCut?.();
+          } else {
+            paramsRef.current.handleLayerViaCopy?.();
+          }
+        }
+        // Ctrl+T / Cmd+T → enter Free Transform mode
+        if (e.key.toLowerCase() === "t" && !e.shiftKey && !e.altKey) {
+          e.preventDefault();
+          paramsRef.current.setActiveTool("transform");
         }
       } else if (e.altKey) {
         // Alt+Backspace → fill with foreground color (Photoshop convention)
@@ -337,10 +382,28 @@ export function useEditorKeyboardShortcuts(
           }
         } else {
           switch (e.key) {
-            case "Escape":
-              paramsRef.current.cancelActiveTool?.();
-              useSketchStore.getState().setSelection(null);
+            case "Escape": {
+              const currentTool = useSketchStore.getState().activeTool;
+              if (currentTool === "transform") {
+                // Cancel the transform and switch back to a neutral tool
+                paramsRef.current.handleTransformCancel?.();
+                paramsRef.current.setActiveTool("move");
+              } else {
+                paramsRef.current.cancelActiveTool?.();
+                useSketchStore.getState().setSelection(null);
+              }
               break;
+            }
+            case "Enter": {
+              const currentTool = useSketchStore.getState().activeTool;
+              if (currentTool === "transform") {
+                e.preventDefault();
+                // Commit the current transform (bake into pixels)
+                paramsRef.current.handleTransformCommit?.();
+                paramsRef.current.setActiveTool("move");
+              }
+              break;
+            }
             case "b":
               paramsRef.current.setActiveTool("brush");
               break;

@@ -37,14 +37,13 @@ function getTextContent(content: Message['content']): string {
   if (Array.isArray(content)) {
     return content
       .filter((c: MessageContent) => c?.type === 'text')
-      .map((c: MessageContent) => (c as any)?.text || '')
+      .map((c: MessageContent) => (c as Record<string, unknown>)?.text || '')
       .join('\n');
   }
 
-  // Handle object case (MessageContent type)
   if (typeof content === 'object' && 'type' in content) {
     if (content.type === 'text' && 'text' in content) {
-      return (content as any).text || '';
+      return (content as Record<string, unknown>).text as string || '';
     }
   }
 
@@ -100,9 +99,6 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
     }
   }, [textContent]);
 
-  /**
-   * Render text content (used as callback for MessageContentRenderer)
-   */
   const renderTextContent = useCallback((text: string, index: number) => {
     if (!text) { return null; }
 
@@ -112,7 +108,6 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
     return <ChatMarkdown key={index} content={text} />;
   }, [isUser, colors.userBubbleText]);
 
-  // Return null for system and tool messages as they should not be displayed
   if (message.role === 'system' || message.role === 'tool') {
     return null;
   }
@@ -120,9 +115,6 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
   const contentItems = getContentItems(message.content);
   const hasMedia = hasMediaContent(message.content);
 
-  /**
-   * Render simple text-only message
-   */
   const renderSimpleMessage = () => {
     if (isUser) {
       return <Text style={[styles.userText, { color: colors.userBubbleText }]}>{textContent}</Text>;
@@ -130,9 +122,6 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
     return <ChatMarkdown content={textContent} />;
   };
 
-  /**
-   * Render message with mixed content (text + media)
-   */
   const renderMixedContent = () => {
     return (
       <>
@@ -170,13 +159,13 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
       {/* Copy button for assistant messages */}
       {!isUser && textContent.length > 0 && (
         <TouchableOpacity
-          style={styles.copyButton}
+          style={[styles.copyButton, { backgroundColor: colors.primaryLight }]}
           onPress={handleCopyMessage}
           accessibilityLabel="Copy message"
           accessibilityRole="button"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="copy-outline" size={14} color={colors.textSecondary} />
+          <Ionicons name="copy-outline" size={13} color={colors.textSecondary} />
         </TouchableOpacity>
       )}
     </View>
@@ -185,7 +174,7 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 4,
     maxWidth: '100%',
   },
@@ -197,15 +186,15 @@ const styles = StyleSheet.create({
   },
   bubble: {
     maxWidth: '85%',
-    borderRadius: 16,
+    borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   userBubble: {
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: 6,
   },
   assistantBubble: {
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: 6,
   },
   userText: {
     fontSize: 15,
@@ -214,8 +203,8 @@ const styles = StyleSheet.create({
   copyButton: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    marginTop: 2,
-    opacity: 0.6,
+    marginTop: 4,
+    borderRadius: 6,
   },
 });
 

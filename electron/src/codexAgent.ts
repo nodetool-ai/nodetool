@@ -6,7 +6,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { writeFileSync, unlinkSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync, unlinkSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { logMessage } from "./logger";
 import type {
@@ -100,7 +100,7 @@ export class CodexQuerySession {
     if (existsSync(configPath)) {
       try {
         const existing = JSON.parse(
-          require("node:fs").readFileSync(configPath, "utf8"),
+          readFileSync(configPath, "utf8"),
         ) as { mcpServers?: { "nodetool-ui"?: { url?: string } } };
         if (existing?.mcpServers?.["nodetool-ui"]?.url === mcpUrl) {
           return; // Already configured

@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, memo, useRef } from "react";
-import { Handle, Position, useHandleConnections } from "@xyflow/react";
+import { Handle, Position, useNodeConnections } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
@@ -18,9 +18,11 @@ export type NodeOutputProps = {
   output: OutputSlot;
   isDynamic?: boolean;
   isStreamingOutput?: boolean;
+  /** Optional display name override for the handle tooltip. */
+  displayName?: string;
 };
 
-const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }) => {
+const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput, displayName }) => {
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
     (state) => state.connectDirection
@@ -93,7 +95,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
     };
   }, []);
 
-  const connections = useHandleConnections({ type: "source", id: output.name });
+  const connections = useNodeConnections({ handleType: "source", handleId: output.name });
   const isConnected = connections.length > 0;
 
   const {
@@ -165,6 +167,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
       <HandleTooltip
         typeMetadata={output.type}
         paramName={output.name}
+        displayName={displayName}
         className={classConnectable}
         handlePosition="right"
         isStreamingOutput={isStreamingOutput}

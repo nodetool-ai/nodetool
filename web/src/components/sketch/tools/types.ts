@@ -194,6 +194,24 @@ export interface ToolHandler {
   /** Unique tool identifier. */
   readonly toolId: SketchTool;
 
+  // ── Declarative capability flags ─────────────────────────────────────
+  //
+  // Tools declare capabilities via optional boolean properties. The pointer
+  // handler and overlay renderer query these instead of hard-coding per-tool
+  // lists. Omitted (undefined) is treated as false.
+
+  /**
+   * When true, the overlay renderer draws a brush-ring cursor that tracks
+   * the pointer (brush, pencil, eraser, blur, clone stamp).
+   */
+  readonly showsBrushCursor?: boolean;
+
+  /**
+   * When true, the pointer handler draws the active-stroke preview buffer
+   * after onDown/onMove/onUp (brush, pencil, eraser).
+   */
+  readonly showsActiveStrokePreview?: boolean;
+
   /**
    * Called when the primary button is pressed.
    * Return `true` to indicate the tool started a gesture (drawing/dragging).
@@ -239,6 +257,12 @@ export interface ToolHandler {
    * Allows the tool to clean up state.
    */
   onDeactivate?(ctx: ToolContext): void;
+
+  /**
+   * Called when the viewport (zoom / pan) changes while the tool is active.
+   * Allows tools to update overlays that depend on screen-space coordinates.
+   */
+  onViewportChange?(ctx: ToolContext): void;
 
   // ── Async tool lifecycle (optional) ──────────────────────────────────
   //

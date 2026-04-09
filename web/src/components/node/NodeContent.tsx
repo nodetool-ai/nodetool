@@ -22,7 +22,7 @@ interface NodeContentProps {
   status?: string;
   workflowId: string;
   showResultOverlay: boolean;
-  result: any;
+  result: unknown;
   onShowInputs: () => void;
   onShowResults?: () => void;
 }
@@ -142,7 +142,8 @@ const arePropsEqual = (
   // Functions should be stable references, but check them anyway
   if (
     prevProps.onToggleAdvancedFields !== nextProps.onToggleAdvancedFields ||
-    prevProps.onShowInputs !== nextProps.onShowInputs
+    prevProps.onShowInputs !== nextProps.onShowInputs ||
+    prevProps.onShowResults !== nextProps.onShowResults
   ) {
     return false;
   }
@@ -164,8 +165,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
   workflowId,
   showResultOverlay,
   result,
-  onShowInputs
-  // onShowResults is no longer used here but kept in interface for backwards compatibility
+  onShowInputs,
+  onShowResults
 }) => {
   const { handleAddProperty } = useDynamicProperty(
     id,

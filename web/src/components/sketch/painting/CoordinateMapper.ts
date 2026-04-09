@@ -110,13 +110,53 @@ export class CoordinateMapper {
     return this.tx !== 0 || this.ty !== 0 || this.rx !== 0 || this.ry !== 0;
   }
 
-  /** Shift a dirty rect from layer-space to document-space. */
+  /**
+   * Shift a dirty rect from layer-space to document-space.
+   *
+   * When the layer has an affine matrix (rotation/scale), the four corners of
+   * the layer-space dirty rect are transformed through the forward matrix and
+   * then an axis-aligned bounding box is computed in document-space.  This
+   * prevents under-invalidation that would occur if only translation offsets
+   * were applied to a rotated/scaled layer.
+   */
   dirtyToDoc(rect: {
     minX: number;
     minY: number;
     maxX: number;
     maxY: number;
   }): { x: number; y: number; w: number; h: number } {
+    if (this.matrix) {
+      // Transform all four corners of the layer-space dirty rect through the
+      // forward affine matrix, accounting for raster offset.
+      const corners = [
+        { x: rect.minX, y: rect.minY },
+        { x: rect.maxX, y: rect.minY },
+        { x: rect.minX, y: rect.maxY },
+        { x: rect.maxX, y: rect.maxY }
+      ];
+
+      let dMinX = Infinity;
+      let dMinY = Infinity;
+      let dMaxX = -Infinity;
+      let dMaxY = -Infinity;
+
+      for (const c of corners) {
+        const docPt = this.layerToDoc(c);
+        if (docPt.x < dMinX) { dMinX = docPt.x; }
+        if (docPt.y < dMinY) { dMinY = docPt.y; }
+        if (docPt.x > dMaxX) { dMaxX = docPt.x; }
+        if (docPt.y > dMaxY) { dMaxY = docPt.y; }
+      }
+
+      return {
+        x: Math.floor(dMinX),
+        y: Math.floor(dMinY),
+        w: Math.ceil(dMaxX - dMinX),
+        h: Math.ceil(dMaxY - dMinY)
+      };
+    }
+
+    // Translation-only fast path.
     return {
       x: rect.minX + this.tx + this.rx,
       y: rect.minY + this.ty + this.ry,

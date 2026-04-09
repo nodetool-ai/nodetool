@@ -64,8 +64,12 @@ describe("marqueeAdjustedDocPoints", () => {
 describe("ellipseSelectionMask", () => {
   it("fills center pixel for a small ellipse", () => {
     const m = ellipseSelectionMask(16, 16, 6, 6, 4, 4);
-    expect(m.data[8 * 16 + 8]).toBeGreaterThanOrEqual(128);
-    expect(m.data[6 * 16 + 6]).toBe(0);
+    const ox = m.originX ?? 0;
+    const oy = m.originY ?? 0;
+    // center at document coord (8, 8)
+    expect(m.data[(8 - oy) * m.width + (8 - ox)]).toBeGreaterThanOrEqual(128);
+    // corner at document coord (6, 6) should be outside the ellipse
+    expect(m.data[(6 - oy) * m.width + (6 - ox)]).toBe(0);
   });
 });
 

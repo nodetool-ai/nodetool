@@ -6,22 +6,28 @@ import type { Theme } from "@mui/material/styles";
 
 const styles = (theme: Theme) =>
   css({
-    draggingOverlay: {
-      display: "none",
+    ".dragging-overlay": {
       position: "absolute",
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.5)`,
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
       zIndex: 1000,
       pointerEvents: "none",
-      opacity: 0,
-      transition: "opacity 0.2s"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      border: `3px dashed ${theme.vars.palette.primary.main}`,
+      borderRadius: "8px"
     },
-    dropzoneDraggingOverlay: {
-      display: "block",
-      opacity: 1
+    ".dragging-overlay-text": {
+      color: theme.vars.palette.primary.main,
+      fontSize: theme.fontSizeNormal,
+      fontWeight: 600,
+      pointerEvents: "none",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em"
     },
     ".file-upload-button": {
       zIndex: 1,
@@ -106,7 +112,11 @@ const Dropzone: React.FC<DropzoneProps> = (props) => {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {isExternalDrag && <div className="dragging-overlay" />}
+      {isExternalDrag && (
+        <div className="dragging-overlay">
+          <span className="dragging-overlay-text">Drop files to upload</span>
+        </div>
+      )}
       {/* Upload button moved into the toolbar; keep drag-and-drop active here */}
       {props.children}
     </div>

@@ -13,36 +13,29 @@ import type { Point, Selection } from "../types";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import {
   selectionHitTest,
-  selectionHasAnyPixels,
   rectSelectionMask,
   ellipseSelectionMask,
-  combineMasks,
   offsetSelectionByDocumentDelta,
   cloneSelectionMask,
   magicWandFromRgba,
   polygonToBinaryMask,
   marqueeAdjustedDocPoints,
   marqueeRectFromDocPoints,
-  type SelectionCombineOp,
 } from "../selection";
+import {
+  selectionCombineMode,
+  captureModifiers,
+  type ModifierSnapshot
+} from "./modifierIntent";
+import {
+  applySelectionFinalization,
+  scheduleSelectionFinalization
+} from "./selectionFinalization";
 
 /** Require this much document-space delta before commit. */
 const MARQUEE_MIN_DRAG_DOC_PX = 1;
 /** Screen-space slop for detecting deliberate drag. */
 const MARQUEE_DRAG_MIN_SCREEN_PX = 3;
-
-function selectionCombineMode(shift: boolean, alt: boolean): SelectionCombineOp {
-  if (shift && alt) {
-    return "intersect";
-  }
-  if (shift) {
-    return "add";
-  }
-  if (alt) {
-    return "subtract";
-  }
-  return "replace";
-}
 
 export class SelectTool implements ToolHandler {
   readonly toolId = "select" as const;
@@ -57,17 +50,41 @@ export class SelectTool implements ToolHandler {
   private lassoPoints: Point[] = [];
 
   // Modifier capture at pointer-down for combine op
-  private selectionDragModifiers: { shift: boolean; alt: boolean } | null = null;
-  private marqueeCombineAtDown: { shift: boolean; alt: boolean } | null = null;
+  private selectionDragModifiers: ModifierSnapshot | null = null;
+  private marqueeCombineAtDown: ModifierSnapshot | null = null;
 
   // Marquee drag threshold
   private marqueeDocDragSeen = false;
   private marqueePointerDownClient: { x: number; y: number } | null = null;
 
+  // Deferred selection-clear timer (cancelled on tool switch / deactivate)
+  private selectionClearTimer: ReturnType<typeof setTimeout> | null = null;
+
   /** Clear in-progress polygon (called when selection is reset externally, e.g. Escape). */
   clearPolygon(): void {
     this.lassoPoints = [];
     this.selectionDragModifiers = null;
+  }
+
+  /** Cancel any pending deferred selection clear. */
+  private cancelDeferredClear(): void {
+    if (this.selectionClearTimer !== null) {
+      clearTimeout(this.selectionClearTimer);
+      this.selectionClearTimer = null;
+    }
+  }
+
+  /** Schedule a deferred selection clear for responsive pointer-down. */
+  private deferSelectionClear(ctx: ToolContext): void {
+    this.cancelDeferredClear();
+    this.selectionClearTimer = setTimeout(() => {
+      this.selectionClearTimer = null;
+      ctx.onSelectionChange?.(null);
+    }, 0);
+  }
+
+  onDeactivate?(): void {
+    this.cancelDeferredClear();
   }
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
@@ -115,12 +132,14 @@ export class SelectTool implements ToolHandler {
             doc.toolSettings.select.magicWandTolerance
           );
           const overlay: Selection = { width: cw, height: ch, data: bin };
-          const op = selectionCombineMode(
-            ctx.shiftHeldRef.current,
-            ctx.altHeldRef.current
-          );
-          const base = op === "replace" ? null : selection ?? null;
-          ctx.onSelectionChange(combineMasks(base, overlay, op));
+          const mods = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
+          applySelectionFinalization({
+            overlay,
+            modifiers: mods,
+            currentSelection: selection,
+            onSelectionChange: ctx.onSelectionChange,
+            drawSelectionOverlay: ctx.drawSelectionOverlay
+          });
         }
       }
       return false;
@@ -136,12 +155,10 @@ export class SelectTool implements ToolHandler {
       if (selectStartRef) {
         selectStartRef.current = null;
       }
-      this.selectionDragModifiers = {
-        shift: ctx.shiftHeldRef.current,
-        alt: ctx.altHeldRef.current
-      };
+      this.selectionDragModifiers = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
       if (!ctx.shiftHeldRef.current && !ctx.altHeldRef.current) {
-        ctx.onSelectionChange?.(null);
+        // Defer state update so the pointer-down returns immediately.
+        this.deferSelectionClear(ctx);
       }
       return true;
     }
@@ -154,12 +171,10 @@ export class SelectTool implements ToolHandler {
       }
       const isFirstVertex = this.lassoPoints.length === 0;
       if (isFirstVertex) {
-        this.selectionDragModifiers = {
-          shift: ctx.shiftHeldRef.current,
-          alt: ctx.altHeldRef.current
-        };
+        this.selectionDragModifiers = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
         if (!ctx.shiftHeldRef.current && !ctx.altHeldRef.current) {
-          ctx.onSelectionChange?.(null);
+          // Defer state update so the pointer-down returns immediately.
+          this.deferSelectionClear(ctx);
         }
       }
       this.lassoPoints = [...this.lassoPoints, pt];
@@ -185,17 +200,17 @@ export class SelectTool implements ToolHandler {
       x: event.nativeEvent.clientX,
       y: event.nativeEvent.clientY
     };
-    this.marqueeCombineAtDown = {
-      shift: ctx.shiftHeldRef.current,
-      alt: ctx.altHeldRef.current
-    };
+    this.marqueeCombineAtDown = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
     this.selectionDragModifiers = null;
     const marqueeOpAtDown = selectionCombineMode(
       this.marqueeCombineAtDown.shift,
       this.marqueeCombineAtDown.alt
     );
     if (marqueeOpAtDown === "replace") {
-      ctx.onSelectionChange?.(null);
+      // Defer the state update so the pointer-down returns immediately.
+      // The drawOverlaySelection call in onMove clears the overlay visually,
+      // and the new selection replaces the old one on commit anyway.
+      this.deferSelectionClear(ctx);
     }
     return true;
   }
@@ -316,27 +331,32 @@ export class SelectTool implements ToolHandler {
       if (!last || last.x !== pt.x || last.y !== pt.y) {
         pts.push(pt);
       }
+      // Clear the visual overlay immediately so the UI feels responsive,
+      // then schedule the heavy mask generation on the next frame.
       ctx.clearOverlay();
-      ctx.drawSelectionOverlay();
       this.selectStart = null;
       if (selectStartRef) {
         selectStartRef.current = null;
       }
-      if (pts.length >= 3 && ctx.onSelectionChange) {
-        const bin = polygonToBinaryMask(cw, ch, pts);
-        const overlay: Selection = { width: cw, height: ch, data: bin };
-        if (selectionHasAnyPixels(overlay)) {
-          const mod = this.selectionDragModifiers;
-          this.selectionDragModifiers = null;
-          const op = selectionCombineMode(
-            mod?.shift ?? ctx.shiftHeldRef.current,
-            mod?.alt ?? ctx.altHeldRef.current
-          );
-          const base = op === "replace" ? null : selection ?? null;
-          ctx.onSelectionChange(combineMasks(base, overlay, op));
-        }
-      }
+      const mod = this.selectionDragModifiers;
       this.selectionDragModifiers = null;
+      if (pts.length >= 3 && ctx.onSelectionChange) {
+        scheduleSelectionFinalization(
+          () => {
+            const bin = polygonToBinaryMask(cw, ch, pts);
+            return { width: cw, height: ch, data: bin };
+          },
+          {
+            modifiers: mod,
+            currentSelection: selection,
+            onSelectionChange: ctx.onSelectionChange!,
+            drawSelectionOverlay: ctx.drawSelectionOverlay
+          },
+          ctx.clearOverlay
+        );
+      } else {
+        ctx.drawSelectionOverlay();
+      }
       return;
     }
 
@@ -358,6 +378,7 @@ export class SelectTool implements ToolHandler {
             })
           : { start: anchor, end: pt };
       const { x, y, w, h } = marqueeRectFromDocPoints(mStart, mEnd);
+      // Clear visual overlay immediately for responsive UI feedback.
       ctx.clearOverlay();
       this.selectStart = null;
       if (selectStartRef) {
@@ -365,9 +386,6 @@ export class SelectTool implements ToolHandler {
       }
       const mc = this.marqueeCombineAtDown;
       this.marqueeCombineAtDown = null;
-      const op: SelectionCombineOp = mc
-        ? selectionCombineMode(mc.shift, mc.alt)
-        : "replace";
       const isMarqueeShape =
         selMode === "rectangle" || selMode === "ellipse";
       const marqueeDragged = this.marqueeDocDragSeen;
@@ -379,16 +397,23 @@ export class SelectTool implements ToolHandler {
         ctx.onSelectionChange &&
         (!isMarqueeShape || marqueeDragged)
       ) {
-        const overlay =
-          selMode === "ellipse"
-            ? ellipseSelectionMask(cw, ch, x, y, w, h)
-            : rectSelectionMask(cw, ch, x, y, w, h);
-        if (selectionHasAnyPixels(overlay)) {
-          const base = op === "replace" ? null : selection ?? null;
-          ctx.onSelectionChange(combineMasks(base, overlay, op));
-        }
+        const capturedSelection = selection;
+        scheduleSelectionFinalization(
+          () =>
+            selMode === "ellipse"
+              ? ellipseSelectionMask(cw, ch, x, y, w, h)
+              : rectSelectionMask(cw, ch, x, y, w, h),
+          {
+            modifiers: mc,
+            currentSelection: capturedSelection,
+            onSelectionChange: ctx.onSelectionChange!,
+            drawSelectionOverlay: ctx.drawSelectionOverlay
+          },
+          ctx.clearOverlay
+        );
+      } else {
+        ctx.drawSelectionOverlay();
       }
-      ctx.drawSelectionOverlay();
     }
   }
 
@@ -422,18 +447,21 @@ export class SelectTool implements ToolHandler {
     const cw = ctx.doc.canvas.width;
     const ch = ctx.doc.canvas.height;
     if (ctx.onSelectionChange) {
-      const bin = polygonToBinaryMask(cw, ch, pts);
-      const overlay: Selection = { width: cw, height: ch, data: bin };
-      if (selectionHasAnyPixels(overlay)) {
-        const mod = this.selectionDragModifiers;
-        this.selectionDragModifiers = null;
-        const op = selectionCombineMode(
-          mod?.shift ?? ctx.shiftHeldRef.current,
-          mod?.alt ?? ctx.altHeldRef.current
-        );
-        const base = op === "replace" ? null : ctx.selection ?? null;
-        ctx.onSelectionChange(combineMasks(base, overlay, op));
-      }
+      // For polygon, use captured modifiers from first vertex, falling back to
+      // live modifier state for backwards compatibility.
+      const mod = this.selectionDragModifiers ?? captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
+      this.selectionDragModifiers = null;
+      const overlay = (() => {
+        const bin = polygonToBinaryMask(cw, ch, pts);
+        return { width: cw, height: ch, data: bin } as Selection;
+      })();
+      applySelectionFinalization({
+        overlay,
+        modifiers: mod,
+        currentSelection: ctx.selection,
+        onSelectionChange: ctx.onSelectionChange,
+        drawSelectionOverlay: ctx.drawSelectionOverlay
+      });
     }
     this.selectionDragModifiers = null;
   }

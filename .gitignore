@@ -42,6 +42,8 @@ docs.chromadb
 # Cache
 .cache
 .eslintcache
+# tsx temp files (Windows bug: resolves tmpdir as "undefined")
+**/undefined/
 
 # Testing
 /coverage

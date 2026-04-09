@@ -6,6 +6,7 @@ import React, { useMemo, memo } from "react";
 import { Typography, Box } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
+import { formatFileSize } from "../../utils/formatUtils";
 
 interface StorageAnalyticsProps {
   assets: Asset[];
@@ -16,19 +17,20 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       position: "absolute",
-      top: "5em",
-      right: "4em",
+      top: "7em",
+      right: "2em",
       minWidth: "200px",
       maxWidth: "300px",
       display: "flex",
       alignItems: "center",
-      justifyContent: "space-between",
+      justifyContent: "flex-end",
       gap: "1em",
       padding: "0.5em 1em",
-      backgroundColor: "transp  ",
+      backgroundColor: "transparent",
       borderRadius: "0.25em",
-      margin: "0.5em 0",
-      fontSize: theme.fontSizeSmaller
+      margin: "0",
+      fontSize: theme.fontSizeSmaller,
+      textAlign: "right"
     },
     ".folder-info": {
       color: theme.vars.palette.grey[200],
@@ -98,7 +100,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
       <div className="storage-stats">
         <div className="stat-item">
           <span className="stat-label">Total Size</span>
-          <span className="stat-value">{totalSize}</span>
+          <span className="stat-value">{formatFileSize(totalSize)}</span>
         </div>
 
         {folderCount > 0 && (

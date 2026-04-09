@@ -859,6 +859,7 @@ describe("SketchCanvasRef interface", () => {
       flattenVisible: jest.fn(),
       cropCanvas: jest.fn(),
       applyAdjustments: jest.fn(),
+      invertLayerColors: jest.fn(),
       fillLayerWithColor: jest.fn(),
       fillLayerRect: jest.fn(),
       clearLayerBySelectionMask: jest.fn(),

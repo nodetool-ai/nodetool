@@ -15,7 +15,8 @@ export { default as SketchLayersPanel } from "./SketchLayersPanel";
 export { useSketchStore } from "./state";
 
 export {
-  useSketchStoreSelectors,
+  useResolvedToolSettings,
+  useActiveToolSettings,
   useHistoryActions,
   useLayerActions,
   useCanvasActions,

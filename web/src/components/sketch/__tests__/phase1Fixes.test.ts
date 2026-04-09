@@ -296,18 +296,22 @@ describe("Selection mask - ellipse extends beyond canvas", () => {
   it("ellipseSelectionMask selects pixels inside canvas when ellipse extends beyond", () => {
     // Ellipse that extends 10px beyond the left edge of a 50×50 canvas
     const mask = ellipseSelectionMask(50, 50, -10, 0, 70, 50);
+    const ox = mask.originX ?? 0;
+    const oy = mask.originY ?? 0;
 
-    // The center of this ellipse is at (25, 25) — some pixels at x=0
-    // should be selected even though the ellipse extends past the left edge
-    expect(mask.width).toBe(50);
+    // The mask now covers the full ellipse bounding box (including beyond canvas)
+    expect(mask.width).toBe(70);
     expect(mask.height).toBe(50);
+    expect(ox).toBe(-10);
+    expect(oy).toBe(0);
 
-    // Check that pixels near the center are selected
-    const centerIdx = 25 * 50 + 25;
-    expect(mask.data[centerIdx]).toBe(255);
+    // Check that pixels near the center are selected (doc coord 25, 25)
+    expect(mask.data[(25 - oy) * mask.width + (25 - ox)]).toBe(255);
 
     // Check that pixels at the left edge (x=0) near the center are selected
-    const leftCenterIdx = 25 * 50 + 0;
-    expect(mask.data[leftCenterIdx]).toBe(255);
+    expect(mask.data[(25 - oy) * mask.width + (0 - ox)]).toBe(255);
+
+    // Check that pixels beyond the left canvas edge are also in the mask
+    expect(mask.data[(25 - oy) * mask.width + (-5 - ox)]).toBe(255);
   });
 });

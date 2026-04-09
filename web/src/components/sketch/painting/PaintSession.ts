@@ -38,12 +38,60 @@ import {
   applySelectionMaskAlpha,
   selectionHasAnyPixels
 } from "../selection";
+import { restoreAlphaFromSnapshot } from "./alphaLock";
 
 // ─── Session state ──────────────────────────────────────────────────────────
 
 export interface PaintSessionSnapshot {
   /** Alpha channel snapshot for alpha-lock restore. */
   alphaSnapshot: ImageData | null;
+}
+
+// ─── Stroke buffer pool ─────────────────────────────────────────────────────
+// Reuse off-screen canvases between strokes to avoid the cost of
+// `document.createElement("canvas")` + GPU-backed surface allocation on every
+// pointer-down. The pool is module-scoped so it persists across sessions.
+
+const STROKE_BUFFER_POOL_MAX = 3;
+const strokeBufferPool: HTMLCanvasElement[] = [];
+
+/**
+ * Acquire a canvas from the pool sized to `width × height`.
+ * Returns a recycled canvas (cleared) when one is available,
+ * otherwise creates a new element.
+ */
+export function acquireStrokeBuffer(
+  width: number,
+  height: number
+): HTMLCanvasElement {
+  const canvas = strokeBufferPool.pop();
+  if (canvas) {
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    } else {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, width, height);
+      }
+    }
+    return canvas;
+  }
+  const fresh = window.document.createElement("canvas");
+  fresh.width = width;
+  fresh.height = height;
+  return fresh;
+}
+
+/**
+ * Return a stroke buffer to the pool for later reuse.
+ * Excess canvases beyond the pool limit are discarded to cap memory.
+ */
+export function releaseStrokeBuffer(canvas: HTMLCanvasElement): void {
+  if (strokeBufferPool.length < STROKE_BUFFER_POOL_MAX) {
+    strokeBufferPool.push(canvas);
+  }
+  // else: let GC reclaim it
 }
 
 // ─── PaintSession ───────────────────────────────────────────────────────────
@@ -198,9 +246,7 @@ export class PaintSession {
       // keeps consecutive shift+click line segments in the same
       // compositing pass so opacity doesn't stack at crossings.
       if (!isShiftContinuation) {
-        const buffer = window.document.createElement("canvas");
-        buffer.width = layerCanvas.width;
-        buffer.height = layerCanvas.height;
+        const buffer = acquireStrokeBuffer(layerCanvas.width, layerCanvas.height);
         const strokeOpacity = this.getStrokeOpacity(doc);
         ctx.activeStrokeRef.current = {
           layerId: activeLayer.id,
@@ -257,7 +303,13 @@ export class PaintSession {
       ctx.invalidateLayer?.(activeLayer.id);
     }
     this.syncActiveStrokeSelectionPreview(ctx);
-    ctx.redraw();
+
+    // Defer composite to the next rAF instead of blocking the pointer-down
+    // handler with a synchronous full-document composite. The stroke buffer
+    // content is already written; the display will update on the next
+    // animation frame which is imperceptible to the user but avoids a
+    // ~5-15 ms main-thread stall at stroke start.
+    ctx.requestRedraw();
 
     return true;
   }
@@ -499,6 +551,8 @@ export class PaintSession {
           layerCtx.drawImage(activeStroke.buffer, 0, 0);
           layerCtx.restore();
         }
+        // Return stroke buffer to pool before clearing the ref.
+        releaseStrokeBuffer(activeStroke.buffer);
         ctx.activeStrokeRef.current = null;
         ctx.invalidateLayer?.(layer.id);
 
@@ -506,33 +560,7 @@ export class PaintSession {
         if (layer.alphaLock && capturedAlphaSnapshot) {
           const lCanvas = ctx.layerCanvasesRef.current.get(layer.id);
           if (lCanvas) {
-            const lCtx = lCanvas.getContext("2d");
-            if (lCtx) {
-              const dr = capturedDirtyRect ?? {
-                minX: 0,
-                minY: 0,
-                maxX: lCanvas.width,
-                maxY: lCanvas.height
-              };
-              const x = Math.max(0, dr.minX);
-              const y = Math.max(0, dr.minY);
-              const width = Math.min(lCanvas.width - x, dr.maxX - x);
-              const height = Math.min(lCanvas.height - y, dr.maxY - y);
-              if (width > 0 && height > 0) {
-                const currentData = lCtx.getImageData(x, y, width, height);
-                for (let yy = 0; yy < height; yy++) {
-                  for (let xx = 0; xx < width; xx++) {
-                    const li = (yy * width + xx) * 4 + 3;
-                    const si = ((y + yy) * lCanvas.width + (x + xx)) * 4 + 3;
-                    currentData.data[li] = Math.min(
-                      currentData.data[li],
-                      capturedAlphaSnapshot.data[si]
-                    );
-                  }
-                }
-                lCtx.putImageData(currentData, x, y);
-              }
-            }
+            restoreAlphaFromSnapshot(lCanvas, capturedAlphaSnapshot, capturedDirtyRect);
           }
         }
 
@@ -606,6 +634,8 @@ export class PaintSession {
         layerCtx.restore();
       }
     }
+    // Return stroke buffer to pool before clearing the ref.
+    releaseStrokeBuffer(stroke.buffer);
     ctx.activeStrokeRef.current = null;
     ctx.invalidateLayer?.(stroke.layerId);
     const committedBounds = getCanvasRasterBounds(
@@ -716,40 +746,11 @@ export class PaintSession {
       return;
     }
 
-    const layerCtx = layerCanvas.getContext("2d");
-    if (!layerCtx) {
-      this.alphaSnapshot = null;
-      return;
-    }
-
-    const dirtyRect = this.engine.getDirtyRect() ?? {
-      minX: 0,
-      minY: 0,
-      maxX: layerCanvas.width,
-      maxY: layerCanvas.height
-    };
-
-    const x = Math.max(0, dirtyRect.minX);
-    const y = Math.max(0, dirtyRect.minY);
-    const width = Math.min(layerCanvas.width - x, dirtyRect.maxX - x);
-    const height = Math.min(layerCanvas.height - y, dirtyRect.maxY - y);
-
-    if (width > 0 && height > 0) {
-      const currentData = layerCtx.getImageData(x, y, width, height);
-      const snapshot = this.alphaSnapshot;
-      for (let yy = 0; yy < height; yy++) {
-        for (let xx = 0; xx < width; xx++) {
-          const localIndex = (yy * width + xx) * 4 + 3;
-          const snapshotIndex =
-            ((y + yy) * layerCanvas.width + (x + xx)) * 4 + 3;
-          currentData.data[localIndex] = Math.min(
-            currentData.data[localIndex],
-            snapshot.data[snapshotIndex]
-          );
-        }
-      }
-      layerCtx.putImageData(currentData, x, y);
-    }
+    restoreAlphaFromSnapshot(
+      layerCanvas,
+      this.alphaSnapshot,
+      this.engine.getDirtyRect()
+    );
 
     this.alphaSnapshot = null;
   }

@@ -6,6 +6,9 @@
  *   - Alt click to auto-pick topmost non-transparent layer
  *   - setLayerTransformPreview for live compositing
  *   - clearLayerTransformPreview on release
+ *
+ * Geometry policy is delegated to `painting/resolvedLayerGeometry` and
+ * `tools/transform/` helpers so this file owns only interaction flow.
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
@@ -15,35 +18,18 @@ import {
   isLayerCompositeVisible,
   layerAllowsTransformWhilePixelLocked
 } from "../types";
-import { getLayerCompositeOffset } from "../painting";
+import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
+import { mergeTransformPreview } from "../painting/transformPreview";
+import {
+  getEffectiveRasterBounds,
+  getTransformedExtents
+} from "../painting/resolvedLayerGeometry";
+import { docRectToScreen } from "./transform/handleGeometry";
+import { drawOffCanvasIndicator } from "./gizmo";
 import { useSketchStore } from "../state/useSketchStore";
-/** Convert a document-space rect to gizmo canvas pixel coordinates. */
-function docRectToGizmo(
-  docX: number,
-  docY: number,
-  docW: number,
-  docH: number,
-  canvasDocW: number,
-  canvasDocH: number,
-  zoom: number,
-  pan: Point,
-  containerW: number,
-  containerH: number,
-  dpr: number
-): { x: number; y: number; w: number; h: number } {
-  const toX = (dx: number) =>
-    ((dx - canvasDocW / 2) * zoom + containerW / 2 + pan.x) * dpr;
-  const toY = (dy: number) =>
-    ((dy - canvasDocH / 2) * zoom + containerH / 2 + pan.y) * dpr;
-  return {
-    x: toX(docX),
-    y: toY(docY),
-    w: docW * zoom * dpr,
-    h: docH * zoom * dpr
-  };
-}
 
-/** Paint a dashed outline for off-canvas layer extents on the gizmo canvas. */
+/** Paint a dashed outline for off-canvas layer extents on the gizmo canvas.
+ *  Uses shared resolved-geometry seam for bounds and shared gizmo primitives. */
 function paintOffCanvasGizmo(
   ctx: ToolContext,
   layerId: string,
@@ -54,45 +40,46 @@ function paintOffCanvasGizmo(
     return;
   }
 
-  // Use the actual layer canvas dimensions when available so the gizmo
-  // reflects the real raster footprint, not just the declared contentBounds
-  // which may lag behind after moves or draws.
+  // Use resolved raster bounds (shared seam) instead of ad-hoc canvas lookup
   const layerCanvas = ctx.layerCanvasesRef.current.get(layerId);
-  const bounds = layer.contentBounds;
-  const rasterW = layerCanvas && layerCanvas.width > 0 ? layerCanvas.width : (bounds.width ?? 0);
-  const rasterH = layerCanvas && layerCanvas.height > 0 ? layerCanvas.height : (bounds.height ?? 0);
-  const lx = (transform.x ?? 0) + (bounds.x ?? 0);
-  const ly = (transform.y ?? 0) + (bounds.y ?? 0);
-  const lw = rasterW;
-  const lh = rasterH;
+  const rasterBounds = getEffectiveRasterBounds(
+    layer,
+    layerCanvas,
+    ctx.doc.canvas
+  );
+  // Compute the axis-aligned bounding box of the transformed layer
+  const extents = getTransformedExtents(transform, rasterBounds);
 
   const cw = ctx.doc.canvas.width;
   const ch = ctx.doc.canvas.height;
 
   // Only show gizmo when the layer visually extends outside the canvas
   const extendsOutside =
-    lx < 0 || ly < 0 || lx + lw > cw || ly + lh > ch;
+    extents.x < 0 ||
+    extents.y < 0 ||
+    extents.x + extents.width > cw ||
+    extents.y + extents.height > ch;
   if (!extendsOutside) {
     ctx.clearGizmo();
     return;
   }
 
   ctx.drawGizmo((gc, dpr, containerW, containerH) => {
-    const r = docRectToGizmo(
-      lx, ly, lw, lh,
-      cw, ch,
-      ctx.zoom, ctx.pan,
-      containerW, containerH,
+    const r = docRectToScreen(
+      extents.x,
+      extents.y,
+      extents.width,
+      extents.height,
+      cw,
+      ch,
+      ctx.zoom,
+      ctx.pan,
+      containerW,
+      containerH,
       dpr
     );
 
-    gc.save();
-    gc.strokeStyle = "rgba(255, 200, 0, 0.75)";
-    gc.lineWidth = dpr;
-    gc.setLineDash([4 * dpr, 3 * dpr]);
-    gc.strokeRect(r.x, r.y, r.w, r.h);
-    gc.setLineDash([]);
-    gc.restore();
+    drawOffCanvasIndicator(gc, r, dpr);
   });
 }
 
@@ -148,9 +135,7 @@ export class MoveTool implements ToolHandler {
         moveTargetLayer = dup;
       }
     } else if (event.nativeEvent.altKey && ctx.onAutoPickLayer) {
-      // Alt+click: auto-pick the topmost layer with non-transparent pixels
-      const px = Math.floor(pt.x);
-      const py = Math.floor(pt.y);
+      // Alt+click: auto-pick topmost non-transparent layer (affine-aware)
       for (let i = doc.layers.length - 1; i >= 0; i--) {
         const layer = doc.layers[i];
         const skipForHit =
@@ -163,28 +148,9 @@ export class MoveTool implements ToolHandler {
         if (!layerCanvas) {
           continue;
         }
-        const layerCtx = layerCanvas.getContext("2d");
-        if (!layerCtx) {
-          continue;
-        }
-        const compositeOffset = getLayerCompositeOffset(
-          layer,
-          { width: layerCanvas.width, height: layerCanvas.height },
-          layerCanvas
-        );
-        const localX = px - compositeOffset.x;
-        const localY = py - compositeOffset.y;
-        if (
-          localX >= 0 &&
-          localX < layerCanvas.width &&
-          localY >= 0 &&
-          localY < layerCanvas.height
-        ) {
-          const pixel = layerCtx.getImageData(localX, localY, 1, 1).data;
-          if (pixel[3] > 0) {
-            ctx.onAutoPickLayer(layer.id);
-            break;
-          }
+        if (hitTestLayerAtDocPoint(layer, layerCanvas, pt)) {
+          ctx.onAutoPickLayer(layer.id);
+          break;
         }
       }
     }
@@ -194,14 +160,18 @@ export class MoveTool implements ToolHandler {
     ctx.getOrCreateLayerCanvas(moveTargetLayer.id);
 
     this.moveStart = pt;
+    // Capture the *full* layer transform as the drag baseline so that
+    // preview and commit preserve existing scale/rotation/matrix state.
     this.moveLayerStartTransform = {
       x: moveTargetLayer.transform?.x ?? 0,
-      y: moveTargetLayer.transform?.y ?? 0
+      y: moveTargetLayer.transform?.y ?? 0,
+      scaleX: moveTargetLayer.transform?.scaleX ?? 1,
+      scaleY: moveTargetLayer.transform?.scaleY ?? 1,
+      rotation: moveTargetLayer.transform?.rotation ?? 0,
+      matrix: moveTargetLayer.transform?.matrix
     };
-    this.movePreviewTransform = {
-      x: moveTargetLayer.transform?.x ?? 0,
-      y: moveTargetLayer.transform?.y ?? 0
-    };
+    // Initial preview is the unchanged full transform.
+    this.movePreviewTransform = { ...this.moveLayerStartTransform };
     this.movePreviewLayerId = moveTargetLayer.id;
     ctx.clearLayerTransformPreview?.(moveTargetLayer.id);
     ctx.onStrokeStart();
@@ -226,10 +196,15 @@ export class MoveTool implements ToolHandler {
            ctx.doc.layers.find((l) => l.id === previewId))
         : null;
     if (layer) {
-      const previewTransform = {
-        x: Math.round(this.moveLayerStartTransform.x + dx),
-        y: Math.round(this.moveLayerStartTransform.y + dy)
-      };
+      // Use the shared merge contract so preview preserves the full
+      // transform (scale/rotation/matrix) from the drag baseline.
+      const previewTransform = mergeTransformPreview(
+        this.moveLayerStartTransform,
+        {
+          x: Math.round(this.moveLayerStartTransform.x + dx),
+          y: Math.round(this.moveLayerStartTransform.y + dy)
+        }
+      );
       this.movePreviewTransform = previewTransform;
       this.movePreviewLayerId = layer.id;
       // Live compositing preview — fast path that avoids a store update + React

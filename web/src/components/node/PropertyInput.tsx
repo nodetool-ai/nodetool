@@ -37,6 +37,8 @@ import SelectProperty from "../properties/SelectProperty";
 import ImageSizeProperty from "../properties/ImageSizeProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
+import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
+import { Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
@@ -57,7 +59,12 @@ import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../../utils/cod
 const propertyInputContainerStyles = (theme: Theme) =>
   css({
     "&.property-input-container": {
-      position: "relative"
+      position: "relative",
+    },
+    "&.property-input-container.value-changed": {
+      borderLeft: `2px solid ${theme.vars.palette.primary.main}`,
+      paddingLeft: 4,
+      borderRadius: "2px",
     },
 
     // ACTION ICONS — hidden by default, shown on hover
@@ -78,7 +85,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
     },
 
-    "&:hover .action-icons": {
+    "&:hover .action-icons, &:hover .reset-button": {
       opacity: 1
     },
 
@@ -98,6 +105,28 @@ const propertyInputContainerStyles = (theme: Theme) =>
     ".action-icon.close": {
       "&:hover": {
         color: theme.vars.palette.error.main,
+      },
+    },
+
+    // RESET BUTTON — shown on hover when value differs from default
+    ".reset-button": {
+      position: "absolute",
+      right: 0,
+      top: 0,
+      display: "flex",
+      alignItems: "center",
+      opacity: 0,
+      transition: "opacity 0.15s ease",
+      zIndex: 2,
+      cursor: "pointer",
+      padding: "1px",
+      borderRadius: "3px",
+      color: theme.vars.palette.text.secondary,
+      "&:hover": {
+        color: theme.vars.palette.primary.main,
+      },
+      "& svg": {
+        fontSize: "0.85rem",
       },
     },
 
@@ -462,7 +491,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
 
   // Calculate changed state: value differs from default
-  const isChanged = value !== property.default;
+  // Skip if no default is defined — nothing to compare against.
+  // Treat null defaults the same as undefined (common in dynamic/FalAI schemas
+  // where default is null but initial value is "" or [] or 0).
+  const isChanged = property.default != null && !isEqual(value, property.default);
 
   // Handle slider/number input change complete
   const handleChangeComplete = useCallback(() => {
@@ -569,6 +601,45 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     ]
   );
 
+  const handleResetToDefault = useCallback(() => {
+    const node = findNode(id);
+    if (!node || !node.data) {
+      return;
+    }
+    if (isDynamicProperty) {
+      const dynamicInputDefaults = node.data?.dynamic_inputs || {};
+      let defaultValue = dynamicInputDefaults?.[property.name]?.default;
+      if (defaultValue === undefined) {
+        const nodeMetadata = metadata?.[node.type as string];
+        if (nodeMetadata) {
+          const propertyDef = nodeMetadata.properties.find(
+            (prop: Property) => prop.name === property.name
+          );
+          defaultValue = propertyDef?.default ?? property.default;
+        }
+      }
+      if (defaultValue !== undefined && node.data.dynamic_properties) {
+        updateNodeData(id, {
+          dynamic_properties: {
+            ...node.data.dynamic_properties,
+            [property.name]: defaultValue
+          }
+        });
+      }
+    } else {
+      const nodeMetadata = metadata?.[node.type as string];
+      if (nodeMetadata) {
+        const propertyDef = nodeMetadata.properties.find(
+          (prop: Property) => prop.name === property.name
+        );
+        const defaultValue = propertyDef?.default ?? property.default;
+        updateNodeProperties(id, { [property.name]: defaultValue });
+      } else {
+        updateNodeProperties(id, { [property.name]: property.default });
+      }
+    }
+  }, [findNode, id, isDynamicProperty, metadata, property, updateNodeData, updateNodeProperties]);
+
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editedName, setEditedName] = React.useState(property.name);
   const { handleDeleteProperty, handleUpdatePropertyName } = useDynamicProperty(
@@ -637,12 +708,19 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   return (
     <div
-      className="property-input-container"
+      className={`property-input-container${isChanged ? " value-changed" : ""}`}
       css={propertyInputContainerStyles(theme)}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
     >
       {inputField}
+      {isChanged && (
+        <Tooltip title="Reset to default" placement="top" disableInteractive>
+          <div className="reset-button" onClick={handleResetToDefault}>
+            <SettingsBackupRestoreIcon />
+          </div>
+        </Tooltip>
+      )}
       {isDynamicProperty && !hideActionIcons && (
         <div className="action-icons">
           <Edit

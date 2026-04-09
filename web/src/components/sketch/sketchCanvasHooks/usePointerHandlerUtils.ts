@@ -40,6 +40,7 @@ import {
   getDocumentViewportLayerBounds,
   getLayerCompositeOffset
 } from "../painting";
+import { clientToDocumentCanvas } from "../tools/transform/handleGeometry";
 import {
   clipContextToSelectionMask,
   selectionHasAnyPixels
@@ -47,6 +48,9 @@ import {
 
 export interface UsePointerHandlerUtilsParams {
   zoom: number;
+  pan: Point;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  doc: SketchDocument;
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
@@ -54,7 +58,6 @@ export interface UsePointerHandlerUtilsParams {
   mirrorY: boolean;
   symmetryMode: string;
   symmetryRays: number;
-  doc: SketchDocument;
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   selection?: Selection | null;
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
@@ -67,6 +70,9 @@ export interface UsePointerHandlerUtilsParams {
 
 export function usePointerHandlerUtils({
   zoom,
+  pan,
+  containerRef,
+  doc,
   displayCanvasRef,
   overlayCanvasRef,
   activeStrokeRef: _activeStrokeRef,
@@ -74,7 +80,6 @@ export function usePointerHandlerUtils({
   mirrorY,
   symmetryMode,
   symmetryRays,
-  doc,
   layerCanvasesRef,
   selection,
   getOrCreateLayerCanvas,
@@ -110,16 +115,22 @@ export function usePointerHandlerUtils({
   // ─── Coordinate transform ──────────────────────────────────────────
   const screenToCanvas = useCallback(
     (clientX: number, clientY: number): Point => {
-      const displayCanvas = displayCanvasRef.current;
-      if (!displayCanvas) {
+      const container = containerRef.current;
+      if (!container) {
         return { x: 0, y: 0 };
       }
-      const rect = displayCanvas.getBoundingClientRect();
-      const x = (clientX - rect.left) / zoom;
-      const y = (clientY - rect.top) / zoom;
-      return { x, y };
+      const rect = container.getBoundingClientRect();
+      return clientToDocumentCanvas(
+        clientX,
+        clientY,
+        rect,
+        zoom,
+        pan,
+        doc.canvas.width,
+        doc.canvas.height
+      );
     },
-    [zoom, displayCanvasRef]
+    [zoom, pan, containerRef, doc.canvas.width, doc.canvas.height]
   );
 
   // ─── Mirror / Symmetry drawing helper ─────────────────────────────

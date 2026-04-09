@@ -3,7 +3,7 @@
  */
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
-import { getApiKey, kieExecuteTask } from "./kie-base.js";
+import { getApiKey, kieExecuteTask } from "@nodetool/kie-nodes";
 
 interface KieParamInfo {
   name: string;

@@ -20,7 +20,8 @@
   padding: 0;
   border-radius: var(--rounded-node);
   background-color: transparent;
-  transition: background-color 0.05s, box-shadow 0.15s ease-in-out;
+  transition: background-color 0.05s, box-shadow 0.15s ease-in-out,
+    filter 0.2s ease-in-out, outline-color 0.15s ease-in-out;
 }
 
 .node-drag-handle {
@@ -96,11 +97,13 @@
   z-index: 10;
   color: var(--palette-text-secondary);
 }
-/* TODO: re-enable when UX is refined
-.output-handle-container:hover .output-add-button {
+/* Show output add button when hovering the entire node */
+.react-flow__node:hover .output-add-button {
+  opacity: 0.6;
+}
+.react-flow__node:hover .output-add-button:hover {
   opacity: 1;
 }
-*/
 .output-add-button:hover {
   background: var(--palette-primary-main);
   border-color: var(--palette-primary-main);

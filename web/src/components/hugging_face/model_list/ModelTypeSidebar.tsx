@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import {
+  Chip,
   IconButton,
   List,
   ListItem,
@@ -15,7 +16,7 @@ import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { useTheme } from "@mui/material/styles";
 
 const ModelTypeSidebar: React.FC = () => {
-  const { modelTypes, availableModelTypes } = useModels();
+  const { modelTypes, availableModelTypes, modelCountsByType } = useModels();
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const setSelectedModelType = useModelManagerStore((state) => state.setSelectedModelType);
   const theme = useTheme();
@@ -120,14 +121,36 @@ const ModelTypeSidebar: React.FC = () => {
                     showTooltip={false}
                   />
                 )}
-                <ListItemText 
-                  primary={prettifyModelType(type)} 
+                <ListItemText
+                  primary={prettifyModelType(type)}
                   primaryTypographyProps={{
                     fontSize: "0.9rem",
                     fontWeight: isSelected ? 600 : 400,
                     color: isSelected ? theme.vars.palette.text.primary : "text.secondary"
                   }}
                 />
+                {modelCountsByType[type] !== undefined && (
+                  <Chip
+                    label={modelCountsByType[type]}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      minWidth: 28,
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      ml: 1,
+                      backgroundColor: isSelected
+                        ? "rgba(var(--palette-primary-main-channel) / 0.15)"
+                        : theme.vars.palette.action.hover,
+                      color: isSelected
+                        ? theme.vars.palette.primary.main
+                        : theme.vars.palette.text.secondary,
+                      "& .MuiChip-label": {
+                        px: 0.75
+                      }
+                    }}
+                  />
+                )}
               </ListItemButton>
             </ListItem>
           );

@@ -1,216 +1,214 @@
 # Sketch Editor Roadmap
 
-> **Status**: transform-aware layer foundation and a WebGPU document-runtime baseline are in place; next work should stay focused on hardening core models — layer draw, render, selection, transform, coordinate mapping — before adding feature-heavy slices.
-> **Last updated**: 2026-04-05
-> **Execution note**: this file is the active roadmap/backlog. `REFACTOR-SKETCH-APP.md` is supporting implementation context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
+> **Status**: the transform-aware foundation is in place, but the next important work is to finish helper-tool architecture cleanup, close remaining redraw/sampling gaps, and only then continue with transform-heavy features.
+> **Last updated**: 2026-04-09
+> **Execution note**: this is the active sketch roadmap/backlog. `REFACTOR-SKETCH-APP.md` is supporting context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
 
 ## Principles
 
-- keep code clean and modular with separation of concerns
+- keep code clean, modular, and focused by responsibility
 - keep the document canvas fixed; off-canvas layer content must survive editing, history, and serialization
 - prefer shared transform-aware infrastructure over ad hoc per-tool fixes
 - treat WebGPU as the primary document renderer in Electron; keep Canvas 2D only for explicit helper paths where it is still the better tool
 - keep ordinary raster workflows cheap and predictable
-- only run sketch-related tests for normal iteration, not full app tests
+- run sketch-focused tests during normal iteration, not full app tests
 - when changing shortcuts, edit src/components/sketch/SHORTCUTS.md
 - **harden before extending**: make core models and helpers solid with regression tests before adding new features on top of them
 
-## PHASE 1: Current Priorities
+Task labels used below:
 
-### 1.1 - Core groundwork before new feature slices
+- `[impl]` implementation task
+- `[test]` test-only task
+- `[impl+test]` implementation plus regression coverage
+- `[test-first]` write the proving test first, then fix code if the test exposes a gap
 
-Guidance for Phase 1 work:
+## Immediate `SketchEditor.tsx` Refactor Candidates
 
-- each task should remove duplicated rules or hidden exceptions, not add a second temporary path beside the old one
-- if a feature needs one-off transform math, sampling logic, export logic, or display exceptions, stop and move that missing contract back into Phase 1 first
-- prefer one shared runtime/tool/session boundary over per-tool fixes in pointer handlers, tool modules, or export helpers
-- every Phase 1 slice should add focused regression coverage for transformed layers, preview/commit parity, or output consistency when relevant
-- defer performance-only rewrites unless they remove architectural drift or unblock correctness
-- if a task reveals a product decision instead of a cleanup need, move it to a later phase with a short note instead of solving it implicitly
+`SketchEditor.tsx` is materially better after the subscription-splitting work, but it still concentrates bootstrap, tool-mode side effects, shell wiring, and editor-session orchestration in one place. Do these before piling more behavior into the editor shell.
 
-Phase 1 "done means":
+- [x] [impl] extract a dedicated editor lifecycle/controller hook so initial-document seeding, canvas-ready gating, autosave snapshotting, tool-transition side effects, and imperative modal actions stop living in one component body
+  - **Done:** Extracted `useEditorLifecycle()` hook in `hooks/useEditorLifecycle.ts`. Owns canvas-ready gating, initial-document seeding (`useLayoutEffect`), autosave snapshotting (`useEffect`), tool-transition side effects (adjust/transform/segment tool switches), and canvas-resize-handle localStorage preference. SketchEditor component body is now focused on composition/layout.
+- [x] [impl+test] extract shared tool-chrome wiring so `ConnectedToolTopBar` and `ConnectedContextMenu` stop carrying parallel store subscriptions and nearly identical tool-settings/action plumbing
+  - **Done:** Extracted `useToolChromeActions()` hook in `hooks/useToolChromeActions.ts`. Both `ConnectedToolTopBar` and `ConnectedContextMenu` now call this single hook instead of maintaining 14 parallel `useSketchStore` subscriptions each for per-tool settings setters and selection actions. Added 5 regression tests proving stable references and isolation from viewport/document changes.
+- [x] [impl] centralize active-tool color intent routing so toolbar and layers-panel foreground-color changes use one shared helper instead of duplicating the same `activeTool` -> settings update mapping
+  - **Done:** Extracted `useColorIntentRouter()` hook in `hooks/useColorIntentRouter.ts`. Both `ConnectedToolbar` and `ConnectedLayersPanel` now call this single hook instead of maintaining identical duplicated `handleFgColorChange` callbacks. Removed 6 unused store subscriptions from each connected component.
+- [x] [impl+test] replace the large `useSketchStore(...)` action grab-bag in `SketchEditor.tsx` with focused editor action bundles or selector hooks for history, layer, canvas, color, and session-control concerns
+  - **Done:** Created `useEditorStoreActions.ts` with 5 focused bundle hooks: `useHistoryStoreActions()`, `useLayerStoreActions()`, `useCanvasStoreActions()`, `useColorStoreActions()`, `useSessionStoreActions()`. Replaced ~60 individual `useSketchStore((s) => s.someAction)` calls in SketchEditor with grouped bundle destructuring. Added 13 regression tests proving bundle completeness, reference stability, and cross-bundle isolation.
+- [ ] [impl+test] isolate transient editor-session ownership across `SketchEditor.tsx`, `SketchCanvas.tsx`, transform preview state, canvas-resize-handle preference, segmentation side effects, and shell-only refs behind a dedicated session layer so future tools stop extending multiple session seams at once
+- [ ] [impl+test] unify displayed transform consumption for transform UI with the same transient preview owner used by compositing so `ConnectedToolTopBar` and `ConnectedContextMenu` stop depending on a parallel active-layer preview channel during drag
+- [x] [test] add a regression test proving move/transform preview updates rerender transform UI consumers only, not `SketchEditor.tsx` or unrelated shell components
+  - **Done:** Added `transformPreviewBoundaries.test.tsx` with 5 tests proving: preview updates do NOT rerender toolbar/layers-panel selectors; preview updates DO rerender transform consumers; rapid updates stay isolated; clearing preview only rerenders transform consumers.
+- [x] [impl+test] centralize sketch layer source URI resolution so hydration/runtime code and non-sketch preview renderers stop duplicating `asset://` to `/api/storage/` handling in separate helpers
+  - **Done:** Created `utils/resolveAssetUri.ts` as the single source of truth for `asset://` → `/api/storage/` resolution. Updated `useLayerHydration.ts` (sketch), `output/hooks.ts` (node output), `useNodeResultHistory.ts`, and `createAssetFile.ts` to use the shared utility. Also exported `isAssetUri()` helper.
+- [x] [test] add regression coverage proving locked exposed-input layers hydrate and show move/transform preview before any brush stroke, including `asset://`-backed image references
+  - **Done:** Added 3 tests in `transformPreviewBoundaries.test.tsx`: image-reference layer shows preview without brush stroke; locked layer with imageReference shows preview; `asset://` URI is preserved through document state for hydration.
+- [x] [test] add focused regression coverage for tool-switch lifecycle rules so leaving `adjust`, `transform`, or `segment` still cancels, initializes, and preserves the correct preview/session state after the refactor
+  - **Done:** Added 6 tests in `transformPreviewBoundaries.test.tsx`: switching from transform/move clears preview; switching between non-preview tools is clean; adjust/segment tool switches are clean; rapid tool switches preserve consistent state.
 
-- coordinate mapping done means preview, commit, hit testing, overlays, and helper tools use the same transform contract
-- preview/commit parity done means live preview, committed pixels, history replay, and export agree for the same transformed layer state
-- document-output path done means readback/export/isolate no longer depend on display-only behavior such as checkerboards or canvas borders
-- shared hard-tool integration done means fill/clone/blur/adjustments use the same runtime/session seams as the simpler paint tools
-- sampling contract done means eyedropper/auto-pick/clone-stamp sampling agree on transformed layers, isolate state, and active stroke state
+## Active Roadmap
 
-- [ ] centralize document-space <-> layer-space coordinate mapping so preview, commit, hit testing, overlays, and helper tools all follow one transform contract
-- [ ] eliminate the remaining transformed-layer regressions and add focused regression coverage for move/nudge/draw/export/autosave roundtrips
-- [ ] make active-layer preview and final commit obey the same transformed-layer semantics so live preview does not diverge from history/export results
-- [ ] keep document-output rendering separate from display chrome and route readback/export/isolate through one resolved-output path; display-only checkerboard/border logic must never leak into sampling or export
-- [ ] finish wiring `evaluateLayerEffects` / resolved-layer output through the remaining output paths so future thumbnails and helper flows stay consistent with the main canvas, export, isolate preview, and merge/downstream bake paths
-- [ ] route flood fill, clone stamp, blur, and adjustments through shared session boundaries even when their internal implementation stays CPU-backed
-- [ ] rework eyedropper, move auto-pick, clone-stamp sampling, and other readback helpers so transformed layers and isolate state use one sampling contract
-- [ ] remove the remaining implicit legacy-runtime behavior from normal editing flow and replace it with explicit documented exceptions
-- [ ] keep running focused stylus / paint-after-move / preview-correctness smoke checks after each major runtime slice and treat regressions in brush feel as blockers
+Completed Phase 1 packages, hardening work, and earlier shipped fixes have been moved to `SKETCH_FEATURES_DONE.md` so this file stays focused on the next work to execute from top to bottom.
 
-### 1.2 - Fixes
+- [x] **[BUG] Move/Transform live preview does not work at startup (before first brush stroke)**
+  - **Symptom:** When the sketch editor first opens (especially with an imageReference/exposed-input layer as the active layer), using MoveTool or TransformTool shows the gizmo correctly and the gizmo DOES update while dragging, but the visible layer pixel content does NOT follow — it stays at its original position. After the user makes any brush stroke, the preview works correctly for the rest of the session.
+  - **What works:** Layer is visible at startup; gizmo appears immediately when tool is selected; gizmo handles update in real time during drag; after any brush draw the preview moves the layer correctly; preview commit on pointer-up works.
+  - **What does not work:** During a drag with MoveTool or TransformTool, the rendered layer pixels do not move while dragging — only the gizmo follows the pointer. This is only broken at startup, before any brush stroke is made.
+  - **Likely area:** `useTransformPreviewComposite` / `compositeToDisplay` path in the startup/bootstrap state. The gizmo updating confirms `setLayerTransformPreview` IS being called and `activeLayerTransformPreview` store IS updating, so the failure is downstream: either the rAF-composite targets the wrong canvas, the preview map is empty at rAF time, or `applyTransformPreviews` is not reaching the WebGPU/Canvas2D render path. A `console.debug("[SketchPreview] applying transform preview", ...)` log has been added to `useTransformPreviewComposite` (dev-only) to trace whether the composite fires with the correct preview map and canvas target at startup.
+  - **Fix applied (v2):** Replaced async `requestRedraw()` (rAF) with synchronous `redraw()` (via `syncRedrawRef`) in both `setLayerTransformPreview` and `clearLayerTransformPreview`. The rAF path silently no-ops when a prior rAF is already pending (`redrawRequestRef.current !== null`), which happens because `onDown` calls `clearLayerTransformPreview` → `requestRedraw()` before `onMove` fires. Synchronous redraw matches the path used by brush strokes via `redrawDirty`, guaranteeing immediate compositing on every preview update regardless of bootstrap state or pending rAFs. The original `invalidateLayerRef` GPU texture force-invalidation on first drag is kept.
+- [x] fix: Selection mask tool is still slow, especially with bigger canvas. especiall adding + removing from mask. if this is a fundamental problem with cpu processing, propose a short plan in SKETCH_FEATURES.md file
+  - **Done:** Added fast-path in `combineMasks()` for same-size/same-origin masks (the common case). Eliminates union buffer allocation + base copy; runs a single flat loop. Also added `TypedArray.subarray()+set()` row-bulk copies in the general path. See perf plan below.
+- [x] fix: Invert with Selection mask active: inverts pixels at wrong position, outside masked area. Investigate if core features, refactor, helpers or comments can be strengtened to prevent this kind of problems
+  - **Root cause:** `invertLayerColors()` used only `contentBounds.x/y` for layer→document mapping, ignoring the layer `transform.x/y` offset. Other mask operations (`clearLayerBySelectionMask`, `fillLayerBySelectionMask`) correctly use `getLayerCompositeOffset()` which includes both. Fixed by switching to `getLayerCompositeOffset()`. Regression tests added.
+  - **Hardening:** All per-pixel selection-constrained operations should go through the shared `getLayerCompositeOffset()` helper. JSDoc comments updated to document the mapping chain.
 
-- [x] Improve selection: rectangle clips at canvas bounds (correct), ellipse/lasso/polygon already extend beyond canvas (verified, no change needed)
-- [ ] Improve move tool: no preview while moving, selection marquee does not fit layer bounds
-- [x] Improve brush-setting responsiveness so size/hardness changes update without visible UI or cursor lag — cursor now redraws immediately when settings change via useEffect on drawCursor callback
-- [x] fix Fill tool: expanded layer canvas to full document viewport before flood fill so compact contentBounds layers no longer leave unfilled borders
-- [x] Crop tool: add ESC key to cancel current cropping — onCancel wired through cancelActiveTool chain
-- [x] Move tool: gizmo now uses actual layer canvas dimensions instead of only contentBounds; gizmo already hidden on tool deactivation (verified)
-- [x] fix Layer preview: new transparent layer shows black preview. after drawing preview shows up correct with alpha grid
-- [x] all tooltips: add centralised setting for tooltip delay and set to 500ms
-- [x] Sketch node: input handles closer together, same spacing as output handles
-- [x] Gradient Tool: should respect current selection, not draw outside
+### Selection mask performance plan
 
-### 1.3 - Harden layer canvas lifecycle
+The `combineMasks()` fast-path covers the most common hot path (add/subtract on same-size canvas-origin masks). Further gains for truly large canvases need GPU involvement:
 
-The layer canvas is the central data structure — every tool reads and writes it, compositing displays it, history snapshots it, export serializes it. Making this lifecycle rock-solid prevents cascading bugs in every feature above.
+1. **Short term (done):** typed-array fast-path in `combineMasks()`. Single-pass flat loop; no union buffer allocation when masks share size/origin.
+2. **Medium term:** move selection combine operations to an OffscreenCanvas compositing path using canvas `globalCompositeOperation` (`lighter` for add, `destination-out` for subtract, `destination-in` for intersect). This offloads the per-pixel work to the browser's GPU compositor. Requires careful threshold re-mapping since canvas compositing works on RGBA, not single-channel masks.
+3. **Long term:** if WebGPU is available, run selection combine as a compute shader. This is the ultimate solution for 4K+ canvases but adds complexity. Only worthwhile if profiling shows the medium-term path is still too slow.
 
-Architecture note: `layerCanvasesRef.current` (React ref Map) and `Canvas2DRuntime.layerCanvases` (internal Map) share the **same Map reference** (established at construction in `useCompositing.ts:114`). `ensureLayerRasterBounds` writes to `layerCanvasesRef.current` which also updates the runtime's map. `getOrCreateLayerCanvas` in the runtime only creates when no canvas exists — it never downsizes an expanded canvas.
+- [x] [impl+test] store subscription hardening pass 1: make `SketchEditor.tsx`, `SketchModal.tsx`, and `hooks/useSketchStoreSelectors.ts` stop acting like broad subscription aggregators; hot state such as `zoom`, `pan`, `selection`, and similar fast-changing UI state should be consumed in the narrowest subtree that actually needs it
+- [x] [impl+test] store subscription hardening pass 2: audit sketch UI props and split shell vs hot-path consumers so canvas/runtime overlays can subscribe to viewport and selection state without forcing toolbar, layers panel, modal chrome, or other editor shell pieces to rerender
+- [x] [impl+test] store subscription hardening pass 3: stop returning fresh selector objects/functions from Zustand subscriptions in sketch hot paths; move object merging/derived view models behind local `useMemo` or focused child components so unrelated store writes do not invalidate whole subtrees
+- [x] [impl+test] store subscription hardening pass 4: add focused regression coverage for sketch rerender boundaries so plain `setZoom`, `setPan`, `setSelection`, and similar hot-path store writes prove that only the intended subtree rerenders
+- [x] [impl] document and enforce sketch store usage rules: broad shell components should subscribe only to stable/slow state, hot mutable state should stay near `SketchCanvas`/overlay consumers, and selector helpers should avoid bundling unrelated state just for convenience
+  - **Done:** Created `STORE_RULES.md` with 7 documented rules and enforcement guidance. Removed the deprecated `useSketchStoreSelectors()` aggregator. Added `useActiveToolSettings()` narrow hook. Updated all connected component JSDoc comments documenting subscription boundaries.
+- [x] [impl+test] store/document split hardening: reduce broad `store.document` fanout through `SketchEditor.tsx` and nearby shells so layer list, active layer, canvas metadata, transform state, and autosave/export plumbing do not all rerender together by default
+  - **Done:** Split `ConnectedLayersPanel`'s broad `document` subscription into narrow field selectors (`document.layers`, `document.activeLayerId`, `document.maskLayerId`, `document.canvas.width`, `document.canvas.height`). Scalar fields (activeLayerId, maskLayerId, canvas dimensions) no longer cause rerenders when unrelated document mutations occur. Added regression tests in `subscriptionBoundaries.test.tsx`.
+- [x] [impl+test] store/selection split hardening: keep committed selection state and live selection preview state separate so marquee/lasso/move/add/subtract flows can update overlays and preview refs without forcing full editor-shell subscriptions on every mask mutation
+  - **Done:** Added cached `hasActiveSelection` boolean to `SelectionSlice` that's maintained when `setSelection`, `selectAll`, `invertSelection`, and `reselectLastSelection` are called. Shell components (`ConnectedToolTopBar`, `ConnectedContextMenu`) now subscribe to the stable boolean instead of the full selection mask, so mask mutations that don't change the boolean state don't trigger rerenders. Added regression tests proving boolean stability.
+- [x] [impl+test] store/tool-settings split hardening: narrow `toolSettings` subscriptions so top bars, modal chrome, cursor/canvas hot paths, and non-active tool panels do not all rerender from one paint-tool slider or mode change
+  - **Done:** Added `useActiveToolSettings()` hook that returns only the resolved settings for the currently active tool. Components that only need the active tool's settings can use this instead of `useResolvedToolSettings()`. Added regression tests proving isolation from zoom, pan, and selection changes. Documented usage guidance in `STORE_RULES.md`.
+- [x] [impl] replace `hooks/useSketchStoreSelectors.ts` convenience bundling with clearer shell-level selector helpers or focused child subscriptions so new work cannot silently reintroduce broad hot-state dependencies into `SketchEditor.tsx`
+- [x] [impl+test] audit `usePointerHandlers.ts`, `SketchCanvas.tsx`, and overlay/runtime bridge props for committed-store vs transient-preview boundaries so interaction state, buffer-heavy state, and UI shell state stop crossing the same prop chain by default
+  - **Done:** Grouped `UsePointerHandlersParams` into 8 documented state tiers (committed document, viewport, transient refs, canvas refs, rendering infra, overlay callbacks, event callbacks, preview callbacks) with a boundary contract table. Grouped `SketchCanvasProps` by concern (committed state, viewport/tool, callbacks, layout). Added JSDoc boundary contract to `SketchCanvas` documenting the compositing-gets-bare-doc / pointer-gets-docWithTools / overlay-gets-docWithTools separation. Added 4 regression tests proving: toolSettings isolation from document reference, compositing params shape, zoom isolation from toolSettings, and subscription cross-isolation.
+- [x] [impl+test] add regression coverage for document-, selection-, and tool-settings-driven rerender boundaries in `SketchEditor.tsx`, `SketchModal.tsx`, and `SketchCanvas.tsx` so future store wiring changes cannot quietly bring back full-editor invalidation
+- [x] [impl] review autosave/export sync and other store-to-prop snapshot flows so persisted document snapshots stop depending on broad shell subscriptions when only localized hot state changed
+  - **Done:** Documented autosave boundary contract in `SketchEditor.tsx` showing it fires only on committed document changes (not toolSettings slider ticks, zoom/pan, or selection). Documented export sync deferred-flush pattern in `useExportSyncActions.ts` with full contract explaining ref-based pending flags, flush timing, and no-store-subscription design. Added 4 regression tests proving document reference stability across toolSettings, zoom/pan, and selection changes.
+- [x] fix: Selection mask tool is still slow, especially with bigger canvas. especiall adding + removing from mask. if this is a fundamental problem with cpu processing, propose a short plan in SKETCH_FEATURES.md file (duplicate of line 28)
+- [x] fix: Invert with Selection mask active: inverts pixels at wrong position, outside masked area. Investigate if core features, refactor, helpers or comments can be strengtened to prevent this kind of problems (duplicate of line 30)
 
-- [x] add dedicated test suite for `layerBounds.ts`: cover `ensureLayerRasterBounds` (expansion, no-op when already large enough, content preservation after expansion), `getEffectiveLayerRasterBounds` (canvas metadata priority, fallback to contentBounds, fallback to canvas dimensions), `unionLayerBounds` (disjoint, overlapping, contained), `getDocumentViewportLayerBounds` (with and without layer transform offset)
-- [x] add tests for layer canvas lifecycle across operations: create layer → draw → move → draw again → undo → redo; verify canvas dimensions and raster bounds metadata stay consistent at each step
-- [x] add tests for `getOrCreateLayerCanvas` sizing decision chain: verify that `layer.contentBounds` takes priority, then stable raster size cache, then existing canvas, then document size fallback; verify that once a canvas is expanded it is not shrunk by a subsequent `getOrCreateLayerCanvas` call
-- [x] verify that `drainPendingStrokeCommit` runs before every operation that reads layer pixel data (history push, export, flatten, merge); add test that a committed stroke is visible in the next history snapshot
-- [x] audit all callers of `ensureLayerRasterBounds` (PaintSession, FillTool, ShapeTool, GradientTool, usePointerHandlerUtils) and verify each one uses the returned expanded bounds for CoordinateMapper, not the stale `layer.contentBounds`
+## NEXT UP - MOVE AND TRANSFORM TOOL
 
-### 1.4 - Harden coordinate mapping
+Do these before more transform-heavy work. The goal is to reduce brittleness in `MoveTool` + `TransformTool` and nearby overlay tools by sharing only the stable gizmo primitives, not by forcing all tools into one generic interaction framework.
+Try to implement these tasks with only as much shared core as needed. It is fine to change core helpers and adapt focused tests when that removes real brittleness, but avoid introducing a broad new interaction framework just to satisfy one tool.
+- [ ] [impl+test] unify move/transform preview ownership so compositing, gizmo drawing, and transform UI all read the same live preview source instead of the current parallel preview channels (`transformPreviewByLayerIdRef` vs active-layer preview singleton). either route move/transform through one shared preview-session contract or remove the duplicate path entirely. dragging must not show stale top-bar/context-menu numbers, mismatched gizmo position, or pointer-up jumps, including startup/image-hydration cases and layers with existing translation, scale, rotation, non-zero raster origin, or off-canvas raster bounds
+- [ ] [impl+test] harden spring-loaded move (`Ctrl`/`Cmd` move while another tool stays active) so it cannot desync preview state from `TransformTool` session baseline/cancel logic. likely area: `interactionTool` changes currently do not run the same activation/deactivation lifecycle as real tool switches. after the modifier-drag finishes, the moved layer must keep the committed transform, move gizmo state must clean up correctly, and later transform cancel/reset must not restore stale pre-move state
+- [ ] [impl+test] harden `MoveTool` gizmo geometry so move uses one explicit resolved-bounds contract for both the visible layer box and the off-canvas indicator. likely area: `MoveTool` currently derives extents from resolved raster bounds while `TransformTool` still prefers smaller `contentBounds` for gizmo sizing. decide one rule for visible bounds vs backing raster bounds; avoid fallback-to-document-size behavior; cover `contentBounds`, expanded raster bounds, rotated/scaled layers, and `imageReference` startup cases with focused regressions
+- [ ] [test-first] investigate transform preview-vs-commit parity at the lowest stable seam, and treat bootstrap/backend promotion as a regression scenario rather than the assumed root cause. compare live preview compositing, reconcile/bake-to-pixels, and runtime display paths separately. likely area: `reconcileLayerToDocumentSpace()` still computes from raw canvas size/transform more directly than the resolved preview path. rotating/scaling semi-transparent pixels must not introduce edge halos, distorted alpha, stripe artifacts, or commit-only visual shifts, including layers with non-zero raster origin / expanded raster bounds
+- [ ] [impl+test] add a minimal transform-targeting flow, not a generic multi-tool selection framework: optional auto-select toggle for `TransformTool`; clicking opaque pixels targets the topmost visible transformable layer; `Shift+click` adds/removes layers from the transform target set; the transform gizmo, transform UI, and live preview must use one shared bounds source for the targeted set. do not assume layers-panel multi-select is already the correct transform-target model unless their semantics are made intentionally identical
+- [ ] [impl+test] expand transform hit policy only if it can stay local to transform gizmo layout/hit-testing: allow rotate when dragging just outside the box/near scale handles, add an explicit pivot handle, and support snapping the pivot to stable anchor points such as corners/edge handles. keep this built on the same resolved geometry/hit-test seam as the box/handles above, and do not spread it into a generic cross-tool gesture system unless repeated evidence demands it
 
-`CoordinateMapper` is the single source of truth for document↔layer coordinate conversion. Every tool that places pixels, samples colors, or hit-tests selections must use it consistently. Current audit shows all paint tools use `CoordinateMapper` with `getEffectiveLayerRasterBounds` — but there is no regression coverage that enforces this stays true.
+Completed transform-core groundwork for shared gizmo primitives and narrow follow-up hardening has been moved to `SKETCH_FEATURES_DONE.md` so this section stays focused on the still-open move/transform work.
 
-- [x] add dedicated regression tests for `CoordinateMapper`: verify `docToLayer` / `layerToDoc` round-trip identity for translation-only, scale+rotation, and full affine transforms; verify that `offset` getter matches `docToLayer({0,0})` negation; verify singular matrix fallback returns identity
-- [x] add a cross-tool coordinate consistency test: for a layer with a non-trivial transform (e.g. translated + rotated), verify that PaintSession, FillTool, CloneStampTool, GradientTool, BlurTool, and ShapeTool all produce the same `docToLayer` result for the same document-space point — this catches any tool that constructs CoordinateMapper with different config
-- [x] verify that overlay preview drawing (selection outlines, shape preview, gradient preview) uses the same coordinate mapping as the committed pixels — a preview drawn at screen position X should result in committed pixels at the same X after commit
-- [x] verify that `dirtyToDoc` rect conversion is consistent with the compositing offset used by `getLayerCompositeOffset` — dirty-region redraws should exactly cover the area that changed
+## PHASE 1 - Architecture Stability Before Transform-Heavy Work
 
-### 1.5 - Harden selection model
+### 1.1 - Helper-tool architecture blockers
 
-The selection system (`Selection` type, mask creation, hit testing, constraint application) is used by every tool that respects selections. The mask creation functions are well-separated by mode, but the combination and constraint paths lack dedicated tests.
+Do these first. Recent clone/blur bugs showed that helper paint tools still duplicate too much lifecycle and sampling logic outside the shared seams.
+- [x] opening editor should be faster, find causes, also: maybe image loading can happen after editor is opened
+  - **Investigation:** The editor UI already shows immediately (`canvasReady` is set synchronously in `useLayoutEffect`). Image loading for layers already happens in the background (each `setLayerData` call starts an async `Image()` load concurrently). The main bottleneck for startup speed with `imageReference` layers is main-thread image decoding via `new Image()`.
+  - **Fix applied:** Optimized `Canvas2DRuntime.setLayerData` to use `fetch()` + `createImageBitmap()` for HTTP/relative URLs (the common case for `imageReference` layers). `createImageBitmap` decodes images off the main thread, reducing blocking during editor startup when multiple layers load simultaneously. Falls back to the standard `new Image()` path for data URLs and if `createImageBitmap` is unavailable.
+- [x] unify helper paint-tool stroke/session behavior so `CloneStampTool.ts` and `BlurTool.ts` stop carrying ad hoc copies of lifecycle, mapper setup, dirty-rect redraw, and alpha-lock behavior that already belong in shared paint/session boundaries
+- [x] reduce remaining duplicated alpha-lock and per-stroke orchestration logic between `PaintSession.ts`, `CloneStampTool.ts`, and `BlurTool.ts`
+- [x] harden affine dirty-region redraw behavior so transformed layers do not rely on translation-only invalidation assumptions during paint/helper-tool updates
+- [x] add focused regression coverage for clone/blur correctness on transformed or bounds-expanded layers
+- [x] add focused regression coverage for clone stamp anchoring across pan/zoom, second-stroke re-anchor, and `active_layer` vs `composited` sampling
+- [x] verify and lock down selection parity for blur vs clone so both tools follow one documented clipping/selection rule
 
-- [x] add dedicated tests for `selectionHitTest`: verify correct results at selection boundary pixels, outside selection, at `originX/originY` offset, and with non-zero origin
-- [x] add dedicated tests for `combineMasks` in all four modes: replace, add (union), subtract, intersect; verify that combine result matches expected mask data for overlapping and non-overlapping inputs
-- [x] add tests for `applySelectionConstraint`: verify that pixels outside the selection mask are restored to pre-operation state after a fill or paint operation
-- [x] add tests for `selectionHasAnyPixels`: verify correct results for empty mask (all zeros), mask with a single selected pixel, and fully selected mask
-- [x] verify that selection `originX/originY` is handled consistently: when a selection is created at a non-zero document offset (e.g. ellipse at x=50,y=50), verify that `selectionHitTest`, `applySelectionConstraint`, and paint clipping all account for the origin correctly
-- [x] verify that each selection mode (rectangle, ellipse, lasso, polygon, magic wand) produces a mask with correct `width`, `height`, and `originX/originY` values relative to the document canvas
+### 1.2 - Remaining correctness and UX fixes
 
-### 1.6 - Harden compositing and rendering
+Do these after the helper-tool architecture blockers above.
 
-The compositing pipeline (`renderDocumentCompositeToContext`) is the single path for both display and export. The per-layer compositing involves offset calculation, transform application, effects evaluation, and active stroke blending. Making this path trustworthy means display and export always agree.
+- [x] Selection tool: ellipse should not be cut off at the canvas border after drawing the selection
+- [x] Sketch Node: remove `Layer In` / `Layer Out` from handle names so only the layer name is shown
+- [x] Sketch Node: remove the default `Image Input` handle on the sketch node
+- [x] rethink layer action buttons: sort them, decide what belongs in the top and bottom groups, remove crop-canvas icons from the main group, but keep crop in the context menu
+- [x] fix small delay when starting brush strokes; mouse cursor hangs for about 50 ms right after starting a stroke. verify whether it still exists while working on this area
+## PHASE 2 - Transform Foundation
 
-- [x] add test that verifies display compositing and `flattenToDataUrl` produce identical pixel output for the same document state (ignoring checkerboard background) — this is the core display/export parity check
-- [x] add test that a layer with `contentBounds` offset at `(50, 50)` and transform at `(-10, -10)` composites at the correct document position (expected: top-left at `(40, 40)`) — this exercises the `getLayerCompositeOffset` + `drawWithTransform` pipeline
-- [x] add test that the active stroke buffer composites at the correct opacity and blend mode during display, and that after commit, the committed layer matches the preview
-- [x] add test that `getMaskDataUrl` returns only the mask layer content (not other layers) and respects the mask layer's transform and contentBounds offset
-- [x] add test that layer effects (`evaluateLayerEffects`) are applied during both display compositing and export — not just one path
-- [x] verify that `readbackComposite` (used by eyedropper and magic wand) samples the same pixels as the display shows, including layer transforms and effects
+### 2.1 - Transform, Zoom, Selection
 
-### 1.7 - Harden transform model
+Do not start advanced transform modes until these tasks are done.
+Do not only fix this sections items with workarounds, investigate core implementations if needed.
 
-The transform model (`LayerTransform` with affine matrix) underpins move, transform tool, and coordinate mapping. The composition/decomposition round-trip and the reconciliation path need to be bulletproof.
+- [x] keep the updated layer preview correct while scaling, moving, and future advanced transform modes; preview behavior must not diverge from commit/history/export
+- [x] make the transform tool gizmo adapt to layer size so small layers do not get a full-canvas gizmo
+- [x] fix top/left transform scaling; this remains a valid active bug
+- [x] change transform `Commit`, `Cancel`, and `Reset` from text buttons to icon actions once the interaction semantics are stable
+- [x] fix transform tool: zooming loses the transform gizmo
+- [x] fix transform tool: confirm sometimes cuts off parts of layer. transformations should not delete layer parts.
+- [x] fix transform tool: confirm transformation moves layer
+- [x] fix transform tool: scaling is faster than mouse delta, causing transform handles to move away from mouse. the mouse position should dictate where handles go.
+- [x] fix transform tool: scaling negatively should mirror - currently does not go beyond zero
+- [x] fix zoom tool: zooming is still noticeable slow
+- [x] fix transform tool: scaling is mostly broken after supposed fix, also does not show realtime update, only after confirm
+- [x] fix transform tool: moving is broken after supposed fix
+- [x] fix transform tool: scaling is partly broken, some handles do not work like right + left
+- [x] fix Selection tool: still after proposed fix: starting a new selection AND ending a selection freezes shortly
+- [x] fix CTRL + i shortcut to inverse layer colors: should adhere to selection mask if any exists
 
-- [x] add test that `composeAffineMatrix` → `decomposeAffineMatrix` round-trips correctly for: identity, pure translation, pure rotation, pure scale, non-uniform scale, combined TRS, negative scale (flip)
-- [x] add test that `reconcileLayerToDocumentSpace` correctly bakes a translated+rotated layer into a document-sized canvas with identity transform — verify pixel data lands at the expected document coordinates
-- [x] add test that `reconcileLayerToDocumentSpace` preserves transparency and does not introduce edge artifacts (e.g. anti-aliasing at canvas edges when blitting rotated content)
-- [x] add test that after transform tool commit (which calls `reconcileLayerToDocumentSpace`), the undo entry correctly restores both the original canvas data AND the original transform values
-- [x] add test that `ensureTransformMatrix` fills in a correct matrix when called on a transform with only `x/y` (no matrix field) — and that CoordinateMapper handles both cases identically
+### 2.2 - Transform lifecycle shortcuts
 
-### 1.8 - Harden history and serialization
+Add the core transform lifecycle only after `2.1` is stable.
 
-The delta history system is the safety net for all editing. History entries capture canvas snapshots and layer structure; serialization persists documents across sessions. Both must faithfully represent the document state including contentBounds and transforms.
+- [x] `Ctrl+T` / `Cmd+T` enters Free Transform
+- [x] `Enter` / `Return` commits the transformation
+- [x] `Esc` cancels the transformation
+- [x] `Ctrl+Z` / `Cmd+Z` undoes the last handle adjustment while still in transform mode
+- [x] right-click inside the bounding box opens a context menu with transform actions
 
-- [x] add test for history delta correctness: push three history entries where only one layer changes each time; verify that `resolveLayerData` reconstructs the correct data for each layer at each history position
-- [x] add test that undo after a bounds-expanding stroke restores the original (smaller) canvas dimensions and contentBounds — not the expanded ones
-- [x] add test that redo after undo replays the stroke correctly, including the bounds expansion
-- [x] add test for `serializeLayerData` / `deserializeLayerData` round-trip: verify that bounds metadata, transform, and pixel data survive encode → decode
-- [x] add test that document serialization → deserialization preserves all layer contentBounds, transforms, effects, and pixel data — verify by comparing a freshly created document with one that has been serialized and deserialized
+### 2.3 - Advanced transform modes and modifier rules
 
-### 1.9 - Active feature work
+Do not start these until preview parity, gizmo sizing, and lifecycle shortcuts are working cleanly.
 
-- [ ] finish transform tool UX on top of the matrix-capable transform model: show live preview while transforming, keep commit/cancel reliable, and fix left/top handle scaling so it does not behave like right/bottom scaling
-- [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
-- [x] fix brush strokes not visible when holding shift for straight lines - they only appear after releasing shift key. also all layers become invisible during drawing of straight lines
+- [x] transform tool: add ENTER and ESC shortcuts to confirm / cancel transformation (already implemented in 2.2 above)
+- [ ] implement the base modifier-key contract for transform interactions
+- [ ] support scale behavior for free, proportional, axis-only, and from-center cases
+- [ ] support rotate behavior, including `Shift` snapping and pivot-point changes
+- [ ] support distort behavior on corner handles
+- [ ] support skew behavior on side handles
+- [ ] support perspective behavior
+- [ ] add options for perspective, skew, and related advanced modes in the transform UI
+- [ ] add warp mode
+- [ ] support repeat last transformation and repeat-on-copy workflows if the core transform model still supports them cleanly
 
-## PHASE 2 - FIXES
+Modifier-key target behavior to preserve while implementing the items above:
 
-## 2.1 - FEATURES
+- [ ] no modifier -> scale (default)
+- [ ] `Ctrl` / `Cmd` -> independent vertex control (`Distort` on corners, `Skew` on edges)
+- [ ] `Shift` -> constrain (proportional scale, 15-degree rotation snap, axis-lock distortion)
+- [ ] `Alt` / `Option` -> from center / symmetrical
+- [ ] `Ctrl+Shift` / `Cmd+Shift` -> skew on sides, constrained distort on corners
+- [ ] `Ctrl+Alt+Shift` / `Cmd+Option+Shift` -> perspective
+- [ ] cursor position determines behavior: outside box = rotate, inside = move, on handle = transform
 
-## PHASE 2.2: Transform Tool features and shortcuts
+### 2.4 - Selection context menu
 
-before starting these tasks, finish the Phase 1 groundwork items that affect transform semantics, preview/commit parity, and helper-tool sampling.
-avoid workarounds and spread out implementation; if a transform feature needs one-off math or display-path exceptions, move that missing foundation back into Phase 1 first.
+- [x] add a selection-tool right-click context menu entry for `Select Inverse`
+- [x] add a selection-tool right-click context menu entry for `Deselect`
+- [x] add a selection-tool right-click context menu entry for `Reselect`
+- [x] add a selection-tool right-click context menu entry for `Layer via Copy`
+- [x] add a selection-tool right-click context menu entry for `Layer via Cut`
+- [x] add a selection-tool right-click context menu entry for `New Layer...`
+- [x] add a selection-tool right-click context menu entry for `Free Transform`
+- [x] add a selection-tool right-click context menu entry for `Transform Selection`
+  - **Done:** Added `Transform Selection` menu entry in `SketchCanvasContextMenu.tsx` with `HighlightAltIcon`. Currently disabled (grayed out) — the `onTransformSelection` prop is optional and wired but no backend implementation exists yet. The entry will enable when transform-selection infrastructure is implemented.
+- [x] add a selection-tool right-click context menu entry for `Fill`
+- [x] add a selection-tool right-click context menu entry for `Stroke`
 
-- [ ] Transform tool should show updated layer while scaling, moving etc, not only at commit
-- [ ] Transform tool gizmo should adapt to layer size, so if layer is smaller than canvas the gizmo should be small
-- [ ] Transform tool: fix transforming from top and left side, currently scales from opposite side
-- [ ] Transform tool: add options for perspective, skew, etc.
-- [ ] Transform tool: Commit, cancel, reset as icons instead of text buttons
-- [ ] Modifier Keys:
-      The modifier logic for transform tool should follow a consistent pattern:
+Deferred selection-context-menu items:
 
-No modifier → Scale (default)
-Ctrl (Cmd) → "Break free" — independent vertex control (Distort on corners, Skew on edges)
-Shift → Constrain (proportional scale, 15° rotation snap, axis-lock distortion)
-Alt (Option) → From center / symmetrical
-Ctrl+Shift → Skew on sides, constrained distort on corners
-Ctrl+Alt+Shift → Perspective (all three modifiers = maximum control)
-Cursor position determines behavior (outside box = rotate, inside = move, on handle = transform)
+- [ ] deferred: `Select All Layers`
+- [ ] deferred: `Save Selection...`
+- [ ] deferred: `Make Work Path...`
+- [ ] deferred: `Refine Edge`
 
-support most / all of the following features and shortcuts and check off done items:
-
-Activating & Committing
-
-Ctrl+T (Cmd+T) — Enter Free Transform
-Enter (Return) — Commit the transformation
-Esc — Cancel the transformation
-Ctrl+Z (Cmd+Z) — Undo the last handle adjustment while still in transform mode
-Right-click inside the bounding box — Context menu with all transform modes (Skew, Distort, Perspective, Warp, Rotate 180°, 90° CW/CCW, Flip H/V)
-
-- Scale
-  Action, Shortcut
-  Scale freely (non-proportional) Drag any handle (if Link icon is ON, this scales proportionally)Toggle proportional/non-proportionalHold Shift while dragging a corner handle (toggles the Link icon state)Scale from centerHold Alt (Option) while dragging any handleScale proportionally from centerHold Shift+Alt (Shift+Option) while dragging a corner handleScale width onlyDrag a left or right side handleScale height onlyDrag a top or bottom side handle
-  Rotate
-  Action, Shortcut
-  Free rotate Move cursor outside bounding box (curved arrow appears), dragRotate in 15° snapped incrementsHold Shift while rotatingChange rotation pivot pointDrag the reference point (center target), or click a square on the reference point locator in the Options bar
-- Distort (move one corner independently)
-  Action, Shortcut
-  Distort freely — move a single corner handle independently in any direction
-  Hold Ctrl (Cmd) + drag a corner handleDistort constrained to horizontal or verticalHold Ctrl+Shift (Cmd+Shift) + drag a corner handleDistort from center — move a corner while the diagonally opposite corner moves in the opposite direction
-  Hold Ctrl+Alt (Cmd+Option) + drag a corner handle
-- Skew
-  Action, Shortcut
-  Skew — slide a side edge to slant the image
-  Hold Ctrl+Shift (Cmd+Shift) + drag a side handleSkew via side handle (simpler shortcut) Hold Ctrl (Cmd) + drag a side handleSkew opposite sides simultaneously
-  Hold Alt (Option) while skewing (adds symmetry)
-  Important nuance: Ctrl+drag on a side handle = Skew. Ctrl+drag on a corner handle = Distort. Same modifier key, different handle determines the behavior.
-- Perspective
-  Action, Shortcut
-  Perspective — drag a corner and the opposite corner moves symmetrically in the opposite direction
-  Hold Ctrl+Alt+Shift (Cmd+Option+Shift) + drag a corner handle
-  This creates the classic converging/diverging vanishing point effect. Dragging a corner inward pushes the opposite corner inward too; dragging outward pushes the other outward.
-- Warp
-  Action, Shortcut
-  Enter Warp mode Click the Warp toggle icon in the Options bar, or right-click → WarpDrag warp gridClick and drag any grid intersection, control point, or areaToggle Bézier handles independent vs. unified Alt-click (Option-click) on an anchor pointSelect multiple warp anchor pointsShift-click on additional anchor pointsSwitch back to Free Transform from WarpClick the Warp toggle icon again
-  Flip & Rotate (via context menu)
-  Right-click inside the transform box to access: Rotate 180°, Rotate 90° CW, Rotate 90° CCW, Flip Horizontal, Flip Vertical.
-  Repeat & Additional
-  Action, Shortcut
-  Repeat last transformation Ctrl+Shift+T (Cmd+Shift+T)Repeat transformation on a copyCtrl+Alt+Shift+T (Cmd+Option+Shift+T)Move the object while in transformClick and drag inside the bounding box (not on a handle or the reference point)
-
-### PHASE 2.3: Selection Context Menu
-
-- [ ] Selection tool: add options to existing right-click context menu with options for
-      -- [ ] Select Inverse
-      -- [ ] Deselect
-      -- [ ] Reselect
-      -- [ ] Layer via Copy
-      -- [ ] Layer via Cut
-      -- [ ] New Layer…
-      -- [ ] Free Transform
-      -- [ ] Transform Selection
-      -- [ ] Fill > menu
-      -- [ ] Stroke > menu
-      -- [xx] Select All Layers (skip for now)
-      -- [xx] Save Selection… (skip for now)
-      -- [xx] Make Work Path… (skip for now)
-      -- [xx] Refine Edge (skip for now)
+### 2.5 - FEATURES
+- [ ] add one output handle that combines all output layers in a list[image] output
+- [ ] improve Layer visibility toggle: allow toggling layer visibility by presing mouse and holding - moving over several layers. the eye icon part of the layer item should be exempt of dragging
 
 ### PHASE 3 - SAM SEGMENTATION
 
@@ -243,7 +241,16 @@ These are still real tasks, but they should wait until the Phase 1 groundwork is
 
 ### PHASE 6 - IMPROVE PAINT AND SELECT
 
-- [-] build a more programmable/extensible brush system on top of the shared paint/session seams
+- [ ] make a plan for a brush engine
+- [ ] build a more programmable/extensible brush system on top of the shared paint/session seams
+- [ ] brush engine: webgpu shaders, physics, fluids, particles, ...
+- [ ] brush engine idea: google museum close up of brushes to sample from
+- [ ] brush engine: modal with grid selection for brushes and area / toggle to test brushes quickly on a test canvas
+- [ ] brush engine: add speed param to shapee brush width - faster = thinner
+- [ ] brush engine: add feature to shape strokes after finishing a stroke: e.g. fade-in-out thickness / opacity with curve
+
+
+
 - [x] drawing extensions: ADJUSTABLE stabilizer controls to help with drawing less jaggy lines, similar to https://github.com/steveruizok/perfect-freehand. one implementation that all drawing tools can use.
 - [ ] brush extensions: smudge/color-smudge
 - [ ] define the first narrow goal for lit / PBR-style brushes once the WebGPU runtime and FX pipeline are stable (for example: one lighting model, one material response, and one expected visual use case)
@@ -251,6 +258,16 @@ These are still real tasks, but they should wait until the Phase 1 groundwork is
 - [ ] build one focused lit / PBR brush prototype only after the goal and intermediate-format decision are explicit
 - [ ] selection transform tools + selection move with (shift) arrow keys. note: do not move layer when selection active
 - [ ] add AI-assisted tools such as healing or segmentation-driven layer creation
+
+
+### PHASE 6.1 - HELPERS
+- [ ] Gizmos: improve gizmo code: refactor, prepare for more features for transform gizmos and brush preview gizmo
+- [ ] Gizmos: brush preview should visualise hardness through a second ring and opacity with a different stroke pattern that is still visible with lowest opacity
+- [ ] add Ruler on top and left with pixel, correct origin to canvas, correct  behaviour on zoom
+- [ ] Guides: add basic guides system that for small auto-appearing guides relative to canvas and layer extends
+- [ ] Crop: after dragging crop area, do not crop immediately. show editable transform gizmo to refine. do crop with icon button to confirm
+
+
 
 ### PHASE 7 - COLOR PALETTES
 
@@ -308,39 +325,37 @@ These are not current priorities, but they should stay visible so they can be re
 
 ## Agent orientation (where things live)
 
-**Base path:** `web/src/components/sketch/` (everything below is relative to that folder).
+**Base path:** `web/src/components/sketch/`
 
-### Architecture
+### Main flow
 
-1. **Workflow node** — `../node/SketchNode/SketchNode.tsx` hosts the editor inside the graph (props, I/O, layout).
-2. **Editor UI** — `SketchEditor.tsx` composes toolbar, layers panel, settings, shortcuts.
-3. **Canvas** — `SketchCanvas.tsx` mounts the `<canvas>` and pulls in the hook bundle under `sketchCanvasHooks/`.
-4. **State** — `state/` is a slice-based Zustand document store composed into `useSketchStore`; `hooks/*` wraps store updates and selectors.
-5. **Input → pixels** — pointer flow lives in `sketchCanvasHooks/`; tools in `tools/`; actual drawing in `painting/`; document compositing lives in `rendering/` with WebGPU as the intended primary runtime and Canvas 2D retained for targeted helper paths.
+1. `../node/SketchNode/SketchNode.tsx` hosts the editor inside the workflow graph.
+2. `SketchEditor.tsx` composes the editor UI.
+3. `SketchCanvas.tsx` mounts the canvas and wires the `sketchCanvasHooks/` bundle.
+4. `state/` holds the slice-based Zustand document store; `hooks/` wraps document actions/selectors.
+5. `sketchCanvasHooks/` routes pointer/compositing flow into `tools/`, `painting/`, and `rendering/`.
 
-### Folders
+### Folder guide
 
-- **`sketchCanvasHooks/`** — Pointer events, compositing, overlay, keyboard modifiers, imperative canvas API. Heaviest files: `usePointerHandlers.ts`, `usePointerHandlerUtils.ts`.
-- **`state/`** — slice-based store under `state/slices/` composed into `useSketchStore.ts`.
-- **`hooks/`** — `useCanvasActions.ts`, `useLayerActions.ts`, `useHistoryActions.ts`, `useSketchStoreSelectors.ts`.
-- **`rendering/`** — `WebGPURuntime.ts` / `initWebGPU.ts` / `shaders.ts` for the primary document runtime; `Canvas2DRuntime.ts` remains the reference/helper 2D path.
-- **`painting/`** — `PaintSession.ts`, `CoordinateMapper.ts`, brush/pencil/eraser engines, `layerBounds.ts`.
-- **`tools/`** — One module per tool; `toolDefinitions.ts` registers them; `tools/types.ts` for shared tool types.
-- **`types/`** — shared TypeScript types split by domain and re-exported from `index.ts`.
-- **`serialization/`** — Save/load document and layer payloads.
+- `sketchCanvasHooks/` — pointer routing, compositing, overlays, keyboard modifiers, imperative canvas API; key files include `usePointerHandlers.ts`, `useCompositing.ts`, `useTransformPreviewComposite.ts`, `useRedrawScheduler.ts`
+- `hooks/` — document/store action hooks; recent splits include `useStrokeLifecycleActions.ts`, `useTransformActions.ts`, `useExportSyncActions.ts`, `useCanvasGeometryActions.ts`
+- `state/` — slice-based store under `state/slices/`, composed into `useSketchStore.ts`
+- `tools/` — one module per tool plus shared tool types/registration
+- `painting/` — draw engines and shared paint math such as `PaintSession.ts`, `CoordinateMapper.ts`, `sampleDocument.ts`, `alphaLock.ts`, `layerBounds.ts`
+- `rendering/` — document runtime/compositing; `WebGPURuntime.ts` is the intended primary runtime, `Canvas2DRuntime.ts` plus `rendering/canvas2d/` remain the helper/reference 2D path
+- `serialization/` — save/load document and layer payloads
+- `types/` — shared TypeScript types
 
-### UI pieces (same folder, top-level files)
+### Useful top-level files
 
-Toolbar, layers list, color popover, tool settings: `SketchToolbar.tsx`, `SketchLayersPanel.tsx`, `LayerItem.tsx`, `ToolSettingsPanels.tsx`, `ColorPickerPopover.tsx`, `useEditorKeyboardShortcuts.ts`.
-
-### Planning files to checkoff
-
-- **Shortcuts:** `SHORTCUTS.md`
-- **Shipped features log:** `SKETCH_FEATURES_DONE.md`
+- UI shell: `SketchEditor.tsx`, `SketchCanvas.tsx`, `SketchToolbar.tsx`, `SketchLayersPanel.tsx`, `LayerItem.tsx`, `ToolSettingsPanels.tsx`, `ColorPickerPopover.tsx`
+- shortcuts: `SHORTCUTS.md`
+- shipped-feature log: `SKETCH_FEATURES_DONE.md`
 
 ### Data flow
 
-1. User acts on the canvas → `sketchCanvasHooks` routes by tool.
-2. Tools / painting call into `rendering` or mutate layer buffers via the store hooks.
-3. `useSketchStore` updates document state; compositing redraws.
-4. Persist / restore goes through `serialization/`.
+1. Canvas input enters through `sketchCanvasHooks/`.
+2. Tools and painting update preview state, layer buffers, or runtime requests.
+3. Store/actions coordinate document state and history.
+4. `rendering/` composites for display/export/readback.
+5. `serialization/` persists and restores document state.

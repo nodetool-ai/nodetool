@@ -215,6 +215,13 @@ describe("PaintSession shift-line buffer reuse", () => {
     session.begin(ctx, makePointerEvent({ point: { x: 0, y: 0 } }));
     const firstBuffer = ctx.activeStrokeRef.current!.buffer;
 
+    // Paint something into the buffer so we can verify it was cleared
+    const bctx = firstBuffer.getContext("2d");
+    if (bctx) {
+      bctx.fillStyle = "red";
+      bctx.fillRect(0, 0, 10, 10);
+    }
+
     // End with shift held
     ctx.shiftHeldRef.current = true;
     session.end(ctx, makePointerEvent({ point: { x: 20, y: 20 } }));
@@ -223,8 +230,12 @@ describe("PaintSession shift-line buffer reuse", () => {
     ctx.shiftHeldRef.current = false;
     session.begin(ctx, makePointerEvent({ point: { x: 40, y: 40 } }));
 
-    // The old buffer should have been flushed and a new one created
-    expect(ctx.activeStrokeRef.current!.buffer).not.toBe(firstBuffer);
+    // The old buffer should have been flushed; the new buffer must be
+    // cleared regardless of whether pooling recycled the same canvas.
+    const newBuffer = ctx.activeStrokeRef.current!.buffer;
+    const newCtx = newBuffer.getContext("2d");
+    const pixel = newCtx?.getImageData(0, 0, 1, 1).data;
+    expect(pixel?.[3]).toBe(0); // alpha must be 0 (cleared)
     // onStrokeStart should have been called twice (once for each stroke)
     expect(ctx.onStrokeStart).toHaveBeenCalledTimes(2);
   });

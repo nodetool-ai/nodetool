@@ -231,6 +231,10 @@ export interface SketchRuntime {
     saturation: number
   ): void;
 
+  /** Invert all color channels of the active layer while preserving alpha.
+   *  When a selection mask is provided, only selected pixels are inverted. */
+  invertLayerColors(doc: SketchDocument, selection?: { width: number; height: number; data: Uint8ClampedArray; originX?: number; originY?: number } | null): void;
+
   /**
    * Bake the layer transform offset into the pixel data so that
    * (transform.x, transform.y) can be reset to (0, 0).
@@ -269,6 +273,29 @@ export interface SketchRuntime {
     source: HTMLCanvasElement,
     effects: LayerEffect[]
   ): ResolvedLayerBitmap;
+
+  // ─── Resolved layer output ───────────────────────────────────────────
+  /**
+   * Single entry point for "raw layer canvas → resolved surface".
+   *
+   * Returns the resolved output for a layer: evaluates non-destructive
+   * effects when present, or returns the unmodified layer canvas otherwise.
+   * This is the contract that display, export, readback, and helper flows
+   * should use instead of choosing ad hoc between `layer.data`, the raw
+   * layer canvas, and effected output.
+   *
+   * Layer-panel thumbnail behavior is out of scope for Phase 1 and remains
+   * a later explicit product decision.
+   *
+   * @param doc      Current document.
+   * @param layerId  Layer to resolve.
+   * @returns The resolved surface (with effects applied if any), or null
+   *          when the layer or its canvas does not exist.
+   */
+  getResolvedLayerOutput(
+    doc: SketchDocument,
+    layerId: string
+  ): ResolvedLayerBitmap | null;
 
   // ─── Composite readback ─────────────────────────────────────────────
   /**

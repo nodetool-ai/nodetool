@@ -1158,6 +1158,13 @@ export class WebGPURuntime implements SketchRuntime {
     }
   }
 
+  invertLayerColors(doc: SketchDocument, selection?: { width: number; height: number; data: Uint8ClampedArray; originX?: number; originY?: number } | null): void {
+    this.cpuRuntime.invertLayerColors(doc, selection);
+    if (doc.activeLayerId) {
+      this.markLayerDirty(doc.activeLayerId);
+    }
+  }
+
   reconcileLayerToDocumentSpace(
     layerId: string,
     doc: SketchDocument
@@ -1180,6 +1187,13 @@ export class WebGPURuntime implements SketchRuntime {
     // When GPU-backed effects are implemented, this method will evaluate them
     // directly on the GPU and may return linear-srgb or HDR results.
     return this.cpuRuntime.evaluateLayerEffects(layerId, source, effects);
+  }
+
+  getResolvedLayerOutput(
+    doc: import("../types").SketchDocument,
+    layerId: string
+  ): ResolvedLayerBitmap | null {
+    return this.cpuRuntime.getResolvedLayerOutput(doc, layerId);
   }
 
   // ─── Composite readback ─────────────────────────────────────────────
