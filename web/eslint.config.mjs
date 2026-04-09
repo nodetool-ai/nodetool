@@ -17,7 +17,8 @@ export default [
   ...fixupConfigRules(
     compat.extends(
       "eslint:recommended",
-      "plugin:@typescript-eslint/recommended"
+      "plugin:@typescript-eslint/recommended",
+      "plugin:react-hooks/recommended"
     )
   ),
   {
@@ -52,6 +53,7 @@ export default [
     },
 
     rules: {
+      "react-hooks/exhaustive-deps": "warn",
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unused-vars": "off",
