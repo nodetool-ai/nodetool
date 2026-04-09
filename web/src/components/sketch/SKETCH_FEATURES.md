@@ -170,6 +170,7 @@ Do not start these until preview parity, gizmo sizing, and lifecycle shortcuts a
 - [x] support scale behavior for free, proportional, axis-only, and from-center cases
   - **Done:** `computeScaleTransform()` in `computeTransform.ts` implements all four modes: free (independent X/Y without Shift), proportional (Shift held — radial distance ratio), axis-only (edge midpoint handles constrain to single axis), and from-center (Alt held — `edgeFactor = 1` scales both sides symmetrically).
 - [ ] support rotate behavior, including `Shift` snapping and pivot-point changes
+  - **Partial:** Rotation via dedicated handle above top-center is implemented. Shift snaps to 15° increments via `snapAngle()` in `computeRotateTransform()`. Remaining: user-adjustable pivot point (currently always layer center).
 - [ ] support distort behavior on corner handles
 - [ ] support skew behavior on side handles
 - [ ] support perspective behavior
@@ -183,11 +184,13 @@ Modifier-key target behavior to preserve while implementing the items above:
   - **Done:** Default handle interaction applies scale. `computeTransformForHandle()` dispatches to `computeScaleTransform()` for all handle types except `move` and `rotate`.
 - [ ] `Ctrl` / `Cmd` -> independent vertex control (`Distort` on corners, `Skew` on edges)
 - [ ] `Shift` -> constrain (proportional scale, 15-degree rotation snap, axis-lock distortion)
+  - **Partial:** Proportional scale (Shift on corner handles) and 15° rotation snap (Shift while rotating) are implemented. Remaining: axis-lock distortion (requires distort mode which does not exist yet).
 - [x] `Alt` / `Option` -> from center / symmetrical
   - **Done:** `computeScaleTransform()` uses `edgeFactor = alt ? 1 : 0.5` so Alt scales from center (both sides move) while no-Alt anchors the opposite edge.
 - [ ] `Ctrl+Shift` / `Cmd+Shift` -> skew on sides, constrained distort on corners
 - [ ] `Ctrl+Alt+Shift` / `Cmd+Option+Shift` -> perspective
 - [ ] cursor position determines behavior: outside box = rotate, inside = move, on handle = transform
+  - **Partial:** Inside box → move and on handle → transform are implemented via `hitTestHandles()`. Remaining: outside box → rotate (currently returns `null` / no interaction).
 
 ### 2.4 - Selection context menu
 
