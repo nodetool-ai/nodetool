@@ -15,7 +15,7 @@ async function loadImageBuffer(
 function toImageRef(buf: Buffer): Record<string, unknown> {
   return {
     type: "image",
-    data: buf.toString("base64"),
+    data: new Uint8Array(buf),
     mimeType: "image/png"
   };
 }
