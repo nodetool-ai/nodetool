@@ -6,7 +6,8 @@
  */
 
 import {
-  useSketchStoreSelectors,
+  useResolvedToolSettings,
+  useActiveToolSettings,
   useHistoryActions,
   useLayerActions,
   useCanvasActions,
@@ -14,8 +15,12 @@ import {
 } from "../hooks";
 
 describe("sketch hooks exports", () => {
-  it("exports useSketchStoreSelectors", () => {
-    expect(typeof useSketchStoreSelectors).toBe("function");
+  it("exports useResolvedToolSettings", () => {
+    expect(typeof useResolvedToolSettings).toBe("function");
+  });
+
+  it("exports useActiveToolSettings", () => {
+    expect(typeof useActiveToolSettings).toBe("function");
   });
 
   it("exports useHistoryActions", () => {
