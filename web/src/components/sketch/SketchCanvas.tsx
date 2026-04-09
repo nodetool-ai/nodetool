@@ -297,6 +297,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const transformPreviewByLayerIdRef = useRef<Record<string, LayerTransform>>({});
     const requestPreviewRedrawRef = useRef<() => void>(() => {});
+    /**
+     * Ref to the runtime's invalidateLayer — populated after useCompositing.
+     * Used by setLayerTransformPreview to force-invalidate a layer's GPU
+     * texture when the preview first activates, ensuring stale textures from
+     * startup/image-load timing races are re-synced before compositing.
+     */
+    const invalidateLayerRef = useRef<(layerId: string) => void>(() => {});
 
     const setLayerTransformPreview = useCallback(
       (layerId: string, transform: LayerTransform) => {
@@ -312,6 +319,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
         ) {
           return;
+        }
+        // When a layer is first added to the preview map (start of a new drag),
+        // force-invalidate its rendering data so the GPU texture is re-synced
+        // from the CPU canvas. This prevents stale textures from startup timing
+        // races where an image loaded after the initial GPU texture upload.
+        if (!existing) {
+          invalidateLayerRef.current(layerId);
         }
         transformPreviewByLayerIdRef.current = {
           ...current,
@@ -383,6 +397,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       transformPreviewByLayerIdRef
     });
     requestPreviewRedrawRef.current = requestRedraw;
+    invalidateLayerRef.current = invalidateLayer;
 
     // ─── Pointer handlers (provides shiftHeldRef, altHeldRef, selectStartRef) ─
     // These refs are needed by the overlay renderer, so we extract them first

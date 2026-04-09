@@ -302,18 +302,18 @@ export class Canvas2DRuntime implements SketchRuntime {
       return;
     }
 
-    // Bump the generation so any in-flight img.onload from a prior call
+    // Bump the generation so any in-flight load from a prior call
     // knows it has been superseded and should not overwrite the canvas.
     const gen = (this.layerLoadGenerations.get(layerId) ?? 0) + 1;
     this.layerLoadGenerations.set(layerId, gen);
 
-    // Defer the resize and clear until the image is ready to draw.
-    // This keeps the live canvas content visible between now and onload,
-    // preventing a blank-canvas flash during the encode→decode round-trip.
-    const img = new Image();
-    img.onload = () => {
+    /** Shared finalization: resize canvas, draw the decoded source, and notify. */
+    const finalize = (source: ImageBitmap | HTMLImageElement) => {
       // Bail out if a newer setLayerData call has already taken over.
       if (this.layerLoadGenerations.get(layerId) !== gen) {
+        if (typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap) {
+          source.close();
+        }
         return;
       }
       const canvas = this.getOrCreateLayerCanvas(
@@ -331,11 +331,64 @@ export class Canvas2DRuntime implements SketchRuntime {
       setCanvasRasterBounds(canvas, decoded.bounds);
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(source, 0, 0);
+      }
+      if (typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap) {
+        source.close();
       }
       onComplete?.();
     };
-    img.src = decoded.image;
+
+    // For HTTP(S) URLs, use fetch + createImageBitmap for off-main-thread
+    // decoding. This reduces main-thread blocking during editor startup when
+    // multiple imageReference layers load simultaneously.
+    const imageSrc = decoded.image;
+    if (
+      typeof createImageBitmap === "function" &&
+      (imageSrc.startsWith("http://") ||
+        imageSrc.startsWith("https://") ||
+        imageSrc.startsWith("/"))
+    ) {
+      fetch(imageSrc)
+        .then((resp) => {
+          if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}`);
+          }
+          return resp.blob();
+        })
+        .then((blob) => createImageBitmap(blob))
+        .then((bitmap) => finalize(bitmap))
+        .catch(() => {
+          // Fallback to Image element on fetch/decode failure
+          this.loadWithImageElement(imageSrc, gen, layerId, finalize);
+        });
+      return;
+    }
+
+    // Defer the resize and clear until the image is ready to draw.
+    // This keeps the live canvas content visible between now and onload,
+    // preventing a blank-canvas flash during the encode→decode round-trip.
+    this.loadWithImageElement(imageSrc, gen, layerId, finalize);
+  }
+
+  /**
+   * Fallback image loading using an HTMLImageElement.
+   * Used for data URLs and as a fallback when fetch/createImageBitmap fails.
+   */
+  private loadWithImageElement(
+    src: string,
+    gen: number,
+    layerId: string,
+    finalize: (source: HTMLImageElement) => void
+  ): void {
+    const img = new Image();
+    img.onload = () => {
+      if (this.layerLoadGenerations.get(layerId) !== gen) {
+        return;
+      }
+      finalize(img);
+    };
+    img.src = src;
   }
 
   restoreLayerCanvas(layerId: string, source: HTMLCanvasElement): void {
