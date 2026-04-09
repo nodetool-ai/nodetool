@@ -88,14 +88,13 @@ export class SliceImageGridLibNode extends BaseNode {
     columns = Math.max(1, Math.trunc(columns));
     rows = Math.max(1, Math.trunc(rows));
 
-    const tileWidth = Math.max(1, Math.floor(width / columns));
-    const tileHeight = Math.max(1, Math.floor(height / rows));
-
     const tiles: Array<Record<string, unknown>> = [];
-    for (let y = 0; y < height; y += tileHeight) {
-      for (let x = 0; x < width; x += tileWidth) {
-        const right = Math.min(x + tileWidth, width);
-        const bottom = Math.min(y + tileHeight, height);
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < columns; col++) {
+        const x = Math.round((col * width) / columns);
+        const y = Math.round((row * height) / rows);
+        const right = Math.round(((col + 1) * width) / columns);
+        const bottom = Math.round(((row + 1) * height) / rows);
         const out = await sharp(src, { failOn: "none" })
           .extract({
             left: x,
