@@ -24,16 +24,22 @@ function imageBytes(image: unknown): Uint8Array {
   return toBytes((image as ImageRefLike).data);
 }
 
-async function imageBytesAsync(image: unknown): Promise<Uint8Array> {
+async function imageBytesAsync(image: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!image || typeof image !== "object") return new Uint8Array();
   const ref = image as ImageRefLike;
   if (ref.data) return toBytes(ref.data);
   if (typeof ref.uri === "string" && ref.uri) {
+    if (context?.storage) {
+      const stored = await context.storage.retrieve(ref.uri);
+      if (stored !== null) return new Uint8Array(stored);
+    }
     if (ref.uri.startsWith("file://")) {
       return new Uint8Array(await fs.readFile(filePath(ref.uri)));
     }
-    const response = await fetch(ref.uri);
-    return new Uint8Array(await response.arrayBuffer());
+    if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
+      const response = await fetch(ref.uri);
+      return new Uint8Array(await response.arrayBuffer());
+    }
   }
   return new Uint8Array();
 }
@@ -128,9 +134,10 @@ async function metadataFor(
 
 async function transformImage(
   image: ImageRefLike,
-  operation: (instance: sharp.Sharp, bytes: Uint8Array) => sharp.Sharp
+  operation: (instance: sharp.Sharp, bytes: Uint8Array) => sharp.Sharp,
+  context?: ProcessingContext
 ): Promise<Record<string, unknown>> {
-  const bytes = await imageBytesAsync(image);
+  const bytes = await imageBytesAsync(image, context);
   if (bytes.length === 0) {
     return imageRef(bytes, {
       uri: image.uri ?? "",
@@ -449,7 +456,7 @@ export class SaveImageNode extends BaseNode {
   declare name: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const bytes = await imageBytesAsync(this.image);
+    const bytes = await imageBytesAsync(this.image, context);
     if (bytes.length === 0) throw new Error("The input image is not connected.");
 
     const name = dateName(String(this.name ?? "image.png"));
@@ -523,9 +530,9 @@ export class GetMetadataNode extends BaseNode {
   })
   declare image: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
-    const bytes = await imageBytesAsync(image);
+    const bytes = await imageBytesAsync(image, context);
     try {
       const md = await sharp(bytes).metadata();
       const formatMap: Record<string, string> = {
@@ -704,13 +711,13 @@ export class PasteNode extends TransformImageNode {
   })
   declare top: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const paste = (this.paste ?? {}) as ImageRefLike;
     const left = Math.max(0, Number(this.left ?? 0));
     const top = Math.max(0, Number(this.top ?? 0));
-    const baseBytes = await imageBytesAsync(image);
-    const overlayBytes = await imageBytesAsync(paste);
+    const baseBytes = await imageBytesAsync(image, context);
+    const overlayBytes = await imageBytesAsync(paste, context);
 
     if (baseBytes.length === 0 || overlayBytes.length === 0) {
       return {
@@ -778,7 +785,7 @@ export class ScaleNode extends TransformImageNode {
   })
   declare scale: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const requestedScale = Number(this.scale ?? 0);
     const targetWidth = 0;
@@ -798,7 +805,7 @@ export class ScaleNode extends TransformImageNode {
         width: Math.max(1, Math.round(fallbackWidth * scale)),
         height: Math.max(1, Math.round(fallbackHeight * scale))
       });
-    })) as Record<string, unknown>;
+    }, context)) as Record<string, unknown>;
     const fallbackWidth =
       targetWidth > 0
         ? targetWidth
@@ -864,13 +871,13 @@ export class ResizeNode extends TransformImageNode {
   })
   declare height: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const width = Number(this.width ?? image.width ?? 0) || null;
     const height = Number(this.height ?? image.height ?? 0) || null;
     const output = (await transformImage(image, (instance) =>
       instance.resize(width ?? undefined, height ?? undefined)
-    )) as Record<string, unknown>;
+    , context)) as Record<string, unknown>;
     return {
       output: {
         ...output,
@@ -944,7 +951,7 @@ export class CropNode extends TransformImageNode {
   })
   declare bottom: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const left = Math.max(0, Number(this.left ?? 0));
     const top = Math.max(0, Number(this.top ?? 0));
@@ -954,7 +961,7 @@ export class CropNode extends TransformImageNode {
     const height = Math.max(1, bottom - top);
     const output = (await transformImage(image, (instance) =>
       instance.extract({ left, top, width, height })
-    )) as Record<string, unknown>;
+    , context)) as Record<string, unknown>;
     return {
       output: {
         ...output,
@@ -1008,13 +1015,13 @@ export class FitNode extends TransformImageNode {
   })
   declare height: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const width = Math.max(1, Number(this.width ?? image.width ?? 512));
     const height = Math.max(1, Number(this.height ?? image.height ?? 512));
     const output = (await transformImage(image, (instance) =>
       instance.resize(width, height, { fit: "cover", position: "centre" })
-    )) as Record<string, unknown>;
+    , context)) as Record<string, unknown>;
     return {
       output: {
         ...output,
@@ -1318,7 +1325,7 @@ export class ImageToImageNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
-    const bytes = await imageBytesAsync(image);
+    const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) {
       throw new Error("The input image is empty.");
     }
@@ -1388,11 +1395,11 @@ export class RotateNode extends TransformImageNode {
   })
   declare angle: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const angle = Number(this.angle ?? 0);
     if (angle === 0) {
-      const bytes = await imageBytesAsync(image);
+      const bytes = await imageBytesAsync(image, context);
       return {
         output: imageRef(bytes, {
           uri: image.uri ?? "",
@@ -1403,7 +1410,7 @@ export class RotateNode extends TransformImageNode {
     }
     return transformImage(image, (instance) =>
       instance.rotate(angle, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    );
+    , context);
   }
 }
 
@@ -1439,12 +1446,12 @@ export class FlipNode extends TransformImageNode {
   })
   declare direction: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const direction = String(this.direction ?? "horizontal");
     return transformImage(image, (instance) =>
       direction === "vertical" ? instance.flip() : instance.flop()
-    );
+    , context);
   }
 }
 

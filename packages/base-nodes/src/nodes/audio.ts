@@ -27,17 +27,23 @@ function audioBytes(audio: unknown): Uint8Array {
   return new Uint8Array();
 }
 
-async function audioBytesAsync(audio: unknown): Promise<Uint8Array> {
+async function audioBytesAsync(audio: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!audio || typeof audio !== "object") return new Uint8Array();
   const ref = audio as AudioRefLike;
   if (ref.data) return toBytes(ref.data);
   if (typeof ref.uri === "string" && ref.uri) {
     try {
+      if (context?.storage) {
+        const stored = await context.storage.retrieve(ref.uri);
+        if (stored !== null) return new Uint8Array(stored);
+      }
       if (ref.uri.startsWith("file://")) {
         return new Uint8Array(await fs.readFile(uriToPath(ref.uri)));
       }
-      const response = await fetch(ref.uri);
-      return new Uint8Array(await response.arrayBuffer());
+      if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
+        const response = await fetch(ref.uri);
+        return new Uint8Array(await response.arrayBuffer());
+      }
     } catch {
       return new Uint8Array();
     }
@@ -425,9 +431,9 @@ export class NormalizeAudioNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = this.audio;
-    const bytes = await audioBytesAsync(audio);
+    const bytes = await audioBytesAsync(audio, context);
     const wav = parseWavPcm16(bytes);
     if (!wav || wav.samples.length === 0) {
       return { output: audioRefFromBytes(bytes) };
@@ -1336,8 +1342,8 @@ export class GetAudioInfoNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await audioBytesAsync(this.audio);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
     if (bytes.length === 0) {
       return { duration: 0, sample_rate: 0, channels: 0, format: "unknown", size_bytes: 0 };
     }

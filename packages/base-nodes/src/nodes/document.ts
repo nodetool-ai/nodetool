@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -66,8 +67,12 @@ function splitByChunk(
   return out;
 }
 
-async function readDocumentText(refOrPath: unknown): Promise<string> {
+async function readDocumentText(refOrPath: unknown, context?: ProcessingContext): Promise<string> {
   if (typeof refOrPath === "string" && refOrPath) {
+    if (context?.storage) {
+      const stored = await context.storage.retrieve(refOrPath);
+      if (stored !== null) return Buffer.from(stored).toString("utf8");
+    }
     return fs.readFile(toFilePath(refOrPath), "utf8");
   }
   if (refOrPath && typeof refOrPath === "object") {
@@ -78,7 +83,13 @@ async function readDocumentText(refOrPath: unknown): Promise<string> {
       return Buffer.from(bytes).toString("utf8");
     }
     if (typeof ref.uri === "string" && ref.uri) {
-      return fs.readFile(toFilePath(ref.uri), "utf8");
+      if (context?.storage) {
+        const stored = await context.storage.retrieve(ref.uri);
+        if (stored !== null) return Buffer.from(stored).toString("utf8");
+      }
+      if (ref.uri.startsWith("file://") || !ref.uri.startsWith("http")) {
+        return fs.readFile(toFilePath(ref.uri), "utf8");
+      }
     }
   }
   return "";
@@ -346,9 +357,9 @@ export class SplitDocumentNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const text = await readDocumentText(document);
+    const text = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
     const chunkSize = Number((this as any).chunk_size ?? 1200);
     const overlap = Number((this as any).chunk_overlap ?? 100);
@@ -392,9 +403,9 @@ export class SplitHTMLNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const html = await readDocumentText(document);
+    const html = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
     const chunkSize = Number((this as any).chunk_size ?? 1200);
     const overlap = Number((this as any).chunk_overlap ?? 100);
@@ -523,9 +534,9 @@ export class SplitJSONNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const raw = await readDocumentText(document);
+    const raw = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
     const chunkSize = Number((this as any).chunk_size ?? 1200);
     const overlap = Number((this as any).chunk_overlap ?? 100);
@@ -646,9 +657,9 @@ export class SplitRecursivelyNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const text = await readDocumentText(document);
+    const text = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
     const chunkSize = Number(
       (this as any).chunk_size ?? (this as any).chunk_size ?? 1000
@@ -814,9 +825,9 @@ export class SplitMarkdownNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const markdown = await readDocumentText(document);
+    const markdown = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
     const stripHeaders = Boolean(
       this.strip_headers ?? this.strip_headers ?? true

@@ -5,6 +5,7 @@
  * layout analysis, and metadata reading from PDF documents.
  */
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -21,12 +22,23 @@ function asBytes(data: Uint8Array | string | undefined): Uint8Array {
   return Uint8Array.from(Buffer.from(data, "base64"));
 }
 
-async function loadPdfDocument(pdf: DocumentRefLike) {
+async function loadPdfDocument(pdf: DocumentRefLike, context?: ProcessingContext) {
   const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
   let pdfData: Uint8Array;
   if (pdf.data) {
     pdfData = asBytes(pdf.data);
   } else if (pdf.uri) {
+    if (context?.storage) {
+      const stored = await context.storage.retrieve(pdf.uri);
+      if (stored !== null) {
+        pdfData = new Uint8Array(stored);
+        const loadingTask = pdfjsLib.getDocument({
+          data: pdfData,
+          useSystemFonts: true
+        });
+        return await loadingTask.promise;
+      }
+    }
     const { promises: fs } = await import("node:fs");
     const uri = pdf.uri.startsWith("file://") ? pdf.uri.slice(7) : pdf.uri;
     pdfData = new Uint8Array(await fs.readFile(uri));
@@ -79,8 +91,8 @@ export class PdfPageCountNode extends BaseNode {
   @prop(PDF_INPUT)
   declare pdf: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
     const count = doc.numPages;
     void doc.destroy();
     return { output: count };
@@ -118,8 +130,8 @@ export class PdfExtractTextNode extends BaseNode {
   })
   declare end_page: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
@@ -176,8 +188,8 @@ export class PdfExtractMarkdownNode extends BaseNode {
   })
   declare end_page: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
@@ -447,8 +459,8 @@ export class PdfExtractTablesNode extends BaseNode {
   })
   declare y_tolerance: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
@@ -610,8 +622,8 @@ export class PdfExtractTextBlocksNode extends BaseNode {
   })
   declare end_page: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
@@ -704,8 +716,8 @@ export class PdfExtractStyledTextNode extends BaseNode {
   })
   declare end_page: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
@@ -780,8 +792,8 @@ export class PdfPageMetadataNode extends BaseNode {
   })
   declare end_page: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),

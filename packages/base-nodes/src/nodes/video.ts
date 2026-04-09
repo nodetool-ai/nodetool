@@ -23,16 +23,22 @@ function videoBytes(video: unknown): Uint8Array {
   return toBytes((video as VideoRefLike).data);
 }
 
-async function videoBytesAsync(video: unknown): Promise<Uint8Array> {
+async function videoBytesAsync(video: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!video || typeof video !== "object") return new Uint8Array();
   const ref = video as VideoRefLike;
   if (ref.data) return toBytes(ref.data);
   if (typeof ref.uri === "string" && ref.uri) {
+    if (context?.storage) {
+      const stored = await context.storage.retrieve(ref.uri);
+      if (stored !== null) return new Uint8Array(stored);
+    }
     if (ref.uri.startsWith("file://")) {
       return new Uint8Array(await fs.readFile(filePath(ref.uri)));
     }
-    const response = await fetch(ref.uri);
-    return new Uint8Array(await response.arrayBuffer());
+    if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
+      const response = await fetch(ref.uri);
+      return new Uint8Array(await response.arrayBuffer());
+    }
   }
   return new Uint8Array();
 }
@@ -695,8 +701,8 @@ export class FrameIteratorNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     if (bytes.length === 0) return;
 
     const inputFile = await withTempFile(".mp4", bytes);
@@ -799,8 +805,8 @@ export class FpsNode extends BaseNode {
   })
   declare video: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     if (bytes.length === 0) return { output: 0 };
 
     const inputFile = await withTempFile(".mp4", bytes);
@@ -915,8 +921,8 @@ export class FrameToVideoNode extends BaseNode {
 abstract class VideoTransformNode extends BaseNode {
   static readonly requiredRuntimes = ["ffmpeg"];
   declare video: any;
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     return { output: videoRef(bytes) };
   }
 }
@@ -963,9 +969,9 @@ export class ConcatVideoNode extends BaseNode {
   })
   declare video_b: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const a = await videoBytesAsync(this.video_a);
-    const b = await videoBytesAsync(this.video_b);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const a = await videoBytesAsync(this.video_a, context);
+    const b = await videoBytesAsync(this.video_b, context);
     if (a.length === 0) return { output: videoRef(b) };
     if (b.length === 0) return { output: videoRef(a) };
 
@@ -1043,8 +1049,8 @@ export class TrimVideoNode extends BaseNode {
   })
   declare end_time: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     if (bytes.length === 0) return { output: videoRef(bytes) };
 
     const start = Math.max(0, Number(this.start_time ?? 0));
@@ -1101,8 +1107,8 @@ export class ResizeVideoNode extends VideoTransformNode {
   })
   declare height: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const width = Number(this.width ?? -1);
     const height = Number(this.height ?? -1);
     const transformed =
@@ -1150,8 +1156,8 @@ export class RotateVideoNode extends VideoTransformNode {
   })
   declare angle: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const angle = Number(this.angle ?? 90);
     const radians = (angle * Math.PI) / 180;
     const transformed =
@@ -1198,8 +1204,8 @@ export class SetSpeedVideoNode extends VideoTransformNode {
   })
   declare speed_factor: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const speed = Math.max(0.1, Number(this.speed_factor ?? 1));
 
     // Build chained atempo filters for values outside 0.5-2.0 range
@@ -1313,9 +1319,9 @@ export class OverlayVideoNode extends VideoTransformNode {
   })
   declare overlay_audio_volume: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const mainVideo = await videoBytesAsync(this.main_video);
-    const overlayVideo = await videoBytesAsync(this.overlay_video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const mainVideo = await videoBytesAsync(this.main_video, context);
+    const overlayVideo = await videoBytesAsync(this.overlay_video, context);
     if (overlayVideo.length === 0) return { output: videoRef(mainVideo) };
     const x = Number(this.x ?? 0);
     const y = Number(this.y ?? 0);
@@ -1407,8 +1413,8 @@ export class ColorBalanceVideoNode extends VideoTransformNode {
   })
   declare blue_adjust: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     // Props are 0-2 range where 1.0 = neutral; colorbalance expects -1 to 1
     const rs = Number(this.red_adjust ?? 1) - 1;
     const gs = Number(this.green_adjust ?? 1) - 1;
@@ -1460,8 +1466,8 @@ export class DenoiseVideoNode extends VideoTransformNode {
   })
   declare strength: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const strength = Number(this.strength ?? 5);
     const transformed =
       (await ffmpegTransform(bytes, [
@@ -1519,8 +1525,8 @@ export class StabilizeVideoNode extends VideoTransformNode {
   })
   declare crop_black: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const smoothing = Math.max(1, Number(this.smoothing ?? 10));
     const cropBlack = Boolean(this.crop_black ?? true);
 
@@ -1583,8 +1589,8 @@ export class SharpnessVideoNode extends VideoTransformNode {
   })
   declare chroma_amount: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const lumaAmount = Number(this.luma_amount ?? 1);
     const chromaAmount = Number(this.chroma_amount ?? 0.5);
     const transformed =
@@ -1633,8 +1639,8 @@ export class BlurVideoNode extends VideoTransformNode {
   })
   declare strength: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const radius = Math.max(1, Number(this.strength ?? 2));
     const transformed =
       (await ffmpegTransform(bytes, [
@@ -1682,8 +1688,8 @@ export class SaturationVideoNode extends VideoTransformNode {
   })
   declare saturation: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const saturation = Number(this.saturation ?? 1.2);
     const transformed =
       (await ffmpegTransform(bytes, [
@@ -1772,8 +1778,8 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
   })
   declare font_color: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const chunks = Array.isArray(this.chunks) ? this.chunks : [];
     if (chunks.length === 0) return { output: videoRef(bytes) };
 
@@ -1854,8 +1860,8 @@ export class ReverseVideoNode extends BaseNode {
   })
   declare video: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     if (bytes.length === 0) return { output: videoRef(bytes) };
 
     // Try with both video and audio reverse, fall back to video-only
@@ -1985,9 +1991,9 @@ export class TransitionVideoNode extends VideoTransformNode {
   })
   declare duration: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const a = await videoBytesAsync(this.video_a);
-    const b = await videoBytesAsync(this.video_b);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const a = await videoBytesAsync(this.video_a, context);
+    const b = await videoBytesAsync(this.video_b, context);
     if (b.length === 0) return { output: videoRef(a) };
     const duration = Math.max(0.1, Number(this.duration ?? 1));
     const transitionType = String(this.transition_type ?? "fade");
@@ -2093,8 +2099,8 @@ export class AddAudioVideoNode extends BaseNode {
   })
   declare mix: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const v = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const v = await videoBytesAsync(this.video, context);
     const a = audioBytes(this.audio);
     if (v.length === 0) return { output: videoRef(v) };
     if (a.length === 0) return { output: videoRef(v) };
@@ -2219,8 +2225,8 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
   })
   declare blend: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const color = String(this.key_color ?? "0x00FF00");
     const similarity = Number(this.similarity ?? 0.1);
     const blend = Number(this.blend ?? 0.0);
@@ -2331,8 +2337,8 @@ export class ExtractFrameVideoNode extends BaseNode {
   })
   declare time: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     if (bytes.length === 0) {
       return { output: { type: "image", data: null } };
     }
@@ -2403,8 +2409,8 @@ export class GetVideoInfoNode extends BaseNode {
   })
   declare video: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     if (bytes.length === 0) {
       return {
         duration: 0,

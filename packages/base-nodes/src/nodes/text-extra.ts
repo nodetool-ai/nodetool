@@ -1660,13 +1660,16 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
       bytes = Uint8Array.from(Buffer.from(audio.data, "base64"));
     } else if (audio.data instanceof Uint8Array) {
       bytes = new Uint8Array(audio.data);
-    } else if (
-      typeof audio.uri === "string" &&
-      audio.uri.startsWith("file://")
-    ) {
-      bytes = new Uint8Array(
-        await fs.readFile(audio.uri.slice("file://".length))
-      );
+    } else if (typeof audio.uri === "string" && audio.uri) {
+      if (context?.storage) {
+        const stored = await context.storage.retrieve(audio.uri as string);
+        if (stored !== null) bytes = new Uint8Array(stored);
+      }
+      if (bytes.length === 0 && (audio.uri as string).startsWith("file://")) {
+        bytes = new Uint8Array(
+          await fs.readFile((audio.uri as string).slice("file://".length))
+        );
+      }
     }
 
     if (
