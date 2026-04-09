@@ -4,7 +4,7 @@
  * Controller hooks extracted from SketchEditor for focused responsibilities.
  */
 
-export { useSketchStoreSelectors, useResolvedToolSettings } from "./useSketchStoreSelectors";
+export { useResolvedToolSettings, useActiveToolSettings } from "./useSketchStoreSelectors";
 export { useHistoryActions } from "./useHistoryActions";
 export { useLayerActions } from "./useLayerActions";
 export { useCanvasActions } from "./useCanvasActions";

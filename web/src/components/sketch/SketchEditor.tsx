@@ -45,7 +45,6 @@ import type {
   LayerContentBounds,
   LayerTransform,
   Point,
-  Selection,
   SketchDocument,
   SketchTool
 } from "./types";
@@ -62,7 +61,6 @@ import {
   useSegmentation
 } from "./hooks";
 import { useSketchStore } from "./state";
-import { selectionHasAnyPixels } from "./selection";
 
 const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
   "nodetool-sketch-canvas-resize-handles";
@@ -181,8 +179,10 @@ const ConnectedToolbar = memo(function ConnectedToolbar() {
 });
 
 /**
- * ConnectedToolTopBar — subscribes to activeTool, toolSettings, panelsHidden,
- * and selection. Does NOT re-render on document, viewport, or color changes.
+ * ConnectedToolTopBar — subscribes to activeTool, individual tool-setting
+ * sub-objects (via narrow selectors), panelsHidden, and hasActiveSelection.
+ * Does NOT re-render on document, viewport, color changes, or unrelated
+ * tool-setting slider changes (e.g. brush size while eraser is active).
  * Action callbacks that depend on document are passed in as props; their
  * individual references are stable via `useCallback`.
  */
@@ -209,7 +209,7 @@ const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
 ) {
   const activeTool = useSketchStore((s) => s.activeTool);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
-  const selection = useSketchStore((s) => s.selection);
+  const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const toolSettings = useResolvedToolSettings();
 
   const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
@@ -231,11 +231,6 @@ const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
   );
   const convertSelectionToBorderOutline = useSketchStore(
     (s) => s.convertSelectionToBorderOutline
-  );
-
-  const hasActiveSelection = useMemo(
-    () => selectionHasAnyPixels(selection),
-    [selection]
   );
 
   if (panelsHidden) {
@@ -297,9 +292,12 @@ const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
 });
 
 /**
- * ConnectedLayersPanel — subscribes to document, selectedLayerIds,
- * isolatedLayerId, panelsHidden, and foregroundColor.
+ * ConnectedLayersPanel — subscribes to narrow document sub-fields (layers,
+ * activeLayerId, maskLayerId, canvas dimensions), selectedLayerIds,
+ * isolatedLayerId, panelsHidden, foregroundColor, and activeTool.
  * Does NOT re-render on toolSettings, viewport, or selection changes.
+ * Canvas-metadata changes (activeLayerId, maskLayerId, canvas dimensions) only
+ * trigger a rerender when they actually change, not on every layer-data mutation.
  */
 interface ConnectedLayersPanelProps {
   onClearLayer: () => void;
@@ -337,7 +335,12 @@ const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
   props: ConnectedLayersPanelProps
 ) {
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
-  const document = useSketchStore((s) => s.document);
+  // Narrow document field selectors — only rerender when the specific field changes
+  const layers = useSketchStore((s) => s.document.layers);
+  const activeLayerId = useSketchStore((s) => s.document.activeLayerId);
+  const maskLayerId = useSketchStore((s) => s.document.maskLayerId);
+  const canvasWidth = useSketchStore((s) => s.document.canvas.width);
+  const canvasHeight = useSketchStore((s) => s.document.canvas.height);
   const selectedLayerIds = useSketchStore((s) => s.selectedLayerIds);
   const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
   const foregroundColor =
@@ -394,10 +397,10 @@ const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
     <SketchLayersPanel
       foregroundColor={foregroundColor}
       onForegroundColorChange={handleFgColorChange}
-      layers={document.layers}
-      activeLayerId={document.activeLayerId}
+      layers={layers}
+      activeLayerId={activeLayerId}
       selectedLayerIds={selectedLayerIds}
-      maskLayerId={document.maskLayerId}
+      maskLayerId={maskLayerId}
       isolatedLayerId={isolatedLayerId}
       onSelectLayer={setActiveLayer}
       onToggleLayerInSelection={toggleLayerInSelection}
@@ -427,8 +430,8 @@ const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
       onCropCanvasToActiveLayerExtents={
         props.onCropCanvasToActiveLayerExtents
       }
-      canvasWidth={document.canvas.width}
-      canvasHeight={document.canvas.height}
+      canvasWidth={canvasWidth}
+      canvasHeight={canvasHeight}
       onCanvasResize={props.onCanvasResize}
       canvasResizeHandlesEnabled={props.canvasResizeHandlesEnabled}
       onCanvasResizeHandlesEnabledChange={
@@ -445,9 +448,11 @@ const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
 });
 
 /**
- * ConnectedContextMenu — subscribes to activeTool, toolSettings, selection,
- * foregroundColor, backgroundColor, canUndo, canRedo.
- * Does NOT re-render on document, viewport, or panelsHidden changes.
+ * ConnectedContextMenu — subscribes to activeTool, toolSettings,
+ * hasActiveSelection (boolean), foregroundColor, backgroundColor,
+ * canUndo, canRedo.
+ * Does NOT re-render on document, viewport, panelsHidden, or full
+ * selection mask changes.
  */
 interface ConnectedContextMenuProps {
   open: boolean;
@@ -479,7 +484,7 @@ const ConnectedContextMenu = memo(function ConnectedContextMenu(
   props: ConnectedContextMenuProps
 ) {
   const activeTool = useSketchStore((s) => s.activeTool);
-  const selection = useSketchStore((s) => s.selection);
+  const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const toolSettings = useResolvedToolSettings();
   const foregroundColor =
     useSketchStore((s) => s.foregroundColor) || "#ffffff";
@@ -510,11 +515,6 @@ const ConnectedContextMenu = memo(function ConnectedContextMenu(
   );
   const convertSelectionToBorderOutline = useSketchStore(
     (s) => s.convertSelectionToBorderOutline
-  );
-
-  const hasActiveSelection = useMemo(
-    () => selectionHasAnyPixels(selection),
-    [selection]
   );
 
   return (

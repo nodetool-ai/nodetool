@@ -19,6 +19,8 @@ import {
 export interface SelectionSlice {
   selection: Selection | null;
   lastSelection: Selection | null;
+  /** Cached boolean — `true` when `selection` contains at least one pixel ≥ threshold. */
+  hasActiveSelection: boolean;
   setSelection: (sel: Selection | null) => void;
   selectAll: () => void;
   invertSelection: () => void;
@@ -37,13 +39,15 @@ export const createSelectionSlice: StateCreator<
 > = (set, get) => ({
   selection: null,
   lastSelection: null,
+  hasActiveSelection: false,
 
   setSelection: (sel: Selection | null) => {
     const current = get().selection;
+    const active = selectionHasAnyPixels(sel);
     if (current && !sel) {
-      set({ selection: sel, lastSelection: cloneSelectionMask(current) });
+      set({ selection: sel, lastSelection: cloneSelectionMask(current), hasActiveSelection: false });
     } else {
-      set({ selection: sel });
+      set({ selection: sel, hasActiveSelection: active });
     }
   },
 
@@ -52,7 +56,7 @@ export const createSelectionSlice: StateCreator<
     const { width: cw, height: ch } = state.document.canvas;
     const m = createEmptyMask(cw, ch);
     m.data.fill(255);
-    set({ selection: m });
+    set({ selection: m, hasActiveSelection: true });
   },
 
   invertSelection: () => {
@@ -62,7 +66,7 @@ export const createSelectionSlice: StateCreator<
     if (!cur) {
       const m = createEmptyMask(cw, ch);
       m.data.fill(255);
-      set({ selection: m });
+      set({ selection: m, hasActiveSelection: true });
       return;
     }
     const ox = cur.originX ?? 0;
@@ -72,13 +76,15 @@ export const createSelectionSlice: StateCreator<
         ? cloneSelectionMask(cur)
         : selectionToDocumentAligned(cur, cw, ch);
     invertMaskInPlace(aligned);
-    set({ selection: aligned });
+    const active = selectionHasAnyPixels(aligned);
+    set({ selection: aligned, hasActiveSelection: active });
   },
 
   reselectLastSelection: () => {
     const last = get().lastSelection;
     if (last) {
-      set({ selection: cloneSelectionMask(last) });
+      const clone = cloneSelectionMask(last);
+      set({ selection: clone, hasActiveSelection: selectionHasAnyPixels(clone) });
     }
   },
 
