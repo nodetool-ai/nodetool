@@ -2,10 +2,10 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import EditorToolbar from "../EditorToolbar";
-import { createTheme, extendTheme } from "@mui/material/styles";
+import { extendTheme } from "@mui/material/styles";
 
 describe("EditorToolbar", () => {
-  const renderWithTheme = (props: any = {}) => {
+  const renderWithTheme = (props: Partial<React.ComponentProps<typeof EditorToolbar>> = {}) => {
     const mockTheme = extendTheme({
       colorSchemes: {
         light: {
