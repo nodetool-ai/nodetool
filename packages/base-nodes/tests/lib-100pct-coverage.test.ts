@@ -907,7 +907,7 @@ describe("lib-grid coverage", () => {
         })
           .png()
           .toBuffer();
-        return { type: "image", data: buf.toString("base64") };
+        return { type: "image", data: new Uint8Array(buf) };
       })
     );
 
@@ -915,9 +915,9 @@ describe("lib-grid coverage", () => {
       tiles,
       columns: 2
     }).process();
-    const output = result.output as { type: string; data: string };
+    const output = result.output as { type: string; data: Uint8Array };
     expect(output.type).toBe("image");
-    expect(typeof output.data).toBe("string");
+    expect(output.data).toBeInstanceOf(Uint8Array);
     expect(output.data.length).toBeGreaterThan(0);
   });
 
@@ -939,13 +939,13 @@ describe("lib-grid coverage", () => {
     })
       .png()
       .toBuffer();
-    const tile = { type: "image", data: buf.toString("base64") };
+    const tile = { type: "image", data: new Uint8Array(buf) };
 
     const result = await new CombineImageGridLibNode({
       tiles: [tile, tile, tile, tile],
       columns: 0
     }).process();
-    const output = result.output as { type: string; data: string };
+    const output = result.output as { type: string; data: Uint8Array };
     expect(output.type).toBe("image");
     expect(output.data.length).toBeGreaterThan(0);
   });

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool/security";
 import { getSetting } from "./settings-api.js";
 import { pack, unpack } from "msgpackr";
@@ -220,10 +221,19 @@ function createRuntimeContext(opts: {
     | "raw";
 }): RuntimeProcessingContext {
   const storagePath = getAssetStoragePath();
+  const storage = new FileStorageAdapter(storagePath);
   const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
-    storage: new FileStorageAdapter(storagePath)
+    storage,
+    tempUrlResolver: (fileUri: string) => {
+      // Convert file:///path/to/storage/temp/uuid.png → /api/storage/temp/uuid.png
+      const prefix = pathToFileURL(storagePath).toString();
+      if (fileUri.startsWith(prefix)) {
+        return `/api/storage/${fileUri.slice(prefix.length + 1)}`;
+      }
+      return fileUri;
+    }
   });
 
   const MIME_TO_EXT: Record<string, string> = {
@@ -822,7 +832,7 @@ export class UnifiedWebSocketRunner {
       workflowId,
       userId,
       workspaceDir,
-      assetOutputMode: this.mode === "text" ? "data_uri" : "raw"
+      assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
     });
 
     // Expose executor/node-type resolution on the context so that
@@ -2362,7 +2372,7 @@ export class UnifiedWebSocketRunner {
         workflowId,
         userId,
         workspaceDir,
-        assetOutputMode: this.mode === "text" ? "data_uri" : "raw"
+        assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
       });
 
       // Expose executor/node-type resolution for sub-workflow nodes
