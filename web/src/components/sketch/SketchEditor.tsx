@@ -15,6 +15,15 @@
  * SketchEditor itself subscribes only to the state needed for its own effects
  * and action-hook creation (`document`, `activeTool`, `transientMoveModifierHeld`,
  * `toolSettings` via ref). Children are wired through connected components.
+ *
+ * ## Refactor structure
+ *
+ * - **useEditorLifecycle** owns bootstrap (document seeding, canvas-ready gating),
+ *   autosave, tool-transition side effects, and resize-handle preference.
+ * - **useToolChromeActions** centralizes per-tool settings setters and selection
+ *   actions shared between ConnectedToolTopBar and ConnectedContextMenu.
+ * - **useEditorStoreActions** groups the flat action grab-bag into focused bundles
+ *   for history, layer, canvas, color, and session concerns.
  */
 
 /** @jsxImportSource @emotion/react */
@@ -25,10 +34,8 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useLayoutEffect,
   useMemo,
-  useRef,
-  useState
+  useRef
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -58,32 +65,19 @@ import {
   useCanvasActions,
   useColorActions,
   useColorIntentRouter,
-  useSegmentation
+  useSegmentation,
+  useEditorLifecycle,
+  useToolChromeActions,
+  useHistoryStoreActions,
+  useLayerStoreActions,
+  useCanvasStoreActions,
+  useColorStoreActions,
+  useSessionStoreActions
 } from "./hooks";
 import { useSketchStore } from "./state";
 import {
   useDisplayedActiveLayerTransform
 } from "./activeLayerTransform";
-
-const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
-  "nodetool-sketch-canvas-resize-handles";
-
-function readCanvasResizeHandlesEnabled(): boolean {
-  if (typeof window === "undefined") {
-    return true;
-  }
-  try {
-    const raw = window.localStorage.getItem(
-      SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY
-    );
-    if (raw === null) {
-      return true;
-    }
-    return raw === "1" || raw === "true";
-  } catch {
-    return true;
-  }
-}
 
 const styles = (theme: Theme) =>
   css({
@@ -182,26 +176,22 @@ const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
   const toolSettings = useResolvedToolSettings();
   const activeLayerTransform = useDisplayedActiveLayerTransform();
 
-  const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
-  const setPencilSettings = useSketchStore((s) => s.setPencilSettings);
-  const setEraserSettings = useSketchStore((s) => s.setEraserSettings);
-  const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
-  const setFillSettings = useSketchStore((s) => s.setFillSettings);
-  const setBlurSettings = useSketchStore((s) => s.setBlurSettings);
-  const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
-  const setCloneStampSettings = useSketchStore((s) => s.setCloneStampSettings);
-  const setSelectSettings = useSketchStore((s) => s.setSelectSettings);
-  const setSegmentSettings = useSketchStore((s) => s.setSegmentSettings);
-  const invertSelection = useSketchStore((s) => s.invertSelection);
-  const featherCurrentSelection = useSketchStore(
-    (s) => s.featherCurrentSelection
-  );
-  const smoothCurrentSelectionBorders = useSketchStore(
-    (s) => s.smoothCurrentSelectionBorders
-  );
-  const convertSelectionToBorderOutline = useSketchStore(
-    (s) => s.convertSelectionToBorderOutline
-  );
+  const {
+    setBrushSettings,
+    setPencilSettings,
+    setEraserSettings,
+    setShapeSettings,
+    setFillSettings,
+    setBlurSettings,
+    setGradientSettings,
+    setCloneStampSettings,
+    setSelectSettings,
+    setSegmentSettings,
+    invertSelection,
+    featherCurrentSelection,
+    smoothCurrentSelectionBorders,
+    convertSelectionToBorderOutline
+  } = useToolChromeActions();
 
   if (panelsHidden) {
     return null;
@@ -435,28 +425,22 @@ const ConnectedContextMenu = memo(function ConnectedContextMenu(
   const canRedo = useSketchStore((s) => s.canRedo());
 
   const setActiveTool = useSketchStore((s) => s.setActiveTool);
-  const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
-  const setPencilSettings = useSketchStore((s) => s.setPencilSettings);
-  const setEraserSettings = useSketchStore((s) => s.setEraserSettings);
-  const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
-  const setFillSettings = useSketchStore((s) => s.setFillSettings);
-  const setBlurSettings = useSketchStore((s) => s.setBlurSettings);
-  const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
-  const setCloneStampSettings = useSketchStore(
-    (s) => s.setCloneStampSettings
-  );
-  const setSelectSettings = useSketchStore((s) => s.setSelectSettings);
-  const setSegmentSettings = useSketchStore((s) => s.setSegmentSettings);
-  const invertSelection = useSketchStore((s) => s.invertSelection);
-  const featherCurrentSelection = useSketchStore(
-    (s) => s.featherCurrentSelection
-  );
-  const smoothCurrentSelectionBorders = useSketchStore(
-    (s) => s.smoothCurrentSelectionBorders
-  );
-  const convertSelectionToBorderOutline = useSketchStore(
-    (s) => s.convertSelectionToBorderOutline
-  );
+  const {
+    setBrushSettings,
+    setPencilSettings,
+    setEraserSettings,
+    setShapeSettings,
+    setFillSettings,
+    setBlurSettings,
+    setGradientSettings,
+    setCloneStampSettings,
+    setSelectSettings,
+    setSegmentSettings,
+    invertSelection,
+    featherCurrentSelection,
+    smoothCurrentSelectionBorders,
+    convertSelectionToBorderOutline
+  } = useToolChromeActions();
   const deselectSelection = useCallback(
     () => useSketchStore.getState().setSelection(null),
     []
@@ -681,33 +665,13 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
 }, ref) {
   const theme = useTheme();
   const canvasRef = useRef<SketchCanvasRef>(null);
-  // Snapshot of the document as it was when the editor first loaded
-  const initialDocumentRef = useRef(initialDocument);
-  /**
-   * The sketch store is global and survives modal unmount. SketchCanvas must not
-   * mount until `initialDocument` is applied in a layout effect; otherwise the
-   * compositor hydrates from stale store state and stays blank while the node
-   * preview (built from props) still looks correct.
-   */
-  const [canvasReady, setCanvasReady] = useState(false);
-  const [canvasResizeHandlesEnabled, setCanvasResizeHandlesEnabled] = useState(
-    readCanvasResizeHandlesEnabled
-  );
 
-  const handleCanvasResizeHandlesEnabledChange = useCallback(
-    (enabled: boolean) => {
-      setCanvasResizeHandlesEnabled(enabled);
-      try {
-        window.localStorage.setItem(
-          SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY,
-          enabled ? "1" : "0"
-        );
-      } catch {
-        // localStorage may be unavailable (private mode, etc.)
-      }
-    },
-    []
-  );
+  // ─── Focused store action bundles ───────────────────────────────────
+  const historyStore = useHistoryStoreActions();
+  const layerStore = useLayerStoreActions();
+  const canvasStore = useCanvasStoreActions();
+  const colorStore = useColorStoreActions();
+  const sessionStore = useSessionStoreActions();
 
   // ─── Narrow store selectors ──────────────────────────────────────────
   // SketchEditor subscribes only to state it needs for its own effects
@@ -717,70 +681,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   const transientMoveModifierHeld = useSketchStore(
     (s) => s.transientMoveModifierHeld
   );
-  const setDocument = useSketchStore((s) => s.setDocument);
-  const setActiveTool = useSketchStore((s) => s.setActiveTool);
-  const pushHistory = useSketchStore((s) => s.pushHistory);
-  const undo = useSketchStore((s) => s.undo);
-  const redo = useSketchStore((s) => s.redo);
-  const updateLayerData = useSketchStore((s) => s.updateLayerData);
-  const setLayerTransform = useSketchStore((s) => s.setLayerTransform);
-  const commitLayerTransform = useSketchStore((s) => s.commitLayerTransform);
-  const setLayerContentBounds = useSketchStore(
-    (s) => s.setLayerContentBounds
-  );
-  const offsetLayerTransform = useSketchStore(
-    (s) => s.offsetLayerTransform
-  );
-  const setZoom = useSketchStore((s) => s.setZoom);
-  const setPan = useSketchStore((s) => s.setPan);
-  const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
-  const offsetAllPaintLayersTransform = useSketchStore(
-    (s) => s.offsetAllPaintLayersTransform
-  );
-  const addLayer = useSketchStore((s) => s.addLayer);
-  const removeLayer = useSketchStore((s) => s.removeLayer);
-  const duplicateLayer = useSketchStore((s) => s.duplicateLayer);
-  const reorderLayers = useSketchStore((s) => s.reorderLayers);
-  const toggleLayerVisibility = useSketchStore(
-    (s) => s.toggleLayerVisibility
-  );
-  const setLayerOpacity = useSketchStore((s) => s.setLayerOpacity);
-  const setLayerBlendMode = useSketchStore((s) => s.setLayerBlendMode);
-  const renameLayer = useSketchStore((s) => s.renameLayer);
-  const setMaskLayer = useSketchStore((s) => s.setMaskLayer);
-  const toggleAlphaLock = useSketchStore((s) => s.toggleAlphaLock);
-  const toggleLayerExposedInput = useSketchStore(
-    (s) => s.toggleLayerExposedInput
-  );
-  const toggleLayerExposedOutput = useSketchStore(
-    (s) => s.toggleLayerExposedOutput
-  );
-  const mergeLayerDown = useSketchStore((s) => s.mergeLayerDown);
-  const flattenVisible = useSketchStore((s) => s.flattenVisible);
-  const addGroup = useSketchStore((s) => s.addGroup);
-  const toggleGroupCollapsed = useSketchStore(
-    (s) => s.toggleGroupCollapsed
-  );
-  const moveLayerToGroup = useSketchStore((s) => s.moveLayerToGroup);
-  const ungroupLayer = useSketchStore((s) => s.ungroupLayer);
-  const groupLayers = useSketchStore((s) => s.groupLayers);
-  const setForegroundColor = useSketchStore((s) => s.setForegroundColor);
-  const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
-  const setPencilSettings = useSketchStore((s) => s.setPencilSettings);
-  const setEraserSettings = useSketchStore((s) => s.setEraserSettings);
-  const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
-  const setFillSettings = useSketchStore((s) => s.setFillSettings);
-  const setBlurSettings = useSketchStore((s) => s.setBlurSettings);
-  const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
-  const setCloneStampSettings = useSketchStore(
-    (s) => s.setCloneStampSettings
-  );
-  const swapColors = useSketchStore((s) => s.swapColors);
-  const resetColors = useSketchStore((s) => s.resetColors);
-  const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
-  const setMirrorX = useSketchStore((s) => s.setMirrorX);
-  const setMirrorY = useSketchStore((s) => s.setMirrorY);
-  const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
 
   /** Pointer/cursor routing: spring-loaded Ctrl/Cmd+drag move without changing `activeTool`. */
   const interactionTool = useMemo<SketchTool>(
@@ -804,8 +704,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   // ─── History actions ────────────────────────────────────────────────
   const { handleUndo, handleRedo } = useHistoryActions({
     canvasRef,
-    undo,
-    redo,
+    undo: historyStore.undo,
+    redo: historyStore.redo,
     flushBeforeUndo: useCallback(() => flushBeforeUndoRef.current(), [])
   });
 
@@ -813,27 +713,27 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   const layerActions = useLayerActions({
     canvasRef,
     document,
-    pushHistory,
-    addLayer,
-    removeLayer,
-    duplicateLayer,
-    reorderLayers,
-    toggleLayerVisibility,
-    setLayerOpacity,
-    setLayerBlendMode,
-    renameLayer,
-    updateLayerData,
-    setMaskLayer,
-    toggleAlphaLock,
-    toggleLayerExposedInput,
-    toggleLayerExposedOutput,
-    mergeLayerDown,
-    flattenVisible,
-    addGroup,
-    toggleGroupCollapsed,
-    moveLayerToGroup,
-    ungroupLayer,
-    groupLayers
+    pushHistory: historyStore.pushHistory,
+    addLayer: layerStore.addLayer,
+    removeLayer: layerStore.removeLayer,
+    duplicateLayer: layerStore.duplicateLayer,
+    reorderLayers: layerStore.reorderLayers,
+    toggleLayerVisibility: layerStore.toggleLayerVisibility,
+    setLayerOpacity: layerStore.setLayerOpacity,
+    setLayerBlendMode: layerStore.setLayerBlendMode,
+    renameLayer: layerStore.renameLayer,
+    updateLayerData: layerStore.updateLayerData,
+    setMaskLayer: layerStore.setMaskLayer,
+    toggleAlphaLock: layerStore.toggleAlphaLock,
+    toggleLayerExposedInput: layerStore.toggleLayerExposedInput,
+    toggleLayerExposedOutput: layerStore.toggleLayerExposedOutput,
+    mergeLayerDown: layerStore.mergeLayerDown,
+    flattenVisible: layerStore.flattenVisible,
+    addGroup: layerStore.addGroup,
+    toggleGroupCollapsed: layerStore.toggleGroupCollapsed,
+    moveLayerToGroup: layerStore.moveLayerToGroup,
+    ungroupLayer: layerStore.ungroupLayer,
+    groupLayers: layerStore.groupLayers
   });
 
   // ─── Canvas actions ─────────────────────────────────────────────────
@@ -842,17 +742,17 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     document,
     activeTool,
     interactionTool,
-    pushHistory,
-    updateLayerData,
-    offsetLayerTransform,
-    commitLayerTransform,
-    setLayerTransform,
-    setLayerContentBounds,
-    setDocument,
-    setZoom,
-    setPan,
-    resizeCanvas,
-    offsetAllPaintLayersTransform,
+    pushHistory: historyStore.pushHistory,
+    updateLayerData: layerStore.updateLayerData,
+    offsetLayerTransform: layerStore.offsetLayerTransform,
+    commitLayerTransform: layerStore.commitLayerTransform,
+    setLayerTransform: layerStore.setLayerTransform,
+    setLayerContentBounds: layerStore.setLayerContentBounds,
+    setDocument: sessionStore.setDocument,
+    setZoom: canvasStore.setZoom,
+    setPan: canvasStore.setPan,
+    resizeCanvas: canvasStore.resizeCanvas,
+    offsetAllPaintLayersTransform: canvasStore.offsetAllPaintLayersTransform,
     onExportImage,
     onExportMask
   });
@@ -863,21 +763,38 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   // ─── Color actions ──────────────────────────────────────────────────
   const colorActions = useColorActions({
     activeTool,
-    setForegroundColor,
-    setBrushSettings,
-    setPencilSettings,
-    setEraserSettings,
-    setFillSettings,
-    setBlurSettings,
-    setCloneStampSettings,
-    setShapeSettings,
-    setGradientSettings
+    setForegroundColor: colorStore.setForegroundColor,
+    setBrushSettings: colorStore.setBrushSettings,
+    setPencilSettings: colorStore.setPencilSettings,
+    setEraserSettings: colorStore.setEraserSettings,
+    setFillSettings: colorStore.setFillSettings,
+    setBlurSettings: colorStore.setBlurSettings,
+    setCloneStampSettings: colorStore.setCloneStampSettings,
+    setShapeSettings: colorStore.setShapeSettings,
+    setGradientSettings: colorStore.setGradientSettings
   });
 
   // ─── Segmentation actions ──────────────────────────────────────────
   const segmentation = useSegmentation({
     canvasRef,
-    pushHistory
+    pushHistory: historyStore.pushHistory
+  });
+
+  // ─── Editor lifecycle (bootstrap, autosave, tool transitions) ──────
+  const {
+    canvasReady,
+    initialDocumentRef,
+    canvasResizeHandlesEnabled,
+    handleCanvasResizeHandlesEnabledChange
+  } = useEditorLifecycle({
+    initialDocument,
+    onDocumentChange,
+    setDocument: sessionStore.setDocument,
+    activeTool,
+    document,
+    canvasActions,
+    segmentation,
+    liveToolSettingsRef
   });
 
   const handleRunSegmentation = useCallback(() => {
@@ -920,76 +837,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   }, [canvasActions, layerActions]);
 
   const handleFreeTransform = useCallback(() => {
-    setActiveTool("transform" as SketchTool);
-  }, [setActiveTool]);
-
-  // ─── Cancel adjustment preview if tool changes away from "adjust" ──
-  const prevAdjustToolRef = useRef(activeTool);
-  useEffect(() => {
-    if (
-      prevAdjustToolRef.current === "adjust" &&
-      activeTool !== "adjust"
-    ) {
-      canvasActions.handleCancelAdjustments();
-    }
-    // Save transform baseline when switching to "transform"
-    if (
-      prevAdjustToolRef.current !== "transform" &&
-      activeTool === "transform"
-    ) {
-      canvasActions.saveTransformOriginal();
-    }
-    // Cancel transform when switching away from "transform"
-    if (
-      prevAdjustToolRef.current === "transform" &&
-      activeTool !== "transform"
-    ) {
-      canvasActions.handleTransformCancel();
-    }
-    // Auto-check model availability when switching to segment tool
-    if (
-      prevAdjustToolRef.current !== "segment" &&
-      activeTool === "segment"
-    ) {
-      segmentation.checkModel();
-    }
-    prevAdjustToolRef.current = activeTool;
-  }, [activeTool, canvasActions, segmentation]);
-
-  // ─── Seed global store from prop before SketchCanvas mounts ─────────
-  useLayoutEffect(() => {
-    initialDocumentRef.current = initialDocument;
-    if (initialDocument) {
-      setDocument(initialDocument);
-    }
-    setCanvasReady(true);
-  }, [initialDocument, setDocument]);
-
-  // ─── Autosave on document changes ──────────────────────────────────
-  // ## Autosave boundary contract
-  //
-  // This effect fires only on **committed** document mutations (layer CRUD,
-  // history undo/redo, canvas resize, etc.) — not on hot viewport state
-  // (zoom, pan), tool settings slider ticks, or transient preview state.
-  //
-  // - `document` comes from a narrow store selector that returns the
-  //   immutable document snapshot. A new reference is produced only when
-  //   the document slice mutates.
-  // - `toolSettings` is merged via a stable ref (`liveToolSettingsRef`)
-  //   so tool settings changes do NOT fire this effect. The ref is read
-  //   at snapshot time to capture the latest settings without dependency.
-  // - Export sync (image/mask) is handled separately by the deferred
-  //   `pendingExportSyncRef` pattern in `useExportSyncActions`, which
-  //   flushes on stroke-end, undo/redo, and nudge-session-end — never
-  //   in this effect.
-  useEffect(() => {
-    if (onDocumentChange && canvasReady) {
-      // Merge live toolSettings into the persisted document so callers receive
-      // the current tool state without toolSettings mutations triggering this
-      // effect on every slider tick.
-      onDocumentChange({ ...document, toolSettings: liveToolSettingsRef.current });
-    }
-  }, [document, onDocumentChange, canvasReady]);
+    sessionStore.setActiveTool("transform" as SketchTool);
+  }, [sessionStore]);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({
@@ -1006,19 +855,19 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     handlePaste: canvasActions.handlePaste,
     handleNudgeLayer: canvasActions.handleNudgeLayer,
     syncSketchOutputsNow: canvasActions.syncSketchOutputsNow,
-    setActiveTool,
-    setZoom,
-    setMirrorX,
-    setMirrorY,
-    setBrushSettings,
-    setPencilSettings,
-    setEraserSettings,
-    setShapeSettings,
-    setBlurSettings,
-    setCloneStampSettings,
-    swapColors,
-    resetColors,
-    togglePanelsHidden,
+    setActiveTool: sessionStore.setActiveTool,
+    setZoom: canvasStore.setZoom,
+    setMirrorX: canvasStore.setMirrorX,
+    setMirrorY: canvasStore.setMirrorY,
+    setBrushSettings: colorStore.setBrushSettings,
+    setPencilSettings: colorStore.setPencilSettings,
+    setEraserSettings: colorStore.setEraserSettings,
+    setShapeSettings: colorStore.setShapeSettings,
+    setBlurSettings: colorStore.setBlurSettings,
+    setCloneStampSettings: colorStore.setCloneStampSettings,
+    swapColors: colorStore.swapColors,
+    resetColors: colorStore.resetColors,
+    togglePanelsHidden: sessionStore.togglePanelsHidden,
     cancelActiveTool: () => canvasRef.current?.cancelActiveTool(),
     handleInvertLayerColors: canvasActions.handleInvertLayerColors,
     handleTransformCommit: canvasActions.handleTransformCommit,
@@ -1045,7 +894,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
       discardToInitial: () => {
         const doc = initialDocumentRef.current;
         if (!doc) { return; }
-        setDocument(doc);
+        sessionStore.setDocument(doc);
         if (canvasRef.current) {
           for (const layer of doc.layers) {
             canvasRef.current.setLayerData(layer.id, layer.data ?? null);
@@ -1053,7 +902,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         }
       }
     }),
-    [handleUndo, handleRedo, canvasActions, layerActions, setDocument]
+    [handleUndo, handleRedo, canvasActions, layerActions, sessionStore]
   );
 
   return (
@@ -1090,19 +939,19 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             document={document}
             activeTool={activeTool}
             interactionTool={interactionTool}
-            onZoomChange={setZoom}
-            onPanChange={setPan}
+            onZoomChange={canvasStore.setZoom}
+            onPanChange={canvasStore.setPan}
             onStrokeStart={canvasActions.handleStrokeStart}
             onStrokeEnd={canvasActions.handleStrokeEnd}
             onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
             onLayerTransformChange={canvasActions.handleCommitLayerTransform}
-            onLayerContentBoundsChange={setLayerContentBounds}
+            onLayerContentBoundsChange={layerStore.setLayerContentBounds}
             onBrushSizeChange={colorActions.handleBrushSizeChange}
             onContextMenu={canvasActions.handleContextMenu}
             onTransformContextMenu={canvasActions.handleTransformContextMenu}
             onCropComplete={canvasActions.handleCropComplete}
             onEyedropperPick={colorActions.handleEyedropperPick}
-            onAutoPickLayer={setActiveLayer}
+            onAutoPickLayer={layerStore.setActiveLayer}
             onDropImage={canvasActions.handleDropImage}
             onCanvasResizeStart={
               canvasResizeHandlesEnabled
@@ -1176,7 +1025,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         segmentation={segmentation}
         onRunSegmentation={handleRunSegmentation}
         onClearSegmentPrompts={handleClearSegmentPrompts}
-        onSwapColors={swapColors}
+        onSwapColors={colorStore.swapColors}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onClearLayer={canvasActions.handleClearLayer}
@@ -1194,11 +1043,11 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onClose={canvasActions.handleTransformContextMenuClose}
         onTransformCommit={() => {
           canvasActions.handleTransformCommit();
-          setActiveTool("move");
+          sessionStore.setActiveTool("move");
         }}
         onTransformCancel={() => {
           canvasActions.handleTransformCancel();
-          setActiveTool("move");
+          sessionStore.setActiveTool("move");
         }}
         onTransformReset={canvasActions.handleTransformReset}
         onRotate90CW={() => canvasActions.handleTransformRotate(Math.PI / 2)}
