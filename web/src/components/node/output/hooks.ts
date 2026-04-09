@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
+import { BASE_URL } from "../../../stores/BASE_URL";
 import log from "loglevel";
 
 /**
@@ -42,7 +43,12 @@ export function resolveAssetUri(uri: string | undefined | null): string {
   // Handle asset:// scheme - convert to API storage URL
   if (uri.startsWith("asset://")) {
     const assetId = uri.slice("asset://".length);
-    return `/api/storage/${assetId}`;
+    return `${BASE_URL}/api/storage/${assetId}`;
+  }
+
+  // Handle /api/storage/ relative URLs — prefix with BASE_URL for Electron
+  if (uri.startsWith("/api/storage/")) {
+    return `${BASE_URL}${uri}`;
   }
 
   return uri;
