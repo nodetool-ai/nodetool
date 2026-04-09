@@ -11,7 +11,8 @@ import type { NodeMetadata, PropertyMetadata } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { randomUUID } from "node:crypto";
 import { Workflow } from "@nodetool/models";
-import { Graph, WorkflowRunner } from "@nodetool/kernel";
+import { WorkflowRunner } from "@nodetool/kernel";
+import type { NodeUpdate } from "@nodetool/protocol";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -150,26 +151,24 @@ class WorkflowTool extends Tool {
   }
 
   async process(
-    context: ProcessingContext,
+    _context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const graph = this.workflow.getGraph();
-    const g = new Graph(
-      graph.nodes.map((n) => ({
-        id: n.id as string,
-        type: n.type as string,
-        properties: (n.data ?? n.properties ?? {}) as Record<string, unknown>
-      })),
-      graph.edges.map((e) => ({
-        source: e.source as string,
-        sourceHandle: e.sourceHandle as string,
-        target: e.target as string,
-        targetHandle: e.targetHandle as string
-      }))
-    );
+    const nodes = graph.nodes.map((n) => ({
+      id: n.id as string,
+      type: n.type as string,
+      properties: (n.data ?? n.properties ?? {}) as Record<string, unknown>
+    }));
+    const edges = graph.edges.map((e) => ({
+      source: e.source as string,
+      sourceHandle: e.sourceHandle as string,
+      target: e.target as string,
+      targetHandle: e.targetHandle as string
+    }));
 
     // Inject input values into input nodes
-    for (const node of g.nodes) {
+    for (const node of nodes) {
       if (!node.type.includes("input.")) continue;
       const name =
         (node.properties as Record<string, unknown>)?.name as string;
@@ -178,22 +177,26 @@ class WorkflowTool extends Tool {
       }
     }
 
-    const runner = new WorkflowRunner(g, this.resolveExecutor);
+    const runner = new WorkflowRunner(`workflow-tool-${Date.now()}`, {
+      resolveExecutor: this.resolveExecutor
+    });
+    const result = await runner.run(
+      { job_id: `workflow-tool-${Date.now()}`, params },
+      { nodes, edges }
+    );
     const outputs: Record<string, unknown> = {};
 
-    for await (const msg of runner.run(context)) {
-      if (
-        msg.type === "node_update" &&
-        (msg as Record<string, unknown>).status === "completed"
-      ) {
-        const nodeId = (msg as Record<string, unknown>).node_id as string;
-        const node = g.nodes.find((n) => n.id === nodeId);
+    for (const msg of result.messages) {
+      if (msg.type === "node_update") {
+        const nu = msg as NodeUpdate;
+        if (nu.status !== "completed") continue;
+        const node = nodes.find((n) => n.id === nu.node_id);
         if (node?.type.includes("output.")) {
-          const result = (msg as Record<string, unknown>).result;
+          const r = nu.result;
           const outputName =
             ((node.properties as Record<string, unknown>)?.name as string) ??
-            nodeId;
-          outputs[outputName] = result;
+            nu.node_id;
+          outputs[outputName] = r;
         }
       }
     }
