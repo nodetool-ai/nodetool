@@ -2,6 +2,8 @@
  * Image utility functions for converting various image data formats to displayable URLs.
  */
 
+import { BASE_URL } from "../stores/BASE_URL";
+
 export type ImageData = string | Uint8Array | number[];
 
 export interface ImageSource {
@@ -53,7 +55,8 @@ export const createImageUrl = (
 
   // Case 1: URI is provided
   if (uri) {
-    return { url: uri, blobUrl: null };
+    const resolved = uri.startsWith("/api/") ? `${BASE_URL}${uri}` : uri;
+    return { url: resolved, blobUrl: null };
   }
 
   if (!data) {
@@ -65,10 +68,13 @@ export const createImageUrl = (
     if (
       data.startsWith("data:") ||
       data.startsWith("blob:") ||
-      data.startsWith("http") ||
-      data.startsWith("/")
+      data.startsWith("http")
     ) {
       return { url: data, blobUrl: null };
+    }
+    if (data.startsWith("/")) {
+      const resolved = data.startsWith("/api/") ? `${BASE_URL}${data}` : data;
+      return { url: resolved, blobUrl: null };
     }
     // Assume base64 encoded
     return { url: `data:image/png;base64,${data}`, blobUrl: null };
