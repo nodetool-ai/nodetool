@@ -208,6 +208,7 @@ Deferred selection-context-menu items:
 
 ### 2.5 - FEATURES
 - [ ] add one output handle that combines all output layers in a list[image] output
+- [ ] improve Layer visibility toggle: allow toggling layer visibility by presing mouse and holding - moving over several layers. the eye icon part of the layer item should be exempt of dragging
 
 ### PHASE 3 - SAM SEGMENTATION
 
