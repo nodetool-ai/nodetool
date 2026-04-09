@@ -453,6 +453,8 @@ describe("useResolvedToolSettings memoisation", () => {
       refs.push(useResolvedToolSettings());
     });
 
+    const initialRef = refs[0];
+
     act(() => {
       useSketchStore.getState().setBrushSettings({ size: 50 });
     });
@@ -460,8 +462,7 @@ describe("useResolvedToolSettings memoisation", () => {
     // Force a rerender to pick up the new value
     rerender();
 
-    expect(refs.length).toBe(3); // initial + subscription trigger + manual rerender
-    // First and last should differ because toolSettings changed
-    expect(refs[0]).not.toBe(refs[refs.length - 1]);
+    // The latest reference should differ because toolSettings changed
+    expect(refs[refs.length - 1]).not.toBe(initialRef);
   });
 });

@@ -827,6 +827,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const setMirrorX = useSketchStore((s) => s.setMirrorX);
   const setMirrorY = useSketchStore((s) => s.setMirrorY);
+  const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
 
   /** Pointer/cursor routing: spring-loaded Ctrl/Cmd+drag move without changing `activeTool`. */
   const interactionTool = useMemo<SketchTool>(
@@ -1108,7 +1109,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onTransformContextMenu={canvasActions.handleTransformContextMenu}
             onCropComplete={canvasActions.handleCropComplete}
             onEyedropperPick={colorActions.handleEyedropperPick}
-            onAutoPickLayer={useSketchStore.getState().setActiveLayer}
+            onAutoPickLayer={setActiveLayer}
             onDropImage={canvasActions.handleDropImage}
             onCanvasResizeStart={
               canvasResizeHandlesEnabled
