@@ -87,25 +87,18 @@ The `combineMasks()` fast-path covers the most common hot path (add/subtract on 
 - [x] fix: Selection mask tool is still slow, especially with bigger canvas. especiall adding + removing from mask. if this is a fundamental problem with cpu processing, propose a short plan in SKETCH_FEATURES.md file (duplicate of line 28)
 - [x] fix: Invert with Selection mask active: inverts pixels at wrong position, outside masked area. Investigate if core features, refactor, helpers or comments can be strengtened to prevent this kind of problems (duplicate of line 30)
 
-## NEXT UP - GIZMO CORE HARDENING
+## NEXT UP - MOVE AND TRANSFORM TOOL
 
-Do these before more transform-heavy work. The goal is to reduce brittleness in `TransformTool` and nearby overlay tools by sharing only the stable gizmo primitives, not by forcing all tools into one generic interaction framework.
+Do these before more transform-heavy work. The goal is to reduce brittleness in `MoveTool` + `TransformTool` and nearby overlay tools by sharing only the stable gizmo primitives, not by forcing all tools into one generic interaction framework.
+Try to implement these tasks with only as much shared core as needed. It is fine to change core helpers and adapt focused tests when that removes real brittleness, but avoid introducing a broad new interaction framework just to satisfy one tool.
+- [ ] [impl+test] harden move preview/commit parity so the move gizmo, live preview, and committed transform use the same resolved transform throughout the gesture. no position drift while dragging and no jump on pointer-up, including layers that already have non-zero translation, scale, rotation, or off-canvas raster bounds
+- [ ] [impl+test] harden spring-loaded move (`Ctrl`/`Cmd` move while another tool stays active) so it cannot fight `TransformTool` session baseline/cancel state. after the modifier-drag finishes, the moved layer must keep the committed transform and transform cancel/reset must not restore stale pre-move state
+- [ ] [impl+test] harden `MoveTool` gizmo bounds so the gizmo reflects the active layer's visible/resolved layer bounds, not oversized fallback raster/document extents. keep one explicit contract for when move should show the off-canvas indicator vs the actual layer box, and cover `contentBounds`, expanded raster bounds, and `imageReference` startup cases with focused regressions
+- [ ] [test-first] investigate and fix transform sampling parity at the lowest stable seam (`TransformTool` preview, reconcile/commit path, or runtime compositing). rotating/scaling semi-transparent pixels should not introduce edge halos, distorted alpha, or stripe artifacts, and preview should stay visually aligned with committed output
+- [ ] [impl+test] add a minimal transform-targeting flow, not a generic multi-tool selection framework: optional auto-select toggle for `TransformTool`; clicking opaque pixels targets the topmost visible transformable layer; `Shift+click` adds/removes layers from the transform selection; the transform gizmo and live preview must use one shared multi-layer bounds source for the selected set
+- [ ] [impl+test] expand transform hit policy only if it can stay local to transform gizmo layout/hit-testing: allow rotate when dragging just outside the box/near scale handles, add an explicit pivot handle, and support snapping the pivot to stable anchor points such as corners/edge handles. do not spread this into a generic cross-tool gesture system unless repeated evidence demands it
 
-- [x] [impl] extract shared gizmo-core viewport/document-to-screen conversion and overlay-canvas drawing helpers so `TransformTool.ts`, `MoveTool.ts`, and `CropTool.ts` stop carrying ad hoc mapping and paint setup
-- [x] [impl] split `TransformTool.ts` further so drag/session orchestration, hover-hit policy, and gizmo paint/layout no longer live together in one class
-- [x] [impl+test] add shared gizmo paint primitives for box outlines, square handles, circular rotation handles, and hover/active styling so transform gizmo rendering stops being hand-written inline
-- [x] [impl+test] migrate `TransformTool.ts` to the shared gizmo core first, then adopt the same primitives in `MoveTool.ts` and `CropTool.ts` only where it simplifies code without forcing a shared gesture lifecycle
-- [x] [test] add focused regression coverage for gizmo hit testing, hover cursor behavior, and redraw alignment during pan/zoom/live transform preview
-
-### Follow-up core hardening after gizmo core
-
-Only do these after the gizmo-core slice reveals that the boundaries are stable enough to share further. Keep them narrow and evidence-driven.
-
-- [x] [impl] extract a shared tool-runtime context builder so `usePointerHandlers.ts` and `tools/types.ts` stop maintaining parallel callback/ref contracts for the same tool surface
-- [x] [impl+test] centralize preview-session lifecycle for start/update/commit/cancel/clear so `MoveTool.ts`, `TransformTool.ts`, and selection-move preview follow one cleanup and stale-preview contract
-- [x] [impl+test] centralize selection overlay -> mask -> combine -> apply flow so `SelectTool.ts` stops repeating marquee/lasso/polygon/magic-wand finalization logic
-- [x] [impl+test] add a shared modifier-intent layer for transform and selection semantics so tools consume semantic flags like `fromCenter`, `constrain`, and `combineMode` instead of interpreting raw modifier refs ad hoc
-- [x] [test] add focused regression coverage for cancel/supersede/stale-session cleanup across preview tools so aborted gestures cannot leave stale gizmos, previews, or delayed selection commits behind
+Completed transform-core groundwork for shared gizmo primitives and narrow follow-up hardening has been moved to `SKETCH_FEATURES_DONE.md` so this section stays focused on the still-open move/transform work.
 
 ## PHASE 1 - Architecture Stability Before Transform-Heavy Work
 

@@ -4,6 +4,26 @@
 - [x] **Clone Stamp tool**: fixed — now correctly renders on click and stroke (same `invalidateLayer` fix)
 - [x] **Clone Stamp cursor feedback**: crosshair indicator now appears at the clone source position (set via Alt+click) while the tool is active
 
+## Archived From Active Roadmap (2026-04-09)
+
+These transform-core groundwork tasks were moved out of `SKETCH_FEATURES.md` once the remaining move/transform section was reordered around still-open work.
+
+### Completed transform-core groundwork
+
+- [x] [impl] extract shared gizmo-core viewport/document-to-screen conversion and overlay-canvas drawing helpers so `TransformTool.ts`, `MoveTool.ts`, and `CropTool.ts` stop carrying ad hoc mapping and paint setup
+- [x] [impl] split `TransformTool.ts` further so drag/session orchestration, hover-hit policy, and gizmo paint/layout no longer live together in one class
+- [x] [impl+test] add shared gizmo paint primitives for box outlines, square handles, circular rotation handles, and hover/active styling so transform gizmo rendering stops being hand-written inline
+- [x] [impl+test] migrate `TransformTool.ts` to the shared gizmo core first, then adopt the same primitives in `MoveTool.ts` and `CropTool.ts` only where it simplifies code without forcing a shared gesture lifecycle
+- [x] [test] add focused regression coverage for gizmo hit testing, hover cursor behavior, and redraw alignment during pan/zoom/live transform preview
+
+### Completed follow-up hardening after gizmo core
+
+- [x] [impl] extract a shared tool-runtime context builder so `usePointerHandlers.ts` and `tools/types.ts` stop maintaining parallel callback/ref contracts for the same tool surface
+- [x] [impl+test] centralize preview-session lifecycle for start/update/commit/cancel/clear so `MoveTool.ts`, `TransformTool.ts`, and selection-move preview follow one cleanup and stale-preview contract
+- [x] [impl+test] centralize selection overlay -> mask -> combine -> apply flow so `SelectTool.ts` stops repeating marquee/lasso/polygon/magic-wand finalization logic
+- [x] [impl+test] add a shared modifier-intent layer for transform and selection semantics so tools consume semantic flags like `fromCenter`, `constrain`, and `combineMode` instead of interpreting raw modifier refs ad hoc
+- [x] [test] add focused regression coverage for cancel/supersede/stale-session cleanup across preview tools so aborted gestures cannot leave stale gizmos, previews, or delayed selection commits behind
+
 ## Archived From Active Roadmap (2026-04-07)
 
 These blocks were moved out of `SKETCH_FEATURES.md` so the active roadmap can stay focused on the next pending work from top to bottom.
