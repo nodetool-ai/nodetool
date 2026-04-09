@@ -309,10 +309,12 @@ export class Canvas2DRuntime implements SketchRuntime {
 
     /** Shared finalization: resize canvas, draw the decoded source, and notify. */
     const finalize = (source: ImageBitmap | HTMLImageElement) => {
+      const isImageBitmap =
+        typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap;
       // Bail out if a newer setLayerData call has already taken over.
       if (this.layerLoadGenerations.get(layerId) !== gen) {
-        if (typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap) {
-          source.close();
+        if (isImageBitmap) {
+          (source as ImageBitmap).close();
         }
         return;
       }
@@ -333,8 +335,8 @@ export class Canvas2DRuntime implements SketchRuntime {
       if (ctx) {
         ctx.drawImage(source, 0, 0);
       }
-      if (typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap) {
-        source.close();
+      if (isImageBitmap) {
+        (source as ImageBitmap).close();
       }
       onComplete?.();
     };
@@ -358,8 +360,11 @@ export class Canvas2DRuntime implements SketchRuntime {
         })
         .then((blob) => createImageBitmap(blob))
         .then((bitmap) => finalize(bitmap))
-        .catch(() => {
+        .catch((err) => {
           // Fallback to Image element on fetch/decode failure
+          if (process.env.NODE_ENV === "development") {
+            console.warn("[Canvas2DRuntime] fetch/createImageBitmap failed, falling back to Image element:", err);
+          }
           this.loadWithImageElement(imageSrc, gen, layerId, finalize);
         });
       return;
