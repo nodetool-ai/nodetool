@@ -74,11 +74,11 @@ Do these before more transform-heavy work. The goal is to reduce brittleness in 
 
 Only do these after the gizmo-core slice reveals that the boundaries are stable enough to share further. Keep them narrow and evidence-driven.
 
-- [ ] [impl] extract a shared tool-runtime context builder so `usePointerHandlers.ts` and `tools/types.ts` stop maintaining parallel callback/ref contracts for the same tool surface
-- [ ] [impl+test] centralize preview-session lifecycle for start/update/commit/cancel/clear so `MoveTool.ts`, `TransformTool.ts`, and selection-move preview follow one cleanup and stale-preview contract
-- [ ] [impl+test] centralize selection overlay -> mask -> combine -> apply flow so `SelectTool.ts` stops repeating marquee/lasso/polygon/magic-wand finalization logic
-- [ ] [impl+test] add a shared modifier-intent layer for transform and selection semantics so tools consume semantic flags like `fromCenter`, `constrain`, and `combineMode` instead of interpreting raw modifier refs ad hoc
-- [ ] [test] add focused regression coverage for cancel/supersede/stale-session cleanup across preview tools so aborted gestures cannot leave stale gizmos, previews, or delayed selection commits behind
+- [x] [impl] extract a shared tool-runtime context builder so `usePointerHandlers.ts` and `tools/types.ts` stop maintaining parallel callback/ref contracts for the same tool surface
+- [x] [impl+test] centralize preview-session lifecycle for start/update/commit/cancel/clear so `MoveTool.ts`, `TransformTool.ts`, and selection-move preview follow one cleanup and stale-preview contract
+- [x] [impl+test] centralize selection overlay -> mask -> combine -> apply flow so `SelectTool.ts` stops repeating marquee/lasso/polygon/magic-wand finalization logic
+- [x] [impl+test] add a shared modifier-intent layer for transform and selection semantics so tools consume semantic flags like `fromCenter`, `constrain`, and `combineMode` instead of interpreting raw modifier refs ad hoc
+- [x] [test] add focused regression coverage for cancel/supersede/stale-session cleanup across preview tools so aborted gestures cannot leave stale gizmos, previews, or delayed selection commits behind
 
 ## PHASE 1 - Architecture Stability Before Transform-Heavy Work
 
@@ -161,16 +161,16 @@ Modifier-key target behavior to preserve while implementing the items above:
 
 ### 2.4 - Selection context menu
 
-- [ ] add a selection-tool right-click context menu entry for `Select Inverse`
-- [ ] add a selection-tool right-click context menu entry for `Deselect`
-- [ ] add a selection-tool right-click context menu entry for `Reselect`
-- [ ] add a selection-tool right-click context menu entry for `Layer via Copy`
-- [ ] add a selection-tool right-click context menu entry for `Layer via Cut`
-- [ ] add a selection-tool right-click context menu entry for `New Layer...`
-- [ ] add a selection-tool right-click context menu entry for `Free Transform`
+- [x] add a selection-tool right-click context menu entry for `Select Inverse`
+- [x] add a selection-tool right-click context menu entry for `Deselect`
+- [x] add a selection-tool right-click context menu entry for `Reselect`
+- [x] add a selection-tool right-click context menu entry for `Layer via Copy`
+- [x] add a selection-tool right-click context menu entry for `Layer via Cut`
+- [x] add a selection-tool right-click context menu entry for `New Layer...`
+- [x] add a selection-tool right-click context menu entry for `Free Transform`
 - [ ] add a selection-tool right-click context menu entry for `Transform Selection`
-- [ ] add a selection-tool right-click context menu entry for `Fill`
-- [ ] add a selection-tool right-click context menu entry for `Stroke`
+- [x] add a selection-tool right-click context menu entry for `Fill`
+- [x] add a selection-tool right-click context menu entry for `Stroke`
 
 Deferred selection-context-menu items:
 

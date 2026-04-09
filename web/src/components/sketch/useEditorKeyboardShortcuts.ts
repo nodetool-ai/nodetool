@@ -95,6 +95,10 @@ export interface UseEditorKeyboardShortcutsParams {
   handleTransformUndo?: () => void;
   /** Redo the last undone handle adjustment while still in transform mode. */
   handleTransformRedo?: () => void;
+  /** Layer via Copy: duplicate selected region to a new layer. */
+  handleLayerViaCopy?: () => void;
+  /** Layer via Cut: move selected region to a new layer. */
+  handleLayerViaCut?: () => void;
 }
 
 export function useEditorKeyboardShortcuts(
@@ -291,6 +295,15 @@ export function useEditorKeyboardShortcuts(
         if (e.key === "v") {
           e.preventDefault();
           paramsRef.current.handlePaste(e.shiftKey);
+        }
+        // Ctrl+J → Layer via Copy, Ctrl+Shift+J → Layer via Cut
+        if (e.key.toLowerCase() === "j") {
+          e.preventDefault();
+          if (e.shiftKey) {
+            paramsRef.current.handleLayerViaCut?.();
+          } else {
+            paramsRef.current.handleLayerViaCopy?.();
+          }
         }
         // Ctrl+T / Cmd+T → enter Free Transform mode
         if (e.key.toLowerCase() === "t" && !e.shiftKey && !e.altKey) {
