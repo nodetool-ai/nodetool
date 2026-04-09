@@ -1880,6 +1880,7 @@ export class ExtractAudioVideoNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const bytes = videoBytes(this.video);
+    console.log("[ExtractAudio] input video bytes:", bytes.length);
     if (bytes.length === 0) return { output: { data: null } };
 
     const input = await withTempFile(".mp4", bytes);
@@ -1894,10 +1895,12 @@ export class ExtractAudioVideoNode extends BaseNode {
         { maxBuffer: 50 * 1024 * 1024 }
       );
       const audioBytes = new Uint8Array(await fs.readFile(outputPath));
+      const b64 = Buffer.from(audioBytes).toString("base64");
+      console.log("[ExtractAudio] output audio bytes:", audioBytes.length, "base64 length:", b64.length);
       return {
         output: {
           type: "audio",
-          data: Buffer.from(audioBytes).toString("base64"),
+          data: b64,
           uri: "",
           asset_id: null,
           metadata: null

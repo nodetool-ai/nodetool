@@ -4,6 +4,9 @@ import type {
   ExecuteResult,
   ProgressEvent
 } from "./python-bridge.js";
+import { createLogger } from "@nodetool/config";
+
+const log = createLogger("nodetool.runtime.python-node-executor");
 
 /** Minimal interface for the bridge — works with both PythonBridge and PythonStdioBridge. */
 interface PythonBridgeLike {
@@ -173,7 +176,30 @@ export class PythonNodeExecutor {
     const blobs: ExecuteInputBlobs = {};
     for (const [key, value] of Object.entries(fields)) {
       if (isMediaRef(value)) {
+        const ref = value as Record<string, unknown>;
+        log.info("Processing media ref input", {
+          nodeType: this.nodeType,
+          key,
+          type: ref.type,
+          hasUri: Boolean(ref.uri),
+          uriLength: typeof ref.uri === "string" ? ref.uri.length : 0,
+          hasData: ref.data !== null && ref.data !== undefined,
+          dataType: typeof ref.data,
+          dataLength:
+            typeof ref.data === "string"
+              ? ref.data.length
+              : ref.data instanceof Uint8Array
+                ? ref.data.length
+                : 0,
+          hasAssetId: Boolean(ref.asset_id)
+        });
         const data = await loadMediaRefBytes(value, context);
+        log.info("Media ref blob result", {
+          nodeType: this.nodeType,
+          key,
+          loaded: data !== null,
+          blobSize: data?.length ?? 0
+        });
         if (data !== null) {
           blobs[key] = data;
           delete fields[key];
