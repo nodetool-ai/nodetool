@@ -32,8 +32,9 @@ interface ImageValue extends TypedValue {
 
 /**
  * Resolves asset URIs to their actual URLs.
- * Converts asset:// URIs to /api/storage/ URLs.
- * Passes through other URI schemes unchanged.
+ * Wraps the shared `resolveAssetUri` utility, returning empty string (not null)
+ * for falsy inputs to maintain backward compatibility with existing consumers
+ * that expect a string return type.
  */
 export function resolveAssetUri(uri: string | undefined | null): string {
   return resolveAssetUriBase(uri) ?? "";

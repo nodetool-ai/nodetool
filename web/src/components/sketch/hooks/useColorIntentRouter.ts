@@ -45,6 +45,8 @@ export function useColorIntentRouter(): (color: string) => void {
       } else if (activeTool === "gradient") {
         setGradientSettings({ startColor: color });
       } else {
+        // Default fallback: route to brush settings so even non-painting tools
+        // (e.g. select, move) keep the brush color in sync with foreground.
         setBrushSettings({ color });
       }
     },
