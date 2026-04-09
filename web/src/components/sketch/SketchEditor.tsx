@@ -974,18 +974,20 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     layerActions.handleAddLayer();
   }, [layerActions]);
 
-  const handleLayerViaCopy = useCallback(() => {
-    // Copy selection to clipboard, create new layer, paste
+  const handleLayerViaCopy = useCallback(async () => {
+    // Copy sets the internal clipboard buffer synchronously.
     canvasActions.handleCopy();
     layerActions.handleAddLayer();
-    canvasActions.handlePaste(true);
+    // preferInternalClipboardFirst=true so the in-app buffer is used,
+    // avoiding async OS clipboard read for this operation.
+    await canvasActions.handlePaste(true);
   }, [canvasActions, layerActions]);
 
-  const handleLayerViaCut = useCallback(() => {
-    // Copy selection, clear from source, create new layer, paste
+  const handleLayerViaCut = useCallback(async () => {
+    // Cut = copy + clear; both are synchronous for the internal buffer.
     canvasActions.handleCut();
     layerActions.handleAddLayer();
-    canvasActions.handlePaste(true);
+    await canvasActions.handlePaste(true);
   }, [canvasActions, layerActions]);
 
   const handleFreeTransform = useCallback(() => {

@@ -99,11 +99,12 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
     session.update(ctx, { x: 50, y: 50 });
 
     // Start new session on same layer — should not trigger clearLayerTransformPreview
-    // for the same layer since it's being replaced
+    // since it's the same layer
     (ctx.clearLayerTransformPreview as jest.Mock).mockClear();
     session.start(ctx, "layer-1", { x: 0, y: 0 });
 
-    // The baseline should be fresh
+    // No clear needed for same layer
+    expect(ctx.clearLayerTransformPreview).not.toHaveBeenCalled();
     expect(session.state.baselineTransform).toEqual({ x: 0, y: 0 });
     expect(session.isActive()).toBe(true);
   });
@@ -194,5 +195,19 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
     // layerId is still set after cancel (for reference), clear removes it
     session.clear(ctx);
     expect(session.state.layerId).toBeNull();
+  });
+
+  it("start clears old layer preview even when session is inactive", () => {
+    const ctx = makeMockCtx();
+    session.start(ctx, "layer-1", { x: 0, y: 0 });
+    session.cancel(ctx);
+    // Session is now inactive but layerId is still "layer-1"
+
+    (ctx.clearLayerTransformPreview as jest.Mock).mockClear();
+    session.start(ctx, "layer-2", { x: 10, y: 10 });
+
+    // Old preview for layer-1 should be cleared even though session was inactive
+    expect(ctx.clearLayerTransformPreview).toHaveBeenCalledWith("layer-1");
+    expect(session.state.layerId).toBe("layer-2");
   });
 });

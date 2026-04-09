@@ -86,8 +86,9 @@ export function createPreviewSession(): PreviewSession {
     },
 
     start(ctx: ToolContext, layerId: string, baselineTransform: LayerTransform): void {
-      // Clear any previous session for a different layer
-      if (state.active && state.layerId && state.layerId !== layerId) {
+      // Clear any previous session for a different layer (even if inactive,
+      // in case the tool was deactivated without calling clear).
+      if (state.layerId && state.layerId !== layerId) {
         ctx.clearLayerTransformPreview?.(state.layerId);
       }
 
