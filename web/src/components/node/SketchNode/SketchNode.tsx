@@ -134,7 +134,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
     ".sketch-input-handles": {
       position: "absolute",
       left: 0,
-      top: "6px",
+      top: "1em",
       zIndex: 2,
       display: "flex",
       flexDirection: "column",
@@ -144,7 +144,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
     ".sketch-output-handles": {
       position: "absolute",
       right: 0,
-      top: "6px",
+      top: "1em",
       zIndex: 2,
       display: "flex",
       flexDirection: "column",
