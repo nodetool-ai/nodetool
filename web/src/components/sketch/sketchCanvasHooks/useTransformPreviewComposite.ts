@@ -70,6 +70,13 @@ export function useTransformPreviewComposite({
       }
       const previewByLayerId = transformPreviewByLayerIdRef?.current ?? {};
       const compositeDoc = applyTransformPreviews(doc, previewByLayerId) ?? doc;
+      if (process.env.NODE_ENV === "development" && Object.keys(previewByLayerId).length > 0) {
+        // Diagnostic: log preview application so startup vs. post-draw failures are traceable.
+        console.debug(
+          "[SketchPreview] applying transform preview",
+          { layerIds: Object.keys(previewByLayerId), target: bootstrapPhaseActive ? "bootstrap" : "display", backend }
+        );
+      }
       const activeStroke = activeStrokeRef.current;
       rt.compositeToDisplay(
         targetCanvas,

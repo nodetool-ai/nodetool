@@ -91,7 +91,11 @@ export function applyTransformPreviews(
       }
       // Use mergeTransformPreview to ensure the preview is a full transform
       // that preserves any fields the update doesn't override.
-      return { ...layer, transform: mergeTransformPreview(layer.transform, preview) };
+      // Guard: layer.transform may be undefined for layers loaded from external
+      // sources without default values applied (e.g. imageReference layers from
+      // the NodeTool backend). Fall back to identity so the merge doesn't throw.
+      const baseTransform: LayerTransform = layer.transform ?? { x: 0, y: 0 };
+      return { ...layer, transform: mergeTransformPreview(baseTransform, preview) };
     })
   };
 }
