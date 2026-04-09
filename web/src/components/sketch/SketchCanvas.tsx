@@ -36,6 +36,7 @@ import type { StrokeEndOptions } from "./tools/types";
 import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
+import type { LayerTransformPreview } from "./activeLayerTransform";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -207,6 +208,7 @@ export interface SketchCanvasProps {
     options?: StrokeEndOptions
   ) => void;
   onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
+  onLayerTransformPreviewChange?: (preview: LayerTransformPreview | null) => void;
   onLayerContentBoundsChange?: (
     layerId: string,
     contentBounds: LayerContentBounds
@@ -262,6 +264,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onStrokeStart,
       onStrokeEnd,
       onLayerTransformChange,
+      onLayerTransformPreviewChange,
       onLayerContentBoundsChange,
       onBrushSizeChange,
       onContextMenu,
@@ -295,39 +298,47 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       Record<string, LayerTransform>
     >({});
 
-    const setLayerTransformPreview = useCallback((layerId: string, transform: LayerTransform) => {
-      setTransformPreviewByLayerId((current) => {
-        const existing = current[layerId];
-        if (
-          existing &&
-          existing.x === transform.x &&
-          existing.y === transform.y &&
-          (existing.scaleX ?? 1) === (transform.scaleX ?? 1) &&
-          (existing.scaleY ?? 1) === (transform.scaleY ?? 1) &&
-          Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
-        ) {
-          return current;
-        }
-        return { ...current, [layerId]: transform };
-      });
-    }, []);
-
-    const clearLayerTransformPreview = useCallback((layerId?: string) => {
-      setTransformPreviewByLayerId((current) => {
-        if (layerId == null) {
-          if (Object.keys(current).length === 0) {
+    const setLayerTransformPreview = useCallback(
+      (layerId: string, transform: LayerTransform) => {
+        onLayerTransformPreviewChange?.({ layerId, transform });
+        setTransformPreviewByLayerId((current) => {
+          const existing = current[layerId];
+          if (
+            existing &&
+            existing.x === transform.x &&
+            existing.y === transform.y &&
+            (existing.scaleX ?? 1) === (transform.scaleX ?? 1) &&
+            (existing.scaleY ?? 1) === (transform.scaleY ?? 1) &&
+            Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
+          ) {
             return current;
           }
-          return {};
-        }
-        if (!(layerId in current)) {
-          return current;
-        }
-        const next = { ...current };
-        delete next[layerId];
-        return next;
-      });
-    }, []);
+          return { ...current, [layerId]: transform };
+        });
+      },
+      [onLayerTransformPreviewChange]
+    );
+
+    const clearLayerTransformPreview = useCallback(
+      (layerId?: string) => {
+        onLayerTransformPreviewChange?.(null);
+        setTransformPreviewByLayerId((current) => {
+          if (layerId == null) {
+            if (Object.keys(current).length === 0) {
+              return current;
+            }
+            return {};
+          }
+          if (!(layerId in current)) {
+            return current;
+          }
+          const next = { ...current };
+          delete next[layerId];
+          return next;
+        });
+      },
+      [onLayerTransformPreviewChange]
+    );
 
     // ─── Shared refs (created here to avoid circular deps between hooks) ─
     const containerRef = useRef<HTMLDivElement>(null);

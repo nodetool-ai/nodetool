@@ -61,6 +61,10 @@ import {
   useSegmentation
 } from "./hooks";
 import { useSketchStore } from "./state";
+import {
+  resolveDisplayedActiveLayerTransform,
+  type LayerTransformPreview
+} from "./activeLayerTransform";
 
 const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
   "nodetool-sketch-canvas-resize-handles";
@@ -602,6 +606,7 @@ interface SketchCanvasPaneProps {
   ) => void;
   onCanvasLeave: () => void;
   onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
+  onLayerTransformPreviewChange?: (preview: LayerTransformPreview | null) => void;
   onLayerContentBoundsChange: (
     layerId: string,
     contentBounds: LayerContentBounds
@@ -639,6 +644,7 @@ const SketchCanvasPane = memo(function SketchCanvasPane({
   onStrokeEnd,
   onCanvasLeave,
   onLayerTransformChange,
+  onLayerTransformPreviewChange,
   onLayerContentBoundsChange,
   onBrushSizeChange,
   onContextMenu,
@@ -703,6 +709,7 @@ const SketchCanvasPane = memo(function SketchCanvasPane({
       onStrokeEnd={onStrokeEnd}
       onCanvasLeave={onCanvasLeave}
       onLayerTransformChange={onLayerTransformChange}
+      onLayerTransformPreviewChange={onLayerTransformPreviewChange}
       onLayerContentBoundsChange={onLayerContentBoundsChange}
       onBrushSizeChange={onBrushSizeChange}
       onContextMenu={onContextMenu}
@@ -737,6 +744,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
    * preview (built from props) still looks correct.
    */
   const [canvasReady, setCanvasReady] = useState(false);
+  const [activeLayerTransformPreview, setActiveLayerTransformPreview] =
+    useState<LayerTransformPreview | null>(null);
   const [canvasResizeHandlesEnabled, setCanvasResizeHandlesEnabled] = useState(
     readCanvasResizeHandlesEnabled
   );
@@ -839,11 +848,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   );
 
   const activeLayerTransform = useMemo(() => {
-    const layer = document.layers.find(
-      (l) => l.id === document.activeLayerId
-    );
-    return layer?.transform ?? { x: 0, y: 0 };
-  }, [document]);
+    return resolveDisplayedActiveLayerTransform(document, activeLayerTransformPreview);
+  }, [document, activeLayerTransformPreview]);
 
   // Keep a ref to live toolSettings so the autosave effect can include them
   // without adding toolSettings as a dependency (which would cause autosave to
@@ -1119,6 +1125,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onStrokeEnd={canvasActions.handleStrokeEnd}
             onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
             onLayerTransformChange={canvasActions.handleCommitLayerTransform}
+            onLayerTransformPreviewChange={setActiveLayerTransformPreview}
             onLayerContentBoundsChange={setLayerContentBounds}
             onBrushSizeChange={colorActions.handleBrushSizeChange}
             onContextMenu={canvasActions.handleContextMenu}

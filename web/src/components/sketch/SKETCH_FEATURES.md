@@ -22,6 +22,19 @@ Task labels used below:
 - `[impl+test]` implementation plus regression coverage
 - `[test-first]` write the proving test first, then fix code if the test exposes a gap
 
+## Immediate `SketchEditor.tsx` Refactor Candidates
+
+`SketchEditor.tsx` is materially better after the subscription-splitting work, but it still concentrates bootstrap, tool-mode side effects, shell wiring, and editor-session orchestration in one place. Do these before piling more behavior into the editor shell.
+
+- [ ] [impl] extract a dedicated editor lifecycle/controller hook so initial-document seeding, canvas-ready gating, autosave snapshotting, tool-transition side effects, and imperative modal actions stop living in one component body
+- [ ] [impl+test] extract shared tool-chrome wiring so `ConnectedToolTopBar` and `ConnectedContextMenu` stop carrying parallel store subscriptions and nearly identical tool-settings/action plumbing
+- [ ] [impl] centralize active-tool color intent routing so toolbar and layers-panel foreground-color changes use one shared helper instead of duplicating the same `activeTool` -> settings update mapping
+- [ ] [impl+test] replace the large `useSketchStore(...)` action grab-bag in `SketchEditor.tsx` with focused editor action bundles or selector hooks for history, layer, canvas, color, and session-control concerns
+- [ ] [impl+test] isolate transient editor-session state (`canvasReady`, active-layer transform preview, canvas-resize-handle preference, segmentation side effects, and shell-only session refs) behind a dedicated session layer so future tools stop extending `SketchEditor.tsx` directly
+- [ ] [impl+test] move displayed transform consumption for transform UI onto a dedicated transient-preview hook/source so `ConnectedToolTopBar` and `ConnectedContextMenu` can update during drag without routing preview state through `SketchEditor.tsx`
+- [ ] [test] add a regression test proving move/transform preview updates rerender transform UI consumers only, not `SketchEditor.tsx` or unrelated shell components
+- [ ] [test] add focused regression coverage for tool-switch lifecycle rules so leaving `adjust`, `transform`, or `segment` still cancels, initializes, and preserves the correct preview/session state after the refactor
+
 ## Active Roadmap
 
 Completed Phase 1 packages, hardening work, and earlier shipped fixes have been moved to `SKETCH_FEATURES_DONE.md` so this file stays focused on the next work to execute from top to bottom.
@@ -231,8 +244,10 @@ These are still real tasks, but they should wait until the Phase 1 groundwork is
 
 ### PHASE 6.1 - HELPERS
 - [ ] Gizmos: improve gizmo code: refactor, prepare for more features for transform gizmos and brush preview gizmo
+- [ ] Gizmos: brush preview should visualise hardness through a second ring and opacity with a different stroke pattern that is still visible with lowest opacity
 - [ ] add Ruler on top and left with pixel, correct origin to canvas, correct  behaviour on zoom
 - [ ] Guides: add basic guides system that for small auto-appearing guides relative to canvas and layer extends
+- [ ] Crop: after dragging crop area, do not crop immediately. show editable transform gizmo to refine. do crop with icon button to confirm
 
 
 
