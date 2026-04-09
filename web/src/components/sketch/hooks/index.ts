@@ -13,4 +13,5 @@ export { useTransformActions } from "./useTransformActions";
 export { useExportSyncActions } from "./useExportSyncActions";
 export { useCanvasGeometryActions } from "./useCanvasGeometryActions";
 export { useColorActions } from "./useColorActions";
+export { useColorIntentRouter } from "./useColorIntentRouter";
 export { useSegmentation } from "./useSegmentation";

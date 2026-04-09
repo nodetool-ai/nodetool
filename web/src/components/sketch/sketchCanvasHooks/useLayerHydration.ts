@@ -9,6 +9,7 @@
 import { useEffect, useRef } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
+import { resolveAssetUri } from "../../../utils/resolveAssetUri";
 
 export interface UseLayerHydrationParams {
   doc: SketchDocument;
@@ -42,13 +43,7 @@ function resolveLayerHydrationSource(
   if (data) {
     return data;
   }
-  if (!imageUri) {
-    return null;
-  }
-  if (imageUri.startsWith("asset://")) {
-    return `/api/storage/${imageUri.slice("asset://".length)}`;
-  }
-  return imageUri;
+  return resolveAssetUri(imageUri);
 }
 
 export function useLayerHydration({

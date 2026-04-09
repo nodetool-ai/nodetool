@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
 import log from "loglevel";
+import { resolveAssetUri as resolveAssetUriBase } from "../../../utils/resolveAssetUri";
 
 /**
  * Base type for typed output values with a type discriminator
@@ -31,21 +32,12 @@ interface ImageValue extends TypedValue {
 
 /**
  * Resolves asset URIs to their actual URLs.
- * Converts asset:// URIs to /api/storage/ URLs.
- * Passes through other URI schemes unchanged.
+ * Wraps the shared `resolveAssetUri` utility, returning empty string (not null)
+ * for falsy inputs to maintain backward compatibility with existing consumers
+ * that expect a string return type.
  */
 export function resolveAssetUri(uri: string | undefined | null): string {
-  if (!uri) {
-    return "";
-  }
-
-  // Handle asset:// scheme - convert to API storage URL
-  if (uri.startsWith("asset://")) {
-    const assetId = uri.slice("asset://".length);
-    return `/api/storage/${assetId}`;
-  }
-
-  return uri;
+  return resolveAssetUriBase(uri) ?? "";
 }
 
 export function getMimeTypeFromUri(

@@ -48,7 +48,6 @@ import type {
   SketchDocument,
   SketchTool
 } from "./types";
-import { isShapeTool } from "./types";
 import { getToolHandler } from "./tools";
 import type { SegmentTool } from "./tools/SegmentTool";
 import type { StrokeEndOptions } from "./tools/types";
@@ -58,6 +57,7 @@ import {
   useLayerActions,
   useCanvasActions,
   useColorActions,
+  useColorIntentRouter,
   useSegmentation
 } from "./hooks";
 import { useSketchStore } from "./state";
@@ -129,43 +129,10 @@ const ConnectedToolbar = memo(function ConnectedToolbar() {
   const foregroundColor = useSketchStore((s) => s.foregroundColor) || "#ffffff";
   const backgroundColor = useSketchStore((s) => s.backgroundColor) || "#000000";
   const setActiveTool = useSketchStore((s) => s.setActiveTool);
-  const setForegroundColor = useSketchStore((s) => s.setForegroundColor);
   const setBackgroundColor = useSketchStore((s) => s.setBackgroundColor);
   const swapColors = useSketchStore((s) => s.swapColors);
   const resetColors = useSketchStore((s) => s.resetColors);
-  const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
-  const setPencilSettings = useSketchStore((s) => s.setPencilSettings);
-  const setFillSettings = useSketchStore((s) => s.setFillSettings);
-  const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
-  const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
-
-  const handleFgColorChange = useCallback(
-    (color: string) => {
-      setForegroundColor(color);
-      if (activeTool === "brush") {
-        setBrushSettings({ color });
-      } else if (activeTool === "pencil") {
-        setPencilSettings({ color });
-      } else if (activeTool === "fill") {
-        setFillSettings({ color });
-      } else if (isShapeTool(activeTool)) {
-        setShapeSettings({ strokeColor: color });
-      } else if (activeTool === "gradient") {
-        setGradientSettings({ startColor: color });
-      } else {
-        setBrushSettings({ color });
-      }
-    },
-    [
-      activeTool,
-      setForegroundColor,
-      setBrushSettings,
-      setPencilSettings,
-      setFillSettings,
-      setShapeSettings,
-      setGradientSettings
-    ]
-  );
+  const handleFgColorChange = useColorIntentRouter();
 
   return (
     <SketchToolbar
@@ -356,41 +323,7 @@ const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
     (s) => s.selectLayerRangeInPanelOrder
   );
   const toggleIsolateLayer = useSketchStore((s) => s.toggleIsolateLayer);
-  const setForegroundColor = useSketchStore((s) => s.setForegroundColor);
-  const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
-  const setPencilSettings = useSketchStore((s) => s.setPencilSettings);
-  const setFillSettings = useSketchStore((s) => s.setFillSettings);
-  const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
-  const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
-  const activeTool = useSketchStore((s) => s.activeTool);
-
-  const handleFgColorChange = useCallback(
-    (color: string) => {
-      setForegroundColor(color);
-      if (activeTool === "brush") {
-        setBrushSettings({ color });
-      } else if (activeTool === "pencil") {
-        setPencilSettings({ color });
-      } else if (activeTool === "fill") {
-        setFillSettings({ color });
-      } else if (isShapeTool(activeTool)) {
-        setShapeSettings({ strokeColor: color });
-      } else if (activeTool === "gradient") {
-        setGradientSettings({ startColor: color });
-      } else {
-        setBrushSettings({ color });
-      }
-    },
-    [
-      activeTool,
-      setForegroundColor,
-      setBrushSettings,
-      setPencilSettings,
-      setFillSettings,
-      setShapeSettings,
-      setGradientSettings
-    ]
-  );
+  const handleFgColorChange = useColorIntentRouter();
 
   if (panelsHidden) {
     return null;

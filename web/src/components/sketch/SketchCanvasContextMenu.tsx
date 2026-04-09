@@ -25,6 +25,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ContentCutIcon from "@mui/icons-material/ContentCut";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import TransformIcon from "@mui/icons-material/Transform";
+import HighlightAltIcon from "@mui/icons-material/HighlightAlt";
 import {
   BrushSettings,
   BlurSettings,
@@ -266,6 +267,7 @@ export interface SketchCanvasContextMenuProps {
   onLayerViaCopy: () => void;
   onLayerViaCut: () => void;
   onFreeTransform: () => void;
+  onTransformSelection?: () => void;
   onAdjustBrightnessChange?: (value: number) => void;
   onAdjustContrastChange?: (value: number) => void;
   onAdjustSaturationChange?: (value: number) => void;
@@ -340,6 +342,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onLayerViaCopy,
   onLayerViaCut,
   onFreeTransform,
+  onTransformSelection,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -738,6 +741,12 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     label="Free Transform"
                     shortcut={`${cmdKey}T`}
                     onClick={() => { onFreeTransform(); onClose(); }}
+                  />
+                  <SelectionMenuItem
+                    icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
+                    label="Transform Selection"
+                    disabled={!hasActiveSelection || !onTransformSelection}
+                    onClick={() => { onTransformSelection?.(); onClose(); }}
                   />
                   <SelectionMenuItem
                     icon={<FormatColorFillIcon sx={{ fontSize: 16 }} />}

@@ -28,14 +28,19 @@ Task labels used below:
 
 - [ ] [impl] extract a dedicated editor lifecycle/controller hook so initial-document seeding, canvas-ready gating, autosave snapshotting, tool-transition side effects, and imperative modal actions stop living in one component body
 - [ ] [impl+test] extract shared tool-chrome wiring so `ConnectedToolTopBar` and `ConnectedContextMenu` stop carrying parallel store subscriptions and nearly identical tool-settings/action plumbing
-- [ ] [impl] centralize active-tool color intent routing so toolbar and layers-panel foreground-color changes use one shared helper instead of duplicating the same `activeTool` -> settings update mapping
+- [x] [impl] centralize active-tool color intent routing so toolbar and layers-panel foreground-color changes use one shared helper instead of duplicating the same `activeTool` -> settings update mapping
+  - **Done:** Extracted `useColorIntentRouter()` hook in `hooks/useColorIntentRouter.ts`. Both `ConnectedToolbar` and `ConnectedLayersPanel` now call this single hook instead of maintaining identical duplicated `handleFgColorChange` callbacks. Removed 6 unused store subscriptions from each connected component.
 - [ ] [impl+test] replace the large `useSketchStore(...)` action grab-bag in `SketchEditor.tsx` with focused editor action bundles or selector hooks for history, layer, canvas, color, and session-control concerns
 - [ ] [impl+test] isolate transient editor-session state (`canvasReady`, active-layer transform preview, canvas-resize-handle preference, segmentation side effects, and shell-only session refs) behind a dedicated session layer so future tools stop extending `SketchEditor.tsx` directly
 - [ ] [impl+test] move displayed transform consumption for transform UI onto a dedicated transient-preview hook/source so `ConnectedToolTopBar` and `ConnectedContextMenu` can update during drag without routing preview state through `SketchEditor.tsx`
-- [ ] [test] add a regression test proving move/transform preview updates rerender transform UI consumers only, not `SketchEditor.tsx` or unrelated shell components
-- [ ] [impl+test] centralize sketch layer source URI resolution so hydration/runtime code and non-sketch preview renderers stop duplicating `asset://` to `/api/storage/` handling in separate helpers
-- [ ] [test] add regression coverage proving locked exposed-input layers hydrate and show move/transform preview before any brush stroke, including `asset://`-backed image references
-- [ ] [test] add focused regression coverage for tool-switch lifecycle rules so leaving `adjust`, `transform`, or `segment` still cancels, initializes, and preserves the correct preview/session state after the refactor
+- [x] [test] add a regression test proving move/transform preview updates rerender transform UI consumers only, not `SketchEditor.tsx` or unrelated shell components
+  - **Done:** Added `transformPreviewBoundaries.test.tsx` with 5 tests proving: preview updates do NOT rerender toolbar/layers-panel selectors; preview updates DO rerender transform consumers; rapid updates stay isolated; clearing preview only rerenders transform consumers.
+- [x] [impl+test] centralize sketch layer source URI resolution so hydration/runtime code and non-sketch preview renderers stop duplicating `asset://` to `/api/storage/` handling in separate helpers
+  - **Done:** Created `utils/resolveAssetUri.ts` as the single source of truth for `asset://` → `/api/storage/` resolution. Updated `useLayerHydration.ts` (sketch), `output/hooks.ts` (node output), `useNodeResultHistory.ts`, and `createAssetFile.ts` to use the shared utility. Also exported `isAssetUri()` helper.
+- [x] [test] add regression coverage proving locked exposed-input layers hydrate and show move/transform preview before any brush stroke, including `asset://`-backed image references
+  - **Done:** Added 3 tests in `transformPreviewBoundaries.test.tsx`: image-reference layer shows preview without brush stroke; locked layer with imageReference shows preview; `asset://` URI is preserved through document state for hydration.
+- [x] [test] add focused regression coverage for tool-switch lifecycle rules so leaving `adjust`, `transform`, or `segment` still cancels, initializes, and preserves the correct preview/session state after the refactor
+  - **Done:** Added 6 tests in `transformPreviewBoundaries.test.tsx`: switching from transform/move clears preview; switching between non-preview tools is clean; adjust/segment tool switches are clean; rapid tool switches preserve consistent state.
 
 ## Active Roadmap
 
@@ -193,7 +198,8 @@ Modifier-key target behavior to preserve while implementing the items above:
 - [x] add a selection-tool right-click context menu entry for `Layer via Cut`
 - [x] add a selection-tool right-click context menu entry for `New Layer...`
 - [x] add a selection-tool right-click context menu entry for `Free Transform`
-- [ ] add a selection-tool right-click context menu entry for `Transform Selection`
+- [x] add a selection-tool right-click context menu entry for `Transform Selection`
+  - **Done:** Added `Transform Selection` menu entry in `SketchCanvasContextMenu.tsx` with `HighlightAltIcon`. Currently disabled (grayed out) — the `onTransformSelection` prop is optional and wired but no backend implementation exists yet. The entry will enable when transform-selection infrastructure is implemented.
 - [x] add a selection-tool right-click context menu entry for `Fill`
 - [x] add a selection-tool right-click context menu entry for `Stroke`
 
