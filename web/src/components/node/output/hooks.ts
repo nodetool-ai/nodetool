@@ -48,7 +48,9 @@ export function resolveAssetUri(uri: string | undefined | null): string {
 
   // Handle /api/storage/ relative URLs — prefix with BASE_URL for Electron
   if (uri.startsWith("/api/storage/")) {
-    return `${BASE_URL}${uri}`;
+    const resolved = `${BASE_URL}${uri}`;
+    console.log("[resolveAssetUri] uri:", uri, "BASE_URL:", JSON.stringify(BASE_URL), "resolved:", resolved);
+    return resolved;
   }
 
   return uri;

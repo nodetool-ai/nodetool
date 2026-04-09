@@ -379,6 +379,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
       case "image":
+        console.log("[OutputRenderer] image value:", { type: value?.type, uri: value?.uri, hasData: !!value?.data, dataType: typeof value?.data, keys: value ? Object.keys(value) : [] });
         if (Array.isArray(value.data)) {
           const seen = new Map<string, number>();
           return value.data.map((v: any) => (
@@ -391,6 +392,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           let imageSource: string | Uint8Array;
           if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
             imageSource = resolveAssetUri(value.uri);
+            console.log("[OutputRenderer] using uri path, imageSource:", imageSource);
           } else if (value?.data instanceof Uint8Array) {
             imageSource = value.data;
           } else if (Array.isArray(value?.data)) {
