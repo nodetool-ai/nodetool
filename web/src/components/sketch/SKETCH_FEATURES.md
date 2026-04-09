@@ -41,12 +41,12 @@ Task labels used below:
 
 Completed Phase 1 packages, hardening work, and earlier shipped fixes have been moved to `SKETCH_FEATURES_DONE.md` so this file stays focused on the next work to execute from top to bottom.
 
-- [ ] **[BUG] Move/Transform live preview does not work at startup (before first brush stroke)**
+- [x] **[BUG] Move/Transform live preview does not work at startup (before first brush stroke)**
   - **Symptom:** When the sketch editor first opens (especially with an imageReference/exposed-input layer as the active layer), using MoveTool or TransformTool shows the gizmo correctly and the gizmo DOES update while dragging, but the visible layer pixel content does NOT follow — it stays at its original position. After the user makes any brush stroke, the preview works correctly for the rest of the session.
   - **What works:** Layer is visible at startup; gizmo appears immediately when tool is selected; gizmo handles update in real time during drag; after any brush draw the preview moves the layer correctly; preview commit on pointer-up works.
   - **What does not work:** During a drag with MoveTool or TransformTool, the rendered layer pixels do not move while dragging — only the gizmo follows the pointer. This is only broken at startup, before any brush stroke is made.
   - **Likely area:** `useTransformPreviewComposite` / `compositeToDisplay` path in the startup/bootstrap state. The gizmo updating confirms `setLayerTransformPreview` IS being called and `activeLayerTransformPreview` store IS updating, so the failure is downstream: either the rAF-composite targets the wrong canvas, the preview map is empty at rAF time, or `applyTransformPreviews` is not reaching the WebGPU/Canvas2D render path. A `console.debug("[SketchPreview] applying transform preview", ...)` log has been added to `useTransformPreviewComposite` (dev-only) to trace whether the composite fires with the correct preview map and canvas target at startup.
-  - **Key distinction needed to fix:** Reproduce and check whether (a) the `[SketchPreview]` log fires at all during startup drag (if not → `requestRedraw` is not reaching the composite), or (b) it fires with an empty `layerIds` array (if so → `transformPreviewByLayerIdRef.current` is empty when the rAF fires, meaning the rAF was scheduled before `setLayerTransformPreview` ran), or (c) it fires with correct layerIds but wrong target (bootstrap vs display mismatch).
+  - **Fix applied:** Added `invalidateLayerRef` in `SketchCanvas.tsx` so that `setLayerTransformPreview` force-invalidates the layer's GPU texture when a preview first activates (i.e. the layer was not already in the preview map). This ensures stale textures from startup timing races—where an image loaded after the initial WebGPU texture upload—are re-synced before compositing. The invalidation happens once per drag session start (not every frame), so there is no ongoing performance cost.
 - [x] fix: Selection mask tool is still slow, especially with bigger canvas. especiall adding + removing from mask. if this is a fundamental problem with cpu processing, propose a short plan in SKETCH_FEATURES.md file
   - **Done:** Added fast-path in `combineMasks()` for same-size/same-origin masks (the common case). Eliminates union buffer allocation + base copy; runs a single flat loop. Also added `TypedArray.subarray()+set()` row-bulk copies in the general path. See perf plan below.
 - [x] fix: Invert with Selection mask active: inverts pixels at wrong position, outside masked area. Investigate if core features, refactor, helpers or comments can be strengtened to prevent this kind of problems
@@ -107,7 +107,9 @@ Only do these after the gizmo-core slice reveals that the boundaries are stable 
 ### 1.1 - Helper-tool architecture blockers
 
 Do these first. Recent clone/blur bugs showed that helper paint tools still duplicate too much lifecycle and sampling logic outside the shared seams.
-- [ ] opening editor should be faster, find causes, also: maybe image loading can happen after editor is opened
+- [x] opening editor should be faster, find causes, also: maybe image loading can happen after editor is opened
+  - **Investigation:** The editor UI already shows immediately (`canvasReady` is set synchronously in `useLayoutEffect`). Image loading for layers already happens in the background (each `setLayerData` call starts an async `Image()` load concurrently). The main bottleneck for startup speed with `imageReference` layers is main-thread image decoding via `new Image()`.
+  - **Fix applied:** Optimized `Canvas2DRuntime.setLayerData` to use `fetch()` + `createImageBitmap()` for HTTP/relative URLs (the common case for `imageReference` layers). `createImageBitmap` decodes images off the main thread, reducing blocking during editor startup when multiple layers load simultaneously. Falls back to the standard `new Image()` path for data URLs and if `createImageBitmap` is unavailable.
 - [x] unify helper paint-tool stroke/session behavior so `CloneStampTool.ts` and `BlurTool.ts` stop carrying ad hoc copies of lifecycle, mapper setup, dirty-rect redraw, and alpha-lock behavior that already belong in shared paint/session boundaries
 - [x] reduce remaining duplicated alpha-lock and per-stroke orchestration logic between `PaintSession.ts`, `CloneStampTool.ts`, and `BlurTool.ts`
 - [x] harden affine dirty-region redraw behavior so transformed layers do not rely on translation-only invalidation assumptions during paint/helper-tool updates
@@ -161,7 +163,7 @@ Add the core transform lifecycle only after `2.1` is stable.
 
 Do not start these until preview parity, gizmo sizing, and lifecycle shortcuts are working cleanly.
 
-- [ ] transform tool: add ENTER and ESC shortcuts to confirm / cancel transformatin
+- [x] transform tool: add ENTER and ESC shortcuts to confirm / cancel transformation (already implemented in 2.2 above)
 - [ ] implement the base modifier-key contract for transform interactions
 - [ ] support scale behavior for free, proportional, axis-only, and from-center cases
 - [ ] support rotate behavior, including `Shift` snapping and pivot-point changes
