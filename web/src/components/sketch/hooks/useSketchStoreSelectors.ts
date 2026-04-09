@@ -89,7 +89,7 @@ function toolToSettingsKey(
   if (tool === "fill") return "fill";
   if (tool === "blur") return "blur";
   if (tool === "gradient") return "gradient";
-  if (tool === "cloneStamp") return "cloneStamp";
+  if (tool === "clone_stamp") return "cloneStamp";
   if (tool === "select") return "select";
   if (tool === "segment") return "segment";
   return null;
