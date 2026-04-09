@@ -29,7 +29,11 @@ async function loadImageBuffer(image: unknown): Promise<Buffer> {
   const byData = decodeData(ref.data);
   if (byData) return byData;
   if (typeof ref.uri === "string" && ref.uri) {
-    return fs.readFile(toPath(ref.uri));
+    if (ref.uri.startsWith("file://")) {
+      return fs.readFile(toPath(ref.uri));
+    }
+    const response = await fetch(ref.uri);
+    return Buffer.from(await response.arrayBuffer());
   }
   throw new Error("ImageRef must include data or uri.");
 }
