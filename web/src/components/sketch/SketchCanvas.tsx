@@ -154,8 +154,38 @@ export interface SketchCanvasRef {
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
+/**
+ * Props for `SketchCanvas`.
+ *
+ * ## Boundary contract
+ *
+ * `SketchCanvas` is the bridge between committed store state (passed as props
+ * from `SketchCanvasPane`) and the rendering/interaction hooks:
+ *
+ * - **Compositing** (`useCompositing`) receives the bare `doc` prop — it does
+ *   NOT see `toolSettings` changes. This prevents slider ticks from triggering
+ *   expensive compositing redraws.
+ * - **Pointer handlers** (`usePointerHandlers`) receive `docWithTools` (doc +
+ *   live toolSettings) but capture it in a ref (`toolCtxRef`). Tool handlers
+ *   always read the latest state without causing hook re-renders.
+ * - **Overlay renderer** (`useOverlayRenderer`) receives `docWithTools` so
+ *   cursor/ring previews update on tool settings changes.
+ * - **Transient preview state** (transform previews, cursor position) is local
+ *   `useState`/`useRef` inside this component — never stored in Zustand.
+ *
+ * The single Zustand subscription in this component is `toolSettings`, which
+ * is merged into `docWithTools` via `useMemo`. All other state arrives as props.
+ *
+ * Props are grouped by concern:
+ */
 export interface SketchCanvasProps {
+  // ── Committed document state ───────────────────────────────────────
   document: SketchDocument;
+  selection?: Selection | null;
+  isolatedLayerId?: string | null;
+  foregroundColor?: string;
+
+  // ── Viewport / tool state ──────────────────────────────────────────
   activeTool: SketchTool;
   /** Effective tool for pointer hit-testing and cursor (e.g. spring move while `activeTool` stays brush). */
   interactionTool: SketchTool;
@@ -165,7 +195,8 @@ export interface SketchCanvasProps {
   mirrorY: boolean;
   symmetryMode: string;
   symmetryRays: number;
-  isolatedLayerId?: string | null;
+
+  // ── Store-to-parent event callbacks ────────────────────────────────
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
@@ -191,12 +222,8 @@ export interface SketchCanvasProps {
     height: number
   ) => void;
   onEyedropperPick?: (color: string) => void;
-  selection?: Selection | null;
   onSelectionChange?: (sel: Selection | null) => void;
   onAutoPickLayer?: (layerId: string) => void;
-  foregroundColor?: string;
-  /** Merged onto the root container (e.g. for layout hooks / E2E). */
-  className?: string;
   /** Called when the pointer leaves the canvas area (e.g. refresh layer thumbnails off the hot path). */
   onCanvasLeave?: () => void;
   /** Called when an image file is dropped onto the canvas. */
@@ -209,6 +236,10 @@ export interface SketchCanvasProps {
     height: number,
     options?: { translateLayers?: Point; resizeFromCenter?: boolean }
   ) => void;
+
+  // ── Layout / testing ───────────────────────────────────────────────
+  /** Merged onto the root container (e.g. for layout hooks / E2E). */
+  className?: string;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
