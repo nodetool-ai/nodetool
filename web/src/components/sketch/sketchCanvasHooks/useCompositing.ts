@@ -61,7 +61,7 @@ export interface UseCompositingParams {
   zoom?: number;
   isolatedLayerId?: string | null;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
-  transformPreviewByLayerId?: Record<string, LayerTransform>;
+  transformPreviewByLayerIdRef?: React.MutableRefObject<Record<string, LayerTransform>>;
 }
 
 export interface UseCompositingResult {
@@ -98,7 +98,7 @@ export function useCompositing({
   zoom: externalZoom = 1,
   isolatedLayerId,
   activeStrokeRef,
-  transformPreviewByLayerId = {}
+  transformPreviewByLayerIdRef
 }: UseCompositingParams): UseCompositingResult {
   // ─── Shared refs ───────────────────────────────────────────────────
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -123,10 +123,10 @@ export function useCompositing({
     });
 
   // ─── 2. Transform-preview composite callback ──────────────────────
-  const { compositeToDisplay, transformPreviewSignature } =
+  const { compositeToDisplay } =
     useTransformPreviewComposite({
       doc,
-      transformPreviewByLayerId,
+      transformPreviewByLayerIdRef,
       runtimeRef,
       displayCanvasRef,
       bootstrapDisplayRef,
@@ -232,8 +232,7 @@ export function useCompositing({
     layerDisplayStackSignature,
     isolatedLayerId,
     bootstrapPhaseActive,
-    backend,
-    transformPreviewSignature
+    backend
   ]);
 
   // After DOM commit, `<canvas>` refs are set; compositing effects may have run

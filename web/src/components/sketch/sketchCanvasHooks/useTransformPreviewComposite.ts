@@ -18,7 +18,7 @@ import { applyTransformPreviews } from "../painting/transformPreview";
 
 export interface UseTransformPreviewCompositeParams {
   doc: SketchDocument;
-  transformPreviewByLayerId: Record<string, LayerTransform>;
+  transformPreviewByLayerIdRef?: React.MutableRefObject<Record<string, LayerTransform>>;
   runtimeRef: React.MutableRefObject<SketchRuntime | null>;
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   bootstrapDisplayRef: React.RefObject<HTMLCanvasElement | null>;
@@ -30,12 +30,11 @@ export interface UseTransformPreviewCompositeParams {
 
 export interface UseTransformPreviewCompositeResult {
   compositeToDisplay: (dirtyRect?: DirtyRect | null) => void;
-  transformPreviewSignature: string;
 }
 
 export function useTransformPreviewComposite({
   doc,
-  transformPreviewByLayerId,
+  transformPreviewByLayerIdRef,
   runtimeRef,
   displayCanvasRef,
   bootstrapDisplayRef,
@@ -44,14 +43,6 @@ export function useTransformPreviewComposite({
   activeStrokeRef,
   backend
 }: UseTransformPreviewCompositeParams): UseTransformPreviewCompositeResult {
-  const transformPreviewSignature = Object.entries(transformPreviewByLayerId)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(
-      ([layerId, transform]) =>
-        `${layerId}:${transform.x},${transform.y},${transform.scaleX ?? 1},${transform.scaleY ?? 1},${transform.rotation ?? 0}`
-    )
-    .join("|");
-
   /** Composite layers into display canvas, optionally clipped to a dirty rect. */
   const compositeToDisplay = useCallback(
     (dirtyRect?: DirtyRect | null) => {
@@ -77,7 +68,8 @@ export function useTransformPreviewComposite({
       if (!rt) {
         return;
       }
-      const compositeDoc = applyTransformPreviews(doc, transformPreviewByLayerId) ?? doc;
+      const previewByLayerId = transformPreviewByLayerIdRef?.current ?? {};
+      const compositeDoc = applyTransformPreviews(doc, previewByLayerId) ?? doc;
       const activeStroke = activeStrokeRef.current;
       rt.compositeToDisplay(
         targetCanvas,
@@ -96,9 +88,9 @@ export function useTransformPreviewComposite({
       activeStrokeRef,
       backend,
       bootstrapPhaseActive,
-      transformPreviewByLayerId
+      transformPreviewByLayerIdRef
     ]
   );
 
-  return { compositeToDisplay, transformPreviewSignature };
+  return { compositeToDisplay };
 }

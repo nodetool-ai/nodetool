@@ -33,6 +33,8 @@ Task labels used below:
 - [ ] [impl+test] isolate transient editor-session state (`canvasReady`, active-layer transform preview, canvas-resize-handle preference, segmentation side effects, and shell-only session refs) behind a dedicated session layer so future tools stop extending `SketchEditor.tsx` directly
 - [ ] [impl+test] move displayed transform consumption for transform UI onto a dedicated transient-preview hook/source so `ConnectedToolTopBar` and `ConnectedContextMenu` can update during drag without routing preview state through `SketchEditor.tsx`
 - [ ] [test] add a regression test proving move/transform preview updates rerender transform UI consumers only, not `SketchEditor.tsx` or unrelated shell components
+- [ ] [impl+test] centralize sketch layer source URI resolution so hydration/runtime code and non-sketch preview renderers stop duplicating `asset://` to `/api/storage/` handling in separate helpers
+- [ ] [test] add regression coverage proving locked exposed-input layers hydrate and show move/transform preview before any brush stroke, including `asset://`-backed image references
 - [ ] [test] add focused regression coverage for tool-switch lifecycle rules so leaving `adjust`, `transform`, or `segment` still cancels, initializes, and preserves the correct preview/session state after the refactor
 
 ## Active Roadmap
@@ -152,6 +154,7 @@ Add the core transform lifecycle only after `2.1` is stable.
 
 Do not start these until preview parity, gizmo sizing, and lifecycle shortcuts are working cleanly.
 
+- [ ] transform tool: add ENTER and ESC shortcuts to confirm / cancel transformatin
 - [ ] implement the base modifier-key contract for transform interactions
 - [ ] support scale behavior for free, proportional, axis-only, and from-center cases
 - [ ] support rotate behavior, including `Shift` snapping and pivot-point changes

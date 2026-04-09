@@ -35,6 +35,22 @@ export interface UseLayerHydrationResult {
   >;
 }
 
+function resolveLayerHydrationSource(
+  data: string | null | undefined,
+  imageUri: string | null | undefined
+): string | null {
+  if (data) {
+    return data;
+  }
+  if (!imageUri) {
+    return null;
+  }
+  if (imageUri.startsWith("asset://")) {
+    return `/api/storage/${imageUri.slice("asset://".length)}`;
+  }
+  return imageUri;
+}
+
 export function useLayerHydration({
   doc,
   runtime,
@@ -145,7 +161,7 @@ export function useLayerHydration({
       getOrCreateLayerCanvas(layer.id);
       runtime.setLayerData(
         layer.id,
-        layer.data ?? null,
+        resolveLayerHydrationSource(layer.data, layer.imageReference?.uri),
         defaultBounds,
         () => {
           if (

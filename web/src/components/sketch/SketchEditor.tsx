@@ -62,8 +62,7 @@ import {
 } from "./hooks";
 import { useSketchStore } from "./state";
 import {
-  resolveDisplayedActiveLayerTransform,
-  type LayerTransformPreview
+  useDisplayedActiveLayerTransform
 } from "./activeLayerTransform";
 
 const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
@@ -199,7 +198,6 @@ interface ConnectedToolTopBarProps {
   onAdjustSaturationChange: (v: number) => void;
   onAdjustApply: () => void;
   onAdjustCancel: () => void;
-  activeLayerTransform: LayerTransform;
   onTransformCommit: () => void;
   onTransformCancel: () => void;
   onTransformReset: () => void;
@@ -215,6 +213,7 @@ const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const toolSettings = useResolvedToolSettings();
+  const activeLayerTransform = useDisplayedActiveLayerTransform();
 
   const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
   const setPencilSettings = useSketchStore((s) => s.setPencilSettings);
@@ -275,9 +274,9 @@ const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       onAdjustSaturationChange={props.onAdjustSaturationChange}
       onAdjustApply={props.onAdjustApply}
       onAdjustCancel={props.onAdjustCancel}
-      transformScaleX={props.activeLayerTransform.scaleX ?? 1}
-      transformScaleY={props.activeLayerTransform.scaleY ?? 1}
-      transformRotation={props.activeLayerTransform.rotation ?? 0}
+      transformScaleX={activeLayerTransform.scaleX ?? 1}
+      transformScaleY={activeLayerTransform.scaleY ?? 1}
+      transformRotation={activeLayerTransform.rotation ?? 0}
       onTransformCommit={props.onTransformCommit}
       onTransformCancel={props.onTransformCancel}
       onTransformReset={props.onTransformReset}
@@ -470,7 +469,6 @@ interface ConnectedContextMenuProps {
   onAdjustSaturationChange: (v: number) => void;
   onAdjustApply: () => void;
   onAdjustCancel: () => void;
-  activeLayerTransform: LayerTransform;
   onTransformCommit: () => void;
   onTransformCancel: () => void;
   onTransformReset: () => void;
@@ -499,6 +497,7 @@ const ConnectedContextMenu = memo(function ConnectedContextMenu(
     useSketchStore((s) => s.foregroundColor) || "#ffffff";
   const backgroundColor =
     useSketchStore((s) => s.backgroundColor) || "#000000";
+  const activeLayerTransform = useDisplayedActiveLayerTransform();
   const canUndo = useSketchStore((s) => s.canUndo());
   const canRedo = useSketchStore((s) => s.canRedo());
 
@@ -581,9 +580,9 @@ const ConnectedContextMenu = memo(function ConnectedContextMenu(
       onAdjustSaturationChange={props.onAdjustSaturationChange}
       onAdjustApply={props.onAdjustApply}
       onAdjustCancel={props.onAdjustCancel}
-      transformScaleX={props.activeLayerTransform.scaleX ?? 1}
-      transformScaleY={props.activeLayerTransform.scaleY ?? 1}
-      transformRotation={props.activeLayerTransform.rotation ?? 0}
+      transformScaleX={activeLayerTransform.scaleX ?? 1}
+      transformScaleY={activeLayerTransform.scaleY ?? 1}
+      transformRotation={activeLayerTransform.rotation ?? 0}
       onTransformCommit={props.onTransformCommit}
       onTransformCancel={props.onTransformCancel}
       onTransformReset={props.onTransformReset}
@@ -623,7 +622,6 @@ interface SketchCanvasPaneProps {
   ) => void;
   onCanvasLeave: () => void;
   onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
-  onLayerTransformPreviewChange?: (preview: LayerTransformPreview | null) => void;
   onLayerContentBoundsChange: (
     layerId: string,
     contentBounds: LayerContentBounds
@@ -661,7 +659,6 @@ const SketchCanvasPane = memo(function SketchCanvasPane({
   onStrokeEnd,
   onCanvasLeave,
   onLayerTransformChange,
-  onLayerTransformPreviewChange,
   onLayerContentBoundsChange,
   onBrushSizeChange,
   onContextMenu,
@@ -726,7 +723,6 @@ const SketchCanvasPane = memo(function SketchCanvasPane({
       onStrokeEnd={onStrokeEnd}
       onCanvasLeave={onCanvasLeave}
       onLayerTransformChange={onLayerTransformChange}
-      onLayerTransformPreviewChange={onLayerTransformPreviewChange}
       onLayerContentBoundsChange={onLayerContentBoundsChange}
       onBrushSizeChange={onBrushSizeChange}
       onContextMenu={onContextMenu}
@@ -761,8 +757,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
    * preview (built from props) still looks correct.
    */
   const [canvasReady, setCanvasReady] = useState(false);
-  const [activeLayerTransformPreview, setActiveLayerTransformPreview] =
-    useState<LayerTransformPreview | null>(null);
   const [canvasResizeHandlesEnabled, setCanvasResizeHandlesEnabled] = useState(
     readCanvasResizeHandlesEnabled
   );
@@ -863,10 +857,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         : activeTool,
     [transientMoveModifierHeld, activeTool]
   );
-
-  const activeLayerTransform = useMemo(() => {
-    return resolveDisplayedActiveLayerTransform(document, activeLayerTransformPreview);
-  }, [document, activeLayerTransformPreview]);
 
   // Keep a ref to live toolSettings so the autosave effect can include them
   // without adding toolSettings as a dependency (which would cause autosave to
@@ -1149,7 +1139,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           onAdjustSaturationChange={canvasActions.setAdjSaturation}
           onAdjustApply={canvasActions.handleApplyAdjustments}
           onAdjustCancel={canvasActions.handleCancelAdjustments}
-          activeLayerTransform={activeLayerTransform}
           onTransformCommit={canvasActions.handleTransformCommit}
           onTransformCancel={canvasActions.handleTransformCancel}
           onTransformReset={canvasActions.handleTransformReset}
@@ -1174,7 +1163,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onStrokeEnd={canvasActions.handleStrokeEnd}
             onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
             onLayerTransformChange={canvasActions.handleCommitLayerTransform}
-            onLayerTransformPreviewChange={setActiveLayerTransformPreview}
             onLayerContentBoundsChange={setLayerContentBounds}
             onBrushSizeChange={colorActions.handleBrushSizeChange}
             onContextMenu={canvasActions.handleContextMenu}
@@ -1249,7 +1237,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onAdjustSaturationChange={canvasActions.setAdjSaturation}
         onAdjustApply={canvasActions.handleApplyAdjustments}
         onAdjustCancel={canvasActions.handleCancelAdjustments}
-        activeLayerTransform={activeLayerTransform}
         onTransformCommit={canvasActions.handleTransformCommit}
         onTransformCancel={canvasActions.handleTransformCancel}
         onTransformReset={canvasActions.handleTransformReset}
