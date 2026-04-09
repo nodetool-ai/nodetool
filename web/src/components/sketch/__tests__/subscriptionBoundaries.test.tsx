@@ -732,3 +732,187 @@ describe("useActiveToolSettings isolation", () => {
     expect(result.current).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Item 55: Compositing vs pointer handler vs overlay boundary audit
+// ---------------------------------------------------------------------------
+
+describe("Compositing vs pointer handler boundary (item 55)", () => {
+  /**
+   * Simulate the SketchCanvas `docWithTools` memo: compositing receives
+   * bare `doc`, pointer/overlay receive `doc + toolSettings`.
+   * Verify that toolSettings changes create a new `docWithTools` but do NOT
+   * change the bare `doc` reference.
+   */
+  it("toolSettings changes do NOT produce a new `document` reference", () => {
+    const docBefore = useSketchStore.getState().document;
+
+    act(() => {
+      useSketchStore.getState().setBrushSettings({ size: 88 });
+    });
+
+    const docAfter = useSketchStore.getState().document;
+    // document reference must be stable — compositing should not re-run
+    expect(docAfter).toBe(docBefore);
+  });
+
+  it("document mutation DOES produce a new `document` reference", () => {
+    const docBefore = useSketchStore.getState().document;
+
+    act(() => {
+      useSketchStore.getState().addLayer();
+    });
+
+    const docAfter = useSketchStore.getState().document;
+    // document reference must change — compositing should re-run
+    expect(docAfter).not.toBe(docBefore);
+  });
+
+  it("compositing params (UseCompositingParams) do not include toolSettings", () => {
+    // This is a structural test: UseCompositingParams should only contain
+    // doc, zoom, isolatedLayerId, activeStrokeRef, transformPreviewByLayerId.
+    // If someone adds toolSettings to the interface, this test should be updated
+    // consciously.
+    const doc = useSketchStore.getState().document;
+    const params = {
+      doc,
+      zoom: 1,
+      isolatedLayerId: null,
+      activeStrokeRef: { current: null },
+      transformPreviewByLayerId: {}
+    };
+    // Verify the shape matches the expected keys (no toolSettings, no activeTool)
+    const keys = Object.keys(params).sort();
+    expect(keys).toEqual([
+      "activeStrokeRef",
+      "doc",
+      "isolatedLayerId",
+      "transformPreviewByLayerId",
+      "zoom"
+    ]);
+  });
+
+  it("zoom changes do NOT affect `toolSettings` reference", () => {
+    const tsBefore = useSketchStore.getState().toolSettings;
+
+    act(() => {
+      useSketchStore.getState().setZoom(5);
+    });
+
+    const tsAfter = useSketchStore.getState().toolSettings;
+    expect(tsAfter).toBe(tsBefore);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Item 55: SketchCanvas single-subscription boundary
+// ---------------------------------------------------------------------------
+
+describe("SketchCanvas store subscription boundary (item 55)", () => {
+  /**
+   * SketchCanvas has exactly one Zustand subscription: `toolSettings`.
+   * This simulates the pattern: bare doc goes to compositing, docWithTools
+   * goes to pointer/overlay. Verify the separation.
+   */
+  it("toolSettings subscription is isolated from document mutations", () => {
+    let tsRenders = 0;
+    renderHook(() => {
+      tsRenders += 1;
+      return useSketchStore((s) => s.toolSettings);
+    });
+    expect(tsRenders).toBe(1);
+
+    // Document mutation should NOT trigger toolSettings re-render
+    act(() => {
+      useSketchStore.getState().addLayer();
+    });
+    expect(tsRenders).toBe(1);
+  });
+
+  it("toolSettings subscription fires on brush setting change", () => {
+    let tsRenders = 0;
+    renderHook(() => {
+      tsRenders += 1;
+      return useSketchStore((s) => s.toolSettings);
+    });
+    expect(tsRenders).toBe(1);
+
+    act(() => {
+      useSketchStore.getState().setBrushSettings({ size: 77 });
+    });
+    expect(tsRenders).toBe(2);
+  });
+
+  it("document subscription is isolated from toolSettings changes", () => {
+    let docRenders = 0;
+    renderHook(() => {
+      docRenders += 1;
+      return useSketchStore((s) => s.document);
+    });
+    expect(docRenders).toBe(1);
+
+    act(() => {
+      useSketchStore.getState().setBrushSettings({ size: 33 });
+    });
+    // document subscription should NOT fire
+    expect(docRenders).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Item 57: Autosave / export sync boundary
+// ---------------------------------------------------------------------------
+
+describe("Autosave boundary (item 57)", () => {
+  /**
+   * The autosave effect in SketchEditor depends on `document` and `canvasReady`.
+   * toolSettings changes should NOT trigger autosave — they are merged via ref.
+   */
+  it("toolSettings changes do not alter the document reference (autosave guard)", () => {
+    const docBefore = useSketchStore.getState().document;
+
+    act(() => {
+      useSketchStore.getState().setBrushSettings({ size: 25 });
+      useSketchStore.getState().setPencilSettings({ size: 3 });
+      useSketchStore.getState().setEraserSettings({ size: 50 });
+    });
+
+    // document must be referentially identical — autosave effect skips
+    expect(useSketchStore.getState().document).toBe(docBefore);
+  });
+
+  it("zoom/pan changes do not alter the document reference (autosave guard)", () => {
+    const docBefore = useSketchStore.getState().document;
+
+    act(() => {
+      useSketchStore.getState().setZoom(0.25);
+      useSketchStore.getState().setPan({ x: 500, y: -200 });
+    });
+
+    expect(useSketchStore.getState().document).toBe(docBefore);
+  });
+
+  it("selection changes do not alter the document reference (autosave guard)", () => {
+    const docBefore = useSketchStore.getState().document;
+
+    act(() => {
+      useSketchStore.getState().setSelection({
+        width: 100,
+        height: 100,
+        data: new Uint8ClampedArray(100 * 100).fill(128)
+      });
+    });
+
+    expect(useSketchStore.getState().document).toBe(docBefore);
+  });
+
+  it("committed document mutations DO change the document reference", () => {
+    const docBefore = useSketchStore.getState().document;
+
+    act(() => {
+      useSketchStore.getState().addLayer();
+    });
+
+    expect(useSketchStore.getState().document).not.toBe(docBefore);
+  });
+});

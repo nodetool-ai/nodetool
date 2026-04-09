@@ -990,6 +990,22 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   }, [initialDocument, setDocument]);
 
   // ─── Autosave on document changes ──────────────────────────────────
+  // ## Autosave boundary contract
+  //
+  // This effect fires only on **committed** document mutations (layer CRUD,
+  // history undo/redo, canvas resize, etc.) — not on hot viewport state
+  // (zoom, pan), tool settings slider ticks, or transient preview state.
+  //
+  // - `document` comes from a narrow store selector that returns the
+  //   immutable document snapshot. A new reference is produced only when
+  //   the document slice mutates.
+  // - `toolSettings` is merged via a stable ref (`liveToolSettingsRef`)
+  //   so tool settings changes do NOT fire this effect. The ref is read
+  //   at snapshot time to capture the latest settings without dependency.
+  // - Export sync (image/mask) is handled separately by the deferred
+  //   `pendingExportSyncRef` pattern in `useExportSyncActions`, which
+  //   flushes on stroke-end, undo/redo, and nudge-session-end — never
+  //   in this effect.
   useEffect(() => {
     if (onDocumentChange && canvasReady) {
       // Merge live toolSettings into the persisted document so callers receive
