@@ -464,13 +464,23 @@ export class RegexSplitNode extends BaseNode {
     const pattern = String(this.pattern ?? this.pattern ?? "");
     const maxsplit = Number(this.maxsplit ?? this.maxsplit ?? 0);
 
-    const split = text.split(new RegExp(pattern));
     if (maxsplit <= 0) {
-      return { output: split };
+      return { output: text.split(new RegExp(pattern)) };
     }
-    return {
-      output: [split.slice(0, maxsplit).join(""), ...split.slice(maxsplit)]
-    };
+
+    const result: string[] = [];
+    let remaining = text;
+    let count = 0;
+    const re = new RegExp(pattern);
+    let match: RegExpExecArray | null;
+    while (count < maxsplit && (match = re.exec(remaining)) !== null) {
+      result.push(remaining.slice(0, match.index));
+      remaining = remaining.slice(match.index + match[0].length);
+      re.lastIndex = 0;
+      count++;
+    }
+    result.push(remaining);
+    return { output: result };
   }
 }
 
@@ -502,7 +512,9 @@ export class RegexValidateNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const text = String(this.text ?? this.text ?? "");
     const pattern = String(this.pattern ?? this.pattern ?? "");
-    return { output: new RegExp(pattern).test(text) };
+    // Anchor at start to match Python's re.match() behavior
+    const anchored = pattern.startsWith("^") ? pattern : `^(?:${pattern})`;
+    return { output: new RegExp(anchored).test(text) };
   }
 }
 
@@ -710,14 +722,16 @@ export class SliceTextNode extends BaseNode {
     }
 
     if (step === 1) {
-      return { output: text.slice(start, stop) };
+      const effectiveStop = stop === 0 ? undefined : stop;
+      return { output: text.slice(start, effectiveStop) };
     }
 
     const chars = [...text];
     const result: string[] = [];
     const len = chars.length;
     const normStart = start < 0 ? len + start : start;
-    const normStop = stop < 0 ? len + stop : stop;
+    const effectiveStop = stop === 0 ? len : stop;
+    const normStop = effectiveStop < 0 ? len + effectiveStop : effectiveStop;
 
     if (step > 0) {
       for (
@@ -1356,13 +1370,18 @@ export class IndexOfTextNode extends BaseNode {
       needle = needle.toLowerCase();
     }
 
-    const end = Math.max(startIndex, endIndex);
+    const effectiveEnd = endIndex > 0 ? endIndex : haystack.length;
 
     if (searchFromEnd) {
-      return { output: haystack.lastIndexOf(needle, end) };
+      // lastIndexOf's second arg is the position to search backward from.
+      // We want to find the last occurrence within [startIndex, effectiveEnd).
+      // Search backward from effectiveEnd - 1, then verify >= startIndex.
+      const idx = haystack.lastIndexOf(needle, effectiveEnd - 1);
+      return { output: idx >= startIndex ? idx : -1 };
     }
 
-    const idx = haystack.slice(startIndex, end).indexOf(needle);
+    const searchRegion = haystack.slice(startIndex, effectiveEnd);
+    const idx = searchRegion.indexOf(needle);
     return { output: idx < 0 ? -1 : startIndex + idx };
   }
 }
@@ -1490,18 +1509,97 @@ export class HtmlToTextNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const html = String(this.html ?? this.html ?? "");
-    const text = html
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<\/p>/gi, "\n")
-      .replace(/<[^>]+>/g, "")
+    const baseUrl = String(this.base_url ?? this.base_url ?? "");
+    const bodyWidth = Number(this.body_width ?? this.body_width ?? 1000);
+
+    let text = html;
+    // Remove scripts and styles
+    text = text.replace(/<script[\s\S]*?<\/script>/gi, "");
+    text = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+
+    // Convert headers to markdown-style
+    text = text.replace(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi, (_m, level: string, content: string) => {
+      const hashes = "#".repeat(Number(level));
+      const clean = content.replace(/<[^>]+>/g, "").trim();
+      return `\n\n${hashes} ${clean}\n\n`;
+    });
+
+    // Convert links: <a href="url">text</a> -> text (url)
+    text = text.replace(/<a\s+[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, linkText: string) => {
+      const clean = linkText.replace(/<[^>]+>/g, "").trim();
+      let resolvedUrl = href;
+      if (baseUrl && href && !href.match(/^https?:\/\//)) {
+        const base = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+        resolvedUrl = href.startsWith("/") ? baseUrl.replace(/\/$/, "") + href : base + href;
+      }
+      if (baseUrl && resolvedUrl && resolvedUrl !== clean) {
+        return `${clean} (${resolvedUrl})`;
+      }
+      return clean;
+    });
+
+    // Convert unordered lists
+    text = text.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_m, content: string) => {
+      return "\n" + content.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_li, item: string) => {
+        return `  * ${item.replace(/<[^>]+>/g, "").trim()}\n`;
+      }) + "\n";
+    });
+
+    // Convert ordered lists
+    text = text.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_m, content: string) => {
+      let idx = 0;
+      return "\n" + content.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_li, item: string) => {
+        idx++;
+        return `  ${idx}. ${item.replace(/<[^>]+>/g, "").trim()}\n`;
+      }) + "\n";
+    });
+
+    // Convert block elements to double newlines
+    text = text.replace(/<\/(p|div|section|article)>/gi, "\n\n");
+    text = text.replace(/<(p|div|section|article)[^>]*>/gi, "");
+
+    // Convert <br> to newlines
+    text = text.replace(/<br\s*\/?>/gi, "\n");
+
+    // Remove remaining tags
+    text = text.replace(/<[^>]+>/g, "");
+
+    // Decode HTML entities
+    text = text
       .replace(/&nbsp;/g, " ")
       .replace(/&amp;/g, "&")
       .replace(/&lt;/g, "<")
       .replace(/&gt;/g, ">")
       .replace(/&#39;/g, "'")
-      .replace(/&quot;/g, '"');
+      .replace(/&apos;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&#(\d+);/g, (_m, code: string) => String.fromCharCode(Number(code)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_m, code: string) => String.fromCharCode(parseInt(code, 16)));
+
+    // Normalize whitespace: collapse multiple blank lines
+    text = text.replace(/\n{3,}/g, "\n\n");
+
+    // Apply body_width wrapping
+    if (bodyWidth > 0) {
+      const lines = text.split("\n");
+      const wrapped: string[] = [];
+      for (const line of lines) {
+        if (line.length <= bodyWidth) {
+          wrapped.push(line);
+        } else {
+          let remaining = line;
+          while (remaining.length > bodyWidth) {
+            let breakAt = remaining.lastIndexOf(" ", bodyWidth);
+            if (breakAt <= 0) breakAt = bodyWidth;
+            wrapped.push(remaining.slice(0, breakAt));
+            remaining = remaining.slice(breakAt).trimStart();
+          }
+          if (remaining) wrapped.push(remaining);
+        }
+      }
+      text = wrapped.join("\n");
+    }
+
     return { output: text.trim() };
   }
 }
@@ -1604,7 +1702,7 @@ export class EmbeddingTextNode extends BaseNode {
   static readonly description =
     "Generate vector representations of text using any supported embedding provider.\n    Automatically routes to the appropriate backend (OpenAI, Gemini, Mistral).\n    embeddings, similarity, search, clustering, classification, vectors, semantic\n\n    Uses embedding models to create dense vector representations of text.\n    These vectors capture semantic meaning, enabling:\n    - Semantic search\n    - Text clustering\n    - Document classification\n    - Recommendation systems\n    - Anomaly detection\n    - Measuring text similarity and diversity";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
   static readonly basicFields = ["model", "input"];
   static readonly exposeAsTool = true;
@@ -2122,7 +2220,7 @@ export class FormatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.FormatText";
   static readonly title = "Format Text";
   static readonly description =
-    "Replaces placeholders in a string with dynamic inputs using {{ variable }} or {variable} syntax.\n    text, template, formatting, format, variable, replace\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands";
+    "Replaces placeholders in a string with dynamic inputs using {{ variable }} or {variable} syntax.\n    Supports Jinja2-style filters: {{ var|upper }}, {{ var|lower }}, {{ var|capitalize }},\n    {{ var|title }}, {{ var|trim }}, {{ var|truncate(n) }}, {{ var|default(val) }}.\n    text, template, formatting, format, variable, replace\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands";
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -2137,6 +2235,37 @@ export class FormatTextNode extends BaseNode {
   })
   declare template: any;
 
+  private applyFilter(value: string, filter: string): string {
+    const trimmed = filter.trim();
+    if (trimmed === "upper") return value.toUpperCase();
+    if (trimmed === "lower") return value.toLowerCase();
+    if (trimmed === "capitalize") {
+      return value.length === 0 ? "" : value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    }
+    if (trimmed === "title") {
+      return toTitleCase(value);
+    }
+    if (trimmed === "trim") return value.trim();
+    const truncateMatch = trimmed.match(/^truncate\((\d+)\)$/);
+    if (truncateMatch) {
+      const n = Number(truncateMatch[1]);
+      return value.length <= n ? value : value.slice(0, n) + "...";
+    }
+    const defaultMatch = trimmed.match(/^default\((.+)\)$/);
+    if (defaultMatch) {
+      return value === "" ? defaultMatch[1].replace(/^['"]|['"]$/g, "") : value;
+    }
+    return value;
+  }
+
+  private applyFilters(value: string, filters: string[]): string {
+    let result = value;
+    for (const f of filters) {
+      result = this.applyFilter(result, f);
+    }
+    return result;
+  }
+
   async process(): Promise<Record<string, unknown>> {
     let result = String(this.template ?? "");
     const dynProps = (this as Record<string, unknown>)._dynamic_properties as
@@ -2144,10 +2273,20 @@ export class FormatTextNode extends BaseNode {
       | undefined;
     const props: Record<string, unknown> = dynProps ? { ...dynProps } : {};
 
+    // Handle {{ var|filter1|filter2 }} syntax
+    result = result.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, expr: string) => {
+      const parts = expr.split("|").map((p: string) => p.trim());
+      const varName = parts[0];
+      if (varName in props) {
+        const strValue = String(props[varName] ?? "");
+        return parts.length > 1 ? this.applyFilters(strValue, parts.slice(1)) : strValue;
+      }
+      return _match;
+    });
+
+    // Handle {variable} syntax (no filters)
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");
-      const jinja = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
-      result = result.replace(jinja, strValue);
       const single = new RegExp(`(?<!\\{)\\{${key}\\}(?!\\})`, "g");
       result = result.replace(single, strValue);
     }
@@ -2213,7 +2352,8 @@ export class ReplaceTextNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const text = String(this.text ?? "");
     const oldStr = String(this.old ?? "");
-    const newStr = String(this.new_value ?? "");
+    // Support both "new_value" and "new" field names for Python compatibility
+    const newStr = String(this.new_value ?? (this as Record<string, unknown>)["new"] ?? "");
     if (!oldStr) return { output: text };
     return { output: text.split(oldStr).join(newStr) };
   }
@@ -2231,8 +2371,21 @@ export class ToStringNode extends BaseNode {
   @prop({ type: "any", default: "", title: "Value", description: "The value to convert to string." })
   declare value: any;
 
+  @prop({
+    type: "enum",
+    default: "str",
+    title: "Mode",
+    description: "Conversion mode: 'str' for normal string, 'repr' for JSON-quoted representation.",
+    values: ["str", "repr"]
+  })
+  declare mode: any;
+
   async process(): Promise<Record<string, unknown>> {
     const v = this.value;
+    const mode = String(this.mode ?? "str");
+    if (mode === "repr") {
+      return { output: JSON.stringify(v) };
+    }
     if (v === null || v === undefined) return { output: "" };
     if (typeof v === "object") return { output: JSON.stringify(v) };
     return { output: String(v) };

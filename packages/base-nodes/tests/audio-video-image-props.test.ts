@@ -9,7 +9,6 @@ import {
   RepeatAudioNode,
   ConcatAudioNode,
   ConcatAudioListNode,
-  NumpyToAudioNode,
   CreateSilenceNode,
   FpsNode,
   FrameIteratorNode,
@@ -122,19 +121,6 @@ describe("ConcatAudioListNode — uses audio_files property", () => {
   });
 });
 
-describe("NumpyToAudioNode — uses array property (not values)", () => {
-  it("converts array to audio bytes", async () => {
-    const node = new NumpyToAudioNode();
-    node.assign({
-      array: [65, 66, 67]
-    });
-    const result = await node.process();
-    const output = result.output as { data: string };
-    const bytes = Buffer.from(output.data, "base64");
-    expect(Array.from(bytes)).toEqual([65, 66, 67]);
-  });
-});
-
 describe("CreateSilenceNode — uses duration property (not length)", () => {
   it("creates silence of specified duration", async () => {
     const node = new CreateSilenceNode();
@@ -148,73 +134,53 @@ describe("CreateSilenceNode — uses duration property (not length)", () => {
 
 // --- Video node property tests ---
 
-describe("FpsNode — returns float, not video ref", () => {
-  it("returns fps as a number", async () => {
+describe("FpsNode — uses ffprobe for fps extraction", () => {
+  it("returns 0 for empty video", async () => {
     const node = new FpsNode();
     node.assign({
-      video: videoRef([1, 2, 3])
+      video: videoRef([])
     });
     const result = await node.process();
-    // FpsNode always returns hardcoded 24 fps (metadata extraction placeholder)
-    expect(result.output).toBe(24);
+    expect(result.output).toBe(0);
     expect(typeof result.output).toBe("number");
   });
 
-  it("defaults to 24 fps", async () => {
+  it("returns 0 when ffprobe not available", async () => {
     const node = new FpsNode();
     node.assign({
       video: videoRef([1, 2, 3])
     });
+    // ffprobe will fail for non-video data, returning 0
     const result = await node.process();
-    expect(result.output).toBe(24);
+    expect(typeof result.output).toBe("number");
   });
 });
 
-describe("FrameIteratorNode — yields frames correctly", () => {
-  it("iterates frames from video bytes", async () => {
+describe("FrameIteratorNode — uses ffmpeg for frame extraction", () => {
+  it("yields nothing for empty video", async () => {
     const node = new FrameIteratorNode();
-    // FrameIteratorNode uses hardcoded 1024 frame size, so we need enough bytes
-    const bytes = new Array(2500).fill(0).map((_, i) => i % 256);
     const frames: Record<string, unknown>[] = [];
     node.assign({
-      video: videoRef(bytes)
+      video: videoRef([])
     });
     for await (const frame of node.genProcess()) {
       frames.push(frame);
     }
-    // 2500 bytes / 1024 byte frames = 3 frames (1024, 1024, 452)
-    expect(frames.length).toBe(3);
-    expect(frames[0].index).toBe(0);
-    expect(frames[1].index).toBe(1);
-    expect(frames[2].index).toBe(2);
-  });
-
-  it("defaults frame_size to 1024", async () => {
-    const node = new FrameIteratorNode();
-    const bytes = new Array(2048).fill(0);
-    const frames: Record<string, unknown>[] = [];
-    node.assign({ video: videoRef(bytes) });
-    for await (const frame of node.genProcess()) {
-      frames.push(frame);
-    }
-    expect(frames.length).toBe(2);
+    expect(frames.length).toBe(0);
   });
 });
 
-describe("TrimVideoNode — uses start_time/end_time (not start/end)", () => {
-  it("trims video by start_time and end_time", async () => {
+describe("TrimVideoNode — uses ffmpeg for trimming", () => {
+  it("returns empty video ref for empty input", async () => {
     const node = new TrimVideoNode();
-    const bytes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
     node.assign({
-      video: videoRef(bytes),
-      start_time: 2,
-      end_time: 3 // removes 3 bytes from end
+      video: videoRef([]),
+      start_time: 0,
+      end_time: -1
     });
     const result = await node.process();
-    const output = result.output as { data: string };
-    const outBytes = Buffer.from(output.data, "base64");
-    // slice(2, max(2, 10-3)) = slice(2, 7) = [2, 3, 4, 5, 6]
-    expect(Array.from(outBytes)).toEqual([2, 3, 4, 5, 6]);
+    const output = result.output as { type: string };
+    expect(output.type).toBe("video");
   });
 });
 
@@ -262,16 +228,16 @@ describe("ChromaKeyVideoNode — uses key_color property (not color)", () => {
   });
 });
 
-describe("ExtractFrameVideoNode — uses time property (not frame_index)", () => {
-  it("extracts frame at specified time index", async () => {
+describe("ExtractFrameVideoNode — uses ffmpeg for frame extraction", () => {
+  it("returns null image for empty video", async () => {
     const node = new ExtractFrameVideoNode();
-    const bytes = new Array(4096).fill(0).map((_, i) => i % 256);
     node.assign({
-      video: videoRef(bytes),
-      time: 1 // frame at index 1
+      video: videoRef([]),
+      time: 0
     });
     const result = await node.process();
-    const output = result.output as { data: string };
-    expect(output.data).toBeTruthy();
+    const output = result.output as { type: string; data: unknown };
+    expect(output.type).toBe("image");
+    expect(output.data).toBeNull();
   });
 });

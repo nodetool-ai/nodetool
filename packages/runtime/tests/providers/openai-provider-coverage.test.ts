@@ -824,7 +824,7 @@ describe("OpenAIProvider – automaticSpeechRecognition", () => {
       language: "en"
     });
 
-    expect(result).toBe("Hello world");
+    expect(result).toEqual({ text: "Hello world" });
     expect(create).toHaveBeenCalledTimes(1);
   });
 

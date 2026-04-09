@@ -68,7 +68,7 @@ describe("ApifyWebScraperNode", () => {
     node.assign({
       start_urls: []
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "k" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "k" });
     await expect(node.process()).rejects.toThrow(/start_urls is required/i);
   });
 
@@ -79,7 +79,7 @@ describe("ApifyWebScraperNode", () => {
     node.assign({
       start_urls: ["https://example.com"]
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "test-key" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "test-key" });
     const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -102,7 +102,7 @@ describe("ApifyWebScraperNode", () => {
     node.assign({
       start_urls: ["https://example.com"]
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "bad-key" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "bad-key" });
     await expect(node.process()).rejects.toThrow(/Apify API error.*403/);
   });
 
@@ -116,7 +116,7 @@ describe("ApifyWebScraperNode", () => {
     node.assign({
       start_urls: ["https://example.com"]
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "test-key" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "test-key" });
     const result = await node.process();
 
     expect(result.output).toEqual([]);
@@ -150,7 +150,7 @@ describe("ApifyGoogleSearchScraperNode", () => {
       queries: ["test"],
       results_per_page: 5 // below MIN_RESULTS_PER_PAGE (10)
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "k" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "k" });
     await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -164,7 +164,7 @@ describe("ApifyGoogleSearchScraperNode", () => {
     node.assign({
       queries: ["test query"]
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "k" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "k" });
     await node.process();
 
     const [url] = mockFetch.mock.calls[0];
@@ -195,7 +195,7 @@ describe("ApifyInstagramScraperNode", () => {
     node.assign({
       usernames: ["testuser"]
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "k" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "k" });
     await node.process();
 
     const [url] = mockFetch.mock.calls[0];
@@ -228,7 +228,7 @@ describe("ApifyAmazonScraperNode", () => {
     node.assign({
       search_queries: ["laptop"]
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "k" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "k" });
     await node.process();
 
     const [url] = mockFetch.mock.calls[0];
@@ -259,7 +259,7 @@ describe("ApifyYouTubeScraperNode", () => {
     node.assign({
       search_queries: ["cats"]
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "k" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "k" });
     await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -292,7 +292,7 @@ describe("ApifyTwitterScraperNode", () => {
       search_terms: ["AI"],
       usernames: ["elonmusk"]
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "k" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "k" });
     await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -324,7 +324,7 @@ describe("ApifyLinkedInScraperNode", () => {
     node.assign({
       profile_urls: ["https://linkedin.com/in/test"]
     });
-    node.setDynamic("_secrets", { APIFY_API_KEY: "k" });
+    node.setDynamic("_secrets", { APIFY_API_TOKEN: "k" });
     await node.process();
 
     const [url] = mockFetch.mock.calls[0];

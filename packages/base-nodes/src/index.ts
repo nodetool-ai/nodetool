@@ -236,10 +236,7 @@ export {
   FadeOutAudioNode,
   RepeatAudioNode,
   AudioMixerNode,
-  AudioToNumpyNode,
-  NumpyToAudioNode,
   TrimAudioNode,
-  ConvertToArrayNode,
   CreateSilenceNode,
   ConcatAudioNode,
   ConcatAudioListNode,
@@ -342,47 +339,6 @@ export {
   MODEL3D_NODES
 } from "./nodes/model3d.js";
 export { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
-export {
-  AddArrayNode,
-  SubtractArrayNode,
-  MultiplyArrayNode,
-  DivideArrayNode,
-  ModulusArrayNode,
-  AbsArrayNode,
-  SineArrayNode,
-  CosineArrayNode,
-  ExpArrayNode,
-  LogArrayNode,
-  SqrtArrayNode,
-  PowerArrayNode,
-  SumArrayNode,
-  MeanArrayNode,
-  MinArrayNode,
-  MaxArrayNode,
-  ArgMinArrayNode,
-  ArgMaxArrayNode,
-  SliceArrayNode,
-  IndexArrayNode,
-  TransposeArrayNode,
-  MatMulNode,
-  StackNode,
-  SplitArrayNode,
-  Reshape1DNode,
-  Reshape2DNode,
-  Reshape3DNode,
-  Reshape4DNode,
-  ListToArrayNode,
-  ArrayToListNode,
-  ScalarToArrayNode,
-  ArrayToScalarNode,
-  ConvertToImageNode as NumpyConvertToImageNode,
-  ConvertToAudioNode as NumpyConvertToAudioNode,
-  ConvertToArrayNumpyNode,
-  SaveArrayNode,
-  BinaryOperationNode,
-  PlotArrayNode,
-  LIB_NUMPY_NODES
-} from "./nodes/lib-array-math.js";
 export {
   WorkspaceDirectoryLibNode,
   OpenWorkspaceDirectoryLibNode,
@@ -658,7 +614,6 @@ import { AGENT_NODES } from "./nodes/agents.js";
 import { GENERATOR_NODES } from "./nodes/generators.js";
 import { MODEL3D_NODES } from "./nodes/model3d.js";
 import { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
-import { LIB_NUMPY_NODES } from "./nodes/lib-array-math.js";
 import { LIB_OS_NODES } from "./nodes/lib-os.js";
 import { LIB_MARKDOWN_NODES } from "./nodes/lib-markdown.js";
 import { LIB_SECRET_NODES } from "./nodes/lib-secret.js";
@@ -720,7 +675,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...GENERATOR_NODES,
   ...MODEL3D_NODES,
   ...LIB_COMPAT_PY_NODES,
-  ...LIB_NUMPY_NODES,
   ...LIB_OS_NODES,
   ...LIB_MARKDOWN_NODES,
   ...LIB_SECRET_NODES,

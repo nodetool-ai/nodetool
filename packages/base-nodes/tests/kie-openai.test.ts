@@ -293,6 +293,7 @@ describe("CreateImageNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual({
+      type: "image",
       data: "data:image/png;base64,abc123"
     });
   });
@@ -311,7 +312,7 @@ describe("CreateImageNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual({ uri: "https://example.com/img.png" });
+    expect(result.output).toEqual({ type: "image", uri: "https://example.com/img.png" });
   });
 
   it("throws when no image data", async () => {
@@ -370,6 +371,7 @@ describe("EditImageNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual({
+      type: "image",
       data: "data:image/png;base64,edited123"
     });
   });
@@ -388,7 +390,7 @@ describe("EditImageNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual({ uri: "https://x.com/edited.png" });
+    expect(result.output).toEqual({ type: "image", uri: "https://x.com/edited.png" });
   });
 
   it("supports data URI image input", async () => {
@@ -406,6 +408,7 @@ describe("EditImageNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual({
+      type: "image",
       data: "data:image/png;base64,result"
     });
   });
@@ -433,6 +436,7 @@ describe("EditImageNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.output).toEqual({
+      type: "image",
       data: "data:image/png;base64,masked"
     });
   });
@@ -765,21 +769,9 @@ describe("Node defaults coverage", () => {
 describe("RealtimeAgentNode", () => {
   it("returns realtime fallback output", async () => {
     const node = new RealtimeAgentNode();
-    mockFetch
-      .mockResolvedValueOnce(
-        jsonResponse({
-          choices: [{ message: { content: "ok" } }]
-        })
-      )
-      .mockResolvedValueOnce(jsonResponse({}));
-
-    node.assign({
-      prompt: "hi"
-    });
-
-    node.setDynamic("_secrets", secrets._secrets);
+    // process() is now a no-op stub; real logic is in run()
     const result = await node.process();
-    expect(result.text).toBe("ok");
+    expect(result).toEqual({});
   });
 
   it("has correct nodeType", () => {
@@ -796,13 +788,9 @@ describe("RealtimeAgentNode", () => {
 describe("RealtimeTranscriptionNode", () => {
   it("returns transcription fallback output", async () => {
     const node = new RealtimeTranscriptionNode();
-    mockFetch.mockResolvedValueOnce(jsonResponse({ text: "heard" }));
-
-    (node as any).chunk = { content: Buffer.from("wav").toString("base64") };
-
-    node.setDynamic("_secrets", secrets._secrets);
+    // process() is now a no-op stub; real logic is in run()
     const result = await node.process();
-    expect(result.text).toBe("heard");
+    expect(result).toEqual({});
   });
 
   it("has correct nodeType", () => {

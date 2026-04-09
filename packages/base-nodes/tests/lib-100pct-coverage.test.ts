@@ -28,9 +28,6 @@ import {
   // lib-librosa-spectral
   STFTNode,
   SegmentAudioByOnsetsNode,
-  // lib-numpy
-  SaveArrayNode,
-  ConvertToArrayNumpyNode,
   // lib-docx
   AddImageLibNode,
   // lib-excel
@@ -151,10 +148,19 @@ function buildMinimalPdf(
   return new Uint8Array(Buffer.from(body, "ascii"));
 }
 
-/** Create a node with all props (including undeclared ones like supabase_url) set directly. */
+/** Create a node with all props set directly.
+ *  For supabase nodes, credentials are now read from _secrets. */
 function makeNode<T>(Cls: new () => T, props: Record<string, unknown>): T {
   const node = new Cls();
-  Object.assign(node, props);
+  // Extract supabase credentials and inject as _secrets
+  const { supabase_url, supabase_key, ...rest } = props;
+  if (supabase_url || supabase_key) {
+    (node as any).setDynamic("_secrets", {
+      SUPABASE_URL: supabase_url as string,
+      SUPABASE_KEY: supabase_key as string
+    });
+  }
+  Object.assign(node, rest);
   return node;
 }
 
@@ -781,63 +787,6 @@ describe("lib-librosa-spectral coverage", () => {
     }).process();
     const output = result.output as { data: unknown[] };
     expect(Array.isArray(output.data)).toBe(true);
-  });
-});
-
-// ── lib-numpy: edge cases ────────────────────────────────────────
-
-describe("lib-numpy coverage", () => {
-  it("SaveArray without storage context", async () => {
-    const result = await new SaveArrayNode({
-      values: { data: [1, 2, 3], shape: [3] },
-      name: "test.json"
-    }).process();
-    const output = result.output as { data: number[]; shape: number[] };
-    expect(output.data).toEqual([1, 2, 3]);
-    expect(output.shape).toEqual([3]);
-  });
-
-  it("SaveArray with storage context", async () => {
-    const storeFn = vi.fn().mockResolvedValue("file:///test.json");
-    const result = await new SaveArrayNode({
-      values: { data: [1, 2, 3], shape: [3] },
-      name: "test.json"
-    }).process({ storage: { store: storeFn } } as any);
-    const output = result.output as {
-      data: number[];
-      shape: number[];
-      uri: string;
-    };
-    expect(output.uri).toBe("file:///test.json");
-    expect(storeFn).toHaveBeenCalled();
-  });
-
-  it("SaveArray with date template name", async () => {
-    const result = await new SaveArrayNode({
-      values: { data: [1], shape: [1] },
-      name: "%Y-%m-%d_%H-%M-%S.npy"
-    }).process();
-    const output = result.output as { data: number[]; shape: number[] };
-    expect(output.data).toEqual([1]);
-  });
-
-  it("ConvertToArray with grayscale image", async () => {
-    // Create a grayscale PNG using sharp from raw single-channel data
-    const sharp = (await import("sharp")).default;
-    const rawGray = Buffer.alloc(4, 128); // 2x2 gray pixels
-    const pngBuf = await sharp(rawGray, {
-      raw: { width: 2, height: 2, channels: 1 }
-    })
-      .png()
-      .toBuffer();
-
-    const result = await new ConvertToArrayNumpyNode({
-      image: { type: "image", data: pngBuf.toString("base64") }
-    }).process();
-    const output = result.output as { data: number[]; shape: number[] };
-    // sharp may expand to 3 or 4 channels, but the code path for shape assignment is hit
-    expect(output.shape.length).toBe(3);
-    expect(output.data.length).toBeGreaterThan(0);
   });
 });
 

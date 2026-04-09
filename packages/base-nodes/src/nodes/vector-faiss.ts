@@ -726,9 +726,9 @@ export class TrainIndexNode extends BaseNode {
   declare index: any;
 
   @prop({
-    type: "np_array",
+    type: "list",
     default: {
-      type: "np_array",
+      type: "list",
       value: null,
       dtype: "<i8",
       shape: [1]
@@ -746,6 +746,11 @@ export class TrainIndexNode extends BaseNode {
 
     const ref = unwrapIndex(indexRaw);
     const { _index: backend, dim } = ref;
+
+    // Skip training if already trained (e.g. Flat indices are always trained)
+    if (backend.isTrained()) {
+      return { output: ref };
+    }
 
     const vectorsRaw = this.vectors;
     const ndArr = asNdArray(vectorsRaw);
@@ -789,9 +794,9 @@ export class AddVectorsNode extends BaseNode {
   declare index: any;
 
   @prop({
-    type: "np_array",
+    type: "list",
     default: {
-      type: "np_array",
+      type: "list",
       value: null,
       dtype: "<i8",
       shape: [1]
@@ -859,9 +864,9 @@ export class AddWithIdsNode extends BaseNode {
   declare index: any;
 
   @prop({
-    type: "np_array",
+    type: "list",
     default: {
-      type: "np_array",
+      type: "list",
       value: null,
       dtype: "<i8",
       shape: [1]
@@ -872,9 +877,9 @@ export class AddWithIdsNode extends BaseNode {
   declare vectors: any;
 
   @prop({
-    type: "np_array",
+    type: "list",
     default: {
-      type: "np_array",
+      type: "list",
       value: null,
       dtype: "<i8",
       shape: [1]
@@ -942,8 +947,8 @@ export class SearchNode extends BaseNode {
   static readonly description =
     "Search a FAISS index with query vectors, returning distances and indices.\n    faiss, search, query, knn";
   static readonly metadataOutputTypes = {
-    distances: "np_array",
-    indices: "np_array"
+    distances: "list",
+    indices: "list"
   };
 
   @prop({
@@ -958,9 +963,9 @@ export class SearchNode extends BaseNode {
   declare index: any;
 
   @prop({
-    type: "np_array",
+    type: "list",
     default: {
-      type: "np_array",
+      type: "list",
       value: null,
       dtype: "<i8",
       shape: [1]

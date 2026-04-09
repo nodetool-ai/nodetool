@@ -39,6 +39,39 @@ async function serpRequest(
   return data;
 }
 
+/**
+ * Format search results into human-readable text, matching the Python
+ * `format_results` helper in `_base.py`.
+ *
+ * @param results - Array of result dicts from SerpAPI
+ * @param fields  - Array of [key, label] tuples. If label is null the value
+ *                  is printed raw; otherwise it is prefixed with "Label: ".
+ */
+function formatResults(
+  results: Array<Record<string, unknown>>,
+  fields: Array<[string, string | null]>
+): string {
+  const lines: string[] = [];
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    const pos = (r.position as number) ?? i + 1;
+    const title = String(r.title ?? "Untitled");
+    lines.push(`[${pos}] ${title}`);
+    for (const [key, label] of fields) {
+      const val = r[key];
+      if (val) {
+        if (label) {
+          lines.push(`    ${label}: ${val}`);
+        } else {
+          lines.push(`    ${val}`);
+        }
+      }
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
 // ---------------------------------------------------------------------------
 // 1. GoogleSearch
 // ---------------------------------------------------------------------------
@@ -48,7 +81,8 @@ export class GoogleSearchNode extends BaseNode {
   static readonly description =
     "Search Google to retrieve organic search results from the web.\n    google, search, serp, web, query";
   static readonly metadataOutputTypes = {
-    output: "list[organic_result]"
+    results: "list[organic_result]",
+    text: "str"
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -83,8 +117,14 @@ export class GoogleSearchNode extends BaseNode {
       hl: "en"
     });
 
-    const results = (data.organic_results as unknown[]) ?? [];
-    return { output: results };
+    const results =
+      (data.organic_results as Array<Record<string, unknown>>) ?? [];
+    const text = formatResults(results, [
+      ["link", null],
+      ["date", "Date"],
+      ["snippet", null]
+    ]);
+    return { results, text };
   }
 }
 
@@ -97,7 +137,8 @@ export class GoogleNewsNode extends BaseNode {
   static readonly description =
     "Search Google News to retrieve current news articles and headlines.\n    google, news, serp, articles, journalism";
   static readonly metadataOutputTypes = {
-    output: "list[news_result]"
+    results: "list[news_result]",
+    text: "str"
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -132,8 +173,13 @@ export class GoogleNewsNode extends BaseNode {
       hl: "en"
     });
 
-    const results = (data.news_results as unknown[]) ?? [];
-    return { output: results };
+    const results =
+      (data.news_results as Array<Record<string, unknown>>) ?? [];
+    const text = formatResults(results, [
+      ["link", null],
+      ["date", "Date"]
+    ]);
+    return { results, text };
   }
 }
 
@@ -146,7 +192,7 @@ export class GoogleImagesNode extends BaseNode {
   static readonly description =
     "Search Google Images to find visual content or perform reverse image search.\n    google, images, serp, visual, reverse, search";
   static readonly metadataOutputTypes = {
-    output: "list[image]"
+    results: "list[image]"
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -201,10 +247,10 @@ export class GoogleImagesNode extends BaseNode {
 
     const images =
       (data.images_results as Array<Record<string, unknown>>) ?? [];
-    const output = images.map((img) => ({
+    const results = images.map((img) => ({
       uri: String(img.original ?? "")
     }));
-    return { output };
+    return { results };
   }
 }
 
@@ -217,7 +263,7 @@ export class GoogleFinanceNode extends BaseNode {
   static readonly description =
     "Retrieve financial market data and stock information from Google Finance.\n    google, finance, stocks, market, serp, trading";
   static readonly metadataOutputTypes = {
-    output: "dict[str, any]"
+    results: "dict[str, any]"
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -242,9 +288,7 @@ export class GoogleFinanceNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const query = String(this.query ?? "");
     if (!query)
-      return {
-        output: { error: "Query is required for Google Finance search." }
-      };
+      throw new Error("Query is required for Google Finance search.");
     const window = String(this.window ?? "");
     const apiKey = getSerpApiKey(this._secrets);
 
@@ -257,7 +301,7 @@ export class GoogleFinanceNode extends BaseNode {
     if (window) params.window = window;
 
     const data = await serpRequest(apiKey, params);
-    return { output: { success: true, results: data } };
+    return { results: data };
   }
 }
 
@@ -270,7 +314,8 @@ export class GoogleJobsNode extends BaseNode {
   static readonly description =
     "Search Google Jobs for employment opportunities and job listings.\n    google, jobs, employment, careers, serp, hiring";
   static readonly metadataOutputTypes = {
-    output: "list[job_result]"
+    results: "list[job_result]",
+    text: "str"
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -314,8 +359,15 @@ export class GoogleJobsNode extends BaseNode {
     if (location) params.location = location;
 
     const data = await serpRequest(apiKey, params);
-    const results = (data.jobs_results as unknown[]) ?? [];
-    return { output: results };
+    const results =
+      (data.jobs_results as Array<Record<string, unknown>>) ?? [];
+    const text = formatResults(results, [
+      ["company_name", "Company"],
+      ["location", "Location"],
+      ["via", "Via"],
+      ["extensions", "Details"]
+    ]);
+    return { results, text };
   }
 }
 
@@ -363,7 +415,7 @@ export class GoogleLensNode extends BaseNode {
     const images = matches.map((m) => ({
       uri: String(m.image ?? m.thumbnail ?? "")
     }));
-    return { output: { results: matches, images } };
+    return { results: matches, images };
   }
 }
 
@@ -376,7 +428,8 @@ export class GoogleMapsNode extends BaseNode {
   static readonly description =
     "Search Google Maps for places, businesses, and get location details.\n    google, maps, places, locations, serp, geography";
   static readonly metadataOutputTypes = {
-    output: "list[local_result]"
+    results: "list[local_result]",
+    text: "str"
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -417,7 +470,26 @@ export class GoogleMapsNode extends BaseNode {
       const { type: placeType, ...rest } = r;
       return { ...rest, place_type: placeType ?? "" };
     });
-    return { output: results };
+
+    // Custom text format matching Python implementation
+    const lines: string[] = [];
+    for (let i = 0; i < localResults.length; i++) {
+      const r = localResults[i];
+      const pos = (r.position as number) ?? i + 1;
+      lines.push(`[${pos}] ${String(r.title ?? "Untitled")}`);
+      if (r.address) lines.push(`    ${r.address}`);
+      if (r.rating != null) {
+        let ratingStr = `    Rating: ${r.rating}`;
+        if (r.reviews != null) ratingStr += ` (${r.reviews} reviews)`;
+        lines.push(ratingStr);
+      }
+      if (r.price) lines.push(`    Price: ${r.price}`);
+      if (r.open_state) lines.push(`    ${r.open_state}`);
+      lines.push("");
+    }
+    const text = lines.join("\n");
+
+    return { results, text };
   }
 }
 
@@ -430,7 +502,8 @@ export class GoogleShoppingNode extends BaseNode {
   static readonly description =
     "Search Google Shopping for products with filters and pricing information.\n    google, shopping, products, ecommerce, serp, prices";
   static readonly metadataOutputTypes = {
-    output: "list[shopping_result]"
+    results: "list[shopping_result]",
+    text: "str"
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -536,8 +609,28 @@ export class GoogleShoppingNode extends BaseNode {
     }
 
     const data = await serpRequest(apiKey, params);
-    const results = (data.shopping_results as unknown[]) ?? [];
-    return { output: results };
+    const results =
+      (data.shopping_results as Array<Record<string, unknown>>) ?? [];
+
+    // Custom text format matching Python implementation
+    const lines: string[] = [];
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const pos = (r.position as number) ?? i + 1;
+      lines.push(`[${pos}] ${String(r.title ?? "Untitled")}`);
+      if (r.price) {
+        let priceStr = `    Price: ${r.price}`;
+        if (r.old_price) priceStr += ` (was ${r.old_price})`;
+        lines.push(priceStr);
+      }
+      if (r.source) lines.push(`    Source: ${r.source}`);
+      if (r.link) lines.push(`    ${r.link}`);
+      if (r.rating != null) lines.push(`    Rating: ${r.rating}`);
+      lines.push("");
+    }
+    const text = lines.join("\n");
+
+    return { results, text };
   }
 }
 

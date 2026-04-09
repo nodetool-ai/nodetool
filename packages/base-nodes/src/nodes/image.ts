@@ -241,23 +241,49 @@ export class LoadImageFolderNode extends BaseNode {
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
-    const entries = await fs.readdir(folder, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      const ext = path.extname(entry.name).toLowerCase();
-      if (![".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"].includes(ext))
-        continue;
-      const full = path.join(folder, entry.name);
-      const data = new Uint8Array(await fs.readFile(full));
+    const extensions: string[] = Array.isArray(this.extensions)
+      ? this.extensions.map((e: string) => String(e).toLowerCase())
+      : [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tiff"];
+    const patternStr = String(this.pattern ?? "");
+    const patternRegex = patternStr
+      ? new RegExp(
+          "^" +
+            patternStr
+              .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+              .replace(/\*/g, ".*")
+              .replace(/\?/g, ".") +
+            "$",
+          "i"
+        )
+      : null;
+
+    const files: { fullPath: string; name: string }[] = [];
+    const collect = async (dir: string): Promise<void> => {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && this.include_subdirectories) {
+          await collect(path.join(dir, entry.name));
+        } else if (entry.isFile()) {
+          files.push({ fullPath: path.join(dir, entry.name), name: entry.name });
+        }
+      }
+    };
+    await collect(folder);
+
+    for (const file of files) {
+      const ext = path.extname(file.name).toLowerCase();
+      if (!extensions.includes(ext)) continue;
+      if (patternRegex && !patternRegex.test(file.name)) continue;
+      const data = new Uint8Array(await fs.readFile(file.fullPath));
       const meta = await metadataFor(data);
       yield {
         image: imageRef(data, {
-          uri: `file://${full}`,
-          mimeType: inferImageMime(full, data),
+          uri: `file://${file.fullPath}`,
+          mimeType: inferImageMime(file.fullPath, data),
           width: meta.width,
           height: meta.height
         }),
-        name: entry.name
+        name: file.name
       };
     }
   }
@@ -315,8 +341,24 @@ export class SaveImageFileImageNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
     const filename = dateName(String(this.filename ?? "image.png"));
-    const p = filePath(path.resolve(folder, filename));
+    let p = filePath(path.resolve(folder, filename));
     await fs.mkdir(path.dirname(p), { recursive: true });
+
+    if (!this.overwrite) {
+      const ext = path.extname(p);
+      const base = p.slice(0, p.length - ext.length);
+      let counter = 1;
+      while (true) {
+        try {
+          await fs.access(p);
+          p = `${base}_${counter}${ext}`;
+          counter++;
+        } catch {
+          break;
+        }
+      }
+    }
+
     await fs.writeFile(p, imageBytes(this.image));
     return { output: p };
   }
@@ -484,16 +526,41 @@ export class GetMetadataNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image);
-    const meta = await metadataFor(bytes);
-    return {
-      output: {
-        uri: image.uri ?? "",
-        mime_type: image.mimeType ?? inferImageMime(image.uri, bytes),
-        size_bytes: bytes.length,
-        width: image.width ?? meta.width,
-        height: image.height ?? meta.height
-      }
-    };
+    try {
+      const md = await sharp(bytes).metadata();
+      const formatMap: Record<string, string> = {
+        jpeg: "JPEG",
+        png: "PNG",
+        webp: "WEBP",
+        gif: "GIF",
+        tiff: "TIFF",
+        svg: "SVG",
+        heif: "HEIF",
+        avif: "AVIF",
+        raw: "RAW"
+      };
+      const channelsToMode: Record<number, string> = {
+        1: "L",
+        2: "LA",
+        3: "RGB",
+        4: "RGBA"
+      };
+      return {
+        format: formatMap[md.format ?? ""] ?? (md.format ?? "unknown").toUpperCase(),
+        mode: channelsToMode[md.channels ?? 3] ?? "RGB",
+        width: md.width ?? 0,
+        height: md.height ?? 0,
+        channels: md.channels ?? 0
+      };
+    } catch {
+      return {
+        format: "unknown",
+        mode: "RGB",
+        width: image.width ?? 0,
+        height: image.height ?? 0,
+        channels: 0
+      };
+    }
   }
 }
 
@@ -521,9 +588,26 @@ export class BatchToListNode extends BaseNode {
   declare batch: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const batch = this.batch ?? [];
-    if (Array.isArray(batch)) return { output: batch };
-    return { output: [batch] };
+    const batch = this.batch;
+    if (!batch) {
+      throw new Error("Batch input is empty.");
+    }
+    const batchObj = batch as ImageRefLike;
+    if (batchObj.data == null) {
+      throw new Error("Batch data is null.");
+    }
+    if (!Array.isArray(batchObj.data)) {
+      // Single image ref — wrap in list
+      return { output: [batch] };
+    }
+    // Unwrap batch data into individual ImageRefs
+    const output = (batchObj.data as unknown[]).map((item) => {
+      if (item instanceof Uint8Array || typeof item === "string") {
+        return imageRef(toBytes(item));
+      }
+      return item;
+    });
+    return { output };
   }
 }
 
@@ -538,13 +622,17 @@ export class ImagesToListNode extends BaseNode {
   static readonly isDynamic = true;
 
   async process(): Promise<Record<string, unknown>> {
-    const images = this.getDynamic("images");
-    const explicit = Array.isArray(images) ? (images as unknown[]) : [];
-    const out = [...explicit];
-    const a = this.getDynamic("image_a");
-    const b = this.getDynamic("image_b");
-    if (a) out.push(a);
-    if (b) out.push(b);
+    const out: unknown[] = [];
+    for (const [, value] of this.dynamicProps) {
+      if (value == null) continue;
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item != null) out.push(item);
+        }
+      } else {
+        out.push(value);
+      }
+    }
     return { output: out };
   }
 }
@@ -1051,33 +1139,30 @@ export class TextToImageNode extends BaseNode {
     const width = Number(this.width ?? 512);
     const height = Number(this.height ?? 512);
     const { providerId, modelId } = getModelConfig(this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const output = (await context.runProviderPrediction({
-        provider: providerId,
-        capability: "text_to_image",
-        model: modelId,
-        params: {
-          prompt,
-          width,
-          height,
-          negative_prompt: this.negative_prompt,
-          quality: (this as any).quality
-        }
-      })) as Uint8Array;
-      const meta = await metadataFor(output);
-      return {
-        output: imageRef(output, {
-          mimeType: inferImageMime(undefined, output),
-          width: meta.width ?? width,
-          height: meta.height ?? height
-        })
-      };
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for text-to-image generation.");
     }
-    const bytes = Uint8Array.from(Buffer.from(prompt, "utf8"));
-    return {
-      output: imageRef(bytes, {
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "text_to_image",
+      model: modelId,
+      params: {
+        prompt,
         width,
-        height
+        height,
+        negative_prompt: this.negative_prompt,
+        guidance_scale: this.guidance_scale,
+        num_inference_steps: this.num_inference_steps,
+        seed: this.seed,
+        safety_check: this.safety_check
+      }
+    })) as Uint8Array;
+    const meta = await metadataFor(output);
+    return {
+      output: imageRef(output, {
+        mimeType: inferImageMime(undefined, output),
+        width: meta.width ?? width,
+        height: meta.height ?? height
       })
     };
   }
@@ -1234,34 +1319,37 @@ export class ImageToImageNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image);
-    const { providerId, modelId } = getModelConfig(this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const output = (await context.runProviderPrediction({
-        provider: providerId,
-        capability: "image_to_image",
-        model: modelId,
-        params: {
-          image: bytes,
-          prompt: String(this.prompt ?? ""),
-          negative_prompt: this.negative_prompt,
-          target_width: this.target_width,
-          target_height: this.target_height,
-          quality: (this as any).quality
-        }
-      })) as Uint8Array;
-      const meta = await metadataFor(output);
-      return {
-        output: imageRef(output, {
-          uri: image.uri ?? "",
-          mimeType: inferImageMime(image.uri, output),
-          width: meta.width,
-          height: meta.height
-        })
-      };
+    if (bytes.length === 0) {
+      throw new Error("The input image is empty.");
     }
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for image-to-image generation.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "image_to_image",
+      model: modelId,
+      params: {
+        image: bytes,
+        prompt: String(this.prompt ?? ""),
+        negative_prompt: this.negative_prompt,
+        target_width: this.target_width,
+        target_height: this.target_height,
+        guidance_scale: this.guidance_scale,
+        num_inference_steps: this.num_inference_steps,
+        strength: this.strength,
+        seed: this.seed,
+        scheduler: this.scheduler
+      }
+    })) as Uint8Array;
+    const meta = await metadataFor(output);
     return {
-      output: imageRef(bytes, {
-        uri: image.uri ?? ""
+      output: imageRef(output, {
+        uri: image.uri ?? "",
+        mimeType: inferImageMime(image.uri, output),
+        width: meta.width,
+        height: meta.height
       })
     };
   }

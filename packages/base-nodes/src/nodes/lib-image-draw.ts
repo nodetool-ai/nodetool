@@ -49,6 +49,29 @@ function createDrawNode(desc: Desc): NodeClass {
         return { output: { type: "image", data: buf.toString("base64") } };
       }
 
+      if (t === "lib.image.draw.GaussianNoise") {
+        const w = Math.max(1, Number((this as any).width ?? 512));
+        const h = Math.max(1, Number((this as any).height ?? 512));
+        const mean = Number((this as any).mean ?? 0);
+        const stddev = Number((this as any).stddev ?? 1);
+        const noiseRaw = Buffer.alloc(w * h * 3);
+        for (let i = 0; i < noiseRaw.length; i += 1) {
+          // Box-Muller transform for Gaussian distribution
+          const u1 = Math.random() || 1e-10;
+          const u2 = Math.random();
+          const gaussian =
+            Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+          const value = (mean + gaussian * stddev) * 128 + 128;
+          noiseRaw[i] = Math.max(0, Math.min(255, Math.round(value)));
+        }
+        const noiseBuf = await sharp(noiseRaw, {
+          raw: { width: w, height: h, channels: 3 }
+        })
+          .png()
+          .toBuffer();
+        return { output: { type: "image", data: noiseBuf.toString("base64") } };
+      }
+
       const baseObj = pickImage(
         this.serialize(),
         (
@@ -95,32 +118,41 @@ function createDrawNode(desc: Desc): NodeClass {
         }
       }
 
-      if (t.includes(".draw.GaussianNoise")) {
-        const md = await img.metadata();
-        const w = md.width ?? 512;
-        const h = md.height ?? 512;
-        const noiseRaw = Buffer.alloc(w * h * 3);
-        for (let i = 0; i < noiseRaw.length; i += 1) {
-          noiseRaw[i] = Math.floor(Math.random() * 256);
-        }
-        const noise = await sharp(noiseRaw, {
-          raw: { width: w, height: h, channels: 3 }
-        })
-          .png()
-          .toBuffer();
-        img = sharp(
-          await sharp(baseBytes)
-            .composite([{ input: noise, blend: "soft-light" }])
-            .png()
-            .toBuffer()
-        );
-      } else if (t.includes(".draw.RenderText")) {
+      if (t.includes(".draw.RenderText")) {
         const text = String((this as any).text ?? "");
         if (text) {
-          const svg = `<svg xmlns="http://www.w3.org/2000/svg"><text x="10" y="40" font-size="32" fill="white">${text
+          const x = Number((this as any).x ?? 0);
+          const y = Number((this as any).y ?? 0);
+          const size = Number((this as any).size ?? 12);
+          const colorVal = (this as any).color ?? "#000000";
+          const color =
+            colorVal &&
+            typeof colorVal === "object" &&
+            "value" in (colorVal as object)
+              ? String((colorVal as Record<string, unknown>).value)
+              : String(colorVal as string);
+          const fontVal = (this as any).font;
+          const fontFamily =
+            fontVal &&
+            typeof fontVal === "object" &&
+            "name" in (fontVal as object)
+              ? String((fontVal as Record<string, unknown>).name)
+              : "sans-serif";
+          const align = String((this as any).align ?? "left");
+          const textAnchor =
+            align === "center"
+              ? "middle"
+              : align === "right"
+                ? "end"
+                : "start";
+          const escapedText = text
             .replaceAll("&", "&amp;")
             .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")}</text></svg>`;
+            .replaceAll(">", "&gt;");
+          const md = await img.metadata();
+          const svgWidth = md.width ?? 512;
+          const svgHeight = md.height ?? 512;
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}"><text x="${x}" y="${y + size}" font-size="${size}" fill="${color}" font-family="${fontFamily}" text-anchor="${textAnchor}">${escapedText}</text></svg>`;
           img = sharp(
             await sharp(baseBytes)
               .composite([{ input: Buffer.from(svg) }])

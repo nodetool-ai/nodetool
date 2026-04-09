@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 type ImageLike = {
   data?: Uint8Array | string;
@@ -72,9 +73,29 @@ export class CompareImagesNode extends BaseNode {
   })
   declare label_b: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const a = toBytes((this.image_a ?? this.image_a ?? {}) as ImageLike);
-    const b = toBytes((this.image_b ?? this.image_b ?? {}) as ImageLike);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const imageA = this.image_a ?? this.image_a ?? {};
+    const imageB = this.image_b ?? this.image_b ?? {};
+    const a = toBytes(imageA as ImageLike);
+    const b = toBytes(imageB as ImageLike);
+
+    // Emit a PreviewUpdate for UI slider comparison if context supports it
+    if (context && typeof context.emit === "function") {
+      const nodeId = String(
+        (this as any).__node_id ?? (this as any).name ?? (this as any).__node_name ?? ""
+      );
+      context.emit({
+        type: "preview_update",
+        node_id: nodeId,
+        value: {
+          type: "compare_images",
+          image_a: imageA,
+          image_b: imageB,
+          label_a: String(this.label_a ?? "A"),
+          label_b: String(this.label_b ?? "B")
+        }
+      });
+    }
 
     if (a.length === 0 && b.length === 0) {
       return { score: 1, equal: true };

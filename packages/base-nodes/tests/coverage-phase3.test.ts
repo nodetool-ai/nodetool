@@ -3,12 +3,6 @@ import { tmpdir } from "node:os";
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  // lib-numpy (uncovered: ConvertToImage, ConvertToAudio, ConvertToArray, SaveArray, PlotArray)
-  NumpyConvertToImageNode,
-  NumpyConvertToAudioNode,
-  ConvertToArrayNumpyNode,
-  SaveArrayNode,
-  PlotArrayNode,
   // lib-pedalboard-extra
   BitcrushNode,
   CompressNode,
@@ -124,175 +118,6 @@ function makeLongerSine(
 }
 
 const arr = (data: number[], shape: number[]) => ({ data, shape });
-
-// =====================================================================
-// lib-numpy: ConvertToAudio, SaveArray, PlotArray
-// =====================================================================
-
-describe("lib-numpy ConvertToAudio", () => {
-  it("converts array to WAV audio ref", async () => {
-    const data = Array.from({ length: 100 }, (_, i) =>
-      Math.sin((2 * Math.PI * 440 * i) / 8000)
-    );
-    const __n288 = new NumpyConvertToAudioNode();
-    __n288.assign({
-      values: { data, shape: [100] },
-      sample_rate: 8000
-    });
-    const res = await __n288.process();
-    const out = res.output as { uri: string; data: string };
-    expect(out.data).toBeTruthy();
-    const buf = Buffer.from(out.data, "base64");
-    expect(buf.toString("ascii", 0, 4)).toBe("RIFF");
-  });
-});
-
-describe("lib-numpy ConvertToImage", () => {
-  it("converts 2D grayscale array to PNG", async () => {
-    // 4x4 grayscale image
-    const data = Array.from({ length: 16 }, (_, i) => i / 15);
-    const __n289 = new NumpyConvertToImageNode();
-    __n289.assign({
-      values: { data, shape: [4, 4] }
-    });
-    const res = await __n289.process();
-    const out = res.output as { type: string; data: string };
-    expect(out.type).toBe("image");
-    expect(out.data).toBeTruthy();
-    const buf = Buffer.from(out.data, "base64");
-    expect(buf[0]).toBe(0x89); // PNG signature
-  });
-
-  it("converts 3D RGB array to PNG", async () => {
-    const data = Array.from({ length: 2 * 2 * 3 }, () => 0.5);
-    const __n290 = new NumpyConvertToImageNode();
-    __n290.assign({
-      values: { data, shape: [2, 2, 3] }
-    });
-    const res = await __n290.process();
-    const out = res.output as { type: string; data: string };
-    expect(out.type).toBe("image");
-  });
-
-  it("throws for empty array", async () => {
-    const __n291 = new NumpyConvertToImageNode();
-    __n291.assign({
-      values: { data: [], shape: [0] }
-    });
-    await expect(__n291.process()).rejects.toThrow("not connected");
-  });
-
-  it("throws for 1D array", async () => {
-    const __n292 = new NumpyConvertToImageNode();
-    __n292.assign({
-      values: { data: [1, 2, 3], shape: [3] }
-    });
-    await expect(__n292.process()).rejects.toThrow("2 or 3 dimensions");
-  });
-
-  it("throws for invalid channel count", async () => {
-    const __n293 = new NumpyConvertToImageNode();
-    __n293.assign({
-      values: { data: Array.from({ length: 10 }, () => 0.5), shape: [1, 2, 5] }
-    });
-    await expect(__n293.process()).rejects.toThrow("1, 3, or 4");
-  });
-});
-
-describe("lib-numpy ConvertToArray (image -> array)", () => {
-  it("converts a PNG image to array", async () => {
-    // First create an image via ConvertToImage, then convert back
-    const data = Array.from({ length: 4 * 4 }, (_, i) => i / 15);
-    const __n294 = new NumpyConvertToImageNode();
-    __n294.assign({
-      values: { data, shape: [4, 4] }
-    });
-    const imgRes = await __n294.process();
-    const img = imgRes.output as { data: string };
-    const __n295 = new ConvertToArrayNumpyNode();
-    __n295.assign({ image: img });
-    const res = await __n295.process();
-    const out = res.output as { data: number[]; shape: number[] };
-    expect(out.shape[0]).toBe(4); // height
-    expect(out.shape[1]).toBe(4); // width
-    expect(out.data.length).toBeGreaterThan(0);
-  });
-
-  it("throws when no image data", async () => {
-    const __n296 = new ConvertToArrayNumpyNode();
-    __n296.assign({ image: { uri: "" } });
-    await expect(__n296.process()).rejects.toThrow("not connected");
-  });
-});
-
-describe("lib-numpy SaveArray", () => {
-  it("saves array data without context", async () => {
-    const __n297 = new SaveArrayNode();
-    __n297.assign({
-      values: { data: [1, 2, 3], shape: [3] },
-      name: "test.json"
-    });
-    const res = await __n297.process();
-    const out = res.output as { data: number[]; shape: number[] };
-    expect(out.data).toEqual([1, 2, 3]);
-    expect(out.shape).toEqual([3]);
-  });
-
-  it("uses date name template", async () => {
-    const __n298 = new SaveArrayNode();
-    __n298.assign({
-      values: { data: [1], shape: [1] },
-      name: "%Y-%m-%d.json"
-    });
-    const res = await __n298.process();
-    const out = res.output as { data: number[] };
-    expect(out.data).toEqual([1]);
-  });
-
-  it("replaces .npy extension with .json", async () => {
-    const __n299 = new SaveArrayNode();
-    __n299.assign({
-      values: { data: [1], shape: [1] },
-      name: "output.npy"
-    });
-    const res = await __n299.process();
-    expect(res.output).toBeTruthy();
-  });
-});
-
-describe("lib-numpy PlotArray", () => {
-  it("renders 1D array as line plot", async () => {
-    const __n300 = new PlotArrayNode();
-    __n300.assign({
-      values: { data: [1, 3, 2, 5, 4], shape: [5] }
-    });
-    const res = await __n300.process();
-    const out = res.output as { type: string; data: string };
-    expect(out.type).toBe("image");
-    expect(out.data).toBeTruthy();
-    const buf = Buffer.from(out.data, "base64");
-    expect(buf[0]).toBe(0x89); // PNG
-  });
-
-  it("renders 2D array as grayscale image", async () => {
-    const data = Array.from({ length: 4 * 4 }, (_, i) => i);
-    const __n301 = new PlotArrayNode();
-    __n301.assign({
-      values: { data, shape: [4, 4] }
-    });
-    const res = await __n301.process();
-    const out = res.output as { type: string; data: string };
-    expect(out.type).toBe("image");
-  });
-
-  it("throws for empty array", async () => {
-    const __n302 = new PlotArrayNode();
-    __n302.assign({
-      values: { data: [], shape: [0] }
-    });
-    await expect(__n302.process()).rejects.toThrow("Empty array");
-  });
-});
 
 // =====================================================================
 // lib-pedalboard-extra
@@ -832,7 +657,8 @@ describe("data nodes", () => {
     __n348.assign({ df: naDf });
     const res = await __n348.process();
     const out = res.output as { rows: any[] };
-    expect(out.rows.length).toBe(1);
+    // DropNA no longer removes empty strings, only null/undefined/NaN
+    expect(out.rows.length).toBe(2);
   });
 
   it("FilterNoneNode filters null values", async () => {

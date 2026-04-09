@@ -771,18 +771,25 @@ export class SVGToImageLibNode extends BaseNode {
   declare scale: any;
 
   async process(): Promise<Record<string, unknown>> {
+    const sharp = (await import("sharp")).default;
     const content = normalizeContent(this.content ?? []);
     const width = Number(this.width ?? 800);
     const height = Number(this.height ?? 600);
+    const scale = Number(this.scale ?? 1);
     const viewBox = String(this.viewBox ?? "0 0 800 600");
     const doc = svgDocument(content, width, height, viewBox);
+    const svgBuffer = Buffer.from(doc, "utf-8");
+    const pngBuffer = await sharp(svgBuffer, { density: 72 * scale })
+      .resize(width * scale, height * scale)
+      .png()
+      .toBuffer();
     return {
       output: {
         type: "image",
-        data: Buffer.from(doc, "utf-8").toString("base64"),
-        mimeType: "image/svg+xml",
-        width,
-        height
+        data: pngBuffer.toString("base64"),
+        mimeType: "image/png",
+        width: width * scale,
+        height: height * scale
       }
     };
   }

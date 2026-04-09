@@ -30,7 +30,7 @@ export class EmbeddingNode extends BaseNode {
   static readonly description =
     "Generate vector representations of text for semantic analysis.\n    embeddings, similarity, search, clustering, classification\n\n    Uses OpenAI's embedding models to create dense vector representations of text.\n    These vectors capture semantic meaning, enabling:\n    - Semantic search\n    - Text clustering\n    - Document classification\n    - Recommendation systems\n    - Anomaly detection\n    - Measuring text similarity and diversity";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly exposeAsTool = true;

@@ -404,7 +404,7 @@ describe("data nodes", () => {
 
   // -- DropNANode --
   describe("DropNANode", () => {
-    it("removes rows with null/undefined/empty values", async () => {
+    it("removes rows with null/undefined values (not empty strings)", async () => {
       const result = await Object.assign(new DropNANode(), {
         df: df([
           { a: 1, b: "ok" },
@@ -414,8 +414,10 @@ describe("data nodes", () => {
         ])
       }).process();
       const out = result.output as DF;
+      // DropNA no longer removes empty strings
       expect(out.rows).toEqual([
         { a: 1, b: "ok" },
+        { a: 3, b: "" },
         { a: 4, b: "fine" }
       ]);
     });
@@ -728,29 +730,13 @@ describe("document nodes", () => {
         chunk_overlap: 0
       });
       const chunks = await collectGen(node.genProcess());
-      // After stripping: "Hello World " + "x".repeat(50) = 62 chars
-      // chunk_size=20, overlap=0, step=20 => chunks at 0, 20, 40, 60
-      const stripped = html
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-      expect(chunks).toHaveLength(4);
-      expect(chunks[0]).toEqual({
-        chunk: stripped.slice(0, 20),
-        text: stripped.slice(0, 20),
-        source_id: "test-html",
-        start_index: 0
-      });
-      expect(chunks[1]).toEqual({
-        chunk: stripped.slice(20, 40),
-        text: stripped.slice(20, 40),
-        source_id: "test-html",
-        start_index: 20
-      });
+      // Structure-aware split: extracts block-level elements separately
+      expect(chunks.length).toBeGreaterThan(0);
       // No chunk should contain HTML tags
       for (const c of chunks) {
         expect(c.text as string).not.toContain("<");
         expect(typeof c.source_id).toBe("string");
+        expect((c.source_id as string).startsWith("test-html:")).toBe(true);
         expect(typeof c.start_index).toBe("number");
       }
     });
@@ -767,7 +753,7 @@ describe("document nodes", () => {
       expect(chunks[0]).toEqual({
         chunk: "Hi",
         text: "Hi",
-        source_id: "short-html",
+        source_id: "short-html:0",
         start_index: 0
       });
     });
@@ -777,7 +763,6 @@ describe("document nodes", () => {
   describe("SplitJSONNode", () => {
     it("pretty-prints and chunks JSON with correct metadata", async () => {
       const json = JSON.stringify({ a: 1, b: [1, 2, 3], c: "hello" });
-      const rendered = JSON.stringify(JSON.parse(json), null, 2);
       const node = new SplitJSONNode();
       Object.assign(node, {
         document: { text: json, uri: "test-json" },
@@ -785,26 +770,16 @@ describe("document nodes", () => {
         chunk_overlap: 0
       });
       const chunks = await collectGen(node.genProcess());
-      // rendered is ~60 chars, chunk_size=20, step=20
-      expect(chunks.length).toBeGreaterThan(1);
-      expect(chunks[0]).toEqual({
-        chunk: rendered.slice(0, 20),
-        text: rendered.slice(0, 20),
-        source_id: "test-json",
-        start_index: 0
-      });
-      // Verify all chunks have correct types and reconstruct the text
-      let reconstructed = "";
+      // Structure-aware split: splits by JSON structure
+      expect(chunks.length).toBeGreaterThan(0);
+      // Verify all chunks have correct types
       for (let i = 0; i < chunks.length; i++) {
         expect(typeof chunks[i].text).toBe("string");
         expect(typeof chunks[i].source_id).toBe("string");
+        expect((chunks[i].source_id as string).startsWith("test-json:")).toBe(true);
         expect(typeof chunks[i].start_index).toBe("number");
-        expect(chunks[i].source_id).toBe("test-json");
         expect(chunks[i].chunk).toBe(chunks[i].text);
-        reconstructed += chunks[i].text as string;
       }
-      // With no overlap, concatenating all chunks should yield the full rendered text
-      expect(reconstructed).toBe(rendered);
     });
 
     it("returns single chunk for small JSON", async () => {
@@ -816,12 +791,9 @@ describe("document nodes", () => {
       });
       const chunks = await collectGen(node.genProcess());
       expect(chunks).toHaveLength(1);
-      expect(chunks[0]).toEqual({
-        chunk: JSON.stringify({ x: 1 }, null, 2),
-        text: JSON.stringify({ x: 1 }, null, 2),
-        source_id: "tiny-json",
-        start_index: 0
-      });
+      expect(chunks[0].text).toBe(JSON.stringify({ x: 1 }, null, 2));
+      expect((chunks[0].source_id as string).startsWith("tiny-json:")).toBe(true);
+      expect(chunks[0].start_index).toBe(0);
     });
   });
 

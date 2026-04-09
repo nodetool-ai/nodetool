@@ -347,7 +347,7 @@ export class STFTNode extends BaseNode {
   static readonly description =
     "This node computes the Short-Time Fourier Transform (STFT) matrix for an audio signal. The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.\n    audio, analysis, fourier, frequency, time\n    #### Applications\n    - Audio Analysis: By transforming the audio signal into a visualizable format, it helps in understanding and analyzing the audio signal.\n    - Sound Processing: It plays a key foundational role in sound effects, tuning, compression, and more.\n    - Audio Feature Extraction: It can be used to analyze frequency-based features for sound classification.\n    - Music Information Retrieval: It helps in music transcription, rhythm and tempo analysis.";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
   static readonly basicFields = ["audio", "n_fft", "hop_length"];
 
@@ -443,7 +443,7 @@ export class MelSpectrogramNode extends BaseNode {
   static readonly description =
     "MelSpecNode computes the Mel-frequency spectrogram for an audio signal.\n    audio, analysis, spectrogram\n\n    Useful for:\n    - Audio feature extraction for machine learning\n    - Speech and music analysis tasks";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
   static readonly basicFields = ["audio", "n_mels", "fmax"];
 
@@ -546,7 +546,7 @@ export class MFCCNode extends BaseNode {
   static readonly description =
     "MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.\n    audio, analysis, frequency, MFCC, MEL";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
   static readonly basicFields = ["audio", "n_mfcc", "n_fft"];
 
@@ -656,7 +656,7 @@ export class ChromaSTFTNode extends BaseNode {
   static readonly description =
     "This node creates a chromagram from a waveform or power spectrogram to identify different pitch classes in an audio signal.\n    audio, analysis, chromagram, pitch\n\n    Applications:\n    - Chord recognition in music\n    - Music genre classification based on pitch content";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
 
   @prop({
@@ -746,7 +746,7 @@ export class SpectralCentroidNode extends BaseNode {
   static readonly description =
     'Computes the spectral centroid of an audio file.\n    audio, analysis, spectral\n\n    The spectral centroid indicates where the "center of mass" of the spectrum is located.\n    Perceptually, it has a connection with the impression of "brightness" of a sound.\n\n    Use cases:\n    - Analyze the timbral characteristics of audio\n    - Track changes in sound brightness over time\n    - Feature extraction for music genre classification\n    - Audio effect design and sound manipulation';
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
 
   @prop({
@@ -822,7 +822,7 @@ export class SpectralContrastNode extends BaseNode {
   static readonly description =
     "The spectral contrast measures the difference in amplitude between the most noticeable parts (peaks) and the less noticeable parts (valleys) in a sound spectrum.\n    audio, analysis, decibel, amplitude\n\n    #### Applications\n    - Music genre classification: distinguishing between different types of music based on the color of sound.\n    - Instrument recognition: recognizing different musical instruments by the difference in their spectral contrast.\n    - Audio analysis: determining various characteristics of audio files.\n\n    Useful note: The `n_fft` and `hop_length` parameters affect the resolution of the analysis. A higher `n_fft` provides better frequency resolution but worse time resolution, and vice versa for a lower `hop_length`.";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
 
   @prop({
@@ -928,13 +928,13 @@ export class GriffinLimNode extends BaseNode {
   static readonly description =
     "GriffinLim Node performs phase reconstruction on a magnitude spectrogram utilizing the Griffin-Lim algorithm.\n    audio, synthesis, phase reconstruction\n\n    Applications:\n    - Audio synthesis from spectrograms\n    - Phase reconstruction in audio processing pipelines";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
 
   @prop({
-    type: "np_array",
+    type: "list",
     default: {
-      type: "np_array",
+      type: "list",
       value: null,
       dtype: "<i8",
       shape: [1]
@@ -1028,7 +1028,7 @@ export class DetectOnsetsNode extends BaseNode {
   static readonly description =
     "Detect onsets in an audio file.\n    audio, analysis, segmentation\n\n    Use cases:\n    - Identify beat locations in music\n    - Segment audio based on changes in energy or spectral content\n    - Prepare audio for further processing or analysis";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
 
   @prop({
@@ -1131,9 +1131,9 @@ export class SegmentAudioByOnsetsNode extends BaseNode {
   declare audio: any;
 
   @prop({
-    type: "np_array",
+    type: "list",
     default: {
-      type: "np_array",
+      type: "list",
       value: null,
       dtype: "<i8",
       shape: [1]

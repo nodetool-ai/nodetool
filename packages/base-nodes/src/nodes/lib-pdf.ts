@@ -186,49 +186,218 @@ export class PdfExtractMarkdownNode extends BaseNode {
 
     const mdParts: string[] = [];
 
+    // Bullet/numbered list pattern: leading bullet chars or "1.", "2." etc.
+    const bulletRe = /^[\u2022\u2023\u25E6\u2043\u2219\-*]\s*/;
+    const numberedRe = /^(\d+)[.)]\s*/;
+
     for (let i = start; i <= end; i++) {
       const page = await doc.getPage(i + 1);
       const content = await page.getTextContent();
 
       // Collect font sizes to determine heading thresholds
       const sizes: number[] = [];
+      const fontNames: string[] = [];
       for (const item of content.items as any[]) {
         if (item.str?.trim()) {
           sizes.push(item.height || item.transform?.[0] || 12);
+          fontNames.push(item.fontName || "");
         }
       }
       const avgSize =
         sizes.length > 0 ? sizes.reduce((a, b) => a + b, 0) / sizes.length : 12;
 
-      const lines: string[] = [];
+      // Detect minimum X (left margin) for indent detection
+      const xPositions: number[] = [];
+      for (const item of content.items as any[]) {
+        if (item.str?.trim()) xPositions.push(item.transform[4]);
+      }
+      const leftMargin =
+        xPositions.length > 0 ? Math.min(...xPositions) : 0;
+      const indentThreshold = 15; // pixels from left margin to count as indented
+
+      // Collect line data before flushing
+      type LineData = {
+        text: string;
+        maxSize: number;
+        isBold: boolean;
+        x: number;
+        y: number;
+        prevY: number | null;
+      };
+
+      const lineItems: LineData[] = [];
       let lastY: number | null = null;
       let currentLine = "";
       let currentSize = 0;
+      let currentBold = false;
+      let currentX = 0;
+      let lineStartY = 0;
+      let prevFlushY: number | null = null;
 
       const flushLine = () => {
         const trimmed = currentLine.trim();
-        if (!trimmed) {
-          lines.push("");
-        } else if (currentSize > avgSize * 1.5) {
-          lines.push(`# ${trimmed}`);
-        } else if (currentSize > avgSize * 1.2) {
-          lines.push(`## ${trimmed}`);
-        } else {
-          lines.push(trimmed);
+        if (trimmed || (lastY !== null && prevFlushY !== null)) {
+          lineItems.push({
+            text: trimmed,
+            maxSize: currentSize,
+            isBold: currentBold,
+            x: currentX,
+            y: lineStartY,
+            prevY: prevFlushY
+          });
+          prevFlushY = lineStartY;
         }
         currentLine = "";
         currentSize = 0;
+        currentBold = false;
       };
 
       for (const item of content.items as any[]) {
         const y = item.transform[5];
         const h = item.height || item.transform?.[0] || 12;
+        const fontName: string = item.fontName || "";
         if (lastY !== null && Math.abs(y - lastY) > 2) flushLine();
+        if (!currentLine) {
+          currentX = item.transform[4];
+          lineStartY = y;
+        }
         currentLine += item.str;
         currentSize = Math.max(currentSize, h);
+        // Detect bold from font name (common patterns: Bold, -Bold, _Bold, .Bold)
+        if (/bold/i.test(fontName)) currentBold = true;
         lastY = y;
       }
       flushLine();
+
+      // Now convert lineItems to markdown
+      const lines: string[] = [];
+
+      // Detect table-like regions: consecutive lines with consistent tab/space separation
+      // We do a simple pass to detect and collect table blocks
+      const tableYTolerance = 3;
+      const yTolerance = 3;
+
+      // Try to detect tables on this page for markdown conversion
+      const pageItems: { x: number; y: number; str: string }[] = [];
+      for (const item of content.items as any[]) {
+        if (!item.str?.trim()) continue;
+        pageItems.push({
+          x: item.transform[4],
+          y: Math.round(item.transform[5] / tableYTolerance) * tableYTolerance,
+          str: item.str.trim()
+        });
+      }
+      const tableRowMap = new Map<number, { x: number; str: string }[]>();
+      for (const it of pageItems) {
+        if (!tableRowMap.has(it.y)) tableRowMap.set(it.y, []);
+        tableRowMap.get(it.y)!.push({ x: it.x, str: it.str });
+      }
+      const tableRowEntries = Array.from(tableRowMap.entries())
+        .sort((a, b) => b[0] - a[0])
+        .map(([y, cells]) => ({
+          y,
+          cells: cells.sort((a, b) => a.x - b.x).map((c) => c.str)
+        }));
+
+      // Find runs of rows with same column count >= 2 (tables)
+      const tableYRanges: { startY: number; endY: number; rows: string[][] }[] =
+        [];
+      let runStart = 0;
+      while (runStart < tableRowEntries.length) {
+        const colCount = tableRowEntries[runStart].cells.length;
+        if (colCount < 2) {
+          runStart++;
+          continue;
+        }
+        let runEnd = runStart + 1;
+        while (
+          runEnd < tableRowEntries.length &&
+          tableRowEntries[runEnd].cells.length === colCount
+        ) {
+          runEnd++;
+        }
+        if (runEnd - runStart >= 2) {
+          const rows = tableRowEntries
+            .slice(runStart, runEnd)
+            .map((r) => r.cells);
+          tableYRanges.push({
+            startY: tableRowEntries[runEnd - 1].y,
+            endY: tableRowEntries[runStart].y,
+            rows
+          });
+        }
+        runStart = runEnd;
+      }
+
+      // Check if a Y position falls within a table range
+      const isInTable = (y: number): { rows: string[][] } | null => {
+        const ry = Math.round(y / tableYTolerance) * tableYTolerance;
+        for (const range of tableYRanges) {
+          if (ry >= range.startY - yTolerance && ry <= range.endY + yTolerance) {
+            return range;
+          }
+        }
+        return null;
+      };
+
+      const emittedTables = new Set<{ rows: string[][] }>();
+
+      for (const ld of lineItems) {
+        // Check for paragraph break (large Y gap)
+        if (ld.prevY !== null) {
+          const gap = Math.abs(ld.y - ld.prevY);
+          if (gap > avgSize * 1.8) {
+            lines.push("");
+          }
+        }
+
+        if (!ld.text) continue;
+
+        // Check if this line is part of a detected table
+        const table = isInTable(ld.y);
+        if (table && !emittedTables.has(table)) {
+          emittedTables.add(table);
+          // Emit markdown table
+          const header = table.rows[0];
+          lines.push("| " + header.join(" | ") + " |");
+          lines.push("| " + header.map(() => "---").join(" | ") + " |");
+          for (let ri = 1; ri < table.rows.length; ri++) {
+            lines.push("| " + table.rows[ri].join(" | ") + " |");
+          }
+          lines.push("");
+          continue;
+        }
+        if (table) continue; // already emitted this table
+
+        // Detect bullet lists (indented + leading bullet character)
+        const isIndented = ld.x - leftMargin > indentThreshold;
+        const bulletMatch = ld.text.match(bulletRe);
+        const numberedMatch = ld.text.match(numberedRe);
+
+        if (bulletMatch) {
+          lines.push(`- ${ld.text.replace(bulletRe, "")}`);
+          continue;
+        }
+        if (numberedMatch) {
+          lines.push(`${numberedMatch[1]}. ${ld.text.replace(numberedRe, "")}`);
+          continue;
+        }
+        if (isIndented && !bulletMatch && !numberedMatch) {
+          // Could be a sub-item or indented paragraph
+          // Treat as plain text (preserving it as-is)
+        }
+
+        // Heading detection: large font size OR bold with size above average
+        if (ld.maxSize > avgSize * 1.5) {
+          lines.push(`# ${ld.text}`);
+        } else if (ld.maxSize > avgSize * 1.2) {
+          lines.push(`## ${ld.text}`);
+        } else if (ld.isBold && ld.maxSize >= avgSize) {
+          lines.push(`### ${ld.text}`);
+        } else {
+          lines.push(ld.text);
+        }
+      }
       mdParts.push(lines.join("\n"));
     }
 
@@ -292,44 +461,115 @@ export class PdfExtractTablesNode extends BaseNode {
       const page = await doc.getPage(pageIdx + 1);
       const content = await page.getTextContent();
 
-      // Group items by Y position (rows)
-      const rows: Map<number, { x: number; str: string }[]> = new Map();
+      // Collect all text items with positions
+      const items: { x: number; y: number; w: number; str: string }[] = [];
       for (const item of content.items as any[]) {
         if (!item.str?.trim()) continue;
-        const y = Math.round(item.transform[5] / yTolerance) * yTolerance;
-        if (!rows.has(y)) rows.set(y, []);
-        rows.get(y)!.push({ x: item.transform[4], str: item.str.trim() });
+        items.push({
+          x: item.transform[4],
+          y: Math.round(item.transform[5] / yTolerance) * yTolerance,
+          w: item.width || 0,
+          str: item.str.trim()
+        });
+      }
+
+      // Group items by Y position (rows)
+      const rowMap = new Map<number, { x: number; w: number; str: string }[]>();
+      for (const it of items) {
+        if (!rowMap.has(it.y)) rowMap.set(it.y, []);
+        rowMap.get(it.y)!.push({ x: it.x, w: it.w, str: it.str });
       }
 
       // Sort rows top-to-bottom (PDF Y is bottom-up)
-      const sortedRows = Array.from(rows.entries())
+      const sortedRowEntries = Array.from(rowMap.entries())
         .sort((a, b) => b[0] - a[0])
-        .map(([, cells]) => cells.sort((a, b) => a.x - b.x).map((c) => c.str));
+        .map(([, cells]) => cells.sort((a, b) => a.x - b.x));
 
-      if (sortedRows.length < 2) continue;
+      if (sortedRowEntries.length < 2) continue;
 
-      // Find most common column count
+      // Find rows with consistent column counts (potential table rows)
       const freq = new Map<number, number>();
-      for (const r of sortedRows)
+      for (const r of sortedRowEntries) {
         freq.set(r.length, (freq.get(r.length) ?? 0) + 1);
-      let mostCommon = 0;
+      }
+      let mostCommonCount = 0;
       let maxFreq = 0;
       for (const [cols, count] of freq) {
         if (cols >= 2 && count > maxFreq) {
-          mostCommon = cols;
+          mostCommonCount = cols;
           maxFreq = count;
         }
       }
-      if (mostCommon < 2) continue;
+      if (mostCommonCount < 2 || maxFreq < 2) continue;
 
-      const tableRows = sortedRows.filter((r) => r.length === mostCommon);
+      // Filter to rows matching the most common column count
+      const candidateRows = sortedRowEntries.filter(
+        (r) => r.length === mostCommonCount
+      );
+
+      // Detect column boundaries via X-position clustering
+      // Collect all X positions from candidate rows, grouped by column index
+      const colXPositions: number[][] = Array.from(
+        { length: mostCommonCount },
+        () => []
+      );
+      for (const row of candidateRows) {
+        for (let ci = 0; ci < row.length; ci++) {
+          colXPositions[ci].push(row[ci].x);
+        }
+      }
+
+      // Compute column boundaries as midpoints between column centers
+      const colCenters = colXPositions.map((xs) => {
+        const sorted = xs.slice().sort((a, b) => a - b);
+        return sorted[Math.floor(sorted.length / 2)]; // median
+      });
+
+      // Verify columns are consistently aligned (low variance)
+      const maxSpread = 15; // max pixel spread within a column
+      let aligned = true;
+      for (const xs of colXPositions) {
+        const mn = Math.min(...xs);
+        const mx = Math.max(...xs);
+        if (mx - mn > maxSpread) {
+          aligned = false;
+          break;
+        }
+      }
+      if (!aligned) continue;
+
+      // Build column boundaries for splitting
+      const colBoundaries: number[] = [];
+      for (let ci = 0; ci < mostCommonCount - 1; ci++) {
+        colBoundaries.push((colCenters[ci] + colCenters[ci + 1]) / 2);
+      }
+
+      // Assign each cell to its column based on boundaries
+      const assignColumn = (x: number): number => {
+        for (let bi = 0; bi < colBoundaries.length; bi++) {
+          if (x < colBoundaries[bi]) return bi;
+        }
+        return colBoundaries.length;
+      };
+
+      // Re-split all candidate rows using detected column boundaries
+      const tableRows: string[][] = [];
+      for (const row of candidateRows) {
+        const cells: string[] = Array.from({ length: mostCommonCount }, () => "");
+        for (const cell of row) {
+          const ci = assignColumn(cell.x);
+          cells[ci] = cells[ci] ? `${cells[ci]} ${cell.str}` : cell.str;
+        }
+        tableRows.push(cells);
+      }
+
       if (tableRows.length < 2) continue;
 
       tables.push({
         page: pageIdx,
         header: tableRows[0],
         rows: tableRows.slice(1),
-        columns: mostCommon,
+        columns: mostCommonCount,
         total_rows: tableRows.length
       });
     }
@@ -441,7 +681,7 @@ export class PdfExtractStyledTextNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractStyledText";
   static readonly title = "PDF Extract Styled Text";
   static readonly description =
-    "Extract text spans with font name, size, and bounding box.\n    pdf, text, style, font, size, formatting";
+    "Extract text spans with font name, size, bounding box, and color (best-effort).\n    pdf, text, style, font, size, formatting, color\n\n    Note: Color extraction depends on pdfjs-dist exposing color data in text content items. Not all PDFs provide per-span color; when unavailable the color field will be null.";
   static readonly metadataOutputTypes = { output: "list[dict]" };
   static readonly exposeAsTool = true;
 
@@ -482,11 +722,24 @@ export class PdfExtractStyledTextNode extends BaseNode {
         const y = item.transform[5];
         const w = item.width || 0;
         const h = item.height || item.transform[0] || 12;
+        // Best-effort color extraction: pdfjs-dist may expose color via
+        // item.color (an [r,g,b] array) on some builds/PDFs. When not
+        // available the field is null.
+        let color: string | null = null;
+        if (item.color && Array.isArray(item.color) && item.color.length >= 3) {
+          const [r, g, b] = item.color.map((c: number) =>
+            Math.round(c * 255)
+              .toString(16)
+              .padStart(2, "0")
+          );
+          color = `#${r}${g}${b}`;
+        }
         spans.push({
           page: i,
           text: item.str,
           font: item.fontName || "unknown",
           size: h,
+          color,
           bbox: { x0: x, y0: y, x1: x + w, y1: y + h }
         });
       }
@@ -539,11 +792,38 @@ export class PdfPageMetadataNode extends BaseNode {
     for (let i = start; i <= end; i++) {
       const page = await doc.getPage(i + 1);
       const viewport = page.getViewport({ scale: 1.0 });
+
+      // Compute content bounding box from text items
+      const content = await page.getTextContent();
+      let x0 = Infinity;
+      let y0 = Infinity;
+      let x1 = -Infinity;
+      let y1 = -Infinity;
+      for (const item of content.items as any[]) {
+        if (!item.str?.trim()) continue;
+        const x = item.transform[4];
+        const y = item.transform[5];
+        const w = item.width || 0;
+        const h = item.height || item.transform[0] || 12;
+        x0 = Math.min(x0, x);
+        y0 = Math.min(y0, y);
+        x1 = Math.max(x1, x + w);
+        y1 = Math.max(y1, y + h);
+      }
+      const hasContent = x0 !== Infinity;
       metadata.push({
         page: i,
         width: viewport.width,
         height: viewport.height,
-        rotation: page.rotate
+        rotation: page.rotate,
+        bbox: hasContent
+          ? {
+              x0,
+              y0: viewport.height - y1,
+              x1,
+              y1: viewport.height - y0
+            }
+          : null
       });
     }
 

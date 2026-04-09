@@ -94,31 +94,191 @@ function createFilterNode(desc: Desc): NodeClass {
           height: 3,
           kernel: [-2, -1, 0, -1, 1, 1, 0, 1, 2]
         });
-      } else if (
-        t.endsWith(".FindEdges") ||
-        t.endsWith(".Canny") ||
-        t.endsWith(".Contour")
-      ) {
+      } else if (t.endsWith(".FindEdges")) {
         img = img.convolve({
           width: 3,
           height: 3,
           kernel: [-1, -1, -1, -1, 8, -1, -1, -1, -1]
         });
+      } else if (t.endsWith(".Canny")) {
+        // Proper Canny edge detection
+        const lowThreshold = Number((this as any).low_threshold ?? 100);
+        const highThreshold = Number((this as any).high_threshold ?? 200);
+        // Convert to grayscale
+        const grayImg = sharp(baseBytes, { failOn: "none" }).grayscale();
+        const { data: grayData, info: grayInfo } = await grayImg
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        const w = grayInfo.width;
+        const h = grayInfo.height;
+        // Apply Gaussian blur (sigma=1.4, kernel size=5)
+        const blurred = new Float32Array(w * h);
+        const gaussKernel = [
+          0.0029, 0.0131, 0.0215, 0.0131, 0.0029, 0.0131, 0.0586, 0.0965,
+          0.0586, 0.0131, 0.0215, 0.0965, 0.1592, 0.0965, 0.0215, 0.0131,
+          0.0586, 0.0965, 0.0586, 0.0131, 0.0029, 0.0131, 0.0215, 0.0131,
+          0.0029
+        ];
+        for (let y = 2; y < h - 2; y++) {
+          for (let x = 2; x < w - 2; x++) {
+            let sum = 0;
+            for (let ky = -2; ky <= 2; ky++) {
+              for (let kx = -2; kx <= 2; kx++) {
+                sum +=
+                  grayData[(y + ky) * w + (x + kx)] *
+                  gaussKernel[(ky + 2) * 5 + (kx + 2)];
+              }
+            }
+            blurred[y * w + x] = sum;
+          }
+        }
+        // Sobel gradients
+        const gradMag = new Float32Array(w * h);
+        const gradDir = new Float32Array(w * h);
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const gx =
+              -blurred[(y - 1) * w + (x - 1)] +
+              blurred[(y - 1) * w + (x + 1)] -
+              2 * blurred[y * w + (x - 1)] +
+              2 * blurred[y * w + (x + 1)] -
+              blurred[(y + 1) * w + (x - 1)] +
+              blurred[(y + 1) * w + (x + 1)];
+            const gy =
+              -blurred[(y - 1) * w + (x - 1)] -
+              2 * blurred[(y - 1) * w + x] -
+              blurred[(y - 1) * w + (x + 1)] +
+              blurred[(y + 1) * w + (x - 1)] +
+              2 * blurred[(y + 1) * w + x] +
+              blurred[(y + 1) * w + (x + 1)];
+            gradMag[y * w + x] = Math.sqrt(gx * gx + gy * gy);
+            gradDir[y * w + x] = Math.atan2(gy, gx);
+          }
+        }
+        // Non-maximum suppression
+        const nms = new Float32Array(w * h);
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const angle =
+              ((gradDir[y * w + x] * 180) / Math.PI + 180) % 180;
+            const mag = gradMag[y * w + x];
+            let n1: number,
+              n2: number;
+            if (angle < 22.5 || angle >= 157.5) {
+              n1 = gradMag[y * w + (x - 1)];
+              n2 = gradMag[y * w + (x + 1)];
+            } else if (angle < 67.5) {
+              n1 = gradMag[(y - 1) * w + (x + 1)];
+              n2 = gradMag[(y + 1) * w + (x - 1)];
+            } else if (angle < 112.5) {
+              n1 = gradMag[(y - 1) * w + x];
+              n2 = gradMag[(y + 1) * w + x];
+            } else {
+              n1 = gradMag[(y - 1) * w + (x - 1)];
+              n2 = gradMag[(y + 1) * w + (x + 1)];
+            }
+            nms[y * w + x] = mag >= n1 && mag >= n2 ? mag : 0;
+          }
+        }
+        // Hysteresis thresholding
+        const result = Buffer.alloc(w * h);
+        const STRONG = 255;
+        const WEAK = 128;
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const v = nms[y * w + x];
+            if (v >= highThreshold) result[y * w + x] = STRONG;
+            else if (v >= lowThreshold) result[y * w + x] = WEAK;
+          }
+        }
+        // Connect weak edges to strong edges
+        let changed = true;
+        while (changed) {
+          changed = false;
+          for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+              if (result[y * w + x] === WEAK) {
+                let hasStrong = false;
+                for (let dy = -1; dy <= 1 && !hasStrong; dy++) {
+                  for (let dx = -1; dx <= 1 && !hasStrong; dx++) {
+                    if (result[(y + dy) * w + (x + dx)] === STRONG)
+                      hasStrong = true;
+                  }
+                }
+                if (hasStrong) {
+                  result[y * w + x] = STRONG;
+                  changed = true;
+                }
+              }
+            }
+          }
+        }
+        // Remove remaining weak edges
+        for (let i = 0; i < result.length; i++) {
+          if (result[i] !== STRONG) result[i] = 0;
+        }
+        const out = await sharp(result, {
+          raw: { width: w, height: h, channels: 1 }
+        })
+          .png()
+          .toBuffer();
+        return { output: toRef(out, baseObj) };
+      } else if (t.endsWith(".Contour")) {
+        // Contour filter using Prewitt-like kernel distinct from FindEdges
+        // Combine horizontal and vertical Prewitt for contour detection
+        const { data: rawData, info: rawInfo } = await img
+          .grayscale()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        const cw = rawInfo.width;
+        const ch = rawInfo.height;
+        const contourBuf = Buffer.alloc(cw * ch);
+        for (let y = 1; y < ch - 1; y++) {
+          for (let x = 1; x < cw - 1; x++) {
+            // Horizontal Prewitt
+            const gx =
+              -rawData[(y - 1) * cw + (x - 1)] -
+              rawData[y * cw + (x - 1)] -
+              rawData[(y + 1) * cw + (x - 1)] +
+              rawData[(y - 1) * cw + (x + 1)] +
+              rawData[y * cw + (x + 1)] +
+              rawData[(y + 1) * cw + (x + 1)];
+            // Vertical Prewitt
+            const gy =
+              -rawData[(y - 1) * cw + (x - 1)] -
+              rawData[(y - 1) * cw + x] -
+              rawData[(y - 1) * cw + (x + 1)] +
+              rawData[(y + 1) * cw + (x - 1)] +
+              rawData[(y + 1) * cw + x] +
+              rawData[(y + 1) * cw + (x + 1)];
+            contourBuf[y * cw + x] = Math.min(
+              255,
+              Math.round(Math.sqrt(gx * gx + gy * gy))
+            );
+          }
+        }
+        const out = await sharp(contourBuf, {
+          raw: { width: cw, height: ch, channels: 1 }
+        })
+          .png()
+          .toBuffer();
+        return { output: toRef(out, baseObj) };
       } else if (t.endsWith(".Smooth")) {
-        img = img.median(3);
+        // PIL SMOOTH kernel: [1,1,1, 1,5,1, 1,1,1] with scale=13
+        img = img.convolve({
+          width: 3,
+          height: 3,
+          kernel: [1, 1, 1, 1, 5, 1, 1, 1, 1],
+          scale: 13
+        });
       } else if (t.endsWith(".GetChannel")) {
         const channel = String((this as any).channel ?? "red").toLowerCase();
         const idx = channel === "green" ? 1 : channel === "blue" ? 2 : 0;
         img = img.extractChannel(idx);
       } else if (t.endsWith(".Expand")) {
         const border = Number((this as any).border ?? 10);
-        const color = String(
-          (this as any).fill_color ??
-            (this as any).color ??
-            (this as unknown as Record<string, unknown>).fill_color ??
-            (this as unknown as Record<string, unknown>).color ??
-            "black"
-        );
+        const fillVal = Number((this as any).fill ?? 0);
+        const color = `rgb(${fillVal},${fillVal},${fillVal})`;
         img = img.extend({
           top: border,
           left: border,

@@ -940,7 +940,7 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
       model: "gemini-2.0-flash"
     });
 
-    expect(result).toBe("Hello world");
+    expect(result).toEqual({ text: "Hello world" });
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
     // Should have audio inline data + text prompt
     expect(body.contents[0].parts).toHaveLength(2);
@@ -1036,7 +1036,7 @@ describe("GeminiProvider – automaticSpeechRecognition", () => {
       audio: new Uint8Array([0x52, 0x49, 0x46, 0x46]),
       model: "m"
     });
-    expect(result).toBe("");
+    expect(result).toEqual({ text: "" });
   });
 });
 

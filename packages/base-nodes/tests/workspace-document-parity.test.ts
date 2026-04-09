@@ -147,7 +147,7 @@ describe("workspace/document parity", () => {
         uri: "test-doc",
         text: "First line\nSecond line\nThird line"
       },
-      chunk_size: 5,
+      chunk_size: 20,
       chunk_overlap: 0,
       separators: ["\n\n", "\n", "."]
     });
@@ -161,16 +161,16 @@ describe("workspace/document parity", () => {
         start_index: 0
       },
       {
-        chunk: "\nSecond line",
-        text: "\nSecond line",
+        chunk: "Second line",
+        text: "Second line",
         source_id: "test-doc:1",
-        start_index: 10
+        start_index: 11
       },
       {
-        chunk: "\nThird line",
-        text: "\nThird line",
+        chunk: "Third line",
+        text: "Third line",
         source_id: "test-doc:2",
-        start_index: 22
+        start_index: 23
       }
     ]);
 
@@ -193,13 +193,15 @@ describe("workspace/document parity", () => {
         chunk: "Content 1",
         text: "Content 1",
         source_id: "test-md-doc",
-        start_index: 0
+        start_index: 0,
+        metadata: { "Header 1": "Header 1" }
       },
       {
         chunk: "Content 2",
         text: "Content 2",
         source_id: "test-md-doc",
-        start_index: 0
+        start_index: 1,
+        metadata: { "Header 1": "Header 1", "Header 2": "Header 2" }
       }
     ]);
   });

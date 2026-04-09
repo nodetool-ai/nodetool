@@ -54,7 +54,7 @@ describe("GoogleSearchNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([
+    expect(result.results).toEqual([
       { title: "Result 1" },
       { title: "Result 2" }
     ]);
@@ -72,7 +72,7 @@ describe("GoogleSearchNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([]);
+    expect(result.results).toEqual([]);
   });
 
   it("throws when keyword is empty", async () => {
@@ -146,7 +146,7 @@ describe("GoogleSearchNode", () => {
     });
 
     const result = await node.process();
-    expect(result.output).toEqual([]);
+    expect(result.results).toEqual([]);
   });
 });
 
@@ -165,7 +165,7 @@ describe("GoogleNewsNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([{ title: "News 1" }]);
+    expect(result.results).toEqual([{ title: "News 1" }]);
   });
 
   it("returns empty array when no news_results", async () => {
@@ -178,7 +178,7 @@ describe("GoogleNewsNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([]);
+    expect(result.results).toEqual([]);
   });
 
   it("throws when keyword is empty", async () => {
@@ -213,7 +213,7 @@ describe("GoogleImagesNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([
+    expect(result.results).toEqual([
       { uri: "https://example.com/img1.jpg" },
       { uri: "https://example.com/img2.jpg" }
     ]);
@@ -233,7 +233,7 @@ describe("GoogleImagesNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([{ uri: "https://match.com/img.jpg" }]);
+    expect(result.results).toEqual([{ uri: "https://match.com/img.jpg" }]);
   });
 
   it("returns empty when no images_results", async () => {
@@ -246,7 +246,7 @@ describe("GoogleImagesNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([]);
+    expect(result.results).toEqual([]);
   });
 
   it("throws when both keyword and image_url empty", async () => {
@@ -279,10 +279,7 @@ describe("GoogleFinanceNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual({
-      success: true,
-      results: { price: "$150", change: "+2%" }
-    });
+    expect(result.results).toEqual({ price: "$150", change: "+2%" });
   });
 
   it("returns error when query is empty", async () => {
@@ -293,10 +290,9 @@ describe("GoogleFinanceNode", () => {
     });
 
     node.setDynamic("_secrets", secrets._secrets);
-    const result = await node.process();
-    expect(result.output).toEqual({
-      error: "Query is required for Google Finance search."
-    });
+    await expect(node.process()).rejects.toThrow(
+      "Query is required for Google Finance search."
+    );
   });
 
   it("passes window parameter when set", async () => {
@@ -330,7 +326,7 @@ describe("GoogleJobsNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([{ title: "Software Engineer" }]);
+    expect(result.results).toEqual([{ title: "Software Engineer" }]);
   });
 
   it("returns empty array when no jobs_results", async () => {
@@ -343,7 +339,7 @@ describe("GoogleJobsNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([]);
+    expect(result.results).toEqual([]);
   });
 
   it("throws when query is empty", async () => {
@@ -394,11 +390,10 @@ describe("GoogleLensNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    const output = result.output as Record<string, unknown>;
-    expect(output.results).toEqual([
+    expect(result.results).toEqual([
       { image: "https://example.com/match.jpg", title: "Match" }
     ]);
-    expect(output.images).toEqual([{ uri: "https://example.com/match.jpg" }]);
+    expect(result.images).toEqual([{ uri: "https://example.com/match.jpg" }]);
   });
 
   it("falls back to thumbnail when image missing", async () => {
@@ -415,8 +410,7 @@ describe("GoogleLensNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    const output = result.output as Record<string, unknown>;
-    expect((output.images as { uri: string }[])[0].uri).toBe(
+    expect((result.images as { uri: string }[])[0].uri).toBe(
       "https://example.com/thumb.jpg"
     );
   });
@@ -452,7 +446,7 @@ describe("GoogleMapsNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([
+    expect(result.results).toEqual([
       { title: "Coffee Shop", place_type: "cafe", rating: 4.5 }
     ]);
   });
@@ -467,7 +461,7 @@ describe("GoogleMapsNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([]);
+    expect(result.results).toEqual([]);
   });
 
   it("throws when query is empty", async () => {
@@ -501,7 +495,7 @@ describe("GoogleShoppingNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([{ title: "Laptop", price: "$999" }]);
+    expect(result.results).toEqual([{ title: "Laptop", price: "$999" }]);
   });
 
   it("returns empty array when no shopping_results", async () => {
@@ -514,7 +508,7 @@ describe("GoogleShoppingNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual([]);
+    expect(result.results).toEqual([]);
   });
 
   it("throws when query is empty", async () => {

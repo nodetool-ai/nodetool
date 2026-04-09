@@ -158,9 +158,10 @@ function createColorGradingNode(desc: Desc): NodeClass {
         );
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         for (let i = 0; i < data.length; i += 3) {
-          const r = data[i] * gainR * gainM + liftR + liftM;
-          const g = data[i + 1] * gainG * gainM + liftG + liftM;
-          const b = data[i + 2] * gainB * gainM + liftB + liftM;
+          // Apply: (input + lift) * gain, then gamma
+          const r = (data[i] + liftR + liftM) * gainR * gainM;
+          const g = (data[i + 1] + liftG + liftM) * gainG * gainM;
+          const b = (data[i + 2] + liftB + liftM) * gainB * gainM;
           const gr = 1 / Math.max(0.01, gammaR * gammaM);
           const gg = 1 / Math.max(0.01, gammaG * gammaM);
           const gb = 1 / Math.max(0.01, gammaB * gammaM);
@@ -365,74 +366,74 @@ function createColorGradingNode(desc: Desc): NodeClass {
           }
         > = {
           TEAL_ORANGE: {
-            shadow: [0.0, 0.4, 0.5],
-            highlight: [1.0, 0.7, 0.3],
+            shadow: [0.0, 0.5, 0.55],
+            highlight: [1.0, 0.78, 0.6],
             contrast: 1.1,
-            saturation: 1.15,
+            saturation: 1.1,
             fade: 0
           },
           BLOCKBUSTER: {
-            shadow: [0.0, 0.2, 0.4],
-            highlight: [1.0, 0.8, 0.5],
+            shadow: [0.12, 0.24, 0.35],
+            highlight: [1.0, 0.9, 0.78],
             contrast: 1.2,
-            saturation: 0.9,
+            saturation: 1.0,
             fade: 0
           },
           NOIR: {
-            shadow: [0.1, 0.1, 0.15],
-            highlight: [0.9, 0.9, 0.85],
-            contrast: 1.3,
-            saturation: 0.0,
+            shadow: [0.2, 0.2, 0.24],
+            highlight: [0.86, 0.86, 0.9],
+            contrast: 1.4,
+            saturation: 0.3,
             fade: 0
           },
           VINTAGE: {
-            shadow: [0.3, 0.2, 0.1],
-            highlight: [1.0, 0.95, 0.8],
+            shadow: [0.4, 0.32, 0.24],
+            highlight: [1.0, 0.94, 0.78],
             contrast: 0.9,
-            saturation: 0.7,
-            fade: 0.1
+            saturation: 0.8,
+            fade: 0.15
           },
           COLD_BLUE: {
-            shadow: [0.1, 0.15, 0.3],
-            highlight: [0.7, 0.8, 1.0],
-            contrast: 1.05,
-            saturation: 0.85,
+            shadow: [0.16, 0.24, 0.4],
+            highlight: [0.78, 0.86, 1.0],
+            contrast: 1.1,
+            saturation: 0.9,
             fade: 0
           },
           WARM_SUNSET: {
-            shadow: [0.3, 0.1, 0.0],
-            highlight: [1.0, 0.7, 0.3],
-            contrast: 1.05,
-            saturation: 1.2,
-            fade: 0
-          },
-          MATRIX: {
-            shadow: [0.0, 0.15, 0.0],
-            highlight: [0.5, 1.0, 0.5],
-            contrast: 1.15,
-            saturation: 0.6,
-            fade: 0
-          },
-          BLEACH_BYPASS: {
-            shadow: [0.2, 0.2, 0.2],
-            highlight: [0.9, 0.9, 0.9],
-            contrast: 1.4,
-            saturation: 0.4,
-            fade: 0
-          },
-          CROSS_PROCESS: {
-            shadow: [0.1, 0.3, 0.0],
-            highlight: [1.0, 0.8, 0.2],
-            contrast: 1.1,
+            shadow: [0.47, 0.24, 0.16],
+            highlight: [1.0, 0.86, 0.7],
+            contrast: 1.0,
             saturation: 1.3,
             fade: 0
           },
+          MATRIX: {
+            shadow: [0.0, 0.16, 0.0],
+            highlight: [0.6, 1.0, 0.6],
+            contrast: 1.3,
+            saturation: 0.7,
+            fade: 0
+          },
+          BLEACH_BYPASS: {
+            shadow: [0.24, 0.24, 0.27],
+            highlight: [0.94, 0.94, 0.98],
+            contrast: 1.5,
+            saturation: 0.5,
+            fade: 0.05
+          },
+          CROSS_PROCESS: {
+            shadow: [0.0, 0.2, 0.3],
+            highlight: [1.0, 0.9, 0.5],
+            contrast: 1.2,
+            saturation: 1.2,
+            fade: 0
+          },
           FADED_FILM: {
-            shadow: [0.2, 0.15, 0.1],
-            highlight: [0.95, 0.9, 0.85],
+            shadow: [0.3, 0.28, 0.26],
+            highlight: [0.95, 0.92, 0.88],
             contrast: 0.85,
-            saturation: 0.75,
-            fade: 0.15
+            saturation: 0.7,
+            fade: 0.2
           }
         };
         const preset = String(
