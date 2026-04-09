@@ -1,10 +1,21 @@
 /**
  * useSketchStoreSelectors
  *
- * Centralises all Zustand store selector wiring that SketchEditor previously
- * did inline. Returns every store value and action that the editor needs.
+ * Shared resolved-tool-settings hook and narrow selector helpers used by
+ * connected shell components.
+ *
+ * ## Design notes
+ *
+ * `useResolvedToolSettings` is the canonical way to read tool settings with
+ * defaults merged. It uses `useMemo` so the returned object reference is
+ * stable when the underlying `toolSettings` slice hasn't changed.
+ *
+ * The old `useSketchStoreSelectors()` aggregator is retained for backward
+ * compatibility but should not be used in new code — prefer direct
+ * `useSketchStore` selectors in connected components.
  */
 
+import { useMemo } from "react";
 import { useSketchStore } from "../state";
 import {
   DEFAULT_BRUSH_SETTINGS,
@@ -20,10 +31,59 @@ import {
   DEFAULT_SEGMENT_SETTINGS
 } from "../types";
 
+/**
+ * Returns tool settings with defaults defensively merged.
+ *
+ * The result is memoised on the raw `toolSettings` slice so the reference
+ * stays stable across renders that don't change tool settings.
+ */
+export function useResolvedToolSettings() {
+  const liveToolSettings = useSketchStore((s) => s.toolSettings);
+
+  return useMemo(() => {
+    const resolvedPenPressure = {
+      ...DEFAULT_PEN_PRESSURE,
+      ...liveToolSettings.penPressure
+    };
+
+    return {
+      brush: {
+        ...DEFAULT_BRUSH_SETTINGS,
+        ...liveToolSettings.brush,
+        ...resolvedPenPressure
+      },
+      pencil: {
+        ...DEFAULT_PENCIL_SETTINGS,
+        ...liveToolSettings.pencil,
+        ...resolvedPenPressure
+      },
+      eraser: { ...DEFAULT_ERASER_SETTINGS, ...liveToolSettings.eraser },
+      penPressure: resolvedPenPressure,
+      shape: { ...DEFAULT_SHAPE_SETTINGS, ...liveToolSettings.shape },
+      fill: { ...DEFAULT_FILL_SETTINGS, ...liveToolSettings.fill },
+      blur: { ...DEFAULT_BLUR_SETTINGS, ...liveToolSettings.blur },
+      gradient: {
+        ...DEFAULT_GRADIENT_SETTINGS,
+        ...liveToolSettings.gradient
+      },
+      cloneStamp: {
+        ...DEFAULT_CLONE_STAMP_SETTINGS,
+        ...liveToolSettings.cloneStamp
+      },
+      select: { ...DEFAULT_SELECT_SETTINGS, ...liveToolSettings.select },
+      segment: { ...DEFAULT_SEGMENT_SETTINGS, ...liveToolSettings.segment }
+    };
+  }, [liveToolSettings]);
+}
+
+/**
+ * @deprecated Prefer direct `useSketchStore` selectors in connected
+ * components and `useResolvedToolSettings()` for merged tool settings.
+ * This aggregator subscribes to many unrelated store slices at once and
+ * forces the consuming component to rerender on any of them.
+ */
 export function useSketchStoreSelectors() {
   const document = useSketchStore((s) => s.document);
-  // Subscribe to the live toolSettings slice (separate from document so that
-  // brush/color changes do not mutate the document and trigger document re-renders).
   const liveToolSettings = useSketchStore((s) => s.toolSettings);
   const activeTool = useSketchStore((s) => s.activeTool);
   const transientMoveModifierHeld = useSketchStore((s) => s.transientMoveModifierHeld);
@@ -111,35 +171,8 @@ export function useSketchStoreSelectors() {
   const setSymmetryMode = useSketchStore((s) => s.setSymmetryMode);
   const setSymmetryRays = useSketchStore((s) => s.setSymmetryRays);
 
-  const resolvedPenPressure = {
-    ...DEFAULT_PEN_PRESSURE,
-    ...liveToolSettings.penPressure
-  };
-
-  // Defensively merge defaults so older/incomplete documents cannot break render.
-  // Reads from the live toolSettings slice (not document.toolSettings) so that
-  // brush/color mutations do not cause document re-renders.
-  const toolSettings = {
-    brush: {
-      ...DEFAULT_BRUSH_SETTINGS,
-      ...liveToolSettings.brush,
-      ...resolvedPenPressure
-    },
-    pencil: {
-      ...DEFAULT_PENCIL_SETTINGS,
-      ...liveToolSettings.pencil,
-      ...resolvedPenPressure
-    },
-    eraser: { ...DEFAULT_ERASER_SETTINGS, ...liveToolSettings.eraser },
-    penPressure: resolvedPenPressure,
-    shape: { ...DEFAULT_SHAPE_SETTINGS, ...liveToolSettings.shape },
-    fill: { ...DEFAULT_FILL_SETTINGS, ...liveToolSettings.fill },
-    blur: { ...DEFAULT_BLUR_SETTINGS, ...liveToolSettings.blur },
-    gradient: { ...DEFAULT_GRADIENT_SETTINGS, ...liveToolSettings.gradient },
-    cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS, ...liveToolSettings.cloneStamp },
-    select: { ...DEFAULT_SELECT_SETTINGS, ...liveToolSettings.select },
-    segment: { ...DEFAULT_SEGMENT_SETTINGS, ...liveToolSettings.segment }
-  };
+  // Use memoised resolved tool settings so reference is stable.
+  const toolSettings = useResolvedToolSettings();
 
   const safeForegroundColor = foregroundColor || "#ffffff";
   const safeBackgroundColor = backgroundColor || "#000000";
