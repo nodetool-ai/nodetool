@@ -2,6 +2,28 @@
  * useExportSyncActions
  *
  * Handles export and output sync: PNG download and deferred image/mask export.
+ *
+ * ## Export sync boundary contract
+ *
+ * This hook uses a **deferred-flush pattern** so that export-heavy operations
+ * (flatten → dataURL encoding) do not block the pointer/painting hot path:
+ *
+ * - **Stroke end**: Sets `pendingExportSyncRef.image = true` (and mask if
+ *   applicable) but does NOT run the export. The export fires later via
+ *   `flushPendingExportSync()`.
+ * - **Undo/redo**: Calls `flushPendingExportSync()` before rewinding history
+ *   so the parent receives the pre-undo snapshot.
+ * - **Nudge session end**: Calls `syncSketchOutputsNow()` for immediate sync
+ *   (keyboard arrow moves have no pointer-up to defer to).
+ * - **Download**: `handleExportPng()` is a one-shot synchronous export.
+ *
+ * This pattern ensures that:
+ * 1. `onExportImage` / `onExportMask` callbacks (from SketchNode) are never
+ *    called during a gesture — only between gestures or on explicit flush.
+ * 2. The export path does not subscribe to any store state. It reads from the
+ *    imperative `canvasRef` which already holds the composited result.
+ * 3. No broad store subscription is needed — the ref-based pending flag is
+ *    the only coordination mechanism.
  */
 
 import { useCallback, useRef, type RefObject } from "react";

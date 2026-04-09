@@ -49,20 +49,63 @@ function interactionToolShowsBrushCursor(t: SketchTool): boolean {
   );
 }
 
+/**
+ * Params for `usePointerHandlers`.
+ *
+ * ## Boundary contract
+ *
+ * This hook has **no direct Zustand store subscriptions**. All state flows
+ * in through these params, and every param is captured into `toolCtxRef`
+ * so tool handlers always read the latest values without triggering
+ * re-renders of the hook itself.
+ *
+ * Params are grouped by state tier to make it clear where each value
+ * originates and how it should be treated:
+ *
+ * | Tier                        | Mutates during a gesture? | Re-render safe? |
+ * |-----------------------------|---------------------------|-----------------|
+ * | Committed document state    | No (only on undo/commit)  | Yes (infrequent)|
+ * | Viewport / tool state       | Zoom/pan change on wheel  | Yes (moderate)  |
+ * | Transient interaction refs  | Yes (every pointer move)  | N/A (refs)      |
+ * | Canvas element refs         | No (stable after mount)   | N/A (refs)      |
+ * | Rendering infrastructure    | No (stable callbacks)     | N/A (callbacks) |
+ * | Overlay drawing callbacks   | No (stable callbacks)     | N/A (callbacks) |
+ * | Store-to-parent callbacks   | No (stable callbacks)     | N/A (callbacks) |
+ * | Transient preview callbacks | No (stable callbacks)     | N/A (callbacks) |
+ */
 export interface UsePointerHandlersParams {
+  // ── Committed document state ───────────────────────────────────────
+  // Snapshot of the document (with live toolSettings merged in via
+  // `docWithTools`). Only changes on committed store mutations.
   doc: SketchDocument;
   activeTool: SketchTool;
   /** Effective tool for gestures (spring-loaded move uses "move" while `activeTool` may stay brush). */
   interactionTool: SketchTool;
+  selection?: Selection | null;
+  /** Layer isolation (must match on-screen composite for wand / eyedropper readback). */
+  isolatedLayerId?: string | null;
+  foregroundColor?: string;
+
+  // ── Viewport / tool state ──────────────────────────────────────────
+  // Changes on wheel-zoom, pan, or tool-bar toggles. Moderate frequency.
   zoom: number;
   pan: Point;
   mirrorX: boolean;
   mirrorY: boolean;
   symmetryMode: string;
   symmetryRays: number;
-  selection?: Selection | null;
+
+  // ── Transient interaction refs ─────────────────────────────────────
+  // Mutable refs updated on every pointer event. Never trigger re-renders.
   selectStartRef: React.MutableRefObject<Point | null>;
   lassoPointsRef: React.MutableRefObject<Point[]>;
+  mousePositionRef: React.MutableRefObject<Point>;
+  activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
+  /** Shared with `useOverlayRenderer` for marching ants while moving selection (unclipped until pointer up). */
+  selectionMoveAntsRef: SelectionMoveAntsRef;
+
+  // ── Canvas element refs ────────────────────────────────────────────
+  // Stable after mount. Used for hit-testing and direct pixel access.
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -70,8 +113,9 @@ export interface UsePointerHandlersParams {
   gizmoCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
-  mousePositionRef: React.MutableRefObject<Point>;
-  activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
+
+  // ── Rendering infrastructure ───────────────────────────────────────
+  // Compositing runtime and layer canvas management. Stable callbacks.
   /** The active SketchRuntime — used for centralized composite readback. */
   runtime: import("../rendering/types").SketchRuntime;
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
@@ -80,6 +124,9 @@ export interface UsePointerHandlersParams {
   redrawDirty: (x: number, y: number, w: number, h: number) => void;
   requestRedraw: () => void;
   requestDirtyRedraw: (x: number, y: number, w: number, h: number) => void;
+
+  // ── Overlay drawing callbacks ──────────────────────────────────────
+  // Provided by `useOverlayRenderer`. Draw into overlay/cursor/gizmo canvases.
   clearOverlay: () => void;
   drawSelectionOverlay: () => void;
   appendSelectionOverlay: () => void;
@@ -91,6 +138,9 @@ export interface UsePointerHandlersParams {
   drawCursor: (clientX: number, clientY: number) => void;
   clearGizmo: () => void;
   drawGizmo: (callback: GizmoDrawCallback) => void;
+
+  // ── Store-to-parent event callbacks ────────────────────────────────
+  // Stable callbacks that propagate changes upward to SketchEditor.
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
@@ -116,13 +166,8 @@ export interface UsePointerHandlersParams {
     height: number
   ) => void;
   onEyedropperPick?: (color: string) => void;
-  /** Layer isolation (must match on-screen composite for wand / eyedropper readback). */
-  isolatedLayerId?: string | null;
   onSelectionChange?: (sel: Selection | null) => void;
-  /** Shared with `useOverlayRenderer` for marching ants while moving selection (unclipped until pointer up). */
-  selectionMoveAntsRef: SelectionMoveAntsRef;
   onAutoPickLayer?: (layerId: string) => void;
-  foregroundColor?: string;
   /**
    * Fires when the **primary pointer** leaves the canvas container (layer thumbnails,
    * deferred doc sync). Use pointerleave only — not mouseleave — so stylus input does
@@ -130,6 +175,9 @@ export interface UsePointerHandlersParams {
    * for the logical mouse while the pen tip remains over the canvas).
    */
   onCanvasLeave?: () => void;
+
+  // ── Transient preview callbacks ────────────────────────────────────
+  // Local React state setters for transform preview. Never persisted.
   setLayerTransformPreview?: (layerId: string, transform: LayerTransform) => void;
   clearLayerTransformPreview?: (layerId?: string) => void;
 }
