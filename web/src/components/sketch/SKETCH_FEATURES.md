@@ -208,7 +208,16 @@ These are still real tasks, but they should wait until the Phase 1 groundwork is
 
 ### PHASE 6 - IMPROVE PAINT AND SELECT
 
+- [ ] make a plan for a brush engine
 - [ ] build a more programmable/extensible brush system on top of the shared paint/session seams
+- [ ] brush engine: webgpu shaders, physics, fluids, particles, ...
+- [ ] brush engine idea: google museum close up of brushes to sample from
+- [ ] brush engine: modal with grid selection for brushes and area / toggle to test brushes quickly on a test canvas
+- [ ] brush engine: add speed param to shapee brush width - faster = thinner
+- [ ] brush engine: add feature to shape strokes after finishing a stroke: e.g. fade-in-out thickness / opacity with curve
+
+
+
 - [x] drawing extensions: ADJUSTABLE stabilizer controls to help with drawing less jaggy lines, similar to https://github.com/steveruizok/perfect-freehand. one implementation that all drawing tools can use.
 - [ ] brush extensions: smudge/color-smudge
 - [ ] define the first narrow goal for lit / PBR-style brushes once the WebGPU runtime and FX pipeline are stable (for example: one lighting model, one material response, and one expected visual use case)
@@ -216,6 +225,14 @@ These are still real tasks, but they should wait until the Phase 1 groundwork is
 - [ ] build one focused lit / PBR brush prototype only after the goal and intermediate-format decision are explicit
 - [ ] selection transform tools + selection move with (shift) arrow keys. note: do not move layer when selection active
 - [ ] add AI-assisted tools such as healing or segmentation-driven layer creation
+
+
+### PHASE 6.1 - HELPERS
+- [ ] Gizmos: improve gizmo code: refactor, prepare for more features for transform gizmos and brush preview gizmo
+- [ ] add Ruler on top and left with pixel, correct origin to canvas, correct  behaviour on zoom
+- [ ] Guides: add basic guides system that for small auto-appearing guides relative to canvas and layer extends
+
+
 
 ### PHASE 7 - COLOR PALETTES
 
