@@ -15,3 +15,12 @@ export { useCanvasGeometryActions } from "./useCanvasGeometryActions";
 export { useColorActions } from "./useColorActions";
 export { useColorIntentRouter } from "./useColorIntentRouter";
 export { useSegmentation } from "./useSegmentation";
+export { useEditorLifecycle } from "./useEditorLifecycle";
+export { useToolChromeActions } from "./useToolChromeActions";
+export {
+  useHistoryStoreActions,
+  useLayerStoreActions,
+  useCanvasStoreActions,
+  useColorStoreActions,
+  useSessionStoreActions
+} from "./useEditorStoreActions";
