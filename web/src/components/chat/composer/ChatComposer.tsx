@@ -216,7 +216,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
             onChange={handleOnChange}
             onKeyDown={handleKeyDown}
             disabled={isInputDisabled}
-            placeholder="Type a message... (Shift+Enter for new line)"
+            placeholder="Type your message..."
           />
           <div className="composer-footer">
             {toolbarNode}

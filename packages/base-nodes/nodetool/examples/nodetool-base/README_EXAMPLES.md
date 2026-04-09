@@ -48,17 +48,20 @@ This directory contains 24 comprehensive examples demonstrating the capabilities
 
 ## How to Run Examples
 
-These are Python DSL examples that run via the Python bridge. Each example follows the same pattern:
+Each example follows the same pattern:
 
 ```bash
 # From the repository root
-cd packages/base-nodes
+cd nodetool-base
 
 # Run an example
 python -m nodetool.examples.nodetool_base.social_media_sentiment_dsl
 
 # Or directly
-python nodetool/examples/nodetool-base/social_media_sentiment_dsl.py
+python src/nodetool/examples/nodetool-base/social_media_sentiment_dsl.py
+
+# Some examples also provide a Gradio UI (when available)
+python src/nodetool/examples/nodetool-base/social_media_sentiment_dsl.py --gradio
 ```
 
 ## Example Structure
@@ -211,11 +214,8 @@ Recommended order for learning:
 ## Troubleshooting
 
 ### Missing Dependencies
-
-Ensure all npm workspace dependencies are installed:
 ```bash
-npm install
-npm run build:packages
+pip install nodetool-base
 ```
 
 ### API Keys

@@ -8,7 +8,6 @@ import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
 import ResultOverlay from "./ResultOverlay";
-import ResultPreviewStrip from "./ResultPreviewStrip";
 
 interface NodeContentProps {
   id: string;
@@ -23,7 +22,7 @@ interface NodeContentProps {
   status?: string;
   workflowId: string;
   showResultOverlay: boolean;
-  result: unknown;
+  result: any;
   onShowInputs: () => void;
   onShowResults?: () => void;
 }
@@ -143,8 +142,7 @@ const arePropsEqual = (
   // Functions should be stable references, but check them anyway
   if (
     prevProps.onToggleAdvancedFields !== nextProps.onToggleAdvancedFields ||
-    prevProps.onShowInputs !== nextProps.onShowInputs ||
-    prevProps.onShowResults !== nextProps.onShowResults
+    prevProps.onShowInputs !== nextProps.onShowInputs
   ) {
     return false;
   }
@@ -166,8 +164,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
   workflowId,
   showResultOverlay,
   result,
-  onShowInputs,
-  onShowResults
+  onShowInputs
+  // onShowResults is no longer used here but kept in interface for backwards compatibility
 }) => {
   const { handleAddProperty } = useDynamicProperty(
     id,
@@ -298,10 +296,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
-      {/* Show compact result preview when inputs are displayed and result exists */}
-      {!isOutputNode && Boolean(result) && !isEmptyObject(result) && onShowResults && (
-        <ResultPreviewStrip result={result} onClick={onShowResults} />
-      )}
     </Box>
   );
 };

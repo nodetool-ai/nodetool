@@ -255,5 +255,6 @@ If you see too many refetches:
 
 ## See Also
 
-- [WebSocket Server](../../packages/websocket/) — HTTP + WebSocket server implementation
+- [WebSocket API Documentation](https://github.com/nodetool-ai/nodetool-core/blob/main/docs/websocket-api.md)
+- [WebSocket Protocol Documentation](https://github.com/nodetool-ai/nodetool-core/blob/main/docs/websocket-protocol.md)
 - [TanStack Query Documentation](https://tanstack.com/query/latest)

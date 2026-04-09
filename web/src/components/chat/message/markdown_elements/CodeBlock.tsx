@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, memo } from "react";
+import React, { useCallback } from "react";
 import {
   oneDark,
   oneLight
@@ -10,7 +10,6 @@ import {
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
 import { CopyButton } from "../../../ui_primitives/CopyButton";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
-import isEqual from "lodash/isEqual";
 
 interface CodeBlockProps {
   node?: unknown;
@@ -29,7 +28,7 @@ const styles = (_theme: Theme) =>
     }
   });
 
-export const CodeBlock: React.FC<CodeBlockProps> = memo(({
+export const CodeBlock: React.FC<CodeBlockProps> = ({
   node: _node,
   inline,
   className,
@@ -132,6 +131,4 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
       </code>
     );
   }
-}, isEqual);
-
-CodeBlock.displayName = "CodeBlock";
+};

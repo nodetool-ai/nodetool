@@ -197,8 +197,8 @@ npm test -- --coverage
 ### Manual Testing
 ```bash
 # 1. Start backend
-npm run build:packages
-node packages/websocket/dist/server.js
+conda activate nodetool
+nodetool serve --port 7777
 
 # 2. Start frontend
 cd web

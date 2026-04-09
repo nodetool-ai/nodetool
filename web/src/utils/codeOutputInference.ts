@@ -69,9 +69,6 @@ const SANDBOX_GLOBALS = new Set([
   // Non-native APIs
   "_", "dayjs", "cheerio", "csvParse", "validator",
   "fetch", "uuid", "sleep", "getSecret", "workspace",
-  // JS literals that acorn parses as Identifier nodes
-  "undefined", "true", "false", "null", "NaN", "Infinity",
-  "this", "arguments", "globalThis", "self", "window", "document", "process",
   // Code node reserved props
   "code", "timeout", "sync_mode", "state",
   // Sandbox internals

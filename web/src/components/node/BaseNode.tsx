@@ -488,18 +488,19 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     ) {
       setShowResultOverlay(true);
     }
-    // When node completes with result, show results by default
-    // for regular non-output nodes (unless user explicitly opted out).
+    // When node completes with result, respect user's saved preference
+    // for regular non-output nodes.
     else if (
       result &&
       !nodeType.isOutputNode &&
       !nodeType.isConstantNode &&
       status === "completed"
     ) {
-      // Show result overlay by default; only hide if user explicitly chose inputs
-      if (data.showResultPreference !== false) {
+      // Only show result overlay if user has explicitly saved that preference
+      if (data.showResultPreference === true) {
         setShowResultOverlay(true);
       }
+      // Otherwise stay on inputs view (default behavior)
     }
   }, [
     result,
@@ -713,7 +714,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           minHeight: 0,
           width: "100%",
           overflow: "visible", // Allow handles to render outside bounds
-          clipPath: "inset(0 -60px)" // Clip top/bottom, extend left/right for handles and add-button
+          clipPath: "inset(0 -20px)" // Clip top/bottom, extend left/right for handles
         }}
       >
         <NodeContent

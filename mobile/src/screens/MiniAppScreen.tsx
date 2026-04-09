@@ -30,8 +30,9 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   const { workflowId, workflowName } = route.params;
   const [workflow, setWorkflow] = React.useState<Workflow | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  const { colors, shadows } = useTheme();
+  const { colors } = useTheme();
 
+  // Use the workflow runner store
   const runnerStore = useWorkflowRunner(workflowId);
   const state = runnerStore((s) => s.state);
   const statusMessage = runnerStore((s) => s.statusMessage);
@@ -41,6 +42,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   const cancel = runnerStore((s) => s.cancel);
   const cleanup = runnerStore((s) => s.cleanup);
 
+  // Use the new hook for inputs
   const { inputDefinitions, inputValues, updateInputValue } = useMiniAppInputs(workflow);
 
   const isRunning = state === 'running' || state === 'connecting';
@@ -53,7 +55,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
     try {
       setIsLoading(true);
       const data = await apiService.getWorkflow(workflowId);
-      setWorkflow(data ?? null);
+      setWorkflow(data);
     } catch (error) {
       console.error('Failed to load workflow:', error);
       Alert.alert('Error', 'Failed to load mini app. Check your connection and try again.');
@@ -74,6 +76,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   }, [navigation, workflowName]);
 
   const handleRun = async () => {
+    // Validate inputs
     const missingInputs = inputDefinitions.filter(input => {
       const value = inputValues[input.data.name];
       return value === undefined && input.kind !== 'boolean';
@@ -87,6 +90,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
       return;
     }
 
+    // Normalize inputs
     const params = inputDefinitions.reduce<Record<string, unknown>>(
       (accumulator, definition) => {
         const value = inputValues[definition.data.name];
@@ -169,9 +173,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   if (isLoading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.loadingWrap, { backgroundColor: colors.primaryMuted }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading...</Text>
       </View>
     );
@@ -180,12 +182,10 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   if (!workflow) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.errorWrap, { backgroundColor: colors.error + '15' }]}>
-          <Ionicons name="alert-circle-outline" size={36} color={colors.error} />
-        </View>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.error} style={{ marginBottom: 12 }} />
         <Text style={[styles.errorText, { color: colors.error }]}>Failed to load workflow</Text>
         <TouchableOpacity
-          style={[styles.retryButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
+          style={[styles.retryButton, { borderColor: colors.border }]}
           onPress={loadWorkflow}
         >
           <Ionicons name="refresh-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
@@ -205,24 +205,16 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
       >
         {/* Description */}
         {workflow.description ? (
-          <View style={[styles.descriptionCard, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
-            <Ionicons name="information-circle-outline" size={18} color={colors.primary} style={{ marginRight: 8, marginTop: 1 }} />
-            <Text style={[styles.description, { color: colors.textSecondary }]}>
-              {workflow.description}
-            </Text>
-          </View>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
+            {workflow.description}
+          </Text>
         ) : null}
 
         {/* Inputs Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIconWrap, { backgroundColor: colors.primaryMuted }]}>
-              <Ionicons name="create-outline" size={16} color={colors.primary} />
-            </View>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Inputs</Text>
-          </View>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Inputs</Text>
           {inputDefinitions.length === 0 ? (
-            <Text style={[styles.noInputsText, { color: colors.textTertiary }]}>This mini app has no inputs</Text>
+            <Text style={[styles.noInputsText, { color: colors.textSecondary }]}>This mini app has no inputs</Text>
           ) : (
             inputDefinitions.map((def) => (
               <PropertyRenderer
@@ -239,22 +231,20 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
         <TouchableOpacity
           style={[
             styles.runButton,
-            shadows.medium,
             { backgroundColor: isRunning ? colors.error : colors.primary },
             (isLoading) && styles.runButtonDisabled
           ]}
           onPress={isRunning ? cancel : handleRun}
           disabled={isLoading}
-          activeOpacity={0.8}
         >
           {isRunning ? (
             <View style={styles.buttonRow}>
-              <ActivityIndicator color="#fff" size="small" style={{ marginRight: 10 }} />
+              <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
               <Text style={styles.runButtonText}>Cancel</Text>
             </View>
           ) : (
             <View style={styles.buttonRow}>
-              <Ionicons name="play" size={18} color="#fff" style={{ marginRight: 10 }} />
+              <Ionicons name="play" size={20} color="#fff" style={{ marginRight: 8 }} />
               <Text style={styles.runButtonText}>Run Mini App</Text>
             </View>
           )}
@@ -264,14 +254,11 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
         {(isCompleted || isError) && (
           <View style={[
             styles.statusBanner,
-            {
-              backgroundColor: isCompleted ? colors.success + '12' : colors.error + '12',
-              borderColor: isCompleted ? colors.success + '30' : colors.error + '30',
-            }
+            { backgroundColor: isCompleted ? colors.success + '15' : colors.error + '15' }
           ]}>
             <Ionicons
               name={isCompleted ? 'checkmark-circle' : 'alert-circle'}
-              size={20}
+              size={18}
               color={isCompleted ? colors.success : colors.error}
             />
             <Text style={[
@@ -283,15 +270,10 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
           </View>
         )}
 
-        {/* Execution Logs */}
+        {/* Execution Logs - Show while running */}
         {isRunning && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIconWrap, { backgroundColor: colors.primaryMuted }]}>
-                <Ionicons name="terminal-outline" size={16} color={colors.primary} />
-              </View>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Execution</Text>
-            </View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Execution</Text>
             {statusMessage && (
               <Text style={[styles.statusText, { color: colors.primary }]}>{statusMessage}</Text>
             )}
@@ -300,7 +282,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
                 data={logs}
                 keyExtractor={(_item, index) => `log-${index}`}
                 renderItem={({ item: log }) => (
-                  <Text style={[styles.terminalText, { color: colors.textSecondary }]}>
+                  <Text style={[styles.terminalText, { color: colors.text }]}>
                     <Text style={[styles.terminalPrompt, { color: colors.primary }]}>{'> '}</Text>
                     {log}
                   </Text>
@@ -317,12 +299,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
         {/* Results Section */}
         {!isRunning && formattedResults.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIconWrap, { backgroundColor: colors.success + '15' }]}>
-                <Ionicons name="sparkles-outline" size={16} color={colors.success} />
-              </View>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Results</Text>
-            </View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Results</Text>
             <MiniAppResults results={formattedResults} />
           </View>
         )}
@@ -339,51 +316,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 32,
-  },
-  descriptionCard: {
-    flexDirection: 'row',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   description: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 20,
   },
   section: {
     marginBottom: 24,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  sectionIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    letterSpacing: -0.3,
+    marginBottom: 16,
   },
   runButton: {
     padding: 16,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     marginBottom: 16,
   },
@@ -396,18 +352,16 @@ const styles = StyleSheet.create({
   },
   runButtonText: {
     color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+    fontSize: 18,
+    fontWeight: '600',
   },
   statusBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 12,
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 16,
-    gap: 10,
-    borderWidth: 1,
+    gap: 8,
   },
   statusBannerText: {
     fontSize: 14,
@@ -417,37 +371,22 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 10,
-  },
-  loadingWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   loadingText: {
-    fontSize: 15,
-  },
-  errorWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    marginTop: 12,
+    fontSize: 16,
   },
   errorText: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '600',
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     marginTop: 16,
   },
@@ -456,11 +395,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   noInputsText: {
-    fontSize: 14,
+    fontSize: 16,
     fontStyle: 'italic',
   },
   terminalContainer: {
-    borderRadius: 10,
+    borderRadius: 8,
     padding: 12,
     borderWidth: 1,
     height: 200,
@@ -469,7 +408,6 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontSize: 12,
     marginBottom: 4,
-    lineHeight: 18,
   },
   terminalPrompt: {
     fontWeight: 'bold',

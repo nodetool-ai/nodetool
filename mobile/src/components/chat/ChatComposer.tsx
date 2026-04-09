@@ -49,13 +49,15 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 }) => {
   const [text, setText] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
-  const { colors, shadows } = useTheme();
+  const { colors } = useTheme();
   const { droppedFiles, addDroppedFiles, removeFile, clearFiles, getFileContents } = useFileHandling();
 
+  // Use external files if provided, otherwise use internal state
   const files = externalFiles ?? droppedFiles;
   const hasFiles = files.length > 0;
 
   const isGenerating = status === 'loading' || status === 'streaming';
+  // Never disable - messages are always queued by globalWebSocketManager
   const canSend = !disabled && (text.trim().length > 0 || hasFiles);
 
   const handleSend = useCallback(() => {
@@ -64,11 +66,13 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     const trimmedText = text.trim();
     const content: MessageContent[] = [];
 
+    // Add file contents first
     if (hasFiles) {
       const fileContents = getFileContents();
       content.push(...fileContents);
     }
 
+    // Add text content if present
     if (trimmedText) {
       content.push({
         type: 'text',
@@ -79,6 +83,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     onSendMessage(content, trimmedText);
     setText('');
 
+    // Clear files
     if (externalFiles && onExternalFilesChange) {
       onExternalFilesChange([]);
     } else {
@@ -101,6 +106,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   }, [externalFiles, onExternalFilesChange, removeFile]);
 
+  // Helper to add files to the appropriate state
   const addFilesToState = useCallback((newFiles: DroppedFile[]) => {
     if (externalFiles && onExternalFilesChange) {
       onExternalFilesChange([...externalFiles, ...newFiles]);
@@ -109,14 +115,18 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   }, [externalFiles, onExternalFilesChange, addDroppedFiles]);
 
+  // Handle attachment button press
   const handleAttachmentPress = useCallback(() => {
     if (onAttachmentPress) {
+      // Use parent-provided handler
       onAttachmentPress();
     } else {
+      // Show built-in attachment menu
       setShowAttachmentMenu(true);
     }
   }, [onAttachmentPress]);
 
+  // Launch camera to take a photo
   const handleTakePhoto = useCallback(async () => {
     setShowAttachmentMenu(false);
 
@@ -145,6 +155,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   }, [addFilesToState]);
 
+  // Pick image from photo library
   const handlePickImage = useCallback(async () => {
     setShowAttachmentMenu(false);
 
@@ -163,7 +174,9 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
 
     if (Platform.OS === 'ios' && __DEV__) {
-      console.warn('[handlePickImage] iOS Simulator detected - image picker may hang without photos');
+      console.warn('[handlePickImage] ⚠️ iOS Simulator detected! The image picker may hang if:');
+      console.warn('  1. The simulator has no photos - drag images into the Photos app first');
+      console.warn('  2. The Photos app has never been opened in this simulator');
     }
     try {
       const pickerOptions: ImagePicker.ImagePickerOptions = {
@@ -175,7 +188,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
       if (!result.canceled && result.assets.length > 0) {
-        const newFiles: DroppedFile[] = result.assets.map((asset) => {
+        const newFiles: DroppedFile[] = result.assets.map((asset, _index) => {
           const mimeType = asset.mimeType || 'image/jpeg';
           const dataUri = asset.base64
             ? `data:${mimeType};base64,${asset.base64}`
@@ -186,17 +199,19 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             type: mimeType,
             size: asset.fileSize || 0,
             uri: asset.uri,
-            dataUri: dataUri,
+            dataUri: dataUri, // This is what will be sent to the server
           };
           return file;
         });
         addFilesToState(newFiles);
+      } else {
       }
     } catch (error) {
       console.error('[handlePickImage] Error launching picker:', error);
     }
   }, [addFilesToState]);
 
+  // Pick document files
   const handlePickDocument = useCallback(async () => {
     setShowAttachmentMenu(false);
 
@@ -216,12 +231,16 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   }, [addFilesToState]);
 
-  const inputContainerBg = (colors.background === '#F8F6F3' || colors.background === '#FFFFFF')
-    ? 'rgba(0,0,0,0.04)'
-    : 'rgba(255, 255, 255, 0.06)';
+  const getPlaceholder = () => {
+    return 'Type a message...';
+  };
+
+  const inputContainerBg = (colors.background === '#FAF7F2' || colors.background === '#FFFFFF')
+    ? 'rgba(0,0,0,0.05)'
+    : 'rgba(255, 255, 255, 0.08)';
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surfaceHeader, borderTopColor: colors.borderLight }]}>
+    <View style={[styles.container, { backgroundColor: colors.surfaceHeader, borderTopColor: colors.border }]}>
       {/* File previews */}
       {hasFiles && (
         <ScrollView
@@ -241,7 +260,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       )}
 
       <View style={[styles.inputContainer, { backgroundColor: inputContainerBg }]}>
-        {/* Attachment button */}
+        {/* Attachment button - always visible */}
         <TouchableOpacity
           style={styles.attachButton}
           onPress={handleAttachmentPress}
@@ -250,9 +269,9 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           accessibilityRole="button"
         >
           <Ionicons
-            name="add-circle-outline"
+            name="attach"
             size={24}
-            color={disabled ? colors.textTertiary : colors.textSecondary}
+            color={disabled ? colors.textSecondary : colors.primary}
           />
         </TouchableOpacity>
 
@@ -260,8 +279,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           style={[styles.input, { color: colors.text }]}
           value={text}
           onChangeText={setText}
-          placeholder="Type a message..."
-          placeholderTextColor={colors.textTertiary}
+          placeholder={getPlaceholder()}
+          placeholderTextColor={colors.textSecondary}
           multiline
           maxLength={10000}
           editable={!disabled}
@@ -276,7 +295,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             activeOpacity={0.7}
             testID="stop-button"
           >
-            <Ionicons name="square" size={14} color="#FFFFFF" />
+            <Ionicons name="square" size={16} color="#FFFFFF" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -290,7 +309,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             activeOpacity={0.7}
             testID="send-button"
           >
-            <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+            <Ionicons name="arrow-up" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         )}
       </View>
@@ -303,58 +322,56 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         onRequestClose={() => setShowAttachmentMenu(false)}
       >
         <View style={styles.modalContainer}>
+          {/* Backdrop - fills space above menu and closes on tap */}
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => setShowAttachmentMenu(false)}
           />
 
-          <View style={[styles.attachmentMenu, shadows.large, { backgroundColor: colors.surface }]}>
-            <View style={[styles.menuHandle, { backgroundColor: colors.border }]} />
+          {/* Menu content - stays at bottom */}
+          <View style={[styles.attachmentMenu, { backgroundColor: colors.surface }]}>
             <Text style={[styles.attachmentMenuTitle, { color: colors.text }]}>
               Add Attachment
             </Text>
 
             <TouchableOpacity
-              style={[styles.attachmentMenuItem, { backgroundColor: colors.primaryLight }]}
+              style={styles.attachmentMenuItem}
               onPress={handleTakePhoto}
               activeOpacity={0.7}
             >
-              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
+              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primary + '20' }]}>
                 <Ionicons name="camera" size={22} color={colors.primary} />
               </View>
               <Text style={[styles.attachmentMenuText, { color: colors.text }]}>
                 Take Photo
               </Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.attachmentMenuItem, { backgroundColor: colors.primaryLight }]}
+              style={styles.attachmentMenuItem}
               onPress={handlePickImage}
               activeOpacity={0.7}
             >
-              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
+              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primary + '20' }]}>
                 <Ionicons name="images" size={22} color={colors.primary} />
               </View>
               <Text style={[styles.attachmentMenuText, { color: colors.text }]}>
                 Photo Library
               </Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.attachmentMenuItem, { backgroundColor: colors.primaryLight }]}
+              style={styles.attachmentMenuItem}
               onPress={handlePickDocument}
               activeOpacity={0.7}
             >
-              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
+              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primary + '20' }]}>
                 <Ionicons name="document" size={22} color={colors.primary} />
               </View>
               <Text style={[styles.attachmentMenuText, { color: colors.text }]}>
                 Choose File
               </Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -378,7 +395,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 1,
   },
   filePreviewContainer: {
     marginBottom: 8,
@@ -389,8 +406,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 22,
-    paddingLeft: 6,
+    borderRadius: 20,
+    paddingLeft: 8,
     paddingRight: 4,
     paddingVertical: 4,
     minHeight: 44,
@@ -410,9 +427,9 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   button: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -420,50 +437,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF453A',
   },
   buttonDisabled: {
-    backgroundColor: 'rgba(128, 128, 128, 0.15)',
+    backgroundColor: 'rgba(128, 128, 128, 0.2)',
     opacity: 0.5,
   },
+  // Attachment menu modal styles
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   attachmentMenu: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 12,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
     paddingHorizontal: 16,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
   },
-  menuHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
   attachmentMenuTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
     textAlign: 'center',
     marginBottom: 16,
-    letterSpacing: -0.3,
   },
   attachmentMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    marginBottom: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
   },
   attachmentMenuIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -471,17 +479,16 @@ const styles = StyleSheet.create({
   attachmentMenuText: {
     fontSize: 16,
     fontWeight: '500',
-    flex: 1,
   },
   attachmentMenuCancel: {
-    marginTop: 8,
+    marginTop: 12,
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: 'center',
   },
   attachmentMenuCancelText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 });
 

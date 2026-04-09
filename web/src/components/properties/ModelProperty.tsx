@@ -16,7 +16,6 @@ import VideoModelSelect from "./VideoModelSelect";
 import Model3DModelSelect from "./Model3DModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
-import ConnectedBadge from "./ConnectedBadge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -181,7 +180,7 @@ const ModelProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {isConnected ? <ConnectedBadge /> : modelSelectComponent}
+      {!isConnected && modelSelectComponent}
     </div>
   );
 };

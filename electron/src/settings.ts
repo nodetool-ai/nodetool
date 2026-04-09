@@ -4,15 +4,8 @@ import fs from "fs";
 import yaml from "js-yaml";
 import { logMessage } from "./logger";
 
-/**
- * Settings record type with string keys and unknown values.
- * Values are typed as unknown to allow consumers to type-narrow them
- * based on their specific structure.
- */
-type SettingsRecord = Record<string, unknown>;
-
 // Add cache at the module level
-let settingsCache: SettingsRecord | null = null;
+let settingsCache: Record<string, any> | null = null;
 
 const START_LLAMA_CPP_ON_STARTUP_KEY = "START_LLAMA_CPP_ON_STARTUP";
 
@@ -38,7 +31,7 @@ export function getModelServiceStartupDefaults(
 }
 
 export function getModelServiceStartupSettings(
-  settings?: SettingsRecord
+  settings?: Record<string, any>
 ): ModelServiceStartupSettings {
   const source = settings ?? readSettings();
   const defaults = getModelServiceStartupDefaults(source["MODEL_BACKEND"]);
@@ -113,7 +106,7 @@ function getAppConfigPath(filename: string): string {
  * @returns {Object} Settings object
  * @throws {Error} If reading or parsing fails
  */
-function readSettings(): SettingsRecord {
+function readSettings(): Record<string, any> {
   try {
     // Return cached settings if available
     if (settingsCache !== null) {
@@ -131,7 +124,7 @@ function readSettings(): SettingsRecord {
     logMessage(`Reading settings from ${settingsPath}`);
     const fileContents = fs.readFileSync(settingsPath, "utf8");
 
-    settingsCache = (yaml.load(fileContents) as SettingsRecord) || {};
+    settingsCache = (yaml.load(fileContents) as Record<string, any>) || {};
     logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 
     return settingsCache;
@@ -147,10 +140,10 @@ function readSettings(): SettingsRecord {
 
 /**
  * Reads settings from cache or YAML file asynchronously
- * @returns {Promise<SettingsRecord>} Settings object
+ * @returns {Promise<Record<string, any>>} Settings object
  * @throws {Error} If reading or parsing fails
  */
-async function readSettingsAsync(): Promise<SettingsRecord> {
+async function readSettingsAsync(): Promise<Record<string, any>> {
   try {
     // Return cached settings if available
     if (settingsCache !== null) {
@@ -170,7 +163,7 @@ async function readSettingsAsync(): Promise<SettingsRecord> {
     logMessage(`Reading settings from ${settingsPath}`);
     const fileContents = await fs.promises.readFile(settingsPath, "utf8");
 
-    settingsCache = (yaml.load(fileContents) as SettingsRecord) || {};
+    settingsCache = (yaml.load(fileContents) as Record<string, any>) || {};
     logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 
     return settingsCache;
@@ -189,7 +182,7 @@ async function readSettingsAsync(): Promise<SettingsRecord> {
  * @param {Object} settings - Settings object to write
  * @throws {Error} If writing fails
  */
-function writeSettings(settings: SettingsRecord): void {
+function writeSettings(settings: Record<string, any>): void {
   try {
     const settingsPath = getAppConfigPath("settings.yaml");
     const yamlString = yaml.dump(settings);
@@ -208,10 +201,10 @@ function writeSettings(settings: SettingsRecord): void {
 /**
  * Updates a single setting field while preserving others
  * @param {string} key - The setting key to update
- * @param {unknown} value - The new value for the setting
+ * @param {any} value - The new value for the setting
  * @throws {Error} If updating fails or key is invalid
  */
-function updateSetting(key: string, value: unknown): SettingsRecord {
+function updateSetting(key: string, value: any): Record<string, any> {
   try {
     if (!key || typeof key !== "string") {
       throw new Error("Invalid setting key provided");
@@ -239,17 +232,13 @@ function updateSetting(key: string, value: unknown): SettingsRecord {
  * @param {Object} settings - Settings object to update
  * @throws {Error} If updating fails or key is invalid
  */
-function updateSettings(settings: Record<string, unknown>): void {
+function updateSettings(settings: Record<string, any>): void {
   try {
     const currentSettings = readSettings();
-    const updatedSettings: SettingsRecord = { ...currentSettings };
-
-    // Only update keys that have defined values
-    for (const [key, value] of Object.entries(settings)) {
-      if (value !== undefined) {
-        updatedSettings[key] = value;
-      }
-    }
+    const updatedSettings = {
+      ...currentSettings,
+      ...settings,
+    };
 
     writeSettings(updatedSettings);
   } catch (error) {

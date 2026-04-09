@@ -11,12 +11,20 @@ This directory contains instructions for various AI coding agents working with t
 
 All AI agents should follow these steps to set up and run E2E tests:
 
-### 1. Build Backend
+### 1. Python Environment Setup
 
 ```bash
-nvm use                    # Activate Node 22
-npm install
-npm run build:packages     # Build all TS packages in dependency order
+# Create environment (first time only)
+conda env create -f environment.yml -n nodetool
+
+# Activate environment
+conda activate nodetool
+
+# Install packages
+uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+
+# Verify
+nodetool --help
 ```
 
 ### 2. Web Dependencies
@@ -35,7 +43,7 @@ npm run test:e2e
 ```
 
 The Playwright configuration automatically:
-- Starts a mock API server on port 4444
+- Starts the nodetool backend server on port 7777
 - Starts the frontend dev server on port 3000
 - Runs all e2e tests
 - Cleans up servers after tests complete
@@ -79,16 +87,22 @@ Refer to the main [AGENTS.md](../../AGENTS.md) for:
 
 ## Common Issues
 
+### Issue: Conda environment not found
+**Solution**: Create the environment first with `conda env create -f environment.yml -n nodetool`
+
+### Issue: nodetool command not found
+**Solution**: Make sure you activated the conda environment: `conda activate nodetool`
+
 ### Issue: Playwright browsers not installed
 **Solution**: Run `npx playwright install chromium` from the `web` directory
 
 ### Issue: E2E tests fail with connection errors
 **Solution**: The Playwright webServer config should auto-start servers. If manual setup is needed:
 ```bash
-# Terminal 1: Start backend
-npm run build:packages && node packages/websocket/dist/server.js
+# Terminal 1
+conda activate nodetool && nodetool serve --port 7777
 
-# Terminal 2: Start frontend
+# Terminal 2
 cd web && npm start
 ```
 
@@ -97,16 +111,19 @@ cd web && npm start
 
 ## CI/CD
 
-The GitHub Actions workflow `.github/workflows/e2e.yml` runs integration tests automatically on:
-- Push to main (when packages/ files change)
-- Pull requests to main (when packages/ files change)
+The GitHub Actions workflow `.github/workflows/e2e.yml` runs e2e tests automatically on:
+- Push to main (when web files change)
+- Pull requests to main (when web files change)
 
 The workflow:
-1. Sets up Node.js 22
-2. Installs npm dependencies
-3. Rebuilds native modules (better-sqlite3)
-4. Builds backend packages
-5. Runs integration tests
+1. Sets up conda environment
+2. Installs Python packages
+3. Sets up Node.js
+4. Installs web dependencies
+5. Installs Playwright browsers
+6. Starts nodetool server
+7. Runs e2e tests
+8. Uploads artifacts on failure
 
 ## Resources
 

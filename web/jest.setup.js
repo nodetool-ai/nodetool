@@ -1,8 +1,9 @@
 // Set timezone to UTC to ensure consistent test results
 process.env.TZ = 'UTC';
 
-// Note: React is imported via standard imports in test files.
-// CJS mode in ts-jest handles the default export properly.
+// Note: In ESM mode, React is imported via standard ES imports in test files
+// The global.React assignment using CommonJS require causes issues with ESM modules
+// Tests should import React directly: import React from "react"
 
 // Mock import.meta for Vite compatibility
 global.import = {

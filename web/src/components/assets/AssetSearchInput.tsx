@@ -51,12 +51,15 @@ const styles = (theme: Theme) =>
     "input[type='text']:focus": {
       backgroundColor: "var(--palette-grey-700)",
       borderColor: "var(--palette-primary-main)",
-      outline: "none"
+      outline: "none",
+      "& + .clear-search-btn": {
+        display: "flex"
+      }
     },
     ".clear-search-btn": {
       position: "absolute",
       cursor: "pointer",
-      display: "flex",
+      display: "none",
       alignItems: "center",
       justifyContent: "center",
       width: "2em",
@@ -66,7 +69,7 @@ const styles = (theme: Theme) =>
       border: 0,
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      transition: "color 0.2s, opacity 0.2s",
+      transition: "color 0.2s",
       padding: 0,
       "& svg": {
         fontSize: "1.4rem"
@@ -79,8 +82,7 @@ const styles = (theme: Theme) =>
         backgroundColor: "transparent"
       },
       "&.disabled": {
-        opacity: 0,
-        pointerEvents: "none"
+        color: theme.vars.palette.grey[500]
       }
     },
     ".search-loading-indicator": {

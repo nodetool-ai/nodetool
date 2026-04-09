@@ -81,9 +81,6 @@ const mockTheme = {
       },
       common: {
         white: "#fff"
-      },
-      action: {
-        disabledBackground: "rgba(0,0,0,0.12)"
       }
     }
   }

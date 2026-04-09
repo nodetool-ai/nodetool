@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   List,
   Typography,
@@ -196,7 +196,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
   );
 };
 
-const RecommendedModels = memo(RecommendedModelsInner);
+const RecommendedModels = React.memo(RecommendedModelsInner);
 RecommendedModels.displayName = 'RecommendedModels';
 
 export default RecommendedModels;

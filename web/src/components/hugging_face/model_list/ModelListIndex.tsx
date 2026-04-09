@@ -3,9 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { Box, CircularProgress, Typography, Button } from "@mui/material";
-import SearchOffIcon from "@mui/icons-material/SearchOff";
-import DownloadIcon from "@mui/icons-material/Download";
+import { Box, CircularProgress, Typography } from "@mui/material";
 import { VariableSizeList as VirtualList } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 
@@ -128,7 +126,6 @@ const ModelListIndex: React.FC = () => {
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
   const filterStatus = useModelManagerStore((state) => state.filterStatus);
-  const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
   const cachePending = useHfCacheStatusStore((state) => state.pending);
@@ -457,59 +454,11 @@ const ModelListIndex: React.FC = () => {
               )}
             </AutoSizer>
           ) : (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "50%",
-                gap: 2,
-                opacity: 0.7
-              }}
-            >
-              {modelSearchTerm ? (
-                <>
-                  <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    No models found for &quot;{modelSearchTerm}&quot;
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Try a different search term or adjust your filters
-                  </Typography>
-                </>
-              ) : filterStatus === "downloaded" ? (
-                <>
-                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    No downloaded models
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Switch to &quot;All&quot; or &quot;Available&quot; to find
-                    models to download
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => setFilterStatus("all")}
-                    sx={{ mt: 1 }}
-                  >
-                    Show all models
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    No models available
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Try adjusting the size filter or selecting a different
-                    category
-                  </Typography>
-                </>
-              )}
-            </Box>
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              {modelSearchTerm
+                ? `No models found for "${modelSearchTerm}"`
+                : "No models available"}
+            </Typography>
           )}
 
           <DeleteModelDialog

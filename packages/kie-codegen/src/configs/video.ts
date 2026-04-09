@@ -169,7 +169,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "KlingAIAvatarStandard",
-      modelId: "kling/ai-avatar-standard",
+      modelId: "kling/v1-avatar-standard",
       title: "Kling AIAvatar Standard",
       description:
         "Generate talking avatar videos using Kuaishou's Kling AI via Kie.ai.\n\n    kie, kling, kuaishou, avatar, video generation, ai, talking-head, lip-sync\n\n    Transforms a photo plus audio track into a lip-synced talking avatar video\n    with natural-looking speech animation and consistent identity.",
@@ -218,7 +218,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "KlingAIAvatarPro",
-      modelId: "kling/ai-avatar-pro",
+      modelId: "kling/v1-avatar-pro",
       title: "Kling AIAvatar Pro",
       description:
         "Generate talking avatar videos using Kuaishou's Kling AI via Kie.ai.\n\n    kie, kling, kuaishou, avatar, video generation, ai, talking-head, lip-sync\n\n    Transforms a photo plus audio track into a lip-synced talking avatar video\n    with natural-looking speech animation and consistent identity.",
@@ -346,7 +346,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "SeedanceV1LiteTextToVideo",
-      modelId: "bytedance/v1-lite-text-to-video",
+      modelId: "seedance/v1-lite-text-to-video",
       title: "Seedance V1 Lite Text To Video",
       description:
         "Bytedance 1.0 - text-to-video-lite via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, text-to-video, lite\n\n    Seedance V1 Lite offers efficient text-to-video generation\n    with good quality and faster processing times.",
@@ -402,7 +402,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "SeedanceV1ProTextToVideo",
-      modelId: "bytedance/v1-pro-text-to-video",
+      modelId: "seedance/v1-pro-text-to-video",
       title: "Seedance V1 Pro Text To Video",
       description: "Bytedance 1.0 - text-to-video-pro via Kie.ai.",
       outputType: "video",
@@ -457,7 +457,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "SeedanceV1LiteImageToVideo",
-      modelId: "bytedance/v1-lite-image-to-video",
+      modelId: "seedance/v1-lite-image-to-video",
       title: "Seedance V1 Lite Image To Video",
       description: "Bytedance 1.0 - image-to-video-lite via Kie.ai.",
       outputType: "video",
@@ -550,7 +550,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "SeedanceV1ProImageToVideo",
-      modelId: "bytedance/v1-pro-image-to-video",
+      modelId: "seedance/v1-pro-image-to-video",
       title: "Seedance V1 Pro Image To Video",
       description: "Bytedance 1.0 - image-to-video-pro via Kie.ai.",
       outputType: "video",
@@ -643,7 +643,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "SeedanceV1ProFastImageToVideo",
-      modelId: "bytedance/v1-pro-fast-image-to-video",
+      modelId: "seedance/v1-pro-fast-image-to-video",
       title: "Seedance V1 Pro Fast Image To Video",
       description: "Bytedance 1.0 - fast-image-to-video-pro via Kie.ai.",
       outputType: "video",
@@ -724,157 +724,7 @@ export const videoConfig: ModuleConfig = {
     },
 
     // -----------------------------------------------------------------------
-    // 12. Seedance2TextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Seedance2TextToVideo",
-      modelId: "bytedance/seedance-2",
-      title: "Seedance 2.0 Text To Video",
-      description:
-        "Generate videos from text using ByteDance's Seedance 2.0 model via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, text-to-video, 2.0\n\n    Seedance 2.0 is a multimodal AI video model optimized for fast and realistic\n    video generation with strong multi-shot consistency and dynamic camera control.\n\n    Use cases:\n    - Generate cinematic videos from text descriptions\n    - Create realistic content with natural motion\n    - Produce videos with optional audio generation",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the video to generate. (3-2500 characters)"
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "Video aspect ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "21:9", "adaptive"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "Video resolution. 480p for faster generation, 720p for balance.",
-          values: ["480p", "720p"]
-        },
-        {
-          name: "duration",
-          type: "int",
-          default: 8,
-          title: "Duration",
-          description: "Video duration in seconds (4, 8, or 12).",
-          values: ["4", "8", "12"]
-        },
-        {
-          name: "generate_audio",
-          type: "bool",
-          default: false,
-          title: "Generate Audio",
-          description: "Whether to generate audio for the video. Enabling audio increases cost."
-        },
-        {
-          name: "web_search",
-          type: "bool",
-          default: false,
-          title: "Web Search",
-          description: "Use online search to enhance generation."
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 13. Seedance2ImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Seedance2ImageToVideo",
-      modelId: "bytedance/seedance-2",
-      title: "Seedance 2.0 Image To Video",
-      description:
-        "Animate images into video using ByteDance's Seedance 2.0 model via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, image-to-video, 2.0\n\n    Seedance 2.0 transforms static images into dynamic videos with realistic motion\n    and temporal consistency. Supports first frame, last frame, and reference images.\n\n    Use cases:\n    - Animate product images or artwork\n    - Create videos from first/last frame images\n    - Generate motion from static scenes",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the video motion. (3-2500 characters)"
-        },
-        {
-          name: "first_frame",
-          type: "image",
-          default: IMAGE_REF,
-          title: "First Frame",
-          description: "First frame image to animate from."
-        },
-        {
-          name: "last_frame",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Last Frame",
-          description: "Last frame image (optional, for first+last frame mode)."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "Video aspect ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "21:9", "adaptive"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "Video resolution. 480p for faster generation, 720p for balance.",
-          values: ["480p", "720p"]
-        },
-        {
-          name: "duration",
-          type: "int",
-          default: 8,
-          title: "Duration",
-          description: "Video duration in seconds (4, 8, or 12).",
-          values: ["4", "8", "12"]
-        },
-        {
-          name: "generate_audio",
-          type: "bool",
-          default: false,
-          title: "Generate Audio",
-          description: "Whether to generate audio for the video. Enabling audio increases cost."
-        },
-        {
-          name: "web_search",
-          type: "bool",
-          default: false,
-          title: "Web Search",
-          description: "Use online search to enhance generation."
-        }
-      ],
-      uploads: [
-        {
-          field: "first_frame",
-          kind: "image",
-          paramName: "first_frame_url"
-        },
-        {
-          field: "last_frame",
-          kind: "image",
-          paramName: "last_frame_url"
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 14. HailuoTextToVideoPro
+    // 12. HailuoTextToVideoPro
     // -----------------------------------------------------------------------
     {
       className: "HailuoTextToVideoPro",
@@ -1114,7 +964,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Kling25TurboImageToVideo",
-      modelId: "kling/v2-5-turbo-image-to-video-pro",
+      modelId: "kling/v2-5-turbo-image-to-video",
       title: "Kling 2.5 Turbo Image To Video",
       description:
         "Generate videos from images using Kuaishou's Kling 2.5 Turbo model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, image-to-video, turbo\n\n    Transforms a static image into a dynamic video while preserving\n    visual style, colors, lighting, and texture.",
@@ -1176,7 +1026,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Sora2ProTextToVideo",
-      modelId: "sora-2-pro-text-to-video",
+      modelId: "sora-2/pro-text-to-video",
       title: "Sora 2 Pro Text To Video",
       description:
         "Generate videos from text using Sora 2 Pro via Kie.ai.\n\n    kie, sora, openai, video generation, ai, text-to-video, pro\n\n    Sora 2 Pro generates high-quality videos from text descriptions\n    with advanced motion and temporal consistency.",
@@ -1224,7 +1074,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Sora2ProImageToVideo",
-      modelId: "sora-2-pro-image-to-video",
+      modelId: "sora-2/pro-image-to-video",
       title: "Sora 2 Pro Image To Video",
       description:
         "Generate videos from images using Sora 2 Pro via Kie.ai.\n\n    kie, sora, openai, video generation, ai, image-to-video, pro\n\n    Sora 2 Pro transforms images into high-quality videos with\n    realistic motion and temporal consistency.",
@@ -1277,7 +1127,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Sora2ProStoryboard",
-      modelId: "sora-2-pro-storyboard",
+      modelId: "sora-2/pro-storyboard",
       title: "Sora 2 Pro Storyboard",
       description:
         "Generate videos from storyboards using Sora 2 Pro via Kie.ai.\n\n    kie, sora, openai, video generation, ai, storyboard, pro\n\n    Sora 2 Pro creates videos from storyboard sequences with\n    consistent characters and scenes across frames.",
@@ -1336,7 +1186,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Sora2TextToVideo",
-      modelId: "sora-2-text-to-video",
+      modelId: "sora-2/text-to-video",
       title: "Sora 2 Text To Video",
       description:
         "Generate videos from text using Sora 2 Standard via Kie.ai.\n\n    kie, sora, openai, video generation, ai, text-to-video, standard\n\n    Sora 2 Standard generates quality videos from text descriptions\n    with efficient processing and good visual quality.",
@@ -1637,7 +1487,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "InfinitalkV1",
-      modelId: "infinitalk/from-audio",
+      modelId: "infinitalk/v1",
       title: "Infinitalk V1",
       description:
         "Generate videos using Infinitalk v1 (image-to-video) via Kie.ai.",
@@ -2189,7 +2039,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "KlingMotionControl",
-      modelId: "kling-2.6/motion-control",
+      modelId: "kling/motion-control",
       title: "Kling 2.6 Motion Control",
       description:
         "Generate videos with motion control using Kuaishou's Kling 2.6 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, motion-control, character-animation, 2.6\n\n    Kling Motion Control generates videos where character actions are guided by a reference video,\n    while the visual appearance is based on a reference image. Perfect for character animation\n    and motion transfer tasks.",
@@ -2246,7 +2096,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Kling21TextToVideo",
-      modelId: "kling/v2-1-master-text-to-video",
+      modelId: "kling/v2-1-text-to-video",
       title: "Kling 2.1 Text To Video",
       description:
         "Generate videos from text using Kuaishou's Kling 2.1 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, text-to-video, 2.1\n\n    Kling 2.1 powers cutting-edge video generation with hyper-realistic motion,\n    advanced physics, and high-resolution outputs up to 1080p.\n\n    Use cases:\n    - Generate high-quality videos from text descriptions\n    - Create dynamic, professional-grade video content\n    - Produce videos with realistic motion and physics",
@@ -2312,7 +2162,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Kling21ImageToVideo",
-      modelId: "kling/v2-1-master-image-to-video",
+      modelId: "kling/v2-1-image-to-video",
       title: "Kling 2.1 Image To Video",
       description:
         "Generate videos from images using Kuaishou's Kling 2.1 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, image-to-video, 2.1\n\n    Kling 2.1 transforms static images into dynamic videos with hyper-realistic\n    motion and advanced physics simulation.\n\n    Use cases:\n    - Animate static images with realistic motion\n    - Create videos from photos and artwork\n    - Produce dynamic content from still images",
@@ -2487,7 +2337,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "WanAnimate",
-      modelId: "wan/2-2-animate-move",
+      modelId: "wan/animate",
       title: "Wan 2.2 Animate",
       description:
         "Generate character animation videos using Alibaba's Wan 2.2 Animate via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, animate, character\n\n    Wan 2.2 Animate generates realistic character videos with motion, expressions,\n    and lighting from static images.\n\n    Use cases:\n    - Animate character images with realistic motion\n    - Create character-driven video content\n    - Produce animated videos from portraits or character art",
@@ -2533,7 +2383,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "WanSpeechToVideo",
-      modelId: "wan/2-2-a14b-speech-to-video-turbo",
+      modelId: "wan/speech-to-video",
       title: "Wan 2.2 Speech To Video",
       description:
         "Generate videos from speech using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, speech-to-video, lip-sync\n\n    Wan 2.2 A14B Turbo Speech to Video turns static images and audio clips\n    into dynamic, expressive videos.\n\n    Use cases:\n    - Create talking head videos from images and audio\n    - Generate lip-synced content for presentations\n    - Produce dynamic videos from voice recordings",
@@ -2573,7 +2423,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Wan22TextToVideo",
-      modelId: "wan/2-2-a14b-text-to-video-turbo",
+      modelId: "wan/2-2-text-to-video",
       title: "Wan 2.2 Text To Video",
       description:
         "Generate videos from text using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, 2.2\n\n    Wan 2.2 A14B Turbo delivers smooth 720p@24fps clips with cinematic quality,\n    stable motion, and consistent visual style.\n\n    Use cases:\n    - Generate high-quality videos from text\n    - Create content for diverse creative uses\n    - Produce consistent video clips with stable motion",
@@ -2622,7 +2472,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Wan22ImageToVideo",
-      modelId: "wan/2-2-a14b-image-to-video-turbo",
+      modelId: "wan/2-2-image-to-video",
       title: "Wan 2.2 Image To Video",
       description:
         "Generate videos from images using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, 2.2\n\n    Wan 2.2 A14B Turbo transforms images into smooth video clips with\n    cinematic quality and stable motion.\n\n    Use cases:\n    - Animate static images with smooth motion\n    - Create videos from photos or artwork\n    - Produce consistent video content from images",
@@ -2668,7 +2518,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Hailuo02TextToVideo",
-      modelId: "hailuo/02-text-to-video-pro",
+      modelId: "hailuo/0-2-text-to-video",
       title: "Hailuo 02 Text To Video",
       description:
         "Generate videos from text using Minimax's Hailuo 02 model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, text-to-video\n\n    Hailuo 02 is Minimax's advanced AI video generation model that produces\n    short, cinematic clips with realistic motion and physics simulation.\n\n    Use cases:\n    - Generate cinematic video clips from text\n    - Create videos with realistic motion and physics\n    - Produce high-quality content up to 1080P",
@@ -2717,7 +2567,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Hailuo02ImageToVideo",
-      modelId: "hailuo/02-image-to-video-pro",
+      modelId: "hailuo/0-2-image-to-video",
       title: "Hailuo 02 Image To Video",
       description:
         "Generate videos from images using Minimax's Hailuo 02 model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, image-to-video\n\n    Hailuo 02 transforms images into cinematic clips with realistic motion\n    and physics simulation.\n\n    Use cases:\n    - Animate images with realistic motion\n    - Create videos from photos with physics simulation\n    - Produce dynamic content from still images",
@@ -2763,7 +2613,7 @@ export const videoConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "Sora2WatermarkRemover",
-      modelId: "sora-watermark-remover",
+      modelId: "sora-2/watermark-remover",
       title: "Sora 2 Watermark Remover",
       description:
         "Remove watermarks from Sora 2 videos using Kie.ai.\n\n    kie, sora, openai, video editing, watermark removal\n\n    Sora 2 Watermark Remover uses AI detection and motion tracking to remove\n    dynamic watermarks from Sora 2 videos while keeping frames smooth and natural.\n\n    Use cases:\n    - Remove watermarks from generated videos\n    - Clean up video content for final output\n    - Prepare videos for professional use",

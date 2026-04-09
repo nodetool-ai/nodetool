@@ -34,7 +34,7 @@ export default function SettingsScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   const [savedIndicator, setSavedIndicator] = useState(false);
-  const { colors, shadows, mode, setTheme } = useTheme();
+  const { colors, mode, setTheme } = useTheme();
 
   useEffect(() => {
     loadSettings();
@@ -107,17 +107,17 @@ export default function SettingsScreen() {
       });
       await testClient.get('/api/workflows/', { params: { limit: 1 } });
 
+      // Auto-save on successful test
       await apiService.saveApiHost(trimmed);
       setApiHost(trimmed);
       setConnectionStatus('success');
       setTimeout(() => setConnectionStatus('idle'), 3000);
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Connection test failed:', error);
       setConnectionStatus('error');
-      const axiosError = error as { code?: string };
-      const detail = axiosError.code === 'ECONNABORTED'
+      const detail = error.code === 'ECONNABORTED'
         ? 'Connection timed out. Is the server running?'
-        : axiosError.code === 'ERR_NETWORK'
+        : error.code === 'ERR_NETWORK'
           ? 'Network error. Check the URL and your connection.'
           : 'Could not reach the server. Verify the URL is correct.';
       Alert.alert('Connection Failed', detail);
@@ -138,9 +138,9 @@ export default function SettingsScreen() {
   const getTestButtonStyle = () => {
     switch (connectionStatus) {
       case 'success':
-        return { backgroundColor: colors.success + '15', borderColor: colors.success };
+        return { backgroundColor: colors.success + '20', borderColor: colors.success };
       case 'error':
-        return { backgroundColor: colors.error + '15', borderColor: colors.error };
+        return { backgroundColor: colors.error + '20', borderColor: colors.error };
       default:
         return { backgroundColor: colors.cardBg, borderColor: colors.border };
     }
@@ -180,21 +180,17 @@ export default function SettingsScreen() {
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Theme Section */}
-      <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.cardIconWrap, { backgroundColor: colors.accentMuted }]}>
-            <Ionicons name="color-palette-outline" size={16} color={colors.accent} />
-          </View>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Appearance</Text>
-        </View>
-        <View style={[styles.themeSwitcher, { backgroundColor: colors.inputBg, borderColor: colors.borderLight }]}>
+      <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+
+      <View style={styles.section}>
+        <Text style={[styles.label, { color: colors.text }]}>Theme</Text>
+        <View style={[styles.themeSwitcher, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
           {(['light', 'dark', 'system'] as const).map((theme) => (
             <TouchableOpacity
               key={theme}
               style={[
                 styles.themeOption,
-                mode === theme && [styles.themeOptionActive, shadows.small, { backgroundColor: colors.primary }]
+                mode === theme && [styles.themeOptionActive, { backgroundColor: colors.primary }]
               ]}
               onPress={() => setTheme(theme)}
               accessibilityRole="button"
@@ -203,9 +199,9 @@ export default function SettingsScreen() {
             >
               <Ionicons
                 name={theme === 'light' ? 'sunny-outline' : theme === 'dark' ? 'moon-outline' : 'phone-portrait-outline'}
-                size={15}
+                size={16}
                 color={mode === theme ? '#fff' : colors.textSecondary}
-                style={{ marginRight: 5 }}
+                style={{ marginRight: 4 }}
               />
               <Text style={[styles.themeOptionText, { color: mode === theme ? '#fff' : colors.textSecondary }]}>
                 {theme.charAt(0).toUpperCase() + theme.slice(1)}
@@ -215,31 +211,25 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* Server Section */}
-      <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.cardIconWrap, { backgroundColor: colors.primaryMuted }]}>
-            <Ionicons name="server-outline" size={16} color={colors.primary} />
-          </View>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Server Connection</Text>
+      <View style={styles.section}>
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, { color: colors.text }]}>API Host</Text>
           {savedIndicator && (
-            <View style={[styles.savedBadge, { backgroundColor: colors.success + '15' }]}>
-              <Ionicons name="checkmark-circle" size={13} color={colors.success} />
+            <View style={styles.savedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color={colors.success} />
               <Text style={[styles.savedText, { color: colors.success }]}>Saved</Text>
             </View>
           )}
         </View>
-
-        <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>API Host</Text>
         <TextInput
-          style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.borderLight }]}
+          style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
           value={apiHost}
           onChangeText={(text) => {
             setApiHost(text);
             setConnectionStatus('idle');
           }}
           placeholder="http://192.168.1.100:7777"
-          placeholderTextColor={colors.textTertiary}
+          placeholderTextColor={colors.textSecondary}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
@@ -247,51 +237,40 @@ export default function SettingsScreen() {
           onSubmitEditing={Keyboard.dismiss}
           accessibilityLabel="API host URL"
         />
-        <Text style={[styles.hint, { color: colors.textTertiary }]}>
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>
           The URL of your NodeTool server (e.g. http://your-ip:7777)
         </Text>
-
-        <View style={styles.buttonGroup}>
-          <TouchableOpacity
-            style={[styles.button, getTestButtonStyle(), { borderWidth: 1, flex: 1 }, connectionStatus === 'testing' && styles.buttonDisabled]}
-            onPress={handleTestConnection}
-            disabled={connectionStatus === 'testing' || isSaving}
-            accessibilityRole="button"
-            accessibilityLabel="Test connection and save"
-          >
-            {getTestButtonContent()}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primary, flex: 1 }, isSaving && styles.buttonDisabled]}
-            onPress={handleSave}
-            disabled={connectionStatus === 'testing' || isSaving}
-            accessibilityRole="button"
-            accessibilityLabel="Save settings"
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={[styles.buttonText, { color: '#fff' }]}>Save Only</Text>
-            )}
-          </TouchableOpacity>
-        </View>
       </View>
 
-      {/* About Section */}
-      <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.cardIconWrap, { backgroundColor: colors.primaryMuted }]}>
-            <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-          </View>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>About</Text>
-        </View>
+      <TouchableOpacity
+        style={[styles.button, getTestButtonStyle(), { borderWidth: 1 }, connectionStatus === 'testing' && styles.buttonDisabled]}
+        onPress={handleTestConnection}
+        disabled={connectionStatus === 'testing' || isSaving}
+        accessibilityRole="button"
+        accessibilityLabel="Test connection and save"
+      >
+        {getTestButtonContent()}
+      </TouchableOpacity>
 
-        <View style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}>
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: colors.primary }, isSaving && styles.buttonDisabled]}
+        onPress={handleSave}
+        disabled={connectionStatus === 'testing' || isSaving}
+        accessibilityRole="button"
+        accessibilityLabel="Save settings"
+      >
+        {isSaving ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={[styles.buttonText, { color: '#fff' }]}>Save Only</Text>
+        )}
+      </TouchableOpacity>
+
+      <View style={[styles.aboutSection, { borderTopColor: colors.border }]}>
+        <Text style={[styles.aboutTitle, { color: colors.text }]}>About</Text>
+        <View style={styles.aboutRow}>
           <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>Version</Text>
-          <View style={[styles.versionBadge, { backgroundColor: colors.primaryMuted }]}>
-            <Text style={[styles.aboutValue, { color: colors.primary }]}>{appVersion}</Text>
-          </View>
+          <Text style={[styles.aboutValue, { color: colors.text }]}>{appVersion}</Text>
         </View>
         <TouchableOpacity
           style={styles.aboutRow}
@@ -302,7 +281,7 @@ export default function SettingsScreen() {
           <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>GitHub</Text>
           <View style={styles.aboutLink}>
             <Text style={[styles.aboutValue, { color: colors.primary }]}>nodetool-ai/nodetool</Text>
-            <Ionicons name="open-outline" size={13} color={colors.primary} style={{ marginLeft: 4 }} />
+            <Ionicons name="open-outline" size={14} color={colors.primary} style={{ marginLeft: 4 }} />
           </View>
         </TouchableOpacity>
       </View>
@@ -313,79 +292,59 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 30,
   },
-  card: {
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: StyleSheet.hairlineWidth,
+  section: {
+    marginBottom: 25,
   },
-  cardHeader: {
+  labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  cardIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    flex: 1,
-    letterSpacing: -0.2,
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   savedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
   },
   savedText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  inputLabel: {
     fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontWeight: '500',
   },
   input: {
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    fontSize: 15,
+    padding: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 16,
   },
   hint: {
-    fontSize: 13,
+    fontSize: 14,
     marginTop: 6,
-    marginBottom: 14,
   },
-  buttonGroup: {
-    flexDirection: 'row',
-    gap: 10,
+  scrollContent: {
+    paddingBottom: 40,
   },
   button: {
-    padding: 14,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 8,
     alignItems: 'center',
+    marginBottom: 12,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -398,36 +357,40 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   buttonText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
+  },
+  aboutSection: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+  },
+  aboutTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
   },
   aboutRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 10,
   },
   aboutLabel: {
     fontSize: 15,
   },
   aboutValue: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
   },
   aboutLink: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  versionBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
   themeSwitcher: {
     flexDirection: 'row',
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+    borderWidth: 1,
     padding: 4,
   },
   themeOption: {
@@ -436,12 +399,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 9,
+    borderRadius: 6,
   },
   themeOptionActive: {
   },
   themeOptionText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

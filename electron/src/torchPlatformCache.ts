@@ -1,6 +1,6 @@
 import { readSettings, updateSetting, readSettingsAsync } from "./settings";
 import { logMessage } from "./logger";
-import type { TorchruntimeDetectionResult, TorchPlatform } from "./torchruntime";
+import type { TorchruntimeDetectionResult } from "./torchruntime";
 
 const TORCH_PLATFORM_SETTING_KEY = "TORCH_PLATFORM_DETECTED";
 
@@ -17,26 +17,22 @@ export function getSavedTorchPlatform(): TorchruntimeDetectionResult | null {
       return null;
     }
 
-    // Type guard: validate saved is an object with expected properties
-    const savedObj = saved as Record<string, unknown>;
-
     // Validate the saved data has required fields
     if (
-      typeof savedObj.platform !== "string" ||
-      (savedObj.indexUrl !== null && typeof savedObj.indexUrl !== "string")
+      typeof saved.platform !== "string" ||
+      (saved.indexUrl !== null && typeof saved.indexUrl !== "string")
     ) {
       logMessage("Invalid torch platform data in settings, ignoring", "warn");
       return null;
     }
 
     return {
-      platform: savedObj.platform as TorchPlatform,
-      indexUrl: savedObj.indexUrl,
-      error: savedObj.error as string | undefined,
+      platform: saved.platform,
+      indexUrl: saved.indexUrl,
+      error: saved.error,
     };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logMessage(`Failed to read saved torch platform: ${message}`, "warn");
+  } catch (error: any) {
+    logMessage(`Failed to read saved torch platform: ${error.message}`, "warn");
     return null;
   }
 }
@@ -54,26 +50,22 @@ export async function getSavedTorchPlatformAsync(): Promise<TorchruntimeDetectio
       return null;
     }
 
-    // Type guard: validate saved is an object with expected properties
-    const savedObj = saved as Record<string, unknown>;
-
     // Validate the saved data has required fields
     if (
-      typeof savedObj.platform !== "string" ||
-      (savedObj.indexUrl !== null && typeof savedObj.indexUrl !== "string")
+      typeof saved.platform !== "string" ||
+      (saved.indexUrl !== null && typeof saved.indexUrl !== "string")
     ) {
       logMessage("Invalid torch platform data in settings, ignoring", "warn");
       return null;
     }
 
     return {
-      platform: savedObj.platform as TorchPlatform,
-      indexUrl: savedObj.indexUrl,
-      error: savedObj.error as string | undefined,
+      platform: saved.platform,
+      indexUrl: saved.indexUrl,
+      error: saved.error,
     };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logMessage(`Failed to read saved torch platform: ${message}`, "warn");
+  } catch (error: any) {
+    logMessage(`Failed to read saved torch platform: ${error.message}`, "warn");
     return null;
   }
 }
@@ -124,8 +116,7 @@ export function saveTorchPlatform(result: TorchruntimeDetectionResult): void {
       error: result.error,
     });
     logMessage(`Saved torch platform: ${result.platform}`);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logMessage(`Failed to save torch platform: ${message}`, "error");
+  } catch (error: any) {
+    logMessage(`Failed to save torch platform: ${error.message}`, "error");
   }
 }

@@ -36,9 +36,7 @@ export default function App() {
   if (!isReady) {
     return (
       <View style={[splashStyles.container, { backgroundColor: colors.background }]}>
-        <View style={[splashStyles.iconWrap, { backgroundColor: colors.primaryMuted }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[splashStyles.text, { color: colors.textSecondary }]}>Loading...</Text>
       </View>
     );
@@ -57,11 +55,8 @@ export default function App() {
               },
               headerTintColor: colors.text,
               headerTitleStyle: {
-                fontWeight: '700',
-                fontSize: 17,
+                fontWeight: 'bold',
               },
-              headerShadowVisible: false,
-              headerBackTitle: '',
               contentStyle: {
                 backgroundColor: colors.background,
               },
@@ -108,15 +103,8 @@ const splashStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
   text: {
-    fontSize: 15,
+    marginTop: 12,
+    fontSize: 16,
   },
 });

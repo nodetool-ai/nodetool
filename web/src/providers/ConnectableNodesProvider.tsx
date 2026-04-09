@@ -3,7 +3,7 @@
  * Handles node filtering, menu visibility, and connection metadata for the node connection interface.
  */
 
-import { createContext, useState, useCallback, useMemo, ReactNode } from "react";
+import { createContext, useState, useCallback, ReactNode } from "react";
 import { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
 import {
   filterTypesByInputType,
@@ -34,20 +34,19 @@ export function ConnectableNodesProvider({
   const [targetHandle, setTargetHandle] = useState<string | null>(null);
   const [nodeId, setNodeId] = useState<string | null>(null);
 
-  const cachedConnectableNodes = useMemo(() => {
+  const getConnectableNodes = useCallback(() => {
     const metadata = useMetadataStore.getState().metadata;
-    if (!typeMetadata || !filterType) return [];
-    const allNodes = Object.values(metadata);
-    if (filterType === "input") {
-      return filterTypesByInputType(allNodes, typeMetadata);
-    }
-    return filterTypesByOutputType(allNodes, typeMetadata);
-  }, [typeMetadata, filterType]);
 
-  const getConnectableNodes = useCallback(
-    () => cachedConnectableNodes,
-    [cachedConnectableNodes]
-  );
+    if (!typeMetadata || !filterType) {
+      return [];
+    }
+
+    if (filterType === "input") {
+      return filterTypesByInputType(Object.values(metadata), typeMetadata);
+    } else {
+      return filterTypesByOutputType(Object.values(metadata), typeMetadata);
+    }
+  }, [typeMetadata, filterType]);
 
   const showMenu = useCallback(
     (position: { x: number; y: number }) => {

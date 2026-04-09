@@ -38,7 +38,6 @@ describe("downloadPreviewAssets", () => {
         previewValue: { data: "test" },
       });
     } catch (_e) {
-      // expected
     }
 
     expect(mockCreateAssetFile).toHaveBeenCalledWith({ data: "test" }, "test-node");
@@ -54,7 +53,6 @@ describe("downloadPreviewAssets", () => {
         rawResult: { output: "raw output" },
       });
     } catch (_e) {
-      // expected
     }
 
     expect(mockCreateAssetFile).toHaveBeenCalledWith("raw output", "test-node");
@@ -70,7 +68,6 @@ describe("downloadPreviewAssets", () => {
         rawResult: "raw result string",
       });
     } catch (_e) {
-      // expected
     }
 
     expect(mockCreateAssetFile).toHaveBeenCalledWith("raw result string", "test-node");
@@ -87,7 +84,6 @@ describe("downloadPreviewAssets", () => {
         rawResult: { output: "raw output" },
       });
     } catch (_e) {
-      // expected
     }
 
     expect(mockCreateAssetFile).toHaveBeenCalledWith("preview value", "test-node");
