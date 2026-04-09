@@ -670,12 +670,12 @@ export class DocumentLibNode extends BaseNode {
   };
 
   @prop({
-    type: "union[str, svg_element, list[svg_element]]",
+    type: "list[svg_element]",
     default: [],
-    title: "Content",
-    description: "SVG content"
+    title: "Elements",
+    description: "List of SVG elements"
   })
-  declare content: any;
+  declare elements: any;
 
   @prop({
     type: "int",
@@ -706,7 +706,7 @@ export class DocumentLibNode extends BaseNode {
   declare viewBox: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const content = normalizeContent(this.content ?? []);
+    const content = normalizeContent(this.elements ?? []);
     const width = Number(this.width ?? 800);
     const height = Number(this.height ?? 600);
     const viewBox = String(this.viewBox ?? "0 0 800 600");
@@ -725,12 +725,12 @@ export class SVGToImageLibNode extends BaseNode {
   };
 
   @prop({
-    type: "union[str, svg_element, list[svg_element]]",
+    type: "list[svg_element]",
     default: [],
-    title: "Content",
-    description: "SVG content"
+    title: "Elements",
+    description: "List of SVG elements"
   })
-  declare content: any;
+  declare elements: any;
 
   @prop({
     type: "int",
@@ -772,7 +772,7 @@ export class SVGToImageLibNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const sharp = (await import("sharp")).default;
-    const content = normalizeContent(this.content ?? []);
+    const content = normalizeContent(this.elements ?? []);
     const width = Number(this.width ?? 800);
     const height = Number(this.height ?? 600);
     const scale = Number(this.scale ?? 1);

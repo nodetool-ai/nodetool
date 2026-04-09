@@ -35,7 +35,7 @@ describe("SVGToImage rasterization regression", () => {
   it("produces PNG output (image/png), not raw SVG", async () => {
     const node = new SVGToImageLibNode();
     node.assign({
-      content: '<rect width="100" height="50" fill="#ff0000" />',
+      elements: [{ name: "rect", attributes: { width: "100", height: "50", fill: "#ff0000" } }],
       width: 100,
       height: 50,
       viewBox: "0 0 100 50",
@@ -63,7 +63,7 @@ describe("SVGToImage rasterization regression", () => {
   it("respects scale factor in output dimensions", async () => {
     const node = new SVGToImageLibNode();
     node.assign({
-      content: '<circle cx="50" cy="50" r="40" fill="blue" />',
+      elements: [{ name: "circle", attributes: { cx: "50", cy: "50", r: "40", fill: "blue" } }],
       width: 100,
       height: 100,
       viewBox: "0 0 100 100",
@@ -80,10 +80,7 @@ describe("SVGToImage rasterization regression", () => {
   it("accepts SVG element objects as content", async () => {
     const node = new SVGToImageLibNode();
     node.assign({
-      content: {
-        name: "rect",
-        attributes: { width: "50", height: "50", fill: "green" }
-      },
+      elements: [{ name: "rect", attributes: { width: "50", height: "50", fill: "green" } }],
       width: 100,
       height: 100,
       viewBox: "0 0 100 100",
