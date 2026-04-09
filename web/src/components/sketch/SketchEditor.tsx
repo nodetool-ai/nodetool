@@ -1093,7 +1093,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     handleTransformCommit: canvasActions.handleTransformCommit,
     handleTransformCancel: canvasActions.handleTransformCancel,
     handleTransformUndo: canvasActions.handleTransformUndo,
-    handleTransformRedo: canvasActions.handleTransformRedo
+    handleTransformRedo: canvasActions.handleTransformRedo,
+    handleLayerViaCopy,
+    handleLayerViaCut
   });
 
   // ─── Imperative handle for modal header actions ─────────────────────
