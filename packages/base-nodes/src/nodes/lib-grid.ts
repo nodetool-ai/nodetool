@@ -16,7 +16,7 @@ function toImageRef(buf: Buffer): Record<string, unknown> {
   return {
     type: "image",
     data: buf.toString("base64"),
-    mime_type: "image/png"
+    mimeType: "image/png"
   };
 }
 
