@@ -3,6 +3,119 @@ import type { NodeClass } from "@nodetool/node-sdk";
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 
+/**
+ * Minimum audio duration in seconds for OpenAI transcription.
+ * Shorter clips are rejected with "Audio file might be corrupted".
+ * We accumulate PCM chunks until we reach this threshold, then
+ * transcribe the whole buffer and clear it.
+ */
+const MIN_TRANSCRIPTION_SECONDS = 0.5;
+
+/** Per-node PCM accumulation buffers for realtime transcription. */
+const _pcmBuffers = new Map<string, Buffer[]>();
+const _pcmBufferMeta = new Map<
+  string,
+  { sampleRate: number; channels: number }
+>();
+
+/**
+ * Accumulate raw PCM and transcribe once we have enough audio.
+ * Returns the transcription text, or "" if still accumulating.
+ * Pass `flush: true` on the final chunk (done=true) to force
+ * transcription of whatever is buffered.
+ */
+async function accumulateAndTranscribe(opts: {
+  nodeId: string;
+  pcm: Buffer;
+  sampleRate: number;
+  channels: number;
+  flush: boolean;
+  apiKey: string;
+  model: string;
+  prompt?: string;
+}): Promise<string> {
+  const { nodeId, pcm, sampleRate, channels, flush, apiKey, model, prompt } =
+    opts;
+
+  // Accumulate
+  if (!_pcmBuffers.has(nodeId)) {
+    _pcmBuffers.set(nodeId, []);
+  }
+  _pcmBuffers.get(nodeId)!.push(pcm);
+  _pcmBufferMeta.set(nodeId, { sampleRate, channels });
+
+  // Check total buffered duration
+  const totalBytes = _pcmBuffers
+    .get(nodeId)!
+    .reduce((sum, b) => sum + b.length, 0);
+  const totalSeconds = totalBytes / (sampleRate * channels * 2);
+
+  if (!flush && totalSeconds < MIN_TRANSCRIPTION_SECONDS) {
+    return "";
+  }
+
+  // Drain buffer
+  const chunks = _pcmBuffers.get(nodeId) ?? [];
+  _pcmBuffers.delete(nodeId);
+  _pcmBufferMeta.delete(nodeId);
+
+  if (chunks.length === 0) return "";
+  const merged = Buffer.concat(chunks);
+  if (merged.length === 0) return "";
+
+  // Need at least ~100ms for OpenAI to accept
+  const minBytes = Math.ceil(0.1 * sampleRate * channels * 2);
+  if (merged.length < minBytes) return "";
+
+  const wavBytes = wrapPcm16InWav(merged, sampleRate, channels);
+  const formData = new FormData();
+  formData.append("file", new Blob([Buffer.from(wavBytes)]), "audio.wav");
+  formData.append("model", model);
+  if (prompt) formData.append("prompt", prompt);
+
+  const res = await fetch(`${OPENAI_API_BASE}/audio/transcriptions`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: formData
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenAI transcription error ${res.status}: ${err}`);
+  }
+  const data = (await res.json()) as { text?: string };
+  return data.text ?? "";
+}
+
+/** Wrap raw PCM16LE samples in a valid WAV container. */
+function wrapPcm16InWav(
+  pcm: Buffer | Uint8Array,
+  sampleRate: number,
+  channels: number
+): Uint8Array {
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * channels * (bitsPerSample / 8);
+  const blockAlign = channels * (bitsPerSample / 8);
+  const dataSize = pcm.length;
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + dataSize, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16); // fmt chunk size
+  header.writeUInt16LE(1, 20); // PCM format
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(dataSize, 40);
+  const wav = new Uint8Array(44 + dataSize);
+  wav.set(header, 0);
+  wav.set(pcm, 44);
+  return wav;
+}
+
 function getApiKey(secrets: Record<string, string>): string {
   const key = secrets.OPENAI_API_KEY || process.env.OPENAI_API_KEY || "";
   if (!key) throw new Error("OPENAI_API_KEY is not configured");
@@ -932,31 +1045,28 @@ export class RealtimeAgentNode extends BaseNode {
     const model = String(this.model ?? "gpt-4o-mini-realtime-preview");
     const chunk = (this.chunk ?? {}) as Record<string, unknown>;
 
+    const nodeId = (this as any).__node_id ?? "realtime-agent";
     let userText = "";
     if (typeof chunk.content === "string" && chunk.content) {
       if (chunk.content_type === "audio") {
-        const formData = new FormData();
-        const audioBytes = Buffer.from(chunk.content, "base64");
-        formData.append("file", new Blob([audioBytes]), "audio.wav");
-        formData.append("model", "gpt-4o-mini-transcribe");
-        const transcription = await fetch(
-          `${OPENAI_API_BASE}/audio/transcriptions`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${apiKey}` },
-            body: formData
-          }
-        );
-        if (!transcription.ok) {
-          const err = await transcription.text();
-          throw new Error(
-            `OpenAI realtime transcription error ${transcription.status}: ${err}`
-          );
+        const rawPcm = Buffer.from(chunk.content, "base64");
+        const meta = (chunk.content_metadata ?? {}) as Record<string, unknown>;
+        const sr = Number(meta.sample_rate ?? 24000);
+        const ch = Number(meta.channels ?? 1);
+        const isDone = chunk.done === true;
+        userText = await accumulateAndTranscribe({
+          nodeId,
+          pcm: rawPcm,
+          sampleRate: sr,
+          channels: ch,
+          flush: isDone,
+          apiKey,
+          model: "gpt-4o-mini-transcribe"
+        });
+        if (!userText && !isDone) {
+          // Still accumulating — return empty result
+          return { text: "", output: "", chunk: null, audio: null };
         }
-        const transcriptionJson = (await transcription.json()) as {
-          text?: string;
-        };
-        userText = transcriptionJson.text ?? "";
       } else {
         userText = chunk.content;
       }
@@ -1082,37 +1192,33 @@ export class RealtimeTranscriptionNode extends BaseNode {
       return { text: "", chunk: null, output: "" };
     }
 
-    const formData = new FormData();
-    formData.append(
-      "file",
-      new Blob([Buffer.from(content, "base64")]),
-      "audio.wav"
+    const nodeId = (this as any).__node_id ?? "realtime-transcription";
+    const rawPcm = Buffer.from(content, "base64");
+    const meta = (chunk.content_metadata ?? {}) as Record<string, unknown>;
+    const sr = Number(meta.sample_rate ?? 24000);
+    const ch = Number(meta.channels ?? 1);
+    const isDone = chunk.done === true;
+    const transcribeModel = String(
+      (this.model as Record<string, unknown> | undefined)?.id ??
+        this.model ??
+        "gpt-4o-mini-transcribe"
     );
-    formData.append(
-      "model",
-      String(
-        (this.model as Record<string, unknown> | undefined)?.id ??
-          this.model ??
-          "gpt-4o-mini-transcribe"
-      )
-    );
-    if (this.system) {
-      formData.append("prompt", String(this.system ?? ""));
-    }
 
-    const res = await fetch(`${OPENAI_API_BASE}/audio/transcriptions`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: formData
+    const text = await accumulateAndTranscribe({
+      nodeId,
+      pcm: rawPcm,
+      sampleRate: sr,
+      channels: ch,
+      flush: isDone,
+      apiKey,
+      model: transcribeModel,
+      prompt: this.system ? String(this.system) : undefined
     });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(
-        `OpenAI RealtimeTranscription fallback error ${res.status}: ${err}`
-      );
+
+    if (!text && !isDone) {
+      // Still accumulating
+      return { text: "", chunk: null, output: "" };
     }
-    const data = (await res.json()) as { text?: string };
-    const text = data.text ?? "";
     return {
       text,
       output: text,
