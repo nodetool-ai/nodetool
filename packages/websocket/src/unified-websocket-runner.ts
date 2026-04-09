@@ -1202,6 +1202,18 @@ export class UnifiedWebSocketRunner {
             if (!nodeType.includes("Output")) continue;
             outputUpdateSeen = true;
           }
+
+          // Materialize binary assets to temp URLs before sending over WebSocket
+          if (outbound.type === "node_update" && outbound.result != null) {
+            outbound.result = await active.context.normalizeOutputValue(
+              outbound.result
+            );
+          }
+          if (outbound.type === "output_update" && outbound.value != null) {
+            outbound.value = await active.context.normalizeOutputValue(
+              outbound.value
+            );
+          }
         }
         await this.sendMessage(outbound);
         if (outbound.type === "job_update") {
