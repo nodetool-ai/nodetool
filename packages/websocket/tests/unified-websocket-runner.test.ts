@@ -267,7 +267,7 @@ describe("UnifiedWebSocketRunner", () => {
   it("streams node_update events for executed nodes", async () => {
     const outputRunner = new UnifiedWebSocketRunner({
       resolveExecutor: (node) => {
-        if (node.type === "nodetool.constant.String") {
+        if (node.type === "nodetool.text.Template") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? "hello world" };
@@ -294,8 +294,8 @@ describe("UnifiedWebSocketRunner", () => {
       nodes: [
         {
           id: "n1",
-          type: "nodetool.constant.String",
-          name: "nodetool.constant.String",
+          type: "nodetool.text.Template",
+          name: "nodetool.text.Template",
           properties: { value: "hello world" }
         },
         {

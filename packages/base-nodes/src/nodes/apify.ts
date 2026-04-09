@@ -10,8 +10,8 @@ const MAX_RESULTS_PER_PAGE = 100;
 const APIFY_API_BASE = "https://api.apify.com/v2";
 
 function getApifyApiKey(secrets: Record<string, string>): string {
-  const key = secrets.APIFY_API_KEY || process.env.APIFY_API_KEY;
-  if (!key) throw new Error("APIFY_API_KEY not configured");
+  const key = secrets.APIFY_API_TOKEN || process.env.APIFY_API_TOKEN;
+  if (!key) throw new Error("APIFY_API_TOKEN not configured");
   return key;
 }
 
@@ -70,7 +70,7 @@ export class ApifyWebScraperNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -150,7 +150,7 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -241,7 +241,7 @@ export class ApifyInstagramScraperNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -332,7 +332,7 @@ export class ApifyAmazonScraperNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -423,7 +423,7 @@ export class ApifyYouTubeScraperNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -532,7 +532,7 @@ export class ApifyTwitterScraperNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -630,7 +630,7 @@ export class ApifyLinkedInScraperNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly requiredSettings = ["APIFY_API_KEY"];
+  static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
 
   @prop({

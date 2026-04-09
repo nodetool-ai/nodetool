@@ -260,66 +260,6 @@ describe("OllamaProvider – formatTools", () => {
 });
 
 describe("OllamaProvider – generateMessage edge cases", () => {
-  it("throws on jsonSchema", async () => {
-    const provider = new OllamaProvider(
-      { OLLAMA_API_URL: "http://localhost:11434" },
-      { fetchFn: vi.fn() as unknown as typeof fetch }
-    );
-
-    await expect(
-      provider.generateMessage({
-        model: "test",
-        messages: [{ role: "user", content: "hi" }],
-        jsonSchema: { type: "object" }
-      })
-    ).rejects.toThrow("jsonSchema is not supported");
-  });
-
-  it("handles json_schema response format", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(
-      jsonResponse({
-        message: { content: '{"result": 42}' }
-      })
-    );
-
-    const provider = new OllamaProvider(
-      { OLLAMA_API_URL: "http://localhost:11434" },
-      { fetchFn: fetchFn as unknown as typeof fetch }
-    );
-
-    const result = await provider.generateMessage({
-      model: "test",
-      messages: [{ role: "user", content: "json" }],
-      responseFormat: {
-        type: "json_schema",
-        json_schema: {
-          schema: { type: "object", properties: { result: { type: "number" } } }
-        }
-      }
-    });
-
-    expect(result.content).toBe('{"result": 42}');
-    // Verify the format was set in request body
-    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
-    expect(body.format).toBeDefined();
-  });
-
-  it("throws when json_schema has no schema", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(jsonResponse({}));
-    const provider = new OllamaProvider(
-      { OLLAMA_API_URL: "http://localhost:11434" },
-      { fetchFn: fetchFn as unknown as typeof fetch }
-    );
-
-    await expect(
-      provider.generateMessage({
-        model: "test",
-        messages: [{ role: "user", content: "json" }],
-        responseFormat: { type: "json_schema", json_schema: {} }
-      })
-    ).rejects.toThrow("schema is required");
-  });
-
   it("handles tool call with string arguments", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       jsonResponse({
@@ -372,21 +312,6 @@ describe("OllamaProvider – generateMessage edge cases", () => {
 });
 
 describe("OllamaProvider – streaming edge cases", () => {
-  it("throws on jsonSchema in streaming", async () => {
-    const provider = new OllamaProvider(
-      { OLLAMA_API_URL: "http://localhost:11434" },
-      { fetchFn: vi.fn() as unknown as typeof fetch }
-    );
-
-    const gen = provider.generateMessages({
-      model: "test",
-      messages: [{ role: "user", content: "hi" }],
-      jsonSchema: { type: "object" }
-    });
-
-    await expect(gen.next()).rejects.toThrow("jsonSchema is not supported");
-  });
-
   it("throws on failed streaming response", async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: false,

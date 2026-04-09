@@ -192,13 +192,129 @@ function isRefSet(ref: unknown): boolean {
 
 export { isRefSet };
 
+// Custom endpoint helpers for Veo, Runway, etc.
+async function submitCustom(
+  apiKey: string,
+  endpoint: string,
+  payload: Record<string, unknown>
+): Promise<string> {
+  const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
+    method: "POST",
+    headers: headers(apiKey),
+    body: JSON.stringify(payload)
+  });
+  const data = (await res.json()) as Record<string, unknown>;
+  if (data.code !== undefined) checkStatus(data);
+  if (!res.ok)
+    throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
+  const taskId = (data.data as Record<string, unknown>)?.taskId as string;
+  if (!taskId)
+    throw new Error(`No taskId in response: ${JSON.stringify(data)}`);
+  return taskId;
+}
+
+async function pollCustom(
+  apiKey: string,
+  taskId: string,
+  pollEndpoint: string,
+  pollInterval: number,
+  maxAttempts: number
+): Promise<Record<string, unknown>> {
+  const url = `${KIE_API_BASE}${pollEndpoint}?taskId=${taskId}`;
+  for (let i = 0; i < maxAttempts; i++) {
+    const res = await fetch(url, { headers: headers(apiKey) });
+    const data = (await res.json()) as Record<string, unknown>;
+    if (data.code !== undefined) checkStatus(data);
+    const inner = data.data as Record<string, unknown>;
+
+    // Veo-style completion: successFlag === 1
+    const successFlag = inner?.successFlag;
+    if (successFlag !== undefined) {
+      const flag = Number(successFlag);
+      if (flag === 1) return data;
+      if (flag === 2 || flag === 3) {
+        throw new Error(`Task failed: ${data.msg || "Unknown error"}`);
+      }
+    }
+
+    // Runway-style completion: state === "success"
+    const state = inner?.state as string;
+    if (state === "success") return data;
+    if (state === "fail") {
+      const msg = inner?.failMsg || data.msg || "Unknown error";
+      throw new Error(`Task failed: ${msg}`);
+    }
+
+    await new Promise((r) => setTimeout(r, pollInterval));
+  }
+  throw new Error(`Task timed out after ${maxAttempts * pollInterval}ms`);
+}
+
+async function downloadCustomResult(
+  statusData: Record<string, unknown>
+): Promise<Buffer> {
+  const data = statusData.data as Record<string, unknown>;
+
+  // Try Runway-style: data.videoInfo.videoUrl
+  const videoInfo = data?.videoInfo as Record<string, unknown> | undefined;
+  if (videoInfo?.videoUrl) {
+    const res = await fetch(videoInfo.videoUrl as string);
+    if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+    return Buffer.from(await res.arrayBuffer());
+  }
+
+  // Try Veo-style: data.resultUrls or data.response.resultUrls
+  let resultUrls: string[] = [];
+  const rawUrls =
+    (data?.resultUrls as unknown) ||
+    ((data?.response as Record<string, unknown>)?.resultUrls as unknown) ||
+    ((data?.response as Record<string, unknown>)?.originUrls as unknown);
+
+  if (Array.isArray(rawUrls)) {
+    resultUrls = rawUrls.filter((u): u is string => typeof u === "string");
+  } else if (typeof rawUrls === "string") {
+    try {
+      const parsed = JSON.parse(rawUrls);
+      if (Array.isArray(parsed)) {
+        resultUrls = parsed.filter((u): u is string => typeof u === "string");
+      } else if (typeof parsed === "string") {
+        resultUrls = [parsed];
+      }
+    } catch {
+      resultUrls = [rawUrls];
+    }
+  }
+
+  if (!resultUrls.length)
+    throw new Error(`No result URLs in response: ${JSON.stringify(statusData)}`);
+
+  const res = await fetch(resultUrls[0]);
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
 export async function kieExecuteTask(
   apiKey: string,
   model: string,
   input: Record<string, unknown>,
   pollInterval = 2000,
-  maxAttempts = 300
+  maxAttempts = 300,
+  submitEndpoint?: string,
+  pollEndpoint?: string
 ): Promise<{ data: string; taskId: string }> {
+  if (submitEndpoint) {
+    // Custom submit/poll endpoints (Veo, Runway, etc.)
+    const taskId = await submitCustom(apiKey, submitEndpoint, { model, ...input });
+    const statusData = await pollCustom(
+      apiKey,
+      taskId,
+      pollEndpoint ?? submitEndpoint,
+      pollInterval,
+      maxAttempts
+    );
+    const resultBytes = await downloadCustomResult(statusData);
+    return { data: resultBytes.toString("base64"), taskId };
+  }
   const taskId = await submitTask(apiKey, model, input);
   await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
   const result = await downloadResult(apiKey, taskId);
@@ -208,14 +324,15 @@ export async function kieExecuteTask(
 // Suno music uses different endpoints
 export async function kieSubmitSuno(
   apiKey: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  endpoint = "/api/v1/generate"
 ): Promise<string> {
   // callBackUrl is always required by the Suno API. Since we poll for results
   // we don't actually use it, so inject a placeholder if not already set.
   const body = input.callBackUrl
     ? input
     : { ...input, callBackUrl: "https://nodetool.ai/kie-callback" };
-  const res = await fetch(`${KIE_API_BASE}/api/v1/generate`, {
+  const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
     body: JSON.stringify(body)
@@ -258,9 +375,10 @@ export async function kieExecuteSunoTask(
   apiKey: string,
   input: Record<string, unknown>,
   pollInterval = 4000,
-  maxAttempts = 120
+  maxAttempts = 120,
+  endpoint?: string
 ): Promise<{ data: string; taskId: string }> {
-  const taskId = await kieSubmitSuno(apiKey, input);
+  const taskId = await kieSubmitSuno(apiKey, input, endpoint);
   const pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
   // Polling response: data.response.sunoData[].audioUrl
   const sunoData = (

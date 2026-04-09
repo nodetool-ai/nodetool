@@ -655,8 +655,6 @@ class MockProvider extends BaseProvider {
     model: string;
     tools?: unknown[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -673,8 +671,6 @@ class MockProvider extends BaseProvider {
     model: string;
     tools?: unknown[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;

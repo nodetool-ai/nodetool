@@ -23,16 +23,22 @@ function videoBytes(video: unknown): Uint8Array {
   return toBytes((video as VideoRefLike).data);
 }
 
-async function videoBytesAsync(video: unknown): Promise<Uint8Array> {
+async function videoBytesAsync(video: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!video || typeof video !== "object") return new Uint8Array();
   const ref = video as VideoRefLike;
   if (ref.data) return toBytes(ref.data);
   if (typeof ref.uri === "string" && ref.uri) {
+    if (context?.storage) {
+      const stored = await context.storage.retrieve(ref.uri);
+      if (stored !== null) return new Uint8Array(stored);
+    }
     if (ref.uri.startsWith("file://")) {
       return new Uint8Array(await fs.readFile(filePath(ref.uri)));
     }
-    const response = await fetch(ref.uri);
-    return new Uint8Array(await response.arrayBuffer());
+    if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
+      const response = await fetch(ref.uri);
+      return new Uint8Array(await response.arrayBuffer());
+    }
   }
   return new Uint8Array();
 }
@@ -73,6 +79,24 @@ function bytesConcat(parts: Uint8Array[]): Uint8Array {
     off += p.length;
   }
   return out;
+}
+
+async function ffprobeDuration(filePath: string): Promise<number> {
+  try {
+    const { stdout } = await execFile("ffprobe", [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      filePath
+    ]);
+    const val = parseFloat(stdout.trim());
+    return isNaN(val) ? 0 : val;
+  } catch {
+    return 0;
+  }
 }
 
 function videoRef(data: Uint8Array, extras: Partial<VideoRef> = {}): VideoRef {
@@ -677,14 +701,81 @@ export class FrameIteratorNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const bytes = videoBytes(this.video);
-    const frameSize = 1024;
-    let index = 0;
-    for (let i = 0; i < bytes.length; i += frameSize) {
-      const frame = bytes.slice(i, i + frameSize);
-      yield { frame: { data: Buffer.from(frame).toString("base64") }, index };
-      index += 1;
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    if (bytes.length === 0) return;
+
+    const inputFile = await withTempFile(".mp4", bytes);
+    const outputDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-frames-out-")
+    );
+    try {
+      // Get FPS from the video for output metadata
+      let fps = 24;
+      try {
+        const { stdout } = await execFile("ffprobe", [
+          "-v", "error",
+          "-select_streams", "v:0",
+          "-show_entries", "stream=r_frame_rate",
+          "-of", "csv=p=0",
+          inputFile.path
+        ]);
+        const parts = stdout.trim().split("/");
+        if (parts.length === 2) {
+          fps = Number(parts[0]) / Number(parts[1]);
+        } else if (parts.length === 1 && Number(parts[0]) > 0) {
+          fps = Number(parts[0]);
+        }
+      } catch {
+        // fall back to 24 fps
+      }
+
+      const start = Math.max(0, Number(this.start ?? 0));
+      const end = Number(this.end ?? -1);
+
+      const vfFilter =
+        end >= 0
+          ? `select='between(n,${start},${end})'`
+          : `select='gte(n,${start})'`;
+
+      await execFile(
+        "ffmpeg",
+        [
+          "-y",
+          "-i", inputFile.path,
+          "-vf", vfFilter,
+          "-vsync", "vfr",
+          path.join(outputDir, "frame_%d.png")
+        ],
+        { maxBuffer: 50 * 1024 * 1024 }
+      );
+
+      // Read extracted frames in order
+      const entries = await fs.readdir(outputDir);
+      const frameFiles = entries
+        .filter((f) => f.startsWith("frame_") && f.endsWith(".png"))
+        .sort((a, b) => {
+          const numA = parseInt(a.replace("frame_", "").replace(".png", ""), 10);
+          const numB = parseInt(b.replace("frame_", "").replace(".png", ""), 10);
+          return numA - numB;
+        });
+
+      for (let i = 0; i < frameFiles.length; i++) {
+        const frameData = new Uint8Array(
+          await fs.readFile(path.join(outputDir, frameFiles[i]))
+        );
+        yield {
+          frame: {
+            type: "image",
+            data: Buffer.from(frameData).toString("base64")
+          },
+          index: start + i,
+          fps
+        };
+      }
+    } finally {
+      await inputFile.cleanup();
+      await fs.rm(outputDir, { recursive: true, force: true });
     }
   }
 }
@@ -714,11 +805,32 @@ export class FpsNode extends BaseNode {
   })
   declare video: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    // This node extracts FPS metadata from a video.
-    // Output type is float, not video — return the fps value directly.
-    const fps = 24;
-    return { output: fps };
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    if (bytes.length === 0) return { output: 0 };
+
+    const inputFile = await withTempFile(".mp4", bytes);
+    try {
+      const { stdout } = await execFile("ffprobe", [
+        "-v", "error",
+        "-select_streams", "v:0",
+        "-show_entries", "stream=r_frame_rate",
+        "-of", "csv=p=0",
+        inputFile.path
+      ]);
+      const parts = stdout.trim().split("/");
+      let fps = 0;
+      if (parts.length === 2) {
+        fps = Number(parts[0]) / Number(parts[1]);
+      } else if (parts.length === 1 && Number(parts[0]) > 0) {
+        fps = Number(parts[0]);
+      }
+      return { output: fps };
+    } catch {
+      return { output: 0 };
+    } finally {
+      await inputFile.cleanup();
+    }
   }
 }
 
@@ -755,19 +867,62 @@ export class FrameToVideoNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const frames = Array.isArray(this.frame) ? (this.frame as unknown[]) : [];
-    const parts = frames.map((f) => {
-      if (!f || typeof f !== "object") return new Uint8Array();
-      return toBytes((f as { data?: Uint8Array | string }).data);
-    });
-    return { output: videoRef(bytesConcat(parts)) };
+    if (frames.length === 0) return { output: videoRef(new Uint8Array()) };
+
+    const inputDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-ftv-in-")
+    );
+    const outputDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-ftv-out-")
+    );
+    const outputPath = path.join(outputDir, "output.mp4");
+    try {
+      // Write each frame as a numbered PNG file
+      for (let i = 0; i < frames.length; i++) {
+        const f = frames[i];
+        if (!f || typeof f !== "object") continue;
+        const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
+        if (frameBytes.length === 0) continue;
+        await fs.writeFile(
+          path.join(inputDir, `frame_${String(i + 1).padStart(6, "0")}.png`),
+          frameBytes
+        );
+      }
+
+      const fps = Math.max(1, Number(this.fps ?? 30));
+      await execFile(
+        "ffmpeg",
+        [
+          "-y",
+          "-framerate", String(fps),
+          "-i", path.join(inputDir, "frame_%06d.png"),
+          "-c:v", "libx264",
+          "-pix_fmt", "yuv420p",
+          outputPath
+        ],
+        { maxBuffer: 50 * 1024 * 1024 }
+      );
+      const result = new Uint8Array(await fs.readFile(outputPath));
+      return { output: videoRef(result) };
+    } catch {
+      // Fallback: concatenate raw frame bytes
+      const parts = frames.map((f) => {
+        if (!f || typeof f !== "object") return new Uint8Array();
+        return toBytes((f as { data?: Uint8Array | string }).data);
+      });
+      return { output: videoRef(bytesConcat(parts)) };
+    } finally {
+      await fs.rm(inputDir, { recursive: true, force: true });
+      await fs.rm(outputDir, { recursive: true, force: true });
+    }
   }
 }
 
 abstract class VideoTransformNode extends BaseNode {
   static readonly requiredRuntimes = ["ffmpeg"];
   declare video: any;
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     return { output: videoRef(bytes) };
   }
 }
@@ -814,10 +969,40 @@ export class ConcatVideoNode extends BaseNode {
   })
   declare video_b: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const a = videoBytes(this.video_a);
-    const b = videoBytes(this.video_b);
-    return { output: videoRef(bytesConcat([a, b])) };
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const a = await videoBytesAsync(this.video_a, context);
+    const b = await videoBytesAsync(this.video_b, context);
+    if (a.length === 0) return { output: videoRef(b) };
+    if (b.length === 0) return { output: videoRef(a) };
+
+    const inputA = await withTempFile(".mp4", a);
+    const inputB = await withTempFile(".mp4", b);
+    const concatDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-concat-")
+    );
+    const listPath = path.join(concatDir, "list.txt");
+    const outputPath = path.join(concatDir, "output.mp4");
+    try {
+      await fs.writeFile(
+        listPath,
+        `file '${inputA.path}'
+file '${inputB.path}'
+`
+      );
+      await execFile(
+        "ffmpeg",
+        ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", outputPath],
+        { maxBuffer: 50 * 1024 * 1024 }
+      );
+      const result = new Uint8Array(await fs.readFile(outputPath));
+      return { output: videoRef(result) };
+    } catch {
+      return { output: videoRef(bytesConcat([a, b])) };
+    } finally {
+      await inputA.cleanup();
+      await inputB.cleanup();
+      await fs.rm(concatDir, { recursive: true, force: true });
+    }
   }
 }
 
@@ -864,13 +1049,21 @@ export class TrimVideoNode extends BaseNode {
   })
   declare end_time: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    if (bytes.length === 0) return { output: videoRef(bytes) };
+
     const start = Math.max(0, Number(this.start_time ?? 0));
-    const end = Math.max(0, Number(this.end_time ?? 0));
-    return {
-      output: videoRef(bytes.slice(start, Math.max(start, bytes.length - end)))
-    };
+    const end = Number(this.end_time ?? -1);
+
+    const args: string[] = ["-ss", String(start)];
+    if (end >= 0) {
+      args.push("-to", String(end));
+    }
+    args.push("-c", "copy");
+
+    const transformed = (await ffmpegTransform(bytes, args)) ?? bytes;
+    return { output: videoRef(transformed) };
   }
 }
 
@@ -914,8 +1107,8 @@ export class ResizeVideoNode extends VideoTransformNode {
   })
   declare height: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const width = Number(this.width ?? -1);
     const height = Number(this.height ?? -1);
     const transformed =
@@ -963,8 +1156,8 @@ export class RotateVideoNode extends VideoTransformNode {
   })
   declare angle: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const angle = Number(this.angle ?? 90);
     const radians = (angle * Math.PI) / 180;
     const transformed =
@@ -1011,16 +1204,36 @@ export class SetSpeedVideoNode extends VideoTransformNode {
   })
   declare speed_factor: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const speed = Math.max(0.1, Number(this.speed_factor ?? 1));
+
+    // Build chained atempo filters for values outside 0.5-2.0 range
+    // Each atempo filter is limited to 0.5-2.0, so we chain them
+    const buildAtempo = (s: number): string => {
+      const parts: string[] = [];
+      let remaining = s;
+      if (remaining > 1) {
+        while (remaining > 2) {
+          parts.push("atempo=2.0");
+          remaining /= 2;
+        }
+        parts.push(`atempo=${remaining}`);
+      } else {
+        while (remaining < 0.5) {
+          parts.push("atempo=0.5");
+          remaining /= 0.5;
+        }
+        parts.push(`atempo=${remaining}`);
+      }
+      return parts.join(",");
+    };
+
+    const atempoChain = buildAtempo(speed);
     const transformed =
       (await ffmpegTransform(bytes, [
         "-filter_complex",
-        `[0:v]setpts=${1 / speed}*PTS[v];[0:a]atempo=${Math.min(
-          2,
-          Math.max(0.5, speed)
-        )}[a]`,
+        `[0:v]setpts=${1 / speed}*PTS[v];[0:a]${atempoChain}[a]`,
         "-map",
         "[v]",
         "-map",
@@ -1106,14 +1319,33 @@ export class OverlayVideoNode extends VideoTransformNode {
   })
   declare overlay_audio_volume: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const mainVideo = await videoBytesAsync(this.main_video);
-    const overlayVideo = await videoBytesAsync(this.overlay_video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const mainVideo = await videoBytesAsync(this.main_video, context);
+    const overlayVideo = await videoBytesAsync(this.overlay_video, context);
     if (overlayVideo.length === 0) return { output: videoRef(mainVideo) };
     const x = Number(this.x ?? 0);
     const y = Number(this.y ?? 0);
     const scale = Math.max(0.01, Number(this.scale ?? 1));
+    const vol = Math.max(0, Math.min(1, Number(this.overlay_audio_volume ?? 0.5)));
+
+    // Try with audio mixing first, fall back to video-only overlay
+    const filterWithAudio =
+      `[1:v]scale=iw*${scale}:ih*${scale}[ov];[0:v][ov]overlay=${x}:${y}[outv];` +
+      `[0:a]volume=1.0[a0];[1:a]volume=${vol}[a1];[a0][a1]amix=inputs=2:duration=first[outa]`;
     const transformed =
+      (await ffmpegTransform(
+        mainVideo,
+        [
+          "-filter_complex",
+          filterWithAudio,
+          "-map",
+          "[outv]",
+          "-map",
+          "[outa]"
+        ],
+        [{ suffix: ".mp4", bytes: overlayVideo }]
+      )) ??
+      // Fallback: video-only overlay (one or both inputs may lack audio)
       (await ffmpegTransform(
         mainVideo,
         [
@@ -1121,7 +1353,8 @@ export class OverlayVideoNode extends VideoTransformNode {
           `[1:v]scale=iw*${scale}:ih*${scale}[ov];[0:v][ov]overlay=${x}:${y}`
         ],
         [{ suffix: ".mp4", bytes: overlayVideo }]
-      )) ?? mainVideo;
+      )) ??
+      mainVideo;
     return { output: videoRef(transformed) };
   }
 }
@@ -1180,17 +1413,16 @@ export class ColorBalanceVideoNode extends VideoTransformNode {
   })
   declare blue_adjust: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
-    // Props are named red/green/blue_adjust but applied as ffmpeg eq filter
-    // brightness/contrast/saturation. The mapping is: red→brightness, green→contrast, blue→saturation.
-    const redAdj = Number(this.red_adjust ?? 0);
-    const greenAdj = Number(this.green_adjust ?? 1);
-    const blueAdj = Number(this.blue_adjust ?? 1);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    // Props are 0-2 range where 1.0 = neutral; colorbalance expects -1 to 1
+    const rs = Number(this.red_adjust ?? 1) - 1;
+    const gs = Number(this.green_adjust ?? 1) - 1;
+    const bs = Number(this.blue_adjust ?? 1) - 1;
     const transformed =
       (await ffmpegTransform(bytes, [
         "-vf",
-        `eq=brightness=${redAdj}:contrast=${greenAdj}:saturation=${blueAdj}`,
+        `colorbalance=rs=${rs}:gs=${gs}:bs=${bs}`,
         "-c:a",
         "copy"
       ])) ?? bytes;
@@ -1234,11 +1466,16 @@ export class DenoiseVideoNode extends VideoTransformNode {
   })
   declare strength: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    const strength = Number(this.strength ?? 5);
     const transformed =
-      (await ffmpegTransform(bytes, ["-vf", "hqdn3d", "-c:a", "copy"])) ??
-      bytes;
+      (await ffmpegTransform(bytes, [
+        "-vf",
+        `nlmeans=s=${strength}`,
+        "-c:a",
+        "copy"
+      ])) ?? bytes;
     return { output: videoRef(transformed) };
   }
 }
@@ -1288,11 +1525,21 @@ export class StabilizeVideoNode extends VideoTransformNode {
   })
   declare crop_black: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    const smoothing = Math.max(1, Number(this.smoothing ?? 10));
+    const cropBlack = Boolean(this.crop_black ?? true);
+
+    // deshake with smoothing parameter
+    let vf = `deshake=smooth=${smoothing}`;
+
+    // If crop_black is enabled, chain cropdetect and crop to remove black borders
+    if (cropBlack) {
+      vf += ",cropdetect=24:16:0,crop";
+    }
+
     const transformed =
-      (await ffmpegTransform(bytes, ["-vf", "deshake", "-c:a", "copy"])) ??
-      bytes;
+      (await ffmpegTransform(bytes, ["-vf", vf, "-c:a", "copy"])) ?? bytes;
     return { output: videoRef(transformed) };
   }
 }
@@ -1342,12 +1589,14 @@ export class SharpnessVideoNode extends VideoTransformNode {
   })
   declare chroma_amount: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    const lumaAmount = Number(this.luma_amount ?? 1);
+    const chromaAmount = Number(this.chroma_amount ?? 0.5);
     const transformed =
       (await ffmpegTransform(bytes, [
         "-vf",
-        "unsharp=5:5:1.0",
+        `unsharp=5:5:${lumaAmount}:5:5:${chromaAmount}`,
         "-c:a",
         "copy"
       ])) ?? bytes;
@@ -1390,8 +1639,8 @@ export class BlurVideoNode extends VideoTransformNode {
   })
   declare strength: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const radius = Math.max(1, Number(this.strength ?? 2));
     const transformed =
       (await ffmpegTransform(bytes, [
@@ -1439,8 +1688,8 @@ export class SaturationVideoNode extends VideoTransformNode {
   })
   declare saturation: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const saturation = Number(this.saturation ?? 1.2);
     const transformed =
       (await ffmpegTransform(bytes, [
@@ -1529,18 +1778,58 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
   })
   declare font_color: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
-    const text = String(this.chunks ?? "").trim();
-    if (!text) return { output: videoRef(bytes) };
-    const escaped = text.replaceAll(":", "\\:").replaceAll("'", "\\'");
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    const chunks = Array.isArray(this.chunks) ? this.chunks : [];
+    if (chunks.length === 0) return { output: videoRef(bytes) };
+
+    const fontSize = Math.max(1, Number(this.font_size ?? 24));
+    const fontColorObj = this.font_color as { value?: string } | undefined;
+    const fontColor = String(fontColorObj?.value ?? "#FFFFFF").replace("#", "0x");
+    const fontName = String(
+      (this.font as { name?: string } | undefined)?.name ?? "Sans"
+    );
+    const align = String(this.align ?? "bottom");
+
+    // Compute y position based on alignment
+    let yExpr: string;
+    if (align === "top") {
+      yExpr = "text_h";
+    } else if (align === "center") {
+      yExpr = "(h-text_h)/2";
+    } else {
+      // bottom
+      yExpr = "h-(text_h*2)";
+    }
+
+    // Build chained drawtext filters, one per chunk with enable=between(t,start,end)
+    const drawFilters = chunks
+      .map((chunk: Record<string, unknown>) => {
+        const text = String(chunk.text ?? chunk.content ?? "").trim();
+        if (!text) return null;
+        const ts = Array.isArray(chunk.timestamp) ? chunk.timestamp : [];
+        const start = Number(ts[0] ?? chunk.start ?? 0);
+        const end = Number(ts[1] ?? chunk.end ?? start + 5);
+        const escaped = text
+          .replaceAll("\\", "\\\\")
+          .replaceAll(":", "\\:")
+          .replaceAll("'", "\u2019")
+          .replaceAll("%", "%%");
+        return (
+          `drawtext=text='${escaped}'` +
+          `:x=(w-text_w)/2:y=${yExpr}` +
+          `:fontcolor=${fontColor}:fontsize=${fontSize}` +
+          `:font='${fontName}'` +
+          `:enable='between(t,${start},${end})'`
+        );
+      })
+      .filter(Boolean);
+
+    if (drawFilters.length === 0) return { output: videoRef(bytes) };
+
+    const vf = drawFilters.join(",");
     const transformed =
-      (await ffmpegTransform(bytes, [
-        "-vf",
-        `drawtext=text='${escaped}':x=(w-text_w)/2:y=h-(text_h*2):fontcolor=white:fontsize=24`,
-        "-c:a",
-        "copy"
-      ])) ?? bytes;
+      (await ffmpegTransform(bytes, ["-vf", vf, "-c:a", "copy"])) ?? bytes;
     return { output: videoRef(transformed) };
   }
 }
@@ -1571,9 +1860,16 @@ export class ReverseVideoNode extends BaseNode {
   })
   declare video: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(this.video);
-    return { output: videoRef(new Uint8Array([...bytes].reverse())) };
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    if (bytes.length === 0) return { output: videoRef(bytes) };
+
+    // Try with both video and audio reverse, fall back to video-only
+    const transformed =
+      (await ffmpegTransform(bytes, ["-vf", "reverse", "-af", "areverse"])) ??
+      (await ffmpegTransform(bytes, ["-vf", "reverse"])) ??
+      bytes;
+    return { output: videoRef(transformed) };
   }
 }
 
@@ -1695,17 +1991,46 @@ export class TransitionVideoNode extends VideoTransformNode {
   })
   declare duration: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const a = await videoBytesAsync(this.video_a);
-    const b = await videoBytesAsync(this.video_b);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const a = await videoBytesAsync(this.video_a, context);
+    const b = await videoBytesAsync(this.video_b, context);
     if (b.length === 0) return { output: videoRef(a) };
     const duration = Math.max(0.1, Number(this.duration ?? 1));
+    const transitionType = String(this.transition_type ?? "fade");
+
+    // Probe video_a duration to compute offset (transition starts at end of video_a)
+    const tempA = await withTempFile(".mp4", a);
+    let offsetVal: number;
+    try {
+      const aDuration = await ffprobeDuration(tempA.path);
+      offsetVal = Math.max(0, aDuration - duration);
+    } finally {
+      await tempA.cleanup();
+    }
+
+    // Try with audio crossfade first, then fall back to video-only
+    const filterWithAudio =
+      `[0:v][1:v]xfade=transition=${transitionType}:duration=${duration}:offset=${offsetVal}[outv];` +
+      `[0:a][1:a]acrossfade=d=${duration}[outa]`;
     const transformed =
       (await ffmpegTransform(
         a,
         [
           "-filter_complex",
-          `xfade=transition=fade:duration=${duration}:offset=0`
+          filterWithAudio,
+          "-map",
+          "[outv]",
+          "-map",
+          "[outa]"
+        ],
+        [{ suffix: ".mp4", bytes: b }]
+      )) ??
+      // Fallback: video-only xfade (inputs may lack audio)
+      (await ffmpegTransform(
+        a,
+        [
+          "-filter_complex",
+          `[0:v][1:v]xfade=transition=${transitionType}:duration=${duration}:offset=${offsetVal}`
         ],
         [{ suffix: ".mp4", bytes: b }]
       )) ??
@@ -1774,10 +2099,74 @@ export class AddAudioVideoNode extends BaseNode {
   })
   declare mix: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const v = videoBytes(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const v = await videoBytesAsync(this.video, context);
     const a = audioBytes(this.audio);
-    return { output: videoRef(bytesConcat([v, a])) };
+    if (v.length === 0) return { output: videoRef(v) };
+    if (a.length === 0) return { output: videoRef(v) };
+
+    const videoInput = await withTempFile(".mp4", v);
+    const audioInput = await withTempFile(".wav", a);
+    const outputDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-addaudio-out-")
+    );
+    const outputPath = path.join(outputDir, "output.mp4");
+    try {
+      const volume = Math.max(0, Number(this.volume ?? 1));
+      const mix = Boolean(this.mix);
+
+      const args: string[] = [
+        "-y",
+        "-i", videoInput.path,
+        "-i", audioInput.path
+      ];
+
+      if (mix) {
+        // Mix new audio with existing audio
+        args.push(
+          "-filter_complex",
+          `[1:a]volume=${volume}[newaud];[0:a][newaud]amix=inputs=2:duration=first[aout]`,
+          "-map", "0:v:0",
+          "-map", "[aout]",
+          "-c:v", "copy"
+        );
+      } else {
+        // Replace existing audio
+        args.push(
+          "-map", "0:v:0",
+          "-map", "1:a:0",
+          "-c:v", "copy",
+          "-c:a", "aac"
+        );
+        if (volume !== 1) {
+          // Insert volume filter before output
+          args.splice(args.length, 0);
+          // Re-build with filter
+          args.length = 0;
+          args.push(
+            "-y",
+            "-i", videoInput.path,
+            "-i", audioInput.path,
+            "-filter_complex", `[1:a]volume=${volume}[aout]`,
+            "-map", "0:v:0",
+            "-map", "[aout]",
+            "-c:v", "copy",
+            "-c:a", "aac"
+          );
+        }
+      }
+
+      args.push(outputPath);
+      await execFile("ffmpeg", args, { maxBuffer: 50 * 1024 * 1024 });
+      const result = new Uint8Array(await fs.readFile(outputPath));
+      return { output: videoRef(result) };
+    } catch {
+      return { output: videoRef(v) };
+    } finally {
+      await videoInput.cleanup();
+      await audioInput.cleanup();
+      await fs.rm(outputDir, { recursive: true, force: true });
+    }
   }
 }
 
@@ -1836,8 +2225,8 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
   })
   declare blend: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(this.video);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     const color = String(this.key_color ?? "0x00FF00");
     const similarity = Number(this.similarity ?? 0.1);
     const blend = Number(this.blend ?? 0.0);
@@ -1880,12 +2269,36 @@ export class ExtractAudioVideoNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const bytes = videoBytes(this.video);
-    const half = Math.floor(bytes.length / 2);
-    return {
-      output: {
-        data: Buffer.from(bytes.slice(0, half)).toString("base64")
-      }
-    };
+    console.log("[ExtractAudio] input video bytes:", bytes.length);
+    if (bytes.length === 0) return { output: { data: null } };
+
+    const input = await withTempFile(".mp4", bytes);
+    const outputDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-audio-out-")
+    );
+    const outputPath = path.join(outputDir, "output.wav");
+    try {
+      await execFile(
+        "ffmpeg",
+        ["-y", "-i", input.path, "-vn", "-acodec", "pcm_s16le", outputPath],
+        { maxBuffer: 50 * 1024 * 1024 }
+      );
+      const audioBytes = new Uint8Array(await fs.readFile(outputPath));
+      const b64 = Buffer.from(audioBytes).toString("base64");
+      console.log("[ExtractAudio] output audio bytes:", audioBytes.length, "base64 length:", b64.length);
+      return {
+        output: {
+          type: "audio",
+          data: b64,
+          uri: "",
+          asset_id: null,
+          metadata: null
+        }
+      };
+    } finally {
+      await input.cleanup();
+      await fs.rm(outputDir, { recursive: true, force: true });
+    }
   }
 }
 
@@ -1924,17 +2337,44 @@ export class ExtractFrameVideoNode extends BaseNode {
   })
   declare time: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(this.video);
-    const frameSize = 1024;
-    const index = Math.max(0, Number(this.time ?? 0));
-    const start = index * frameSize;
-    const frame = bytes.slice(start, start + frameSize);
-    return {
-      output: {
-        data: Buffer.from(frame).toString("base64")
-      }
-    };
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    if (bytes.length === 0) {
+      return { output: { type: "image", data: null } };
+    }
+
+    const inputFile = await withTempFile(".mp4", bytes);
+    const outputDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-extract-frame-")
+    );
+    const outputPath = path.join(outputDir, "frame.png");
+    try {
+      const time = Math.max(0, Number(this.time ?? 0));
+      await execFile(
+        "ffmpeg",
+        [
+          "-y",
+          "-ss", String(time),
+          "-i", inputFile.path,
+          "-frames:v", "1",
+          "-f", "image2",
+          outputPath
+        ],
+        { maxBuffer: 10 * 1024 * 1024 }
+      );
+      const frameData = new Uint8Array(await fs.readFile(outputPath));
+      return {
+        output: {
+          type: "image",
+          data: Buffer.from(frameData).toString("base64")
+        }
+      };
+    } catch {
+      return { output: { type: "image", data: null } };
+    } finally {
+      await inputFile.cleanup();
+      await fs.rm(outputDir, { recursive: true, force: true });
+    }
   }
 }
 
@@ -1969,17 +2409,87 @@ export class GetVideoInfoNode extends BaseNode {
   })
   declare video: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const video = (this.video ?? {}) as VideoRefLike;
-    const bytes = videoBytes(video);
-    return {
-      output: {
-        uri: video.uri ?? "",
-        size_bytes: bytes.length,
-        fps: 24,
-        duration_seconds: bytes.length / 24000
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    if (bytes.length === 0) {
+      return {
+        duration: 0,
+        width: 0,
+        height: 0,
+        fps: 0,
+        frame_count: 0,
+        codec: "",
+        has_audio: false
+      };
+    }
+
+    const inputFile = await withTempFile(".mp4", bytes);
+    try {
+      const { stdout } = await execFile("ffprobe", [
+        "-v", "error",
+        "-show_streams",
+        "-show_format",
+        "-of", "json",
+        inputFile.path
+      ]);
+      const info = JSON.parse(stdout) as {
+        streams?: Array<{
+          codec_type?: string;
+          codec_name?: string;
+          width?: number;
+          height?: number;
+          r_frame_rate?: string;
+          nb_frames?: string;
+        }>;
+        format?: {
+          duration?: string;
+        };
+      };
+
+      const videoStream = (info.streams ?? []).find(
+        (s) => s.codec_type === "video"
+      );
+      const hasAudio = (info.streams ?? []).some(
+        (s) => s.codec_type === "audio"
+      );
+
+      let fps = 0;
+      if (videoStream?.r_frame_rate) {
+        const parts = videoStream.r_frame_rate.split("/");
+        if (parts.length === 2) {
+          fps = Number(parts[0]) / Number(parts[1]);
+        } else if (parts.length === 1) {
+          fps = Number(parts[0]);
+        }
       }
-    };
+
+      const duration = Number(info.format?.duration ?? 0);
+      const frameCount = videoStream?.nb_frames
+        ? Number(videoStream.nb_frames)
+        : Math.round(duration * fps);
+
+      return {
+        duration,
+        width: videoStream?.width ?? 0,
+        height: videoStream?.height ?? 0,
+        fps,
+        frame_count: frameCount,
+        codec: videoStream?.codec_name ?? "",
+        has_audio: hasAudio
+      };
+    } catch {
+      return {
+        duration: 0,
+        width: 0,
+        height: 0,
+        fps: 0,
+        frame_count: 0,
+        codec: "",
+        has_audio: false
+      };
+    } finally {
+      await inputFile.cleanup();
+    }
   }
 }
 

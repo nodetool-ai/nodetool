@@ -513,7 +513,7 @@
   {
     "className": "FluxKontext",
     "moduleName": "image",
-    "modelId": "flux-kontext/text-to-image",
+    "modelId": "flux-kontext",
     "title": "Flux Kontext",
     "description": "Generate images using Black Forest Labs' Flux Kontext model via Kie.ai.\n\n    kie, flux, flux-kontext, black-forest-labs, image generation, ai, text-to-image, editing\n\n    Flux Kontext supports Pro (speed-optimized) and Max (quality-focused) variants\n    with features like multiple aspect ratios, safety controls, and async processing.\n\n    Use cases:\n    - Generate high-quality artistic images\n    - Advanced image editing and generation\n    - Create professional visual content\n    - Generate images with fine detail and artistic style",
     "outputType": "image",
@@ -1498,7 +1498,7 @@
   {
     "className": "GPTImage4oTextToImage",
     "moduleName": "image",
-    "modelId": "gpt-image-4o/text-to-image",
+    "modelId": "4o-image-api",
     "title": "GPT 4o Image Text To Image",
     "description": "Generate images using OpenAI's GPT-4o Image model via Kie.ai.\n\n    kie, openai, gpt-4o, 4o-image, image generation, ai, text-to-image\n\n    The GPT-Image-1 model (ChatGPT 4o Image) understands both text and visual\n    context, allowing precise image creation with accurate text rendering\n    and consistent styles.\n\n    Use cases:\n    - Generate high-quality images from text descriptions\n    - Create images with precise text rendering\n    - Generate design and marketing materials\n    - Produce creative visuals with strong instruction following",
     "outputType": "image",
@@ -1552,7 +1552,7 @@
   {
     "className": "GPTImage4oImageToImage",
     "moduleName": "image",
-    "modelId": "gpt-image-4o/image-to-image",
+    "modelId": "4o-image-api",
     "title": "GPT 4o Image Edit",
     "description": "Edit images using OpenAI's GPT-4o Image model via Kie.ai.\n\n    kie, openai, gpt-4o, 4o-image, image editing, ai, image-to-image\n\n    The GPT-Image-1 model (ChatGPT 4o Image) enables precise image editing\n    with strong instruction following and accurate text rendering.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply specific modifications to images\n    - Add or modify text in images\n    - Create variations of existing visuals",
     "outputType": "image",
@@ -1936,7 +1936,7 @@
   {
     "className": "Seedream40TextToImage",
     "moduleName": "image",
-    "modelId": "bytedance/seedream-v4-text-to-image",
+    "modelId": "seedream/4.0-text-to-image",
     "title": "Seedream 4.0 Text To Image",
     "description": "Generate images using ByteDance's Seedream 4.0 model via Kie.ai.\n\n    kie, seedream, bytedance, seedream-4, image generation, ai, text-to-image\n\n    Seedream 4.0 is ByteDance's image generation model that combines text-to-image\n    with batch consistency, high speed, and professional-quality outputs.\n\n    Use cases:\n    - Generate creative and artistic images from text\n    - Create professional visual content\n    - Produce consistent batch images",
     "outputType": "image",
@@ -1987,7 +1987,7 @@
   {
     "className": "Seedream40ImageToImage",
     "moduleName": "image",
-    "modelId": "bytedance/seedream-v4-edit",
+    "modelId": "seedream/4.0-edit",
     "title": "Seedream 4.0 Edit",
     "description": "Edit images using ByteDance's Seedream 4.0 model via Kie.ai.\n\n    kie, seedream, bytedance, seedream-4, image editing, ai, image-to-image\n\n    Seedream 4.0 offers image-to-image capabilities with batch consistency\n    and professional-quality outputs.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply style changes to photos\n    - Create variations of existing images",
     "outputType": "image",
@@ -2211,7 +2211,8 @@
         "field": "persona_id",
         "condition": "truthy"
       }
-    ]
+    ],
+    "sunoEndpoint": "/api/v1/generate"
   },
   {
     "className": "ExtendMusic",
@@ -2342,7 +2343,8 @@
         "rule": "not_empty",
         "message": "audio_id is required"
       }
-    ]
+    ],
+    "sunoEndpoint": "/api/v1/generate/extend"
   },
   {
     "className": "CoverAudio",
@@ -2494,7 +2496,8 @@
         "field": "vocal_gender",
         "condition": "truthy"
       }
-    ]
+    ],
+    "sunoEndpoint": "/api/v1/generate/upload-cover"
   },
   {
     "className": "AddInstrumental",
@@ -2609,7 +2612,8 @@
     "paramNames": {
       "tags": "prompt",
       "title": "style"
-    }
+    },
+    "sunoEndpoint": "/api/v1/generate/add-instrumental"
   },
   {
     "className": "AddVocals",
@@ -2743,7 +2747,8 @@
         "field": "vocal_gender",
         "condition": "truthy"
       }
-    ]
+    ],
+    "sunoEndpoint": "/api/v1/generate/add-vocals"
   },
   {
     "className": "ReplaceMusicSection",
@@ -2838,7 +2843,8 @@
       "tags": "style",
       "infill_start_s": "start_time",
       "infill_end_s": "end_time"
-    }
+    },
+    "sunoEndpoint": "/api/v1/generate/replace-section"
   },
   {
     "className": "ElevenLabsTextToSpeech",
@@ -2978,7 +2984,7 @@
   {
     "className": "ElevenLabsSoundEffect",
     "moduleName": "audio",
-    "modelId": "elevenlabs/sound-effect-v2",
+    "modelId": "elevenlabs/sound-effect",
     "title": "ElevenLabs Sound Effect",
     "description": "Generate sound effects using ElevenLabs AI via Kie.ai.\n\n    kie, elevenlabs, sound-effect, sfx, audio, ai\n\n    ElevenLabs Sound Effect V2 generates audio from text descriptions,\n    supporting clips up to 20+ seconds with seamless looping and 48kHz audio.\n\n    Use cases:\n    - Generate custom sound effects for videos\n    - Create ambient sounds for games and applications\n    - Produce foley effects from text descriptions\n    - Generate audio elements for creative projects",
     "outputType": "audio",
@@ -3317,7 +3323,7 @@
   {
     "className": "KlingAIAvatarStandard",
     "moduleName": "video",
-    "modelId": "kling/ai-avatar-standard",
+    "modelId": "kling/v1-avatar-standard",
     "title": "Kling AIAvatar Standard",
     "description": "Generate talking avatar videos using Kuaishou's Kling AI via Kie.ai.\n\n    kie, kling, kuaishou, avatar, video generation, ai, talking-head, lip-sync\n\n    Transforms a photo plus audio track into a lip-synced talking avatar video\n    with natural-looking speech animation and consistent identity.",
     "outputType": "video",
@@ -3385,7 +3391,7 @@
   {
     "className": "KlingAIAvatarPro",
     "moduleName": "video",
-    "modelId": "kling/ai-avatar-pro",
+    "modelId": "kling/v1-avatar-pro",
     "title": "Kling AIAvatar Pro",
     "description": "Generate talking avatar videos using Kuaishou's Kling AI via Kie.ai.\n\n    kie, kling, kuaishou, avatar, video generation, ai, talking-head, lip-sync\n\n    Transforms a photo plus audio track into a lip-synced talking avatar video\n    with natural-looking speech animation and consistent identity.",
     "outputType": "video",
@@ -3553,7 +3559,7 @@
   {
     "className": "SeedanceV1LiteTextToVideo",
     "moduleName": "video",
-    "modelId": "bytedance/v1-lite-text-to-video",
+    "modelId": "seedance/v1-lite-text-to-video",
     "title": "Seedance V1 Lite Text To Video",
     "description": "Bytedance 1.0 - text-to-video-lite via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, text-to-video, lite\n\n    Seedance V1 Lite offers efficient text-to-video generation\n    with good quality and faster processing times.",
     "outputType": "video",
@@ -3623,7 +3629,7 @@
   {
     "className": "SeedanceV1ProTextToVideo",
     "moduleName": "video",
-    "modelId": "bytedance/v1-pro-text-to-video",
+    "modelId": "seedance/v1-pro-text-to-video",
     "title": "Seedance V1 Pro Text To Video",
     "description": "Bytedance 1.0 - text-to-video-pro via Kie.ai.",
     "outputType": "video",
@@ -3693,7 +3699,7 @@
   {
     "className": "SeedanceV1LiteImageToVideo",
     "moduleName": "video",
-    "modelId": "bytedance/v1-lite-image-to-video",
+    "modelId": "seedance/v1-lite-image-to-video",
     "title": "Seedance V1 Lite Image To Video",
     "description": "Bytedance 1.0 - image-to-video-lite via Kie.ai.",
     "outputType": "video",
@@ -3815,7 +3821,7 @@
   {
     "className": "SeedanceV1ProImageToVideo",
     "moduleName": "video",
-    "modelId": "bytedance/v1-pro-image-to-video",
+    "modelId": "seedance/v1-pro-image-to-video",
     "title": "Seedance V1 Pro Image To Video",
     "description": "Bytedance 1.0 - image-to-video-pro via Kie.ai.",
     "outputType": "video",
@@ -3937,7 +3943,7 @@
   {
     "className": "SeedanceV1ProFastImageToVideo",
     "moduleName": "video",
-    "modelId": "bytedance/v1-pro-fast-image-to-video",
+    "modelId": "seedance/v1-pro-fast-image-to-video",
     "title": "Seedance V1 Pro Fast Image To Video",
     "description": "Bytedance 1.0 - fast-image-to-video-pro via Kie.ai.",
     "outputType": "video",
@@ -4856,7 +4862,7 @@
   {
     "className": "WanMultiShotTextToVideoPro",
     "moduleName": "video",
-    "modelId": "wan/multi-shot-text-to-video-pro",
+    "modelId": "wan/v2-1-multi-shot-text-to-video-pro",
     "title": "Wan 2.1 Multi-Shot Text To Video",
     "description": "Generate videos from text using Alibaba's Wan 2.1 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, multi-shot, 2.1\n\n    Wan 2.1 Multi-Shot generates complex videos with multiple shots\n    and scene transitions from text descriptions.",
     "outputType": "video",
@@ -5153,7 +5159,7 @@
   {
     "className": "TopazVideoUpscale",
     "moduleName": "video",
-    "modelId": "topaz/video-upscale",
+    "modelId": "topaz-video-upscaler",
     "title": "Topaz Video Upscale",
     "description": "Upscale and enhance videos using Topaz Labs AI via Kie.ai.",
     "outputType": "video",
@@ -5272,7 +5278,7 @@
   {
     "className": "Veo31TextToVideo",
     "moduleName": "video",
-    "modelId": "veo-3-1/text-to-video",
+    "modelId": "veo3/text-to-video",
     "title": "Veo 31 Text To Video",
     "description": "Generate videos from text using Google's Veo 3.1 via Kie.ai.\n\n    kie, google, veo, veo3, veo3.1, video generation, ai, text-to-video\n\n    Veo 3.1 offers native 9:16 vertical video support, multilingual prompt processing,\n    and significant cost savings (25% of Google's direct API pricing).",
     "outputType": "video",
@@ -5322,12 +5328,14 @@
         "rule": "not_empty",
         "message": "Prompt is required"
       }
-    ]
+    ],
+    "submitEndpoint": "/api/v1/veo/generate",
+    "pollEndpoint": "/api/v1/veo/record-info"
   },
   {
     "className": "RunwayGen3AlphaTextToVideo",
     "moduleName": "video",
-    "modelId": "runway/gen3-alpha-text-to-video",
+    "modelId": "runway/gen-3-alpha-text-to-video",
     "title": "Runway Gen-3 Alpha Text To Video",
     "description": "Generate videos from text using Runway's Gen-3 Alpha model via Kie.ai.\n\n    kie, runway, gen-3, gen3alpha, video generation, ai, text-to-video\n\n    Runway Gen-3 Alpha produces high-quality videos from text descriptions\n    with advanced motion and temporal consistency.",
     "outputType": "video",
@@ -5398,12 +5406,14 @@
         "rule": "not_empty",
         "message": "Prompt is required"
       }
-    ]
+    ],
+    "submitEndpoint": "/api/v1/runway/generate",
+    "pollEndpoint": "/api/v1/runway/record-detail"
   },
   {
     "className": "RunwayGen3AlphaImageToVideo",
     "moduleName": "video",
-    "modelId": "runway/gen3-alpha-image-to-video",
+    "modelId": "runway/gen-3-alpha-image-to-video",
     "title": "Runway Gen-3 Alpha Image To Video",
     "description": "Generate videos from images using Runway's Gen-3 Alpha model via Kie.ai.\n\n    kie, runway, gen-3, gen3alpha, video generation, ai, image-to-video\n\n    Runway Gen-3 Alpha transforms static images into dynamic videos\n    with realistic motion and temporal consistency.",
     "outputType": "video",
@@ -5473,12 +5483,14 @@
         "kind": "image",
         "paramName": "image_url"
       }
-    ]
+    ],
+    "submitEndpoint": "/api/v1/runway/generate",
+    "pollEndpoint": "/api/v1/runway/record-detail"
   },
   {
     "className": "RunwayGen3AlphaExtendVideo",
     "moduleName": "video",
-    "modelId": "runway/gen3-alpha-extend-video",
+    "modelId": "runway/gen-3-alpha-extend-video",
     "title": "Runway Gen-3 Alpha Extend Video",
     "description": "Extend videos using Runway's Gen-3 Alpha model via Kie.ai.\n\n    kie, runway, gen-3, gen3alpha, video generation, ai, video-extension\n\n    Runway Gen-3 Alpha can extend existing videos with additional generated content.",
     "outputType": "video",
@@ -5535,12 +5547,14 @@
         "title": "Call Back Url",
         "description": "Optional callback URL to receive task completion updates."
       }
-    ]
+    ],
+    "submitEndpoint": "/api/v1/runway/generate",
+    "pollEndpoint": "/api/v1/runway/record-detail"
   },
   {
     "className": "RunwayAlephVideo",
     "moduleName": "video",
-    "modelId": "runway/aleph-video",
+    "modelId": "runway/generate-aleph-video",
     "title": "Runway Aleph Video",
     "description": "Generate videos using Runway's Aleph model via Kie.ai.\n\n    kie, runway, aleph, video generation, ai, text-to-video\n\n    Aleph is Runway's advanced video generation model offering\n    high-quality output with sophisticated motion handling.",
     "outputType": "video",
@@ -5602,12 +5616,14 @@
         "title": "Call Back Url",
         "description": "Optional callback URL to receive task completion updates."
       }
-    ]
+    ],
+    "submitEndpoint": "/api/v1/runway/generate",
+    "pollEndpoint": "/api/v1/runway/record-detail"
   },
   {
     "className": "LumaModifyVideo",
     "moduleName": "video",
-    "modelId": "luma/modify-video",
+    "modelId": "luma/generate-luma-modify-video",
     "title": "Luma Modify Video",
     "description": "Modify and enhance videos using Luma's API via Kie.ai.\n\n    kie, luma, video modification, ai, video-editing\n\n    Luma's video modification API allows for sophisticated video editing\n    and enhancement capabilities.",
     "outputType": "video",
@@ -5671,7 +5687,7 @@
   {
     "className": "Veo31ImageToVideo",
     "moduleName": "video",
-    "modelId": "veo-3-1/image-to-video",
+    "modelId": "veo3/image-to-video",
     "title": "Veo 3.1 Image To Video",
     "description": "Generate videos from images using Google's Veo 3.1 model via Kie.ai.\n\n    kie, google, veo, veo3, veo3.1, video generation, ai, image-to-video, i2v\n\n    Supports single image (image comes alive) or two images (first and last frames transition).\n    For two images, the first image serves as the video's first frame and the second as the last frame.",
     "outputType": "video",
@@ -5747,12 +5763,14 @@
         "kind": "image",
         "paramName": "image_url"
       }
-    ]
+    ],
+    "submitEndpoint": "/api/v1/veo/generate",
+    "pollEndpoint": "/api/v1/veo/record-info"
   },
   {
     "className": "Veo31ReferenceToVideo",
     "moduleName": "video",
-    "modelId": "veo-3-1/reference-to-video",
+    "modelId": "veo3/reference-to-video",
     "title": "Veo 3.1 Reference To Video",
     "description": "Generate videos from reference images using Google's Veo 3.1 Fast model via Kie.ai.\n\n    kie, google, veo, veo3, veo3.1, video generation, ai, reference-to-video, material-to-video\n\n    Material-to-video generation based on reference images. Only supports veo3_fast model\n    and requires 1-3 reference images.",
     "outputType": "video",
@@ -5854,7 +5872,9 @@
         "paramName": "image_urls",
         "groupKey": "images"
       }
-    ]
+    ],
+    "submitEndpoint": "/api/v1/veo/generate",
+    "pollEndpoint": "/api/v1/veo/record-info"
   },
   {
     "className": "KlingMotionControl",
@@ -5935,7 +5955,7 @@
   {
     "className": "Kling21TextToVideo",
     "moduleName": "video",
-    "modelId": "kling/v2-1-master-text-to-video",
+    "modelId": "kling/v2-1-text-to-video",
     "title": "Kling 2.1 Text To Video",
     "description": "Generate videos from text using Kuaishou's Kling 2.1 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, text-to-video, 2.1\n\n    Kling 2.1 powers cutting-edge video generation with hyper-realistic motion,\n    advanced physics, and high-resolution outputs up to 1080p.\n\n    Use cases:\n    - Generate high-quality videos from text descriptions\n    - Create dynamic, professional-grade video content\n    - Produce videos with realistic motion and physics",
     "outputType": "video",
@@ -6011,7 +6031,7 @@
   {
     "className": "Kling21ImageToVideo",
     "moduleName": "video",
-    "modelId": "kling/v2-1-master-image-to-video",
+    "modelId": "kling/v2-1-image-to-video",
     "title": "Kling 2.1 Image To Video",
     "description": "Generate videos from images using Kuaishou's Kling 2.1 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, image-to-video, 2.1\n\n    Kling 2.1 transforms static images into dynamic videos with hyper-realistic\n    motion and advanced physics simulation.\n\n    Use cases:\n    - Animate static images with realistic motion\n    - Create videos from photos and artwork\n    - Produce dynamic content from still images",
     "outputType": "video",
@@ -6248,7 +6268,7 @@
   {
     "className": "WanAnimate",
     "moduleName": "video",
-    "modelId": "wan/2-2-animate-move",
+    "modelId": "wan/animate",
     "title": "Wan 2.2 Animate",
     "description": "Generate character animation videos using Alibaba's Wan 2.2 Animate via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, animate, character\n\n    Wan 2.2 Animate generates realistic character videos with motion, expressions,\n    and lighting from static images.\n\n    Use cases:\n    - Animate character images with realistic motion\n    - Create character-driven video content\n    - Produce animated videos from portraits or character art",
     "outputType": "video",
@@ -6309,7 +6329,7 @@
   {
     "className": "WanSpeechToVideo",
     "moduleName": "video",
-    "modelId": "wan/2-2-a14b-speech-to-video-turbo",
+    "modelId": "wan/speech-to-video-turbo",
     "title": "Wan 2.2 Speech To Video",
     "description": "Generate videos from speech using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, speech-to-video, lip-sync\n\n    Wan 2.2 A14B Turbo Speech to Video turns static images and audio clips\n    into dynamic, expressive videos.\n\n    Use cases:\n    - Create talking head videos from images and audio\n    - Generate lip-synced content for presentations\n    - Produce dynamic videos from voice recordings",
     "outputType": "video",
@@ -6370,7 +6390,7 @@
   {
     "className": "Wan22TextToVideo",
     "moduleName": "video",
-    "modelId": "wan/2-2-a14b-text-to-video-turbo",
+    "modelId": "wan/v2-2-text-to-video",
     "title": "Wan 2.2 Text To Video",
     "description": "Generate videos from text using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, 2.2\n\n    Wan 2.2 A14B Turbo delivers smooth 720p@24fps clips with cinematic quality,\n    stable motion, and consistent visual style.\n\n    Use cases:\n    - Generate high-quality videos from text\n    - Create content for diverse creative uses\n    - Produce consistent video clips with stable motion",
     "outputType": "video",
@@ -6429,7 +6449,7 @@
   {
     "className": "Wan22ImageToVideo",
     "moduleName": "video",
-    "modelId": "wan/2-2-a14b-image-to-video-turbo",
+    "modelId": "wan/v2-2-image-to-video",
     "title": "Wan 2.2 Image To Video",
     "description": "Generate videos from images using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, 2.2\n\n    Wan 2.2 A14B Turbo transforms images into smooth video clips with\n    cinematic quality and stable motion.\n\n    Use cases:\n    - Animate static images with smooth motion\n    - Create videos from photos or artwork\n    - Produce consistent video content from images",
     "outputType": "video",
@@ -6489,7 +6509,7 @@
   {
     "className": "Hailuo02TextToVideo",
     "moduleName": "video",
-    "modelId": "hailuo/02-text-to-video-pro",
+    "modelId": "hailuo/02-text-to-video",
     "title": "Hailuo 02 Text To Video",
     "description": "Generate videos from text using Minimax's Hailuo 02 model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, text-to-video\n\n    Hailuo 02 is Minimax's advanced AI video generation model that produces\n    short, cinematic clips with realistic motion and physics simulation.\n\n    Use cases:\n    - Generate cinematic video clips from text\n    - Create videos with realistic motion and physics\n    - Produce high-quality content up to 1080P",
     "outputType": "video",
@@ -6549,7 +6569,7 @@
   {
     "className": "Hailuo02ImageToVideo",
     "moduleName": "video",
-    "modelId": "hailuo/02-image-to-video-pro",
+    "modelId": "hailuo/02-image-to-video",
     "title": "Hailuo 02 Image To Video",
     "description": "Generate videos from images using Minimax's Hailuo 02 model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, image-to-video\n\n    Hailuo 02 transforms images into cinematic clips with realistic motion\n    and physics simulation.\n\n    Use cases:\n    - Animate images with realistic motion\n    - Create videos from photos with physics simulation\n    - Produce dynamic content from still images",
     "outputType": "video",
@@ -6610,7 +6630,7 @@
   {
     "className": "Sora2WatermarkRemover",
     "moduleName": "video",
-    "modelId": "sora-watermark-remover",
+    "modelId": "sora-2-watermark-remover",
     "title": "Sora 2 Watermark Remover",
     "description": "Remove watermarks from Sora 2 videos using Kie.ai.\n\n    kie, sora, openai, video editing, watermark removal\n\n    Sora 2 Watermark Remover uses AI detection and motion tracking to remove\n    dynamic watermarks from Sora 2 videos while keeping frames smooth and natural.\n\n    Use cases:\n    - Remove watermarks from generated videos\n    - Clean up video content for final output\n    - Prepare videos for professional use",
     "outputType": "video",

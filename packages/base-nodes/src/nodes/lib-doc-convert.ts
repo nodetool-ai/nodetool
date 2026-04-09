@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.convert.ConvertToMarkdown";
@@ -25,7 +26,7 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   })
   declare document: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const doc = (this.document ?? {}) as Record<string, unknown>;
     const uri = String(doc.uri ?? "");
     const data = doc.data ? String(doc.data) : "";
@@ -41,6 +42,16 @@ export class ConvertToMarkdownLibNode extends BaseNode {
     const isDocx = uri.toLowerCase().endsWith(".docx");
 
     if (isDocx && uri) {
+      // Try storage first for /api/storage/ URIs
+      if (context?.storage) {
+        const stored = await context.storage.retrieve(uri);
+        if (stored !== null) {
+          const mammoth = await import("mammoth");
+          const result = await mammoth.convertToHtml({ buffer: Buffer.from(stored) });
+          const markdown = turndown.turndown(result.value);
+          return { output: { type: "document", uri, data: markdown } };
+        }
+      }
       // Try to convert via mammoth from file path
       const mammoth = await import("mammoth");
       let filePath = uri;
@@ -62,8 +73,20 @@ export class ConvertToMarkdownLibNode extends BaseNode {
       return { output: { type: "document", uri, data } };
     }
 
-    // Fallback: try to read from URI as HTML
+    // Fallback: try to read from URI
     if (uri) {
+      // Try storage first
+      if (context?.storage) {
+        const stored = await context.storage.retrieve(uri);
+        if (stored !== null) {
+          const content = Buffer.from(stored).toString("utf-8");
+          if (content.includes("<") && content.includes(">")) {
+            const markdown = turndown.turndown(content);
+            return { output: { type: "document", uri, data: markdown } };
+          }
+          return { output: { type: "document", uri, data: content } };
+        }
+      }
       let filePath = uri;
       if (filePath.startsWith("file://")) {
         filePath = decodeURIComponent(new URL(filePath).pathname);

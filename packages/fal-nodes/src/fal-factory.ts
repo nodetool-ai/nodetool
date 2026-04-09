@@ -51,6 +51,7 @@ function toTitle(className: string): string {
 }
 
 function isAssetPropType(propType: string): boolean {
+  const lower = propType.toLowerCase();
   return [
     "image",
     "video",
@@ -58,19 +59,20 @@ function isAssetPropType(propType: string): boolean {
     "list[image]",
     "list[video]",
     "list[audio]"
-  ].includes(propType);
+  ].includes(lower);
 }
 
 function isListAsset(propType: string): boolean {
-  return propType.startsWith("list[") && isAssetPropType(propType);
+  return propType.toLowerCase().startsWith("list[") && isAssetPropType(propType);
 }
 
 function assetKind(
   propType: string
 ): "image" | "video" | "audio" | "none" {
-  if (propType === "image" || propType === "list[image]") return "image";
-  if (propType === "video" || propType === "list[video]") return "video";
-  if (propType === "audio" || propType === "list[audio]") return "audio";
+  const lower = propType.toLowerCase();
+  if (lower === "image" || lower === "list[image]") return "image";
+  if (lower === "video" || lower === "list[video]") return "video";
+  if (lower === "audio" || lower === "list[audio]") return "audio";
   return "none";
 }
 
@@ -155,6 +157,19 @@ async function buildArgs(
   return args;
 }
 
+function coerceAssetRef(
+  value: unknown,
+  propType: string
+): unknown {
+  if (!value || typeof value !== "object") return value;
+  const obj = value as Record<string, unknown>;
+  const kind = assetKind(propType);
+  if (obj.url) {
+    return { type: kind !== "none" ? kind : propType, uri: obj.url, width: obj.width, height: obj.height };
+  }
+  return value;
+}
+
 function mapOutput(
   spec: FalManifestEntry,
   res: Record<string, unknown>
@@ -188,7 +203,21 @@ function mapOutput(
     case "str":
       return { output: (res as Record<string, unknown>).output ?? "" };
     default:
-      if (spec.outputFields.length > 0) return res;
+      if (spec.outputFields.length > 0) {
+        const out: Record<string, unknown> = {};
+        const fieldMap = new Map(
+          spec.outputFields.map((f) => [f.name, f.propType])
+        );
+        for (const [key, value] of Object.entries(res)) {
+          const propType = fieldMap.get(key);
+          if (propType && isAssetPropType(propType)) {
+            out[key] = coerceAssetRef(value, propType);
+          } else {
+            out[key] = value;
+          }
+        }
+        return out;
+      }
       return { output: res };
   }
 }
@@ -304,7 +333,20 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     });
   } else if (spec.outputFields.length > 0) {
     const entries: Record<string, string> = {};
-    for (const f of spec.outputFields) entries[f.name] = f.propType;
+    const metaEntries: Record<string, string> = {};
+    for (const f of spec.outputFields) {
+      entries[f.name] = f.propType;
+      const kind = assetKind(f.propType);
+      if (kind !== "none") {
+        metaEntries[f.name] = kind;
+      }
+    }
+    if (Object.keys(metaEntries).length > 0) {
+      Object.defineProperty(FalNodeClass, "metadataOutputTypes", {
+        value: metaEntries,
+        configurable: true
+      });
+    }
     Object.defineProperty(FalNodeClass, "outputTypes", {
       value: entries,
       configurable: true

@@ -11,26 +11,13 @@ import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "./useClipboardContentPaste";
 import { isTextInputActive } from "../../utils/browser";
 
-interface Position {
-  x: number;
-  y: number;
-}
-
 interface ClipboardData {
   nodes: unknown[];
   edges: unknown[];
 }
 
-const hasValidPosition = (position: unknown): position is Position =>
-  !!position &&
-  typeof position === "object" &&
-  "x" in position &&
-  "y" in position &&
-  typeof (position as Position).x === "number" &&
-  typeof (position as Position).y === "number";
-
 const isValidNode = (node: unknown): node is Node<NodeData> =>
-  !!node && typeof node === "object" && "id" in node && typeof (node as Node<NodeData>).id === "string" && "position" in node && hasValidPosition((node as Node<NodeData>).position);
+  !!node && typeof node === "object" && "id" in node && typeof (node as Node<NodeData>).id === "string";
 
 const isValidEdge = (edge: unknown): edge is Edge =>
   !!edge && typeof edge === "object" && "source" in edge && "target" in edge && typeof (edge as Edge).source === "string" && typeof (edge as Edge).target === "string";
@@ -243,9 +230,10 @@ export const useCopyPaste = () => {
       return;
     }
 
+    const firstPos = copiedNodes[0].position ?? { x: 0, y: 0 };
     const offset = {
-      x: firstNodePosition.x - copiedNodes[0].position.x,
-      y: firstNodePosition.y - copiedNodes[0].position.y
+      x: firstNodePosition.x - (firstPos.x ?? 0),
+      y: firstNodePosition.y - (firstPos.y ?? 0)
     };
 
     // create new nodes with updated IDs and parent references
@@ -278,8 +266,8 @@ export const useCopyPaste = () => {
             : undefined
         },
         position: {
-          x: node.position.x + (newParentId ? 0 : offset.x),
-          y: node.position.y + (newParentId ? 0 : offset.y)
+          x: (node.position?.x ?? 0) + (newParentId ? 0 : offset.x),
+          y: (node.position?.y ?? 0) + (newParentId ? 0 : offset.y)
         },
         selected: true // Select pasted nodes
       };

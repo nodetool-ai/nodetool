@@ -97,7 +97,7 @@ const listStyles = (theme: Theme) =>
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      paddingRight: "140px"
+      paddingRight: "0"
     },
     ".date-container": {
       position: "absolute",
@@ -127,7 +127,7 @@ const listStyles = (theme: Theme) =>
     ".duplicate-button svg": {
       transform: "scale(0.7)"
     },
-    // List view (no preview) - actions on the right, no background
+    // List view (no preview) - actions overlay text on hover
     ".actions": {
       position: "absolute",
       top: "50%",
@@ -140,6 +140,8 @@ const listStyles = (theme: Theme) =>
       zIndex: 10,
       opacity: 0,
       transition: "opacity 0.15s ease",
+      background: `linear-gradient(to right, transparent, ${theme.vars.palette.grey[600]} 16px)`,
+      paddingLeft: "20px",
       button: {
         opacity: 1,
         color: theme.vars.palette.grey[100],

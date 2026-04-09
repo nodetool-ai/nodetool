@@ -237,10 +237,7 @@ export {
   FadeOutAudioNode,
   RepeatAudioNode,
   AudioMixerNode,
-  AudioToNumpyNode,
-  NumpyToAudioNode,
   TrimAudioNode,
-  ConvertToArrayNode,
   CreateSilenceNode,
   ConcatAudioNode,
   ConcatAudioListNode,
@@ -315,7 +312,6 @@ export {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ResearchAgentNode,
   AGENT_NODES
 } from "./nodes/agents.js";
 export {
@@ -344,47 +340,6 @@ export {
   MODEL3D_NODES
 } from "./nodes/model3d.js";
 export { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
-export {
-  AddArrayNode,
-  SubtractArrayNode,
-  MultiplyArrayNode,
-  DivideArrayNode,
-  ModulusArrayNode,
-  AbsArrayNode,
-  SineArrayNode,
-  CosineArrayNode,
-  ExpArrayNode,
-  LogArrayNode,
-  SqrtArrayNode,
-  PowerArrayNode,
-  SumArrayNode,
-  MeanArrayNode,
-  MinArrayNode,
-  MaxArrayNode,
-  ArgMinArrayNode,
-  ArgMaxArrayNode,
-  SliceArrayNode,
-  IndexArrayNode,
-  TransposeArrayNode,
-  MatMulNode,
-  StackNode,
-  SplitArrayNode,
-  Reshape1DNode,
-  Reshape2DNode,
-  Reshape3DNode,
-  Reshape4DNode,
-  ListToArrayNode,
-  ArrayToListNode,
-  ScalarToArrayNode,
-  ArrayToScalarNode,
-  ConvertToImageNode as NumpyConvertToImageNode,
-  ConvertToAudioNode as NumpyConvertToAudioNode,
-  ConvertToArrayNumpyNode,
-  SaveArrayNode,
-  BinaryOperationNode,
-  PlotArrayNode,
-  LIB_NUMPY_NODES
-} from "./nodes/lib-array-math.js";
 export {
   WorkspaceDirectoryLibNode,
   OpenWorkspaceDirectoryLibNode,
@@ -511,14 +466,6 @@ export {
   LIB_RSS_NODES
 } from "./nodes/lib-rss.js";
 export {
-  OscillatorLibNode,
-  WhiteNoiseLibNode,
-  PinkNoiseLibNode,
-  FM_SynthesisLibNode,
-  EnvelopeLibNode,
-  LIB_SYNTHESIS_NODES
-} from "./nodes/lib-synthesis.js";
-export {
   GainNode_,
   DelayNode_,
   HighPassFilterNode,
@@ -590,19 +537,6 @@ export {
   PdfPageMetadataNode,
   LIB_PDF_NODES
 } from "./nodes/lib-pdf.js";
-export {
-  STFTNode,
-  MelSpectrogramNode,
-  MFCCNode,
-  ChromaSTFTNode,
-  SpectralCentroidNode,
-  SpectralContrastNode,
-  GriffinLimNode,
-  DetectOnsetsNode,
-  SegmentAudioByOnsetsNode,
-  SaveAudioSegmentsNode,
-  LIB_LIBROSA_SPECTRAL_NODES
-} from "./nodes/lib-audio-spectral.js";
 export { KieAINode, KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
 export {
   CollectionNode,
@@ -660,7 +594,6 @@ import { AGENT_NODES } from "./nodes/agents.js";
 import { GENERATOR_NODES } from "./nodes/generators.js";
 import { MODEL3D_NODES } from "./nodes/model3d.js";
 import { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
-import { LIB_NUMPY_NODES } from "./nodes/lib-array-math.js";
 import { LIB_OS_NODES } from "./nodes/lib-os.js";
 import { LIB_MARKDOWN_NODES } from "./nodes/lib-markdown.js";
 import { LIB_SECRET_NODES } from "./nodes/lib-secret.js";
@@ -673,7 +606,6 @@ import { LIB_IMAGE_FILTER_NODES } from "./nodes/lib-image-filter.js";
 import { LIB_IMAGE_DRAW_NODES } from "./nodes/lib-image-draw.js";
 import { LIB_IMAGE_COLOR_GRADING_NODES } from "./nodes/lib-image-color-grading.js";
 import { LIB_RSS_NODES } from "./nodes/lib-rss.js";
-import { LIB_SYNTHESIS_NODES } from "./nodes/lib-synthesis.js";
 import { LIB_AUDIO_DSP_NODES } from "./nodes/lib-audio-dsp.js";
 import { LIB_SQLITE_NODES } from "./nodes/lib-sqlite.js";
 import { LIB_SUPABASE_NODES } from "./nodes/lib-supabase.js";
@@ -686,7 +618,6 @@ import { LIB_MARKITDOWN_NODES } from "./nodes/lib-doc-convert.js";
 import { LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-audio-effects.js";
 import { LIB_PDF_NODES } from "./nodes/lib-pdf.js";
-import { LIB_LIBROSA_SPECTRAL_NODES } from "./nodes/lib-audio-spectral.js";
 import { KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
 import { VECTOR_NODES } from "./nodes/vector.js";
 import { VECTOR_FAISS_NODES } from "./nodes/vector-faiss.js";
@@ -722,7 +653,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...GENERATOR_NODES,
   ...MODEL3D_NODES,
   ...LIB_COMPAT_PY_NODES,
-  ...LIB_NUMPY_NODES,
   ...LIB_OS_NODES,
   ...LIB_MARKDOWN_NODES,
   ...LIB_SECRET_NODES,
@@ -735,7 +665,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_IMAGE_DRAW_NODES,
   ...LIB_IMAGE_COLOR_GRADING_NODES,
   ...LIB_RSS_NODES,
-  ...LIB_SYNTHESIS_NODES,
   ...LIB_AUDIO_DSP_NODES,
   ...LIB_SQLITE_NODES,
   ...LIB_SUPABASE_NODES,
@@ -748,7 +677,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
-  ...LIB_LIBROSA_SPECTRAL_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
   ...VECTOR_FAISS_NODES,

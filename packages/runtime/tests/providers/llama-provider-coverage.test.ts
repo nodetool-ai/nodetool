@@ -165,43 +165,6 @@ describe("LlamaProvider – formatTools", () => {
   });
 });
 
-describe("LlamaProvider – generateMessage with responseFormat", () => {
-  it("passes responseFormat to request", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [{ message: { content: '{"result": 42}' } }]
-    });
-
-    const provider = new LlamaProvider(
-      { LLAMA_CPP_URL: "http://localhost:8080" },
-      { client: { chat: { completions: { create } } } as any }
-    );
-
-    await provider.generateMessage({
-      model: "test",
-      messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" }
-    });
-
-    expect(create.mock.calls[0][0].response_format).toEqual({
-      type: "json_object"
-    });
-  });
-
-  it("throws on jsonSchema in non-streaming", async () => {
-    const provider = new LlamaProvider(
-      { LLAMA_CPP_URL: "http://localhost:8080" },
-      { client: { chat: { completions: { create: vi.fn() } } } as any }
-    );
-
-    await expect(
-      provider.generateMessage({
-        model: "test",
-        messages: [{ role: "user", content: "hi" }],
-        jsonSchema: { type: "object" }
-      })
-    ).rejects.toThrow("jsonSchema is not supported");
-  });
-});
 
 describe("LlamaProvider – generateMessages with native tool_calls in stream", () => {
   it("yields tool calls from stream", async () => {
@@ -244,20 +207,6 @@ describe("LlamaProvider – generateMessages with native tool_calls in stream", 
     expect(out).toEqual([{ id: "tc1", name: "search", args: { q: "x" } }]);
   });
 
-  it("throws on jsonSchema in streaming", async () => {
-    const provider = new LlamaProvider(
-      { LLAMA_CPP_URL: "http://localhost:8080" },
-      { client: { chat: { completions: { create: vi.fn() } } } as any }
-    );
-
-    const gen = provider.generateMessages({
-      model: "test",
-      messages: [{ role: "user", content: "hi" }],
-      jsonSchema: { type: "object" }
-    });
-
-    await expect(gen.next()).rejects.toThrow("jsonSchema is not supported");
-  });
 });
 
 describe("LlamaProvider – generateMessage with native tool calls", () => {
@@ -508,32 +457,6 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
   });
 });
 
-describe("LlamaProvider – generateMessages with responseFormat", () => {
-  it("passes responseFormat in streaming request", async () => {
-    const stream = makeAsyncIterable([
-      { choices: [{ delta: { content: "{}" }, finish_reason: "stop" }] }
-    ]);
-    const create = vi.fn().mockResolvedValue(stream);
-
-    const provider = new LlamaProvider(
-      { LLAMA_CPP_URL: "http://localhost:8080" },
-      { client: { chat: { completions: { create } } } as any }
-    );
-
-    const out: unknown[] = [];
-    for await (const item of provider.generateMessages({
-      model: "test",
-      messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" }
-    })) {
-      out.push(item);
-    }
-
-    expect(create.mock.calls[0][0].response_format).toEqual({
-      type: "json_object"
-    });
-  });
-});
 
 describe("LlamaProvider – isContextLengthError", () => {
   it("detects context length errors", () => {

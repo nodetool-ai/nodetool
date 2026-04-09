@@ -92,6 +92,7 @@ export async function processChat(opts: {
   tools?: Tool[];
   callbacks?: ChatCallbacks;
   threadId?: string;
+  signal?: AbortSignal;
 }): Promise<Message[]> {
   const {
     userInput,
@@ -101,7 +102,8 @@ export async function processChat(opts: {
     context,
     tools = [],
     callbacks,
-    threadId
+    threadId,
+    signal
   } = opts;
 
   // 1. Add user message
@@ -120,13 +122,33 @@ export async function processChat(opts: {
       messages: messagesToSend,
       model,
       tools: providerTools,
-      threadId
+      threadId,
+      onToolCall:
+        tools.length > 0
+          ? async (name, args) => {
+              const toolCall: ToolCall = {
+                id: `call_${Date.now()}`,
+                name,
+                args
+              };
+              callbacks?.onToolCall?.(toolCall);
+              const executed = await runTool(context, toolCall, tools);
+              const result = (executed as ToolCall & { result: unknown }).result;
+              callbacks?.onToolResult?.(toolCall, result);
+              return typeof result === "string"
+                ? result
+                : JSON.stringify(result, null, 2);
+            }
+          : undefined,
+      signal
     });
 
     // Phase 1: Stream chunks and collect tool calls
     const pendingToolCalls: ToolCall[] = [];
 
     for await (const item of stream) {
+      if (signal?.aborted) break;
+
       // --- Text chunk ---
       if (isChunk(item)) {
         const text = item.content ?? "";

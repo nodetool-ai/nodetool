@@ -70,7 +70,11 @@ function expandUser(p: string): string {
  * because every field in the object schema already carries its own default.
  */
 function withEmptyDefault<T extends z.ZodTypeAny>(schema: T): z.ZodDefault<T> {
-  return schema.default({} as any);
+  // Use a factory so that Zod re-parses the empty object through the inner
+  // schema on each access, ensuring nested field defaults are applied.
+  // (Zod v4 no longer re-parses the default value itself.)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return schema.default(() => schema.parse({}) as any);
 }
 
 // ============================================================================

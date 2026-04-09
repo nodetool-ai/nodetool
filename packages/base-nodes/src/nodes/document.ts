@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -66,8 +67,12 @@ function splitByChunk(
   return out;
 }
 
-async function readDocumentText(refOrPath: unknown): Promise<string> {
+async function readDocumentText(refOrPath: unknown, context?: ProcessingContext): Promise<string> {
   if (typeof refOrPath === "string" && refOrPath) {
+    if (context?.storage) {
+      const stored = await context.storage.retrieve(refOrPath);
+      if (stored !== null) return Buffer.from(stored).toString("utf8");
+    }
     return fs.readFile(toFilePath(refOrPath), "utf8");
   }
   if (refOrPath && typeof refOrPath === "object") {
@@ -78,7 +83,13 @@ async function readDocumentText(refOrPath: unknown): Promise<string> {
       return Buffer.from(bytes).toString("utf8");
     }
     if (typeof ref.uri === "string" && ref.uri) {
-      return fs.readFile(toFilePath(ref.uri), "utf8");
+      if (context?.storage) {
+        const stored = await context.storage.retrieve(ref.uri);
+        if (stored !== null) return Buffer.from(stored).toString("utf8");
+      }
+      if (ref.uri.startsWith("file://") || !ref.uri.startsWith("http")) {
+        return fs.readFile(toFilePath(ref.uri), "utf8");
+      }
     }
   }
   return "";
@@ -346,9 +357,9 @@ export class SplitDocumentNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const text = await readDocumentText(document);
+    const text = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
     const chunkSize = Number((this as any).chunk_size ?? 1200);
     const overlap = Number((this as any).chunk_overlap ?? 100);
@@ -392,22 +403,87 @@ export class SplitHTMLNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const html = await readDocumentText(document);
+    const html = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
-    const text = html
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
     const chunkSize = Number((this as any).chunk_size ?? 1200);
     const overlap = Number((this as any).chunk_overlap ?? 100);
+
+    // Split on block-level HTML tags
+    const blockTags = "p|div|h[1-6]|li|section|article|blockquote|tr|pre|header|footer|nav|main|aside";
+    const blockPattern = new RegExp(
+      `<(?:${blockTags})(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:${blockTags})>`,
+      "gi"
+    );
+
+    const sections: string[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = blockPattern.exec(html)) !== null) {
+      // Capture any text between block elements
+      if (match.index > lastIndex) {
+        const between = html
+          .slice(lastIndex, match.index)
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (between) sections.push(between);
+      }
+      // Extract text content from the block element
+      const content = match[1]
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (content) sections.push(content);
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Any remaining text after the last block element
+    if (lastIndex < html.length) {
+      const remaining = html
+        .slice(lastIndex)
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (remaining) sections.push(remaining);
+    }
+
+    // If no block elements found, fall back to stripping all tags
+    if (sections.length === 0) {
+      const text = html
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (text) sections.push(text);
+    }
+
+    // Merge small sections and split large ones respecting chunk_size
     let startIndex = 0;
-    for (const chunk of splitByChunk(text, chunkSize, overlap)) {
-      const idx = text.indexOf(chunk, startIndex);
-      const resolvedIndex = idx >= 0 ? idx : startIndex;
-      yield textChunk(chunk, sourceId, resolvedIndex);
-      startIndex = resolvedIndex + Math.max(chunk.length - overlap, 1);
+    let chunkIdx = 0;
+    let buffer = "";
+
+    for (const section of sections) {
+      if (buffer && (buffer.length + 1 + section.length) > chunkSize) {
+        // Emit buffer
+        for (const chunk of splitByChunk(buffer, chunkSize, overlap)) {
+          yield textChunk(chunk, `${sourceId}:${chunkIdx}`, startIndex);
+          startIndex += Math.max(chunk.length - overlap, 1);
+          chunkIdx++;
+        }
+        buffer = "";
+      }
+      buffer = buffer ? buffer + "\n" + section : section;
+    }
+
+    // Emit remaining buffer
+    if (buffer) {
+      for (const chunk of splitByChunk(buffer, chunkSize, overlap)) {
+        yield textChunk(chunk, `${sourceId}:${chunkIdx}`, startIndex);
+        startIndex += Math.max(chunk.length - overlap, 1);
+        chunkIdx++;
+      }
     }
   }
 }
@@ -458,24 +534,71 @@ export class SplitJSONNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const raw = await readDocumentText(document);
+    const raw = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
-    let rendered: string;
-    try {
-      rendered = JSON.stringify(JSON.parse(raw), null, 2);
-    } catch {
-      rendered = raw;
-    }
     const chunkSize = Number((this as any).chunk_size ?? 1200);
     const overlap = Number((this as any).chunk_overlap ?? 100);
-    let startIndex = 0;
-    for (const chunk of splitByChunk(rendered, chunkSize, overlap)) {
-      const idx = rendered.indexOf(chunk, startIndex);
-      const resolvedIndex = idx >= 0 ? idx : startIndex;
-      yield textChunk(chunk, sourceId, resolvedIndex);
-      startIndex = resolvedIndex + Math.max(chunk.length - overlap, 1);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      // Fallback to character-based splitting for invalid JSON
+      let startIndex = 0;
+      for (const chunk of splitByChunk(raw, chunkSize, overlap)) {
+        const idx = raw.indexOf(chunk, startIndex);
+        const resolvedIndex = idx >= 0 ? idx : startIndex;
+        yield textChunk(chunk, sourceId, resolvedIndex);
+        startIndex = resolvedIndex + Math.max(chunk.length - overlap, 1);
+      }
+      return;
+    }
+
+    // Split by JSON structure
+    let elements: string[];
+    if (Array.isArray(parsed)) {
+      // Top-level array: split into individual elements
+      elements = parsed.map((item) => JSON.stringify(item, null, 2));
+    } else if (parsed && typeof parsed === "object") {
+      // Top-level object: split by top-level keys
+      elements = Object.entries(parsed as Record<string, unknown>).map(
+        ([key, value]) => JSON.stringify({ [key]: value }, null, 2)
+      );
+    } else {
+      elements = [JSON.stringify(parsed, null, 2)];
+    }
+
+    // Merge small elements and split large ones respecting chunk_size
+    let chunkIdx = 0;
+    let buffer = "";
+
+    for (const element of elements) {
+      if (element.length > chunkSize) {
+        // Emit buffer first if any
+        if (buffer) {
+          yield textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
+          chunkIdx++;
+          buffer = "";
+        }
+        // Split large element by characters
+        for (const chunk of splitByChunk(element, chunkSize, overlap)) {
+          yield textChunk(chunk, `${sourceId}:${chunkIdx}`, chunkIdx);
+          chunkIdx++;
+        }
+      } else if (buffer && (buffer.length + 2 + element.length) > chunkSize) {
+        // Buffer would exceed chunk_size, emit it
+        yield textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
+        chunkIdx++;
+        buffer = element;
+      } else {
+        buffer = buffer ? buffer + ",\n" + element : element;
+      }
+    }
+
+    if (buffer) {
+      yield textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
     }
   }
 }
@@ -534,15 +657,15 @@ export class SplitRecursivelyNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const text = await readDocumentText(document);
+    const text = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
     const chunkSize = Number(
-      (this as any).chunk_size ?? (this as any).chunk_size ?? 1200
+      (this as any).chunk_size ?? (this as any).chunk_size ?? 1000
     );
     const overlap = Number(
-      (this as any).chunk_overlap ?? (this as any).chunk_overlap ?? 100
+      (this as any).chunk_overlap ?? (this as any).chunk_overlap ?? 200
     );
     const separators = Array.isArray(this.separators ?? this.separators)
       ? ((this.separators ?? this.separators) as unknown[]).map((s) =>
@@ -550,56 +673,80 @@ export class SplitRecursivelyNode extends BaseNode {
         )
       : ["\n\n", "\n", "."];
 
-    const activeSeparator = separators.find(
-      (separator) => separator && text.includes(separator)
-    );
-    if (activeSeparator) {
-      const parts: Array<{ text: string; start: number }> = [];
-      let cursor = 0;
-      if (activeSeparator === "\n") {
-        const rawParts = text.split("\n");
-        rawParts.forEach((part, index) => {
-          const prefix = index === 0 ? "" : "\n";
-          const value = `${prefix}${part}`;
-          if (value) {
-            parts.push({
-              text: value,
-              start: index === 0 ? cursor : cursor - 1
-            });
+    // Truly recursive splitting: for each separator in order,
+    // split text and recursively split chunks that are too large
+    // using the next separator.
+    function recursiveSplit(
+      input: string,
+      sepIndex: number
+    ): string[] {
+      if (input.length <= chunkSize) return [input];
+      if (sepIndex >= separators.length) {
+        // No more separators — fall back to character splitting
+        return splitByChunk(input, chunkSize, overlap);
+      }
+
+      const sep = separators[sepIndex];
+      if (!input.includes(sep)) {
+        // This separator doesn't exist in the text, try next
+        return recursiveSplit(input, sepIndex + 1);
+      }
+
+      const rawParts = input.split(sep);
+      const merged: string[] = [];
+      let current = "";
+
+      for (let i = 0; i < rawParts.length; i++) {
+        const part = rawParts[i];
+        const candidate = current ? current + sep + part : part;
+
+        if (candidate.length <= chunkSize) {
+          current = candidate;
+        } else {
+          if (current) merged.push(current);
+          if (part.length <= chunkSize) {
+            current = part;
+          } else {
+            // Part is still too large — recurse with next separator
+            const subChunks = recursiveSplit(part, sepIndex + 1);
+            for (let j = 0; j < subChunks.length - 1; j++) {
+              merged.push(subChunks[j]);
+            }
+            current = subChunks[subChunks.length - 1];
           }
-          cursor += part.length + 1;
-        });
-      } else {
-        for (const part of text.split(activeSeparator)) {
-          if (!part) {
-            cursor += activeSeparator.length;
-            continue;
-          }
-          parts.push({ text: part, start: cursor });
-          cursor += part.length + activeSeparator.length;
         }
       }
+      if (current) merged.push(current);
 
-      for (const part of parts) {
-        yield textChunk(
-          part.text,
-          `${sourceId}:${parts.indexOf(part)}`,
-          part.start
-        );
+      // Apply overlap by prepending end of previous chunk
+      if (overlap > 0 && merged.length > 1) {
+        const withOverlap: string[] = [merged[0]];
+        for (let i = 1; i < merged.length; i++) {
+          const prev = merged[i - 1];
+          const overlapText = prev.slice(-overlap);
+          withOverlap.push(overlapText + merged[i]);
+        }
+        return withOverlap;
       }
-      return;
+
+      return merged;
     }
 
-    let startIndex = 0;
-    for (const chunk of splitByChunk(text, chunkSize, overlap)) {
-      const idx = text.indexOf(chunk, startIndex);
-      const resolvedIndex = idx >= 0 ? idx : startIndex;
+    const chunks = recursiveSplit(text, 0);
+    let chunkIndex = 0;
+    let searchFrom = 0;
+    for (const chunk of chunks) {
+      // Find position accounting for overlap (search from where we expect)
+      const idx = text.indexOf(chunk, searchFrom);
+      const resolvedIndex = idx >= 0 ? idx : searchFrom;
       yield textChunk(
         chunk,
-        `${sourceId}:${Math.floor(resolvedIndex / Math.max(chunkSize - overlap, 1))}`,
+        `${sourceId}:${chunkIndex}`,
         resolvedIndex
       );
-      startIndex = resolvedIndex + Math.max(chunk.length - overlap, 1);
+      // Move search forward, but not past the overlap region
+      searchFrom = resolvedIndex + Math.max(chunk.length - overlap, 1);
+      chunkIndex++;
     }
   }
 }
@@ -678,52 +825,127 @@ export class SplitMarkdownNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
     const document = this.document ?? this.document;
-    const markdown = await readDocumentText(document);
+    const markdown = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
     const stripHeaders = Boolean(
       this.strip_headers ?? this.strip_headers ?? true
     );
+    const returnEachLine = Boolean(
+      this.return_each_line ?? this.return_each_line ?? false
+    );
     const chunkSize = Number(
-      (this as any).chunk_size ?? (this as any).chunk_size ?? 1200
+      (this as any).chunk_size ?? (this as any).chunk_size ?? 1000
     );
     const overlap = Number(
       (this as any).chunk_overlap ?? (this as any).chunk_overlap ?? 30
     );
 
-    const sections: string[] = [];
-    let current: string[] = [];
-    for (const line of markdown.split("\n")) {
-      if (line.trim().startsWith("#")) {
-        if (current.length) sections.push(current.join("\n").trim());
-        current = stripHeaders ? [] : [line];
-        continue;
-      }
-      current.push(line);
-    }
-    if (current.length) sections.push(current.join("\n").trim());
+    // Parse headers_to_split_on config
+    const headersConfig = Array.isArray(this.headers_to_split_on)
+      ? (this.headers_to_split_on as Array<[string, string]>)
+      : [["#", "Header 1"], ["##", "Header 2"], ["###", "Header 3"]];
 
-    if (sections.length > 0) {
-      for (const section of sections.filter(Boolean)) {
-        const sectionChunks = splitByChunk(section, chunkSize, overlap);
-        let sectionStart = 0;
-        for (const chunk of sectionChunks) {
-          const idx = section.indexOf(chunk, sectionStart);
-          const resolvedIndex = idx >= 0 ? idx : sectionStart;
-          yield textChunk(chunk, sourceId, resolvedIndex);
-          sectionStart = resolvedIndex + Math.max(chunk.length - overlap, 1);
+    // Build header patterns sorted by level (longest first so ## matches before #)
+    const headerPatterns = headersConfig
+      .map(([symbol, name]) => ({ symbol, name, level: symbol.length }))
+      .sort((a, b) => b.level - a.level);
+
+    // Parse sections with header hierarchy tracking
+    interface Section {
+      content: string[];
+      metadata: Record<string, string>;
+    }
+
+    const sections: Section[] = [];
+    let currentContent: string[] = [];
+    const activeHeaders: Record<string, string> = {};
+
+    for (const line of markdown.split("\n")) {
+      const trimmedLine = line.trim();
+
+      // Check if this line is a header we care about
+      let matchedHeader: { symbol: string; name: string; level: number } | null = null;
+      for (const hp of headerPatterns) {
+        if (trimmedLine.startsWith(hp.symbol + " ") && !trimmedLine.startsWith(hp.symbol + "#")) {
+          matchedHeader = hp;
+          break;
         }
       }
-      return;
+
+      if (matchedHeader) {
+        // Emit previous section
+        if (currentContent.length > 0) {
+          sections.push({
+            content: [...currentContent],
+            metadata: { ...activeHeaders }
+          });
+          currentContent = [];
+        }
+
+        // Update header hierarchy: set this header and clear deeper levels
+        const headerText = trimmedLine.slice(matchedHeader.symbol.length).trim();
+        activeHeaders[matchedHeader.name] = headerText;
+        // Clear any deeper headers
+        for (const hp of headerPatterns) {
+          if (hp.level > matchedHeader.level) {
+            delete activeHeaders[hp.name];
+          }
+        }
+
+        if (!stripHeaders) {
+          currentContent.push(line);
+        }
+      } else {
+        currentContent.push(line);
+      }
     }
 
-    let startIndex = 0;
-    for (const chunk of splitByChunk(markdown, chunkSize, overlap)) {
-      const idx = markdown.indexOf(chunk, startIndex);
-      const resolvedIndex = idx >= 0 ? idx : startIndex;
-      yield textChunk(chunk, sourceId, resolvedIndex);
-      startIndex = resolvedIndex + Math.max(chunk.length - overlap, 1);
+    // Emit final section
+    if (currentContent.length > 0) {
+      sections.push({
+        content: [...currentContent],
+        metadata: { ...activeHeaders }
+      });
+    }
+
+    // Yield sections
+    let chunkIdx = 0;
+    for (const section of sections) {
+      const sectionText = section.content.join("\n").trim();
+      if (!sectionText) continue;
+
+      if (returnEachLine) {
+        for (const line of section.content) {
+          const trimmed = line.trim();
+          if (trimmed) {
+            const result = textChunk(trimmed, sourceId, chunkIdx);
+            result.metadata = section.metadata;
+            yield result;
+            chunkIdx++;
+          }
+        }
+      } else {
+        const sectionChunks = splitByChunk(sectionText, chunkSize, overlap);
+        for (const chunk of sectionChunks) {
+          const result = textChunk(chunk, sourceId, chunkIdx);
+          result.metadata = section.metadata;
+          yield result;
+          chunkIdx++;
+        }
+      }
+    }
+
+    // Fallback if no sections were created
+    if (sections.length === 0) {
+      let startIndex = 0;
+      for (const chunk of splitByChunk(markdown, chunkSize, overlap)) {
+        const idx = markdown.indexOf(chunk, startIndex);
+        const resolvedIndex = idx >= 0 ? idx : startIndex;
+        yield textChunk(chunk, sourceId, resolvedIndex);
+        startIndex = resolvedIndex + Math.max(chunk.length - overlap, 1);
+      }
     }
   }
 }

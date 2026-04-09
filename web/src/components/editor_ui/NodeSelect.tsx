@@ -88,22 +88,7 @@
      const selectSx = useMemo(() => ({
        fontSize,
        height,
-       // Semantic: changed state - shows right border indicator
-       ...(changed && {
-         "& .MuiOutlinedInput-notchedOutline": {
-           borderRightWidth: 2,
-           borderRightColor: theme.vars.palette.primary.main
-         },
-         "&:hover .MuiOutlinedInput-notchedOutline": {
-           borderRightWidth: 2,
-           borderRightColor: theme.vars.palette.primary.main
-         },
-         "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-           borderRightWidth: 2,
-           borderRightColor: theme.vars.palette.primary.main
-         }
-       }),
-       // Semantic: invalid state - shows error border (preserves changed right border)
+       // Semantic: invalid state - shows error border
        ...(invalid && {
          "& .MuiOutlinedInput-notchedOutline": {
            borderColor: theme.vars.palette.error.main

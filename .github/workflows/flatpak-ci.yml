@@ -49,7 +49,7 @@ jobs:
           flatpak-builder --version
       
       - name: Cache Flatpak SDK and runtime
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.local/share/flatpak
@@ -59,7 +59,7 @@ jobs:
             flatpak-sdk-${{ runner.os }}-
       
       - name: Cache node_modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             web/node_modules

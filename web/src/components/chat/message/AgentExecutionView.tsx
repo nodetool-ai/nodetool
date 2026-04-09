@@ -545,7 +545,7 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
   }, [messages]);
 
   // Memoize inline styles to prevent re-creation on every render
-  const planningItemStyle = useMemo(() => ({ position: "relative" as const, marginBottom: "0.5rem" }), []);
+  const planningItemStyle = useMemo(() => ({ position: "relative" as const, marginBottom: "0.15rem" }), []);
   const logItemStyle = useMemo(() => ({ position: "relative" as const }), []);
   const logDotStyle = useMemo(() => ({
     width: 6,
@@ -576,7 +576,6 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
         const planningUpdate = item.data as PlanningUpdate;
         return (
           <div key={item.key} style={planningItemStyle}>
-            <div className={`timeline-dot ${planningUpdate.status === "Success" ? "completed" : ""}`} />
             <PlanningUpdateDisplay planningUpdate={planningUpdate} />
           </div>
         );
@@ -701,10 +700,9 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
           execution.timeline
             .filter((item) => {
               const hasTask = execution.timeline.some((i) => i.type === "task");
-              if (hasTask) {
-                return item.type === "task";
-              }
-              return item.type === "planning";
+              // Hide planning and logs once any task exists
+              if (hasTask && item.type !== "task") return false;
+              return true;
             })
             .map(renderTimelineItem)
         ) : (

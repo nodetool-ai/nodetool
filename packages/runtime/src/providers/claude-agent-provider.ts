@@ -54,21 +54,7 @@ const CLAUDE_AGENT_MODELS: LanguageModel[] = [
   }
 ];
 
-/** Built-in Claude Code tools we disable — we only want text generation + our MCP tools. */
-const DISALLOWED_TOOLS = [
-  "Bash",
-  "Read",
-  "Write",
-  "Edit",
-  "Glob",
-  "Grep",
-  "NotebookEdit",
-  "TodoWrite",
-  "WebFetch",
-  "WebSearch",
-  "Task",
-  "TaskOutput"
-];
+const DISALLOWED_TOOLS: string[] = [];
 
 function extractText(content: Message["content"]): string {
   if (typeof content === "string") return content;
@@ -301,8 +287,6 @@ export class ClaudeAgentProvider extends BaseProvider {
     tools?: ProviderTool[];
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -312,11 +296,21 @@ export class ClaudeAgentProvider extends BaseProvider {
     threadId?: string | null;
     /** Callback for tool execution. Required when tools are provided. */
     onToolCall?: OnToolCall;
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
-    const hasTools = (args.tools?.length ?? 0) > 0 && !!args.onToolCall;
+    const toolCount = args.tools?.length ?? 0;
+    const hasOnToolCall = !!args.onToolCall;
+    const hasTools = toolCount > 0 && hasOnToolCall;
     const { systemPrompt, prompt } = this.extractPrompt(args.messages);
     const threadId = args.threadId ?? null;
     const resumeSessionId = this.getSessionId(threadId);
+
+    log.info("Claude Agent generateMessages called", {
+      toolCount,
+      hasOnToolCall,
+      hasTools,
+      toolNames: args.tools?.map((t) => t.name) ?? []
+    });
 
     // Track tool calls made during this query (populated by MCP handlers)
     const toolCallTracker: ToolCall[] = [];
@@ -326,7 +320,6 @@ export class ClaudeAgentProvider extends BaseProvider {
     let allowedTools: string[] = [];
 
     if (hasTools && args.tools && args.onToolCall) {
-      const { z } = await import("zod");
       mcpServer = this.buildMcpServer(
         args.tools,
         args.onToolCall,
@@ -337,9 +330,13 @@ export class ClaudeAgentProvider extends BaseProvider {
       allowedTools = args.tools.map(
         (t) => `mcp__${MCP_SERVER_NAME}__${t.name}`
       );
+      log.info("MCP server built", {
+        mcpToolCount: args.tools.length,
+        allowedTools
+      });
     }
 
-    log.debug("Claude Agent request", {
+    log.info("Claude Agent request", {
       model: args.model,
       promptLength: prompt.length,
       threadId,
@@ -353,6 +350,21 @@ export class ClaudeAgentProvider extends BaseProvider {
     delete cleanEnv.CLAUDECODE;
     delete cleanEnv.CLAUDE_CODE;
 
+    // Bridge AbortSignal → AbortController for the SDK
+    let abortController: AbortController | undefined;
+    if (args.signal) {
+      abortController = new AbortController();
+      if (args.signal.aborted) {
+        abortController.abort();
+      } else {
+        args.signal.addEventListener(
+          "abort",
+          () => abortController!.abort(),
+          { once: true }
+        );
+      }
+    }
+
     const queryHandle = sdk.query({
       prompt,
       options: {
@@ -364,6 +376,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         disallowedTools: DISALLOWED_TOOLS,
         allowedTools,
         env: cleanEnv,
+        ...(abortController ? { abortController } : {}),
         ...(mcpServer ? { mcpServers: { [MCP_SERVER_NAME]: mcpServer } } : {}),
         ...(resumeSessionId ? { resume: resumeSessionId } : {})
       }
@@ -473,8 +486,6 @@ export class ClaudeAgentProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;

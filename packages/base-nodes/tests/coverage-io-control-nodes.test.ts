@@ -138,12 +138,12 @@ describe("control nodes — full coverage", () => {
     expect(d).toEqual({ input_item: [] });
   });
 
-  it("CollectNode.process pushes default input_item when no input assigned", async () => {
+  it("CollectNode.process returns empty list (streaming handled by run())", async () => {
     const node = new CollectNode();
     await node.initialize();
-    // With the new API, input_item defaults to [] when not assigned
+    // CollectNode.process() is a no-op stub; real collection is via run()
     const result = await node.process();
-    expect(result).toEqual({ output: [[]] });
+    expect(result).toEqual({ output: [] });
   });
 
   it("RerouteNode uses prop fallback when no input", async () => {
@@ -485,77 +485,50 @@ describe("output nodes — full coverage", () => {
     expect(result).toEqual({ output: "raw" });
   });
 
-  it("OutputNode inferOutputType covers all types", async () => {
+  it("OutputNode returns normalized value for various types", async () => {
     const node = new OutputNode();
-    const emitted: Array<Record<string, unknown>> = [];
-    const context = {
-      emit: (msg: Record<string, unknown>) => emitted.push(msg)
-    } as unknown as ProcessingContext;
 
     // null
     node.assign({ value: null });
-    await node.process(context);
-    expect(emitted[0].output_type).toBe("any");
+    expect(await node.process()).toEqual({ output: null });
 
     // string
-    emitted.length = 0;
     node.assign({ value: "text" });
-    await node.process(context);
-    expect(emitted[0].output_type).toBe("str");
+    expect(await node.process()).toEqual({ output: "text" });
 
     // integer
-    emitted.length = 0;
     node.assign({ value: 42 });
-    await node.process(context);
-    expect(emitted[0].output_type).toBe("int");
+    expect(await node.process()).toEqual({ output: 42 });
 
     // float
-    emitted.length = 0;
     node.assign({ value: 3.14 });
-    await node.process(context);
-    expect(emitted[0].output_type).toBe("float");
+    expect(await node.process()).toEqual({ output: 3.14 });
 
     // boolean
-    emitted.length = 0;
     node.assign({ value: true });
-    await node.process(context);
-    expect(emitted[0].output_type).toBe("bool");
+    expect(await node.process()).toEqual({ output: true });
 
     // array
-    emitted.length = 0;
     node.assign({ value: [1, 2] });
-    await node.process(context);
-    expect(emitted[0].output_type).toBe("list");
+    expect(await node.process()).toEqual({ output: [1, 2] });
 
     // object
-    emitted.length = 0;
     node.assign({ value: { a: 1 } });
-    await node.process(context);
-    expect(emitted[0].output_type).toBe("dict");
+    expect(await node.process()).toEqual({ output: { a: 1 } });
 
-    // undefined (fallback to "any")
-    emitted.length = 0;
+    // undefined (fallback to null)
     node.assign({ value: undefined });
-    await node.process(context);
-    expect(emitted[0].output_type).toBe("any");
-
-    // BigInt — non-standard type that hits the final "any" fallback
-    emitted.length = 0;
-    node.assign({ value: BigInt(42) });
-    await node.process(context);
-    expect(emitted[0].output_type).toBe("any");
+    expect(await node.process()).toEqual({ output: null });
   });
 
   it("OutputNode output_name defaults to 'output' when name prop empty", async () => {
     const node = new OutputNode();
     node.assign({ __node_id: "n1", name: "" });
-    const emitted: Array<Record<string, unknown>> = [];
-    const context = {
-      emit: (msg: Record<string, unknown>) => emitted.push(msg)
-    } as unknown as ProcessingContext;
+    // OutputNode no longer emits output_update directly; runner handles it.
+    // Just verify it returns the value.
     node.assign({ value: 1 });
-    await node.process(context);
-    expect(emitted[0].output_name).toBe("output");
+    const result = await node.process();
+    expect(result).toEqual({ output: 1 });
   });
 
   it("PreviewNode uses value property", async () => {
@@ -713,7 +686,7 @@ describe("constant nodes — full coverage", () => {
       second: 45,
       millisecond: 123,
       tzinfo: "UTC",
-      utc_offset: "+00:00"
+      utc_offset: 0
     });
     const result = await node.process();
     expect(result.output).toEqual({
@@ -723,9 +696,9 @@ describe("constant nodes — full coverage", () => {
       hour: 10,
       minute: 30,
       second: 45,
-      millisecond: 123,
+      microsecond: 123000,
       tzinfo: "UTC",
-      utc_offset: "+00:00"
+      utc_offset: 0
     });
   });
 
@@ -739,9 +712,9 @@ describe("constant nodes — full coverage", () => {
       hour: 0,
       minute: 0,
       second: 0,
-      millisecond: 0,
+      microsecond: 0,
       tzinfo: "UTC",
-      utc_offset: "0"
+      utc_offset: 0
     });
   });
 

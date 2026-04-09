@@ -2,6 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useInputStream } from "./useInputStream";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
 
+/** Stable ref wrapper — avoids effect restarts when callback identity changes. */
+function useStableCallback<T extends (...args: never[]) => unknown>(fn: T): T {
+  const ref = useRef(fn);
+  ref.current = fn;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return useCallback((...args: any[]) => ref.current(...args), []) as T;
+}
+
 type UseRealtimeAudioStream = {
   isStreaming: boolean;
   start: () => void;
@@ -43,7 +51,9 @@ export const useRealtimeAudioStream = (
   const audioStreamRef = useRef<MediaStream | null>(null);
   const [version, setVersion] = useState(0);
 
-  const { send, end } = useInputStream(inputNodeName || "");
+  const { send: rawSend, end: rawEnd } = useInputStream(inputNodeName || "");
+  const send = useStableCallback(rawSend);
+  const end = useStableCallback(rawEnd);
   const runnerState = useWebsocketRunner((s) => s.state);
 
   const stop = useCallback(() => {
@@ -206,9 +216,19 @@ export const useRealtimeAudioStream = (
     };
   }, [isStreaming, sampleRate, send, end]);
 
-  // Stop streaming automatically when workflow stops/cancels/errors
+  // Stop streaming when workflow is cancelled or errors out.
+  // Don't stop on "idle" — the mic should stay active so audio
+  // flows once the user presses Run.
+  const prevRunnerState = useRef(runnerState);
   useEffect(() => {
-    if (isStreaming && runnerState !== "running") {
+    const prev = prevRunnerState.current;
+    prevRunnerState.current = runnerState;
+    if (!isStreaming) return;
+    // Only stop if we transitioned away from "running" to a terminal state
+    if (
+      prev === "running" &&
+      (runnerState === "cancelled" || runnerState === "error")
+    ) {
       stop();
     }
   }, [runnerState, isStreaming, stop]);

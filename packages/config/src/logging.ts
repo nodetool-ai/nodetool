@@ -8,6 +8,8 @@
  *   log.debug("Node executing", { nodeId, type });
  */
 
+import { openSync, writeSync } from "node:fs";
+
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export interface Logger {
@@ -31,21 +33,37 @@ const LEVEL_NUM: Record<LogLevel, number> = {
 
 let currentLevel: LogLevel = "info";
 
+/** File descriptor for log output. Defaults to stderr; set via NODETOOL_LOG_FILE. */
+let logFd: number | null = null;
+
 /**
  * Configure the global log level.
  * Priority: explicit option > NODETOOL_LOG_LEVEL env > LOG_LEVEL env > "info"
+ *
+ * If NODETOOL_LOG_FILE is set, logs are written to that file instead of stderr.
+ * This is useful when the terminal is controlled by a TUI (e.g. Ink).
  */
 export function configureLogging(opts: LoggingOptions = {}): void {
   if (opts.level) {
     currentLevel = opts.level;
-    return;
+  } else {
+    const envLevel = (
+      process.env["NODETOOL_LOG_LEVEL"] ??
+      process.env["LOG_LEVEL"] ??
+      "info"
+    ).toLowerCase() as LogLevel;
+    currentLevel = VALID_LEVELS.includes(envLevel) ? envLevel : "info";
   }
-  const envLevel = (
-    process.env["NODETOOL_LOG_LEVEL"] ??
-    process.env["LOG_LEVEL"] ??
-    "info"
-  ).toLowerCase() as LogLevel;
-  currentLevel = VALID_LEVELS.includes(envLevel) ? envLevel : "info";
+
+  // Open log file if configured (lazy import to keep module lightweight)
+  const logFile = process.env["NODETOOL_LOG_FILE"];
+  if (logFile && logFd === null) {
+    try {
+      logFd = openSync(logFile, "a");
+    } catch {
+      // Fall back to stderr silently
+    }
+  }
 }
 
 /** Get the current global log level. */
@@ -107,7 +125,11 @@ function write(
   const lv = `${lc}${level.toUpperCase().padEnd(5)}${C.reset}`;
   const nm = `${C.cyan}${name}${C.reset}`;
   const line = `${ts} | ${lv} | ${nm} | ${msg}${formatArgs(args)}\n`;
-  process.stderr.write(line);
+  if (logFd !== null) {
+    writeSync(logFd, line);
+  } else {
+    process.stderr.write(line);
+  }
 }
 
 /**

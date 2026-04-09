@@ -370,7 +370,6 @@ export class OllamaProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
   }): Promise<Record<string, unknown>> {
     const request: Record<string, unknown> = {
       model: args.model,
@@ -389,16 +388,6 @@ export class OllamaProvider extends BaseProvider {
       request.tools = this.formatTools(args.tools ?? []);
     }
 
-    if (args.responseFormat?.type === "json_schema") {
-      const schema = (
-        args.responseFormat.json_schema as { schema?: unknown } | undefined
-      )?.schema;
-      if (!schema) {
-        throw new Error("schema is required in json_schema response format");
-      }
-      request.format = schema;
-    }
-
     return request;
   }
 
@@ -407,19 +396,11 @@ export class OllamaProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
   }): Promise<Message> {
-    if (args.jsonSchema) {
-      throw new Error(
-        "Ollama provider expects responseFormat; jsonSchema is not supported directly"
-      );
-    }
-
     const tools = args.tools ?? [];
     const useToolEmulation =
       tools.length > 0 && !(await this.hasToolSupport(args.model));
@@ -436,8 +417,7 @@ export class OllamaProvider extends BaseProvider {
       messages,
       model: args.model,
       tools: requestTools,
-      maxTokens: args.maxTokens,
-      responseFormat: args.responseFormat
+      maxTokens: args.maxTokens
     });
     request.stream = false;
 
@@ -513,20 +493,12 @@ export class OllamaProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
   }): AsyncGenerator<ProviderStreamItem> {
-    if (args.jsonSchema) {
-      throw new Error(
-        "Ollama provider expects responseFormat; jsonSchema is not supported directly"
-      );
-    }
-
     const tools = args.tools ?? [];
     const useToolEmulation =
       tools.length > 0 && !(await this.hasToolSupport(args.model));
@@ -543,8 +515,7 @@ export class OllamaProvider extends BaseProvider {
       messages,
       model: args.model,
       tools: requestTools,
-      maxTokens: args.maxTokens,
-      responseFormat: args.responseFormat
+      maxTokens: args.maxTokens
     });
     request.stream = true;
 

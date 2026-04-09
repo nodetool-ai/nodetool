@@ -149,22 +149,15 @@ import {
   SSHConnection,
   SSHConnectionError,
   SSHCommandError,
-  withSSHConnection
+  withSSHConnection,
+  _setClientCtorForTest
 } from "../src/ssh.js";
-import type { SSHConnectionOptions } from "../src/ssh.js";
+import type { SSHConnectionOptions, SSH2ClientConstructor } from "../src/ssh.js";
 
 // The module caches _ClientCtor after first call to getClientCtor().
-// We need to set it before any test calls connect(). We do this by
-// accessing the module-level variable. Since it's not exported, we
-// inject it by calling require("ssh2") ourselves through the module's
-// internal mechanism: we just need to make sure require("ssh2") returns
-// our mock. Let's patch it via the module's internal state.
-//
-// Alternative approach: we directly set the _ClientCtor by reaching into
-// the module. But since that's a local variable, we can't. Instead, we
-// override `require` or use Node's module cache.
+// We inject the mock constructor directly via the exported test helper so
+// that no real ssh2 package is needed at runtime.
 
-// Inject our mock into Node's require cache for "ssh2"
 const mockSsh2Module = {
   Client: class MockSSH2Client {
     constructor() {
@@ -174,32 +167,11 @@ const mockSsh2Module = {
   }
 };
 
-// For CJS require() interop, inject into require.cache
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const resolvedSsh2Path = (() => {
-  try {
-    return require.resolve("ssh2");
-  } catch {
-    return null;
-  }
-})();
-
-if (resolvedSsh2Path) {
-  require.cache[resolvedSsh2Path] = {
-    id: resolvedSsh2Path,
-    filename: resolvedSsh2Path,
-    loaded: true,
-    exports: mockSsh2Module
-  } as NodeModule;
-} else {
-  // ssh2 is not installed, so create a synthetic cache entry
-  // We need to make require("ssh2") work by adding to Module._cache
-  const Module = require("module");
-  const m = new Module("ssh2");
-  m.exports = mockSsh2Module;
-  m.loaded = true;
-  Module._cache["ssh2"] = m;
-}
+// Set the mock constructor so that getClientCtor() returns it immediately
+// without trying to require("ssh2").
+_setClientCtorForTest(
+  mockSsh2Module.Client as unknown as SSH2ClientConstructor
+);
 
 // ---------------------------------------------------------------------------
 // Tests

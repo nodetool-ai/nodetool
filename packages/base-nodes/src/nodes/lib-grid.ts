@@ -1,44 +1,22 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import sharp from "sharp";
-import { promises as fs } from "node:fs";
+import { decodeImage } from "./lib-image-utils.js";
 
-type ImageRefLike = {
-  data?: string | Uint8Array;
-  uri?: string;
-  [key: string]: unknown;
-};
-
-function decodeData(data: string | Uint8Array | undefined): Buffer | null {
-  if (!data) return null;
-  if (data instanceof Uint8Array) return Buffer.from(data);
-  if (typeof data === "string") return Buffer.from(data, "base64");
-  return null;
-}
-
-function toPath(uriOrPath: string): string {
-  return uriOrPath.startsWith("file://")
-    ? uriOrPath.slice("file://".length)
-    : uriOrPath;
-}
-
-async function loadImageBuffer(image: unknown): Promise<Buffer> {
-  if (!image || typeof image !== "object") {
-    throw new Error("Image input is required.");
-  }
-  const ref = image as ImageRefLike;
-  const byData = decodeData(ref.data);
-  if (byData) return byData;
-  if (typeof ref.uri === "string" && ref.uri) {
-    return fs.readFile(toPath(ref.uri));
-  }
-  throw new Error("ImageRef must include data or uri.");
+async function loadImageBuffer(
+  image: unknown,
+  context?: ProcessingContext
+): Promise<Buffer> {
+  const buf = await decodeImage(image, context);
+  if (!buf) throw new Error("Image input is required.");
+  return buf;
 }
 
 function toImageRef(buf: Buffer): Record<string, unknown> {
   return {
     type: "image",
-    data: buf.toString("base64"),
-    mime_type: "image/png"
+    data: new Uint8Array(buf),
+    mimeType: "image/png"
   };
 }
 
@@ -83,9 +61,9 @@ export class SliceImageGridLibNode extends BaseNode {
   })
   declare rows: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const imageInput = this.image;
-    const src = await loadImageBuffer(imageInput);
+    const src = await loadImageBuffer(imageInput, context);
     const srcSharp = sharp(src, { failOn: "none" });
     const meta = await srcSharp.metadata();
     const width = meta.width ?? 0;
@@ -110,14 +88,13 @@ export class SliceImageGridLibNode extends BaseNode {
     columns = Math.max(1, Math.trunc(columns));
     rows = Math.max(1, Math.trunc(rows));
 
-    const tileWidth = Math.max(1, Math.floor(width / columns));
-    const tileHeight = Math.max(1, Math.floor(height / rows));
-
     const tiles: Array<Record<string, unknown>> = [];
-    for (let y = 0; y < height; y += tileHeight) {
-      for (let x = 0; x < width; x += tileWidth) {
-        const right = Math.min(x + tileWidth, width);
-        const bottom = Math.min(y + tileHeight, height);
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < columns; col++) {
+        const x = Math.round((col * width) / columns);
+        const y = Math.round((row * height) / rows);
+        const right = Math.round(((col + 1) * width) / columns);
+        const bottom = Math.round(((row + 1) * height) / rows);
         const out = await sharp(src, { failOn: "none" })
           .extract({
             left: x,
@@ -161,14 +138,14 @@ export class CombineImageGridLibNode extends BaseNode {
   })
   declare columns: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const tileInputs = (this.tiles ?? []) as unknown[];
     if (!Array.isArray(tileInputs) || tileInputs.length === 0) {
       throw new Error("No tiles provided for combining.");
     }
 
     const tiles = await Promise.all(
-      tileInputs.map((tile) => loadImageBuffer(tile))
+      tileInputs.map((tile) => loadImageBuffer(tile, context))
     );
     const metas = await Promise.all(
       tiles.map((tile) => sharp(tile, { failOn: "none" }).metadata())

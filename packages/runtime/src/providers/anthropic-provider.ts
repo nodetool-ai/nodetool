@@ -25,11 +25,6 @@ interface AnthropicProviderOptions {
   fetchFn?: typeof fetch;
 }
 
-type StructuredOutputSetup = {
-  tools: Array<Record<string, unknown>> | undefined;
-  toolChoice: Record<string, unknown> | undefined;
-  isStructured: boolean;
-};
 
 function isTextContent(content: MessageContent): content is MessageTextContent {
   return content.type === "text";
@@ -435,55 +430,6 @@ export class AnthropicProvider extends BaseProvider {
     }));
   }
 
-  private setupStructuredOutput(
-    tools: ProviderTool[] | undefined,
-    responseFormat: Record<string, unknown> | undefined
-  ): StructuredOutputSetup {
-    if (!responseFormat) {
-      return {
-        tools: tools && tools.length > 0 ? this.formatTools(tools) : undefined,
-        toolChoice: undefined,
-        isStructured: false
-      };
-    }
-
-    let schema: unknown;
-    let toolName = "json_output";
-    let description = "Output the response as a JSON object.";
-
-    if (responseFormat.type === "json_object") {
-      schema = { type: "object", additionalProperties: true };
-    } else if (responseFormat.type === "json_schema") {
-      const jsonSchemaConfig = (responseFormat.json_schema ?? {}) as Record<
-        string,
-        unknown
-      >;
-      schema = jsonSchemaConfig.schema;
-      toolName = String(jsonSchemaConfig.name ?? "json_output");
-      description = String(
-        jsonSchemaConfig.description ?? "Output the response in this format."
-      );
-      if (!schema) {
-        throw new Error("json_schema must contain a schema");
-      }
-    } else {
-      throw new Error(
-        `Unsupported response_format type: ${String(responseFormat.type)}`
-      );
-    }
-
-    return {
-      tools: [
-        {
-          name: toolName,
-          description,
-          input_schema: this.prepareJsonSchema(schema)
-        }
-      ],
-      toolChoice: { type: "tool", name: toolName },
-      isStructured: true
-    };
-  }
 
   private extractSystemMessage(messages: Message[]): string {
     const system = messages.find((m) => m.role === "system");
@@ -511,8 +457,6 @@ export class AnthropicProvider extends BaseProvider {
     tools?: ProviderTool[];
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -520,12 +464,6 @@ export class AnthropicProvider extends BaseProvider {
     audio?: Record<string, unknown>;
     thinkingBudget?: number;
   }): AsyncGenerator<ProviderStreamItem> {
-    if (args.jsonSchema) {
-      throw new Error(
-        "Anthropic provider expects responseFormat; jsonSchema is not supported directly"
-      );
-    }
-
     const system = this.extractSystemMessage(args.messages);
     const converted = await Promise.all(
       args.messages
@@ -536,15 +474,12 @@ export class AnthropicProvider extends BaseProvider {
       (m): m is Record<string, unknown> => m !== null
     );
 
-    const structured = this.setupStructuredOutput(
-      args.tools,
-      args.responseFormat
-    );
+    const formattedTools = args.tools && args.tools.length > 0
+      ? this.formatTools(args.tools)
+      : undefined;
 
-    // Resolve tool_choice: explicit toolChoice arg wins over structured output default.
-    let resolvedToolChoice: Record<string, unknown> | undefined =
-      structured.toolChoice;
-    if (args.toolChoice && !structured.isStructured) {
+    let resolvedToolChoice: Record<string, unknown> | undefined;
+    if (args.toolChoice) {
       resolvedToolChoice =
         args.toolChoice === "any"
           ? { type: "any" }
@@ -556,7 +491,7 @@ export class AnthropicProvider extends BaseProvider {
       messages: anthropicMessages,
       system,
       max_tokens: args.maxTokens ?? 8192,
-      ...(structured.tools ? { tools: structured.tools } : {}),
+      ...(formattedTools ? { tools: formattedTools } : {}),
       ...(resolvedToolChoice ? { tool_choice: resolvedToolChoice } : {}),
       ...(args.temperature != null ? { temperature: args.temperature } : {}),
       ...(args.topP != null ? { top_p: args.topP } : {}),
@@ -604,7 +539,7 @@ export class AnthropicProvider extends BaseProvider {
       // Record the start of a tool_use content block so we can accumulate its JSON.
       if (event.type === "content_block_start") {
         const block = event.content_block;
-        if (block.type === "tool_use" && !structured.isStructured) {
+        if (block.type === "tool_use") {
           activeToolBlocks.set(event.index, {
             id: String(block.id ?? ""),
             name: String(block.name ?? ""),
@@ -631,26 +566,15 @@ export class AnthropicProvider extends BaseProvider {
           "partial_json" in delta &&
           typeof delta.partial_json === "string"
         ) {
-          if (structured.isStructured) {
-            // Structured output: stream partial JSON as text chunks.
-            const chunk: Chunk = {
-              type: "chunk",
-              content: delta.partial_json,
-              done: false
-            };
-            yield chunk;
-          } else {
-            // Regular tool call: accumulate the JSON into the active block.
-            const block = activeToolBlocks.get(event.index);
-            if (block) {
-              block.json += delta.partial_json;
-            }
+          // Regular tool call: accumulate the JSON into the active block.
+          const block = activeToolBlocks.get(event.index);
+          if (block) {
+            block.json += delta.partial_json;
           }
           continue;
         }
 
         if (
-          !structured.isStructured &&
           "text" in delta &&
           typeof delta.text === "string"
         ) {
@@ -669,7 +593,7 @@ export class AnthropicProvider extends BaseProvider {
         // Use the block we recorded from content_block_start + accumulated partial_json.
         const index = event.index;
         const toolBlock = activeToolBlocks.get(index);
-        if (toolBlock && !structured.isStructured) {
+        if (toolBlock) {
           activeToolBlocks.delete(index);
           let parsedArgs: Record<string, unknown> = {};
           try {
@@ -711,20 +635,12 @@ export class AnthropicProvider extends BaseProvider {
     tools?: ProviderTool[];
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
     thinkingBudget?: number;
   }): Promise<Message> {
-    if (args.jsonSchema) {
-      throw new Error(
-        "Anthropic provider expects responseFormat; jsonSchema is not supported directly"
-      );
-    }
-
     const system = this.extractSystemMessage(args.messages);
     const converted = await Promise.all(
       args.messages
@@ -735,14 +651,12 @@ export class AnthropicProvider extends BaseProvider {
       (m): m is Record<string, unknown> => m !== null
     );
 
-    const structured = this.setupStructuredOutput(
-      args.tools,
-      args.responseFormat
-    );
+    const formattedTools = args.tools && args.tools.length > 0
+      ? this.formatTools(args.tools)
+      : undefined;
 
-    let resolvedToolChoice: Record<string, unknown> | undefined =
-      structured.toolChoice;
-    if (args.toolChoice && !structured.isStructured) {
+    let resolvedToolChoice: Record<string, unknown> | undefined;
+    if (args.toolChoice) {
       resolvedToolChoice =
         args.toolChoice === "any"
           ? { type: "any" }
@@ -754,7 +668,7 @@ export class AnthropicProvider extends BaseProvider {
       messages: anthropicMessages,
       system,
       max_tokens: args.maxTokens ?? 8192,
-      ...(structured.tools ? { tools: structured.tools } : {}),
+      ...(formattedTools ? { tools: formattedTools } : {}),
       ...(resolvedToolChoice ? { tool_choice: resolvedToolChoice } : {}),
       ...(args.temperature != null ? { temperature: args.temperature } : {}),
       ...(args.topP != null ? { top_p: args.topP } : {}),
@@ -780,56 +694,17 @@ export class AnthropicProvider extends BaseProvider {
     const textParts: string[] = [];
     const toolCalls: ToolCall[] = [];
 
-    if (structured.isStructured) {
-      const toolName = String(structured.toolChoice?.name ?? "json_output");
-      let found = false;
-
-      for (const block of response.content ?? []) {
-        if (block.type === "tool_use" && block.name === toolName) {
-          let inputData = block.input;
-
-          if (
-            inputData &&
-            typeof inputData === "object" &&
-            !Array.isArray(inputData) &&
-            Object.keys(inputData).length === 1
-          ) {
-            const key = Object.keys(inputData)[0];
-            if (
-              ["output", "json", "response", "content"].includes(
-                key.toLowerCase()
-              )
-            ) {
-              inputData = (inputData as Record<string, unknown>)[key];
-            }
-          }
-
-          textParts.push(JSON.stringify(inputData));
-          found = true;
-          break;
-        }
+    for (const block of response.content ?? []) {
+      if (block.type === "tool_use") {
+        toolCalls.push({
+          id: String(block.id ?? ""),
+          name: String(block.name ?? ""),
+          args: (block.input ?? {}) as Record<string, unknown>
+        });
+        continue;
       }
-
-      if (!found) {
-        for (const block of response.content ?? []) {
-          if (block.type === "text") {
-            textParts.push(String(block.text ?? ""));
-          }
-        }
-      }
-    } else {
-      for (const block of response.content ?? []) {
-        if (block.type === "tool_use") {
-          toolCalls.push({
-            id: String(block.id ?? ""),
-            name: String(block.name ?? ""),
-            args: (block.input ?? {}) as Record<string, unknown>
-          });
-          continue;
-        }
-        if (block.type === "text") {
-          textParts.push(String(block.text ?? ""));
-        }
+      if (block.type === "text") {
+        textParts.push(String(block.text ?? ""));
       }
     }
 

@@ -25,18 +25,44 @@ const styles = () =>
       width: "100%"
     },
     "& .realtime-audio-controls": {
-      marginTop: "8px",
       display: "flex",
       flexDirection: "column",
-      gap: "8px"
+      gap: "6px"
     },
     "& .controls-row": {
       display: "flex",
-      gap: "8px",
+      gap: "6px",
       alignItems: "center"
     },
     "& .sample-rate-input": {
-      width: "140px"
+      width: "80px",
+      "& .MuiInputBase-input": {
+        fontSize: "0.8em",
+        padding: "6px 8px"
+      }
+    },
+    "& .realtime-visualizer": {
+      borderRadius: "4px",
+      overflow: "hidden",
+      background: "rgba(0, 0, 0, 0.4)"
+    },
+    "& .realtime-idle": {
+      height: "140px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: "4px",
+      background: "rgba(0, 0, 0, 0.2)",
+      border: "1px dashed rgba(255, 255, 255, 0.15)",
+      color: "rgba(255, 255, 255, 0.4)",
+      fontSize: "0.85em",
+      cursor: "pointer",
+      transition: "all 0.15s ease",
+      "&:hover": {
+        background: "rgba(0, 0, 0, 0.3)",
+        borderColor: "rgba(255, 255, 255, 0.3)",
+        color: "rgba(255, 255, 255, 0.6)"
+      }
     }
   });
 
@@ -50,14 +76,63 @@ const AudioProperty = (props: PropertyProps) => {
   // Use direct selector instead of object creation to avoid unnecessary re-renders
   const findNode = useNodes((state) => state.findNode);
   const rfNode = findNode(props.nodeId);
-  const inputNodeName = (rfNode?.data as NodeData | undefined)?.properties?.name as
-    | string
-    | undefined;
+  const inputNodeName =
+    ((rfNode?.data as NodeData | undefined)?.properties?.name as string) ||
+    props.nodeId;
   const [sampleRate, setSampleRate] = useState<number>(44100);
   const { isStreaming, toggle, stream, version } =
     useRealtimeAudioStream(inputNodeName, sampleRate);
 
-  // Visualizer moved to AudioVisualizer component
+  if (isRealtime) {
+    return (
+      <div className="audio-property" css={styles()}>
+        <div className="realtime-audio-controls">
+          {isStreaming ? (
+            <div
+              className="realtime-visualizer"
+              aria-label="Realtime audio visualizer"
+            >
+              <AudioVisualizer
+                stream={stream}
+                version={version}
+                height={140}
+              />
+            </div>
+          ) : (
+            <div className="realtime-idle" onClick={toggle}>
+              Click to start microphone
+            </div>
+          )}
+          <div className="controls-row">
+            <TextField
+              className="sample-rate-input"
+              label="Hz"
+              type="number"
+              size="small"
+              value={sampleRate}
+              onChange={(e) => setSampleRate(Number(e.target.value))}
+              disabled={isStreaming}
+              inputProps={{
+                min: 8000,
+                max: 48000,
+                step: 1000
+              }}
+            />
+            <Button
+              size="small"
+              variant={isStreaming ? "contained" : "outlined"}
+              color={isStreaming ? "error" : "primary"}
+              onClick={toggle}
+              sx={{ flex: 1, minHeight: 36 }}
+            >
+              {isStreaming ? "Stop" : "Start Mic"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="audio-property" css={styles()}>
       <PropertyLabel
@@ -73,34 +148,6 @@ const AudioProperty = (props: PropertyProps) => {
         props={props}
         showRecorder={showRecorder}
       />
-      {isRealtime && (
-        <div className="realtime-audio-controls">
-          <div className="controls-row">
-            <TextField
-              className="sample-rate-input"
-              label="Sample Rate (Hz)"
-              type="number"
-              size="small"
-              value={sampleRate}
-              onChange={(e) => setSampleRate(Number(e.target.value))}
-              disabled={isStreaming}
-              inputProps={{
-                min: 8000,
-                max: 48000,
-                step: 1000
-              }}
-            />
-            <Button size="small" variant="outlined" onClick={toggle}>
-              {isStreaming ? "Stop Realtime" : "Realtime Mic"}
-            </Button>
-          </div>
-          {isStreaming && (
-            <div className="visualizer" aria-label="Realtime audio visualizer">
-              <AudioVisualizer stream={stream} version={version} height={64} />
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

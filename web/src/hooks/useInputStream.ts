@@ -15,7 +15,12 @@ export function useInputStream(inputName: string) {
   const send = useCallback(
     (value: unknown, handle?: string) => {
       if (!inputName) {return;}
-      if (state !== "running") {return;}
+      if (state !== "running") {
+        // Silently drop — workflow not running yet. The send callback
+        // reference updates when state changes, which re-triggers the
+        // streaming effect so data starts flowing once the workflow runs.
+        return;
+      }
       streamInput(inputName, value, handle);
     },
     [inputName, streamInput, state]

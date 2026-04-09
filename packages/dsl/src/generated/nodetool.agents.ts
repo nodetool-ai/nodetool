@@ -118,27 +118,6 @@ export function agent(inputs: AgentInputs): DslNode<AgentOutputs> {
   );
 }
 
-// Research Agent — nodetool.agents.ResearchAgent
-export interface ResearchAgentInputs {
-  objective?: Connectable<string>;
-  model?: Connectable<unknown>;
-  system_prompt?: Connectable<string>;
-  tools?: Connectable<unknown[]>;
-  max_tokens?: Connectable<number>;
-}
-
-export interface ResearchAgentOutputs {}
-
-export function researchAgent(
-  inputs: ResearchAgentInputs
-): DslNode<ResearchAgentOutputs> {
-  return createNode(
-    "nodetool.agents.ResearchAgent",
-    inputs as Record<string, unknown>,
-    { outputNames: [] }
-  );
-}
-
 // Shell Agent — nodetool.agents.ShellAgent
 export interface ShellAgentInputs {
   model?: Connectable<unknown>;

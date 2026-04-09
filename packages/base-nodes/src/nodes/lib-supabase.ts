@@ -14,6 +14,20 @@ type FilterOp =
   | "contains";
 type Filter = [string, FilterOp, unknown];
 
+function getSupabaseCredentials(secrets: Record<string, string>): {
+  url: string;
+  key: string;
+} {
+  const url = secrets.SUPABASE_URL || process.env.SUPABASE_URL || "";
+  const key = secrets.SUPABASE_KEY || process.env.SUPABASE_KEY || "";
+  if (!url || !key) {
+    throw new Error(
+      "Supabase URL and key are required. Set SUPABASE_URL and SUPABASE_KEY in secrets or environment."
+    );
+  }
+  return { url, key };
+}
+
 function getSupabaseClient(url: string, key: string): SupabaseClient {
   if (!url || !key) {
     throw new Error(
@@ -131,8 +145,7 @@ export class SelectLibNode extends BaseNode {
   declare to_dataframe: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const url = String((this as any).supabase_url ?? "");
-    const key = String((this as any).supabase_key ?? "");
+    const { url, key } = getSupabaseCredentials(this._secrets);
     const tableName = String(this.table_name ?? "");
     const columnsInput = (this.columns ?? { columns: [] }) as {
       columns?: Array<{ name: string }>;
@@ -203,8 +216,7 @@ export class InsertLibNode extends BaseNode {
   declare return_rows: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const url = String((this as any).supabase_url ?? "");
-    const key = String((this as any).supabase_key ?? "");
+    const { url, key } = getSupabaseCredentials(this._secrets);
     const tableName = String(this.table_name ?? "");
     const recordsInput = this.records ?? [];
     const returnRows = Boolean(this.return_rows ?? true);
@@ -274,8 +286,7 @@ export class UpdateLibNode extends BaseNode {
   declare return_rows: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const url = String((this as any).supabase_url ?? "");
-    const key = String((this as any).supabase_key ?? "");
+    const { url, key } = getSupabaseCredentials(this._secrets);
     const tableName = String(this.table_name ?? "");
     const values = (this.values ?? {}) as Record<string, unknown>;
     const filters = (this.filters ?? []) as Filter[];
@@ -330,8 +341,7 @@ export class DeleteLibNode extends BaseNode {
   declare filters: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const url = String((this as any).supabase_url ?? "");
-    const key = String((this as any).supabase_key ?? "");
+    const { url, key } = getSupabaseCredentials(this._secrets);
     const tableName = String(this.table_name ?? "");
     const filters = (this.filters ?? []) as Filter[];
 
@@ -389,8 +399,7 @@ export class UpsertLibNode extends BaseNode {
   declare return_rows: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const url = String((this as any).supabase_url ?? "");
-    const key = String((this as any).supabase_key ?? "");
+    const { url, key } = getSupabaseCredentials(this._secrets);
     const tableName = String(this.table_name ?? "");
     const recordsInput = this.records ?? [];
     const returnRows = Boolean(this.return_rows ?? true);
@@ -453,8 +462,7 @@ export class RPCLibNode extends BaseNode {
   declare to_dataframe: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const url = String((this as any).supabase_url ?? "");
-    const key = String((this as any).supabase_key ?? "");
+    const { url, key } = getSupabaseCredentials(this._secrets);
     const fnName = String(this.function ?? "");
     const params = (this.params ?? {}) as Record<string, unknown>;
 

@@ -46,7 +46,6 @@ import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
-import { useFitView } from "../../hooks/useFitView";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
@@ -73,11 +72,6 @@ import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
 
-const fitViewOptions = {
-  maxZoom: MAX_ZOOM,
-  minZoom: MIN_ZOOM,
-  padding: 0.5
-};
 
 interface ReactFlowWrapperProps {
   workflowId: string;
@@ -124,12 +118,7 @@ const ReactFlowWrapper = ({
     )
   );
 
-  const [isVisible, setIsVisible] = useState(true);
   const [isSelecting] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(!!storedViewport || nodes.length === 0);
-  }, [workflowId, storedViewport, nodes]);
 
   const reactFlowInstance = useReactFlow();
   const pendingNodeType = useNodePlacementStore(
@@ -176,11 +165,9 @@ const ReactFlowWrapper = ({
       left: 0,
       top: 0,
       right: 0,
-      bottom: 0,
-      opacity: isVisible ? 1 : 0,
-      transition: "opacity 50ms 1s ease-out"
+      bottom: 0
     }),
-    [isVisible]
+    []
   );
 
   const reactFlowStyle = useMemo(
@@ -199,7 +186,6 @@ const ReactFlowWrapper = ({
     [theme.vars.palette.c_editor_bg_color]
   );
 
-  const fitView = useFitView();
   useFitNodeEvent();
 
   const { handleMoveEnd, handleOnMoveStart } = useReactFlowEvents();
@@ -494,27 +480,9 @@ const ReactFlowWrapper = ({
 
   useEffect(() => {
     if (shouldFitToScreen) {
-      // Skip fitView if we already have a stored viewport that shows the nodes
-      if (storedViewport && nodes.length > 0) {
-        setShouldFitToScreen(false);
-        return;
-      }
-      fitView({ padding: 0.8 });
       setShouldFitToScreen(false);
     }
-  }, [fitView, shouldFitToScreen, setShouldFitToScreen, storedViewport, nodes.length]);
-
-  useEffect(() => {
-    if (storedViewport) {
-      return;
-    }
-
-    if (nodes.length > 0) {
-      requestAnimationFrame(() => {
-        fitView({ padding: 0.8 });
-      });
-    }
-  }, [nodes.length, fitView, storedViewport]);
+  }, [shouldFitToScreen, setShouldFitToScreen]);
 
   const snapGrid = useMemo(
     () => [settings.gridSnap, settings.gridSnap] as [number, number],
@@ -534,15 +502,12 @@ const ReactFlowWrapper = ({
 
   const conditionalProps = useMemo(() => {
     const props: any = {};
-    if (!storedViewport) {
-      props.fitView = true;
-      props.fitViewOptions = fitViewOptions;
-    }
+    // fitView disabled — viewport is restored from stored state
     if (settings.panControls === "RMB") {
       props.selectionOnDrag = true;
     }
     return props;
-  }, [storedViewport, settings.panControls]);
+  }, [settings.panControls]);
 
   if (isLoading) {
     return (
@@ -559,10 +524,6 @@ const ReactFlowWrapper = ({
         </Typography>
       </div>
     );
-  }
-
-  if (!active) {
-    return null;
   }
 
   return (

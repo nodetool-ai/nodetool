@@ -1396,7 +1396,7 @@ export class RealtimeAudioInputNode extends BaseNode {
 
   @prop({
     type: "str",
-    default: "",
+    default: "audio",
     title: "Name",
     description: "The parameter name for the workflow."
   })

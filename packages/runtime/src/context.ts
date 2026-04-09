@@ -1430,10 +1430,6 @@ export class ProcessingContext {
           >[0]["tools"],
           toolChoice: params.tool_choice as string | undefined,
           maxTokens: params.max_tokens as number | undefined,
-          responseFormat: params.response_format as
-            | Record<string, unknown>
-            | undefined,
-          jsonSchema: params.json_schema as Record<string, unknown> | undefined,
           temperature: params.temperature as number | undefined,
           topP: params.top_p as number | undefined,
           presencePenalty: params.presence_penalty as number | undefined,
@@ -1534,10 +1530,6 @@ export class ProcessingContext {
             BaseProvider["generateMessages"]
           >[0]["tools"],
           maxTokens: params.max_tokens as number | undefined,
-          responseFormat: params.response_format as
-            | Record<string, unknown>
-            | undefined,
-          jsonSchema: params.json_schema as Record<string, unknown> | undefined,
           temperature: params.temperature as number | undefined,
           topP: params.top_p as number | undefined,
           presencePenalty: params.presence_penalty as number | undefined,

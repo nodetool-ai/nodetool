@@ -74,6 +74,9 @@ export interface KieManifestEntry {
   pollInterval: number;
   maxAttempts: number;
   useSuno?: boolean;
+  sunoEndpoint?: string;
+  submitEndpoint?: string;
+  pollEndpoint?: string;
   fields: KieFieldDef[];
   uploads?: KieUploadDef[];
   validation?: KieValidationDef[];
@@ -259,7 +262,8 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
           apiKey,
           params,
           specRef.pollInterval,
-          specRef.maxAttempts
+          specRef.maxAttempts,
+          specRef.sunoEndpoint
         );
       } else {
         result = await kieExecuteTask(
@@ -267,7 +271,9 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
           specRef.modelId,
           params,
           specRef.pollInterval,
-          specRef.maxAttempts
+          specRef.maxAttempts,
+          specRef.submitEndpoint,
+          specRef.pollEndpoint
         );
       }
 

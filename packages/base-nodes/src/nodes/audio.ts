@@ -27,17 +27,23 @@ function audioBytes(audio: unknown): Uint8Array {
   return new Uint8Array();
 }
 
-async function audioBytesAsync(audio: unknown): Promise<Uint8Array> {
+async function audioBytesAsync(audio: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!audio || typeof audio !== "object") return new Uint8Array();
   const ref = audio as AudioRefLike;
   if (ref.data) return toBytes(ref.data);
   if (typeof ref.uri === "string" && ref.uri) {
     try {
+      if (context?.storage) {
+        const stored = await context.storage.retrieve(ref.uri);
+        if (stored !== null) return new Uint8Array(stored);
+      }
       if (ref.uri.startsWith("file://")) {
         return new Uint8Array(await fs.readFile(uriToPath(ref.uri)));
       }
-      const response = await fetch(ref.uri);
-      return new Uint8Array(await response.arrayBuffer());
+      if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
+        const response = await fetch(ref.uri);
+        return new Uint8Array(await response.arrayBuffer());
+      }
     } catch {
       return new Uint8Array();
     }
@@ -425,9 +431,9 @@ export class NormalizeAudioNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = this.audio;
-    const bytes = await audioBytesAsync(audio);
+    const bytes = await audioBytesAsync(audio, context);
     const wav = parseWavPcm16(bytes);
     if (!wav || wav.samples.length === 0) {
       return { output: audioRefFromBytes(bytes) };
@@ -1031,82 +1037,6 @@ export class AudioMixerNode extends BaseNode {
   }
 }
 
-export class AudioToNumpyNode extends BaseNode {
-  static readonly nodeType = "nodetool.audio.AudioToNumpy";
-  static readonly title = "Audio To Numpy";
-  static readonly description =
-    "Convert audio to numpy array for processing.\n    audio, numpy, convert, array";
-  static readonly metadataOutputTypes = {
-    array: "np_array",
-    sample_rate: "int",
-    channels: "int"
-  };
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Audio",
-    description: "The audio to convert to numpy."
-  })
-  declare audio: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const data = audioBytes(this.audio);
-    return { output: Array.from(data) };
-  }
-}
-
-export class NumpyToAudioNode extends BaseNode {
-  static readonly nodeType = "nodetool.audio.NumpyToAudio";
-  static readonly title = "Numpy To Audio";
-  static readonly description =
-    "Convert numpy array to audio.\n    audio, numpy, convert";
-  static readonly metadataOutputTypes = {
-    output: "audio"
-  };
-
-  @prop({
-    type: "np_array",
-    default: {
-      type: "np_array",
-      value: null,
-      dtype: "<i8",
-      shape: [1]
-    },
-    title: "Array",
-    description: "The numpy array to convert to audio."
-  })
-  declare array: any;
-
-  @prop({
-    type: "int",
-    default: 44100,
-    title: "Sample Rate",
-    description: "Sample rate in Hz."
-  })
-  declare sample_rate: any;
-
-  @prop({
-    type: "int",
-    default: 1,
-    title: "Channels",
-    description: "Number of audio channels (1 or 2)."
-  })
-  declare channels: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const values = Array.isArray(this.array) ? (this.array as unknown[]) : [];
-    const bytes = new Uint8Array(values.map((v) => Number(v) & 0xff));
-    return { output: audioRefFromBytes(bytes) };
-  }
-}
-
 export class TrimAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.Trim";
   static readonly title = "Trim";
@@ -1158,34 +1088,6 @@ export class TrimAudioNode extends BaseNode {
         data.slice(start, Math.max(start, data.length - end))
       )
     };
-  }
-}
-
-export class ConvertToArrayNode extends BaseNode {
-  static readonly nodeType = "nodetool.audio.ConvertToArray";
-  static readonly title = "Convert To Array";
-  static readonly description =
-    "Converts an audio file to a Array for further processing.\n    audio, conversion, tensor";
-  static readonly metadataOutputTypes = {
-    output: "np_array"
-  };
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Audio",
-    description: "The audio file to convert to a tensor."
-  })
-  declare audio: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    return { output: [this.audio ?? {}] };
   }
 }
 
@@ -1440,8 +1342,8 @@ export class GetAudioInfoNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await audioBytesAsync(this.audio);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
     if (bytes.length === 0) {
       return { duration: 0, sample_rate: 0, channels: 0, format: "unknown", size_bytes: 0 };
     }
@@ -1510,10 +1412,7 @@ export const AUDIO_NODES = [
   FadeOutAudioNode,
   RepeatAudioNode,
   AudioMixerNode,
-  AudioToNumpyNode,
-  NumpyToAudioNode,
   TrimAudioNode,
-  ConvertToArrayNode,
   CreateSilenceNode,
   ConcatAudioNode,
   ConcatAudioListNode,

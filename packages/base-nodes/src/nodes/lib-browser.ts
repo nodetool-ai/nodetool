@@ -508,6 +508,7 @@ export class SpiderCrawlLibNode extends BaseNode {
     const maxPages = Number(this.max_pages ?? 50);
     const sameDomainOnly = Boolean(this.same_domain_only ?? true);
     const includeHtml = Boolean(this.include_html ?? false);
+    const respectRobotsTxt = Boolean(this.respect_robots_txt ?? true);
     const delayMs = Number(this.delay_ms ?? 1000);
     const timeout = Number(this.timeout ?? 30000);
     const urlPattern = String(this.url_pattern ?? "");
@@ -524,6 +525,62 @@ export class SpiderCrawlLibNode extends BaseNode {
     const urlPatternRe = urlPattern ? new RegExp(urlPattern) : null;
     const excludePatternRe = excludePattern ? new RegExp(excludePattern) : null;
 
+    // robots.txt cache and parser
+    const robotsCache = new Map<string, string[]>(); // origin -> disallowed paths
+
+    const fetchRobotsTxt = async (origin: string): Promise<string[]> => {
+      if (robotsCache.has(origin)) return robotsCache.get(origin)!;
+      const disallowed: string[] = [];
+      try {
+        const res = await axios.get(`${origin}/robots.txt`, {
+          headers: { "User-Agent": USER_AGENT },
+          timeout: 10000,
+          responseType: "text",
+          validateStatus: () => true
+        });
+        if (res.status === 200 && typeof res.data === "string") {
+          // Parse robots.txt — look for User-agent: * sections
+          const lines = res.data.split("\n");
+          let inWildcard = false;
+          for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (/^user-agent\s*:/i.test(line)) {
+              const agent = line.replace(/^user-agent\s*:\s*/i, "").trim();
+              inWildcard = agent === "*";
+            } else if (inWildcard && /^disallow\s*:/i.test(line)) {
+              const path = line.replace(/^disallow\s*:\s*/i, "").trim();
+              if (path) disallowed.push(path);
+            }
+          }
+        }
+      } catch {
+        // robots.txt not available — allow all
+      }
+      robotsCache.set(origin, disallowed);
+      return disallowed;
+    };
+
+    const isAllowedByRobots = async (urlStr: string): Promise<boolean> => {
+      if (!respectRobotsTxt) return true;
+      try {
+        const parsed = new URL(urlStr);
+        const origin = `${parsed.protocol}//${parsed.host}`;
+        const disallowed = await fetchRobotsTxt(origin);
+        const path = parsed.pathname;
+        for (const rule of disallowed) {
+          // Handle wildcard rules with trailing *
+          if (rule.endsWith("*")) {
+            if (path.startsWith(rule.slice(0, -1))) return false;
+          } else if (path.startsWith(rule)) {
+            return false;
+          }
+        }
+        return true;
+      } catch {
+        return true;
+      }
+    };
+
     const visited = new Set<string>();
     const toVisit: Array<{ url: string; depth: number }> = [
       { url: startUrl, depth: 0 }
@@ -539,6 +596,12 @@ export class SpiderCrawlLibNode extends BaseNode {
       if (depth > maxDepth) continue;
       if (urlPatternRe && !urlPatternRe.test(currentUrl)) continue;
       if (excludePatternRe && excludePatternRe.test(currentUrl)) continue;
+
+      // Check robots.txt before crawling
+      if (!(await isAllowedByRobots(currentUrl))) {
+        visited.add(currentUrl);
+        continue;
+      }
 
       visited.add(currentUrl);
 

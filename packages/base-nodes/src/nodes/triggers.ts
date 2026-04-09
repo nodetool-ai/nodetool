@@ -739,7 +739,7 @@ export class FileWatchTriggerNode extends BaseNode {
           }
         );
         watchers.push(watcher);
-      } catch (err) {
+      } catch (_err) {
         // Some paths may not be watchable
       }
     };

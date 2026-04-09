@@ -58,9 +58,9 @@ export default function ReadlineInput({
 }: ReadlineInputProps) {
   const [cursorOffset, setCursorOffset] = useState(value.length);
 
-  // Keep cursor in bounds when value changes externally
+  // When value changes externally, move cursor to end
   useEffect(() => {
-    setCursorOffset((prev) => Math.min(prev, value.length));
+    setCursorOffset(value.length);
   }, [value]);
 
   const update = useCallback(

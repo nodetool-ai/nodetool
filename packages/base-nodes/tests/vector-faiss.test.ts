@@ -195,14 +195,14 @@ describe("TrainIndexNode", () => {
     ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
 
-  it("throws on empty vectors", async () => {
+  it("returns early for already-trained flat index with empty vectors", async () => {
     const idx = await makeL2Index(3);
-    await expect(
-      run(TrainIndexNode, {
-        index: idx,
-        vectors: []
-      })
-    ).rejects.toThrow(/empty/i);
+    // Flat indices are always trained, so TrainIndexNode returns early
+    const res = await run(TrainIndexNode, {
+      index: idx,
+      vectors: []
+    });
+    expect(res.output).toBe(idx);
   });
 });
 

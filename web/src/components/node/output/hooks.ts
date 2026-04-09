@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
+import { BASE_URL } from "../../../stores/BASE_URL";
 import log from "loglevel";
 import { resolveAssetUri as resolveAssetUriBase } from "../../../utils/resolveAssetUri";
 
@@ -37,7 +38,14 @@ interface ImageValue extends TypedValue {
  * that expect a string return type.
  */
 export function resolveAssetUri(uri: string | undefined | null): string {
-  return resolveAssetUriBase(uri) ?? "";
+  const resolved = resolveAssetUriBase(uri) ?? "";
+  if (!resolved) {
+    return "";
+  }
+  if (BASE_URL && resolved.startsWith("/api/storage/")) {
+    return `${BASE_URL}${resolved}`;
+  }
+  return resolved;
 }
 
 export function getMimeTypeFromUri(

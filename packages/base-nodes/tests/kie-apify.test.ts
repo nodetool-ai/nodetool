@@ -16,12 +16,12 @@ let mockFetch: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   mockFetch = vi.fn();
   globalThis.fetch = mockFetch;
-  delete process.env.APIFY_API_KEY;
+  delete process.env.APIFY_API_TOKEN;
 });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  delete process.env.APIFY_API_KEY;
+  delete process.env.APIFY_API_TOKEN;
 });
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -33,7 +33,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   } as unknown as Response;
 }
 
-const secrets = { _secrets: { APIFY_API_KEY: "test-key" } };
+const secrets = { _secrets: { APIFY_API_TOKEN: "test-key" } };
 
 function metadataDefaults(NodeCls: any) {
   const metadata = getNodeMetadata(NodeCls);
@@ -93,7 +93,7 @@ describe("ApifyWebScraperNode", () => {
     });
 
     await expect(node.process()).rejects.toThrow(
-      "APIFY_API_KEY not configured"
+      "APIFY_API_TOKEN not configured"
     );
   });
 
@@ -140,7 +140,7 @@ describe("ApifyWebScraperNode", () => {
   });
 
   it("uses env var API key", async () => {
-    process.env.APIFY_API_KEY = "env-key";
+    process.env.APIFY_API_TOKEN = "env-key";
     const node = new ApifyWebScraperNode();
     mockRunActor([]);
 

@@ -160,23 +160,13 @@ describe("AnthropicProvider", () => {
     ]);
   });
 
-  it("generates non-streaming messages with tool calls and structured output", async () => {
+  it("generates non-streaming messages with tool calls", async () => {
     const create = vi
       .fn()
       .mockResolvedValueOnce({
         content: [
           { type: "text", text: "before tool" },
           { type: "tool_use", id: "tc1", name: "sum", input: { a: 1 } }
-        ]
-      })
-      .mockResolvedValueOnce({
-        content: [
-          {
-            type: "tool_use",
-            id: "tc2",
-            name: "json_output",
-            input: { output: { result: 42 } }
-          }
         ]
       });
 
@@ -199,21 +189,9 @@ describe("AnthropicProvider", () => {
       content: "before tool",
       toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }]
     });
-
-    await expect(
-      provider.generateMessage({
-        model: "claude-sonnet",
-        messages: [{ role: "user", content: "json please" }],
-        responseFormat: { type: "json_object" }
-      })
-    ).resolves.toEqual({
-      role: "assistant",
-      content: '{"result":42}',
-      toolCalls: []
-    });
   });
 
-  it("streams text/tool calls and structured json chunks", async () => {
+  it("streams text/tool calls", async () => {
     const stream = vi
       .fn()
       .mockReturnValueOnce(
@@ -237,21 +215,13 @@ describe("AnthropicProvider", () => {
           { type: "content_block_stop", index: 1 },
           { type: "message_stop" }
         ])
-      )
-      .mockReturnValueOnce(
-        makeAsyncIterable([
-          { type: "content_block_delta", delta: { partial_json: '{"a":' } },
-          { type: "content_block_delta", delta: { partial_json: "1}" } },
-          { type: "content_block_stop" },
-          { type: "message_stop" }
-        ])
       );
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
       {
         client: {
-          messages: { stream }
+          messages: { create: stream }
         } as any
       }
     );
@@ -264,25 +234,10 @@ describe("AnthropicProvider", () => {
       out1.push(item);
     }
 
-    const out2: Array<unknown> = [];
-    for await (const item of provider.generateMessages({
-      model: "claude-sonnet",
-      messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" }
-    })) {
-      out2.push(item);
-    }
-
     expect(out1).toEqual([
       { type: "chunk", content: "Hel", done: false },
       { type: "chunk", content: "lo", done: false },
       { id: "tc1", name: "lookup", args: { q: "x" } },
-      { type: "chunk", content: "", done: true }
-    ]);
-
-    expect(out2).toEqual([
-      { type: "chunk", content: '{"a":', done: false },
-      { type: "chunk", content: "1}", done: false },
       { type: "chunk", content: "", done: true }
     ]);
   });

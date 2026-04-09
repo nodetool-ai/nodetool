@@ -25,12 +25,6 @@ import {
   // lib-pdf (ExtractTablesPdfPlumberNode, ExtractMarkdownPyMuPdfNode removed)
   // lib-os
   OpenWorkspaceDirectoryLibNode,
-  // lib-librosa-spectral
-  STFTNode,
-  SegmentAudioByOnsetsNode,
-  // lib-numpy
-  SaveArrayNode,
-  ConvertToArrayNumpyNode,
   // lib-docx
   AddImageLibNode,
   // lib-excel
@@ -40,8 +34,6 @@ import {
   YtDlpDownloadLibNode,
   // lib-audio-dsp
   GainNode_,
-  // lib-synthesis
-  EnvelopeLibNode,
   // lib-grid
   SliceImageGridLibNode,
   CombineImageGridLibNode,
@@ -151,10 +143,19 @@ function buildMinimalPdf(
   return new Uint8Array(Buffer.from(body, "ascii"));
 }
 
-/** Create a node with all props (including undeclared ones like supabase_url) set directly. */
+/** Create a node with all props set directly.
+ *  For supabase nodes, credentials are now read from _secrets. */
 function makeNode<T>(Cls: new () => T, props: Record<string, unknown>): T {
   const node = new Cls();
-  Object.assign(node, props);
+  // Extract supabase credentials and inject as _secrets
+  const { supabase_url, supabase_key, ...rest } = props;
+  if (supabase_url || supabase_key) {
+    (node as any).setDynamic("_secrets", {
+      SUPABASE_URL: supabase_url as string,
+      SUPABASE_KEY: supabase_key as string
+    });
+  }
+  Object.assign(node, rest);
   return node;
 }
 
@@ -655,191 +656,6 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
   });
 });
 
-// ── lib-librosa-spectral: 8-bit WAV and Uint8Array data ─────────
-
-describe("lib-librosa-spectral coverage", () => {
-  it("STFT with 8-bit WAV input", async () => {
-    const wav = makeWav({
-      bitsPerSample: 8,
-      durationSec: 0.5,
-      sampleRate: 22050
-    });
-    const result = await new STFTNode({
-      audio: audioRef(wav),
-      n_fft: 2048,
-      hop_length: 512
-    }).process();
-    const output = result.output as { data: unknown[] };
-    expect(Array.isArray(output.data)).toBe(true);
-  });
-
-  it("STFT with Uint8Array data (not base64)", async () => {
-    const wav = makeWav({ durationSec: 0.5, sampleRate: 22050 });
-    const result = await new STFTNode({
-      audio: { type: "audio", uri: "", data: new Uint8Array(wav) },
-      n_fft: 2048,
-      hop_length: 512
-    }).process();
-    const output = result.output as { data: unknown[] };
-    expect(Array.isArray(output.data)).toBe(true);
-  });
-
-  it("STFT with invalid audio data throws", async () => {
-    await expect(
-      new STFTNode({
-        audio: { type: "audio", uri: "", data: 12345 },
-        n_fft: 2048,
-        hop_length: 512
-      }).process()
-    ).rejects.toThrow("Invalid audio data");
-  });
-
-  it("STFT with non-RIFF data throws", async () => {
-    await expect(
-      new STFTNode({
-        audio: {
-          type: "audio",
-          uri: "",
-          data: Buffer.from(
-            "NOT_A_WAV_FILE_HEADER_ENOUGH_BYTES______________"
-          ).toString("base64")
-        },
-        n_fft: 2048,
-        hop_length: 512
-      }).process()
-    ).rejects.toThrow("Invalid WAV file");
-  });
-
-  it("SegmentAudioByOnsets with Uint8Array data segments", async () => {
-    const wav = makeWav({ durationSec: 0.5, sampleRate: 22050 });
-    const result = await new SegmentAudioByOnsetsNode({
-      audio: audioRef(wav),
-      onsets: { data: [0.0, 0.2] },
-      min_segment_length: 0.05
-    }).process();
-    const output = result.output as unknown[];
-    expect(Array.isArray(output)).toBe(true);
-    expect(output.length).toBeGreaterThan(0);
-  });
-
-  it("SegmentAudioByOnsets with folder saving", async () => {
-    const wav = makeWav({ durationSec: 0.5, sampleRate: 22050 });
-    const tmpDir = mkdtempSync(join(tmpdir(), "librosa-test-"));
-
-    const result = await new SegmentAudioByOnsetsNode({
-      audio: audioRef(wav),
-      onsets: { data: [0.0, 0.2] },
-      min_segment_length: 0.05,
-      folder: { path: tmpDir },
-      prefix: "seg"
-    }).process();
-    const output = result.output;
-    // When folder is set, output should be the folder ref
-    expect(output).toBeDefined();
-  });
-
-  it("STFT with WAV that has extra chunks before data", async () => {
-    // Create WAV with a "LIST" chunk before the "data" chunk
-    const sampleRate = 22050;
-    const numSamples = 1024;
-    const dataSize = numSamples * 2;
-    const listChunkSize = 20;
-    const totalSize = 36 + 8 + listChunkSize + 8 + dataSize;
-
-    const buf = Buffer.alloc(8 + totalSize);
-    buf.write("RIFF", 0);
-    buf.writeUInt32LE(totalSize, 4);
-    buf.write("WAVE", 8);
-    buf.write("fmt ", 12);
-    buf.writeUInt32LE(16, 16);
-    buf.writeUInt16LE(1, 20);
-    buf.writeUInt16LE(1, 22);
-    buf.writeUInt32LE(sampleRate, 24);
-    buf.writeUInt32LE(sampleRate * 2, 28);
-    buf.writeUInt16LE(2, 32);
-    buf.writeUInt16LE(16, 34);
-    // Extra LIST chunk
-    buf.write("LIST", 36);
-    buf.writeUInt32LE(listChunkSize, 40);
-    // data chunk at offset 36 + 8 + listChunkSize = 64
-    const dataChunkOffset = 36 + 8 + listChunkSize;
-    buf.write("data", dataChunkOffset);
-    buf.writeUInt32LE(dataSize, dataChunkOffset + 4);
-    // Write some samples
-    for (let i = 0; i < numSamples; i++) {
-      const sample = Math.sin((2 * Math.PI * 440 * i) / sampleRate);
-      buf.writeInt16LE(
-        Math.round(sample * 0x7fff * 0.5),
-        dataChunkOffset + 8 + i * 2
-      );
-    }
-
-    const result = await new STFTNode({
-      audio: audioRef(buf),
-      n_fft: 512,
-      hop_length: 256
-    }).process();
-    const output = result.output as { data: unknown[] };
-    expect(Array.isArray(output.data)).toBe(true);
-  });
-});
-
-// ── lib-numpy: edge cases ────────────────────────────────────────
-
-describe("lib-numpy coverage", () => {
-  it("SaveArray without storage context", async () => {
-    const result = await new SaveArrayNode({
-      values: { data: [1, 2, 3], shape: [3] },
-      name: "test.json"
-    }).process();
-    const output = result.output as { data: number[]; shape: number[] };
-    expect(output.data).toEqual([1, 2, 3]);
-    expect(output.shape).toEqual([3]);
-  });
-
-  it("SaveArray with storage context", async () => {
-    const storeFn = vi.fn().mockResolvedValue("file:///test.json");
-    const result = await new SaveArrayNode({
-      values: { data: [1, 2, 3], shape: [3] },
-      name: "test.json"
-    }).process({ storage: { store: storeFn } } as any);
-    const output = result.output as {
-      data: number[];
-      shape: number[];
-      uri: string;
-    };
-    expect(output.uri).toBe("file:///test.json");
-    expect(storeFn).toHaveBeenCalled();
-  });
-
-  it("SaveArray with date template name", async () => {
-    const result = await new SaveArrayNode({
-      values: { data: [1], shape: [1] },
-      name: "%Y-%m-%d_%H-%M-%S.npy"
-    }).process();
-    const output = result.output as { data: number[]; shape: number[] };
-    expect(output.data).toEqual([1]);
-  });
-
-  it("ConvertToArray with grayscale image", async () => {
-    // Create a grayscale PNG using sharp from raw single-channel data
-    const sharp = (await import("sharp")).default;
-    const rawGray = Buffer.alloc(4, 128); // 2x2 gray pixels
-    const pngBuf = await sharp(rawGray, {
-      raw: { width: 2, height: 2, channels: 1 }
-    })
-      .png()
-      .toBuffer();
-
-    const result = await new ConvertToArrayNumpyNode({
-      image: { type: "image", data: pngBuf.toString("base64") }
-    }).process();
-    const output = result.output as { data: number[]; shape: number[] };
-    // sharp may expand to 3 or 4 channels, but the code path for shape assignment is hit
-    expect(output.shape.length).toBe(3);
-    expect(output.data.length).toBeGreaterThan(0);
-  });
-});
 
 // ── lib-docx: AddImage edge cases ────────────────────────────────
 
@@ -1043,61 +859,6 @@ describe("lib-audio-dsp 8-bit WAV coverage", () => {
   });
 });
 
-// ── lib-synthesis: Uint8Array audio data path ────────────────────
-
-describe("lib-synthesis Envelope coverage", () => {
-  it("Envelope with Uint8Array audio data (not base64)", async () => {
-    const wav = makeWav({ durationSec: 0.2 });
-    const result = await new EnvelopeLibNode({
-      audio: { type: "audio", uri: "", data: new Uint8Array(wav) },
-      attack: 0.02,
-      decay: 0.05,
-      release: 0.1,
-      peak_amplitude: 0.8
-    }).process();
-    const output = result.output as Record<string, unknown>;
-    expect(output).toBeDefined();
-  });
-
-  it("Envelope with WAV that has extra chunks", async () => {
-    // WAV with a LIST chunk before data chunk to test the chunk-scanning loop
-    const sampleRate = 22050;
-    const numSamples = 200;
-    const dataSize = numSamples * 2;
-    const listSize = 12;
-    const totalFileSize = 36 + 8 + listSize + 8 + dataSize;
-
-    const buf = Buffer.alloc(8 + totalFileSize);
-    buf.write("RIFF", 0);
-    buf.writeUInt32LE(totalFileSize, 4);
-    buf.write("WAVE", 8);
-    buf.write("fmt ", 12);
-    buf.writeUInt32LE(16, 16);
-    buf.writeUInt16LE(1, 20);
-    buf.writeUInt16LE(1, 22);
-    buf.writeUInt32LE(sampleRate, 24);
-    buf.writeUInt32LE(sampleRate * 2, 28);
-    buf.writeUInt16LE(2, 32);
-    buf.writeUInt16LE(16, 34);
-    buf.write("LIST", 36);
-    buf.writeUInt32LE(listSize, 40);
-    const dOff = 36 + 8 + listSize;
-    buf.write("data", dOff);
-    buf.writeUInt32LE(dataSize, dOff + 4);
-    for (let i = 0; i < numSamples; i++) {
-      buf.writeInt16LE(Math.round(Math.sin(i * 0.1) * 16000), dOff + 8 + i * 2);
-    }
-
-    const result = await new EnvelopeLibNode({
-      audio: audioRef(buf),
-      attack: 0.01,
-      decay: 0.02,
-      release: 0.05
-    }).process();
-    expect(result.output).toBeDefined();
-  });
-});
-
 // ── lib-grid: edge cases ─────────────────────────────────────────
 
 describe("lib-grid coverage", () => {
@@ -1146,7 +907,7 @@ describe("lib-grid coverage", () => {
         })
           .png()
           .toBuffer();
-        return { type: "image", data: buf.toString("base64") };
+        return { type: "image", data: new Uint8Array(buf) };
       })
     );
 
@@ -1154,9 +915,9 @@ describe("lib-grid coverage", () => {
       tiles,
       columns: 2
     }).process();
-    const output = result.output as { type: string; data: string };
+    const output = result.output as { type: string; data: Uint8Array };
     expect(output.type).toBe("image");
-    expect(typeof output.data).toBe("string");
+    expect(output.data).toBeInstanceOf(Uint8Array);
     expect(output.data.length).toBeGreaterThan(0);
   });
 
@@ -1178,13 +939,13 @@ describe("lib-grid coverage", () => {
     })
       .png()
       .toBuffer();
-    const tile = { type: "image", data: buf.toString("base64") };
+    const tile = { type: "image", data: new Uint8Array(buf) };
 
     const result = await new CombineImageGridLibNode({
       tiles: [tile, tile, tile, tile],
       columns: 0
     }).process();
-    const output = result.output as { type: string; data: string };
+    const output = result.output as { type: string; data: Uint8Array };
     expect(output.type).toBe("image");
     expect(output.data.length).toBeGreaterThan(0);
   });

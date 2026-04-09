@@ -86,8 +86,6 @@ export class PythonProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -103,8 +101,7 @@ export class PythonProvider extends BaseProvider {
         tools: args.tools,
         max_tokens: args.maxTokens,
         temperature: args.temperature,
-        top_p: args.topP,
-        response_format: args.responseFormat
+        top_p: args.topP
       }
     );
     return deserializeMessage(result);
@@ -116,8 +113,6 @@ export class PythonProvider extends BaseProvider {
     tools?: ProviderTool[];
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -135,8 +130,7 @@ export class PythonProvider extends BaseProvider {
         tools: args.tools,
         max_tokens: args.maxTokens,
         temperature: args.temperature,
-        top_p: args.topP,
-        response_format: args.responseFormat
+        top_p: args.topP
       }
     )) {
       if (chunk.type === "tool_call") {

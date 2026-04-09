@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -785,10 +786,46 @@ export class JoinDataframeNode extends BaseNode {
   })
   declare join_on: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const a = asRows(this.dataframe_a ?? this.dataframe_a);
     const b = asRows(this.dataframe_b ?? this.dataframe_b);
     const joinOn = String(this.join_on ?? this.join_on ?? "");
+
+    // Validate join column exists in both dataframes
+    const colsA = a.length > 0 ? Object.keys(a[0]) : [];
+    const colsB = b.length > 0 ? Object.keys(b[0]) : [];
+    if (joinOn && a.length > 0 && !colsA.includes(joinOn)) {
+      throw new Error(
+        `Join column '${joinOn}' not found in dataframe A. Available columns: ${colsA.join(", ")}`
+      );
+    }
+    if (joinOn && b.length > 0 && !colsB.includes(joinOn)) {
+      throw new Error(
+        `Join column '${joinOn}' not found in dataframe B. Available columns: ${colsB.join(", ")}`
+      );
+    }
+
+    // Warn about column collisions (excluding the join column)
+    const colsASet = new Set(colsA.filter((c) => c !== joinOn));
+    const colsBSet = new Set(colsB.filter((c) => c !== joinOn));
+    const collisions = [...colsASet].filter((c) => colsBSet.has(c));
+    if (collisions.length > 0 && context && typeof context.emit === "function") {
+      const nodeId = String(
+        (this as unknown as Record<string, unknown>).__node_id ??
+          (this as unknown as Record<string, unknown>).name ??
+          ""
+      );
+      context.emit({
+        type: "node_progress",
+        node_id: nodeId,
+        progress: 0,
+        total: 0
+      });
+      console.warn(
+        `Join: columns [${collisions.join(", ")}] exist in both dataframes and will be overwritten by dataframe B values.`
+      );
+    }
+
     const mapB = new Map<unknown, Row[]>();
     for (const row of b) {
       const key = row[joinOn];
@@ -992,7 +1029,9 @@ export class DropNANode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.df ?? this.df);
     const out = rows.filter((row) =>
-      Object.values(row).every((v) => v !== null && v !== undefined && v !== "")
+      Object.values(row).every(
+        (v) => v !== null && v !== undefined && !Number.isNaN(v)
+      )
     );
     return { output: toDataframe(out) };
   }
@@ -1154,7 +1193,22 @@ export class AggregateNode extends BaseNode {
         else if (agg === "count") base[col] = values.length;
         else if (agg === "min") base[col] = Math.min(...values);
         else if (agg === "max") base[col] = Math.max(...values);
-        else if (agg === "median") base[col] = median(values);
+        else if (agg === "std") {
+          const m = mean(values);
+          const variance =
+            values.length > 1
+              ? values.reduce((s, v) => s + (v - m) ** 2, 0) /
+                (values.length - 1)
+              : 0;
+          base[col] = Math.sqrt(variance);
+        } else if (agg === "var") {
+          const m = mean(values);
+          base[col] =
+            values.length > 1
+              ? values.reduce((s, v) => s + (v - m) ** 2, 0) /
+                (values.length - 1)
+              : 0;
+        } else if (agg === "median") base[col] = median(values);
         else if (agg === "first") base[col] = values[0];
         else if (agg === "last") base[col] = values[values.length - 1];
         else throw new Error(`Unknown aggregation function: ${agg}`);

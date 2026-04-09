@@ -1,5 +1,10 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
+import type {
+  NodeClass,
+  StreamingInputs,
+  StreamingOutputs
+} from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 
@@ -25,7 +30,7 @@ export class EmbeddingNode extends BaseNode {
   static readonly description =
     "Generate vector representations of text for semantic analysis.\n    embeddings, similarity, search, clustering, classification\n\n    Uses OpenAI's embedding models to create dense vector representations of text.\n    These vectors capture semantic meaning, enabling:\n    - Semantic search\n    - Text clustering\n    - Document classification\n    - Recommendation systems\n    - Anomaly detection\n    - Measuring text similarity and diversity";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -299,9 +304,9 @@ export class CreateImageNode extends BaseNode {
 
     const item = data.data[0];
     if (item.b64_json) {
-      return { output: { data: `data:image/png;base64,${item.b64_json}` } };
+      return { output: { type: "image", data: `data:image/png;base64,${item.b64_json}` } };
     } else if (item.url) {
-      return { output: { uri: item.url } };
+      return { output: { type: "image", uri: item.url } };
     }
     throw new Error("No image data in response");
   }
@@ -433,9 +438,9 @@ export class EditImageNode extends BaseNode {
 
     const item = data.data[0];
     if (item.b64_json) {
-      return { output: { data: `data:image/png;base64,${item.b64_json}` } };
+      return { output: { type: "image", data: `data:image/png;base64,${item.b64_json}` } };
     } else if (item.url) {
-      return { output: { uri: item.url } };
+      return { output: { type: "image", uri: item.url } };
     }
     throw new Error("No image data in response");
   }
@@ -537,7 +542,7 @@ export class TextToSpeechNode extends BaseNode {
 
     const arrayBuf = await res.arrayBuffer();
     const b64 = Buffer.from(arrayBuf).toString("base64");
-    return { output: { data: `data:audio/mp3;base64,${b64}` } };
+    return { output: { type: "audio", data: `data:audio/mp3;base64,${b64}` } };
   }
 }
 
@@ -836,17 +841,21 @@ export class RealtimeAgentNode extends BaseNode {
   static readonly nodeType = "openai.agents.RealtimeAgent";
   static readonly title = "Realtime Agent";
   static readonly description =
-    "Stream responses using the official OpenAI Realtime client. Supports optional audio input and streams text chunks.\n    realtime, streaming, openai, audio-input, text-output\n\n    Uses `AsyncOpenAI().beta.realtime.connect(...)` with the events API:\n    - Sends session settings via `session.update`\n    - Adds user input via `conversation.item.create`\n    - Streams back `response.text.delta` events until `response.done`";
+    "Realtime conversational agent using OpenAI’s WebSocket Realtime API.\n" +
+    "Streams audio/text input and receives streaming text and audio responses with <300ms latency.\n" +
+    "realtime, streaming, openai, audio-input, text-output, websocket\n\n" +
+    "Uses a persistent WebSocket connection with server-side VAD for automatic turn detection.";
   static readonly metadataOutputTypes = {
     chunk: "chunk",
     audio: "audio",
     text: "str"
   };
-  static readonly basicFields = ["model", "prompt", "chunk", "speed"];
+  static readonly basicFields = ["model", "system", "chunk", "speed"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly supportsDynamicOutputs = true;
-
+  static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+
   @prop({
     type: "enum",
     default: "gpt-4o-mini-realtime-preview",
@@ -858,7 +867,9 @@ export class RealtimeAgentNode extends BaseNode {
   @prop({
     type: "str",
     default:
-      "\nYou are an AI assistant interacting in real-time. Follow these rules unless explicitly overridden by the user:\n\n1. Respond promptly — minimize delay. If you do not yet have a complete answer, acknowledge the question and indicate what you are doing to find the answer.\n2. Maintain correctness. Always aim for accuracy; if you’re uncertain, say so and optionally offer to verify.\n3. Be concise but clear. Prioritize key information first, then supporting details if helpful.\n4. Ask clarifying questions when needed. If the user’s request is ambiguous, request clarification rather than guessing.\n5. Be consistent in terminology and definitions. Once you adopt a term or abbreviation, use it consistently in this conversation.\n6. Respect politeness and neutrality. Do not use emotive language unless the conversation tone demands it.\n7. Stay within safe and ethical bounds. Avoid disallowed content; follow OpenAI policies.\n8. Adapt to the user’s style and level. If the user seems technical, use technical detail; if non-technical, explain with simpler language.\n---\nYou are now active. Await the user’s request.\n",
+      "You are an AI assistant interacting in real-time. " +
+      "Be concise but clear. Prioritize key information first. " +
+      "Ask clarifying questions when needed.",
     title: "System",
     description: "System instructions for the realtime session"
   })
@@ -908,7 +919,7 @@ export class RealtimeAgentNode extends BaseNode {
     type: "float",
     default: 1,
     title: "Speed",
-    description: "The speed of the model's spoken response",
+    description: "The speed of the model’s spoken response",
     min: 0.25,
     max: 1.5
   })
@@ -925,98 +936,217 @@ export class RealtimeAgentNode extends BaseNode {
   declare temperature: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(this._secrets);
-    const system = String(this.system ?? "");
-    const voice = String(this.voice ?? "alloy");
-    const speed = Number(this.speed ?? 1);
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs,
+    context?: ProcessingContext
+  ): Promise<void> {
+    let apiKey = "";
+    if (context && typeof context.getSecret === "function") {
+      apiKey = (await context.getSecret("OPENAI_API_KEY")) ?? "";
+    }
+    if (!apiKey) apiKey = process.env.OPENAI_API_KEY ?? "";
+    if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
+
     const model = String(this.model ?? "gpt-4o-mini-realtime-preview");
-    const chunk = (this.chunk ?? {}) as Record<string, unknown>;
+    const voice = String(this.voice ?? "alloy");
+    const system = String(this.system ?? "");
+    const temperature = Number(this.temperature ?? 0.8);
+    const speed = Number(this.speed ?? 1);
+    const wantAudio = voice !== "none";
 
-    let userText = "";
-    if (typeof chunk.content === "string" && chunk.content) {
-      if (chunk.content_type === "audio") {
-        const formData = new FormData();
-        const audioBytes = Buffer.from(chunk.content, "base64");
-        formData.append("file", new Blob([audioBytes]), "audio.wav");
-        formData.append("model", "gpt-4o-mini-transcribe");
-        const transcription = await fetch(
-          `${OPENAI_API_BASE}/audio/transcriptions`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${apiKey}` },
-            body: formData
-          }
-        );
-        if (!transcription.ok) {
-          const err = await transcription.text();
-          throw new Error(
-            `OpenAI realtime transcription error ${transcription.status}: ${err}`
-          );
-        }
-        const transcriptionJson = (await transcription.json()) as {
-          text?: string;
-        };
-        userText = transcriptionJson.text ?? "";
-      } else {
-        userText = chunk.content;
+    const { WebSocket } = await import("ws");
+    const wsUrl = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`;
+    const ws = new WebSocket(wsUrl, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "OpenAI-Beta": "realtime=v1"
       }
-    }
-
-    const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
-      method: "POST",
-      headers: authHeaders(apiKey),
-      body: JSON.stringify({
-        model: model.replace("-realtime-preview", ""),
-        temperature: Number(this.temperature ?? 0.8),
-        messages: [
-          ...(system ? [{ role: "system", content: system }] : []),
-          {
-            role: "user",
-            content: userText || String((this as any).prompt ?? "") || ""
-          }
-        ]
-      })
     });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(
-        `OpenAI RealtimeAgent fallback error ${res.status}: ${err}`
-      );
-    }
-    const data = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const text = String(data.choices?.[0]?.message?.content ?? "");
 
-    let audio: Record<string, unknown> | null = null;
-    if (voice && voice !== "none" && text) {
-      const tts = await fetch(`${OPENAI_API_BASE}/audio/speech`, {
-        method: "POST",
-        headers: authHeaders(apiKey),
-        body: JSON.stringify({
-          model: "gpt-4o-mini-tts",
-          input: text,
-          voice,
-          speed,
-          response_format: "mp3"
-        })
+    await new Promise<void>((resolve, reject) => {
+      ws.on("open", resolve);
+      ws.on("error", reject);
+    });
+
+    // Configure session
+    ws.send(
+      JSON.stringify({
+        type: "session.update",
+        session: {
+          modalities: wantAudio ? ["text", "audio"] : ["text"],
+          instructions: system || undefined,
+          voice: wantAudio ? voice : undefined,
+          input_audio_format: "pcm16",
+          output_audio_format: "pcm16",
+          input_audio_transcription: { model: "gpt-4o-mini-transcribe" },
+          turn_detection: {
+            type: "server_vad",
+            silence_duration_ms: 200
+          },
+          temperature,
+          speed
+        }
+      })
+    );
+
+    // Consumer: listen for response events
+    let fullText = "";
+    let consumerDone = false;
+    let resolveResponseDone!: () => void;
+    const responseDonePromise = new Promise<void>((resolve) => {
+      resolveResponseDone = resolve;
+    });
+
+    const consumerPromise = new Promise<void>((resolve, reject) => {
+      ws.on("message", async (data: Buffer | string) => {
+        try {
+          const msg = JSON.parse(data.toString()) as Record<string, unknown>;
+          const msgType = String(msg.type ?? "");
+
+          if (msgType === "response.text.delta") {
+            const delta = String(msg.delta ?? "");
+            if (delta) {
+              fullText += delta;
+              await outputs.emit("chunk", {
+                type: "chunk",
+                content: delta,
+                done: false,
+                content_type: "text"
+              });
+            }
+          } else if (msgType === "response.audio.delta") {
+            const audioB64 = String(msg.delta ?? "");
+            if (audioB64) {
+              await outputs.emit("chunk", {
+                type: "chunk",
+                content: audioB64,
+                done: false,
+                content_type: "audio",
+                content_metadata: {
+                  format: "pcm16",
+                  encoding: "pcm16",
+                  sample_rate: 24000,
+                  channels: 1
+                }
+              });
+            }
+          } else if (msgType === "response.audio_transcript.delta") {
+            const delta = String(msg.delta ?? "");
+            if (delta) fullText += delta;
+          } else if (msgType === "response.done") {
+            resolveResponseDone();
+          } else if (msgType === "error") {
+            const errMsg =
+              (msg.error as Record<string, unknown> | undefined)?.message ??
+              "Unknown realtime error";
+            reject(new Error(`OpenAI Realtime error: ${errMsg}`));
+          }
+        } catch (err) {
+          if (!consumerDone) reject(err);
+        }
       });
-      if (tts.ok) {
-        const audioBytes = await tts.arrayBuffer();
-        audio = {
-          data: `data:audio/mp3;base64,${Buffer.from(audioBytes).toString("base64")}`
-        };
+
+      ws.on("error", (err: Error) => {
+        if (!consumerDone) reject(err);
+      });
+
+      ws.on("close", () => {
+        consumerDone = true;
+        resolve();
+      });
+    });
+
+    // Producer: read streaming input and forward to WebSocket
+    try {
+      for await (const [handle, item] of inputs.any()) {
+        if (handle === "__control__") continue;
+
+        const chunk = item as Record<string, unknown> | string;
+        let done = false;
+
+        if (typeof chunk === "string") {
+          // Raw base64 audio
+          if (chunk && ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                type: "input_audio_buffer.append",
+                audio: chunk
+              })
+            );
+          }
+          continue;
+        }
+
+        done = Boolean(chunk.done ?? false);
+        if (done) break;
+
+        const contentType = String(chunk.content_type ?? "text");
+        const content = String(chunk.content ?? "");
+        if (!content) continue;
+
+        if (contentType === "audio") {
+          // Audio chunk → append to audio buffer
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                type: "input_audio_buffer.append",
+                audio: content
+              })
+            );
+          }
+        } else {
+          // Text chunk → create conversation item and trigger response
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                type: "conversation.item.create",
+                item: {
+                  type: "message",
+                  role: "user",
+                  content: [{ type: "input_text", text: content }]
+                }
+              })
+            );
+            ws.send(JSON.stringify({ type: "response.create" }));
+          }
+        }
       }
+
+      // Commit any remaining audio buffer
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+      }
+
+      // Wait for response.done with timeout
+      await Promise.race([
+        responseDonePromise,
+        consumerPromise,
+        new Promise<void>((resolve) => setTimeout(resolve, 10000))
+      ]);
+    } finally {
+      if (
+        ws.readyState === WebSocket.OPEN ||
+        ws.readyState === WebSocket.CONNECTING
+      ) {
+        ws.close();
+      }
+      consumerDone = true;
     }
 
-    return {
-      text,
-      output: text,
-      chunk: text
-        ? { type: "chunk", content_type: "text", content: text, done: true }
-        : null,
-      audio
-    };
+    await consumerPromise;
+
+    // Emit final done chunks
+    await outputs.emit("chunk", {
+      type: "chunk",
+      content: "",
+      done: true,
+      content_type: "text"
+    });
+    await outputs.emit("text", fullText);
   }
 }
 
@@ -1027,28 +1157,44 @@ export class RealtimeTranscriptionNode extends BaseNode {
   static readonly nodeType = "openai.agents.RealtimeTranscription";
   static readonly title = "Realtime Transcription";
   static readonly description =
-    'Stream microphone or audio input to OpenAI Realtime and emit transcription.\n\n    Emits:\n      - `chunk` Chunk(content=..., done=False) for transcript deltas\n      - `chunk` Chunk(content="", done=True) to mark segment end\n      - `text` final aggregated transcript when input ends';
+    "Realtime speech-to-text using OpenAI's WebSocket Realtime API.\n" +
+    "Streams audio chunks in and receives transcription results in real-time.\n" +
+    "audio, transcription, stt, streaming, realtime, websocket, openai\n\n" +
+    "Uses server-side VAD for automatic speech segment detection.";
   static readonly metadataOutputTypes = {
     text: "str",
     chunk: "chunk"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-
+  static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+
   @prop({
-    type: "language_model",
-    default: {
-      type: "language_model",
-      provider: "empty",
-      id: "",
-      name: "",
-      path: null,
-      supported_tasks: []
-    },
+    type: "enum",
+    default: "gpt-4o-mini-realtime-preview",
     title: "Model",
-    description: "Model to use"
+    description: "The realtime model to use.",
+    values: ["gpt-4o-realtime-preview", "gpt-4o-mini-realtime-preview"]
   })
   declare model: any;
+
+  @prop({
+    type: "chunk",
+    default: {
+      type: "chunk",
+      node_id: null,
+      thread_id: null,
+      workflow_id: null,
+      content_type: "audio",
+      content: "",
+      content_metadata: {},
+      done: false,
+      thinking: false
+    },
+    title: "Chunk",
+    description: "Audio chunk input stream (base64-encoded PCM16 audio)."
+  })
+  declare chunk: any;
 
   @prop({
     type: "str",
@@ -1067,59 +1213,175 @@ export class RealtimeTranscriptionNode extends BaseNode {
   declare temperature: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(this._secrets);
-    const chunk = ((this as any).chunk ?? (this as any).audio ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const content =
-      typeof chunk.content === "string"
-        ? chunk.content
-        : typeof chunk.data === "string"
-          ? chunk.data
-          : "";
-    if (!content) {
-      return { text: "", chunk: null, output: "" };
-    }
+    return {};
+  }
 
-    const formData = new FormData();
-    formData.append(
-      "file",
-      new Blob([Buffer.from(content, "base64")]),
-      "audio.wav"
-    );
-    formData.append(
-      "model",
-      String(
-        (this.model as Record<string, unknown> | undefined)?.id ??
-          this.model ??
-          "gpt-4o-mini-transcribe"
-      )
-    );
-    if (this.system) {
-      formData.append("prompt", String(this.system ?? ""));
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs,
+    context?: ProcessingContext
+  ): Promise<void> {
+    let apiKey = "";
+    if (context && typeof context.getSecret === "function") {
+      apiKey = (await context.getSecret("OPENAI_API_KEY")) ?? "";
     }
+    if (!apiKey) apiKey = process.env.OPENAI_API_KEY ?? "";
+    if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
 
-    const res = await fetch(`${OPENAI_API_BASE}/audio/transcriptions`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: formData
+    const model = String(this.model ?? "gpt-4o-mini-realtime-preview");
+    const temperature = Number(this.temperature ?? 0.8);
+
+    const { WebSocket } = await import("ws");
+    const wsUrl = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`;
+    const ws = new WebSocket(wsUrl, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "OpenAI-Beta": "realtime=v1"
+      }
     });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(
-        `OpenAI RealtimeTranscription fallback error ${res.status}: ${err}`
-      );
+
+    await new Promise<void>((resolve, reject) => {
+      ws.on("open", resolve);
+      ws.on("error", reject);
+    });
+
+    // Configure session for transcription only (no audio output)
+    ws.send(
+      JSON.stringify({
+        type: "session.update",
+        session: {
+          modalities: ["text"],
+          instructions: this.system ? String(this.system) : undefined,
+          input_audio_format: "pcm16",
+          input_audio_transcription: { model: "gpt-4o-mini-transcribe" },
+          turn_detection: {
+            type: "server_vad",
+            silence_duration_ms: 500
+          },
+          temperature
+        }
+      })
+    );
+
+    // Consumer: listen for transcription events
+    let fullText = "";
+    let consumerDone = false;
+    let resolveLastTranscript!: () => void;
+    const lastTranscriptPromise = new Promise<void>((resolve) => {
+      resolveLastTranscript = resolve;
+    });
+    let finalizeRequested = false;
+
+    const consumerPromise = new Promise<void>((resolve, reject) => {
+      ws.on("message", async (data: Buffer | string) => {
+        try {
+          const msg = JSON.parse(data.toString()) as Record<string, unknown>;
+          const msgType = String(msg.type ?? "");
+
+          if (
+            msgType ===
+            "conversation.item.input_audio_transcription.completed"
+          ) {
+            const text = String(msg.transcript ?? "");
+            if (text) {
+              fullText += (fullText ? " " : "") + text;
+              await outputs.emit("chunk", {
+                type: "chunk",
+                content: text,
+                done: false,
+                content_type: "text"
+              });
+              if (finalizeRequested) {
+                resolveLastTranscript();
+              }
+            }
+          } else if (msgType === "response.done") {
+            if (finalizeRequested) {
+              resolveLastTranscript();
+            }
+          } else if (msgType === "error") {
+            const errMsg =
+              (msg.error as Record<string, unknown> | undefined)?.message ??
+              "Unknown realtime error";
+            reject(new Error(`OpenAI Realtime error: ${errMsg}`));
+          }
+        } catch (err) {
+          if (!consumerDone) reject(err);
+        }
+      });
+
+      ws.on("error", (err: Error) => {
+        if (!consumerDone) reject(err);
+      });
+
+      ws.on("close", () => {
+        consumerDone = true;
+        resolve();
+      });
+    });
+
+    // Producer: read streaming audio input and forward to WebSocket
+    try {
+      for await (const [handle, item] of inputs.any()) {
+        if (handle === "__control__") continue;
+
+        const chunk = item as Record<string, unknown> | string;
+        let audioB64: string;
+        let done = false;
+
+        if (typeof chunk === "string") {
+          audioB64 = chunk;
+        } else {
+          if (chunk.content_type && chunk.content_type !== "audio") continue;
+          audioB64 = String(chunk.content ?? "");
+          done = Boolean(chunk.done ?? false);
+        }
+
+        if (done) break;
+        if (!audioB64) continue;
+
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: "input_audio_buffer.append",
+              audio: audioB64
+            })
+          );
+        }
+      }
+
+      // Commit remaining audio
+      finalizeRequested = true;
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+      }
+
+      // Wait for final transcript
+      await Promise.race([
+        lastTranscriptPromise,
+        consumerPromise,
+        new Promise<void>((resolve) => setTimeout(resolve, 5000))
+      ]);
+    } finally {
+      if (
+        ws.readyState === WebSocket.OPEN ||
+        ws.readyState === WebSocket.CONNECTING
+      ) {
+        ws.close();
+      }
+      consumerDone = true;
     }
-    const data = (await res.json()) as { text?: string };
-    const text = data.text ?? "";
-    return {
-      text,
-      output: text,
-      chunk: text
-        ? { type: "chunk", content_type: "text", content: text, done: true }
-        : null
-    };
+
+    await consumerPromise;
+
+    // Emit final done chunk and full text
+    await outputs.emit("chunk", {
+      type: "chunk",
+      content: "",
+      done: true,
+      content_type: "text"
+    });
+    await outputs.emit("text", fullText);
   }
 }
 
