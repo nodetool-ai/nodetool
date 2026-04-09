@@ -1,6 +1,5 @@
 import { createReadStream } from "node:fs";
 import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
-import os from "node:os";
 import path, { extname } from "node:path";
 import { getDefaultAssetsPath } from "@nodetool/config";
 
@@ -253,7 +252,6 @@ async function handleStorageRequest(
 
 export interface StorageHandlerOptions {
   storagePath?: string;
-  tempStoragePath?: string;
 }
 
 export function createStorageHandler(
@@ -261,23 +259,14 @@ export function createStorageHandler(
 ): (request: Request) => Promise<Response> {
   const storagePath = opts?.storagePath ?? getDefaultAssetsPath();
 
-  const tempStoragePath =
-    opts?.tempStoragePath ??
-    process.env.TEMP_STORAGE_PATH ??
-    path.join(os.tmpdir(), "nodetool", "temp");
-
   return async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    const TEMP_PREFIX = "/api/storage/temp/";
     const PERM_PREFIX = "/api/storage/";
 
-    if (pathname.startsWith(TEMP_PREFIX)) {
-      const key = decodeURIComponent(pathname.slice(TEMP_PREFIX.length));
-      return handleStorageRequest(request, tempStoragePath, key);
-    }
-
+    // All storage requests (including temp/) are served from the assets root.
+    // temp/ files are stored as assets/temp/{uuid}.ext by the FileStorageAdapter.
     if (pathname.startsWith(PERM_PREFIX)) {
       const key = decodeURIComponent(pathname.slice(PERM_PREFIX.length));
       return handleStorageRequest(request, storagePath, key);
