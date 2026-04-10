@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from "
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Checkbox } from "@mui/material";
+import { Box, Button, Checkbox, IconButton } from "@mui/material";
 import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
@@ -461,7 +461,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                     <IconButton
                       className="tile-action-btn"
                       size="small"
-                      onClick={(e) => handleDownloadImage(idx, e)}
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleDownloadImage(idx, e)}
                       aria-label={`Download image ${idx + 1}`}
                     >
                       <DownloadIcon />
@@ -471,7 +471,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                     <IconButton
                       className="tile-action-btn"
                       size="small"
-                      onClick={(e) => handleOpenInViewer(idx, e)}
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleOpenInViewer(idx, e)}
                       aria-label={`Open image ${idx + 1} in viewer`}
                     >
                       <OpenInNewIcon />

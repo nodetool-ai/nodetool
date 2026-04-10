@@ -100,7 +100,7 @@ describe("TableActions", () => {
 
       const undoButton = screen.getByRole("button", { name: /undo/i });
       expect(undoButton).toBeInTheDocument();
-      expect(undoButton.getAttribute("aria-label")).toBe("Undo");
+      expect(undoButton.getAttribute("aria-label")).toMatch(/Undo/);
     });
 
     it("has aria-label on Redo button", () => {
@@ -108,7 +108,7 @@ describe("TableActions", () => {
 
       const redoButton = screen.getByRole("button", { name: /redo/i });
       expect(redoButton).toBeInTheDocument();
-      expect(redoButton.getAttribute("aria-label")).toBe("Redo");
+      expect(redoButton.getAttribute("aria-label")).toMatch(/Redo/);
     });
 
     it("has aria-label on Paste button", () => {

@@ -275,8 +275,8 @@ describe("StatusMessage", () => {
 
       const { container } = renderWithTheme();
 
-      // MUI Typography with caption variant renders as a span
-      const typography = container.querySelector('span[class*="status-message"]');
+      // Caption renders as Typography (p element) with status-message class
+      const typography = container.querySelector('.status-message');
       expect(typography).toBeInTheDocument();
     });
   });

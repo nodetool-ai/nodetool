@@ -25,7 +25,7 @@
  import { editorClassNames, cn } from "./editorUtils";
 
  export interface NodeSelectProps
-   extends Omit<SelectProps, "variant" | "size"> {
+   extends Omit<SelectProps, "size"> {
    /**
     * Additional class name for the root element.
     */

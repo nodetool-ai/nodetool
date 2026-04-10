@@ -99,7 +99,7 @@ const ToolCallCard: React.FC<{
               {isRunning ? runningToolMessage || tc.message : tc.message}
             </Text>
           )}
-          {isRunning && <LoadingSpinner size={12} />}
+          {isRunning && <LoadingSpinner size="small" />}
         </FlexRow>
         {hasDetails && (
           <ToolbarIconButton

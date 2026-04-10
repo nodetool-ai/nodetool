@@ -1,42 +1,8 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
-// Mock theme
-jest.mock("@mui/material/styles", () => ({
-  ...jest.requireActual("@mui/material/styles"),
-  useTheme: () => ({
-    vars: {
-      palette: {
-        grey: {
-          400: "#9e9e9e",
-          500: "#757575",
-          600: "#616161",
-          700: "#424242",
-          800: "#303030",
-          900: "#212121"
-        },
-        text: { primary: "#ffffff" },
-        primary: {
-          main: "#1976d2",
-          dark: "#1565c0",
-          light: "#42a5f5",
-          contrastText: "#ffffff"
-        },
-        success: {
-          main: "#2e7d32",
-          dark: "#1b5e20",
-          contrastText: "#ffffff"
-        },
-        action: { hover: "rgba(255,255,255,0.08)" },
-        background: { default: "#121212", paper: "#1e1e1e" },
-        common: { white: "#ffffff" }
-      }
-    },
-    fontSizeTiny: "10px",
-    fontSizeSmaller: "11px",
-    fontSizeSmall: "12px"
-  })
-}));
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../../__mocks__/themeMock";
 
 // Mock ReactDOM.createPortal
 jest.mock("react-dom", () => ({
@@ -84,90 +50,94 @@ describe("ImageEditorToolbar", () => {
     onRedo: mockOnRedo
   };
 
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
+  );
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("renders tools section", () => {
-    render(<ImageEditorToolbar {...defaultProps} />);
+    render(<ImageEditorToolbar {...defaultProps} />, { wrapper });
     expect(screen.getByText("Tools")).toBeInTheDocument();
   });
 
   it("renders transform section", () => {
-    render(<ImageEditorToolbar {...defaultProps} />);
+    render(<ImageEditorToolbar {...defaultProps} />, { wrapper });
     expect(screen.getByText("Transform")).toBeInTheDocument();
   });
 
   it("renders adjustments section", () => {
-    render(<ImageEditorToolbar {...defaultProps} />);
+    render(<ImageEditorToolbar {...defaultProps} />, { wrapper });
     expect(screen.getByText("Adjustments")).toBeInTheDocument();
   });
 
   it("renders view section with zoom controls", () => {
-    render(<ImageEditorToolbar {...defaultProps} />);
+    render(<ImageEditorToolbar {...defaultProps} />, { wrapper });
     expect(screen.getByText("View")).toBeInTheDocument();
     expect(screen.getByText("100%")).toBeInTheDocument();
   });
 
   it("renders history section", () => {
-    render(<ImageEditorToolbar {...defaultProps} />);
+    render(<ImageEditorToolbar {...defaultProps} />, { wrapper });
     expect(screen.getByText("History")).toBeInTheDocument();
   });
 
   it("shows crop actions when isCropping is true", () => {
-    render(<ImageEditorToolbar {...defaultProps} isCropping={true} />);
+    render(<ImageEditorToolbar {...defaultProps} isCropping={true} />, { wrapper });
     expect(screen.getByText("Crop Selection")).toBeInTheDocument();
     expect(screen.getByText("Apply")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
   });
 
   it("shows brush settings when draw tool is active", () => {
-    render(<ImageEditorToolbar {...defaultProps} tool="draw" />);
+    render(<ImageEditorToolbar {...defaultProps} tool="draw" />, { wrapper });
     expect(screen.getByText("Brush Settings")).toBeInTheDocument();
     expect(screen.getByText("Size")).toBeInTheDocument();
     expect(screen.getByText("Opacity")).toBeInTheDocument();
   });
 
   it("displays zoom percentage correctly", () => {
-    render(<ImageEditorToolbar {...defaultProps} zoom={1.5} />);
+    render(<ImageEditorToolbar {...defaultProps} zoom={1.5} />, { wrapper });
     expect(screen.getByText("150%")).toBeInTheDocument();
   });
 
   it("shows fill settings when fill tool is active", () => {
-    render(<ImageEditorToolbar {...defaultProps} tool="fill" />);
+    render(<ImageEditorToolbar {...defaultProps} tool="fill" />, { wrapper });
     expect(screen.getByText("Fill Settings")).toBeInTheDocument();
   });
 
   it("shows shape settings when rectangle tool is active", () => {
-    render(<ImageEditorToolbar {...defaultProps} tool="rectangle" />);
+    render(<ImageEditorToolbar {...defaultProps} tool="rectangle" />, { wrapper });
     expect(screen.getByText("Shape Settings")).toBeInTheDocument();
     expect(screen.getByText("Stroke Width")).toBeInTheDocument();
     expect(screen.getByText("Filled")).toBeInTheDocument();
   });
 
   it("shows shape settings when ellipse tool is active", () => {
-    render(<ImageEditorToolbar {...defaultProps} tool="ellipse" />);
+    render(<ImageEditorToolbar {...defaultProps} tool="ellipse" />, { wrapper });
     expect(screen.getByText("Shape Settings")).toBeInTheDocument();
     expect(screen.getByText("Stroke Width")).toBeInTheDocument();
     expect(screen.getByText("Filled")).toBeInTheDocument();
   });
 
   it("shows shape settings without filled option when line tool is active", () => {
-    render(<ImageEditorToolbar {...defaultProps} tool="line" />);
+    render(<ImageEditorToolbar {...defaultProps} tool="line" />, { wrapper });
     expect(screen.getByText("Shape Settings")).toBeInTheDocument();
     expect(screen.getByText("Stroke Width")).toBeInTheDocument();
     expect(screen.queryByText("Filled")).not.toBeInTheDocument();
   });
 
   it("shows shape settings without filled option when arrow tool is active", () => {
-    render(<ImageEditorToolbar {...defaultProps} tool="arrow" />);
+    render(<ImageEditorToolbar {...defaultProps} tool="arrow" />, { wrapper });
     expect(screen.getByText("Shape Settings")).toBeInTheDocument();
     expect(screen.getByText("Stroke Width")).toBeInTheDocument();
     expect(screen.queryByText("Filled")).not.toBeInTheDocument();
   });
 
   it("shows text settings when text tool is active", () => {
-    render(<ImageEditorToolbar {...defaultProps} tool="text" />);
+    render(<ImageEditorToolbar {...defaultProps} tool="text" />, { wrapper });
     expect(screen.getByText("Text Settings")).toBeInTheDocument();
     expect(screen.getByText("Font Size")).toBeInTheDocument();
     expect(screen.getByText("Bold")).toBeInTheDocument();
@@ -176,7 +146,7 @@ describe("ImageEditorToolbar", () => {
 
   describe("Accessibility", () => {
     it("has aria-label on all tool selection buttons", () => {
-      render(<ImageEditorToolbar {...defaultProps} />);
+      render(<ImageEditorToolbar {...defaultProps} />, { wrapper });
 
       const buttons = screen.getAllByRole("button").filter((button) => {
         const ariaLabel = button.getAttribute("aria-label");
@@ -201,7 +171,7 @@ describe("ImageEditorToolbar", () => {
     });
 
     it("has aria-label on transform action buttons", () => {
-      render(<ImageEditorToolbar {...defaultProps} />);
+      render(<ImageEditorToolbar {...defaultProps} />, { wrapper });
 
       const rotateCCWButton = screen.getByRole("button", { name: /rotate 90 degrees counter-clockwise/i });
       expect(rotateCCWButton).toBeInTheDocument();
@@ -213,7 +183,7 @@ describe("ImageEditorToolbar", () => {
     });
 
     it("has aria-label on zoom controls", () => {
-      render(<ImageEditorToolbar {...defaultProps} />);
+      render(<ImageEditorToolbar {...defaultProps} />, { wrapper });
 
       const zoomInButton = screen.getByRole("button", { name: /zoom in/i });
       const zoomOutButton = screen.getByRole("button", { name: /zoom out/i });
@@ -226,7 +196,7 @@ describe("ImageEditorToolbar", () => {
     });
 
     it("has aria-label on history buttons", () => {
-      render(<ImageEditorToolbar {...defaultProps} canUndo={true} canRedo={true} />);
+      render(<ImageEditorToolbar {...defaultProps} canUndo={true} canRedo={true} />, { wrapper });
 
       const undoButton = screen.getByRole("button", { name: /undo/i });
       const redoButton = screen.getByRole("button", { name: /redo/i });

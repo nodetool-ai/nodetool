@@ -3,19 +3,36 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import LogsTable, { LogRow } from '../LogsTable';
 import { ThemeProvider } from '@mui/material/styles';
-
-// Mock the theme
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-jest.mock('../../themes/ThemeNodetool', () => require('../../../__mocks__/themeMock'));
-import ThemeNodetool from '../../themes/ThemeNodetool';
+import mockTheme from '../../../__mocks__/themeMock';
 
 // Mock UI primitives
 jest.mock('../../ui_primitives', () => {
   const CopyButton = (props: any) => <button {...props}>Copy</button>;
   CopyButton.displayName = "CopyButton";
+  const Text = ({ children, ...props }: any) => <span {...props}>{children}</span>;
+  Text.displayName = "Text";
+  const Tooltip = ({ children }: any) => <>{children}</>;
+  Tooltip.displayName = "Tooltip";
+  const ToolbarIconButton = ({ children, ...props }: any) => <button {...props}>{children}</button>;
+  ToolbarIconButton.displayName = "ToolbarIconButton";
+  const Card = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+  Card.displayName = "Card";
+  const Popover = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+  Popover.displayName = "Popover";
+  const FlexColumn = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+  FlexColumn.displayName = "FlexColumn";
+  const FlexRow = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+  FlexRow.displayName = "FlexRow";
   return {
     __esModule: true,
-    CopyButton
+    CopyButton,
+    Text,
+    Tooltip,
+    ToolbarIconButton,
+    Card,
+    Popover,
+    FlexColumn,
+    FlexRow
   };
 });
 
@@ -76,7 +93,7 @@ const defaultProps = {
 
 const renderWithTheme = (component: React.ReactNode) => {
   return render(
-    <ThemeProvider theme={ThemeNodetool}>
+    <ThemeProvider theme={mockTheme}>
       {component}
     </ThemeProvider>
   );

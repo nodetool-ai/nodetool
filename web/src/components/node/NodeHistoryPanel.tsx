@@ -268,7 +268,7 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
             </Text>
             {isLoadingAssets ? (
               <FlexRow justify="center" sx={{ p: 2 }}>
-                <LoadingSpinner size={24} />
+                <LoadingSpinner size="medium" />
               </FlexRow>
             ) : assetHistory && assetHistory.length > 0 ? (
               <AlertBanner severity="info" sx={{ mb: 1 }}>

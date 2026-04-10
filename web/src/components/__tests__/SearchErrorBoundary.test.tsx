@@ -360,7 +360,8 @@ describe("SearchErrorBoundary", () => {
 
       await waitFor(() => {
         const heading = screen.getByText("Search Error");
-        expect(heading.tagName).toBe("H6");
+        // Text component renders as <p> by default
+        expect(heading.tagName).toBe("P");
       });
     });
 

@@ -4,6 +4,8 @@
 
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import AudioPlayer from "../AudioPlayer";
 
 // Mock URL.createObjectURL/revokeObjectURL without replacing the entire URL object
@@ -86,6 +88,10 @@ jest.mock("loglevel", () => ({
 // Mock requestAnimationFrame
 global.requestAnimationFrame = jest.fn(cb => setTimeout(cb, 0));
 
+const themeWrapper = ({ children }: { children: React.ReactNode }) => (
+  <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
+);
+
 describe("AudioPlayer", () => {
   const defaultProps = {
     source: "http://example.com/audio.mp3",
@@ -103,24 +109,24 @@ describe("AudioPlayer", () => {
 
   describe("Rendering", () => {
     it("should render with filename", () => {
-      render(<AudioPlayer {...defaultProps} />);
+      render(<AudioPlayer {...defaultProps} />, { wrapper: themeWrapper });
       expect(screen.getByText("test-audio.mp3")).toBeInTheDocument();
     });
 
     it("should render waveform container", () => {
-      const { container } = render(<AudioPlayer {...defaultProps} />);
+      const { container } = render(<AudioPlayer {...defaultProps} />, { wrapper: themeWrapper });
       const waveform = container.querySelector("#waveform");
       expect(waveform).toBeInTheDocument();
     });
 
     it("should render minimap container", () => {
-      const { container } = render(<AudioPlayer {...defaultProps} />);
+      const { container } = render(<AudioPlayer {...defaultProps} />, { wrapper: themeWrapper });
       const minimap = container.querySelector(".minimap");
       expect(minimap).toBeInTheDocument();
     });
 
     it("should apply disabled class when no source", () => {
-      const { container } = render(<AudioPlayer source="" filename="test.mp3" />);
+      const { container } = render(<AudioPlayer source="" filename="test.mp3" />, { wrapper: themeWrapper });
       const audioControls = container.querySelector(".audio-controls-container.disabled");
       expect(audioControls).toBeInTheDocument();
     });
@@ -128,25 +134,25 @@ describe("AudioPlayer", () => {
 
   describe("Audio Loading", () => {
     it("should load audio from URL source", () => {
-      render(<AudioPlayer {...defaultProps} />);
+      render(<AudioPlayer {...defaultProps} />, { wrapper: themeWrapper });
       expect(screen.getByText("test-audio.mp3")).toBeInTheDocument();
     });
 
     it("should handle Uint8Array source", () => {
       const audioData = new Uint8Array([1, 2, 3, 4, 5]);
-      render(<AudioPlayer source={audioData} filename="test.mp3" />);
+      render(<AudioPlayer source={audioData} filename="test.mp3" />, { wrapper: themeWrapper });
       
       expect(screen.getByText("test.mp3")).toBeInTheDocument();
     });
 
     it("should handle empty source", () => {
-      const { container } = render(<AudioPlayer source="" />);
+      const { container } = render(<AudioPlayer source="" />, { wrapper: themeWrapper });
       const audioControls = container.querySelector(".audio-controls-container");
       expect(audioControls).toBeInTheDocument();
     });
 
     it("should handle undefined source", () => {
-      const { container } = render(<AudioPlayer source={undefined} />);
+      const { container } = render(<AudioPlayer source={undefined} />, { wrapper: themeWrapper });
       const audioControls = container.querySelector(".audio-controls-container");
       expect(audioControls).toBeInTheDocument();
     });
@@ -154,38 +160,38 @@ describe("AudioPlayer", () => {
 
   describe("Font Sizes", () => {
     it("should apply tiny font size by default", () => {
-      render(<AudioPlayer {...defaultProps} />);
+      render(<AudioPlayer {...defaultProps} />, { wrapper: themeWrapper });
       expect(screen.getByText("test-audio.mp3")).toBeInTheDocument();
     });
 
     it("should apply small font size when specified", () => {
-      render(<AudioPlayer {...defaultProps} fontSize="small" />);
+      render(<AudioPlayer {...defaultProps} fontSize="small" />, { wrapper: themeWrapper });
       expect(screen.getByText("test-audio.mp3")).toBeInTheDocument();
     });
 
     it("should apply normal font size when specified", () => {
-      render(<AudioPlayer {...defaultProps} fontSize="normal" />);
+      render(<AudioPlayer {...defaultProps} fontSize="normal" />, { wrapper: themeWrapper });
       expect(screen.getByText("test-audio.mp3")).toBeInTheDocument();
     });
   });
 
   describe("Custom Props", () => {
     it("should render with custom height props", () => {
-      const { container } = render(<AudioPlayer {...defaultProps} height={20} />);
+      const { container } = render(<AudioPlayer {...defaultProps} height={20} />, { wrapper: themeWrapper });
 
       const waveform = container.querySelector("#waveform") as HTMLElement;
       expect(waveform).toBeInTheDocument();
     });
 
     it("should render with custom waveform height props", () => {
-      const { container } = render(<AudioPlayer {...defaultProps} waveformHeight={25} />);
+      const { container } = render(<AudioPlayer {...defaultProps} waveformHeight={25} />, { wrapper: themeWrapper });
 
       const waveform = container.querySelector("#waveform") as HTMLElement;
       expect(waveform).toBeInTheDocument();
     });
 
     it("should render with custom minimap height props", () => {
-      const { container } = render(<AudioPlayer {...defaultProps} minimapHeight={10} />);
+      const { container } = render(<AudioPlayer {...defaultProps} minimapHeight={10} />, { wrapper: themeWrapper });
 
       const minimap = container.querySelector(".minimap") as HTMLElement;
       expect(minimap).toBeInTheDocument();

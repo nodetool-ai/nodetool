@@ -22,6 +22,8 @@ export interface FlexRowProps extends Omit<BoxProps, 'display'> {
   wrap?: boolean;
   /** Full width */
   fullWidth?: boolean;
+  /** Full height */
+  fullHeight?: boolean;
 }
 
 /**
@@ -56,6 +58,7 @@ export const FlexRow = forwardRef<HTMLDivElement, FlexRowProps>(({
   justify = "flex-start",
   wrap = false,
   fullWidth = false,
+  fullHeight = false,
   sx,
   children,
   ...props
@@ -74,6 +77,7 @@ export const FlexRow = forwardRef<HTMLDivElement, FlexRowProps>(({
         justifyContent: justify,
         flexWrap: wrap ? "wrap" : "nowrap",
         width: fullWidth ? "100%" : undefined,
+        height: fullHeight ? "100%" : undefined,
         ...sx
       }}
       {...props}

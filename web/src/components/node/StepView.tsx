@@ -97,7 +97,7 @@ const StepView: React.FC<StepViewProps> = ({ step }) => {
             sx={{ height: "20px" }}
           >
             {isRunning ? (
-              <LoadingSpinner size={16} className="step-running-spinner" />
+              <LoadingSpinner size="small" className="step-running-spinner" />
             ) : step.completed ? (
               <CheckCircleRoundedIcon className="step-status-icon step-completed-icon" />
             ) : (

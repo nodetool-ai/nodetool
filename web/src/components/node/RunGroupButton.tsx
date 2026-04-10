@@ -93,7 +93,7 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
         className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
         onClick={handleClick}
       >
-        {isRunning ? <LoadingSpinner size={16} /> : <PlayArrow />}
+        {isRunning ? <LoadingSpinner size="small" /> : <PlayArrow />}
       </ToolbarIconButton>
     </Tooltip>
   );

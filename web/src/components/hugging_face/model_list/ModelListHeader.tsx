@@ -64,7 +64,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   };
 
   const handleSortFieldChange = useCallback(
-    (event: SelectChangeEvent<ModelSortField>) => {
+    (event: SelectChangeEvent<unknown>) => {
       setSortField(event.target.value as ModelSortField);
     },
     [setSortField]

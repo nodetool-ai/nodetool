@@ -10,12 +10,15 @@ import MuiTooltip, {
   TooltipProps as MuiTooltipProps
 } from "@mui/material/Tooltip";
 
-export interface TooltipProps
-  extends Omit<MuiTooltipProps, "enterDelay" | "enterNextDelay"> {
+export interface TooltipProps extends Omit<MuiTooltipProps, "enterDelay" | "enterNextDelay"> {
   /** Delay before showing (ms). Defaults to 400 for a snappy but non-intrusive feel. */
   delay?: number;
   /** Delay before showing when another tooltip was recently open (ms) */
   nextDelay?: number;
+  /** MUI-compatible alias for `delay` */
+  enterDelay?: number;
+  /** MUI-compatible alias for `nextDelay` */
+  enterNextDelay?: number;
   /** Shorthand: show an arrow pointer */
   arrow?: boolean;
   /** Disable the tooltip entirely (useful for conditional tooltips) */
@@ -44,21 +47,25 @@ export interface TooltipProps
  * </Tooltip>
  */
 const TooltipInternal: React.FC<TooltipProps> = ({
-  delay = 400,
-  nextDelay = 100,
+  delay,
+  nextDelay,
+  enterDelay,
+  enterNextDelay,
   arrow = false,
   disabled = false,
   children,
   ...props
 }) => {
+  const resolvedDelay = delay ?? enterDelay ?? 400;
+  const resolvedNextDelay = nextDelay ?? enterNextDelay ?? 100;
   if (disabled) {
     return <>{children}</>;
   }
 
   return (
     <MuiTooltip
-      enterDelay={delay}
-      enterNextDelay={nextDelay}
+      enterDelay={resolvedDelay}
+      enterNextDelay={resolvedNextDelay}
       arrow={arrow}
       {...props}
     >
