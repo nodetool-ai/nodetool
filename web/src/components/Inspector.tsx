@@ -44,7 +44,7 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(3),
       width: "100%",
       height: "100%",
-      padding: `${theme.spacing(2)} ${theme.spacing(3)}`,
+      padding: `${theme.spacing(2)} ${theme.spacing(3)} ${theme.spacing(2)} ${theme.spacing(5)}`,
       transformOrigin: "top left"
     },
     ".inspector-header h5": {
