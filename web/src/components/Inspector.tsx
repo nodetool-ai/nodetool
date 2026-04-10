@@ -41,22 +41,21 @@ const styles = (theme: Theme) =>
       left: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "6px",
+      gap: theme.spacing(1),
       width: "100%",
       height: "100%",
-      padding: "0.5em",
+      padding: theme.spacing(1),
       transformOrigin: "top left"
     },
     ".inspector-header h5": {
-      margin: ".25em 0"
+      margin: `${theme.spacing(0.5)} 0`
     },
     ".inspector-header": {
       display: "flex",
       flexDirection: "column",
       width: "100%",
-      padding: "0 0 0.25em 0",
-      margin: 0,
-      marginBottom: "0.25em",
+      paddingBottom: theme.spacing(1),
+      marginBottom: theme.spacing(0.5),
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".title": {
@@ -70,7 +69,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       fontSize: theme.fontSizeTiny,
       lineHeight: 1.4,
-      margin: "0.25em 0 0.5em",
+      marginTop: theme.spacing(0.5),
       opacity: 0.8,
       maxHeight: "3.5em",
       overflow: "hidden"
