@@ -1252,7 +1252,8 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
               },
               text: "fake agent response from server"
             })
-          ])
+          ]),
+        getNodeMetadata: (nodeType) => registry.getMetadata(nodeType)
       });
       log.info("WebSocket client connected");
       void runner.run(new WsAdapter(ws)).catch((error) => {

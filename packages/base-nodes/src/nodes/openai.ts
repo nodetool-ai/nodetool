@@ -226,6 +226,7 @@ export class CreateImageNode extends BaseNode {
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "str",
@@ -325,6 +326,7 @@ export class EditImageNode extends BaseNode {
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "image",
@@ -481,6 +483,7 @@ export class TextToSpeechNode extends BaseNode {
   };
   static readonly basicFields = ["input", "model", "voice"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
+  static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
   @prop({

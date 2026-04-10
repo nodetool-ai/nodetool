@@ -1042,6 +1042,7 @@ export class TextToImageNode extends BaseNode {
   };
   static readonly basicFields = ["model", "prompt", "width", "height", "seed"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "image_model",
@@ -1190,6 +1191,7 @@ export class ImageToImageNode extends BaseNode {
     "strength",
     "seed"
   ];
+  static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
   @prop({

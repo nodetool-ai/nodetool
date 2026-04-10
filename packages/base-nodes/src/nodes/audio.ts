@@ -1197,6 +1197,7 @@ export class TextToSpeechNode extends BaseNode {
     chunk: "chunk"
   };
   static readonly basicFields = ["model", "text", "voice", "speed"];
+  static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
   static readonly isStreamingOutput = true;

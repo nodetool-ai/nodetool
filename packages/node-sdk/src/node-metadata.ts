@@ -245,6 +245,7 @@ export function getNodeMetadata(
     is_dynamic: nodeClass.isDynamic || false,
     expose_as_tool: nodeClass.exposeAsTool,
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
+    auto_save_asset: nodeClass.autoSaveAsset || undefined,
     model_packs: nodeClass.modelPacks
   };
 

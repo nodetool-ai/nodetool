@@ -44,6 +44,7 @@ import type {
   WebSocketMode
 } from "@nodetool/protocol";
 import { Tool } from "@nodetool/agents";
+import type { NodeMetadata } from "@nodetool/node-sdk";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -124,6 +125,166 @@ function formatSanitizedError(error: unknown): string {
 
 function getAssetStoragePath(): string {
   return getDefaultAssetsPath();
+}
+
+// ---------------------------------------------------------------------------
+// Auto-save assets — persists generated media as Asset records
+// ---------------------------------------------------------------------------
+
+const ASSET_MEDIA_TYPES = new Set(["image", "audio", "video"]);
+
+const ASSET_TYPE_MIME: Record<string, string> = {
+  image: "image/png",
+  audio: "audio/wav",
+  video: "video/mp4"
+};
+
+const ASSET_TYPE_EXT: Record<string, string> = {
+  image: "png",
+  audio: "wav",
+  video: "mp4"
+};
+
+function isAssetLikeValue(
+  value: unknown
+): value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.type === "string" &&
+    ASSET_MEDIA_TYPES.has(v.type as string) &&
+    ("data" in v || "uri" in v)
+  );
+}
+
+function decodeAssetBytes(data: unknown): Uint8Array | null {
+  if (data === null || data === undefined) return null;
+  if (data instanceof Uint8Array) return data;
+  if (Buffer.isBuffer(data)) return new Uint8Array(data);
+  if (Array.isArray(data) && data.every((v) => Number.isInteger(v))) {
+    return new Uint8Array(data as number[]);
+  }
+  if (typeof data === "string") {
+    return Uint8Array.from(Buffer.from(data, "base64"));
+  }
+  return null;
+}
+
+async function readBytesFromUri(uri: string): Promise<Uint8Array | null> {
+  if (!uri) return null;
+  try {
+    if (uri.startsWith("file://")) {
+      const { readFile } = await import("node:fs/promises");
+      const { fileURLToPath } = await import("node:url");
+      return new Uint8Array(await readFile(fileURLToPath(uri)));
+    }
+    if (uri.startsWith("data:")) {
+      const commaIdx = uri.indexOf(",");
+      if (commaIdx < 0) return null;
+      return Uint8Array.from(Buffer.from(uri.slice(commaIdx + 1), "base64"));
+    }
+    if (uri.startsWith("http://") || uri.startsWith("https://")) {
+      const resp = await fetch(uri);
+      if (!resp.ok) return null;
+      return new Uint8Array(await resp.arrayBuffer());
+    }
+  } catch {
+    // Failed to read bytes — non-fatal
+  }
+  return null;
+}
+
+/**
+ * Recursively find asset-like values in a result object and persist them as
+ * Asset records in the database + on disk.
+ *
+ * Mutates the result in-place: sets `asset_id` and updates `uri` to
+ * `asset://{id}.{ext}`.
+ */
+async function autoSaveAssets(
+  result: Record<string, unknown>,
+  opts: {
+    userId: string;
+    workflowId: string | null;
+    jobId: string;
+    nodeId: string;
+    storagePath: string;
+  }
+): Promise<void> {
+  const { join } = await import("node:path");
+  const { writeFile, mkdir } = await import("node:fs/promises");
+
+  const queue: Record<string, unknown>[] = [];
+
+  // Collect all asset-like values from the result (may be nested)
+  function collect(value: unknown): void {
+    if (value === null || value === undefined) return;
+    if (Array.isArray(value)) {
+      for (const item of value) collect(item);
+      return;
+    }
+    if (isAssetLikeValue(value)) {
+      queue.push(value);
+      return;
+    }
+    if (typeof value === "object") {
+      for (const v of Object.values(value as Record<string, unknown>)) {
+        collect(v);
+      }
+    }
+  }
+  collect(result);
+
+  for (const assetValue of queue) {
+    // Skip if already saved
+    if (assetValue.asset_id) continue;
+
+    const assetType = String(assetValue.type);
+
+    // Get bytes from inline data or URI
+    let bytes = decodeAssetBytes(assetValue.data);
+    if (!bytes && typeof assetValue.uri === "string") {
+      bytes = await readBytesFromUri(assetValue.uri as string);
+    }
+    if (!bytes) continue;
+
+    // Determine mime/ext, preferring explicit content_type
+    const explicitMime = assetValue.mime_type ?? assetValue.content_type;
+    const contentType =
+      typeof explicitMime === "string" && explicitMime
+        ? explicitMime
+        : (ASSET_TYPE_MIME[assetType] ?? "application/octet-stream");
+
+    const ext = ASSET_TYPE_EXT[assetType] ?? "bin";
+
+    // Create Asset record
+    const asset = new Asset({
+      user_id: opts.userId,
+      workflow_id: opts.workflowId ?? null,
+      node_id: opts.nodeId,
+      job_id: opts.jobId,
+      name: `${assetType}_${opts.nodeId.slice(0, 8)}`,
+      content_type: contentType,
+      parent_id: null
+    });
+
+    const fileName = `${asset.id}.${ext}`;
+    try {
+      await mkdir(opts.storagePath, { recursive: true });
+      await writeFile(join(opts.storagePath, fileName), bytes);
+      asset.size = bytes.length;
+      await asset.save();
+
+      // Mutate the result value in-place
+      assetValue.asset_id = asset.id;
+      assetValue.uri = `asset://${fileName}`;
+    } catch (err) {
+      log.warn("Auto-save asset failed", {
+        nodeId: opts.nodeId,
+        error: String(err)
+      });
+    }
+  }
 }
 
 /**
@@ -482,6 +643,8 @@ export interface UnifiedWebSocketRunnerOptions {
   beforeRunJob?: (graph: {
     nodes: Array<Record<string, unknown>>;
   }) => Promise<void>;
+  /** Resolve node metadata by type — used for auto_save_asset detection. */
+  getNodeMetadata?: (nodeType: string) => NodeMetadata | undefined;
 }
 
 export class UnifiedWebSocketRunner {
@@ -499,6 +662,7 @@ export class UnifiedWebSocketRunner {
   private getSystemStats: () => Record<string, unknown>;
   private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
+  private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
@@ -596,6 +760,7 @@ export class UnifiedWebSocketRunner {
     this.resolveTools = options.resolveTools;
     this.workspaceResolver = options.workspaceResolver;
     this.beforeRunJob = options.beforeRunJob;
+    this.getNodeMetadata = options.getNodeMetadata;
     this.getSystemStats =
       options.getSystemStats ??
       (() => ({
@@ -1201,6 +1366,32 @@ export class UnifiedWebSocketRunner {
           if (outbound.type === "output_update") {
             if (!nodeType.includes("Output")) continue;
             outputUpdateSeen = true;
+          }
+
+          // Auto-save generated assets before normalization strips inline data
+          if (
+            outbound.type === "node_update" &&
+            outbound.status === "completed" &&
+            outbound.result != null &&
+            this.getNodeMetadata
+          ) {
+            const meta = this.getNodeMetadata(nodeType);
+            if (meta?.auto_save_asset) {
+              try {
+                await autoSaveAssets(
+                  outbound.result as Record<string, unknown>,
+                  {
+                    userId: this.userId ?? "1",
+                    workflowId: active.workflowId,
+                    jobId: active.jobId,
+                    nodeId: String(outbound.node_id ?? ""),
+                    storagePath: getAssetStoragePath()
+                  }
+                );
+              } catch (err) {
+                log.warn("autoSaveAssets error", { error: String(err) });
+              }
+            }
           }
 
           // Materialize binary assets to temp URLs before sending over WebSocket

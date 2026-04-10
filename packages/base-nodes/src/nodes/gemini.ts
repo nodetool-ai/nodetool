@@ -218,6 +218,7 @@ export class ImageGenerationNode extends BaseNode {
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "str",
@@ -386,6 +387,7 @@ export class TextToVideoGeminiNode extends BaseNode {
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "str",
@@ -468,6 +470,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "image",
@@ -624,6 +627,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "str",
