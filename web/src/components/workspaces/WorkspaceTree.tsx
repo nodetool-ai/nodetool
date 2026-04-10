@@ -38,7 +38,7 @@ import PanelHeadline from "../ui/PanelHeadline";
 // Types
 export interface TreeViewItem {
   id: string;
-  label: string | React.ReactNode;
+  label: string;
   className?: string;
   children?: TreeViewItem[];
   itemProps?: Record<string, any>;
@@ -331,7 +331,7 @@ const FileLabel: React.FC<{ name: string; isDir: boolean }> = ({
 const fileToTreeItem = (file: FileInfo): TreeViewItem => {
   const item: TreeViewItem = {
     id: file.path,
-    label: <FileLabel name={file.name} isDir={file.is_dir} />,
+    label: file.name,
     treeItemProps: {
       className: file.is_dir ? "folder-item" : "file-item"
     }
