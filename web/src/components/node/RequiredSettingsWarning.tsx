@@ -14,7 +14,7 @@ const RequiredSettingsWarning: React.FC<RequiredSettingsWarningProps> = React.me
 
     const handleOpenSettings = useCallback(() => {
       const searchKey = missingSettings.length > 0 ? missingSettings[0] : undefined;
-      setMenuOpen(true, 3, searchKey);
+      setMenuOpen(true, 1, searchKey);
     }, [setMenuOpen, missingSettings]);
 
     const content = useMemo(() => {

@@ -40,7 +40,7 @@ function DefaultModelsMenu() {
 
   return (
     <div>
-      <Typography variant="h3" style={{ margin: 0 }}>
+      <Typography variant="h3" id="default-models" style={{ margin: 0 }}>
         Default Models
       </Typography>
       <Typography className="description" sx={{ mb: 2 }}>

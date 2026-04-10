@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 // Dialog-based settings menu (replacing MUI Menu)
-import React, { memo } from "react";
+import React, { memo, useId } from "react";
 import MenuItem from "@mui/material/MenuItem";
 import {
   TextField,
@@ -25,10 +25,8 @@ import { CloseButton } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
-import { getRemoteSidebarSections as getApiServicesSidebarSections } from "./remoteSidebarUtils";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
-import { getFoldersSidebarSections } from "./foldersSidebarUtils";
 import SecretsMenu from "./SecretsMenu";
 import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
@@ -93,6 +91,15 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     (state) => state.updateAutosaveSettings
   );
   const settings = useSettingsStore((state) => state.settings);
+
+  // Generate unique IDs for form controls
+  const baseId = useId();
+  const welcomeId = `${baseId}-welcome`;
+  const selectNodesId = `${baseId}-select-nodes`;
+  const soundNotificationsId = `${baseId}-sound-notifications`;
+  const panControlsId = `${baseId}-pan-controls`;
+  const selectionModeId = `${baseId}-selection-mode`;
+  const timeFormatId = `${baseId}-time-format`;
 
   const [activeSection, setActiveSection] = useState("editor");
   const [, setSecretsUpdated] = useState({});
@@ -206,8 +213,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setMenuOpen(false);
   };
 
-  const id = isMenuOpen ? "docs" : undefined;
-
   const copyAuthToken = async () => {
     const accessToken = session?.access_token;
     if (accessToken) {
@@ -253,7 +258,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
       const containerRect = container.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
-      const topOffset = settingsTab === 3 ? 96 : 20;
+      const topOffset = 20;
       const top =
         container.scrollTop + targetRect.top - containerRect.top - topOffset;
 
@@ -264,46 +269,39 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     });
   };
 
+  // Tab 0: General sidebar sections
   const generalSidebarSections = [
     {
       category: "General",
       items: [
         { id: "editor", label: "Editor" },
+        { id: "canvas-navigation", label: "Canvas & Navigation" },
+        { id: "default-models", label: "Default Models" },
         { id: "autosave", label: "Autosave" },
-        { id: "navigation", label: "Navigation" },
-        { id: "grid", label: "Grid & Connections" },
         { id: "appearance", label: "Appearance" }
       ]
     }
   ];
 
-  if (session?.access_token) {
-    generalSidebarSections.push({
-      category: "API",
-      items: [{ id: "api", label: "Nodetool API" }]
-    });
-  }
+  // Tab 1: API & Keys sidebar sections
+  const apiKeysSidebarSections = [
+    {
+      category: "API & Keys",
+      items: [
+        { id: "api-keys", label: "API Keys" },
+        { id: "api-settings", label: "API Settings" },
+        { id: "folders", label: "Folders" }
+      ]
+    }
+  ];
 
   // Subscribe to store data for sidebar sections to enable memoization
   const remoteSettings = useRemoteSettingsStore((state) => state.settings);
   const secrets = useSecretsStore((state) => state.secrets);
 
-  // Memoize expensive sidebar computations
-  // These functions perform filter/reduce/map operations on store data
-  const apiServicesSidebarSections = React.useMemo(
-    () => getApiServicesSidebarSections(remoteSettings),
-    [remoteSettings]
-  );
-
-  const foldersSidebarSections = React.useMemo(
-    () => getFoldersSidebarSections(remoteSettings),
-    [remoteSettings]
-  );
-
-  const secretsSidebarSections = React.useMemo(
-    () => getSecretsSidebarSections(secrets),
-    [secrets]
-  );
+  // Keep secrets sidebar sections for potential future use
+  void remoteSettings;
+  void secrets;
 
   const theme = useTheme();
 
@@ -357,11 +355,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                 aria-label="settings tabs"
               >
                 <Tab label="General" id="settings-tab-0" />
-                <Tab label="API Settings" id="settings-tab-1" />
-                <Tab label="Folders" id="settings-tab-2" />
-                <Tab label="API Secrets" id="settings-tab-3" />
-                <Tab label="About" id="settings-tab-4" />
-                <Tab label="Default Models" id="settings-tab-5" />
+                <Tab label="API & Keys" id="settings-tab-1" />
+                <Tab label="About" id="settings-tab-2" />
               </Tabs>
             </div>
 
@@ -373,62 +368,28 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   settingsTab === 0
                     ? generalSidebarSections
                     : settingsTab === 1
-                      ? apiServicesSidebarSections
+                      ? apiKeysSidebarSections
                       : settingsTab === 2
-                        ? foldersSidebarSections
-                        : settingsTab === 3
-                          ? secretsSidebarSections
-                          : settingsTab === 4
-                            ? getAboutSidebarSections()
-                            : settingsTab === 5
-                              ? [
-                                  {
-                                    category: "Default Models",
-                                    items: [
-                                      {
-                                        id: "default-model-language_model",
-                                        label: "Language Model"
-                                      },
-                                      {
-                                        id: "default-model-image_model",
-                                        label: "Image Model"
-                                      },
-                                      {
-                                        id: "default-model-embedding_model",
-                                        label: "Embedding Model"
-                                      },
-                                      {
-                                        id: "default-model-tts_model",
-                                        label: "Text-to-Speech"
-                                      },
-                                      {
-                                        id: "default-model-asr_model",
-                                        label: "Speech Recognition"
-                                      },
-                                      {
-                                        id: "default-model-video_model",
-                                        label: "Video"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              : []
+                        ? getAboutSidebarSections()
+                        : []
                 }
                 onSectionClick={scrollToSection}
               />
 
               <div className="settings-content" ref={settingsContentRef}>
+                {/* Tab 0: General */}
                 <TabPanel value={settingsTab} index={0}>
                   <div id="editor" className="settings-section">
                     <div className="settings-item">
                       <FormControl>
-                        <InputLabel htmlFor={id}>
+                        <InputLabel htmlFor={welcomeId}>
                           Show Welcome Screen
                         </InputLabel>
                         <Switch
+                          id={welcomeId}
                           checked={!!settings.showWelcomeOnStartup}
                           onChange={handleShowWelcomeChange}
-                          inputProps={{ "aria-label": id }}
+                          inputProps={{ "aria-label": "Show Welcome Screen" }}
                         />
                       </FormControl>
                       <Typography className="description">
@@ -438,10 +399,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                     <div className="settings-item">
                       <FormControl>
-                        <InputLabel htmlFor={id}>
+                        <InputLabel htmlFor={selectNodesId}>
                           Select Nodes On Drag
                         </InputLabel>
                         <Switch
+                          id={selectNodesId}
                           sx={{
                             "&.MuiSwitch-root": {
                               margin: "16px 0 0"
@@ -449,7 +411,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           }}
                           checked={!!settings.selectNodesOnDrag}
                           onChange={handleSelectNodesOnDragChange}
-                          inputProps={{ "aria-label": id }}
+                          inputProps={{ "aria-label": "Select Nodes On Drag" }}
                         />
                       </FormControl>
                       <Typography className="description">
@@ -464,10 +426,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     {isElectron && (
                       <div className="settings-item">
                         <FormControl>
-                          <InputLabel htmlFor={id}>
+                          <InputLabel htmlFor={soundNotificationsId}>
                             Sound Notifications
                           </InputLabel>
                           <Switch
+                            id={soundNotificationsId}
                             sx={{
                               "&.MuiSwitch-root": {
                                 margin: "16px 0 0"
@@ -475,7 +438,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             }}
                             checked={!!settings.soundNotifications}
                             onChange={handleSoundNotificationsChange}
-                            inputProps={{ "aria-label": id }}
+                            inputProps={{ "aria-label": "Sound Notifications" }}
                           />
                         </FormControl>
                         <Typography className="description">
@@ -521,6 +484,109 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       </div>
                     )}
                   </div>
+
+                  <Typography variant="h3" id="canvas-navigation">
+                    Canvas & Navigation
+                  </Typography>
+                  <div className="settings-section">
+                    <div className="settings-item">
+                      <FormControl>
+                        <InputLabel htmlFor={panControlsId}>Pan Controls</InputLabel>
+                        <Select
+                          id={panControlsId}
+                          labelId={`${panControlsId}-label`}
+                          value={settings.panControls}
+                          variant="standard"
+                          onChange={handlePanControlsChange}
+                        >
+                          <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
+                          <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      <div className="description">
+                        <Typography>
+                          Move the canvas by dragging with the left or right
+                          mouse button.
+                        </Typography>
+                        <Typography>
+                          With RMB selected, you can also pan with the Middle
+                          Mouse Button.
+                        </Typography>
+                      </div>
+                    </div>
+
+                    <div className="settings-item">
+                      <FormControl>
+                        <InputLabel htmlFor={selectionModeId}>
+                          Node Selection Mode
+                        </InputLabel>
+                        <Select
+                          id={selectionModeId}
+                          labelId={`${selectionModeId}-label`}
+                          value={settings.selectionMode}
+                          variant="standard"
+                          onChange={handleSelectionModeChange}
+                        >
+                          <MenuItem value={"full"}>Full</MenuItem>
+                          <MenuItem value={"partial"}>Partial</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <Typography className="description">
+                        When drawing a selection box for node selections:
+                        <br />
+                        <b>Full:</b> nodes have to be fully enclosed.
+                        <br />
+                        <b>Partial:</b> intersecting nodes will be selected.
+                      </Typography>
+                    </div>
+
+                    <div className="settings-item">
+                      <TextField
+                        type="number"
+                        autoComplete="off"
+                        inputProps={{
+                          min: 1,
+                          max: 100,
+                          onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                            e.currentTarget.select();
+                          }
+                        }}
+                        id="grid-snap-input"
+                        label="Grid Snap Precision"
+                        value={settings.gridSnap}
+                        onChange={handleGridSnapChange}
+                        variant="standard"
+                      />
+                      <Typography className="description">
+                        Snap precision for moving nodes on the canvas.
+                      </Typography>
+                    </div>
+
+                    <div className="settings-item">
+                      <TextField
+                        type="number"
+                        autoComplete="off"
+                        inputProps={{
+                          min: 5,
+                          max: 30,
+                          onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                            e.currentTarget.select();
+                          }
+                        }}
+                        id="connection-snap-input"
+                        label="Connection Snap Range"
+                        value={settings.connectionSnap}
+                        onChange={handleConnectionSnapChange}
+                        variant="standard"
+                      />
+                      <Typography className="description">
+                        Snap distance for connecting nodes.
+                      </Typography>
+                    </div>
+                  </div>
+
+                  <DefaultModelsMenu />
 
                   <Typography variant="h3" id="autosave">
                     Autosave & Version History
@@ -644,122 +710,16 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     </div>
                   </div>
 
-                  <Typography variant="h3" id="navigation">
-                    Navigation
-                  </Typography>
-                  <div className="settings-section">
-                    <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={id}>Pan Controls</InputLabel>
-                        <Select
-                          id={id}
-                          labelId={id}
-                          value={settings.panControls}
-                          variant="standard"
-                          onChange={handlePanControlsChange}
-                        >
-                          <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
-                          <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
-                        </Select>
-                      </FormControl>
-
-                      <div className="description">
-                        <Typography>
-                          Move the canvas by dragging with the left or right
-                          mouse button.
-                        </Typography>
-                        <Typography>
-                          With RMB selected, you can also pan with the Middle
-                          Mouse Button.
-                        </Typography>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={id}>
-                          Node Selection Mode
-                        </InputLabel>
-                        <Select
-                          id={id}
-                          labelId={id}
-                          value={settings.selectionMode}
-                          variant="standard"
-                          onChange={handleSelectionModeChange}
-                        >
-                          <MenuItem value={"full"}>Full</MenuItem>
-                          <MenuItem value={"partial"}>Partial</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Typography className="description">
-                        When drawing a selection box for node selections:
-                        <br />
-                        <b>Full:</b> nodes have to be fully enclosed.
-                        <br />
-                        <b>Partial:</b> intersecting nodes will be selected.
-                      </Typography>
-                    </div>
-                  </div>
-
-                  <Typography variant="h3" id="grid">
-                    Grid & Connections
-                  </Typography>
-                  <div className="settings-section">
-                    <div className="settings-item">
-                      <TextField
-                        type="number"
-                        autoComplete="off"
-                        inputProps={{
-                          min: 1,
-                          max: 100,
-                          onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                            e.currentTarget.select();
-                          }
-                        }}
-                        id="grid-snap-input"
-                        label="Grid Snap Precision"
-                        value={settings.gridSnap}
-                        onChange={handleGridSnapChange}
-                        variant="standard"
-                      />
-                      <Typography className="description">
-                        Snap precision for moving nodes on the canvas.
-                      </Typography>
-                    </div>
-
-                    <div className="settings-item">
-                      <TextField
-                        type="number"
-                        autoComplete="off"
-                        inputProps={{
-                          min: 5,
-                          max: 30,
-                          onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                            e.currentTarget.select();
-                          }
-                        }}
-                        id="connection-snap-input"
-                        label="Connection Snap Range"
-                        value={settings.connectionSnap}
-                        onChange={handleConnectionSnapChange}
-                        variant="standard"
-                      />
-                      <Typography className="description">
-                        Snap distance for connecting nodes.
-                      </Typography>
-                    </div>
-                  </div>
-
                   <Typography variant="h3" id="appearance">
                     Appearance
                   </Typography>
                   <div className="settings-section">
                     <div className="settings-item">
                       <FormControl>
-                        <InputLabel htmlFor={id}>Time Format</InputLabel>
+                        <InputLabel htmlFor={timeFormatId}>Time Format</InputLabel>
                         <Select
-                          id={id}
-                          labelId={id}
+                          id={timeFormatId}
+                          labelId={`${timeFormatId}-label`}
                           value={settings.timeFormat}
                           variant="standard"
                           onChange={handleTimeFormatChange}
@@ -773,10 +733,18 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       </Typography>
                     </div>
                   </div>
+                </TabPanel>
 
-                  {session?.access_token && (
+                {/* Tab 1: API & Keys */}
+                <TabPanel value={settingsTab} index={1}>
+                  <Typography variant="h3" id="api-keys">
+                    API Keys
+                  </Typography>
+                  <SecretsMenu />
+
+                  {session?.access_token && !isLocalhost && (
                     <>
-                      <Typography variant="h3" id="api">
+                      <Typography variant="h3" id="nodetool-api-token">
                         Nodetool API
                       </Typography>
                       <Typography
@@ -795,68 +763,65 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           API documentation on GitHub <br />
                         </a>
                       </Typography>
-                      {!isLocalhost && (
-                        <div
-                          className="settings-section"
-                          style={{
-                            border:
-                              "1px solid" + theme.vars.palette.warning.main,
-                            borderRight:
-                              "1px solid" + theme.vars.palette.warning.main
-                          }}
-                        >
-                          <FormControl>
-                            <InputLabel>Nodetool API Token</InputLabel>
-                          </FormControl>
-                          <div className="description">
-                            <Typography>
-                              This token is used to authenticate your account
-                              with the Nodetool API.
+                      <div
+                        className="settings-section"
+                        style={{
+                          border:
+                            "1px solid" + theme.vars.palette.warning.main,
+                          borderRight:
+                            "1px solid" + theme.vars.palette.warning.main
+                        }}
+                      >
+                        <FormControl>
+                          <InputLabel>Nodetool API Token</InputLabel>
+                        </FormControl>
+                        <div className="description">
+                          <Typography>
+                            This token is used to authenticate your account
+                            with the Nodetool API.
+                          </Typography>
+                          <div className="secrets">
+                            <WarningIcon
+                              sx={{
+                                color: (theme) =>
+                                  theme.vars.palette.warning.main
+                              }}
+                            />
+                            <Typography component="span">
+                              Keep this token secure and do not share it
+                              publicly
                             </Typography>
-                            <div className="secrets">
-                              <WarningIcon
-                                sx={{
-                                  color: (theme) =>
-                                    theme.vars.palette.warning.main
-                                }}
-                              />
-                              <Typography component="span">
-                                Keep this token secure and do not share it
-                                publicly
-                              </Typography>
-                            </div>
                           </div>
-                          <Tooltip title="Copy to clipboard">
-                            <Button
-                              style={{ margin: ".5em 0" }}
-                              size="small"
-                              variant="outlined"
-                              startIcon={<ContentCopyIcon />}
-                              onClick={copyAuthToken}
-                            >
-                              Copy Token
-                            </Button>
-                          </Tooltip>
                         </div>
-                      )}
+                        <Tooltip title="Copy to clipboard">
+                          <Button
+                            style={{ margin: ".5em 0" }}
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ContentCopyIcon />}
+                            onClick={copyAuthToken}
+                          >
+                            Copy Token
+                          </Button>
+                        </Tooltip>
+                      </div>
                     </>
                   )}
-                </TabPanel>
 
-                <TabPanel value={settingsTab} index={1}>
+                  <Typography variant="h3" id="api-settings">
+                    API Settings
+                  </Typography>
                   <RemoteSettingsMenuComponent />
-                </TabPanel>
-                <TabPanel value={settingsTab} index={2}>
+
+                  <Typography variant="h3" id="folders">
+                    Folders
+                  </Typography>
                   <FoldersSettings />
                 </TabPanel>
-                <TabPanel value={settingsTab} index={3}>
-                  <SecretsMenu />
-                </TabPanel>
-                <TabPanel value={settingsTab} index={4}>
+
+                {/* Tab 2: About */}
+                <TabPanel value={settingsTab} index={2}>
                   <AboutMenu />
-                </TabPanel>
-                <TabPanel value={settingsTab} index={5}>
-                  <DefaultModelsMenu />
                 </TabPanel>
               </div>
             </div>

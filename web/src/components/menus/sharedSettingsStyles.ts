@@ -112,15 +112,15 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
 
     .settings-section {
       background: "transparent";
-      backdropfilter: blur(20px);
-      borderradius: 8px;
+      backdrop-filter: blur(20px);
+      border-radius: 8px;
       padding: 1.2em;
       margin: 1.5em 0 1.5em 0;
-      boxshadow: 0 2px 12px ${theme.vars.palette.grey[900]}33;
+      box-shadow: 0 2px 12px ${theme.vars.palette.grey[900]}33;
       border: 1px solid ${theme.vars.palette.grey[600]};
       width: 100%;
       display: flex;
-      flexdirection: column;
+      flex-direction: column;
       gap: 0.8em;
       margin-bottom: 2rem;
 
