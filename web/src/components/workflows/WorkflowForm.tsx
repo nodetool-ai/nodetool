@@ -1,17 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import {
-  FormControl,
-  OutlinedInput,
-  FormLabel,
   Button,
-  Typography,
   Autocomplete,
   TextField,
-  MenuItem,
-  FormHelperText,
   createFilterOptions
 } from "@mui/material";
+import { Text, Caption, TextInput, SelectField } from "../ui_primitives";
 import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -361,124 +356,113 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
       {/* Basic Information Section */}
       <div className="settings-section">
-        <FormControl fullWidth>
-          <FormLabel htmlFor="name">Name</FormLabel>
-          <OutlinedInput
-            fullWidth
-            name="name"
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            value={localWorkflow.name}
-            onChange={handleChange}
-          />
-        </FormControl>
+        <TextInput
+          label="Name"
+          name="name"
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          value={localWorkflow.name}
+          onChange={handleChange}
+        />
 
-        <FormControl fullWidth>
-          <FormLabel htmlFor="description">Description</FormLabel>
-          <OutlinedInput
-            name="description"
-            value={localWorkflow.description}
-            onChange={handleChange}
-            multiline
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            minRows={2}
-          />
-        </FormControl>
+        <TextInput
+          label="Description"
+          name="description"
+          value={localWorkflow.description}
+          onChange={handleChange}
+          multiline
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          minRows={2}
+        />
 
-        <FormControl fullWidth>
-          <FormLabel htmlFor="tags">Tags</FormLabel>
-          <Autocomplete
-            className="tag-input"
-            multiple
-            freeSolo
-            selectOnFocus
-            clearOnBlur
-            handleHomeEndKeys
-            options={tagOptions}
-            value={localWorkflow.tags || []}
-            onChange={handleTagChange}
-            filterOptions={(options, params) => {
-              const filter = createFilterOptions<string>();
-              const filtered = filter(options, params);
-              const { inputValue } = params;
-              // Suggest creating a new tag if it doesn't exist
-              const isExisting = options.some(
-                (option) => inputValue.toLowerCase() === option.toLowerCase()
-              );
-              if (inputValue !== "" && !isExisting) {
-                filtered.push(inputValue);
+        <Autocomplete
+          className="tag-input"
+          multiple
+          freeSolo
+          selectOnFocus
+          clearOnBlur
+          handleHomeEndKeys
+          options={tagOptions}
+          value={localWorkflow.tags || []}
+          onChange={handleTagChange}
+          filterOptions={(options, params) => {
+            const filter = createFilterOptions<string>();
+            const filtered = filter(options, params);
+            const { inputValue } = params;
+            // Suggest creating a new tag if it doesn't exist
+            const isExisting = options.some(
+              (option) => inputValue.toLowerCase() === option.toLowerCase()
+            );
+            if (inputValue !== "" && !isExisting) {
+              filtered.push(inputValue);
+            }
+            return filtered;
+          }}
+          getOptionLabel={(option) => {
+            if (typeof option === "string") {
+              return option;
+            }
+            return (option as { inputValue?: string }).inputValue || "";
+          }}
+          renderOption={(props, option) => {
+            const { key, ...rest } = props;
+            const optionStr = typeof option === "string" ? option : (option as { inputValue?: string }).inputValue || "";
+            const isNew = optionStr !== "" && !tagOptions.includes(optionStr);
+            return (
+              <li key={key} {...rest}>
+                {isNew ? `Add "${optionStr}"` : optionStr}
+              </li>
+            );
+          }}
+          slotProps={{
+            popper: {
+              style: {
+                zIndex: theme.zIndex.autocomplete
               }
-              return filtered;
-            }}
-            getOptionLabel={(option) => {
-              if (typeof option === "string") {
-                return option;
-              }
-              return (option as { inputValue?: string }).inputValue || "";
-            }}
-            renderOption={(props, option) => {
-              const { key, ...rest } = props;
-              const optionStr = typeof option === "string" ? option : (option as { inputValue?: string }).inputValue || "";
-              const isNew = optionStr !== "" && !tagOptions.includes(optionStr);
-              return (
-                <li key={key} {...rest}>
-                  {isNew ? `Add "${optionStr}"` : optionStr}
-                </li>
-              );
-            }}
-            slotProps={{
-              popper: {
-                style: {
-                  zIndex: theme.zIndex.autocomplete
-                }
-              }
-            }}
-            renderInput={(params) => (
-              <TextField {...params} placeholder="Type or select tags..." />
-            )}
-          />
-          <FormHelperText>
-            Select from suggestions or type custom tags (press Enter to add)
-          </FormHelperText>
-        </FormControl>
+            }
+          }}
+          renderInput={(params) => (
+            <TextField {...params} label="Tags" placeholder="Type or select tags..." />
+          )}
+        />
+        <Caption>
+          Select from suggestions or type custom tags (press Enter to add)
+        </Caption>
       </div>
 
       {/* Execution Section */}
       <div className="settings-section">
-        <Typography className="section-title">Execution</Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+        <Text className="section-title">Execution</Text>
+        <Caption sx={{ display: "block", mb: 2 }}>
           Configure how this workflow runs and can be triggered
-        </Typography>
+        </Caption>
 
-        <FormControl fullWidth>
-          <FormLabel>Run Mode</FormLabel>
-          <TextField
-            select
-            value={localWorkflow.run_mode || "workflow"}
-            onChange={(e) =>
-              setLocalWorkflow((prev: Workflow) => ({
-                ...prev,
-                run_mode: e.target.value
-              }))
-            }
-          >
-            <MenuItem value="workflow">Workflow</MenuItem>
-            <MenuItem value="chat">Chat</MenuItem>
-            <MenuItem value="comfy">Comfy</MenuItem>
-            <MenuItem value="app">App</MenuItem>
-            <MenuItem value="tool">Tool</MenuItem>
-          </TextField>
-        </FormControl>
+        <SelectField
+          label="Run Mode"
+          value={localWorkflow.run_mode || "workflow"}
+          onChange={(value) =>
+            setLocalWorkflow((prev: Workflow) => ({
+              ...prev,
+              run_mode: value
+            }))
+          }
+          options={[
+            { value: "workflow", label: "Workflow" },
+            { value: "chat", label: "Chat" },
+            { value: "comfy", label: "Comfy" },
+            { value: "app", label: "App" },
+            { value: "tool", label: "Tool" }
+          ]}
+        />
 
-        <FormControl fullWidth>
-          <FormLabel htmlFor="shortcut">Keyboard Shortcut</FormLabel>
+        <div>
           <div className="shortcut-input-container">
-            <OutlinedInput
+            <TextInput
               className="shortcut-input"
-              fullWidth
+              label="Keyboard Shortcut"
               name="shortcut"
               value={
                 isCapturing
@@ -488,7 +472,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
               onKeyDown={handleShortcutKeyDown}
               onFocus={() => setIsCapturing(true)}
               onBlur={() => setIsCapturing(false)}
-              readOnly
+              slotProps={{ input: { readOnly: true } }}
             />
             {localWorkflow.settings?.shortcut && (
               <Button
@@ -500,18 +484,18 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
               </Button>
             )}
           </div>
-          <FormHelperText>
+          <Caption>
             Global shortcut to run this workflow (Electron only)
-          </FormHelperText>
-        </FormControl>
+          </Caption>
+        </div>
       </div>
 
       {/* Advanced Section */}
       <div className="settings-section">
-        <Typography className="section-title">Advanced</Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+        <Text className="section-title">Advanced</Text>
+        <Caption sx={{ display: "block", mb: 2 }}>
           Advanced configuration for workspaces and API/tool usage
-        </Typography>
+        </Caption>
 
         <WorkspaceSelect
           value={localWorkflow.workspace_id ?? undefined}
@@ -519,22 +503,17 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           helperText="Associate a workspace folder with this workflow for agent access"
         />
 
-        <FormControl fullWidth>
-          <FormLabel htmlFor="tool_name">Tool Name</FormLabel>
-          <OutlinedInput
-            fullWidth
-            name="tool_name"
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            value={localWorkflow.tool_name || ""}
-            onChange={handleToolNameChange}
-            placeholder="my_workflow_tool"
-          />
-          <FormHelperText>
-            Identifier for API/tool usage. Letters, numbers, underscores only.
-          </FormHelperText>
-        </FormControl>
+        <TextInput
+          label="Tool Name"
+          name="tool_name"
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          value={localWorkflow.tool_name || ""}
+          onChange={handleToolNameChange}
+          placeholder="my_workflow_tool"
+          helperText="Identifier for API/tool usage. Letters, numbers, underscores only."
+        />
       </div>
 
       <div className="button-container">
