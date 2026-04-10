@@ -210,6 +210,48 @@ function getOutputs(nodeClass: NodeClass): OutputSlotMetadata[] {
   return outputs;
 }
 
+/** Media/data types that represent primary node inputs (not tuning parameters). */
+const PRIMARY_INPUT_TYPES = new Set([
+  "image",
+  "video",
+  "audio",
+  "text",
+  "str",
+  "dataframe",
+  "tensor",
+  "folder",
+  "thread",
+  "thread_message",
+  "task",
+  "workflow",
+  "agent",
+  "any"
+]);
+
+/**
+ * When a node doesn't explicitly set basicFields, derive them:
+ * - Nodes with ≤3 properties: show all
+ * - Nodes with >3 properties: primary inputs (media/data types) and
+ *   required props are basic; scalar tuning params are advanced.
+ * - If heuristic produces no basic or no advanced fields, show all.
+ */
+function deriveBasicFields(properties: PropertyMetadata[]): string[] {
+  const allNames = properties.map((p) => p.name);
+  if (properties.length <= 3) return allNames;
+
+  const basic = properties
+    .filter(
+      (p) => p.required || PRIMARY_INPUT_TYPES.has(p.type.type)
+    )
+    .map((p) => p.name);
+
+  // If heuristic is unhelpful (all or none are basic), show everything
+  if (basic.length === 0 || basic.length >= properties.length) {
+    return allNames;
+  }
+  return basic;
+}
+
 export function getNodeMetadata(
   nodeClass: NodeClass,
   options: GetNodeMetadataOptions = {}
@@ -236,7 +278,8 @@ export function getNodeMetadata(
 
     recommended_models: nodeClass.recommendedModels ?? [],
     basic_fields:
-      nodeClass.basicFields ?? properties.map((property) => property.name),
+      nodeClass.basicFields ??
+      deriveBasicFields(properties),
     required_settings: nodeClass.requiredSettings ?? [],
     required_runtimes: nodeClass.requiredRuntimes ?? [],
     is_streaming_input: nodeClass.isStreamingInput || false,

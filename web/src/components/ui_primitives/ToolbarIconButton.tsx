@@ -24,15 +24,28 @@ import {
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { ShortcutHint } from "./ShortcutHint";
 
-export interface ToolbarIconButtonProps extends IconButtonProps {
+export interface ToolbarIconButtonProps
+  extends Omit<IconButtonProps, "children" | "title"> {
   /**
-   * The icon to display. If omitted, `children` is used instead.
+   * The icon to display. Falls back to children if not provided.
    */
   icon?: React.ReactNode;
   /**
-   * Tooltip text or element. Falls back to `title` if not provided.
+   * Tooltip text or element. Falls back to title if not provided.
    */
   tooltip?: React.ReactNode;
+  /**
+   * Children as fallback for icon prop (legacy pattern)
+   */
+  children?: React.ReactNode;
+  /**
+   * Alias for tooltip (legacy pattern). Use `tooltip` instead.
+   */
+  title?: React.ReactNode;
+  /**
+   * Tooltip enter delay in ms (legacy pattern). Overrides the default delay.
+   */
+  delay?: number;
   /**
    * Tooltip placement
    * @default "bottom"
@@ -79,10 +92,6 @@ export interface ToolbarIconButtonProps extends IconButtonProps {
    * Explicit aria-label for accessibility (required when tooltip is not a string)
    */
   ariaLabel?: string;
-  /**
-   * Tooltip enter delay in ms
-   */
-  delay?: number;
 }
 
 /**
@@ -95,6 +104,8 @@ export const ToolbarIconButton = memo(
         icon,
         tooltip,
         title,
+        children,
+        delay,
         tooltipPlacement = "bottom",
         nodrag = true,
         variant = "default",
@@ -105,15 +116,13 @@ export const ToolbarIconButton = memo(
         sx,
         tabIndex = 0,
         ariaLabel,
-        delay,
-        children,
         ...props
       },
       ref
     ) => {
-      const resolvedIcon = icon ?? children;
-      const resolvedTooltip = tooltip ?? title ?? "";
       const theme = useTheme();
+      const resolvedTooltip = tooltip ?? title ?? "";
+      const resolvedIcon = icon ?? children;
 
       const variantStyles = useMemo(() => {
         switch (variant) {

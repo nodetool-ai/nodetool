@@ -33,6 +33,7 @@ import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
+import ResultOverlay from "./ResultOverlay";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -284,6 +285,7 @@ const getNodeContainerStyles = (
   // stretches to match so vertical resizing is visible.
   height: "100%",
   minHeight,
+  overflow: "visible" as const,
   border: isLoading ? "none" : `1px solid var(--palette-grey-900)`,
   ...theme.applyStyles("dark", {
     border: isLoading ? "none" : `1px solid var(--palette-grey-900)`
@@ -555,8 +557,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isOverlayVisible = suppressResultOverlay
     ? false
     : shouldAlwaysShowResult
-    ? result && !isEmptyResult(result)
-    : showResultOverlay && result && !isEmptyResult(result);
+    ? Boolean(result && !isEmptyResult(result))
+    : Boolean(showResultOverlay && result && !isEmptyResult(result));
   const hasToggleableResult =
     !suppressResultOverlay &&
     !shouldAlwaysShowResult &&
@@ -683,6 +685,34 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       className={styleProps.className}
       sx={containerSx}
     >
+      {/* Result panel — floats above the node */}
+      {isOverlayVisible && (
+        <div
+          className="result-panel-above"
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            maxHeight: 300,
+            overflow: "auto",
+            borderRadius: "8px",
+            backgroundColor: "var(--palette-grey-900)",
+            border: "1px solid var(--palette-grey-800)",
+            zIndex: 5,
+            boxShadow: "0 -2px 12px rgba(0,0,0,0.25), 0 4px 24px rgba(0,0,0,0.15)",
+            padding: "8px"
+          }}
+        >
+          <ResultOverlay
+            result={result}
+            nodeId={id}
+            workflowId={workflow_id}
+            nodeName={metadata.title}
+            onShowInputs={nodeType.isOutputNode ? undefined : handleShowInputs}
+          />
+        </div>
+      )}
       <Handle
         type="target"
         id={CONTROL_HANDLE_ID}

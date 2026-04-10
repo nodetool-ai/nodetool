@@ -1,5 +1,4 @@
 import React, { memo } from "react";
-import { Box } from "@mui/material";
 import { FlexColumn } from "../ui_primitives";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
@@ -166,8 +165,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
   workflowId,
   showResultOverlay,
   result,
-  onShowInputs,
-  onShowResults
+  onShowInputs
 }) => {
   const { handleAddProperty } = useDynamicProperty(
     id,
@@ -180,78 +178,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
 
   // For output nodes, always show overlay when result is available
   const shouldShowOverlay = isOutputNode
-    ? result && !isEmptyObject(result)
-    : showResultOverlay && result && !isEmptyObject(result);
-
-  if (shouldShowOverlay) {
-    return (
-      <FlexColumn
-        fullWidth
-        fullHeight
-        sx={{
-          position: "relative",
-          minHeight: 0
-        }}
-      >
-        {/* Keep inputs and outputs in DOM for handles and to set size, but hide most content visually */}
-        <Box
-          sx={{
-            visibility: "hidden",
-            pointerEvents: "none",
-            // Keep handles visible and interactive
-            "& .react-flow__handle": {
-              visibility: "visible",
-              pointerEvents: "auto",
-              zIndex: 2
-            }
-          }}
-        >
-          <NodeInputs
-            id={id}
-            nodeMetadata={nodeMetadata}
-            layout={nodeMetadata.layout}
-            properties={nodeMetadata.properties}
-            nodeType={nodeType}
-            data={data}
-            hasAdvancedFields={hasAdvancedFields}
-            showAdvancedFields={showAdvancedFields}
-            basicFields={basicFields}
-            onToggleAdvancedFields={onToggleAdvancedFields}
-          />
-          {!isOutputNode && (
-            <NodeOutputs
-              id={id}
-              outputs={nodeMetadata.outputs}
-              isStreamingOutput={nodeMetadata.is_streaming_output}
-            />
-          )}
-        </Box>
-        <FlexColumn
-          fullWidth
-          fullHeight
-          sx={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 1,
-            minHeight: 0,
-            overflow: "auto",
-            // Keep handles clickable even when overlay is on top
-            "& .react-flow__handle": {
-              pointerEvents: "none"
-            }
-          }}
-        >
-          <ResultOverlay
-            result={result}
-            nodeId={id}
-            workflowId={workflowId}
-            nodeName={nodeMetadata.title}
-            onShowInputs={isOutputNode ? undefined : onShowInputs}
-          />
-        </FlexColumn>
-      </FlexColumn>
-    );
-  }
+    ? Boolean(result && !isEmptyObject(result))
+    : Boolean(showResultOverlay && result && !isEmptyObject(result));
 
   return (
     <FlexColumn
