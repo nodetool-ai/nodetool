@@ -2,8 +2,8 @@
 import { css } from "@emotion/react";
 import { Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
-import { Typography, Box } from "@mui/material";
-import { EditorButton } from "./ui_primitives";
+import { Box } from "@mui/material";
+import { EditorButton, Text } from "./ui_primitives";
 import { ThemeContext } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import log from "loglevel";
@@ -90,13 +90,13 @@ class SearchErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <Box css={boundaryStyles}>
-          <Typography variant="h6" className="error-title">
+          <Text size="normal" weight={600} className="error-title">
             {this.props.fallbackTitle || "Search Error"}
-          </Typography>
-          <Typography variant="body2" className="error-message">
+          </Text>
+          <Text size="small" className="error-message">
             Something went wrong with the search functionality. Please try
             again.
-          </Typography>
+          </Text>
           <EditorButton
             variant="contained"
             onClick={this.handleRetry}

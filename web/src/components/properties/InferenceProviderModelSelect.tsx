@@ -1,4 +1,5 @@
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { Property, InferenceProvider, InferenceProviderModelValue } from "../../stores/ApiTypes";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -174,9 +175,9 @@ const InferenceProviderModelSelect = ({
     return (
         <Stack spacing={2}>
             <Box>
-                <Typography variant="body2" sx={{ mb: 1 }}>
+                <Text size="small" sx={{ mb: 1 }}>
                     Provider
-                </Typography>
+                </Text>
                 <Select
                     options={providerOptions}
                     value={value.provider}
@@ -190,9 +191,9 @@ const InferenceProviderModelSelect = ({
             
             {value.provider && (
                 <Box>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
+                    <Text size="small" sx={{ mb: 1 }}>
                         Model
-                    </Typography>
+                    </Text>
                     <Select
                         options={modelOptions}
                         value={value.model_id}

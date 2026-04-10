@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css } from "@emotion/react";
-import { Typography } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { Task } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 
@@ -31,9 +31,9 @@ const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
   return (
     <div css={styles()}>
       {title && (
-        <Typography variant="h5" className="task-list-title">
+        <Text size="normal" weight={600} className="task-list-title">
           {title}
-        </Typography>
+        </Text>
       )}
       {tasks.map((task) => (
         <TaskView key={task.id} task={task} />

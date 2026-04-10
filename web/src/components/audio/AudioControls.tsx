@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, ReactElement } from "react";
-import { Typography, Button, Tooltip } from "@mui/material";
+import { Button } from "@mui/material";
+import { Text, Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import LoopIcon from "@mui/icons-material/Loop";
@@ -100,12 +101,12 @@ const Zoom: React.FC<ZoomProps> = ({
   fontSize
 }): ReactElement => (
   <div className="zoom nodrag" style={{ position: "relative" }}>
-    <Typography id="zoom" className="slider-value">
+    <Text id="zoom" className="slider-value">
       <span className={`${fontSize}`}>ZOOM: </span>
       <span className={`${fontSize} value`} style={{ marginTop: "5px" }}>
         {zoom}
       </span>
-    </Typography>
+    </Text>
     <SliderBasic
       className="zoom-slider nodrag"
       value={zoom}
@@ -221,7 +222,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
               nodrag
               className="play-button"
             />
-            <Tooltip title="Loop" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <Tooltip title="Loop" delay={TOOLTIP_ENTER_DELAY}>
               <Button
                 className={`loop-button${loop ? "" : " disabled"}`}
                 size="small"
@@ -231,7 +232,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 <LoopIcon />
               </Button>
             </Tooltip>
-            <Tooltip title="Mute" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <Tooltip title="Mute" delay={TOOLTIP_ENTER_DELAY}>
               <Button
                 className={`mute-button${mute ? "" : " disabled"}`}
                 size="small"
@@ -241,7 +242,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 {mute ? <OffIcon /> : <UpIcon />}
               </Button>
             </Tooltip>
-            <Tooltip title="Download" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <Tooltip title="Download" delay={TOOLTIP_ENTER_DELAY}>
               <Button
                 className={`download-audio-button${
                   filename !== "" ? "" : " disabled"

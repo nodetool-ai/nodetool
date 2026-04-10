@@ -1,6 +1,6 @@
-import { Typography } from "@mui/material";
 import { memo } from "react";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
+import { Caption } from "../ui_primitives";
 
 const StatusMessage = memo(function StatusMessage() {
   const statusMessage = useWebsocketRunner((state) => state.statusMessage);
@@ -15,13 +15,12 @@ const StatusMessage = memo(function StatusMessage() {
   if (!isActive) {return null;}
 
   return (
-    <Typography
+    <Caption
       className="status-message animating"
-      variant="caption"
       color="inherit"
     >
       {statusMessage || ""}
-    </Typography>
+    </Caption>
   );
 });
 

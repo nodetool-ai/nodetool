@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { Tooltip, IconButton, Divider, SxProps } from "@mui/material";
+import { IconButton, Divider, SxProps } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
@@ -52,7 +53,7 @@ function VerticalToolbar({
             <Tooltip
                 title={getShortcutTooltip("toggleInspector")}
                 placement="left-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
                     onClick={handleInspectorToggle}
@@ -71,7 +72,7 @@ function VerticalToolbar({
             <Tooltip
                 title={getShortcutTooltip("toggleOperator")}
                 placement="left-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
                     onClick={handleAssistantToggle}
@@ -93,7 +94,7 @@ function VerticalToolbar({
             <Tooltip
                 title="Agent"
                 placement="left-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
                     onClick={handleAgentToggle}
@@ -112,7 +113,7 @@ function VerticalToolbar({
             <Tooltip
                 title="Workspace"
                 placement="left-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
                     onClick={handleWorkspaceToggle}
@@ -131,7 +132,7 @@ function VerticalToolbar({
             <Tooltip
                 title="Version History"
                 placement="left-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
                     onClick={handleVersionsToggle}
@@ -150,7 +151,7 @@ function VerticalToolbar({
             <Tooltip
                 title={getShortcutTooltip("toggleWorkflowSettings")}
                 placement="left-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
                     onClick={handleWorkflowToggle}
@@ -176,7 +177,7 @@ function VerticalToolbar({
                     </div>
                 }
                 placement="left-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
                     onClick={handleWorkflowAssetsToggle}
@@ -209,7 +210,7 @@ function VerticalToolbar({
                     </div>
                 }
                 placement="left-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
                     onClick={handleLogsToggle}
@@ -226,7 +227,7 @@ function VerticalToolbar({
             <Tooltip
                 title="Jobs"
                 placement="left-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
                     onClick={handleJobsToggle}

@@ -7,8 +7,8 @@ import React, {
   useState,
   useCallback
 } from "react";
-import { Box, Typography, useMediaQuery } from "@mui/material";
-import { AlertBanner } from "../../ui_primitives";
+import { Box, useMediaQuery } from "@mui/material";
+import { AlertBanner, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -344,50 +344,42 @@ const StandaloneChat: React.FC = () => {
   // Show loading state if threads are still loading
   if (isLoadingThreads) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{ height: "100vh" }}
       >
-        <Typography>Loading chat...</Typography>
-      </Box>
+        <Text>Loading chat...</Text>
+      </FlexRow>
     );
   }
 
   // Show error state if threads failed to load
   if (threadsError) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{ height: "100vh" }}
       >
         <AlertBanner severity="error">
           Failed to load threads: {threadsError.message}
         </AlertBanner>
-      </Box>
+      </FlexRow>
     );
   }
 
   return (
-    <Box
+    <FlexColumn
       ref={chatContainerRef}
       className="standalone-chat-container"
+      fullWidth
       sx={{
         flex: 1,
-        width: "100%",
         minWidth: 0,
         height: "100dvh", // Dynamic viewport height
         maxHeight: "100dvh",
         maxWidth: "100vw",
-        display: "flex",
-        flexDirection: "column",
         // No top padding since there's no AppHeader
         // Add horizontal padding on desktop to avoid left panel
         paddingLeft: isMobile
@@ -429,12 +421,11 @@ const StandaloneChat: React.FC = () => {
         )}
 
         {/* Controls row */}
-        <Box
+        <FlexRow
+          gap={0.5}
+          align="center"
+          justify="flex-end"
           sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            gap: 0.5,
             px: 1,
             pt: 2
           }}
@@ -462,13 +453,13 @@ const StandaloneChat: React.FC = () => {
                   bgcolor: "currentColor"
                 }}
               />
-              <Typography variant="caption" sx={{ fontWeight: 500 }}>
+              <Caption sx={{ fontWeight: 500 }}>
                 {statusMessage || "Connecting"}
-              </Typography>
+              </Caption>
             </Box>
           )}
           <NewChatButton onNewThread={handleNewChat} />
-        </Box>
+        </FlexRow>
 
         <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
           <ChatView
@@ -496,7 +487,7 @@ const StandaloneChat: React.FC = () => {
           />
         </Box>
       </Box>
-    </Box>
+    </FlexColumn>
   );
 };
 

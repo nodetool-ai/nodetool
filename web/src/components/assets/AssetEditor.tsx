@@ -4,7 +4,8 @@ import React, { useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Button, CircularProgress, Typography } from "@mui/material";
+import { Button, CircularProgress } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetById } from "../../serverState/useAssetById";
 import { ImageEditor } from "../node/image_editor";
@@ -143,7 +144,7 @@ const AssetEditor: React.FC = () => {
             <div css={styles(theme)}>
                 <div className="loading-container">
                     <CircularProgress />
-                    <Typography>Loading asset...</Typography>
+                    <Text>Loading asset...</Text>
                 </div>
             </div>
         );
@@ -154,7 +155,7 @@ const AssetEditor: React.FC = () => {
         return (
             <div css={styles(theme)}>
                 <div className="error-container">
-                    <Typography variant="h6">{error || "Unknown error"}</Typography>
+                    <Text size="normal" weight={600}>{error || "Unknown error"}</Text>
                     <Button
                         variant="text"
                         onClick={handleClose}

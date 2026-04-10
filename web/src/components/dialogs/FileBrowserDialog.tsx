@@ -13,7 +13,6 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Typography,
   Box,
   IconButton,
   Breadcrumbs,
@@ -41,7 +40,7 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { createErrorMessage } from "../../utils/errorHandling";
 import log from "loglevel";
 
-import { CopyButton, CloseButton, RefreshButton } from "../ui_primitives";
+import { CopyButton, CloseButton, RefreshButton, Text, Caption } from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
 
@@ -706,17 +705,17 @@ function FileBrowserDialog({
         ) : (
           <FileIcon color="action" sx={{ fontSize: 20 }} />
         )}
-        <Typography
-          noWrap
-          variant="body2"
+        <Text
+          size="small"
+          truncate
           sx={{ flex: 1, ml: 0.5, fontSize: "0.875rem" }}
         >
           {file.name}
-        </Typography>
+        </Text>
         {file.size !== undefined && !file.is_dir && (
-          <Typography variant="caption" color="text.secondary">
+          <Caption color="secondary">
             {formatBytes(file.size)}
-          </Typography>
+          </Caption>
         )}
       </div>
     );
@@ -745,13 +744,14 @@ function FileBrowserDialog({
           px: 2
         }}
       >
-        <Typography
-          variant="h6"
+        <Text
+          size="normal"
+          weight={600}
           component="span"
           sx={{ fontSize: "1.1rem", padding: "0 1em", margin: 0 }}
         >
           {title}
-        </Typography>
+        </Text>
         <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
       </DialogTitle>
 
@@ -912,12 +912,13 @@ function FileBrowserDialog({
         className="file-browser-footer"
         sx={{ p: 2, borderTop: 1, borderColor: "divider" }}
       >
-        <Typography
-          variant="body2"
-          sx={{ flex: 1, ml: 1, color: "text.secondary" }}
+        <Text
+          size="small"
+          color="secondary"
+          sx={{ flex: 1, ml: 1 }}
         >
           {selectedPath ? `Selected: ${selectedPath}` : "No selection"}
-        </Typography>
+        </Text>
         {selectedPath && (
           <CopyButton
             value={selectedPath}

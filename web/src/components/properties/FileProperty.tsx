@@ -1,8 +1,8 @@
-import { Typography } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo } from "react";
 import isEqual from "lodash/isEqual";
+import { Text } from "../ui_primitives";
 
 const FileProperty = (props: PropertyProps) => {
   const id = `file-${props.property.name}-${props.propertyIndex}`;
@@ -13,7 +13,7 @@ const FileProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      <Typography>{props.value?.id}</Typography>
+      <Text>{props.value?.id}</Text>
     </>
   );
 };

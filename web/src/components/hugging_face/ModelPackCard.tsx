@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   CardActions,
-  Typography,
   Button,
   Box,
   Collapse,
@@ -19,6 +18,7 @@ import {
   ListItem,
   ListItemText
 } from "@mui/material";
+import { Text, Caption } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -138,21 +138,21 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
           />
           <Box flex={1}>
             <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              <Text size="normal" weight={600}>
                 {pack.title}
-              </Typography>
+              </Text>
               {allDownloaded && (
                 <CheckCircleIcon
                   sx={{ color: "var(--palette-success-main)", fontSize: 20 }}
                 />
               )}
             </Box>
-            <Typography
-              variant="body2"
+            <Text
+              size="small"
               sx={{ color: "var(--palette-grey-300)", mb: 1 }}
             >
               {pack.description}
-            </Typography>
+            </Text>
             <Box display="flex" gap={1} flexWrap="wrap">
               {pack.tags.slice(0, 4).map((tag) => (
                 <Chip
@@ -199,9 +199,9 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                 backgroundColor: "var(--palette-grey-700)"
               }}
             />
-            <Typography variant="caption" sx={{ color: "var(--palette-grey-400)" }}>
+            <Caption sx={{ color: "var(--palette-grey-400)" }}>
               Downloading {activeDownloads.length} of {pack.models.length} models...
-            </Typography>
+            </Caption>
           </Box>
         )}
       </CardContent>
@@ -240,12 +240,12 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
 
       <Collapse in={expanded}>
         <Box px={2} pb={2}>
-          <Typography
-            variant="subtitle2"
+          <Text
+            size="small" weight={500}
             sx={{ color: "var(--palette-grey-400)", mb: 1 }}
           >
             Included Models:
-          </Typography>
+          </Text>
           <List dense disablePadding>
             {pack.models.map((model) => (
               <ListItem
@@ -280,12 +280,11 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                   />
                 )}
                 {model.size_on_disk && (
-                  <Typography
-                    variant="caption"
+                  <Caption
                     sx={{ color: "var(--palette-grey-500)", ml: 1 }}
                   >
                     {formatBytes(model.size_on_disk)}
-                  </Typography>
+                  </Caption>
                 )}
               </ListItem>
             ))}

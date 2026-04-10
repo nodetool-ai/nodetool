@@ -5,12 +5,11 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   Box,
-  Typography,
-  Tooltip,
   Menu,
   MenuItem,
   Button
 } from "@mui/material";
+import { Text, Tooltip, FlexRow } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
@@ -214,7 +213,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
       {/* Recent Colors */}
       <div className="section">
         <div className="section-header">
-          <Typography className="section-title">Recent</Typography>
+          <Text className="section-title">Recent</Text>
           {recentColors.length > 0 && (
             <DeleteButton
               onClick={clearRecentColors}
@@ -236,7 +235,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
               />
             ))
           ) : (
-            <Typography className="empty-message">No recent colors</Typography>
+            <Text className="empty-message">No recent colors</Text>
           )}
         </div>
       </div>
@@ -244,7 +243,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
       {/* Saved Swatches */}
       <div className="section">
         <div className="section-header">
-          <Typography className="section-title">Saved</Typography>
+          <Text className="section-title">Saved</Text>
         </div>
         <div className="color-grid">
           {swatches.map((swatch) => (
@@ -276,12 +275,12 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
       {palettes.length > 0 && (
         <div className="section">
           <div className="section-header">
-            <Typography className="section-title">Palettes</Typography>
+            <Text className="section-title">Palettes</Text>
           </div>
           {palettes.map((palette) => (
             <div key={palette.id} className="palette-section">
               <div className="palette-header">
-                <Typography className="palette-name">{palette.name}</Typography>
+                <Text className="palette-name">{palette.name}</Text>
                 <DeleteButton
                   onClick={handlePaletteRemove(palette.id)}
                   tooltip={`Remove palette ${palette.name}`}
@@ -308,7 +307,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
       {/* Preset Palettes */}
       <div className="section">
         <div className="section-header">
-          <Typography className="section-title">Presets</Typography>
+          <Text className="section-title">Presets</Text>
           <Button
             size="small"
             startIcon={<FolderOpenIcon />}
@@ -324,9 +323,9 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
         >
           {PRESET_PALETTES.map((palette) => (
             <MenuItem key={palette.id} onClick={handleLoadPresetPalette(palette)}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="body2">{palette.name}</Typography>
-                <Box sx={{ display: "flex", gap: 0.25 }}>
+              <FlexRow gap={1} align="center">
+                <Text size="small">{palette.name}</Text>
+                <FlexRow gap={0.25}>
                   {palette.colors.slice(0, 6).map((color, i) => (
                     <Box
                       key={`${palette.id}-${color}-${i}`}
@@ -338,8 +337,8 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
                       }}
                     />
                   ))}
-                </Box>
-              </Box>
+                </FlexRow>
+              </FlexRow>
             </MenuItem>
           ))}
         </Menu>

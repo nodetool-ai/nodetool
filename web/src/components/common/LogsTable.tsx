@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { IconButton, Paper, Tooltip, Typography, Popover, Box } from "@mui/material";
+import { IconButton, Paper, Popover, Box } from "@mui/material";
+import { Text, Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -326,8 +327,8 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
         <Tooltip
           title={timeTooltip}
           placement="top-start"
-          enterDelay={500}
-          disableHoverListener={data.showTimestampColumn}
+          delay={500}
+          disabled={data.showTimestampColumn}
         >
           <div className={`cell content${isExpanded ? " expanded" : ""}`}>
             {r.content}
@@ -375,14 +376,14 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
                  </Box>
                  {/* Close button inside popover just in case */}
                  <Box sx={{ p: 1, display: 'flex', justifyContent: 'flex-end', borderTop: 1, borderColor: 'divider' }}>
-                    <Typography 
-                        component="span" 
-                        variant="caption" 
+                    <Text
+                        component="span"
+                        size="small"
                         sx={{ cursor: 'pointer', color: 'primary.main' }}
                         onClick={handleClose}
                     >
                         Close
-                    </Typography>
+                    </Text>
                  </Box>
               </Popover>
             </>
@@ -547,7 +548,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
         <div className="list-container">
           {filteredRows.length === 0 ? (
             <div className="empty">
-              <Typography variant="body2">{emptyText}</Typography>
+              <Text size="small">{emptyText}</Text>
             </div>
           ) : (
             <AutoSizer>

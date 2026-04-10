@@ -3,10 +3,10 @@ import isEqual from "lodash/isEqual";
 import {
   ListItemText,
   ListItemIcon,
-  Typography,
   CircularProgress,
   Box
 } from "@mui/material";
+import { Text, Caption } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
 import { isElectron } from "../../stores/ApiClient";
@@ -111,30 +111,27 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
           </Box>
         ) : ollamaError ? (
           <Box sx={{ p: 2, maxWidth: 300 }}>
-            <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+            <Text size="small" color="error" sx={{ mb: 1 }}>
               Could not load Ollama models
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
+            </Text>
+            <Caption
+              color="secondary"
               sx={{ display: "block", mb: 1 }}
             >
               {typeof (ollamaError as { detail?: unknown })?.detail === "string"
                 ? (ollamaError as { detail?: string }).detail
                 : "Please check that Ollama is running"}
-            </Typography>
+            </Caption>
             {isElectron ? (
-              <Typography
-                variant="caption"
-                color="warning.main"
+              <Caption
+                color="warning"
                 sx={{ display: "block", mt: 1 }}
               >
                 Ollama should be running automatically. Please try restarting
                 the application.
-              </Typography>
+              </Caption>
             ) : (
-              <Typography
-                variant="caption"
+              <Caption
                 component="a"
                 href="https://ollama.com/download"
                 target="_blank"
@@ -142,7 +139,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
                 sx={{ color: "primary.main", textDecoration: "underline" }}
               >
                 Download Ollama →
-              </Typography>
+              </Caption>
             )}
           </Box>
         ) : sortedModels.length === 0 ? (

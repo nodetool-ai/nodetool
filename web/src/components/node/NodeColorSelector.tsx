@@ -7,9 +7,9 @@ import {
   DialogTitle,
   DialogContent,
   Button,
-  Typography,
   IconButton
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 import SearchInput from "../search/SearchInput";
 import { createLinearGradient } from "../../utils/ColorUtils";
@@ -181,13 +181,13 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = memo(({
                 }}
                 onClick={createColorClickHandler(datatype.color)}
               >
-                <Typography
-                  style={{
+                <Text
+                  sx={{
                     color: datatype.textColor
                   }}
                 >
                   {datatype.label}
-                </Typography>
+                </Text>
               </Button>
             </div>
           ))}

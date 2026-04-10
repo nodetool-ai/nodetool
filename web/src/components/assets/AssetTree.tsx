@@ -9,9 +9,9 @@ import {
   ListItemIcon,
   ListItemText,
   Collapse,
-  Typography,
   Box
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
@@ -229,9 +229,9 @@ const AssetTree: React.FC<AssetTreeProps> = ({
                     ) : (
                       <ExpandLess />
                     )}
-                    <Typography variant="body2" color="textSecondary">
+                    <Text size="small" color="secondary">
                       ({node.totalAssets - 1} items)
-                    </Typography>
+                    </Text>
                   </>
                 )}
             </ListItemButton>
@@ -259,7 +259,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
       {renderAssetTree(assetTree)}
     </Box>
   ) : (
-    <Typography variant="body1">No assets found</Typography>
+    <Text>No assets found</Text>
   );
 };
 

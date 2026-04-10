@@ -10,8 +10,7 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText,
-  Typography
+  ListItemText
 } from "@mui/material";
 import { InsertDriveFile } from "@mui/icons-material";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,7 +23,7 @@ import { useAuth } from "../../stores/useAuth";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { DialogActionButtons } from "../ui_primitives";
+import { DialogActionButtons, Text } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -178,13 +177,12 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
         {getDialogTitle()}
       </DialogTitle>
       <DialogContent className="asset-delete-confirmation-content">
-        <Typography
-          variant="body1"
+        <Text
           color={theme.vars.palette.grey[200]}
           style={{ marginBottom: "1em" }}
         >
           You can right click selected assets and download them before deleting.
-        </Typography>
+        </Text>
         {isPreparingDelete ? (
           <CircularProgress size={16} />
         ) : (

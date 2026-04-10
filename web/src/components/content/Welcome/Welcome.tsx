@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, ReactNode, useMemo, memo } from "react";
 import {
-  Typography,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -12,7 +11,6 @@ import {
   Box,
   Link,
   FormControlLabel,
-  Tooltip,
   Checkbox,
   Button,
   Grid,
@@ -20,6 +18,7 @@ import {
   CardActionArea,
   CardContent
 } from "@mui/material";
+import { Text, Tooltip } from "../../ui_primitives";
 import Chip from "@mui/material/Chip";
 import DownloadIcon from "@mui/icons-material/Download";
 import Fuse from "fuse.js";
@@ -423,16 +422,17 @@ const Welcome = () => {
             alt="NodeTool"
             style={logoStyle}
           />
-          <Typography className="panel-title" variant="h2">
+          <Text className="panel-title" size="bigger">
             NodeTool
-          </Typography>
-          <Typography
-            variant="subtitle1"
+          </Text>
+          <Text
+            size="small"
+            weight={500}
             className="subtitle"
             style={subtitleStyle}
           >
             Open-Source Visual Agent Builder
-          </Typography>
+          </Text>
         </Box>
 
         <div className="header-right">
@@ -509,13 +509,13 @@ const Welcome = () => {
           <TabPanel value={tabValue} index={TabValue.Overview}>
             {searchTerm === "" && (
               <Box className="quick-start">
-                <Typography
-                  variant="h3"
+                <Text
+                  size="big"
                   sx={{ mb: 1 }}
                   className="quick-start-title"
                 >
                   Quick Start
-                </Typography>
+                </Text>
                 <Grid container spacing={2} className="quick-start-grid">
                   <Grid
                     sx={{
@@ -530,13 +530,13 @@ const Welcome = () => {
                       >
                         <CardContent className="quick-card-content">
                           <AddCircleOutlineIcon className="quick-card-icon" />
-                          <Typography className="quick-card-title">
+                          <Text className="quick-card-title">
                             Create Workflow
-                          </Typography>
-                          <Typography className="quick-card-desc">
+                          </Text>
+                          <Text className="quick-card-desc">
                             Start a new canvas and design a workflow from
                             scratch.
-                          </Typography>
+                          </Text>
                         </CardContent>
                       </CardActionArea>
                     </Card>
@@ -554,12 +554,12 @@ const Welcome = () => {
                       >
                         <CardContent className="quick-card-content">
                           <LibraryBooksIcon className="quick-card-icon" />
-                          <Typography className="quick-card-title">
+                          <Text className="quick-card-title">
                             Browse Templates
-                          </Typography>
-                          <Typography className="quick-card-desc">
+                          </Text>
+                          <Text className="quick-card-desc">
                             Explore ready-made workflows to learn and remix.
-                          </Typography>
+                          </Text>
                         </CardContent>
                       </CardActionArea>
                     </Card>
@@ -577,12 +577,12 @@ const Welcome = () => {
                       >
                         <CardContent className="quick-card-content">
                           <ChatBubbleOutlineIcon className="quick-card-icon" />
-                          <Typography className="quick-card-title">
+                          <Text className="quick-card-title">
                             Open Chat
-                          </Typography>
-                          <Typography className="quick-card-desc">
+                          </Text>
+                          <Text className="quick-card-desc">
                             Chat globally and trigger workflows from anywhere.
-                          </Typography>
+                          </Text>
                         </CardContent>
                       </CardActionArea>
                     </Card>
@@ -600,12 +600,12 @@ const Welcome = () => {
                       >
                         <CardContent className="quick-card-content">
                           <FolderIcon className="quick-card-icon" />
-                          <Typography className="quick-card-title">
+                          <Text className="quick-card-title">
                             Open Assets
-                          </Typography>
-                          <Typography className="quick-card-desc">
+                          </Text>
+                          <Text className="quick-card-desc">
                             Manage and import your media and data files.
-                          </Typography>
+                          </Text>
                         </CardContent>
                       </CardActionArea>
                     </Card>
@@ -618,13 +618,12 @@ const Welcome = () => {
               if (!list || list.length === 0) {
                 return (
                   <Box sx={{ mt: 3 }} className="no-search-results">
-                    <Typography
-                      variant="body1"
+                    <Text
                       sx={{ opacity: 0.8 }}
                       className="no-results-text"
                     >
                       No results. Try different keywords or clear the search.
-                    </Typography>
+                    </Text>
                     <Box sx={{ mt: 1 }} className="clear-search-container">
                       <Button
                         size="small"
@@ -647,9 +646,9 @@ const Welcome = () => {
                     className="summary welcome-accordion-summary"
                     expandIcon={<ExpandMoreIcon />}
                   >
-                    <Typography className="welcome-accordion-title">
+                    <Text className="welcome-accordion-title">
                       {highlightText(section.title, searchTerm)}
-                    </Typography>
+                    </Text>
                   </AccordionSummary>
                   <AccordionDetails className="content welcome-accordion-content">
                     {renderContent(section.originalContent)}
@@ -680,26 +679,25 @@ const Welcome = () => {
                   }}
                   className="setup-instructions"
                 >
-                  <Typography
-                    variant="h2"
+                  <Text
+                    size="bigger"
                     sx={{ mb: 2 }}
                     className="setup-title"
                   >
                     How to Use Models
-                  </Typography>
-                  <Typography
-                    variant="body1"
+</Text>
+                  <Text
                     gutterBottom
                     className="setup-description"
                   >
                     NodeTool works with both local and remote models. Start with
                     local for privacy and low latency, then add cloud providers
                     when you need extra capability.
-                  </Typography>
+                  </Text>
 
-                  <Typography variant="subtitle1" className="setup-list-title">
+                  <Text size="small" weight={500} className="setup-list-title">
                     1. Local models (recommended to start)
-                  </Typography>
+                  </Text>
                   <Box className="setup-list-content">
                     <ol className="step-list">
                       <li className="setup-step">
@@ -744,16 +742,16 @@ const Welcome = () => {
                       </li>
                     </ol>
                     <Box className="callout" sx={{ mt: 1 }}>
-                      <Typography variant="body2" className="callout-text">
+                      <Text size="small" className="callout-text">
                         Your data stays local unless you explicitly use cloud
                         providers.
-                      </Typography>
+                      </Text>
                     </Box>
                   </Box>
 
-                  <Typography variant="subtitle1" className="setup-list-title">
+                  <Text size="small" weight={500} className="setup-list-title">
                     2. Remote models
-                  </Typography>
+                  </Text>
                   <Box className="setup-list-content">
                     <ol className="step-list">
                       <li className="setup-step">
@@ -803,16 +801,16 @@ const Welcome = () => {
                       </li>
                     </ol>
                     <Box className="callout" sx={{ mt: 1 }}>
-                      <Typography variant="body2" className="callout-text">
+                      <Text size="small" className="callout-text">
                         Cloud is optional. You control exactly what leaves your
                         machine.
-                      </Typography>
+                      </Text>
                     </Box>
                   </Box>
 
-                  <Typography variant="subtitle1" className="setup-list-title">
+                  <Text size="small" weight={500} className="setup-list-title">
                     3. Test your setup
-                  </Typography>
+                  </Text>
                   <Box
                     className="setup-list-content"
                     sx={{ display: "flex", gap: 1 }}
@@ -846,23 +844,23 @@ const Welcome = () => {
                   className="local-models-container"
                 >
                   <Box className="local-models">
-                    <Typography variant="h2" className="section-title">
+                    <Text size="bigger" className="section-title">
                       Local Models
-                    </Typography>
-                    <Typography variant="body1" className="section-subtitle">
+                    </Text>
+                    <Text className="section-subtitle">
                       Run powerful open models locally. Start small and scale up
                       depending on your GPU/CPU and latency needs.
-                    </Typography>
+                    </Text>
                     <Box className="callout" sx={{ mt: 1 }}>
-                      <Typography variant="body2" className="callout-text">
+                      <Text size="small" className="callout-text">
                         Tip: Use smaller models for prototyping and larger ones
                         when you need more context or reasoning.
-                      </Typography>
+                      </Text>
                     </Box>
 
-                    <Typography variant="h3" className="models-heading">
+                    <Text size="big" className="models-heading">
                       Popular local models
-                    </Typography>
+                    </Text>
 
                     <ul className="local-models-list">
                       {featuredModels.map((model) => (
@@ -874,13 +872,13 @@ const Welcome = () => {
                           <div className="local-model-item">
                             <div className="local-model-header">
                               <div className="local-model-title">
-                                <Typography
-                                  variant="h4"
+                                <Text
+                                  size="big"
                                   className="model-display-name"
                                 >
                                   {(model as FeaturedModel).displayName ||
                                     model.name}
-                                </Typography>
+                                </Text>
                               </div>
                               <div className="local-model-actions">
                                 <Box
@@ -929,12 +927,11 @@ const Welcome = () => {
                             </div>
                             <div className="local-model-desc">
                               {model.description && (
-                                <Typography
-                                  variant="body1"
+                                <Text
                                   className="model-description"
                                 >
                                   {model.description}
-                                </Typography>
+                                </Text>
                               )}
                               <Box
                                 sx={{
@@ -966,12 +963,12 @@ const Welcome = () => {
                                 )}
                               </Box>
                               {(model as FeaturedModel).note && (
-                                <Typography
-                                  variant="body2"
+                                <Text
+                                  size="small"
                                   className="model-note"
                                 >
                                   {(model as FeaturedModel).note}
-                                </Typography>
+                                </Text>
                               )}
                             </div>
                           </div>

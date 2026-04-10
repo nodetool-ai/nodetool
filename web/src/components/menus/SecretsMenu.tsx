@@ -4,18 +4,16 @@ import { EditButton } from "../ui_primitives/EditButton";
 import WarningIcon from "@mui/icons-material/Warning";
 import {
   Button,
-  Typography,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   IconButton,
-  Tooltip,
   Chip,
   Box,
   Divider
 } from "@mui/material";
-import { TextInput } from "../ui_primitives";
+import { TextInput, Text, Caption, Tooltip } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -190,29 +188,29 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
   return (
     <>
       {isLoading && (
-        <Typography sx={{ textAlign: "center", padding: "2em" }}>
+        <Text sx={{ textAlign: "center", padding: "2em" }}>
           Loading secrets...
-        </Typography>
+        </Text>
       )}
       {isSuccess && (
         <div className="secrets-content" css={getSharedSettingsStyles(theme)}>
           <div className="settings-main-content">
             <div className="secrets">
               <WarningIcon sx={{ fontSize: 16, color: "text.disabled", flexShrink: 0 }} />
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              <Caption>
                 Secrets are encrypted in the database.
-              </Typography>
+              </Caption>
             </div>
 
             {safeSecrets.length === 0 ? (
-              <Typography sx={{ textAlign: "center", padding: "2em" }}>
+              <Text sx={{ textAlign: "center", padding: "2em" }}>
                 No secrets available. Contact your administrator to configure
                 available secrets.
-              </Typography>
+              </Text>
             ) : secretsByStatus.configured.length === 0 && secretsByStatus.unconfigured.length === 0 ? (
-              <Typography sx={{ textAlign: "center", padding: "2em" }}>
+              <Text sx={{ textAlign: "center", padding: "2em" }}>
                 No secrets found matching &quot;{searchTerm}&quot;
-              </Typography>
+              </Text>
             ) : (
               <>
                 {/* All secrets — configured first, then unconfigured */}
@@ -240,17 +238,17 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                               marginBottom: "0.25em"
                             }}
                           >
-                            <Typography
-                              variant="body2"
-                              sx={{ fontWeight: 600 }}
+                            <Text
+                              size="small"
+                              weight={600}
                             >
                               <code
                                 style={{ color: "var(--palette-primary-main)" }}
                               >
                                 {secret.key}
                               </code>
-                            </Typography>
-                            <Typography
+                            </Text>
+                            <Caption
                               component="span"
                               sx={{
                                 opacity: 0.7,
@@ -262,12 +260,12 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                               {secret.updated_at
                                 ? new Date(secret.updated_at).toLocaleDateString()
                                 : "Never"}
-                            </Typography>
+                            </Caption>
                           </div>
                           {secret.description && (
-                            <Typography className="description">
+                            <Text className="description">
                               {secret.description}
-                            </Typography>
+                            </Text>
                           )}
                         </div>
                         <div
@@ -321,20 +319,21 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                         }}
                       >
                         <div style={{ flex: 1 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, marginBottom: "0.25em" }}
+                          <Text
+                            size="small"
+                            weight={600}
+                            sx={{ marginBottom: "0.25em" }}
                           >
                             <code
                               style={{ color: "var(--palette-primary-main)" }}
                             >
                               {secret.key}
                             </code>
-                          </Typography>
+                          </Text>
                           {secret.description && (
-                            <Typography className="description">
+                            <Text className="description">
                               {secret.description}
-                            </Typography>
+                            </Text>
                           )}
                           <Chip
                             label="Not set"
@@ -417,8 +416,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
               variant="outlined"
               size="small"
             />
-            <Typography
-              variant="caption"
+            <Caption
               sx={{
                 display: "block",
                 marginTop: "0.5em",
@@ -426,7 +424,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
               }}
             >
               Keep this value secure and do not share it publicly.
-            </Typography>
+            </Caption>
           </Box>
         </DialogContent>
 

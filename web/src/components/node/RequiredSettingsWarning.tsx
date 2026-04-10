@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from "react";
-import { Typography, Button } from "@mui/material";
+import { Button } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useRequiredSettings } from "../../hooks/useRequiredSettings";
 
@@ -30,19 +31,19 @@ const RequiredSettingsWarning: React.FC<RequiredSettingsWarningProps> = React.me
 
       return (
         <>
-          <Typography
+          <Text
             className="node-status required-settings-warning"
+            size="tiny"
             sx={{
               width: "100%",
               textAlign: "center",
-              fontSize: "var(--fontSizeTiny)",
               textTransform: "uppercase",
               padding: ".5em !important",
               marginBottom: "0"
             }}
           >
             {message}
-          </Typography>
+          </Text>
           <Button
             className="required-settings-button"
             variant="contained"

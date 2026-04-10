@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Box, Typography, TextField } from "@mui/material";
+import { Box, TextField } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import {
   NODE_EDITOR_SHORTCUTS,
   getShortcutTooltip,
@@ -46,10 +47,10 @@ const ControlsShortcutsTab: React.FC = () => {
           if (!list.length) {return null;}
           return (
             <Box key={cat} sx={{ mb: 3 }}>
-              <Typography variant="h2" color="text.secondary" sx={{ mb: 4 }}>
+              <Text size="bigger" color="secondary" sx={{ mb: 4 }}>
                 {SHORTCUT_CATEGORIES[cat] ??
                   cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </Typography>
+              </Text>
               {list.map((s) => (
                 <Box
                   key={s.slug}
@@ -57,21 +58,21 @@ const ControlsShortcutsTab: React.FC = () => {
                   sx={{ display: "flex", alignItems: "center" }}
                 >
                   {/* Title */}
-                  <Typography sx={{ minWidth: 160 }}>{s.title}</Typography>
+                  <Text sx={{ minWidth: 160 }}>{s.title}</Text>
                   <Box sx={{ minWidth: 200 }}>
                     {getShortcutTooltip(s.slug, undefined, "combo")}
                   </Box>
                   {/* Description */}
                   {s.description && (
-                    <Typography
-                      variant="body2"
+                    <Text
+                      size="small"
                       sx={{
                         color: "var(--palette-grey-200)",
                         fontWeight: 300
                       }}
                     >
                       {s.description}
-                    </Typography>
+                    </Text>
                   )}
                 </Box>
               ))}

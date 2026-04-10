@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { Box, Typography, Tooltip } from "@mui/material";
+import { Box } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
@@ -12,7 +12,7 @@ import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
-import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text } from "../ui_primitives";
+import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text, Tooltip } from "../ui_primitives";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -194,21 +194,21 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         {hasTags && (
           <FlexRow gap={0.5} sx={{ flexWrap: "wrap", mt: 1 }}>
             {workflow.tags?.map((tag) => (
-              <Typography
+              <Text
                 key={tag}
+                size="tiny"
+                weight={600}
+                family="secondary"
                 sx={{
-                  fontSize: "0.7rem",
                   color: "grey.900",
                   backgroundColor: "grey.200",
                   borderRadius: "1em",
                   padding: "0.15em 0.5em",
-                  margin: "0.75em 0",
-                  fontWeight: 600,
-                  fontFamily: "var(--fontFamily2)"
+                  margin: "0.75em 0"
                 }}
               >
                 {tag}
-              </Typography>
+              </Text>
             ))}
           </FlexRow>
         )}
@@ -274,13 +274,13 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             style={inputStyle}
           />
         ) : (
-          <Typography
+          <Text
             className="name"
             onDoubleClick={handleNameDoubleClick}
             title="Double-click to rename"
           >
             {workflow.name}
-          </Typography>
+          </Text>
         )}
         <Box className="actions">
           <EditorButton
@@ -322,7 +322,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       </Box>
       <Box className="date-container">
         {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "0.85rem", color: "warning.main" }} />}
-        {!hideDate && <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>}
+        {!hideDate && <Text className="date">{relativeTime(workflow.updated_at)}</Text>}
       </Box>
     </Box>
   );
@@ -332,8 +332,8 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       title={tooltipContent}
       placement="right"
       arrow
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+      delay={TOOLTIP_ENTER_DELAY}
+      nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
       slotProps={{
         tooltip: {
           sx: {

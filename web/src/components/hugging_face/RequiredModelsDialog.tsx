@@ -6,14 +6,12 @@ import React from "react";
 import {
   DialogTitle,
   DialogContent,
-  Tooltip,
   IconButton,
-  Grid,
-  Typography
+  Grid
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { Dialog, FlexColumn } from "../ui_primitives";
+import { Dialog, FlexColumn, Tooltip, Text } from "../ui_primitives";
 import ModelCard from "./model_card/ModelCard";
 import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -76,7 +74,7 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
     >
       <DialogTitle className="model-title" style={{ marginBottom: 2 }}>
         Required Models Download
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | ESC">
+        <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Close | ESC">
           <IconButton
             className="model-close"
             aria-label="close"
@@ -97,17 +95,17 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
       <DialogContent sx={{ paddingBottom: "3em" }}>
         <FlexColumn gap={3} className="model-content">
           <FlexColumn gap={1} className="model-desc">
-            <Typography variant="body1">
+            <Text>
               To run this workflow, the following AI models need to be downloaded
               to your local machine:
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
+            </Text>
+            <Text size="small" color="secondary">
               • Models will be stored locally in the Hugging Face cache
               <br />
               • Download times may vary based on model size and internet speed
               <br />• You can close this dialog and return later - downloads will
               continue in the background
-            </Typography>
+            </Text>
           </FlexColumn>
 
           <Grid container spacing={2} className="model-grid models-grid">

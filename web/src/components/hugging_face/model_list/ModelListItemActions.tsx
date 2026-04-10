@@ -1,7 +1,7 @@
 import React, { memo, useCallback } from "react";
-import { Button, Tooltip, Chip, CircularProgress, Box } from "@mui/material";
+import { Button, Chip, CircularProgress, Box } from "@mui/material";
 import { Check } from "@mui/icons-material";
-import { DeleteButton } from "../../ui_primitives";
+import { DeleteButton, Tooltip } from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 
 import {
@@ -97,8 +97,8 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
               ? "Show in Explorer"
               : "Downloaded"
           }
-          enterDelay={TOOLTIP_ENTER_DELAY * 2}
-          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          delay={TOOLTIP_ENTER_DELAY * 2}
+          nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
         >
           <Chip
             label="Downloaded"

@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
-import { Typography } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { getIsElectronDetails } from "../../utils/browser";
 import { isProduction } from "../../stores/ApiClient";
-import { FlexColumn, Card } from "../ui_primitives";
+import { FlexColumn, Card, Text } from "../ui_primitives";
 
 const panelStyles = (theme: Theme) =>
   css({
@@ -48,14 +47,14 @@ const SetupPanel: React.FC = () => {
       <div className="scrollable-content">
         <Card padding="comfortable">
           <FlexColumn gap={2}>
-            <Typography variant="h6" sx={{ fontSize: "1em" }}>
+            <Text size="normal" weight={600}>
               How to Use Models
-            </Typography>
+            </Text>
 
             <FlexColumn gap={1}>
-              <Typography variant="subtitle2" className="setup-list-title">
+              <Text size="small" weight={500} className="setup-list-title">
                 Remote Models
-              </Typography>
+              </Text>
               <ol className="step-list">
                 <li>
                   Open{" "}
@@ -70,9 +69,9 @@ const SetupPanel: React.FC = () => {
 
             {shouldShowLocalModels && (
               <FlexColumn gap={1}>
-                <Typography variant="subtitle2" className="setup-list-title">
+                <Text size="small" weight={500} className="setup-list-title">
                   Local Models
-                </Typography>
+                </Text>
                 <ol className="step-list">
                   <li>
                     Download models using the{" "}

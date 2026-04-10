@@ -3,10 +3,8 @@ import { css } from "@emotion/react";
 import {
   Button,
   Checkbox,
-  Typography,
   Box,
   Chip,
-  Tooltip,
   Popover,
   PopoverOrigin
 } from "@mui/material";
@@ -16,7 +14,7 @@ import { useCollectionStore } from "../../../stores/CollectionStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ScrollArea } from "../../ui_primitives";
+import { ScrollArea, Tooltip, Text, Caption, FlexRow } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 320;
@@ -163,7 +161,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
               } selected`
             : "Select Collections"
         }
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
       >
         <Button
           ref={buttonRef}
@@ -233,39 +231,35 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
         }}
       >
         {/* Header */}
-        <Box
+        <FlexRow
+          align="center"
+          justify="space-between"
           sx={{
             p: 1.5,
             pl: 2,
             borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
             flexShrink: 0,
             background: theme.vars.palette.background.paper
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography
-              variant="subtitle2"
+          <FlexRow gap={1} align="center">
+            <Text
+              size="small"
+              weight={600}
+              color="secondary"
               sx={{
-                color: theme.vars.palette.text.secondary,
-                fontWeight: 600,
                 fontSize: "0.75rem",
                 textTransform: "uppercase",
                 letterSpacing: 0.5
               }}
             >
               Collections
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: theme.vars.palette.text.secondary }}
-            >
+            </Text>
+            <Caption>
               {selectedCount}/{totalCount}
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex", gap: 0.5 }}>
+            </Caption>
+          </FlexRow>
+          <FlexRow gap={0.5}>
             <Button
               size="small"
               onClick={handleSelectAll}
@@ -280,30 +274,31 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
             >
               Clear
             </Button>
-          </Box>
-        </Box>
+          </FlexRow>
+        </FlexRow>
 
         {/* Collections List */}
         <ScrollArea className="collections-list" fullHeight>
           {isLoading ? (
-            <Typography
-              variant="body2"
-              sx={{ p: 2, color: theme.vars.palette.text.secondary }}
+            <Text
+              size="small"
+              color="secondary"
+              sx={{ p: 2 }}
             >
               Loading collections...
-            </Typography>
+            </Text>
           ) : !collections?.collections.length ? (
             <Box sx={{ p: 2, color: theme.vars.palette.text.secondary }}>
-              <Typography variant="body2" sx={{ mb: 1 }}>
+              <Text size="small" sx={{ mb: 1 }}>
                 No collections available
-              </Typography>
-              <Typography variant="caption" sx={{ display: "block", opacity: 0.8, mb: 1 }}>
+              </Text>
+              <Caption sx={{ display: "block", opacity: 0.8, mb: 1 }}>
                 Collections are vector databases used for semantic search during chat.
                 When selected, relevant document chunks are retrieved and included as context.
-              </Typography>
-              <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
+              </Caption>
+              <Caption sx={{ display: "block", opacity: 0.8 }}>
                 Create a collection from the left sidebar, then add documents, PDFs, or text files to index them.
-              </Typography>
+              </Caption>
             </Box>
           ) : (
             collections.collections.map((collection: { name: string; count: number }) => {
@@ -327,23 +322,16 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
                     }}
                   />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: "0.8rem",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }}
+                    <Text
+                      size="small"
+                      truncate
+                      sx={{ fontSize: "0.8rem" }}
                     >
                       {collection.name}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: theme.vars.palette.text.secondary }}
-                    >
+                    </Text>
+                    <Caption>
                       {collection.count} items
-                    </Typography>
+                    </Caption>
                   </Box>
                 </Box>
               );

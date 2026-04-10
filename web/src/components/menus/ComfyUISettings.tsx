@@ -4,11 +4,11 @@ import {
   Box,
   Button,
   TextField,
-  Typography,
   Alert,
   ToggleButton,
   ToggleButtonGroup
 } from "@mui/material";
+import { Text, Caption, FlexRow } from "../ui_primitives";
 import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import type { ComfyBackendType } from "../../stores/ComfyUIStore";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -92,13 +92,13 @@ const ComfyUISettings: React.FC = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
+      <Text size="normal" weight={600} sx={{ mb: 2 }}>
         ComfyUI Connection
-      </Typography>
+      </Text>
 
-      <Typography variant="body2" sx={{ mb: 2, color: theme.palette.text.secondary }}>
+      <Text size="small" color="secondary" sx={{ mb: 2 }}>
         Connect to a ComfyUI backend to enable ComfyUI workflow execution.
-      </Typography>
+      </Text>
 
       <ToggleButtonGroup
         value={backendType}
@@ -139,7 +139,7 @@ const ComfyUISettings: React.FC = () => {
             </Alert>
           )}
 
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <FlexRow gap={2}>
             {!isConnected ? (
               <Button
                 variant="contained"
@@ -153,14 +153,13 @@ const ComfyUISettings: React.FC = () => {
                 Disconnect
               </Button>
             )}
-          </Box>
+          </FlexRow>
 
-          <Typography
-            variant="caption"
-            sx={{ mt: 2, display: "block", color: theme.palette.text.secondary }}
+          <Caption
+            sx={{ mt: 2, display: "block" }}
           >
             ComfyUI must be running and accessible at the specified URL.
-          </Typography>
+          </Caption>
         </>
       )}
 
@@ -212,14 +211,13 @@ const ComfyUISettings: React.FC = () => {
             {saving ? "Saving..." : "Save API Key"}
           </Button>
 
-          <Typography
-            variant="caption"
-            sx={{ mt: 2, display: "block", color: theme.palette.text.secondary }}
+          <Caption
+            sx={{ mt: 2, display: "block" }}
           >
             Deploy a ComfyUI worker on RunPod Serverless, then add a
             &quot;Run ComfyUI Workflow (RunPod)&quot; node to your workflow with
             the endpoint ID.
-          </Typography>
+          </Caption>
         </>
       )}
     </Box>

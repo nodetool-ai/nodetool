@@ -10,12 +10,11 @@ import {
   ListItemIcon,
   List,
   ListItemButton,
-  Tooltip,
   CircularProgress,
-  Typography,
   Collapse,
   IconButton
 } from "@mui/material";
+import { Tooltip, Caption } from "../../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
@@ -265,33 +264,33 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           {(isLoading || isFetching) && (
             <>
               <CircularProgress size={14} />
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              <Caption sx={{ color: "text.secondary" }}>
                 {loadingProgress
                   ? `Loading models: ${loadingProgress.loaded}/${loadingProgress.total} providers...`
                   : "Loading models..."}
-              </Typography>
+              </Caption>
             </>
           )}
           {providerErrors && providerErrors.length > 0 && !isLoading && (
             <Tooltip
               title={
                 <Box sx={{ maxWidth: 300 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  <Caption sx={{ fontWeight: 600 }}>
                     Failed to load models from:
-                  </Typography>
+                  </Caption>
                   {providerErrors.map((pe) => (
-                    <Typography key={pe.provider} variant="caption" component="div" sx={{ mt: 0.5 }}>
+                    <Caption key={pe.provider} component="div" sx={{ mt: 0.5 }}>
                       • {pe.provider}: {pe.error instanceof Error ? pe.error.message : "Unknown error"}
-                    </Typography>
+                    </Caption>
                   ))}
                 </Box>
               }
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "help" }}>
                 <WarningAmberIcon sx={{ fontSize: 16, color: "warning.main" }} />
-                <Typography variant="caption" sx={{ color: "warning.main" }}>
+                <Caption sx={{ color: "warning.main" }}>
                   {providerErrors.length} provider{providerErrors.length > 1 ? "s" : ""} failed to load
-                </Typography>
+                </Caption>
               </Box>
             </Tooltip>
           )}

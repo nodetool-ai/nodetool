@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback } from "react";
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
-import { DeleteButton, EditorButton } from "../ui_primitives";
+import { DeleteButton, EditorButton, Text, Tooltip } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
@@ -87,14 +87,14 @@ export const WorkflowTile = ({
         dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
       />
 
-      <Typography className="description">
+      <Text className="description">
         {truncateString(workflow.description, 150)}
-      </Typography>
+      </Text>
 
-      <Typography className="date">
+      <Text className="date">
         {relativeTime(workflow.updated_at)} <br />
         {prettyDate(workflow.updated_at, "verbose", settings)}
-      </Typography>
+      </Text>
 
       <div className="actions">
         <EditorButton
@@ -110,7 +110,7 @@ export const WorkflowTile = ({
             <Tooltip
               title="Make a copy of this workflow"
               placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
+              delay={TOOLTIP_ENTER_DELAY}
             >
               <EditorButton color="primary" onClick={handleDuplicate} density="compact">
                 Duplicate

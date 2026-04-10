@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text, Caption } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import {
@@ -191,7 +192,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
 
       {/* Contrast Ratio */}
       <div>
-        <Typography
+        <Text
           className="contrast-ratio"
           sx={{
             color:
@@ -203,13 +204,12 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
           }}
         >
           {compliance.ratio}:1
-        </Typography>
-        <Typography
-          variant="caption"
+        </Text>
+        <Caption
           sx={{ textAlign: "center", display: "block", color: "grey.500" }}
         >
           Contrast Ratio
-        </Typography>
+        </Caption>
       </div>
 
       {/* WCAG Compliance Grid */}
@@ -234,9 +234,9 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
 
       {/* Color Blindness Simulation */}
       <div className="color-blindness-section">
-        <Typography className="color-blindness-title">
+        <Text className="color-blindness-title">
           Color Blindness Preview
-        </Typography>
+        </Text>
         <div className="color-blindness-grid">
           {colorBlindnessSimulations.map((sim) => (
             <div key={sim.type} className="color-blindness-preview">

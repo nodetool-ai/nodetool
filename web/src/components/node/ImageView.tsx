@@ -2,7 +2,8 @@
 import { css } from "@emotion/react";
 
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { Typography, IconButton, Tooltip } from "@mui/material";
+import { IconButton } from "@mui/material";
+import { Text, Tooltip } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
@@ -155,7 +156,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   }, []);
 
   if (!imageUrl) {
-    return <Typography>No Image found</Typography>;
+    return <Text>No Image found</Text>;
   }
 
   return (

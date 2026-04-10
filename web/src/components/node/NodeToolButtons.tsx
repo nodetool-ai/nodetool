@@ -4,13 +4,13 @@ import { useReactFlow, Node } from "@xyflow/react";
 import {
   Toolbar,
   IconButton,
-  Tooltip,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
   Divider
 } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import { DeleteButton } from "../ui_primitives/DeleteButton";
 import InfoIcon from "@mui/icons-material/Info";
@@ -170,7 +170,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
               {isWorkflowRunning ? "Running..." : "Run From Here"}
             </span>
           }
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
         >
           <span>
             <IconButton
@@ -192,7 +192,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
               {getShortcutTooltip("bypassNode", undefined, "combo")}
             </span>
           }
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
         >
           <IconButton
             className="nodrag"
@@ -219,7 +219,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
               {getShortcutTooltip("duplicate", undefined, "combo")}
             </span>
           }
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
         >
           <IconButton
             className="nodrag"
@@ -244,7 +244,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         <Tooltip
           title={<span>Info</span>}
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
         >
           <IconButton
             className="nodrag"
@@ -261,7 +261,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         {/* More Actions Dropdown */}
         <Tooltip
           title={<span>More Actions</span>}
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
         >
           <IconButton
             className="nodrag"

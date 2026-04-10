@@ -2,9 +2,9 @@ import { useState, useCallback, useMemo, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetStore } from "../../stores/AssetStore";
-import { Typography, Tooltip } from "@mui/material";
 import TextEditorModal from "./TextEditorModal";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { Tooltip, Text } from "../ui_primitives";
 import isEqual from "lodash/isEqual";
 
 const MAX_TEXT_LENGTH = 1000;
@@ -49,22 +49,21 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
         overflow: "auto"
       }}
     >
-      <Tooltip title="Open Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip title="Open Editor" delay={TOOLTIP_ENTER_DELAY}>
         <button className="button-expand" onClick={toggleExpand}>
           {isExpanded ? "↙" : "↗"}
         </button>
       </Tooltip>
-      <Typography
+      <Text
         className="text"
-        variant="body1"
-        style={{ whiteSpace: "pre-wrap" }}
+        sx={{ whiteSpace: "pre-wrap" }}
       >
         {error
           ? "Error loading preview."
           : isLoading
           ? "Loading preview..."
           : memoizedPreviewText}
-      </Typography>
+      </Text>
 
       {isExpanded && (
         <TextEditorModal

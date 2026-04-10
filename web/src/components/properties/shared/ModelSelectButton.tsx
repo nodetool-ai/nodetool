@@ -1,9 +1,9 @@
 import React, { forwardRef, memo } from "react";
-import { Button, Tooltip, SxProps, Theme } from "@mui/material";
+import { Button, SxProps, Theme } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useEditorScope } from "../../editor_ui";
-import { FlexColumn, FlexRow, Text, Caption } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, Caption, Tooltip } from "../../ui_primitives";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -48,8 +48,8 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
             </FlexColumn>
           )
         }
-        enterDelay={TOOLTIP_ENTER_DELAY * 2}
-        enterNextDelay={TOOLTIP_ENTER_DELAY * 2}
+        delay={TOOLTIP_ENTER_DELAY * 2}
+        nextDelay={TOOLTIP_ENTER_DELAY * 2}
         slotProps={{
           tooltip: {
             sx: {

@@ -11,10 +11,9 @@ import {
   Box,
   Button,
   CircularProgress,
-  LinearProgress,
-  Tooltip,
-  Typography
+  LinearProgress
 } from "@mui/material";
+import { Text, Caption, Tooltip } from "../ui_primitives";
 import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -248,7 +247,7 @@ const MiniAppPage: React.FC = () => {
             {/* Error State */}
             {error && (
               <Box py={4}>
-                <Typography color="error">{error.message}</Typography>
+                <Text color="error">{error.message}</Text>
               </Box>
             )}
 
@@ -256,16 +255,16 @@ const MiniAppPage: React.FC = () => {
               <>
                 {/* Header Section */}
                 <div className="page-header">
-                  <Typography variant="h2" fontWeight={300}>
+                  <Text size="bigger" weight={300}>
                     {workflow.name}
-                  </Typography>
+                  </Text>
                   {workflow.description && (
-                    <Typography
-                      variant="body2"
+                    <Text
+                      size="small"
                       className="workflow-description"
                     >
                       {workflow.description}
-                    </Typography>
+                    </Text>
                   )}
                 </div>
 
@@ -316,7 +315,7 @@ const MiniAppPage: React.FC = () => {
                         </Button>
                       ) : (
                         <Tooltip
-                          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+                          delay={TOOLTIP_ENTER_DELAY * 2}
                           title={
                             isSubmitDisabled ? "Workflow is running..." : ""
                           }
@@ -336,9 +335,8 @@ const MiniAppPage: React.FC = () => {
                         </Tooltip>
                       )}
                       {isRunning && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
+                        <Caption
+                          color="secondary"
                           sx={{
                             display: "block",
                             textAlign: "center",
@@ -347,12 +345,11 @@ const MiniAppPage: React.FC = () => {
                           }}
                         >
                           {formatDuration(elapsedTime)}
-                        </Typography>
+                        </Caption>
                       )}
                       {lastRunDuration != null && !isRunning && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
+                        <Caption
+                          color="secondary"
                           sx={{
                             display: "block",
                             textAlign: "center",
@@ -361,7 +358,7 @@ const MiniAppPage: React.FC = () => {
                           }}
                         >
                           Completed in {formatDuration(lastRunDuration)}
-                        </Typography>
+                        </Caption>
                       )}
                     </div>
                   </div>

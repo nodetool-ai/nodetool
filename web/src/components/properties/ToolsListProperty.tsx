@@ -2,13 +2,13 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   IconButton,
   Stack,
-  Tooltip,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
   Checkbox
 } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";

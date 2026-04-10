@@ -2,10 +2,9 @@ import React, { useMemo } from "react";
 import {
   DialogContent,
   DialogTitle,
-  Link,
-  Typography
+  Link
 } from "@mui/material";
-import { CloseButton, Dialog } from "../ui_primitives";
+import { CloseButton, Dialog, Text } from "../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { useTheme } from "@mui/material/styles";
@@ -77,7 +76,7 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
         {formattedReadme ? (
           <MarkdownRenderer content={formattedReadme} isReadme={true} />
         ) : (
-          <Typography>
+          <Text>
             No README available found at{" "}
             <Link
               className="readme-link"
@@ -88,7 +87,7 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
             >
               {`https://huggingface.co/${modelId}/raw/main/README.md`}
             </Link>
-          </Typography>
+          </Text>
         )}
       </DialogContent>
     </Dialog>

@@ -5,14 +5,13 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   Box,
-  Typography,
-  Tooltip,
   ToggleButtonGroup,
   ToggleButton,
   Slider,
   TextField,
   Button
 } from "@mui/material";
+import { Caption, Tooltip } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { DeleteButton } from "../ui_primitives";
@@ -317,9 +316,9 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
       {/* Angle Control (for linear gradients) */}
       {gradient.type === "linear" && (
         <div className="angle-control">
-          <Typography variant="caption" sx={{ minWidth: "50px" }}>
+          <Caption sx={{ minWidth: "50px" }}>
             Angle: {gradient.angle}°
-          </Typography>
+          </Caption>
           <Slider
             value={gradient.angle ?? 90}
             onChange={handleAngleChange}
@@ -332,9 +331,9 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
 
       {/* Color Stops */}
       <div>
-        <Typography variant="caption" color="textSecondary">
+        <Caption color="secondary">
           Color Stops
-        </Typography>
+        </Caption>
         <div className="stops-container" style={{ background: cssOutput }}>
           {gradient.stops.map((stop, index) => (
             <div
@@ -369,7 +368,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
             value={selectedStop.position}
             onChange={handleStopPositionInputChange}
             InputProps={{
-              endAdornment: <Typography variant="caption">%</Typography>
+              endAdornment: <Caption>%</Caption>
             }}
             sx={{ width: "80px" }}
           />

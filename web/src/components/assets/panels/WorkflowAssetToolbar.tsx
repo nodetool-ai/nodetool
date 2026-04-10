@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import React, { useCallback } from "react";
 import {
   ButtonGroup,
-  Tooltip,
   Box,
   Button,
   Select,
@@ -15,7 +14,7 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { UploadButton } from "../../ui_primitives";
+import { UploadButton, Tooltip } from "../../ui_primitives";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { useAssetSelection } from "../../../hooks/assets/useAssetSelection";
@@ -154,7 +153,7 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
       
       <ButtonGroup className="asset-button-group" size="small">
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           title="Select all"
           disableInteractive
         >
@@ -164,7 +163,7 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
         </Tooltip>
         
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           title="Deselect"
           disableInteractive
         >
@@ -174,7 +173,7 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
         </Tooltip>
         
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
           disableInteractive
         >
@@ -185,7 +184,7 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
       </ButtonGroup>
 
       <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
         title="Sort assets"
         placement="bottom"
         disableInteractive

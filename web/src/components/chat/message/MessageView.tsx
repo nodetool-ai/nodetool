@@ -28,15 +28,13 @@ import {
 } from "../utils/messageUtils";
 import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import { CopyButton } from "../../ui_primitives";
+import { CopyButton, Tooltip, Caption } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
   Collapse,
-  IconButton,
-  Tooltip,
-  Typography
+  IconButton
 } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
@@ -88,13 +86,13 @@ const ToolCallCard: React.FC<{
   return (
     <Box className={`tool-call-card${isRunning ? " running" : ""}`}>
       <Box className="tool-call-header">
-        <Typography component="span" variant="caption" className="tool-call-name">
+        <Caption component="span" className="tool-call-name">
           {formatToolName(tc.name)}
-        </Typography>
+        </Caption>
         {(isRunning || tc.message) && (
-          <Typography component="span" variant="caption" className="tool-message">
+          <Caption component="span" className="tool-message">
             {isRunning ? runningToolMessage || tc.message : tc.message}
-          </Typography>
+          </Caption>
         )}
         {isRunning && <CircularProgress size={12} sx={{ ml: 0.5 }} />}
         <Box sx={{ flex: 1 }} />
@@ -116,9 +114,9 @@ const ToolCallCard: React.FC<{
       <Collapse in={open} timeout="auto" unmountOnExit>
         {hasArgs && (
           <Box sx={{ mt: 0.25 }}>
-            <Typography variant="caption" className="tool-section-title">
+            <Caption className="tool-section-title">
               Arguments
-            </Typography>
+            </Caption>
             <PrettyJson value={tc.args} />
           </Box>
         )}

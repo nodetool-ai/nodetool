@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import { Badge, Box, IconButton, Typography, Divider, Tooltip } from "@mui/material";
+import { Badge, Box, IconButton, Divider } from "@mui/material";
+import { Caption, Tooltip, FlexColumn } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
@@ -71,14 +72,12 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
   const resultsToDisplay = hasSessionHistory ? sessionHistory : [{ result, timestamp: Date.now(), status: "completed", jobId: null }];
 
   return (
-    <Box
+    <FlexColumn
       className="result-overlay node-drag-handle"
+      fullWidth
+      fullHeight
       sx={{
         position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        height: "100%",
         minHeight: "60px",
         minWidth: 0,
         flex: 1
@@ -86,7 +85,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
     >
       {/* History button - visible when multiple results exist */}
       {hasSessionHistory && sessionHistory.length > 1 && nodeId && workflowId && (
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={`View History (${sessionHistory.length})`} placement="left">
+        <Tooltip delay={TOOLTIP_ENTER_DELAY} title={`View History (${sessionHistory.length})`} placement="left">
           <IconButton
             size="small"
             onClick={handleOpenHistory}
@@ -132,16 +131,14 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
       )}
 
       {/* Render accumulated session results */}
-      <Box
+      <FlexColumn
         className="result-overlay-content"
+        fullWidth
+        fullHeight
         sx={{
-          width: "100%",
-          height: "100%",
           minHeight: 0,
           minWidth: 0,
           flex: 1,
-          display: "flex",
-          flexDirection: "column",
           overflow: "auto",
           "& .image-output": {
             width: "100%",
@@ -161,14 +158,12 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
           return (
             <Box key={`result-${item.timestamp}-${index}`}>
               {index === 0 && typeLabel && (
-                <Typography
-                  variant="caption"
+                <Caption
+                  size="tiny"
                   sx={{
                     display: "block",
                     px: 1,
                     pt: 0.5,
-                    color: "text.secondary",
-                    fontSize: "0.65rem",
                     fontWeight: 500,
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
@@ -176,20 +171,20 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
                   }}
                 >
                   {typeLabel}
-                </Typography>
+                </Caption>
               )}
               {index > 0 && (
                 <Divider sx={{ my: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
+                  <Caption>
                     Result {resultsToDisplay.length - index}
-                  </Typography>
+                  </Caption>
                 </Divider>
               )}
               <OutputRenderer value={unwrapped} />
             </Box>
           );
         })}
-      </Box>
+      </FlexColumn>
 
       {/* History Dialog */}
       {nodeId && workflowId && (
@@ -201,7 +196,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
           onClose={handleCloseHistory}
         />
       )}
-    </Box>
+    </FlexColumn>
   );
 };
 

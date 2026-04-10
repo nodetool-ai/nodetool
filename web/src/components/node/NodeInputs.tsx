@@ -11,7 +11,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { Button } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { Tooltip } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Collapse } from "@mui/material";
 
@@ -308,7 +308,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           <Tooltip
             title={`${showAdvancedFields ? "Hide" : "Show"} Advanced Fields`}
             placement="bottom"
-            enterDelay={TOOLTIP_ENTER_DELAY}
+            delay={TOOLTIP_ENTER_DELAY}
           >
             <Button
               tabIndex={-1}

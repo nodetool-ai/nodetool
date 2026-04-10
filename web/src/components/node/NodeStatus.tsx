@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo } from "react";
-import { Typography } from "@mui/material";
+import { Text } from "../ui_primitives";
 import isEqual from "lodash/isEqual";
 import { useTheme } from "@mui/material/styles";
 
@@ -14,17 +14,17 @@ const NodeStatus: React.FC<NodeStatusProps> = ({ status }) => {
   if (status !== "booting") {return null;}
 
   return (
-    <Typography
+    <Text
       className="node-status"
+      size="smaller"
+      color="warning"
       css={css({
         maxWidth: "250px",
-        padding: "4px 12px",
-        color: theme.vars.palette.warning.main,
-        fontSize: "0.75rem"
+        padding: "4px 12px"
       })}
     >
       Model is booting, taking minutes.
-    </Typography>
+    </Text>
   );
 };
 

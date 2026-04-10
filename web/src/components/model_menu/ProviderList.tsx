@@ -7,13 +7,13 @@ import {
   ListItemText,
   CircularProgress,
   Checkbox,
-  Tooltip,
   Box,
   Menu,
   MenuItem,
   Divider,
   Button
 } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useTheme } from "@mui/material/styles";
@@ -690,8 +690,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       className="model-menu__provider-badge-tooltip"
                       key={b.label}
                       title={tooltipTitle}
-                      enterDelay={TOOLTIP_ENTER_DELAY * 2}
-                      enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
+                      delay={TOOLTIP_ENTER_DELAY * 2}
+                      nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
                     >
                       <span
                         className={`model-menu__provider-badge model-menu__provider-badge--${b.label.toLowerCase()}`}

@@ -5,10 +5,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   Paper,
-  Typography,
   Box,
   CircularProgress
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import { Step } from "../../stores/ApiTypes";
@@ -113,7 +113,7 @@ const StepView: React.FC<StepViewProps> = ({ step }) => {
               <RadioButtonUncheckedRoundedIcon className="step-status-icon" />
             )}
           </Box>
-          <Typography
+          <Text
             className={`step-text ${
               step.completed
                 ? "completed"
@@ -123,7 +123,7 @@ const StepView: React.FC<StepViewProps> = ({ step }) => {
             }`}
           >
             {step.instructions}
-          </Typography>
+          </Text>
         </div>
       </Paper>
     </div>

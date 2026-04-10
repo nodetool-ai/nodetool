@@ -14,9 +14,9 @@ import {
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
-  Typography,
   ToggleButtonGroupProps
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
@@ -281,17 +281,17 @@ const OpenOrCreateDialog = () => {
             className="name"
             dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
           ></div>
-          <Typography className="description">
+          <Text className="description">
             {truncateString(workflow.description, 350)}
-          </Typography>
+          </Text>
         </Box>
         <div className="right">
-          <Typography className="date">
+          <Text className="date">
             {prettyDate(workflow.updated_at, "verbose", settings)}
-          </Typography>
-          <Typography className="date relative">
+          </Text>
+          <Text className="date relative">
             {relativeTime(workflow.updated_at)}
-          </Typography>
+          </Text>
         </div>
       </Box>
     )),
@@ -313,11 +313,11 @@ const OpenOrCreateDialog = () => {
       }}
       style={{ top: "100px" }}
     >
-      <Typography className="title" variant="h4">
+      <Text className="title" size="big">
         NODE
         <br />
         TOOL
-      </Typography>
+      </Text>
       <DialogContent className="content">
         <div className="workflow-buttons">
           <BackToDashboardButton />
@@ -334,7 +334,7 @@ const OpenOrCreateDialog = () => {
 
         <div className="recent">
           <div className="tools">
-            <Typography className="recent-hl">Recent Workflows</Typography>
+            <Text className="recent-hl">Recent Workflows</Text>
             <ToggleButtonGroup
               className="toggle-name-date"
               value={settings.workflowOrder}
@@ -366,23 +366,22 @@ const OpenOrCreateDialog = () => {
             {isError && (
               <ErrorOutlineRounded>
                 ERROR
-                <Typography>{error?.message}</Typography>
+                <Text>{error?.message}</Text>
               </ErrorOutlineRounded>
             )}
             {data && sortedWorkflows && renderListView()}
           </div>
         </div>
       </DialogContent>
-      <Typography
-        variant="body2"
+      <Text
+        size="smaller"
+        color="secondary"
         style={{
-          color: "var(--palette-text-secondary)",
-          marginTop: "2em",
-          fontSize: theme.fontSizeSmaller
+          marginTop: "2em"
         }}
       >
         NODETOOL {VERSION}
-      </Typography>
+      </Text>
     </Dialog>
   );
 };

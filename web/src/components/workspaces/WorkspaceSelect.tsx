@@ -7,9 +7,9 @@ import {
   MenuItem,
   CircularProgress,
   Box,
-  Typography,
   Divider
 } from "@mui/material";
+import { Text, Caption } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
@@ -155,9 +155,9 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
       return (
         <Box css={styles(theme)} sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
           <CircularProgress size={18} />
-          <Typography variant="body2" color="text.secondary">
+          <Text size="small" color="secondary">
             Loading...
-          </Typography>
+          </Text>
         </Box>
       );
     }
@@ -165,12 +165,12 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     if (error) {
       return (
         <Box css={styles(theme)}>
-          <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+          <Text size="small" color="error" sx={{ mb: 1 }}>
             Unable to load workspaces
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </Text>
+          <Caption color="secondary">
             Check your connection or try again later
-          </Typography>
+          </Caption>
         </Box>
       );
     }

@@ -1,7 +1,8 @@
 import type { MouseEvent } from "react";
 import { useCallback, memo } from "react";
 //mui
-import { Divider, Menu, MenuItem, Typography } from "@mui/material";
+import { Divider, Menu, MenuItem } from "@mui/material";
+import { Text } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
@@ -220,13 +221,13 @@ const AssetItemContextMenu = () => {
         }}
       >
         <MenuItem disabled>
-          <Typography variant="body1" className="title">
+          <Text className="title">
             {isFolder
               ? "Folder"
               : `${selectedAssetIds.length} item${
                   selectedAssetIds.length > 1 ? "s" : ""
                 }`}
-          </Typography>
+          </Text>
         </MenuItem>
         <Divider />
         <ContextMenuItem

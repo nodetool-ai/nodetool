@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { Typography, IconButton, Tooltip, CircularProgress } from "@mui/material";
+import { IconButton, CircularProgress } from "@mui/material";
+import { Text, Tooltip } from "../../ui_primitives";
 import { Caption } from "../../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -217,44 +218,44 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
           ) : outputNodeStatus.totalOutputs === 0 ? (
             <>
               <InfoOutlinedIcon className="result-placeholder-icon" />
-              <Typography variant="h6" className="result-placeholder-title">
+              <Text size="normal" weight={600} className="result-placeholder-title">
                 No output nodes
-              </Typography>
-              <Typography
-                variant="body2"
+              </Text>
+              <Text
+                size="small"
                 className="result-placeholder-subtitle"
               >
                 This workflow has no output nodes. The workflow can still run
                 and perform actions, but results won&apos;t be displayed here.
-              </Typography>
+              </Text>
             </>
           ) : outputNodeStatus.allBypassed ? (
             <>
               <InfoOutlinedIcon className="result-placeholder-icon" />
-              <Typography variant="h6" className="result-placeholder-title">
+              <Text size="normal" weight={600} className="result-placeholder-title">
                 All outputs bypassed
-              </Typography>
-              <Typography
-                variant="body2"
+              </Text>
+              <Text
+                size="small"
                 className="result-placeholder-subtitle"
               >
                 All output nodes in this workflow are currently bypassed. The
                 workflow can still run, but no results will be displayed.
-              </Typography>
+              </Text>
             </>
           ) : (
             <>
               <PlayCircleOutlineIcon className="result-placeholder-icon" />
-              <Typography variant="h6" className="result-placeholder-title">
+              <Text size="normal" weight={600} className="result-placeholder-title">
                 Ready to run
-              </Typography>
-              <Typography
-                variant="body2"
+              </Text>
+              <Text
+                size="small"
                 className="result-placeholder-subtitle"
               >
                 Configure your inputs on the left and click &quot;Run Workflow&quot; to
                 see results here.
-              </Typography>
+              </Text>
             </>
           )}
         </div>

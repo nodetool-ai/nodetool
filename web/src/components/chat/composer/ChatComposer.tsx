@@ -6,7 +6,8 @@ import React, {
   memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, Typography, IconButton, Tooltip, Collapse } from "@mui/material";
+import { Box, IconButton, Collapse } from "@mui/material";
+import { Tooltip, Caption, FlexRow } from "../../ui_primitives";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
 import { MessageContent } from "../../../stores/ApiTypes";
@@ -121,12 +122,11 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
     <div css={createStyles(theme)} className="chat-composer">
       {/* Queued Message Widget */}
       <Collapse in={!!queuedMessage}>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", px: 1, mb: 1 }}>
-          <Box
+        <FlexRow justify="flex-end" sx={{ px: 1, mb: 1 }}>
+          <FlexRow
+            gap={1}
+            align="center"
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
               px: 1.5,
               py: 0.75,
               maxWidth: "400px",
@@ -137,19 +137,17 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
             }}
           >
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                variant="caption"
+              <Caption
+                color="primary"
                 sx={{
                   display: "block",
-                  color: "primary.main",
                   fontWeight: 500,
                   mb: 0.25
                 }}
               >
                 Message queued
-              </Typography>
-              <Typography
-                variant="caption"
+              </Caption>
+              <Caption
                 sx={{
                   display: "block",
                   color: "text.secondary",
@@ -159,7 +157,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
                 }}
               >
                 {queuedMessage?.prompt}
-              </Typography>
+              </Caption>
             </Box>
             <Tooltip title="Send now (interrupts current response)">
               <IconButton
@@ -188,8 +186,8 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
                 <ClearIcon sx={{ fontSize: 16 }} />
               </IconButton>
             </Tooltip>
-          </Box>
-        </Box>
+          </FlexRow>
+        </FlexRow>
       </Collapse>
 
       <div

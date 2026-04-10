@@ -5,7 +5,6 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Typography,
   List,
   ListItem,
   Chip,
@@ -13,7 +12,7 @@ import {
   Stack
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Dialog, CloseButton } from "../../ui_primitives";
+import { Dialog, CloseButton, Text, Caption } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import type {
@@ -149,9 +148,9 @@ const NodeList: React.FC<{
   const theme = useTheme();
   if (items.length === 0) {
     return (
-      <Typography variant="body2" className="empty-state">
+      <Text size="small" className="empty-state">
         No {label.toLowerCase()} nodes found for this model type.
-      </Typography>
+      </Text>
     );
   }
 
@@ -167,9 +166,9 @@ const NodeList: React.FC<{
           <div className="node-row">
             <div className="node-info">
               <div className="node-title-row">
-                <Typography className="node-title" title={node.title}>
+                <Text className="node-title" title={node.title}>
                   {node.title}
-                </Typography>
+                </Text>
                 {isRecommended && (
                   <Chip
                     label="Best Match"
@@ -263,12 +262,11 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
             <Box>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                 <AutoAwesomeRoundedIcon sx={{ color: "primary.main", fontSize: 20 }} />
-                <Typography variant="h6" component="span" sx={{ fontWeight: 700, letterSpacing: -0.2 }}>
+                <Text size="normal" weight={600} component="span" sx={{ letterSpacing: -0.2 }}>
                   Node Compatibility
-                </Typography>
+                </Text>
               </Stack>
-              <Typography
-                variant="caption"
+              <Caption
                 sx={{
                   fontFamily: "var(--fontFamilyMono)",
                   color: "text.secondary",
@@ -280,7 +278,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
                 }}
               >
                 {model.repo_id || model.name}
-              </Typography>
+              </Caption>
             </Box>
             <CloseButton onClick={onClose} sx={{ color: "text.disabled", "&:hover": { color: "text.primary" } }} />
           </Stack>
@@ -291,13 +289,13 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
             <div className="section-header">
               <Stack direction="row" spacing={1} alignItems="center">
                 <VerifiedRoundedIcon sx={{ color: "primary.main", fontSize: 18 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                <Text size="small" weight={600} sx={{ color: "primary.main" }}>
                   Recommended Nodes
-                </Typography>
+                </Text>
               </Stack>
-              <Typography variant="caption" sx={{ color: "text.disabled", fontWeight: 500 }}>
+              <Caption sx={{ color: "text.disabled", fontWeight: 500 }}>
                 {compatibility.recommended.length} matches
-              </Typography>
+              </Caption>
             </div>
             <NodeList items={compatibility.recommended} label="recommended" isRecommended />
           </div>
@@ -306,13 +304,13 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
             <div className="section-header">
               <Stack direction="row" spacing={1} alignItems="center">
                 <CheckCircleOutlineRoundedIcon sx={{ color: "text.secondary", fontSize: 18 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                <Text size="small" weight={600}>
                   Compatible Nodes
-                </Typography>
+                </Text>
               </Stack>
-              <Typography variant="caption" sx={{ color: "text.disabled", fontWeight: 500 }}>
+              <Caption sx={{ color: "text.disabled", fontWeight: 500 }}>
                 {compatibility.compatible.length} matches
-              </Typography>
+              </Caption>
             </div>
             <NodeList items={compatibility.compatible} label="compatible" />
           </div>

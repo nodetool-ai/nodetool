@@ -1,12 +1,11 @@
 import React, { useCallback } from "react";
 import {
   CardContent,
-  Typography,
   Box,
   Button,
-  Chip,
-  Tooltip
+  Chip
 } from "@mui/material";
+import { Tooltip, Text } from "../../ui_primitives";
 import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
@@ -45,18 +44,18 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
 
     return (
       <CardContent sx={{ flexGrow: 1 }}>
-        <Typography
+        <Text
           className="repo-name"
-          variant="h4"
+          size="big"
           component="div"
           gutterBottom
         >
           {getShortModelName(model.id)}
-        </Typography>
+        </Text>
 
         {model.path && (
-          <Typography
-            variant="h3"
+          <Text
+            size="big"
             style={{
               color: theme.vars.palette.primary.main,
               fontSize: "0.85em",
@@ -64,24 +63,24 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
             }}
           >
             {model.path}
-          </Typography>
+          </Text>
         )}
 
         {isOllama && !downloaded && (
-          <Typography
-            variant="h5"
+          <Text
+            size="normal" weight={600}
             style={{ color: theme.vars.palette.grey[400] }}
           >
             Model not downloaded
-          </Typography>
+          </Text>
         )}
 
         <Box>
           {model.size_on_disk && (
-            <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
-              <Typography variant="body2" className="text-model-size">
+            <Tooltip delay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
+              <Text size="small" className="text-model-size">
                 {formatBytes(model.size_on_disk)}
-              </Typography>
+              </Text>
             </Tooltip>
           )}
           {model.tags && (
@@ -116,7 +115,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
               className="readme-toggle-button"
               onClick={handleOpenReadme}
             >
-              <Typography>README</Typography>
+              <Text>README</Text>
             </Button>
             <ReadmeDialog
               open={readmeDialogOpen}

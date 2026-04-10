@@ -4,14 +4,13 @@ import { keyframes } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState, useEffect, memo } from "react";
 import {
-  Typography,
   Box,
   Button,
   CircularProgress,
   IconButton,
-  Tooltip,
   Chip
 } from "@mui/material";
+import { Tooltip, Text, Caption } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -321,16 +320,15 @@ export const DownloadProgress: React.FC<{
             component="span"
             sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}
           >
-            <Typography variant="caption" sx={{ lineHeight: 1 }}>
+            <Caption sx={{ lineHeight: 1 }}>
               {label}
-            </Typography>
+            </Caption>
             {totalBytes > 0 && (
-              <Typography
-                variant="caption"
+              <Caption
                 sx={{ lineHeight: 1, opacity: 0.8 }}
               >
                 {formatBytes(downloadedBytes)} / {formatBytes(totalBytes)}
-              </Typography>
+              </Caption>
             )}
           </Box>
         </Box>
@@ -341,9 +339,9 @@ export const DownloadProgress: React.FC<{
   return (
     <Box css={styles(theme)}>
       <Box className="header-row">
-        <Typography className="repo-name" variant="subtitle1">
+        <Text className="repo-name" size="small" weight={500}>
           {name}
-        </Typography>
+        </Text>
         <Tooltip title={getCloseButtonTooltip()}>
           <IconButton
             onClick={handleRemove}
@@ -355,9 +353,9 @@ export const DownloadProgress: React.FC<{
         </Tooltip>
       </Box>
       {download.message && (
-        <Typography
+        <Text
           className="download-message"
-          variant="body2"
+          size="small"
           sx={{
             color:
               download.status === "error"
@@ -366,16 +364,16 @@ export const DownloadProgress: React.FC<{
           }}
         >
           {download.message}
-        </Typography>
+        </Text>
       )}
       {(download.status === "start" || download.status === "pending") && (
         <Box display="flex" alignItems="center">
           <CircularProgress size={20} style={{ marginRight: "0.5em" }} />
-          <Typography variant="body2">
+          <Text size="small">
             {download.status === "start"
               ? "Starting download..."
               : "Pending download..."}
-          </Typography>
+          </Text>
         </Box>
       )}
       {download.status === "completed" && (
@@ -411,9 +409,9 @@ export const DownloadProgress: React.FC<{
       {showDetails && (
         <>
           <Box className="meta-row">
-            <Typography variant="caption" sx={{ opacity: 0.85 }}>
+            <Caption sx={{ opacity: 0.85 }}>
               {percent.toFixed(0)}%
-            </Typography>
+            </Caption>
             {isStalled && (
               <Tooltip
                 title={
@@ -431,13 +429,13 @@ export const DownloadProgress: React.FC<{
                   }}
                 >
                   <WarningAmberIcon fontSize="small" />
-                  <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                  <Caption sx={{ fontWeight: 500 }}>
                     {isDisconnected
                       ? "Disconnected"
                       : isReconnecting
                         ? "Reconnecting..."
                         : `Stalled (${timeSinceUpdate} since last update)`}
-                  </Typography>
+                  </Caption>
                   {isDisconnected && !isReconnecting && (
                     <Button
                       size="small"
@@ -474,9 +472,9 @@ export const DownloadProgress: React.FC<{
           </Box>
           <Box className="download-details">
             <Tooltip title="Total size of files being downloaded">
-              <Typography
+              <Text
                 className="download-progress-text download-size"
-                variant="body2"
+                size="small"
                 style={{
                   marginTop: ".5em",
                   fontFamily: "var(--fontFamily2)"
@@ -484,25 +482,25 @@ export const DownloadProgress: React.FC<{
               >
                 Size: {(download.downloadedBytes / 1024 / 1024).toFixed(2)} MB /{" "}
                 {(download.totalBytes / 1024 / 1024).toFixed(2)} MB
-              </Typography>
+              </Text>
             </Tooltip>
             <Tooltip title="Number of files downloaded vs total files">
-              <Typography
+              <Text
                 className="download-progress-text download-files"
-                variant="body2"
+                size="small"
               >
                 Files: {download.downloadedFiles} / {download.totalFiles}
-              </Typography>
+              </Text>
             </Tooltip>
-            <Typography
+            <Text
               className="download-progress-text download-current"
-              variant="body2"
+              size="small"
             >
               Downloading: {download.currentFiles?.join(", ")}
-            </Typography>
-            <Typography
+            </Text>
+            <Text
               className="download-progress-text download-speed"
-              variant="body2"
+              size="small"
               style={{
                 minHeight: "1.5em",
                 fontFamily: "var(--fontFamily2)",
@@ -510,17 +508,17 @@ export const DownloadProgress: React.FC<{
               }}
             >
               Speed: {displaySpeed}
-            </Typography>
-            <Typography
+            </Text>
+            <Text
               className="download-progress-text download-eta"
-              variant="body2"
+              size="small"
               style={{
                 minHeight: "1.2em",
                 color: isStalled ? "var(--palette-warning-main)" : undefined
               }}
             >
               ETA: {isStalled ? "Unknown (stalled)" : eta || "-"}
-            </Typography>
+            </Text>
           </Box>
           <Tooltip title="Stop the current download. You can restart it later.">
             <Button

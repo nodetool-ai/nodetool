@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
-import { Menu, Typography, MenuItem } from "@mui/material";
+import { Menu, MenuItem } from "@mui/material";
+import { Text } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { Workflow } from "../../stores/ApiTypes";
@@ -79,7 +80,7 @@ const WorkflowContextMenu: React.FC = () => {
       }
     >
       <MenuItem disabled>
-        <Typography variant="body1">{payload.name}</Typography>
+        <Text>{payload.name}</Text>
       </MenuItem>
       <ContextMenuItem
         onClick={handleToggleFavorite}

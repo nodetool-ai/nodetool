@@ -10,12 +10,12 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { Badge, IconButton, Tooltip } from "@mui/material";
+import { Badge, IconButton } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { FlexRow } from "../ui_primitives";
+import { FlexRow, Tooltip } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -267,7 +267,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           {metadataTitle}
         </span>
         {externalLink && (
-          <Tooltip title={externalLinkTitle || "Open link"} arrow enterDelay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip title={externalLinkTitle || "Open link"} arrow delay={TOOLTIP_ENTER_DELAY}>
             <IconButton
               size="small"
               onClick={(e) => {
@@ -311,7 +311,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         <div className="header-right">
           {/* Show Result button */}
           {showResultButton && onShowResults && (
-            <Tooltip title="Show Result" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
+            <Tooltip title="Show Result" delay={TOOLTIP_ENTER_DELAY} arrow>
               <IconButton
                 size="small"
                 onClick={handleShowResultsClick}
@@ -323,7 +323,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           )}
           {/* Show Inputs button */}
           {showInputsButton && onShowInputs && (
-            <Tooltip title="Show Inputs" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
+            <Tooltip title="Show Inputs" delay={TOOLTIP_ENTER_DELAY} arrow>
               <IconButton
                 size="small"
                 onClick={handleShowInputsClick}

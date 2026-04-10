@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState, useMemo } from "react";
-import { Tooltip, Box, Menu, MenuItem, Chip } from "@mui/material";
+import { Box, Menu, MenuItem, Chip } from "@mui/material";
 import SearchInput from "../search/SearchInput";
-import { ToolbarIconButton, DeleteButton } from "../ui_primitives";
+import { ToolbarIconButton, DeleteButton, Tooltip } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -309,7 +309,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     <Box css={styles(theme)}>
       <div className="tools">
         <div className="search-row">
-          <Tooltip title="Search workflows by name" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip title="Search workflows by name" delay={TOOLTIP_ENTER_DELAY}>
             <div style={flex1Style}>
               <SearchInput
                 onSearchChange={handleSearchChange}

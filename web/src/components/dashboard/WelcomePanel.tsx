@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, ReactNode, useMemo } from "react";
 import {
-  Typography,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -9,10 +8,10 @@ import {
   InputAdornment,
   Box,
   FormControlLabel,
-  Tooltip,
   Checkbox,
   Button,
 } from "@mui/material";
+import { Text, Tooltip } from "../ui_primitives";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
@@ -256,9 +255,9 @@ const WelcomePanel: React.FC = () => {
   return (
     <Box css={panelStyles(theme)} className="welcome-panel-container">
       <div className="panel-header">
-        <Typography variant="h6" sx={{ fontWeight: 500 }}>
+        <Text size="normal" weight={600}>
           Welcome to NodeTool
-        </Typography>
+        </Text>
         <Tooltip
           title="You can always open this panel from the Add Panel menu."
           arrow
@@ -302,9 +301,9 @@ const WelcomePanel: React.FC = () => {
           if (!list || list.length === 0) {
             return (
               <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                <Text size="small" sx={{ opacity: 0.8 }}>
                   No results. Try different keywords or clear the search.
-                </Typography>
+                </Text>
                 <Button
                   size="small"
                   onClick={handleClearSearch}
@@ -325,14 +324,14 @@ const WelcomePanel: React.FC = () => {
                 expandIcon={<ExpandMoreIcon />}
                 sx={{ minHeight: "auto" }}
               >
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                <Text size="small" weight={500}>
                   {highlightText(section.title, searchTerm)}
-                </Typography>
+                </Text>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body2" sx={{ fontSize: "0.9em" }}>
+                <Text size="small" sx={{ fontSize: "0.9em" }}>
                   {renderContent(section.originalContent)}
-                </Typography>
+                </Text>
               </AccordionDetails>
             </Accordion>
           ));

@@ -12,7 +12,7 @@ import {
   Select,
   SelectChangeEvent
 } from "@mui/material";
-import Tooltip from "@mui/material/Tooltip";
+import { Tooltip } from "../ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { useTheme } from "@mui/material/styles";

@@ -7,9 +7,9 @@ import type { Theme } from "@mui/material/styles";
 import {
   Box,
   Button,
-  CircularProgress,
-  Typography
+  CircularProgress
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   WaveRecorderProps,
@@ -141,16 +141,15 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         <div className="audio-device-list" style={{ margin: "5px" }}>
           {audioInputDevices.length > 0 ? (
             <>
-              <Typography
-                variant="h2"
+              <Text
+                size="smaller"
                 sx={{
-                  fontSize: "var(--fontSizeSmaller)",
                   margin: "0 0 .5em 0",
                   color: "var(--palette-grey-100)"
                 }}
               >
                 Input Device
-              </Typography>
+              </Text>
               <div
                 className={`device-select${
                   isRecording || isLoading ? " disabled" : ""
@@ -167,10 +166,9 @@ const WaveRecorder = (props: WaveRecorderProps) => {
               </div>
             </>
           ) : (
-            <Typography
-              variant="body2"
+            <Text
+              size="small"
               sx={{
-                fontSize: "var(--fontSizeSmall)",
                 position: "absolute",
                 backgroundColor: "var(--palette-warning-main)",
                 color: "var(--palette-grey-900)",
@@ -182,7 +180,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
               }}
             >
               No audio input devices found.
-            </Typography>
+            </Text>
           )}
         </div>
       )}

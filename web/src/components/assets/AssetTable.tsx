@@ -8,9 +8,9 @@ import {
   TableRow,
   Paper,
   Button,
-  Box,
   CircularProgress,
 } from "@mui/material";
+import { FlexRow } from "../ui_primitives";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -87,9 +87,6 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     border: 1,
     borderStyle: "dotted" as const,
     height: 60,
-    display: "flex" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
   }), []);
 
   return (
@@ -114,13 +111,15 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
               {uploading ? (
                 <CircularProgress />
               ) : (
-                <Box
+                <FlexRow
+                  align="center"
+                  justify="center"
                   onDragOver={onDragOver}
                   onDrop={onDrop}
                   sx={dropZoneStyle}
                 >
                   Drop file here
-                </Box>
+                </FlexRow>
               )}
             </TableCell>
           </TableRow>

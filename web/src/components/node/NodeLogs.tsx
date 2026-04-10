@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
 import {
-  Typography,
   Chip,
   Stack,
   Button,
@@ -18,7 +17,7 @@ import useLogsStore from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import isEqual from "lodash/isEqual";
-import { CopyButton } from "../ui_primitives";
+import { CopyButton, Text } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 import log from "loglevel";
@@ -140,9 +139,9 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       >
         <DialogTitle className="dialog-title">
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="h6" component="h6">
+            <Text size="normal" weight={600} component="h6">
               Node Logs
-            </Typography>
+            </Text>
             <Chip size="small" label={`${count}`} />
             <CopyButton
               value={logText}

@@ -5,9 +5,7 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
   Button,
-  Typography,
   Box,
-  Tooltip,
   ListItemIcon,
   ListItemText,
   IconButton,
@@ -15,6 +13,7 @@ import {
   DialogContent,
   DialogTitle
 } from "@mui/material";
+import { Tooltip, Text, Caption, FlexRow } from "../../ui_primitives";
 import isEqual from "lodash/isEqual";
 import {
   MailOutline,
@@ -289,7 +288,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
             ? `${selectedTools.length} tools selected`
             : "Select Tools"
         }
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
       >
         <Button
           ref={buttonRef}
@@ -298,28 +297,26 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
           size="small"
           startIcon={
             selectedToolIcons.length > 0 ? (
-              <Box sx={{ display: "flex", gap: "2px" }}>
+              <FlexRow gap={0.5}>
                 {selectedToolIcons.map((tool) => (
-                  <Box
+                  <FlexRow
                     key={tool.id}
+                    align="center"
                     sx={{
-                      display: "flex",
-                      alignItems: "center",
                       "& > svg": { fontSize: "16px" }
                     }}
                   >
                     {tool.icon}
-                  </Box>
+                  </FlexRow>
                 ))}
                 {selectedTools.length > 3 && (
-                  <Typography
-                    variant="caption"
+                  <Caption
                     sx={{ fontSize: "12px", ml: 0.5 }}
                   >
                     +{selectedTools.length - 3}
-                  </Typography>
+                  </Caption>
                 )}
-              </Box>
+              </FlexRow>
             ) : (
               <Build fontSize="small" />
             )
@@ -360,9 +357,9 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
         })}
       >
         <DialogTitle className="dialog-title">
-          <Typography variant="h4" id="tools-selector-title">
+          <Text size="big" id="tools-selector-title">
             Tools
-          </Typography>
+          </Text>
           <Tooltip title="Close">
             <IconButton
               aria-label="close"

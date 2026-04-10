@@ -7,11 +7,10 @@ import {
   DialogActions,
   Button,
   Box,
-  Typography,
   Divider
 } from "@mui/material";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
-import { Dialog, CloseButton } from "../ui_primitives";
+import { Dialog, CloseButton, Text, FlexColumn } from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
@@ -68,7 +67,7 @@ const DownloadManagerDialog: React.FC = () => {
   const infoMessage = hasActiveDownloads ? (
     "Downloads continue in the background. Access them anytime from the toolbar download icon."
   ) : (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+    <FlexColumn gap={1}>
       <span>
         Download models using the <strong>Recommended Models</strong> button
         inside nodes.
@@ -77,7 +76,7 @@ const DownloadManagerDialog: React.FC = () => {
         The <strong>Model Manager</strong> in the top right panel shows all
         available models.
       </span>
-    </Box>
+    </FlexColumn>
   );
 
   return (
@@ -104,25 +103,23 @@ const DownloadManagerDialog: React.FC = () => {
               <DownloadProgress key={name} name={name} />
             ))
           ) : (
-            <Box
+            <FlexColumn
+              gap={1.5}
+              align="center"
               sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 1.5,
                 padding: "2.5em 0"
               }}
             >
               <DownloadingIcon sx={{ opacity: 0.8 }} />
-              <Typography variant="h6">No active downloads</Typography>
-              <Typography
-                variant="body2"
+              <Text size="normal" weight={600}>No active downloads</Text>
+              <Text
+                size="small"
                 sx={{ opacity: 0.8, textAlign: "center" }}
               >
                 Start a model download from the Recommended Models dialog or
                 Model Manager.
-              </Typography>
-            </Box>
+              </Text>
+            </FlexColumn>
           )}
         </Box>
         {isLocalhost &&
@@ -151,9 +148,8 @@ const DownloadManagerDialog: React.FC = () => {
           )}
       </DialogContent>
       <DialogActions className="download-actions">
-        <Typography
+        <Text
           component="div"
-          variant="body1"
           sx={{
             padding: "0 1.5em .5em 1em",
             fontWeight: "200",
@@ -168,7 +164,7 @@ const DownloadManagerDialog: React.FC = () => {
             sx={{ color: theme.vars.palette.warning.main }}
           />
           {infoMessage}
-        </Typography>
+        </Text>
         <Button onClick={closeDialog} variant="contained">
           Close
         </Button>

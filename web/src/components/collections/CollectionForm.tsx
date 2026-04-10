@@ -188,7 +188,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
       className="collection-form"
     >
       {/* Compact single-row layout */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+      <FlexRow gap={2} align="center" wrap>
 
         {/* Collection Name */}
         <FormField label="Collection Name" compact sx={{ flex: 1, minWidth: 180 }}>
@@ -209,10 +209,10 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
 
         {/* Embedding Model */}
         <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Typography className="field-label" sx={{ mb: 0.5 }}>
+          <Text className="field-label" sx={{ mb: 0.5 }}>
             <AutoAwesomeIcon className="field-icon" />
             Embedding Model
-          </Typography>
+          </Text>
           <Box className="model-select">
             <EmbeddingModelSelect
               value={formData.embedding_model}
@@ -239,16 +239,16 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
         >
           {createMutation.isPending ? "Creating..." : "Create"}
         </Button>
-      </Box>
+      </FlexRow>
 
       {/* Error Display */}
       {createMutation.isError && (
         <Box className="error-box" sx={{ mt: 2 }}>
-          <Typography variant="body2" color="error">
+          <Text size="small" color="error">
             {createMutation.error instanceof Error
               ? createMutation.error.message
               : "Failed to create collection"}
-          </Typography>
+          </Text>
         </Box>
       )}
     </Box>

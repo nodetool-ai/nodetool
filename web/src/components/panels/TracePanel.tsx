@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
-import { Box, Typography, Chip } from "@mui/material";
-import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea } from "../ui_primitives";
+import { Chip } from "@mui/material";
+import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea, Text, FlexRow } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -218,13 +218,13 @@ const TracePanel: React.FC = () => {
   return (
     <div css={styles(theme)}>
       <div className="trace-toolbar">
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        <FlexRow align="center" gap={1}>
+          <Text size="small" weight={500}>
             Trace
-          </Typography>
+          </Text>
           <Chip label={events.length} size="small" variant="outlined" />
-        </Box>
-        <Box sx={{ display: "flex", gap: 0.5 }}>
+        </FlexRow>
+        <FlexRow gap={0.5}>
           <CopyButton
             value={events.length > 0 ? exportJSON() : ""}
             tooltip="Copy to clipboard"
@@ -243,7 +243,7 @@ const TracePanel: React.FC = () => {
             iconVariant="clear"
             nodrag={false}
           />
-        </Box>
+        </FlexRow>
       </div>
       <ScrollArea className="trace-list" direction="both">
         {events.length === 0 ? (

@@ -12,7 +12,7 @@ import React, {
 import ReactDOM from "react-dom";
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
-import { Tooltip } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { selectStyles, portalOptionsStyles } from "./selectStyles";
@@ -261,7 +261,7 @@ const Select: React.FC<SelectProps> = ({
 
   return (
     <div className="select-container" css={styles}>
-      <Tooltip placement="top" enterDelay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
+      <Tooltip placement="top" delay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
         <div
           ref={selectRef}
           className={`custom-select select-wrapper ${

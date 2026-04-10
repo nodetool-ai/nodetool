@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useEffect, useState, useCallback } from "react";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
+import { Text, Caption } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Asset } from "../../stores/ApiTypes";
@@ -242,9 +243,9 @@ const FileTabContent: React.FC<FileTabContentProps> = ({ asset }) => {
 
     return (
       <div className="unsupported-file">
-        <Typography variant="h6">Cannot preview this file</Typography>
-        <Typography variant="body2">{asset.name}</Typography>
-        <Typography variant="caption">Type: {type || "unknown"}</Typography>
+        <Text size="normal" weight={600}>Cannot preview this file</Text>
+        <Text size="small">{asset.name}</Text>
+        <Caption>Type: {type || "unknown"}</Caption>
       </div>
     );
   };

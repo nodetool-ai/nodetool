@@ -37,7 +37,8 @@ import {
   Tooltip,
   SelectField,
   ToggleGroup,
-  ToggleOption
+  ToggleOption,
+  FlexRow
 } from "../ui_primitives";
 
 import { useQuery } from "@tanstack/react-query";
@@ -820,12 +821,12 @@ const AgentPanel: React.FC = () => {
           </div>
 
           {draftModelsLoading && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
+            <FlexRow align="center" gap={1} sx={{ marginTop: "8px" }}>
               <CircularProgress size={16} />
               <Caption size="smaller">
                 Loading {draftProviderLabel} models...
               </Caption>
-            </div>
+            </FlexRow>
           )}
         </DialogContent>
         <DialogActionButtons

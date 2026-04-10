@@ -7,10 +7,9 @@ import {
   ListItemIcon,
   ListItemText,
   IconButton,
-  Collapse,
-  Tooltip
+  Collapse
 } from "@mui/material";
-import { FlexColumn, Text, LoadingSpinner } from "../../ui_primitives";
+import { FlexColumn, Text, LoadingSpinner, Tooltip } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CancelIcon from "@mui/icons-material/Cancel";

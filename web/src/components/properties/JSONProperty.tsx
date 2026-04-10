@@ -7,9 +7,9 @@ import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "lodash/isEqual";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
-import { IconButton, Tooltip } from "@mui/material";
+import { IconButton } from "@mui/material";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { CopyButton } from "../ui_primitives";
+import { CopyButton, Tooltip } from "../ui_primitives";
 import TextEditorModal from "./TextEditorModal";
 
 const JSONProperty = (props: PropertyProps) => {

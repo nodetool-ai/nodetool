@@ -4,13 +4,11 @@ import React, { memo, useCallback } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import {
   Box,
-  Typography,
   Button,
   ToggleButton,
-  ToggleButtonGroup,
-  Tooltip
+  ToggleButtonGroup
 } from "@mui/material";
-import { LoadingSpinner, FlexRow } from "../ui_primitives";
+import { LoadingSpinner, FlexRow, Text, Tooltip } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { relativeTime } from "../../utils/formatDateAndTime";
@@ -161,9 +159,9 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   return (
     <div className="workflows-list" css={styles(theme)}>
       <Box className="header-controls">
-        <Typography variant="h3" className="section-title">
+        <Text size="big" className="section-title">
           Recent Workflows
-        </Typography>
+        </Text>
         <FlexRow
           className="workflow-controls"
           gap={2}
@@ -180,8 +178,8 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <ToggleButton value="updated_at">Date</ToggleButton>
           </ToggleButtonGroup>
           <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
+          nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement="top"
           title="Create New Workflow"
           arrow
@@ -217,16 +215,16 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
                 }}
               />
               <Box className="workflow-info">
-                <Typography className="workflow-name">
+                <Text className="workflow-name">
                   {workflow.name}
-                </Typography>
-                <Typography className="workflow-description">
+                </Text>
+                <Text className="workflow-description">
                   {truncateString(workflow.description, 100)}
-                </Typography>
+                </Text>
               </Box>
-              <Typography className="workflow-date">
+              <Text className="workflow-date">
                 {relativeTime(workflow.updated_at)}
-              </Typography>
+              </Text>
             </Box>
           ))
         )}

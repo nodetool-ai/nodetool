@@ -7,12 +7,12 @@ import {
   DialogActions,
   Button,
   Box,
-  Typography,
   CircularProgress,
   Alert,
   Chip,
   Stack
 } from "@mui/material";
+import { Text, Caption, FlexColumn } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -47,7 +47,7 @@ function ConfirmDialog({
     <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
-        <Typography>{message}</Typography>
+        <Text>{message}</Text>
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel}>Cancel</Button>
@@ -208,9 +208,9 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" width="100%">
           <Stack direction="row" spacing={1} alignItems="center">
             <HistoryIcon />
-            <Typography variant="h6" component="h6">
+            <Text size="normal" weight={600} component="h6">
               {nodeName ? `${nodeName} - History` : "Node History"}
-            </Typography>
+            </Text>
             <Chip size="small" label={`${historyCount}`} />
           </Stack>
           <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
@@ -229,58 +229,48 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
             />
           </Box>
         ) : sessionHistory.length > 0 ? (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              p: 4
-            }}
+          <FlexColumn
+            align="center"
+            justify="center"
+            fullHeight
+            sx={{ p: 4 }}
           >
-            <Typography variant="body1" sx={{ color: theme.vars.palette.text.secondary }}>
+            <Text color="secondary">
               {historyCount} result(s) available, but no images to display
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ mt: 1, color: theme.vars.palette.text.secondary }}
+            </Text>
+            <Caption
+              sx={{ mt: 1 }}
             >
               Only image outputs are shown as tiles
-            </Typography>
-          </Box>
+            </Caption>
+          </FlexColumn>
         ) : (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              p: 4
-            }}
+          <FlexColumn
+            align="center"
+            justify="center"
+            fullHeight
+            sx={{ p: 4 }}
           >
             <HistoryIcon
               sx={{ fontSize: 64, color: theme.vars.palette.text.secondary, mb: 2, opacity: 0.5 }}
             />
-            <Typography variant="body1" sx={{ color: theme.vars.palette.text.secondary }}>
+            <Text color="secondary">
               No history available for this node
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ mt: 1, color: theme.vars.palette.text.secondary }}
+            </Text>
+            <Caption
+              sx={{ mt: 1 }}
             >
               Results will appear here as you run the workflow
-            </Typography>
-          </Box>
+            </Caption>
+          </FlexColumn>
         )}
 
         {/* Asset History Section */}
         {showAssetHistory && (
           <Box sx={{ p: 2, borderTop: `1px solid ${theme.vars.palette.divider}` }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, color: theme.vars.palette.text.primary }}>
+            <Text size="small" weight={500} sx={{ mb: 1 }}>
               Persistent Asset History
-            </Typography>
+            </Text>
             {isLoadingAssets ? (
               <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
                 <CircularProgress size={24} />

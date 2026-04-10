@@ -8,8 +8,8 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { Box, Typography, useMediaQuery, Button } from "@mui/material";
-import { AlertBanner } from "../../ui_primitives";
+import { Box, useMediaQuery, Button } from "@mui/material";
+import { AlertBanner, Text, FlexRow, FlexColumn } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -428,50 +428,42 @@ const GlobalChat: React.FC = () => {
   // Show loading state if threads are still loading
   if (isLoadingThreads) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{ height: "100vh" }}
       >
-        <Typography>Loading chat...</Typography>
-      </Box>
+        <Text>Loading chat...</Text>
+      </FlexRow>
     );
   }
 
   // Show error state if threads failed to load
   if (threadsError) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{ height: "100vh" }}
       >
         <AlertBanner severity="error">
           Failed to load threads: {threadsError.message}
         </AlertBanner>
-      </Box>
+      </FlexRow>
     );
   }
 
   return (
-    <Box
+    <FlexColumn
       ref={chatContainerRef}
       className="global-chat-container"
+      fullWidth
       sx={{
         flex: 1,
-        width: "100%",
         minWidth: 0,
         height: "100dvh", // Dynamic viewport height
         maxHeight: "100dvh",
         maxWidth: "100vw",
-        display: "flex",
-        flexDirection: "column",
         // No top padding needed since AppHeader is external now
         // Add horizontal padding on desktop to avoid side panes
         paddingLeft: isMobile
@@ -512,10 +504,10 @@ const GlobalChat: React.FC = () => {
               flexShrink: 0
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-              <Typography variant="body2" component="span">
+            <FlexRow gap={1} align="center" wrap>
+              <Text size="small" component="span">
                 {error}
-              </Typography>
+              </Text>
               <Button
                 size="small"
                 variant="outlined"
@@ -530,11 +522,11 @@ const GlobalChat: React.FC = () => {
               >
                 Retry
               </Button>
-            </Box>
+            </FlexRow>
           </AlertBanner>
         )}
 
-        <Box
+        <FlexRow
           className="chat-container"
           sx={{
             position: "relative",
@@ -542,8 +534,6 @@ const GlobalChat: React.FC = () => {
             marginTop: "50px", // Offset for AppHeader
             minHeight: 0,
             flex: 1,
-            display: "flex",
-            flexDirection: "row",
             overflow: "hidden"
           }}
         >
@@ -560,14 +550,12 @@ const GlobalChat: React.FC = () => {
           />
 
           {/* Chat View - adjusts based on sidebar state */}
-          <Box
+          <FlexColumn
+            fullHeight
             sx={{
               flex: 1,
-              height: "100%",
               marginLeft: sidebarOpen ? `${SIDEBAR_WIDTH}px` : 0,
               transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              display: "flex",
-              flexDirection: "column",
               minWidth: 0,
               minHeight: 0,
               overflow: "hidden"
@@ -598,10 +586,10 @@ const GlobalChat: React.FC = () => {
               workflowId={workflowId}
               noMessagesPlaceholder={welcomePlaceholder}
             />
-          </Box>
-        </Box>
+          </FlexColumn>
+        </FlexRow>
       </Box>
-    </Box>
+    </FlexColumn>
   );
 };
 

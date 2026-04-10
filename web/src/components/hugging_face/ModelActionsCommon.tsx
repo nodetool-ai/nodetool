@@ -1,5 +1,6 @@
 import React from "react";
-import { Tooltip, Button, Box } from "@mui/material";
+import { Button, Box } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import FolderIcon from "@mui/icons-material/Folder";
 import {
@@ -13,8 +14,8 @@ export const ModelShowInExplorerButton: React.FC<{
 }> = ({ onClick, disabled }) => (
   <Tooltip
     title="Show in File Explorer"
-    enterDelay={TOOLTIP_ENTER_DELAY * 2}
-    enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+    delay={TOOLTIP_ENTER_DELAY * 2}
+    nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
   >
     <span>
       <Button
@@ -35,8 +36,8 @@ export const HuggingFaceLink: React.FC<{
   !modelId.endsWith("safetensors") && (
     <Tooltip
       title="View on HuggingFace"
-      enterDelay={TOOLTIP_ENTER_DELAY * 2}
-      enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+      delay={TOOLTIP_ENTER_DELAY * 2}
+      nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
     >
       <Button
         size="small"
@@ -64,8 +65,8 @@ export const OllamaLink: React.FC<{
   return (
     <Tooltip
       title="View on Ollama"
-      enterDelay={TOOLTIP_ENTER_DELAY * 2}
-      enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+      delay={TOOLTIP_ENTER_DELAY * 2}
+      nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
     >
       <Button
         size="small"

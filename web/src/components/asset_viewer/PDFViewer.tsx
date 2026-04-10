@@ -5,13 +5,13 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
 import {
-  Typography,
+  Box,
   CircularProgress,
   IconButton,
   Slider
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import {
   NavigateBefore,
   NavigateNext,
@@ -220,9 +220,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
     <Box className="pdf-viewer" css={styles(theme)}>
       <div className="content-wrapper">
         {asset?.content_type && (
-          <Typography variant="body2" className="content-type">
+          <Text size="small" className="content-type">
             {asset.content_type}
-          </Typography>
+          </Text>
         )}
         <Document
           className="pdf-document"
@@ -230,7 +230,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
           loading={<CircularProgress />}
-          error={<Typography color="error">Failed to load PDF</Typography>}
+          error={<Text color="error">Failed to load PDF</Text>}
         >
           {pageComponent}
         </Document>
@@ -242,9 +242,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           >
             <NavigateBefore />
           </IconButton>
-          <Typography variant="body1">
+          <Text>
             Page {pageNumber} of {numPages}
-          </Typography>
+          </Text>
           <IconButton
             onClick={goToNextPage}
             disabled={pageNumber >= (numPages || 1)}

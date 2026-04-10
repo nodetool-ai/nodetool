@@ -4,8 +4,7 @@ import { css } from "@emotion/react";
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 //mui
-import { Typography } from "@mui/material";
-import { EditorButton, Dialog } from "../ui_primitives";
+import { EditorButton, Dialog, Text } from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -599,15 +598,15 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             })}
           </div>
           <div className="asset-info">
-            <Typography className="folder-name">
+            <Text className="folder-name">
               <span style={{ color: "white", marginRight: ".5em" }}>/</span>
               {currentFolderName || ""}
-            </Typography>
+            </Text>
             {currentAsset?.name && (
-              <Typography variant="body2">{currentAsset.name}</Typography>
+              <Text size="small">{currentAsset.name}</Text>
             )}
             {currentAsset?.id && (
-              <Typography variant="body2">{currentAsset.id}</Typography>
+              <Text size="small">{currentAsset.id}</Text>
             )}
           </div>
         </div>
@@ -693,9 +692,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         {/* Compare mode instruction bar */}
         {compareMode && !compareAssetB && (
           <div className="compare-mode-bar">
-            <Typography variant="body2">
+            <Text size="small">
               Select another image from the thumbnails below to compare
-            </Typography>
+            </Text>
             <EditorButton density="compact" onClick={cancelCompareMode}>
               Cancel
             </EditorButton>

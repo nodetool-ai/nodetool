@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
@@ -304,7 +305,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     if (item.type === "header") {
       return (
         <div style={{ ...style, display: "flex" }}>
-          <Typography className="date-header" sx={{ width: "100%" }}>{item.label}</Typography>
+          <Text className="date-header" sx={{ width: "100%" }}>{item.label}</Text>
         </div>
       );
     }

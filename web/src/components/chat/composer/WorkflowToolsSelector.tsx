@@ -11,9 +11,7 @@ import React, {
 } from "react";
 import {
   Button,
-  Typography,
   Box,
-  Tooltip,
   CircularProgress,
   Chip,
   Checkbox,
@@ -26,7 +24,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useWorkflowTools } from "../../../serverState/useWorkflowTools";
 import { useTheme } from "@mui/material/styles";
 import SearchInput from "../../search/SearchInput";
-import { ScrollArea } from "../../ui_primitives";
+import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 360;
@@ -242,23 +240,24 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
           bgcolor: theme.vars.palette.background.default
         }}
       >
-        <Typography
-          variant="subtitle2"
-          sx={{ color: theme.vars.palette.text.primary, fontSize: "0.8rem" }}
+        <Text
+          size="small"
+          weight={500}
+          sx={{ fontSize: "0.8rem" }}
         >
           {t.name}
-        </Typography>
+        </Text>
         {t.description && (
-          <Typography
-            variant="body2"
+          <Text
+            size="small"
+            color="secondary"
             sx={{
-              color: theme.vars.palette.text.secondary,
               mt: 0.5,
               fontSize: "0.75rem"
             }}
           >
             {t.description}
-          </Typography>
+          </Text>
         )}
       </Box>
     );
@@ -272,7 +271,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
             ? `${selectedTools.length} workflow tools selected`
             : "Select Workflow Tools"
         }
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
       >
         <Button
           ref={buttonRef}
@@ -341,14 +340,13 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
         }}
       >
         {/* Header with Search */}
-        <Box
+        <FlexRow
+          gap={1}
+          align="center"
           sx={{
             p: 1.5,
             pl: 2,
             borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
             flexShrink: 0,
             background: theme.vars.palette.background.paper
           }}
@@ -364,10 +362,10 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
               onPressEscape={handleClose}
             />
           </Box>
-        </Box>
+        </FlexRow>
 
         {/* Main Content */}
-        <Box sx={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <FlexColumn sx={{ flex: 1, overflow: "hidden" }}>
           <ScrollArea className="items-container" fullHeight>
             {isLoading ? (
               <div className="loading-container">
@@ -376,13 +374,13 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
             ) : (!workflowTools || workflowTools.length === 0) &&
               selectedTools.length === 0 ? (
               <div className="no-tools-message">
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                <Text size="small" sx={{ mb: 0.5 }}>
                   No workflow tools available
-                </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8, display: "block" }}>
+                </Text>
+                <Caption sx={{ opacity: 0.8, display: "block" }}>
                   Workflow tools let the AI run your workflows as part of its response.
                   To create one: open a workflow, go to Settings, and set Run Mode to &quot;Tool&quot;.
-                </Typography>
+                </Caption>
               </div>
             ) : (
               (filteredSortedTools?.length ? filteredSortedTools : []).map(
@@ -432,14 +430,14 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
               workflowTools &&
               filteredSortedTools?.length === 0 && (
                 <div className="no-tools-message">
-                  <Typography variant="body2">No matching tools</Typography>
+                  <Text size="small">No matching tools</Text>
                 </div>
               )}
           </ScrollArea>
 
           {/* Hovered Tool Info */}
           {HoveredToolInfo}
-        </Box>
+        </FlexColumn>
       </Popover>
     </>
   );

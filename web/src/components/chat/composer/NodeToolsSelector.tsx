@@ -10,8 +10,6 @@ import React, {
 } from "react";
 import {
   Button,
-  Typography,
-  Tooltip,
   CircularProgress,
   Chip,
   Box,
@@ -30,7 +28,7 @@ import { IconForType } from "../../../config/data_types";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
-import { ScrollArea } from "../../ui_primitives";
+import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 680;
@@ -321,7 +319,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
             ? `${selectedCount} node tools selected`
             : "Select Node Tools"
         }
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
       >
         <Button
           ref={buttonRef}
@@ -390,14 +388,13 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
         }}
       >
         {/* Header with Search */}
-        <Box
+        <FlexRow
+          gap={1}
+          align="center"
           sx={{
             p: 1.5,
             pl: 2,
             borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
             flexShrink: 0,
             background: theme.vars.palette.background.paper
           }}
@@ -413,16 +410,14 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
               onPressEscape={handleClose}
             />
           </Box>
-        </Box>
+        </FlexRow>
 
         {/* Main Content - Split Panel */}
-        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <FlexRow sx={{ flex: 1, overflow: "hidden" }}>
           {/* Left Panel - Available Nodes */}
-          <Box
+          <FlexColumn
             sx={{
               flex: 1,
-              display: "flex",
-              flexDirection: "column",
               minWidth: 0,
               bgcolor: "background.paper"
             }}
@@ -435,11 +430,11 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   </div>
                 ) : nodesForDisplay.length === 0 ? (
                   <div className="no-nodes-message">
-                    <Typography variant="body2">
+                    <Text size="small">
                       {searchTerm.trim().length > 0
                         ? "No nodes match your search."
                         : "No nodes available."}
-                    </Typography>
+                    </Text>
                   </div>
                 ) : (
                   <RenderNodesSelectable
@@ -455,17 +450,15 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 )}
               </ScrollArea>
             </Box>
-          </Box>
+          </FlexColumn>
 
           {/* Right Panel - Selected Nodes */}
-          <Box
+          <FlexColumn
             sx={{
               width: 280,
               flexShrink: 0,
               borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
-              bgcolor: theme.vars.palette.grey[900],
-              display: "flex",
-              flexDirection: "column"
+              bgcolor: theme.vars.palette.grey[900]
             }}
           >
             <div className="selected-panel">
@@ -479,9 +472,9 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 {selectedCount === 0 ? (
                   <div className="empty-selection">
                     <span className="empty-title">Node Tools</span>
-                    <Typography variant="caption" sx={{ color: theme.vars.palette.warning.main, fontSize: "var(--fontSizeTiny)" }}>
+                    <Caption color="warning" sx={{ fontSize: "var(--fontSizeTiny)" }}>
                        EXPERIMENTAL
-                    </Typography>
+                    </Caption>
                     <span className="empty-desc">
                       Enable nodes as tools for the AI assistant to use during conversations.
                     </span>
@@ -520,7 +513,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                         />
                         <Tooltip
                           title="Click to scroll to namespace"
-                          enterDelay={500}
+                          delay={500}
                           placement="left"
                           slotProps={{
                             popper: {
@@ -544,7 +537,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                         </Tooltip>
                         <Tooltip
                           title="Remove"
-                          enterDelay={300}
+                          delay={300}
                           placement="left"
                           slotProps={{
                             popper: {
@@ -574,8 +567,8 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 )}
               </div>
             </div>
-          </Box>
-        </Box>
+          </FlexColumn>
+        </FlexRow>
       </Popover>
     </>
   );

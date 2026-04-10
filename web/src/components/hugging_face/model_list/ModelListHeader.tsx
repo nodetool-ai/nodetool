@@ -6,10 +6,9 @@ import {
   Select,
   ToggleButton,
   ToggleButtonGroup,
-  Slider,
-  Tooltip,
-  Typography
+  Slider
 } from "@mui/material";
+import { Tooltip, Text } from "../../ui_primitives";
 import type { SelectChangeEvent } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -91,9 +90,9 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           pr: 2
         }}
       >
-        <Typography
-          variant="body2"
-          color="text.secondary"
+        <Text
+          size="small"
+          color="secondary"
           sx={{ whiteSpace: "nowrap", mr: "auto", ml: 2 }}
         >
           {(() => {
@@ -108,7 +107,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             }
             return `${totalCount} models`;
           })()}
-        </Typography>
+        </Text>
 
         <ToggleButtonGroup
           value={filterStatus}

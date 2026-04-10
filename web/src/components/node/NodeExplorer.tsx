@@ -8,9 +8,9 @@ import {
   List,
   ListItem,
   ListItemButton,
-  TextField,
-  Typography
+  TextField
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
@@ -313,11 +313,11 @@ const NodeExplorer: React.FC = () => {
       />
       {entries.length === 0 ? (
         <Box className="empty-state">
-          <Typography variant="body2">
+          <Text size="small">
             {nodes.length === 0
               ? "No nodes in this workflow yet."
               : "No nodes match your filter."}
-          </Typography>
+          </Text>
         </Box>
       ) : (
         <List className="node-list" dense disablePadding>
@@ -330,13 +330,13 @@ const NodeExplorer: React.FC = () => {
                 onContextMenu={handleContextMenu}
               >
                 <div className="node-text">
-                  <Typography className="node-title" variant="body1">
+                  <Text className="node-title">
                     {entry.title}
-                  </Typography>
+                  </Text>
                   {entry.subtitle && (
-                    <Typography className="node-subtitle" variant="body2">
+                    <Text className="node-subtitle" size="small">
                       {entry.subtitle}
-                    </Typography>
+                    </Text>
                   )}
                 </div>
               </ListItemButton>

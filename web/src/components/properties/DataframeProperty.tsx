@@ -8,7 +8,8 @@ import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
 import ColumnsManager from "../node/ColumnsManager";
 import DataframeEditorModal from "./DataframeEditorModal";
-import { Button, ButtonGroup, IconButton, Tooltip } from "@mui/material";
+import { Button, ButtonGroup, IconButton } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";

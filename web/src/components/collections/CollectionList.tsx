@@ -3,7 +3,6 @@ import {
   List,
   ListItem,
   Paper,
-  Typography,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -19,7 +18,7 @@ import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
 import { useCollectionStore } from "../../stores/CollectionStore";
 import { useShallow } from "zustand/react/shallow";
-import { DialogActionButtons } from "../ui_primitives";
+import { DialogActionButtons, Text, FlexRow } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 
 const CollectionList = () => {
@@ -116,22 +115,21 @@ const CollectionList = () => {
     <>
       {!showForm && (
         <>
-          <Box
+          <FlexRow
+            align="center"
+            justify="space-between"
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
               mb: 2,
               mt: 1
             }}
           >
             <Box>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              <Text size="big" weight={700}>
                 Collections
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </Text>
+              <Text size="small" color="secondary">
                 {totalCount} {totalCount === 1 ? "collection" : "collections"}
-              </Typography>
+              </Text>
             </Box>
             <Fab
               variant="extended"
@@ -187,16 +185,16 @@ const CollectionList = () => {
             >
               <AddIcon /> Create Collection
             </Fab>
-          </Box>
+          </FlexRow>
 
           {collections?.collections.length ? <CollectionHeader /> : null}
           {error && (
-            <Typography color="error" sx={{ mt: 2 }}>
+            <Text color="error" sx={{ mt: 2 }}>
               Error loading collections
-            </Typography>
+            </Text>
           )}
           {isLoading ? (
-            <Typography sx={{ mt: 2 }}>Loading collections...</Typography>
+            <Text sx={{ mt: 2 }}>Loading collections...</Text>
           ) : !collections?.collections.length ? (
             <EmptyCollectionState />
           ) : (
@@ -270,9 +268,9 @@ const CollectionList = () => {
         <Dialog open={true} onClose={handleClearIndexErrors}>
           <DialogTitle>Indexing Report</DialogTitle>
           <DialogContent>
-            <Typography variant="body1" sx={{ mb: 2 }}>
+            <Text sx={{ mb: 2 }}>
               The following files encountered errors during indexing:
-            </Typography>
+            </Text>
             <List sx={{ pl: 2 }}>
               {indexErrors.map((error) => (
                 <ListItem key={error.file} sx={{ display: "list-item" }}>

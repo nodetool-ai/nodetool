@@ -3,12 +3,12 @@ import {
   Box,
   TextField,
   Button,
-  Typography,
   IconButton,
   Chip,
   ToggleButtonGroup,
   ToggleButton
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -155,9 +155,9 @@ function NodeTestPage() {
             >
               <PlayArrowIcon fontSize="small" />
             </IconButton>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            <Text size="small" weight={700}>
               {row.namespace}
-            </Typography>
+            </Text>
             <Chip label={row.nodeCount} size="small" />
           </Box>
         );
@@ -198,7 +198,7 @@ function NodeTestPage() {
           flexWrap: "wrap"
         }}
       >
-        <Typography variant="h5">Node Integration Tests</Typography>
+        <Text size="normal" weight={600}>Node Integration Tests</Text>
 
         <TextField
           size="small"

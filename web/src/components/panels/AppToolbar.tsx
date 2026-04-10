@@ -1,13 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import {
   Button,
-  Tooltip,
   CircularProgress,
   Box,
   MenuItem,
   Select,
   FormControl
 } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -359,7 +359,7 @@ const NodeMenuButton = memo(function NodeMenuButton() {
   return (
     <Tooltip
       title={getShortcutTooltip("open NodeMenu")}
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      delay={TOOLTIP_ENTER_DELAY}
     >
       <Button
         className={`action-button node-menu-button ${
@@ -396,7 +396,7 @@ const SaveWorkflowButton = memo(function SaveWorkflowButton() {
   return (
     <Tooltip
       title={getShortcutTooltip("saveWorkflow")}
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      delay={TOOLTIP_ENTER_DELAY}
     >
       <Button className="action-button" onClick={handleSave} tabIndex={-1}>
         <SaveIcon />
@@ -413,7 +413,7 @@ const AutoLayoutButton = memo(function AutoLayoutButton({
   return (
     <Tooltip
       title="Arranges all nodes or selected nodes"
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      delay={TOOLTIP_ENTER_DELAY}
     >
       <Button className="action-button" onClick={autoLayout} tabIndex={-1}>
         <LayoutIcon />
@@ -450,7 +450,7 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
     <Tooltip
       placement="top"
       title="Run Mode"
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      delay={TOOLTIP_ENTER_DELAY}
       slotProps={{
         popper: {
           sx: {
@@ -563,7 +563,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
           ? "Workflow is currently running..."
           : getShortcutTooltip("runWorkflow")
       }
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      delay={TOOLTIP_ENTER_DELAY}
     >
       <span>
         <Button
@@ -616,7 +616,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
   return (
     <Tooltip
       title={getShortcutTooltip("stopWorkflow")}
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      delay={TOOLTIP_ENTER_DELAY}
     >
       <Button
         className={`action-button run-stop-button stop-workflow ${
@@ -650,7 +650,7 @@ const RunAsAppButton = memo(function RunAsAppButton() {
   }, [workflowId]);
 
   return (
-    <Tooltip title="Run as App" enterDelay={TOOLTIP_ENTER_DELAY}>
+    <Tooltip title="Run as App" delay={TOOLTIP_ENTER_DELAY}>
       <Button
         className="action-button run-as-app-button"
         sx={{
@@ -684,7 +684,7 @@ const EditWorkflowButton = memo(function EditWorkflowButton({
 
   return (
     <>
-      <Tooltip title="Edit Workflow Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip title="Edit Workflow Settings" delay={TOOLTIP_ENTER_DELAY}>
         <Button
           className="action-button"
           onClick={handleEditWorkflow}
@@ -717,7 +717,7 @@ const DownloadWorkflowButton = memo(function DownloadWorkflowButton() {
   }, [workflowJSON, workflow]);
 
   return (
-    <Tooltip title="Download Workflow JSON" enterDelay={TOOLTIP_ENTER_DELAY}>
+    <Tooltip title="Download Workflow JSON" delay={TOOLTIP_ENTER_DELAY}>
       <Button className="action-button" onClick={handleDownload} tabIndex={-1}>
         <DownloadIcon />
       </Button>

@@ -4,12 +4,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
-  Typography,
   Button,
   Accordion,
   AccordionSummary,
   AccordionDetails
 } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import { DataType, IconForType } from "../../../config/data_types";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
@@ -105,9 +105,9 @@ const DataTypesList = ({
             }
           }}
         >
-          <Typography variant="h5" color="text.secondary">
+          <Text size="normal" weight={600} color="secondary">
             {title}
-          </Typography>
+          </Text>
         </AccordionSummary>
         <AccordionDetails sx={{ padding: "0" }}>
           <div
@@ -158,16 +158,16 @@ const DataTypesList = ({
                     {type.name}
                   </div>
                 </Button>
-                <Typography
+                <Text
                   key={`text-${type.value}`}
-                  style={{
+                  size="small"
+                  sx={{
                     borderRight: "0",
-                    color: theme.vars.palette.grey[50],
-                    fontSize: "var(--fontSizeSmall)"
+                    color: theme.vars.palette.grey[50]
                   }}
                 >
                   {type.description}
-                </Typography>
+                </Text>
               </div>
             ))}
           </div>

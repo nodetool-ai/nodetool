@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import {
   Box,
   TextField,
-  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -12,6 +11,7 @@ import {
   MenuItem,
   IconButton
 } from "@mui/material";
+import { Tooltip, FlexRow } from "../ui_primitives";
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
@@ -111,13 +111,12 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     >
       {/* Add dynamic input property (+) when node is dynamic */}
       {isDynamic && (
-        <Box
+        <FlexRow
+          align="center"
+          gap={1}
+          justify="flex-start"
+          fullWidth
           css={css({
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            justifyContent: "flex-start",
-            width: "100%",
             position: "relative"
           })}
         >
@@ -126,18 +125,17 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               <Add fontSize="small" />
             </IconButton>
           </Tooltip>
-        </Box>
+        </FlexRow>
       )}
 
       {supportsDynamicOutputs && (
         <>
-          <Box
+          <FlexRow
+            align="center"
+            gap={1}
+            justify="flex-end"
+            fullWidth
             css={css({
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              justifyContent: "flex-end",
-              width: "100%",
               position: "relative",
               right: 0,
               top: 0
@@ -151,7 +149,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                 <Add fontSize="small" />
               </IconButton>
             </Tooltip>
-          </Box>
+          </FlexRow>
 
           <Dialog
             open={showOutputDialog}

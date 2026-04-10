@@ -12,8 +12,6 @@ import {
 import {
   Box,
   IconButton,
-  Tooltip,
-  Typography,
   Popover,
   List,
   ListItem,
@@ -21,6 +19,7 @@ import {
   ListItemText,
   ListItemIcon
 } from "@mui/material";
+import { Tooltip, Text } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
 import CheckIcon from "@mui/icons-material/Check";
@@ -316,12 +315,11 @@ const MiniMapNavigator: React.FC = () => {
         }}
       >
         <Box sx={{ p: 1 }}>
-          <Typography
-            variant="subtitle2"
+          <Text
+            size="small"
+            weight={600}
+            color="secondary"
             sx={{
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              color: theme.vars.palette.text.secondary,
               textTransform: "uppercase",
               letterSpacing: "0.5px",
               mb: 0.5,
@@ -329,7 +327,7 @@ const MiniMapNavigator: React.FC = () => {
             }}
           >
             Node Types
-          </Typography>
+          </Text>
           <List dense disablePadding>
             {legendItems.map((item) => (
               <ListItem

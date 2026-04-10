@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { Box, CircularProgress, Typography, Button } from "@mui/material";
+import { Box, CircularProgress, Button } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
 import { VariableSizeList as VirtualList } from "react-window";
@@ -281,9 +282,9 @@ const ModelListIndex: React.FC = () => {
         }}
       >
         <CircularProgress />
-        <Typography variant="h4" mt={2}>
+        <Text size="big" sx={{ mt: 2 }}>
           Loading models
-        </Typography>
+        </Text>
       </Box>
     );
   }
@@ -315,26 +316,25 @@ const ModelListIndex: React.FC = () => {
           textAlign: "center"
         }}
       >
-        <Typography variant="h4" color="error">
+        <Text size="big" color="error">
           Could not load models
-        </Typography>
-        <Typography
-          variant="body1"
-          color="text.secondary"
+        </Text>
+        <Text
+          color="secondary"
           sx={{ maxWidth: 600 }}
         >
           {errorMessage}
-        </Typography>
+        </Text>
         {isOllamaError && (
           <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
             {isElectron ? (
-              <Typography variant="body2" color="warning.main">
+              <Text size="small" color="warning">
                 Ollama should be running automatically. Please try restarting
                 the application.
-              </Typography>
+              </Text>
             ) : (
-              <Typography
-                variant="body2"
+              <Text
+                size="small"
                 component="a"
                 href="https://ollama.com/download"
                 target="_blank"
@@ -342,7 +342,7 @@ const ModelListIndex: React.FC = () => {
                 sx={{ color: "primary.main", textDecoration: "underline" }}
               >
                 Download Ollama →
-              </Typography>
+              </Text>
             )}
           </Box>
         )}
@@ -371,14 +371,14 @@ const ModelListIndex: React.FC = () => {
             />
           )}
           {modelSearchTerm && selectedModelType === "All" && (
-            <Typography variant="h5" mb={2}>
+            <Text size="normal" weight={600} sx={{ mb: 2 }}>
               Searched models for &quot;{modelSearchTerm}&quot;
-            </Typography>
+            </Text>
           )}
           {selectedModelType !== "All" && (
-            <Typography variant="h2" fontSize="1.25em" mb={2}>
+            <Text size="bigger" sx={{ fontSize: "1.25em", mb: 2 }}>
               {prettifyModelType(selectedModelType)}
-            </Typography>
+            </Text>
           )}
           {flattenedList.length > 0 ? (
             <AutoSizer>
@@ -403,9 +403,9 @@ const ModelListIndex: React.FC = () => {
                     if (item.type === "header") {
                       return (
                         <Box style={style} sx={{ pt: 2, pb: 1 }}>
-                          <Typography variant="h2" fontSize="1.25em">
+                          <Text size="bigger" sx={{ fontSize: "1.25em" }}>
                             {prettifyModelType(item.modelType)}
-                          </Typography>
+                          </Text>
                         </Box>
                       );
                     } else {
@@ -471,23 +471,23 @@ const ModelListIndex: React.FC = () => {
               {modelSearchTerm ? (
                 <>
                   <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Typography variant="h6" color="text.secondary">
+                  <Text size="normal" weight={600} color="secondary">
                     No models found for &quot;{modelSearchTerm}&quot;
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  </Text>
+                  <Text size="small" color="secondary">
                     Try a different search term or adjust your filters
-                  </Typography>
+                  </Text>
                 </>
               ) : filterStatus === "downloaded" ? (
                 <>
                   <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Typography variant="h6" color="text.secondary">
+                  <Text size="normal" weight={600} color="secondary">
                     No downloaded models
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  </Text>
+                  <Text size="small" color="secondary">
                     Switch to &quot;All&quot; or &quot;Available&quot; to find
                     models to download
-                  </Typography>
+                  </Text>
                   <Button
                     variant="outlined"
                     size="small"
@@ -500,13 +500,13 @@ const ModelListIndex: React.FC = () => {
               ) : (
                 <>
                   <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Typography variant="h6" color="text.secondary">
+                  <Text size="normal" weight={600} color="secondary">
                     No models available
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  </Text>
+                  <Text size="small" color="secondary">
                     Try adjusting the size filter or selecting a different
                     category
-                  </Typography>
+                  </Text>
                 </>
               )}
             </Box>

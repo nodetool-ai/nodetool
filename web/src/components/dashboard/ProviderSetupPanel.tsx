@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, useMemo, memo } from "react";
 import {
-  Typography,
   Box,
   TextField,
   Button,
   Alert
 } from "@mui/material";
-import { LoadingSpinner, FlexColumn, CollapsibleSection } from "../ui_primitives";
+import { LoadingSpinner, FlexColumn, CollapsibleSection, Text } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import SaveIcon from "@mui/icons-material/Save";
@@ -296,12 +295,12 @@ const ProviderSetupPanel: React.FC = () => {
             defaultOpen={true}
             title={
               <div className="section-title">
-                <Typography
-                  variant="h6"
-                  sx={{ fontSize: "1em", fontWeight: 600 }}
+                <Text
+                  size="normal"
+                  weight={600}
                 >
                   AI Provider Setup
-                </Typography>
+                </Text>
                 <span className="configured-count">
                   {configuredCount}/{PROVIDERS.length} configured
                 </span>
@@ -314,13 +313,14 @@ const ProviderSetupPanel: React.FC = () => {
               </FlexColumn>
             ) : (
               <>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 2, color: "text.secondary" }}
+                <Text
+                  size="small"
+                  color="secondary"
+                  sx={{ mb: 2 }}
                 >
                   Configure API keys for AI providers. Keys are encrypted and
                   stored securely.
-                </Typography>
+                </Text>
 
                 {PROVIDERS.map((provider) => {
                   const isConfigured = configuredKeys.has(provider.key);

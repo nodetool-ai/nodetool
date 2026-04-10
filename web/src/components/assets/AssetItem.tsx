@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo, useCallback } from "react";
-import { Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
@@ -11,7 +10,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import { DeleteButton } from "../ui_primitives";
+import { DeleteButton, Text } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -405,9 +404,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               titleAccess={asset.content_type || "Audio file"}
             />
             {showDuration && asset.duration && assetItemSize > 1 && (
-              <Typography className="duration info">
+              <Text className="duration info">
                 {secondsToHMS(asset.duration)}
-              </Typography>
+              </Text>
             )}
           </>
         )}
@@ -447,9 +446,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             )}
 
             {showDuration && asset.duration && assetItemSize > 1 && (
-              <Typography className="duration info">
+              <Text className="duration info">
                 {secondsToHMS(asset.duration)}
-              </Typography>
+              </Text>
             )}
           </>
         )}
@@ -502,8 +501,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       {showInfo && (
         <>
           {showFiletype && assetFileEnding && assetItemSize > 3 && (
-            <Typography
+            <Text
               className="filetype info"
+              size="tiny"
               title={asset.content_type || "Unknown content type"}
               style={{
                 borderTop: `2px solid var(--c_${assetType})`,
@@ -514,19 +514,18 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 textAlign: "center",
                 zIndex: 1000,
                 color: theme.vars.palette.grey[100],
-                fontSize: theme.fontSizeTiny,
                 backgroundColor: theme.vars.palette.grey[800]
               }}
             >
               {assetFileEnding}
-            </Typography>
+            </Text>
           )}
           {showFileSize &&
             asset.size !== undefined &&
             asset.size !== null &&
             asset.size > 0 &&
             assetItemSize > 3 && (
-              <Typography
+              <Text
                 className="filesize info"
                 title={`File size: ${formatFileSize(asset.size)}`}
                 style={{
@@ -535,10 +534,10 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 }}
               >
                 {formatFileSize(asset.size)}
-              </Typography>
+              </Text>
             )}
           {showName && assetItemSize > 2 && (
-            <Typography
+            <Text
               aria-label={asset.name}
               data-microtip-position="bottom"
               role="tooltip"
@@ -546,7 +545,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             >
               {asset.name}
               {/* {asset.parent_id} */}
-            </Typography>
+            </Text>
           )}
         </>
       )}

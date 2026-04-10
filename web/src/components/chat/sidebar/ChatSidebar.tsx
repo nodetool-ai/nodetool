@@ -4,9 +4,9 @@ import {
     Box,
     IconButton,
     InputBase,
-    Tooltip,
     Divider
 } from "@mui/material";
+import { Tooltip, FlexRow, FlexColumn } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
@@ -103,8 +103,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 <Tooltip
                     title="Open sidebar"
                     placement="bottom"
-                    enterDelay={TOOLTIP_ENTER_DELAY}
-                    enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+                    delay={TOOLTIP_ENTER_DELAY}
+                    nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
                 >
                     <IconButton
                         onClick={handleOpen}
@@ -124,8 +124,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 <Tooltip
                     title="New chat"
                     placement="bottom"
-                    enterDelay={TOOLTIP_ENTER_DELAY}
-                    enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+                    delay={TOOLTIP_ENTER_DELAY}
+                    nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
                 >
                     <IconButton
                         onClick={handleNewChat}
@@ -145,16 +145,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </Box>
 
             {/* Sidebar Panel */}
-            <Box
+            <FlexColumn
+                fullHeight
                 sx={{
                     position: "absolute",
                     top: 0,
                     left: 0,
                     width: SIDEBAR_WIDTH,
-                    height: "100%",
                     zIndex: 100,
-                    display: "flex",
-                    flexDirection: "column",
                     backgroundColor: theme.vars.palette.background.default,
                     borderRight: `1px solid ${theme.vars.palette.divider}`,
                     boxShadow: "4px 0 24px rgba(0, 0, 0, 0.05)",
@@ -164,11 +162,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 }}
             >
                 {/* Header with collapse button */}
-                <Box
+                <FlexRow
+                    align="center"
+                    justify="space-between"
                     sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
                         p: 1,
                         minHeight: 48,
                         borderBottom: `1px solid ${theme.vars.palette.divider}`
@@ -180,8 +177,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <Tooltip
                         title="Collapse sidebar"
                         placement="right"
-                        enterDelay={TOOLTIP_ENTER_DELAY}
-                        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+                        delay={TOOLTIP_ENTER_DELAY}
+                        nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
                     >
                         <IconButton
                             onClick={handleClose}
@@ -198,15 +195,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             <ChevronLeftIcon />
                         </IconButton>
                     </Tooltip>
-                </Box>
+                </FlexRow>
                 {/* Search with New Chat button */}
-                <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
-                    <Box
+                <FlexRow gap={1} align="center" sx={{ px: 2, py: 1.5 }}>
+                    <FlexRow
+                        gap={1}
+                        align="center"
                         sx={{
                             flex: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
                             px: 1.5,
                             py: 1,
                             borderRadius: 2,
@@ -241,12 +237,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 }
                             }}
                         />
-                    </Box>
+                    </FlexRow>
                     <Tooltip
                         title="New chat"
                         placement="bottom"
-                        enterDelay={TOOLTIP_ENTER_DELAY}
-                        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+                        delay={TOOLTIP_ENTER_DELAY}
+                        nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
                     >
                         <IconButton
                             onClick={handleNewChat}
@@ -269,7 +265,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             <AddIcon sx={{ fontSize: "1.2rem" }} />
                         </IconButton>
                     </Tooltip>
-                </Box>
+                </FlexRow>
 
                 <Divider />
 
@@ -295,7 +291,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         getThreadPreview={getThreadPreview}
                     />
                 </Box>
-            </Box>
+            </FlexColumn>
         </>
     );
 };

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { Typography, Box, CircularProgress, Chip } from "@mui/material";
+import { Box, CircularProgress, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -8,7 +8,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
 import { isElectron } from "../../stores/ApiClient";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { FlexRow, Text, Caption } from "../ui_primitives";
+import { FlexRow, FlexColumn, Text, Caption } from "../ui_primitives";
 import log from "loglevel";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
@@ -113,11 +113,10 @@ const FeatureStatus: React.FC<{
   const theme = useTheme();
 
   return (
-    <Box
+    <FlexRow
+      justify="space-between"
+      align="center"
       sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
         padding: "0.5em 0",
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
         "&:last-child": {
@@ -125,10 +124,10 @@ const FeatureStatus: React.FC<{
         }
       }}
     >
-      <Typography sx={{ color: theme.vars.palette.text.secondary }}>
+      <Text color="secondary">
         {label}
-      </Typography>
-      <Box sx={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
+      </Text>
+      <FlexRow align="center" gap={1}>
         {available ? (
           <>
             <Chip
@@ -149,8 +148,8 @@ const FeatureStatus: React.FC<{
             variant="outlined"
           />
         )}
-      </Box>
-    </Box>
+      </FlexRow>
+    </FlexRow>
   );
 });
 FeatureStatus.displayName = "FeatureStatus";
@@ -257,23 +256,22 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
 
   if (loading) {
     return (
-      <Box
+      <FlexRow
+        justify="center"
+        align="center"
         sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
           padding: "3em"
         }}
       >
         <CircularProgress size={40} />
-      </Box>
+      </FlexRow>
     );
   }
 
   if (error) {
     return (
       <Box sx={{ padding: "1em" }}>
-        <Typography color="error">{error}</Typography>
+        <Text color="error">{error}</Text>
       </Box>
     );
   }
@@ -281,9 +279,9 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
   return (
     <Box>
       {/* Application Info */}
-      <Typography variant="h3" id="application">
+      <Text size="big" id="application">
         Application
-      </Typography>
+      </Text>
       <div className="settings-section">
         <InfoRow label="Version" value={VERSION} />
         {systemInfo && (
@@ -296,9 +294,9 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
       </div>
 
       {/* Operating System */}
-      <Typography variant="h3" id="operating-system">
+      <Text size="big" id="operating-system">
         Operating System
-      </Typography>
+      </Text>
       <div className="settings-section">
         {systemInfo ? (
           <>
@@ -317,9 +315,9 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
       {/* Installation Paths - only show in Electron */}
       {systemInfo && (
         <>
-          <Typography variant="h3" id="installation-paths">
+          <Text size="big" id="installation-paths">
             Installation Paths
-          </Typography>
+          </Text>
           <div className="settings-section">
             <InfoRow
               label="Application"
@@ -352,9 +350,9 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
       {/* Features & Versions */}
       {systemInfo && (
         <>
-          <Typography variant="h3" id="features">
+          <Text size="big" id="features">
             Features & Versions
-          </Typography>
+          </Text>
           <div className="settings-section">
             <InfoRow label="Python" value={systemInfo.pythonVersion} />
             <FeatureStatus
@@ -379,7 +377,8 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
       {/* Copy All Button */}
       {systemInfo && (
         <Box sx={{ marginTop: "1.5em", marginBottom: "1em" }}>
-          <Typography
+          <Text
+            size="small"
             onClick={handleCopyAll}
             sx={{
               color: "var(--palette-primary-main)",
@@ -387,7 +386,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
               display: "inline-flex",
               alignItems: "center",
               gap: "0.5em",
-              fontSize: theme.fontSizeSmall,
               "&:hover": {
                 textDecoration: "underline"
               }
@@ -395,20 +393,18 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
           >
             <ContentCopyIcon sx={{ fontSize: "1.2em" }} />
             Copy all system information
-          </Typography>
+          </Text>
         </Box>
       )}
 
       {/* Links */}
-      <Typography variant="h3" id="links">
+      <Text size="big" id="links">
         Links
-      </Typography>
+      </Text>
       <div className="settings-section">
-        <Box
+        <FlexColumn
+          gap={1}
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5em",
             padding: "0.5em 0"
           }}
         >
@@ -445,7 +441,7 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
           >
             Website
           </a>
-        </Box>
+        </FlexColumn>
       </div>
     </Box>
   );

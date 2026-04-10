@@ -2,7 +2,8 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, CircularProgress, Tooltip } from "@mui/material";
+import { IconButton, CircularProgress } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { PlayArrow } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useCallback, useMemo } from "react";
@@ -83,7 +84,7 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
           </div>
         )
       }
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      delay={TOOLTIP_ENTER_DELAY}
     >
       <IconButton
         size="small"

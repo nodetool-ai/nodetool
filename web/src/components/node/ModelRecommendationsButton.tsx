@@ -1,5 +1,6 @@
 import React, { useState, memo, useCallback } from "react";
-import { Button, Tooltip } from "@mui/material";
+import { Button } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -50,7 +51,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
   return (
     <>
       <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
         title="View and download compatible models"
       >
         <div

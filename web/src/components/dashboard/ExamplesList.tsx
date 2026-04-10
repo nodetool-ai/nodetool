@@ -163,9 +163,9 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
                 />
                 <Text className="example-name">{example.name}</Text>
                 {example.description && (
-                  <Typography className="example-description-tooltip">
+                  <Text className="example-description-tooltip">
                     {truncateString(example.description, 150)}
-                  </Typography>
+                  </Text>
                 )}
               </Box>
             ))}

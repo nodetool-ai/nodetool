@@ -14,10 +14,8 @@ import React, {
 import { Asset } from "../../stores/ApiTypes";
 import {
   Box,
-  Typography,
   CircularProgress,
   IconButton,
-  Tooltip,
   ToggleButton,
   ToggleButtonGroup,
   Select,
@@ -25,6 +23,7 @@ import {
   FormControl,
   SelectChangeEvent
 } from "@mui/material";
+import { Text, Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
@@ -715,9 +714,9 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         css={styles(theme, compact, bgColorValue)}
         className="model-3d-viewer"
       >
-        <Typography variant="body2" color="textSecondary">
+        <Text size="small" color="secondary">
           No 3D model loaded
-        </Typography>
+        </Text>
       </Box>
     );
   }
@@ -738,19 +737,19 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <div className="loading-overlay">
               <CircularProgress size={compact ? 20 : 40} />
               {!compact && (
-                <Typography variant="body2" color="textSecondary">
+                <Text size="small" color="secondary">
                   Loading model...
-                </Typography>
+                </Text>
               )}
             </div>
           )}
           {loadError && (
             <div className="error-overlay">
               {loadError.split("\n").map((line, i) => (
-                <Typography
+                <Text
                   key={i}
-                  variant="body2"
-                  color={i === 0 ? "error" : "textSecondary"}
+                  size="small"
+                  color={i === 0 ? "error" : "secondary"}
                   sx={{
                     wordBreak: "break-word",
                     fontSize: i === 0 ? "0.875rem" : "0.75rem",
@@ -758,7 +757,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   }}
                 >
                   {line}
-                </Typography>
+                </Text>
               ))}
             </div>
           )}
@@ -958,9 +957,9 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
       {/* Model info */}
       {!compact && asset?.name && (
         <div className="model-info">
-          <Typography variant="h6" color="textSecondary">
+          <Text size="normal" weight={600} color="secondary">
             {asset.name}
-          </Typography>
+          </Text>
         </div>
       )}
     </Box>

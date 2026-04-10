@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   IconButton,
-  Tooltip,
   Box,
   Button,
   useMediaQuery,
@@ -25,7 +24,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
-import { ScrollArea } from "../ui_primitives";
+import { ScrollArea, Tooltip } from "../ui_primitives";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
@@ -268,7 +267,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           </div>
         }
         placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton
           tabIndex={-1}
@@ -283,7 +282,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <Tooltip
         title={getShortcutTooltip("toggleAssets")}
         placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton
           tabIndex={-1}
@@ -302,7 +301,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <Tooltip
         title="Collections"
         placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton
           tabIndex={-1}
@@ -317,7 +316,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <Tooltip
             title="Model Manager"
             placement="right-start"
-            enterDelay={TOOLTIP_ENTER_DELAY}
+            delay={TOOLTIP_ENTER_DELAY}
           >
             <IconButton
               tabIndex={-1}
@@ -329,7 +328,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <Tooltip
             title="Workspaces Manager"
             placement="right-start"
-            enterDelay={TOOLTIP_ENTER_DELAY}
+            delay={TOOLTIP_ENTER_DELAY}
           >
             <IconButton
               tabIndex={-1}

@@ -1,5 +1,6 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../ui_primitives";
 import log from "loglevel";
 
 interface PanelErrorBoundaryProps {
@@ -53,9 +54,9 @@ export default class PanelErrorBoundary extends React.Component<
               borderRadius: 1
             }}
           >
-            <Typography variant="body2" component="div">
+            <Text size="small" component="div">
               Panel failed to render.
-            </Typography>
+            </Text>
           </Box>
         )
       );

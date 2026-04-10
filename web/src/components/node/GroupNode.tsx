@@ -20,7 +20,7 @@ import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
-import { Tooltip } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
@@ -333,8 +333,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     >
       <Tooltip
         placement="top"
-        enterDelay={TOOLTIP_ENTER_DELAY * 5}
-        enterNextDelay={TOOLTIP_ENTER_DELAY * 5}
+        delay={TOOLTIP_ENTER_DELAY * 5}
+        nextDelay={TOOLTIP_ENTER_DELAY * 5}
         title={
           <span>
             <b>SELECT GROUP NODE:</b> <br />

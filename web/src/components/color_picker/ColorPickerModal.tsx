@@ -5,12 +5,11 @@ import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Typography,
   Tabs,
   Tab,
-  Tooltip,
   Button
 } from "@mui/material";
+import { Text, Caption, Tooltip } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -386,7 +385,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="modal-header">
-            <Typography className="modal-title">Color Picker</Typography>
+            <Text className="modal-title">Color Picker</Text>
             <div className="header-actions">
               <EyedropperButton onColorPicked={handleEyedropperPick} />
               <CloseButton
@@ -503,9 +502,9 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 
           {/* Footer */}
           <div className="modal-footer">
-            <Typography variant="caption" color="textSecondary">
+            <Caption color="secondary">
               Press Esc to close
-            </Typography>
+            </Caption>
             <div className="footer-actions">
               <Button variant="outlined" size="small" onClick={onClose}>
                 Cancel

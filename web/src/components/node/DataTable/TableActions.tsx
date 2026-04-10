@@ -1,12 +1,12 @@
 import React, { useCallback, memo } from "react";
-import { Tooltip, IconButton, Divider } from "@mui/material";
+import { IconButton, Divider } from "@mui/material";
 import { TabulatorFull as Tabulator, RowComponent } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { DeleteButton, RefreshButton, DownloadButton } from "../../ui_primitives";
+import { DeleteButton, RefreshButton, DownloadButton, Tooltip } from "../../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
