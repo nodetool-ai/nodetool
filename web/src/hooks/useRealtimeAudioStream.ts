@@ -6,8 +6,10 @@ import { useWebsocketRunner } from "../stores/WorkflowRunner";
 function useStableCallback<T extends (...args: never[]) => unknown>(fn: T): T {
   const ref = useRef(fn);
   ref.current = fn;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return useCallback((...args: any[]) => ref.current(...args), []) as T;
+  return useCallback(
+    (...args: Parameters<T>) => ref.current(...args),
+    []
+  ) as unknown as T;
 }
 
 type UseRealtimeAudioStream = {

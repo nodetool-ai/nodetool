@@ -15,6 +15,7 @@ import SearchErrorBoundary from "../SearchErrorBoundary";
 
 // Mock loglevel to avoid console output in tests
 jest.mock("loglevel", () => ({
+  __esModule: true,
   default: {
     error: jest.fn(),
   },

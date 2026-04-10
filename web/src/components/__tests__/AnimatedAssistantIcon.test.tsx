@@ -14,6 +14,7 @@ import AnimatedAssistantIcon from "../AnimatedAssistantIcon";
 
 // Mock the SvgFileIcon component
 jest.mock("../SvgFileIcon", () => ({
+  __esModule: true,
   default: ({ iconName, svgProp }: { iconName: string; svgProp: { width: number; height: number; opacity: number; color: string } }) => (
     <div data-testid="svg-file-icon" data-icon={iconName}>
       <svg width={svgProp.width} height={svgProp.height} style={{ opacity: svgProp.opacity, color: svgProp.color }} data-role="img" />

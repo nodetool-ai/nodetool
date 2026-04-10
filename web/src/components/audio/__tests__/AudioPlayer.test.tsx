@@ -75,6 +75,7 @@ jest.mock("axios", () => {
 });
 
 jest.mock("loglevel", () => ({
+  __esModule: true,
   default: {
     info: jest.fn(),
     error: jest.fn(),
