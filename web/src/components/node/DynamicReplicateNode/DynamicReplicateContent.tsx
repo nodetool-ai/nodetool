@@ -145,12 +145,12 @@ export const DynamicReplicateContent: React.FC<DynamicReplicateContentProps> =
               borderColor: "divider"
             }}
           >
-            <Typography variant="caption" color="text.secondary">
+            <Caption>
               replicate
               {data.model_id && <> &middot; {data.model_id}</>}
-            </Typography>
+            </Caption>
           </Box>
-        </Box>
+        </FlexColumn>
       );
     }
   );
