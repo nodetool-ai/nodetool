@@ -515,7 +515,7 @@ const WorkspaceTree: React.FC = () => {
         );
       }
     },
-    [files, workflowId]
+    [files, filesWorkspaceId]
   );
 
   const handleItemDoubleClick = useCallback(
@@ -674,6 +674,9 @@ const WorkspaceTree: React.FC = () => {
           <div onDoubleClick={handleTreeDoubleClick}>
             <RichTreeView
               onItemClick={handleItemClick}
+              onItemExpansionToggle={(event: React.SyntheticEvent, itemId: string) =>
+                handleItemClick(event as React.MouseEvent, itemId)
+              }
               items={files as any}
               aria-label="workspace file browser"
               selectedItems={selectedFilePath}
