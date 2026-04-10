@@ -3,7 +3,8 @@ import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import isEqual from "lodash/isEqual";
 
 const objectStyles = (theme: Theme) =>
@@ -68,9 +69,9 @@ const ObjectRenderer: React.FC<ObjectRendererProps> = ({
     <Box css={objectStyles(theme)} className="object-renderer nodrag">
       {entries.map(([key, val]) => (
         <Box key={key} className="object-entry">
-          <Typography className="object-key" component="span">
+          <Text className="object-key" component="span">
             {key.replace(/_/g, " ")}
-          </Typography>
+          </Text>
           <Box className="object-value">{renderValue(val, key)}</Box>
         </Box>
       ))}

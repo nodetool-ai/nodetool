@@ -551,7 +551,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
             {/* Header */}
             <div className="editor-header">
                 <div className="editor-title">
-                    <Typography className="title-text">{title}</Typography>
+                    <Text className="title-text">{title}</Text>
                     <span className="title-badge">Beta</span>
                 </div>
                 <div className="header-actions">

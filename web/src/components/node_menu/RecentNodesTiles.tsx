@@ -4,7 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
-import { Box, Tooltip, Typography, IconButton } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
+import { Tooltip, Text } from "../ui_primitives";
 import HistoryIcon from "@mui/icons-material/History";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
@@ -283,10 +284,10 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   return (
     <Box css={memoizedStyles}>
       <div className="tiles-header">
-        <Typography variant="h5">
+        <Text size="normal" weight={600}>
           <HistoryIcon fontSize="small" sx={{ opacity: 0.8 }} />
           Recent Nodes
-        </Typography>
+        </Text>
         <Tooltip title="Clear recent nodes" placement="top">
           <IconButton
             size="small"
@@ -321,7 +322,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                 </div>
               }
               placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
+              delay={TOOLTIP_ENTER_DELAY}
               enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
@@ -338,7 +339,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                   } as CSSProperties
                 }
               >
-                <Typography className="tile-label">{displayName}</Typography>
+                <Text className="tile-label">{displayName}</Text>
               </div>
             </Tooltip>
           );

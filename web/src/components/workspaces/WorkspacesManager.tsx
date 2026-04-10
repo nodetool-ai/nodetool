@@ -697,7 +697,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     >
                       {createMutation.isPending ? "Adding..." : "Add Workspace"}
                     </Button>
-                  </Box>
+                  </FlexRow>
                 </div>
               ) : (
                 <Button

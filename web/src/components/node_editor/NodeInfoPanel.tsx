@@ -5,10 +5,9 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback } from "react";
 import {
   Box,
-  Typography,
-  Tooltip,
   Button
 } from "@mui/material";
+import { Tooltip, Text } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { CloseButton } from "../ui_primitives";
 import { useReactFlow } from "@xyflow/react";
@@ -27,7 +26,7 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
         prefix = prefix ? `${prefix}.${part}` : part;
         const isLast = prefix === namespace;
         return (
-          <Typography
+          <Text
             key={prefix}
             component="span"
             className={isLast ? "namespace-part-last" : undefined}
@@ -38,7 +37,7 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
           >
             {part.replace("huggingface", "HF").replace("nodetool", "NT")}
             {!isLast && "."}
-          </Typography>
+          </Text>
         );
       })}
     </div>
@@ -279,7 +278,7 @@ const NodeInfoPanel: React.FC = memo(() => {
     <Box className="node-info-panel" css={styles(theme)}>
       <Box className="panel-content">
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-          <Typography className="node-name">{nodeInfo.label}</Typography>
+          <Text className="node-name">{nodeInfo.label}</Text>
           <CloseButton
             onClick={handleClose}
             sx={{ color: "text.secondary" }}
@@ -290,19 +289,19 @@ const NodeInfoPanel: React.FC = memo(() => {
         <Tooltip
           title={
             <span>
-              <Typography
+              <Text
                 component="span"
                 sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
               >
                 {nodeInfo.namespace}
-              </Typography>
-              <Typography component="span" sx={{ display: "block" }}>
+              </Text>
+              <Text component="span" sx={{ display: "block" }}>
                 Click to show in NodeMenu
-              </Typography>
+              </Text>
             </span>
           }
           placement="bottom-start"
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
         >
           <Button
             tabIndex={1}
@@ -315,9 +314,9 @@ const NodeInfoPanel: React.FC = memo(() => {
 
         {parsedDescription && (
           <>
-            <Typography className="node-description">
+            <Text className="node-description">
               {parsedDescription.description}
-            </Typography>
+            </Text>
             {parsedDescription.tags.length > 0 && (
               <div className="node-tags">
                 {parsedDescription.tags.map((tag) => (
@@ -346,7 +345,7 @@ const NodeInfoPanel: React.FC = memo(() => {
 
         {nodeInfo.hasError && (
           <Box className="error-message">
-            <Typography className="error-text">{nodeInfo.errorMessage}</Typography>
+            <Text className="error-text">{nodeInfo.errorMessage}</Text>
           </Box>
         )}
 

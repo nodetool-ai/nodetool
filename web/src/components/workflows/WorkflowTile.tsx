@@ -4,7 +4,7 @@ import { Box } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
-import { DeleteButton, EditorButton, Text, Tooltip } from "../ui_primitives";
+import { DeleteButton, EditorButton, Text, Tooltip, FlexColumn } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
@@ -61,11 +61,10 @@ export const WorkflowTile = ({
   );
 
   return (
-    <Box
+    <FlexColumn
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
       className={`workflow grid${isSelected ? " selected" : ""}`}
-      sx={{ display: "flex", flexDirection: "column" }}
     >
       <Box
         className="image-wrapper"
@@ -121,7 +120,7 @@ export const WorkflowTile = ({
           </>
         )}
       </div>
-    </Box>
+    </FlexColumn>
   );
 };
 

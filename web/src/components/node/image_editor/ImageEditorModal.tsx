@@ -553,7 +553,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
         {/* Header */}
         <div className="modal-header">
           <div className="modal-title">
-            <Typography className="title-text">{title}</Typography>
+            <Text className="title-text">{title}</Text>
             <span className="title-badge">Beta</span>
           </div>
           <div className="header-actions">
