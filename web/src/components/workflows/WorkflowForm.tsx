@@ -27,7 +27,6 @@ const DEFAULT_TAG_SUGGESTIONS = [
   "rag"
 ];
 
-const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"];
 
 const styles = (theme: Theme) =>
   css({
@@ -141,36 +140,6 @@ const styles = (theme: Theme) =>
       }
     },
     
-    // Shortcut input
-    ".shortcut-input-container": {
-      position: "relative",
-      display: "flex",
-      alignItems: "center"
-    },
-    
-    ".shortcut-input .MuiOutlinedInput-root": {
-      cursor: "pointer",
-      fontFamily: theme.fontFamily1,
-      color: theme.vars.palette.grey[0],
-      "&.Mui-focused": {
-        backgroundColor: theme.vars.palette.grey[800]
-      }
-    },
-    
-    ".clear-button": {
-      position: "absolute",
-      right: "8px",
-      color: theme.vars.palette.grey[300],
-      fontSize: theme.fontSizeSmall,
-      textTransform: "none",
-      minWidth: "auto",
-      padding: "4px 10px",
-      "&:hover": {
-        color: theme.vars.palette.grey[0],
-        backgroundColor: theme.vars.palette.action.disabledBackground
-      }
-    },
-    
     // Run mode select
     ".MuiSelect-select": {
       fontFamily: theme.fontFamily1
@@ -225,7 +194,6 @@ interface WorkflowFormProps {
 
 const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
-  const [isCapturing, setIsCapturing] = useState(false);
   const { saveWorkflow } = useWorkflowManager((state) => ({
     saveWorkflow: state.saveWorkflow
   }));
@@ -285,51 +253,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     };
     setLocalWorkflow(updatedWorkflow);
   };
-
-  const handleShortcutKeyDown = (event: React.KeyboardEvent) => {
-    event.preventDefault();
-
-    if (!isCapturing) {return;}
-
-    const pressedKey = event.key;
-    if (pressedKey === "Escape") {
-      setIsCapturing(false);
-      return;
-    }
-
-    // Skip if only modifier keys are pressed
-    if (MODIFIER_KEYS.includes(pressedKey)) {return;}
-
-    // Build the shortcut string
-    const parts: string[] = [];
-    if (event.ctrlKey) {parts.push("CommandOrControl");}
-    if (event.altKey) {parts.push("Alt");}
-    if (event.shiftKey) {parts.push("Shift");}
-    if (event.metaKey) {parts.push("Meta");}
-
-    // Add the main key
-    parts.push(pressedKey.length === 1 ? pressedKey.toUpperCase() : pressedKey);
-
-    const shortcut = parts.join("+");
-    setLocalWorkflow((prev: Workflow) => ({
-      ...prev,
-      settings: {
-        ...(prev.settings || {}),
-        shortcut: shortcut
-      }
-    }));
-    setIsCapturing(false);
-  };
-
-  const clearShortcut = useCallback(() => {
-    setLocalWorkflow((prev: Workflow) => ({
-      ...prev,
-      settings: {
-        ...(prev.settings || {}),
-        shortcut: ""
-      }
-    }));
-  }, []);
 
   const handleToolNameChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -461,36 +384,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           ]}
         />
 
-        <div>
-          <div className="shortcut-input-container">
-            <TextInput
-              className="shortcut-input"
-              label="Keyboard Shortcut"
-              name="shortcut"
-              value={
-                isCapturing
-                  ? "Press keys..."
-                  : localWorkflow.settings?.shortcut || "Click to set shortcut"
-              }
-              onKeyDown={handleShortcutKeyDown}
-              onFocus={() => setIsCapturing(true)}
-              onBlur={() => setIsCapturing(false)}
-              slotProps={{ input: { readOnly: true } }}
-            />
-            {localWorkflow.settings?.shortcut && (
-              <Button
-                className="clear-button"
-                onClick={clearShortcut}
-                size="small"
-              >
-                Clear
-              </Button>
-            )}
-          </div>
-          <Caption>
-            Global shortcut to run this workflow (Electron only)
-          </Caption>
-        </div>
       </div>
 
       {/* Advanced Section */}
