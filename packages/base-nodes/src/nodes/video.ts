@@ -538,12 +538,12 @@ export class SaveVideoFileVideoNode extends BaseNode {
   })
   declare filename: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
     const fname = dateName(String(this.filename ?? "video.mp4"));
     const p = path.resolve(folder, fname);
     await fs.mkdir(path.dirname(p), { recursive: true });
-    await fs.writeFile(p, videoBytes(this.video));
+    await fs.writeFile(p, await videoBytesAsync(this.video, context));
     return { output: p };
   }
 }
@@ -642,12 +642,12 @@ export class SaveVideoNode extends BaseNode {
   })
   declare name: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
     const filename = dateName(String(this.name ?? "video.mp4"));
     const full = path.resolve(folder, filename);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    const bytes = videoBytes(this.video);
+    const bytes = await videoBytesAsync(this.video, context);
     await fs.writeFile(full, bytes);
     return { output: videoRef(bytes, { uri: `file://${full}` }) };
   }
@@ -2335,9 +2335,8 @@ export class ExtractAudioVideoNode extends BaseNode {
   })
   declare video: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(this.video);
-    console.log("[ExtractAudio] input video bytes:", bytes.length);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
     if (bytes.length === 0) return { output: { data: null } };
 
     const input = await withTempFile(".mp4", bytes);
@@ -2353,7 +2352,6 @@ export class ExtractAudioVideoNode extends BaseNode {
       );
       const audioBytes = new Uint8Array(await fs.readFile(outputPath));
       const b64 = Buffer.from(audioBytes).toString("base64");
-      console.log("[ExtractAudio] output audio bytes:", audioBytes.length, "base64 length:", b64.length);
       return {
         output: {
           type: "audio",
