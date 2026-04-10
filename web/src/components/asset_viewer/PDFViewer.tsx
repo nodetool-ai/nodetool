@@ -6,12 +6,13 @@ import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
-  CircularProgress,
-  IconButton,
-  Slider
-} from "@mui/material";
-import { Text } from "../ui_primitives";
+  FlexColumn,
+  FlexRow,
+  LoadingSpinner,
+  NodeSlider,
+  Text,
+  ToolbarIconButton
+} from "../ui_primitives";
 import {
   NavigateBefore,
   NavigateNext,
@@ -34,7 +35,6 @@ interface PDFViewerProps {
 const styles = (theme: Theme) =>
   css({
     "&": {
-      display: "flex",
       width: "100%",
       height: "calc(100% - 120px)",
       marginTop: "1em",
@@ -42,8 +42,6 @@ const styles = (theme: Theme) =>
     },
     ".content-wrapper": {
       flex: 1,
-      display: "flex",
-      flexDirection: "column",
       alignItems: "center",
       width: "100%",
       height: "100%",
@@ -107,7 +105,6 @@ const styles = (theme: Theme) =>
       padding: "0.8em 1em",
       borderRadius: "4px 4px 0 0",
       zIndex: 1,
-      display: "flex",
       alignItems: "center",
       gap: "1em",
       minWidth: "200px",
@@ -217,8 +214,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   );
 
   return (
-    <Box className="pdf-viewer" css={styles(theme)}>
-      <div className="content-wrapper">
+    <FlexRow className="pdf-viewer" css={styles(theme)} fullWidth sx={{ height: "calc(100% - 120px)", marginTop: "1em", position: "relative" }}>
+      <FlexColumn className="content-wrapper" fullWidth fullHeight align="center" sx={{ flex: 1, overflow: "hidden", paddingRight: "50px", backgroundColor: "transparent" }}>
         {asset?.content_type && (
           <Text size="small" className="content-type">
             {asset.content_type}
@@ -229,61 +226,70 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
-          loading={<CircularProgress />}
+          loading={<LoadingSpinner />}
           error={<Text color="error">Failed to load PDF</Text>}
         >
           {pageComponent}
         </Document>
-        <div className="page-controls">
-          <IconButton
+        <FlexRow className="page-controls" align="center" gap={1} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: "0.8em 1em", borderRadius: "4px 4px 0 0", zIndex: 1, minWidth: "200px", userSelect: "none" }}>
+          <ToolbarIconButton
+            icon={<NavigateBefore />}
+            tooltip="Previous page"
             onClick={goToPrevPage}
             disabled={pageNumber <= 1}
             size="small"
-          >
-            <NavigateBefore />
-          </IconButton>
+          />
           <Text>
             Page {pageNumber} of {numPages}
           </Text>
-          <IconButton
+          <ToolbarIconButton
+            icon={<NavigateNext />}
+            tooltip="Next page"
             onClick={goToNextPage}
             disabled={pageNumber >= (numPages || 1)}
             size="small"
-          >
-            <NavigateNext />
-          </IconButton>
-        </div>
-      </div>
+          />
+        </FlexRow>
+      </FlexColumn>
       <ActionButtonGroup
         className="zoom-controls"
         spacing={0.25}
         aria-label="Zoom controls"
         nodrag={false}
       >
-        <IconButton onClick={zoomIn} size="small" title="Zoom in">
-          <ZoomIn fontSize="small" />
-        </IconButton>
-        <IconButton onClick={zoomOut} size="small" title="Zoom out">
-          <ZoomOut fontSize="small" />
-        </IconButton>
-        <IconButton onClick={resetZoom} size="small" title="Reset zoom">
-          <RestartAlt fontSize="small" />
-        </IconButton>
+        <ToolbarIconButton
+          icon={<ZoomIn fontSize="small" />}
+          tooltip="Zoom in"
+          onClick={zoomIn}
+          size="small"
+        />
+        <ToolbarIconButton
+          icon={<ZoomOut fontSize="small" />}
+          tooltip="Zoom out"
+          onClick={zoomOut}
+          size="small"
+        />
+        <ToolbarIconButton
+          icon={<RestartAlt fontSize="small" />}
+          tooltip="Reset zoom"
+          onClick={resetZoom}
+          size="small"
+        />
       </ActionButtonGroup>
-      <div className="vertical-slider">
-        <Slider
+      <FlexRow className="vertical-slider" align="center" sx={{ position: "absolute", right: "150px", top: "25px", height: "calc(100% - 85px)", padding: "1em 0" }}>
+        <NodeSlider
           value={numPages ? numPages - pageNumber + 1 : 1}
           onChange={handleSliderChange}
           min={1}
           max={numPages || 1}
           step={1}
           marks
-          size="small"
+          density="compact"
           orientation="vertical"
           aria-label="Page navigation slider"
         />
-      </div>
-    </Box>
+      </FlexRow>
+    </FlexRow>
   );
 };
 

@@ -12,7 +12,6 @@ import React, {
 import {
   Button,
   Box,
-  CircularProgress,
   Chip,
   Checkbox,
   Popover,
@@ -24,7 +23,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useWorkflowTools } from "../../../serverState/useWorkflowTools";
 import { useTheme } from "@mui/material/styles";
 import SearchInput from "../../search/SearchInput";
-import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
+import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, LoadingSpinner } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 360;
@@ -369,7 +368,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
           <ScrollArea className="items-container" fullHeight>
             {isLoading ? (
               <div className="loading-container">
-                <CircularProgress size={24} />
+                <LoadingSpinner size="small" />
               </div>
             ) : (!workflowTools || workflowTools.length === 0) &&
               selectedTools.length === 0 ? (

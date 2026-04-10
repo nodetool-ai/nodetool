@@ -2,8 +2,8 @@
 
 import { css } from "@emotion/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Chip, InputAdornment, TextField } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { InputAdornment, TextField } from "@mui/material";
+import { Tooltip, Chip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";

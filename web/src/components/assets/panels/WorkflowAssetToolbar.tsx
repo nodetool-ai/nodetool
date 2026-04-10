@@ -1,24 +1,22 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback } from "react";
-import {
-  ButtonGroup,
-  Box,
-  Button,
-  Select,
-  MenuItem
-} from "@mui/material";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { UploadButton, Tooltip } from "../../ui_primitives";
+import {
+  UploadButton,
+  ToolbarIconButton,
+  FlexRow,
+  NodeSelect,
+  NodeMenuItem
+} from "../../ui_primitives";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { useAssetSelection } from "../../../hooks/assets/useAssetSelection";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import SliderBasic from "../../inputs/SliderBasic";
 import { Asset } from "../../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
@@ -31,30 +29,6 @@ interface WorkflowAssetToolbarProps {
 
 const styles = (theme: Theme) =>
   css({
-    "&": {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: ".5em",
-      padding: "0.5em",
-      alignItems: "center",
-      backgroundColor: theme.vars.palette.c_editor_bg_color,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`
-    },
-    ".asset-button-group": {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.25em"
-    },
-    ".asset-button-group button": {
-      minWidth: "32px",
-      height: "32px",
-      padding: "4px",
-      color: theme.vars.palette.grey[200],
-      "&:hover": {
-        color: "var(--palette-primary-main)",
-        backgroundColor: "transparent"
-      }
-    },
     ".asset-button-group svg": {
       fontSize: "18px",
       width: "18px",
@@ -143,7 +117,23 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
   }, [setAssetsOrder]);
 
   return (
-    <Box css={styles(theme)} className="workflow-asset-toolbar">
+    <FlexRow
+      css={styles(theme)}
+      className="workflow-asset-toolbar"
+      gap={0.5}
+      padding={0.5}
+      align="center"
+      wrap
+      fullWidth
+      sx={{
+        backgroundColor: theme.vars.palette.c_editor_bg_color,
+        borderBottom: `1px solid ${theme.vars.palette.divider}`,
+        "@media (max-width: 520px)": {
+          flexDirection: "column",
+          alignItems: "flex-start"
+        }
+      }}
+    >
       <UploadButton
         onFileSelect={handleUpload}
         iconVariant="file"
@@ -151,57 +141,57 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
         multiple
       />
       
-      <ButtonGroup className="asset-button-group" size="small">
-        <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
-          title="Select all"
-          disableInteractive
-        >
-          <Button onClick={handleSelectAllAssets}>
-            <SelectAllIcon />
-          </Button>
-        </Tooltip>
-        
-        <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
-          title="Deselect"
-          disableInteractive
-        >
-          <Button onClick={handleDeselectAssets}>
-            <DeselectIcon />
-          </Button>
-        </Tooltip>
-        
-        <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
-          title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
-          disableInteractive
-        >
-          <Button onClick={handleViewModeToggle}>
-            {viewMode === "grid" ? <ViewListIcon /> : <ViewModuleIcon />}
-          </Button>
-        </Tooltip>
-      </ButtonGroup>
+      <FlexRow className="asset-button-group" align="center" gap={0.25}>
+        <ToolbarIconButton
+          icon={<SelectAllIcon />}
+          tooltip="Select all"
+          onClick={handleSelectAllAssets}
+          size="small"
+          ariaLabel="Select all assets"
+        />
 
-      <Tooltip
-        delay={TOOLTIP_ENTER_DELAY}
-        title="Sort assets"
-        placement="bottom"
-        disableInteractive
+        <ToolbarIconButton
+          icon={<DeselectIcon />}
+          tooltip="Deselect"
+          onClick={handleDeselectAssets}
+          size="small"
+          ariaLabel="Deselect assets"
+        />
+
+        <ToolbarIconButton
+          icon={viewMode === "grid" ? <ViewListIcon /> : <ViewModuleIcon />}
+          tooltip={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+          onClick={handleViewModeToggle}
+          size="small"
+          ariaLabel={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+        />
+      </FlexRow>
+
+      <NodeSelect
+        variant="outlined"
+        density="compact"
+        className="sort-assets"
+        value={settings.assetsOrder}
+        onChange={(e) => handleOrderChange(String(e.target.value))}
+        inputProps={{ "aria-label": "Sort assets" }}
+        sx={{
+          minWidth: "80px",
+          textTransform: "uppercase",
+          fontSize: theme.fontSizeTiny,
+          color: theme.vars.palette.grey[200],
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: theme.vars.palette.grey[500],
+            borderRadius: ".25em"
+          },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "var(--palette-primary-main)"
+          }
+        }}
       >
-        <Select
-          variant="standard"
-          className="sort-assets"
-          value={settings.assetsOrder}
-          onChange={(e) => handleOrderChange(e.target.value)}
-          displayEmpty
-          inputProps={{ "aria-label": "Sort assets" }}
-        >
-          <MenuItem value="name">Name</MenuItem>
-          <MenuItem value="date">Date</MenuItem>
-          <MenuItem value="size">Size</MenuItem>
-        </Select>
-      </Tooltip>
+        <NodeMenuItem value="name">Name</NodeMenuItem>
+        <NodeMenuItem value="date">Date</NodeMenuItem>
+        <NodeMenuItem value="size">Size</NodeMenuItem>
+      </NodeSelect>
 
       {viewMode === "grid" && (
         <div className="asset-size-slider">
@@ -220,7 +210,7 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
           />
         </div>
       )}
-    </Box>
+    </FlexRow>
   );
 };
 

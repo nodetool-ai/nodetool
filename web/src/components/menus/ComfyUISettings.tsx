@@ -2,13 +2,11 @@
 import React, { useState, useCallback } from "react";
 import {
   Box,
-  Button,
   TextField,
-  Alert,
   ToggleButton,
   ToggleButtonGroup
 } from "@mui/material";
-import { Text, Caption, FlexRow } from "../ui_primitives";
+import { Text, Caption, FlexRow, EditorButton, AlertBanner } from "../ui_primitives";
 import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import type { ComfyBackendType } from "../../stores/ComfyUIStore";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -128,30 +126,30 @@ const ComfyUISettings: React.FC = () => {
           />
 
           {connectionError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <AlertBanner severity="error" sx={{ mb: 2 }}>
               {connectionError}
-            </Alert>
+            </AlertBanner>
           )}
 
           {isConnected && (
-            <Alert severity="success" sx={{ mb: 2 }}>
+            <AlertBanner severity="success" sx={{ mb: 2 }}>
               Connected to ComfyUI backend
-            </Alert>
+            </AlertBanner>
           )}
 
           <FlexRow gap={2}>
             {!isConnected ? (
-              <Button
+              <EditorButton
                 variant="contained"
                 onClick={handleConnect}
                 disabled={isConnecting}
               >
                 {isConnecting ? "Connecting..." : "Connect"}
-              </Button>
+              </EditorButton>
             ) : (
-              <Button variant="outlined" onClick={handleDisconnect}>
+              <EditorButton variant="outlined" onClick={handleDisconnect}>
                 Disconnect
-              </Button>
+              </EditorButton>
             )}
           </FlexRow>
 
@@ -185,31 +183,31 @@ const ComfyUISettings: React.FC = () => {
           />
 
           {saveError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <AlertBanner severity="error" sx={{ mb: 2 }}>
               {saveError}
-            </Alert>
+            </AlertBanner>
           )}
 
           {saveSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }}>
+            <AlertBanner severity="success" sx={{ mb: 2 }}>
               RunPod API key saved securely.
-            </Alert>
+            </AlertBanner>
           )}
 
           {runpodKeyConfigured && !saveSuccess && (
-            <Alert severity="info" sx={{ mb: 2 }}>
+            <AlertBanner severity="info" sx={{ mb: 2 }}>
               RunPod API key is configured. Set the endpoint ID on each
               &quot;Run ComfyUI Workflow (RunPod)&quot; node in your workflow.
-            </Alert>
+            </AlertBanner>
           )}
 
-          <Button
+          <EditorButton
             variant="contained"
             onClick={handleSaveApiKey}
             disabled={saving || !localApiKey}
           >
             {saving ? "Saving..." : "Save API Key"}
-          </Button>
+          </EditorButton>
 
           <Caption
             sx={{ mt: 2, display: "block" }}

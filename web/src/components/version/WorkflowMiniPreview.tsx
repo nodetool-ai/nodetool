@@ -7,7 +7,8 @@
  */
 
 import React, { useMemo } from "react";
-import { Box, Typography, Paper } from "@mui/material";
+import { Box } from "@mui/material";
+import { Caption, FlexColumn, Surface } from "../ui_primitives";
 import { Graph } from "../../stores/ApiTypes";
 
 // Data structure that has graph - can be WorkflowVersion or Workflow
@@ -224,15 +225,10 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
 
   if (nodeCount === 0) {
     return (
-      <Paper
-        elevation={0}
+      <Surface
         sx={{
           width,
           height,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
           background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(45,45,45,0.9) 100%)",
           border: "1px solid",
           borderColor: "rgba(255,255,255,0.08)",
@@ -244,21 +240,27 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           }
         }}
       >
-        <Typography
-          variant="caption"
-          sx={{
-            color: "rgba(255,255,255,0.4)",
-            fontFamily: "var(--fontFamily2)",
-            textAlign: "center",
-            fontSize: "var(--fontSizeTiny)",
-            lineHeight: "1.2",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em"
-          }}
+        <FlexColumn
+          fullWidth
+          fullHeight
+          align="center"
+          justify="center"
         >
-          Empty workflow
-        </Typography>
-      </Paper>
+          <Caption
+            sx={{
+              color: "rgba(255,255,255,0.4)",
+              fontFamily: "var(--fontFamily2)",
+              textAlign: "center",
+              fontSize: "var(--fontSizeTiny)",
+              lineHeight: "1.2",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em"
+            }}
+          >
+            Empty workflow
+          </Caption>
+        </FlexColumn>
+      </Surface>
     );
   }
 
@@ -271,15 +273,10 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   const viewBoxHeight = maxY + PADDING;
 
   return (
-    <Paper
-      elevation={0}
+    <Surface
       sx={{
         width,
         height,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
         background: "linear-gradient(135deg, rgba(20,22,28,0.98) 0%, rgba(35,37,42,0.95) 100%)",
         border: "1px solid",
         borderColor: "rgba(255,255,255,0.08)",
@@ -293,112 +290,120 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
         }
       }}
     >
-      {/* Subtle gradient overlay */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "radial-gradient(ellipse at 30% 20%, rgba(96,165,250,0.03) 0%, transparent 50%)",
-          pointerEvents: "none"
-        }}
-      />
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-        preserveAspectRatio="xMidYMid meet"
-        style={{ display: "block", position: "relative", zIndex: 1 }}
+      <FlexColumn
+        fullWidth
+        fullHeight
+        align="stretch"
+        justify="center"
+        sx={{ position: "relative" }}
       >
-        {/* Define gradients for edges */}
-        <defs>
-          <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0.1)" />
-          </linearGradient>
-        </defs>
+        {/* Subtle gradient overlay */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "radial-gradient(ellipse at 30% 20%, rgba(96,165,250,0.03) 0%, transparent 50%)",
+            pointerEvents: "none"
+          }}
+        />
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display: "block", position: "relative", zIndex: 1 }}
+        >
+          {/* Define gradients for edges */}
+          <defs>
+            <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0.1)" />
+            </linearGradient>
+          </defs>
 
-        {/* Render edges first (behind nodes) */}
-        {previewEdges.map((edge) => {
-          const sourceNode = nodeMap.get(edge.source);
-          const targetNode = nodeMap.get(edge.target);
-          if (!sourceNode || !targetNode) { return null; }
+          {/* Render edges first (behind nodes) */}
+          {previewEdges.map((edge) => {
+            const sourceNode = nodeMap.get(edge.source);
+            const targetNode = nodeMap.get(edge.target);
+            if (!sourceNode || !targetNode) { return null; }
 
-          // Calculate edge path - from right side of source to left side of target
-          const startX = sourceNode.x + sourceNode.width;
-          const startY = sourceNode.y + sourceNode.height / 2;
-          const endX = targetNode.x;
-          const endY = targetNode.y + targetNode.height / 2;
+            // Calculate edge path - from right side of source to left side of target
+            const startX = sourceNode.x + sourceNode.width;
+            const startY = sourceNode.y + sourceNode.height / 2;
+            const endX = targetNode.x;
+            const endY = targetNode.y + targetNode.height / 2;
 
-          // Create a smooth bezier curve
-          const controlPointOffset = Math.min(EDGE_CONTROL_POINT_OFFSET, Math.abs(endX - startX) / 2);
-          const path = `M ${startX} ${startY} C ${startX + controlPointOffset} ${startY}, ${endX - controlPointOffset} ${endY}, ${endX} ${endY}`;
+            // Create a smooth bezier curve
+            const controlPointOffset = Math.min(EDGE_CONTROL_POINT_OFFSET, Math.abs(endX - startX) / 2);
+            const path = `M ${startX} ${startY} C ${startX + controlPointOffset} ${startY}, ${endX - controlPointOffset} ${endY}, ${endX} ${endY}`;
 
-          return (
-            <path
-              key={edge.id}
-              d={path}
-              fill="none"
-              stroke="url(#edgeGradient)"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              opacity={0.6}
-            />
-          );
-        })}
-
-        {/* Render nodes */}
-        {previewNodes.map((node) => {
-          const color = getNodeColor(node.type);
-          return (
-            <g
-              key={node.id}
-              transform={`translate(${node.x}, ${node.y})`}
-            >
-              {/* Node shadow */}
-              <rect
-                x={1}
-                y={2}
-                width={NODE_WIDTH}
-                height={NODE_HEIGHT}
-                rx={4}
-                fill="rgba(0,0,0,0.3)"
+            return (
+              <path
+                key={edge.id}
+                d={path}
+                fill="none"
+                stroke="url(#edgeGradient)"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                opacity={0.6}
               />
-              {/* Node background with gradient */}
-              <rect
-                width={NODE_WIDTH}
-                height={NODE_HEIGHT}
-                rx={4}
-                fill={color}
-                opacity={0.9}
-              />
-              {/* Subtle highlight at top */}
-              <rect
-                width={NODE_WIDTH}
-                height={NODE_HEIGHT / 3}
-                rx={4}
-                fill="rgba(255,255,255,0.15)"
-              />
-              {/* Node text */}
-              <text
-                x={NODE_WIDTH / 2}
-                y={NODE_HEIGHT / 2 + 3}
-                textAnchor="middle"
-                fill="white"
-                fontSize={9}
-                fontFamily="Inter, sans-serif"
-                fontWeight={500}
-                style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
+            );
+          })}
+
+          {/* Render nodes */}
+          {previewNodes.map((node) => {
+            const color = getNodeColor(node.type);
+            return (
+              <g
+                key={node.id}
+                transform={`translate(${node.x}, ${node.y})`}
               >
-                {extractNodeName(node.type)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-    </Paper>
+                {/* Node shadow */}
+                <rect
+                  x={1}
+                  y={2}
+                  width={NODE_WIDTH}
+                  height={NODE_HEIGHT}
+                  rx={4}
+                  fill="rgba(0,0,0,0.3)"
+                />
+                {/* Node background with gradient */}
+                <rect
+                  width={NODE_WIDTH}
+                  height={NODE_HEIGHT}
+                  rx={4}
+                  fill={color}
+                  opacity={0.9}
+                />
+                {/* Subtle highlight at top */}
+                <rect
+                  width={NODE_WIDTH}
+                  height={NODE_HEIGHT / 3}
+                  rx={4}
+                  fill="rgba(255,255,255,0.15)"
+                />
+                {/* Node text */}
+                <text
+                  x={NODE_WIDTH / 2}
+                  y={NODE_HEIGHT / 2 + 3}
+                  textAnchor="middle"
+                  fill="white"
+                  fontSize={9}
+                  fontFamily="Inter, sans-serif"
+                  fontWeight={500}
+                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
+                >
+                  {extractNodeName(node.type)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </FlexColumn>
+    </Surface>
   );
 };
 

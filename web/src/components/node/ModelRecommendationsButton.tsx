@@ -1,6 +1,5 @@
 import React, { useState, memo, useCallback } from "react";
-import { Button } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, EditorButton } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -57,7 +56,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
         <div
           style={{ display: "flex", justifyContent: "center", width: "100%", paddingTop: "0.5em" }}
         >
-          <Button
+          <EditorButton
             variant="outlined"
             size="small"
             className="model-button"
@@ -73,7 +72,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
             })}
           >
             Models
-          </Button>
+          </EditorButton>
         </div>
       </Tooltip>
 

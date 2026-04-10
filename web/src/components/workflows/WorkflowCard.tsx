@@ -2,10 +2,9 @@
 import { css } from "@emotion/react";
 import {
   Box,
-  CircularProgress,
   Fade
 } from "@mui/material";
-import { Text, Tooltip } from "../ui_primitives";
+import { Text, Tooltip, LoadingSpinner } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
@@ -218,7 +217,7 @@ const WorkflowCard = ({
         {isLoading && (
           <Fade in={true}>
             <Box className="loading-overlay">
-              <CircularProgress size={36} color="primary" />
+              <LoadingSpinner size="medium" />
               <Text className="loading-text">
                 Creating workflow...
               </Text>

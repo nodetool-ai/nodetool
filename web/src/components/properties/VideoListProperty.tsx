@@ -6,9 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
-import CloseIcon from "@mui/icons-material/Close";
+import { Tooltip, CloseButton } from "../ui_primitives";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
@@ -452,16 +450,12 @@ const VideoListProperty = (props: PropertyProps) => {
                   aria-label={`Video ${index + 1}`}
                 />
               </div>
-              <Tooltip title="Remove video">
-                <IconButton
-                  className="remove-button"
-                  onClick={removeHandlers[index]}
-                  size="small"
-                  aria-label="Remove video"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+              <CloseButton
+                className="remove-button"
+                onClick={removeHandlers[index]}
+                buttonSize="small"
+                tooltip="Remove video"
+              />
             </div>
           ))}
         </div>

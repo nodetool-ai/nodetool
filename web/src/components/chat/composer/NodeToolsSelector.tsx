@@ -9,13 +9,9 @@ import React, {
   useLayoutEffect
 } from "react";
 import {
-  Button,
-  CircularProgress,
-  Chip,
   Box,
   Popover,
-  PopoverOrigin,
-  IconButton
+  PopoverOrigin
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import { Widgets, Close } from "@mui/icons-material";
@@ -28,7 +24,7 @@ import { IconForType } from "../../../config/data_types";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
-import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
+import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, LoadingSpinner, ToolbarIconButton, EditorButton, Chip } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 680;
@@ -40,8 +36,6 @@ const toolsSelectorStyles = (theme: Theme) =>
       marginLeft: 0
     },
     ".selector-content": {
-      display: "flex",
-      flexDirection: "column",
       height: "100%",
       overflow: "hidden"
     },
@@ -50,9 +44,6 @@ const toolsSelectorStyles = (theme: Theme) =>
       padding: "0 8px"
     },
     ".loading-container": {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
       padding: theme.spacing(4),
       flex: 1
     },
@@ -60,23 +51,16 @@ const toolsSelectorStyles = (theme: Theme) =>
       padding: theme.spacing(4),
       color: theme.vars.palette.grey[200],
       textAlign: "center",
-      flex: 1,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
+      flex: 1
     },
     // Selected panel styles
     ".selected-panel": {
-      display: "flex",
-      flexDirection: "column",
       height: "100%",
       overflow: "hidden"
     },
     ".selected-header": {
       padding: "8px 12px",
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
-      display: "flex",
-      alignItems: "center",
       justifyContent: "space-between",
       flexShrink: 0
     },
@@ -98,7 +82,6 @@ const toolsSelectorStyles = (theme: Theme) =>
       padding: "4px"
     },
     ".selected-item": {
-      display: "flex",
       alignItems: "center",
       gap: "6px",
       padding: "4px 6px",
@@ -130,10 +113,6 @@ const toolsSelectorStyles = (theme: Theme) =>
       transition: "opacity 150ms ease"
     },
     ".empty-selection": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      justifyContent: "flex-start",
       height: "100%",
       padding: "12px",
       textAlign: "left",
@@ -321,11 +300,11 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
         }
         delay={TOOLTIP_ENTER_DELAY}
       >
-        <Button
+        <EditorButton
           ref={buttonRef}
           className={`node-tools-button ${selectedCount > 0 ? "active" : ""}`}
           onClick={handleClick}
-          size="small"
+          density="compact"
           startIcon={<Widgets sx={{ fontSize: 18 }} />}
           endIcon={
             selectedCount > 0 && (
@@ -370,22 +349,20 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
         anchorOrigin={positionConfig.anchorOrigin}
         transformOrigin={positionConfig.transformOrigin}
         slotProps={{
-          paper: {
-            elevation: 24,
-            style: {
-              width: `${POPOVER_WIDTH}px`,
-              height: `${POPOVER_HEIGHT}px`,
-              maxHeight: "90vh",
-              maxWidth: "100vw",
-              borderRadius: theme.vars.rounded.dialog,
-              background: theme.vars.palette.background.paper,
-              border: `1px solid ${theme.vars.palette.divider}`,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden"
+            paper: {
+              elevation: 24,
+              style: {
+                width: `${POPOVER_WIDTH}px`,
+                height: `${POPOVER_HEIGHT}px`,
+                maxHeight: "90vh",
+                maxWidth: "100vw",
+                borderRadius: theme.vars.rounded.dialog,
+                background: theme.vars.palette.background.paper,
+                border: `1px solid ${theme.vars.palette.divider}`,
+                overflow: "hidden"
+              }
             }
-          }
-        }}
+          }}
       >
         {/* Header with Search */}
         <FlexRow
@@ -422,20 +399,20 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
               bgcolor: "background.paper"
             }}
           >
-            <Box className="selector-content" sx={{ flex: 1, overflow: "hidden" }}>
+            <FlexColumn className="selector-content" sx={{ flex: 1, overflow: "hidden" }}>
               <ScrollArea className="nodes-container" fullHeight>
                 {isLoading ? (
-                  <div className="loading-container">
-                    <CircularProgress size={24} />
-                  </div>
+                  <FlexRow className="loading-container" justify="center" align="center" fullWidth fullHeight>
+                    <LoadingSpinner size="small" />
+                  </FlexRow>
                 ) : nodesForDisplay.length === 0 ? (
-                  <div className="no-nodes-message">
+                  <FlexColumn className="no-nodes-message" align="center" justify="center" fullWidth fullHeight>
                     <Text size="small">
                       {searchTerm.trim().length > 0
                         ? "No nodes match your search."
                         : "No nodes available."}
                     </Text>
-                  </div>
+                  </FlexColumn>
                 ) : (
                   <RenderNodesSelectable
                     nodes={nodesForDisplay}
@@ -449,7 +426,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   />
                 )}
               </ScrollArea>
-            </Box>
+            </FlexColumn>
           </FlexColumn>
 
           {/* Right Panel - Selected Nodes */}
@@ -461,36 +438,47 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
               bgcolor: theme.vars.palette.grey[900]
             }}
           >
-            <div className="selected-panel">
-              <div className="selected-header">
-                <span>
-                  <span className="selected-title">Selected</span>
-                  <span className="selected-count">({selectedCount})</span>
-                </span>
-              </div>
-              <div className="selected-list">
+            <FlexColumn className="selected-panel" fullHeight>
+              <FlexRow className="selected-header" justify="space-between" align="center" fullWidth>
+                <FlexRow gap={0.5} align="center">
+                  <Text size="smaller" weight={600} className="selected-title">
+                    Selected
+                  </Text>
+                  <Caption className="selected-count">
+                    ({selectedCount})
+                  </Caption>
+                </FlexRow>
+              </FlexRow>
+              <FlexColumn className="selected-list" fullWidth>
                 {selectedCount === 0 ? (
-                  <div className="empty-selection">
-                    <span className="empty-title">Node Tools</span>
+                  <FlexColumn className="empty-selection" align="flex-start" justify="flex-start" fullWidth fullHeight>
+                    <Text size="small" weight={600} className="empty-title">
+                      Node Tools
+                    </Text>
                     <Caption color="warning" sx={{ fontSize: "var(--fontSizeTiny)" }}>
                        EXPERIMENTAL
                     </Caption>
-                    <span className="empty-desc">
+                    <Text size="small" className="empty-desc">
                       Enable nodes as tools for the AI assistant to use during conversations.
-                    </span>
-                    <span className="empty-desc">
+                    </Text>
+                    <Text size="small" className="empty-desc">
                       These nodes can automatically run to generate images, audio, search the web, and more.
-                    </span>
-                    <span className="empty-hint">
+                    </Text>
+                    <Caption className="empty-hint">
                       Click nodes on the left to add them.
-                    </span>
-                  </div>
+                    </Caption>
+                  </FlexColumn>
                 ) : (
                   selectedNodeMetadatas.map((node) => {
                     const outputType =
                       node.outputs.length > 0 ? node.outputs[0].type.type : "";
                     return (
-                      <div key={node.node_type} className="selected-item">
+                      <FlexRow
+                        key={node.node_type}
+                        className="selected-item"
+                        align="center"
+                        gap={0.75}
+                      >
                         <IconForType
                           iconName={outputType}
                           containerStyle={{
@@ -527,46 +515,28 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                             }
                           }}
                         >
-                          <span
+                          <Text
                             className="selected-item-name"
                             onClick={nodeHandlers.scrollToHandlers[node.namespace]}
                             style={{ cursor: "pointer" }}
+                            size="small"
                           >
                             {node.title}
-                          </span>
+                          </Text>
                         </Tooltip>
-                        <Tooltip
-                          title="Remove"
-                          delay={300}
-                          placement="left"
-                          slotProps={{
-                            popper: {
-                              sx: { zIndex: 2000 }
-                            },
-                            tooltip: {
-                              sx: {
-                                bgcolor: "grey.800",
-                                color: "grey.100"
-                              }
-                            }
-                          }}
-                        >
-                          <IconButton
-                            size="small"
-                            className="remove-btn"
-                            onClick={nodeHandlers.toggleHandlers[node.node_type]}
-                            aria-label={`Remove ${node.title}`}
-                            sx={{ color: theme.vars.palette.grey[500] }}
-                          >
-                            <Close sx={{ fontSize: "var(--fontSizeSmall)" }} />
-                          </IconButton>
-                        </Tooltip>
-                      </div>
+                        <ToolbarIconButton
+                          tooltip="Remove"
+                          className="remove-btn"
+                          onClick={nodeHandlers.toggleHandlers[node.node_type]}
+                          icon={<Close sx={{ fontSize: "var(--fontSizeSmall)" }} />}
+                          sx={{ color: theme.vars.palette.grey[500] }}
+                        />
+                      </FlexRow>
                     );
                   })
                 )}
-              </div>
-            </div>
+              </FlexColumn>
+            </FlexColumn>
           </FlexColumn>
         </FlexRow>
       </Popover>

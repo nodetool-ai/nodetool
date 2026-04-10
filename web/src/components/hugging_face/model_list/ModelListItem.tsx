@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
-import { Chip, Box, Link } from "@mui/material";
-import { Tooltip, Text } from "../../ui_primitives";
+import { Box, Link } from "@mui/material";
+import { Chip, FlexRow, Tooltip, Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -229,7 +229,12 @@ const ModelListItem: React.FC<
             </div>
           </div>
 
-          <div className="actions-container" style={{ gap: "1em" }}>
+          <FlexRow
+            className="actions-container"
+            justify="flex-end"
+            align="center"
+            gap={1}
+          >
             <Text component="span" className="model-size">
               {formatBytes(model.size_on_disk || 0)}
             </Text>
@@ -241,7 +246,7 @@ const ModelListItem: React.FC<
               showFileExplorerButton={showFileExplorerButton}
               isCheckingCache={isCheckingCache}
             />
-          </div>
+          </FlexRow>
         </div>
 
         <div className="model-details">

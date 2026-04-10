@@ -1,11 +1,13 @@
 import React, { useCallback } from "react";
+import { CardContent } from "@mui/material";
 import {
-  CardContent,
-  Box,
-  Button,
-  Chip
-} from "@mui/material";
-import { Tooltip, Text } from "../../ui_primitives";
+  Tooltip,
+  Text,
+  Chip,
+  EditorButton,
+  FlexColumn,
+  FlexRow
+} from "../../ui_primitives";
 import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
@@ -75,7 +77,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           </Text>
         )}
 
-        <Box>
+        <FlexColumn gap={0.5}>
           {model.size_on_disk && (
             <Tooltip delay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
               <Text size="small" className="text-model-size">
@@ -84,45 +86,41 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
             </Tooltip>
           )}
           {model.tags && (
-            <Box className="tags-container">
-              <Button className="pipeline-tag" onClick={toggleTags}>
+            <FlexColumn className="tags-container" gap={0.5}>
+              <EditorButton className="pipeline-tag" onClick={toggleTags}>
                 {model.pipeline_tag || "#"}
-              </Button>
+              </EditorButton>
 
-              <Box
-                className="tags-list"
-                style={{ display: tagsExpanded ? "block" : "none" }}
-              >
-                <Box mt={1}>
+              {tagsExpanded && (
+                <FlexRow className="tags-list" wrap gap={0.5} sx={{ mt: 1 }}>
                   {model.tags.map((tag: string) => (
                     <Chip
                       className="tag"
                       key={tag}
                       label={tag}
-                      size="small"
-                      sx={{ margin: "2px" }}
+                      compact
                     />
                   ))}
-                </Box>
-              </Box>
-            </Box>
+                </FlexRow>
+              )}
+            </FlexColumn>
           )}
-        </Box>
+        </FlexColumn>
 
         {isHuggingFace && (
-          <Box>
-            <Button
+          <FlexColumn gap={0.5}>
+            <EditorButton
               className="readme-toggle-button"
               onClick={handleOpenReadme}
             >
               <Text>README</Text>
-            </Button>
+            </EditorButton>
             <ReadmeDialog
               open={readmeDialogOpen}
               onClose={handleCloseReadme}
               modelId={model.id}
             />
-          </Box>
+          </FlexColumn>
         )}
       </CardContent>
     );

@@ -1,9 +1,9 @@
 import React, { forwardRef, memo } from "react";
-import { Button, SxProps, Theme } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useEditorScope } from "../../editor_ui";
-import { FlexColumn, FlexRow, Text, Caption, Tooltip } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, Caption, Tooltip, EditorButton } from "../../ui_primitives";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -58,7 +58,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
           }
         }}
       >
-        <Button
+        <EditorButton
           ref={ref}
           className={`select-model-button ${className || ""} ${active ? "active" : ""
             }`}
@@ -135,7 +135,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
               mr: "-4px"
             }}
           />
-        </Button>
+        </EditorButton>
       </Tooltip>
     );
   }

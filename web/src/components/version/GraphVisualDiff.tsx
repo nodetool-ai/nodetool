@@ -7,9 +7,10 @@
  */
 
 import React, { useMemo, memo } from "react";
-import { Box, Paper, Typography, Tooltip, useTheme } from "@mui/material";
+import { useTheme } from "@mui/material";
 import { GraphDiff } from "../../utils/graphDiff";
 import { Graph, Node } from "../../stores/ApiTypes";
+import { Caption, FlexColumn, FlexRow, Surface, Tooltip } from "../ui_primitives";
 
 interface GraphVisualDiffProps {
   diff: GraphDiff;
@@ -217,25 +218,29 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
 
   if (!hasAnyChanges) {
     return (
-      <Paper
+      <Surface
         sx={{
           width,
           height,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           bgcolor: theme.palette.action.hover,
         }}
       >
-        <Typography variant="caption" color="text.secondary">
-          No changes to display
-        </Typography>
-      </Paper>
+        <FlexColumn
+          fullWidth
+          fullHeight
+          align="center"
+          justify="center"
+        >
+          <Caption color="secondary">
+            No changes to display
+          </Caption>
+        </FlexColumn>
+      </Surface>
     );
   }
 
   return (
-    <Paper
+    <Surface
       sx={{
         width,
         height,
@@ -244,128 +249,127 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
         position: "relative"
       }}
     >
-      <svg width={width} height={height} style={{ display: "block" }}>
-        <defs>
-          <marker
-            id="arrowhead-added"
-            markerWidth="6"
-            markerHeight="4"
-            refX="5"
-            refY="2"
-            orient="auto"
-          >
-            <polygon points="0 0, 6 2, 0 4" fill={theme.palette.success.main} />
-          </marker>
-          <marker
-            id="arrowhead-removed"
-            markerWidth="6"
-            markerHeight="4"
-            refX="5"
-            refY="2"
-            orient="auto"
-          >
-            <polygon points="0 0, 6 2, 0 4" fill={theme.palette.error.main} />
-          </marker>
-          <marker
-            id="arrowhead-unchanged"
-            markerWidth="6"
-            markerHeight="4"
-            refX="5"
-            refY="2"
-            orient="auto"
-          >
-            <polygon points="0 0, 6 2, 0 4" fill={theme.palette.text.disabled} />
-          </marker>
-        </defs>
-
-        {allEdges.map(edge => {
-          const sourcePos = nodePositions[edge.source];
-          const targetPos = nodePositions[edge.target];
-          if (!sourcePos || !targetPos) {return null;}
-
-          return (
-            <MiniEdge
-              key={edge.id}
-              x1={sourcePos.x + nodeWidth / 2}
-              y1={sourcePos.y + nodeHeight / 2}
-              x2={targetPos.x + nodeWidth / 2}
-              y2={targetPos.y + nodeHeight / 2}
-              status={edge.status}
-            />
-          );
-        })}
-
-        {(newGraph?.nodes || oldGraph?.nodes || []).map(node => {
-          const pos = nodePositions[node.id];
-          const status = nodeStatusMap[node.id] || "unchanged";
-          if (!pos) {return null;}
-
-          return (
-            <Tooltip
-              key={node.id}
-              title={
-                <Box>
-                  <Typography variant="caption" fontWeight="bold">
-                    {node.type?.split(".").pop() || "Node"}
-                  </Typography>
-                  <br />
-                  <Typography variant="caption">
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </Typography>
-                </Box>
-              }
-              arrow
+      <FlexColumn sx={{ width: "100%", height: "100%", position: "relative" }}>
+        <svg width={width} height={height} style={{ display: "block" }}>
+          <defs>
+            <marker
+              id="arrowhead-added"
+              markerWidth="6"
+              markerHeight="4"
+              refX="5"
+              refY="2"
+              orient="auto"
             >
-              <g>
-                <MiniNode
-                  node={node}
-                  x={pos.x - nodeWidth / 2}
-                  y={pos.y - nodeHeight / 2}
-                  status={status}
-                  width={nodeWidth}
-                  height={nodeHeight}
-                />
-              </g>
-            </Tooltip>
-          );
-        })}
-      </svg>
+              <polygon points="0 0, 6 2, 0 4" fill={theme.palette.success.main} />
+            </marker>
+            <marker
+              id="arrowhead-removed"
+              markerWidth="6"
+              markerHeight="4"
+              refX="5"
+              refY="2"
+              orient="auto"
+            >
+              <polygon points="0 0, 6 2, 0 4" fill={theme.palette.error.main} />
+            </marker>
+            <marker
+              id="arrowhead-unchanged"
+              markerWidth="6"
+              markerHeight="4"
+              refX="5"
+              refY="2"
+              orient="auto"
+            >
+              <polygon points="0 0, 6 2, 0 4" fill={theme.palette.text.disabled} />
+            </marker>
+          </defs>
 
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 4,
-          right: 4,
-          display: "flex",
-          gap: 0.5
-        }}
-      >
-        {diff.addedNodes.length > 0 && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.success.main }} />
-            <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
-              {diff.addedNodes.length}
-            </Typography>
-          </Box>
-        )}
-        {diff.removedNodes.length > 0 && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.error.main }} />
-            <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
-              {diff.removedNodes.length}
-            </Typography>
-          </Box>
-        )}
-        {diff.modifiedNodes.length > 0 && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.warning.main }} />
-            <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
-              {diff.modifiedNodes.length}
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    </Paper>
+          {allEdges.map(edge => {
+            const sourcePos = nodePositions[edge.source];
+            const targetPos = nodePositions[edge.target];
+            if (!sourcePos || !targetPos) {return null;}
+
+            return (
+              <MiniEdge
+                key={edge.id}
+                x1={sourcePos.x + nodeWidth / 2}
+                y1={sourcePos.y + nodeHeight / 2}
+                x2={targetPos.x + nodeWidth / 2}
+                y2={targetPos.y + nodeHeight / 2}
+                status={edge.status}
+              />
+            );
+          })}
+
+          {(newGraph?.nodes || oldGraph?.nodes || []).map(node => {
+            const pos = nodePositions[node.id];
+            const status = nodeStatusMap[node.id] || "unchanged";
+            if (!pos) {return null;}
+
+            return (
+              <Tooltip
+                key={node.id}
+              title={
+                <FlexColumn gap={0} align="flex-start">
+                    <Caption sx={{ fontWeight: 700 }}>
+                      {node.type?.split(".").pop() || "Node"}
+                    </Caption>
+                    <Caption>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Caption>
+                  </FlexColumn>
+                }
+                arrow
+              >
+                <g>
+                  <MiniNode
+                    node={node}
+                    x={pos.x - nodeWidth / 2}
+                    y={pos.y - nodeHeight / 2}
+                    status={status}
+                    width={nodeWidth}
+                    height={nodeHeight}
+                  />
+                </g>
+              </Tooltip>
+            );
+          })}
+        </svg>
+
+        <FlexColumn
+          sx={{
+            position: "absolute",
+            bottom: 4,
+            right: 4,
+          }}
+        >
+          {diff.addedNodes.length > 0 && (
+            <FlexRow align="center" gap={0.25}>
+              <Surface sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.success.main }} />
+              <Caption sx={{ fontSize: "0.6rem" }}>
+                {diff.addedNodes.length}
+              </Caption>
+            </FlexRow>
+          )}
+          {diff.removedNodes.length > 0 && (
+            <FlexRow align="center" gap={0.25}>
+              <Surface sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.error.main }} />
+              <Caption sx={{ fontSize: "0.6rem" }}>
+                {diff.removedNodes.length}
+              </Caption>
+            </FlexRow>
+          )}
+          {diff.modifiedNodes.length > 0 && (
+            <FlexRow align="center" gap={0.25}>
+              <Surface sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.warning.main }} />
+              <Caption sx={{ fontSize: "0.6rem" }}>
+                {diff.modifiedNodes.length}
+              </Caption>
+            </FlexRow>
+          )}
+        </FlexColumn>
+      </FlexColumn>
+    </Surface>
   );
 };
 

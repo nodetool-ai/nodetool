@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
 import React, { useEffect, useState, useRef, createRef, memo, useCallback } from "react";
-import { Alert as MUIAlert, AlertColor, Button } from "@mui/material";
+import { AlertColor, Alert as MUIAlert } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
 import {
@@ -125,13 +125,13 @@ const NotificationItem = memo(function NotificationItem({
           onClose={handleClose}
           action={
             notification.action ? (
-              <Button
+              <EditorButton
                 color="inherit"
                 size="small"
                 onClick={handleActionClick}
               >
                 {notification.action.label}
-              </Button>
+              </EditorButton>
             ) : undefined
           }
         >
@@ -158,7 +158,6 @@ const Alert: React.FC = memo(() => {
   const lastDisplayedTimestamp = useNotificationStore((state) => state.lastDisplayedTimestamp);
   const updateLastDisplayedTimestamp = useNotificationStore((state) => state.updateLastDisplayedTimestamp);
 
-  const _theme = useTheme();
   const [visibleNotifications, setVisibleNotifications] = useState<
     Notification[]
   >([]);

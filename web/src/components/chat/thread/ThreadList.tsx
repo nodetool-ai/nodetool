@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
-import { Box, useTheme } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { createStyles } from "./ThreadList.styles";
 import {
@@ -87,7 +87,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
   }, [threads, currentThreadId, onSelectThread, onDeleteThread, getThreadPreview]);
 
   return (
-    <Box className="thread-list-container" css={componentStyles}>
+    <div className="thread-list-container" css={componentStyles}>
       <ul className="thread-list">
         {!threads || Object.keys(threads).length === 0 || listElements.length === 0 ? (
           <EmptyThreadList />
@@ -95,7 +95,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
           listElements
         )}
       </ul>
-    </Box>
+    </div>
   );
 };
 

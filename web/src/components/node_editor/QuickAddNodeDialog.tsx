@@ -25,10 +25,7 @@
 import { memo, useCallback, useEffect, useRef } from "react";
 import { Command, CommandInput } from "cmdk";
 import { Dialog } from "../ui_primitives";
-import {
-  Chip
-} from "@mui/material";
-import { Caption, Text } from "../ui_primitives";
+import { Caption, Text, Chip } from "../ui_primitives";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import useQuickAddNodeStore from "../../stores/QuickAddNodeStore";

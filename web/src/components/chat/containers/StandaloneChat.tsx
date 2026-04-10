@@ -7,7 +7,7 @@ import React, {
   useState,
   useCallback
 } from "react";
-import { Box, useMediaQuery } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import { AlertBanner, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -396,7 +396,7 @@ const StandaloneChat: React.FC = () => {
       }}
     >
       {/* Main Chat Area */}
-      <Box
+      <FlexColumn
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
@@ -431,13 +431,13 @@ const StandaloneChat: React.FC = () => {
           }}
         >
           {connectionState.isConnecting && (
-            <Box
+            <FlexRow
               role="status"
               aria-live="polite"
+              align="center"
+              gap={0.75}
               sx={{
                 display: "inline-flex",
-                alignItems: "center",
-                gap: 0.75,
                 py: 0.5,
                 px: 1,
                 borderRadius: "999px",
@@ -445,23 +445,23 @@ const StandaloneChat: React.FC = () => {
                 color: theme.vars.palette.info.main
               }}
             >
-              <Box
-                sx={{
+              <div
+                style={{
                   width: 8,
                   height: 8,
                   borderRadius: "50%",
-                  bgcolor: "currentColor"
+                  backgroundColor: "currentColor"
                 }}
               />
               <Caption sx={{ fontWeight: 500 }}>
                 {statusMessage || "Connecting"}
               </Caption>
-            </Box>
+            </FlexRow>
           )}
           <NewChatButton onNewThread={handleNewChat} />
         </FlexRow>
 
-        <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
+        <div className="chat-container" style={{ minHeight: 0, flex: 1 }}>
           <ChatView
             status={getChatViewStatus()}
             messages={messages}
@@ -485,8 +485,8 @@ const StandaloneChat: React.FC = () => {
             currentTaskUpdate={taskUpdateForDisplay}
             currentLogUpdate={currentLogUpdate}
           />
-        </Box>
-      </Box>
+        </div>
+      </FlexColumn>
     </FlexColumn>
   );
 };

@@ -8,17 +8,14 @@ import {
   Card,
   CardContent,
   CardActions,
-  Button,
   Box,
   Collapse,
-  IconButton,
   LinearProgress,
-  Chip,
   List,
   ListItem,
   ListItemText
 } from "@mui/material";
-import { Text, Caption } from "../ui_primitives";
+import { Text, Caption, EditorButton, ToolbarIconButton, Chip } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -207,7 +204,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
       </CardContent>
 
       <CardActions sx={{ px: 2, pb: 2, pt: 0, justifyContent: "space-between" }}>
-        <Button
+        <EditorButton
           variant={allDownloaded ? "outlined" : "contained"}
           size="small"
           startIcon={allDownloaded ? <CheckCircleIcon /> : <DownloadIcon />}
@@ -223,19 +220,18 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             : someDownloaded
               ? `Download ${pack.models.length - downloadedModels.size} Remaining`
               : "Download All"}
-        </Button>
+        </EditorButton>
 
-        <IconButton
+        <ToolbarIconButton
+          icon={<ExpandMoreIcon />}
+          tooltip={expanded ? "Collapse model pack details" : "Expand model pack details"}
           onClick={handleToggleExpanded}
-          aria-label={expanded ? "Collapse model pack details" : "Expand model pack details"}
           sx={{
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.3s"
           }}
           size="small"
-        >
-          <ExpandMoreIcon />
-        </IconButton>
+        />
       </CardActions>
 
       <Collapse in={expanded}>

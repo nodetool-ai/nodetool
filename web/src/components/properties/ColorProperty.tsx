@@ -5,6 +5,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import ColorPicker from "../inputs/ColorPicker";
 import isEqual from "lodash/isEqual";
 import { useTheme } from "@mui/material/styles";
+import { FlexRow } from "../ui_primitives";
 
 const ColorProperty: React.FC<PropertyProps> = ({
   property,
@@ -29,12 +30,9 @@ const ColorProperty: React.FC<PropertyProps> = ({
         description={property.description}
         id={propertyIndex}
       />
-      <div
-        css={{
-          display: "flex",
-          alignItems: "center",
-          gap: "1em"
-        }}
+      <FlexRow
+        align="center"
+        gap={2}
       >
         <ColorPicker
           color={color}
@@ -51,7 +49,7 @@ const ColorProperty: React.FC<PropertyProps> = ({
         >
           {color || "No color selected"}
         </span>
-      </div>
+      </FlexRow>
     </div>
   );
 };

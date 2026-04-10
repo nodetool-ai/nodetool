@@ -6,9 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
-import CloseIcon from "@mui/icons-material/Close";
+import { Tooltip, CloseButton } from "../ui_primitives";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import ImageDimensions from "../node/ImageDimensions";
@@ -502,15 +500,12 @@ const ImageListProperty = (props: PropertyProps) => {
                   />
                 )}
               </div>
-              <Tooltip title="Remove image">
-                <IconButton
-                  className="remove-button"
-                  onClick={removeHandlers[index]}
-                  size="small"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+              <CloseButton
+                className="remove-button"
+                onClick={removeHandlers[index]}
+                buttonSize="small"
+                tooltip="Remove image"
+              />
             </div>
           ))}
         </div>

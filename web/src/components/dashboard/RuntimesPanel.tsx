@@ -1,13 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { Box, Button } from "@mui/material";
+import { Box } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DownloadIcon from "@mui/icons-material/Download";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { css } from "@emotion/react";
 import { useTheme, Theme } from "@mui/material/styles";
 import { getIsElectronDetails } from "../../utils/browser";
-import { FlexColumn, FlexRow, Card, Text, Caption, LoadingSpinner, AlertBanner, Tooltip } from "../ui_primitives";
+import { FlexColumn, FlexRow, Card, Text, Caption, LoadingSpinner, AlertBanner, Tooltip, EditorButton } from "../ui_primitives";
 import log from "loglevel";
 
 interface RuntimeStatus {
@@ -178,14 +178,14 @@ const RuntimesPanel: React.FC = () => {
             <Tooltip title={installLocation} arrow>
               <span className="location-path">{installLocation}</span>
             </Tooltip>
-            <Button
-              size="small"
+            <EditorButton
               variant="text"
               onClick={handleChangeLocation}
+              density="compact"
               sx={{ minWidth: "auto", fontSize: "0.75rem", whiteSpace: "nowrap" }}
             >
               Change
-            </Button>
+            </EditorButton>
           </FlexRow>
         )}
       </FlexColumn>
@@ -245,8 +245,7 @@ const RuntimesPanel: React.FC = () => {
                           />
                         </Tooltip>
                       ) : (
-                        <Button
-                          size="small"
+                        <EditorButton
                           variant="outlined"
                           startIcon={
                             isInstalling ? (
@@ -257,9 +256,10 @@ const RuntimesPanel: React.FC = () => {
                           }
                           onClick={() => handleInstall(rt.id)}
                           disabled={isInstalling}
+                          density="compact"
                         >
                           {isInstalling ? "Installing..." : "Install"}
-                        </Button>
+                        </EditorButton>
                       )}
                     </Box>
                   </FlexRow>

@@ -5,11 +5,9 @@ import {
   Box,
   Menu,
   MenuItem,
-  Checkbox,
-  ListItemText,
-  IconButton
+  ListItemText
 } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Checkbox } from "../ui_primitives";
 import CategoryIcon from "@mui/icons-material/Category";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import useModelFiltersStore, {
@@ -64,16 +62,14 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
   return (
     <Box css={barStyles} className="model-menu__filters-bar">
       {/* Type dropdown (multi) */}
-      <Tooltip title={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by Type"}>
-        <IconButton
-          onClick={(e) => setTypeAnchor(e.currentTarget)}
-          size="small"
-          color={selectedTypes.length || openType ? "primary" : "default"}
-          aria-label="Filter by Type"
-        >
-          <CategoryIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <ToolbarIconButton
+        icon={<CategoryIcon fontSize="small" />}
+        tooltip={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by Type"}
+        onClick={(e) => setTypeAnchor(e.currentTarget)}
+        size="small"
+        active={selectedTypes.length > 0 || openType}
+        nodrag={false}
+      />
       <Menu
         anchorEl={typeAnchor}
         open={openType}
@@ -95,16 +91,14 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
       </Menu>
 
       {/* Size dropdown (single) */}
-      <Tooltip title={sizeBucket ? `Size: ${sizeBucket}` : "Filter by Size"}>
-        <IconButton
-          onClick={(e) => setSizeAnchor(e.currentTarget)}
-          size="small"
-          color={sizeBucket || openSize ? "primary" : "default"}
-          aria-label="Filter by Size"
-        >
-          <StraightenIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <ToolbarIconButton
+        icon={<StraightenIcon fontSize="small" />}
+        tooltip={sizeBucket ? `Size: ${sizeBucket}` : "Filter by Size"}
+        onClick={(e) => setSizeAnchor(e.currentTarget)}
+        size="small"
+        active={!!sizeBucket || openSize}
+        nodrag={false}
+      />
       <Menu
         anchorEl={sizeAnchor}
         open={openSize}

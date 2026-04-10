@@ -6,11 +6,9 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
-  CircularProgress,
 } from "@mui/material";
-import { FlexRow } from "../ui_primitives";
+import { FlexRow, LoadingSpinner, Surface } from "../ui_primitives";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -90,7 +88,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
   }), []);
 
   return (
-    <TableContainer component={Paper}>
+    <TableContainer component={Surface}>
       <Table>
         <TableHead>
           <TableRow>
@@ -109,7 +107,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
           <TableRow key="last">
             <TableCell>
               {uploading ? (
-                <CircularProgress />
+                <LoadingSpinner />
               ) : (
                 <FlexRow
                   align="center"

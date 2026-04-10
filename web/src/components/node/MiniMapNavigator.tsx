@@ -10,8 +10,6 @@ import {
   getNodeCategoryColor
 } from "../../utils/ColorUtils";
 import {
-  Box,
-  IconButton,
   Popover,
   List,
   ListItem,
@@ -19,7 +17,7 @@ import {
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Tooltip, Text } from "../ui_primitives";
+import { Tooltip, Text, ToolbarIconButton, FlexRow } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
 import CheckIcon from "@mui/icons-material/Check";
@@ -137,9 +135,9 @@ const MiniMapNavigator: React.FC = () => {
 
   return (
     <>
-      <Box className="minimap-navigator" css={{ minimapStyle }}>
-        <Box
-          sx={{
+      <div className="minimap-navigator" css={{ minimapStyle }}>
+        <div
+          style={{
             position: "relative",
             display: "inline-block"
           }}
@@ -167,38 +165,19 @@ const MiniMapNavigator: React.FC = () => {
           />
 
           {/* Settings and Legend Buttons */}
-          <Box
+          <FlexRow
+            gap={0.25}
             sx={{
               position: "absolute",
               top: "-28px",
-              right: 0,
-              display: "flex",
-              gap: "2px"
+              right: 0
             }}
           >
             {colorMode === "type" && showLegend && (
-              <Tooltip title="Node Type Legend" arrow>
-                <IconButton
-                  size="small"
-                  onClick={handleOpenLegend}
-                  sx={{
-                    padding: "2px",
-                    backgroundColor: theme.vars.palette.background.paper,
-                    border: `1px solid ${borderColor}`,
-                    borderRadius: "4px",
-                    "&:hover": {
-                      backgroundColor: theme.vars.palette.action.hover
-                    }
-                  }}
-                >
-                  <LegendToggleIcon sx={{ fontSize: "0.9rem" }} />
-                </IconButton>
-              </Tooltip>
-            )}
-            <Tooltip title="Color Mode Settings" arrow>
-              <IconButton
+              <ToolbarIconButton
+                title="Node Type Legend"
                 size="small"
-                onClick={handleOpenSettings}
+                onClick={handleOpenLegend}
                 sx={{
                   padding: "2px",
                   backgroundColor: theme.vars.palette.background.paper,
@@ -209,12 +188,28 @@ const MiniMapNavigator: React.FC = () => {
                   }
                 }}
               >
-                <PaletteIcon sx={{ fontSize: "0.9rem" }} />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-      </Box>
+                <LegendToggleIcon sx={{ fontSize: "0.9rem" }} />
+              </ToolbarIconButton>
+            )}
+            <ToolbarIconButton
+              title="Color Mode Settings"
+              size="small"
+              onClick={handleOpenSettings}
+              sx={{
+                padding: "2px",
+                backgroundColor: theme.vars.palette.background.paper,
+                border: `1px solid ${borderColor}`,
+                borderRadius: "4px",
+                "&:hover": {
+                  backgroundColor: theme.vars.palette.action.hover
+                }
+              }}
+            >
+              <PaletteIcon sx={{ fontSize: "0.9rem" }} />
+            </ToolbarIconButton>
+          </FlexRow>
+        </div>
+      </div>
 
       {/* Settings Popover */}
       <Popover
@@ -253,7 +248,7 @@ const MiniMapNavigator: React.FC = () => {
                 {colorMode === "default" ? (
                   <CheckIcon sx={{ fontSize: "1rem" }} />
                 ) : (
-                  <Box sx={{ width: "1rem" }} />
+                  <span style={{ width: "1rem", display: "inline-block" }} />
                 )}
               </ListItemIcon>
               <ListItemText
@@ -278,7 +273,7 @@ const MiniMapNavigator: React.FC = () => {
                 {colorMode === "type" ? (
                   <CheckIcon sx={{ fontSize: "1rem" }} />
                 ) : (
-                  <Box sx={{ width: "1rem" }} />
+                  <span style={{ width: "1rem", display: "inline-block" }} />
                 )}
               </ListItemIcon>
               <ListItemText
@@ -314,7 +309,7 @@ const MiniMapNavigator: React.FC = () => {
           }
         }}
       >
-        <Box sx={{ p: 1 }}>
+        <div style={{ padding: 8 }}>
           <Text
             size="small"
             weight={600}
@@ -335,11 +330,10 @@ const MiniMapNavigator: React.FC = () => {
                 disablePadding
                 sx={{ py: 0.25, px: 0 }}
               >
-                <Box
+                <FlexRow
+                  align="center"
+                  fullWidth
                   sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    width: "100%",
                     px: 1,
                     py: 0.5,
                     borderRadius: "4px",
@@ -348,13 +342,13 @@ const MiniMapNavigator: React.FC = () => {
                     }
                   }}
                 >
-                  <Box
-                    sx={{
+                  <span
+                    style={{
                       width: "12px",
                       height: "12px",
                       backgroundColor: item.color,
                       borderRadius: "2px",
-                      mr: 1.5,
+                      marginRight: 12,
                       flexShrink: 0
                     }}
                   />
@@ -365,11 +359,11 @@ const MiniMapNavigator: React.FC = () => {
                       color: theme.vars.palette.text.primary
                     }}
                   />
-                </Box>
+                </FlexRow>
               </ListItem>
             ))}
           </List>
-        </Box>
+        </div>
       </Popover>
     </>
   );

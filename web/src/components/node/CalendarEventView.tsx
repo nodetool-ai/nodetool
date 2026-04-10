@@ -1,6 +1,6 @@
 import React from "react";
-import { Card, CardContent, Box, Chip } from "@mui/material";
-import { Text, FlexRow } from "../ui_primitives";
+import { CardContent } from "@mui/material";
+import { Text, FlexRow, Card, Chip } from "../ui_primitives";
 import { CalendarEvent, Datetime } from "../../stores/ApiTypes";
 import EventIcon from "@mui/icons-material/Event";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -52,9 +52,9 @@ const CalendarEventView: React.FC<CalendarEventViewProps> = ({ event }) => {
         )}
 
         {event.calendar && (
-          <Box mb={1} mt={1}>
+          <div style={{ marginBottom: 8, marginTop: 8 }}>
             <Chip label={event.calendar} size="small" variant="outlined" />
-          </Box>
+          </div>
         )}
 
         {event.notes && (

@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import {
   Button,
-  CircularProgress,
   Box,
   MenuItem,
   Select,
   FormControl
 } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, LoadingSpinner } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -586,7 +585,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
               <PlayArrow />
             </>
           ) : isWorkflowRunning ? (
-            <CircularProgress size={20} color="inherit" />
+            <LoadingSpinner size="small" />
           ) : (
             <PlayArrow />
           )}

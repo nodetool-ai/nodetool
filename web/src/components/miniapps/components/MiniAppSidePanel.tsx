@@ -2,8 +2,8 @@
 import React, { useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Box, IconButton, Collapse, Button } from "@mui/material";
-import { Tooltip } from "../../ui_primitives";
+import { Box, Collapse } from "@mui/material";
+import { ToolbarIconButton, EditorButton } from "../../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -174,15 +174,14 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
     <Box css={styles}>
       {/* Toggle button - hidden when panel is open */}
       {!isOpen && (
-        <Tooltip title="Open settings" placement="left">
-          <IconButton
-            className="side-panel-toggle"
-            onClick={handleOpenPanel}
-            size="small"
-          >
-            <MenuIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<MenuIcon fontSize="small" />}
+          tooltip="Open settings"
+          tooltipPlacement="left"
+          className="side-panel-toggle"
+          onClick={handleOpenPanel}
+          size="small"
+        />
       )}
 
       {/* Backdrop */}
@@ -236,7 +235,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
 
           {/* VibeCoding Button */}
           <div className="panel-section" style={vibeCodingSectionMarginStyle}>
-            <Button
+            <EditorButton
               variant="outlined"
               startIcon={<AutoFixHighIcon />}
               onClick={handleOpenVibeCoding}
@@ -248,7 +247,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
               }}
             >
               Design App UI
-            </Button>
+            </EditorButton>
             {workflow.html_app && (
               <Caption
                 color="secondary"

@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   LinearProgress,
-  Chip,
   Collapse
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -29,7 +28,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import { useGettingStartedStore } from "../../stores/GettingStartedStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { FlexColumn, FlexRow, Card, Text, Caption, Tooltip } from "../ui_primitives";
+import { FlexColumn, FlexRow, Card, Text, Caption, Tooltip, Chip } from "../ui_primitives";
 
 interface GettingStartedPanelProps {
   sortedWorkflows: Workflow[];

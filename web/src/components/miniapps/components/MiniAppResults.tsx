@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { IconButton, CircularProgress } from "@mui/material";
-import { Text, Tooltip } from "../../ui_primitives";
+import { Text, ToolbarIconButton, LoadingSpinner } from "../../ui_primitives";
 import { Caption } from "../../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -140,26 +139,24 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
     <section className="results-shell application-card">
       {/* Clear button - shown only when there are results */}
       {hasResults && onClear && (
-        <Tooltip title={`Clear ${filteredResults.length} result${filteredResults.length > 1 ? "s" : ""}`}>
-          <IconButton
-            size="small"
-            onClick={onClear}
-            aria-label="Clear results"
-            sx={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              zIndex: 10,
-              backgroundColor: "background.paper",
-              boxShadow: 1,
-              "&:hover": {
-                backgroundColor: "action.hover"
-              }
-            }}
-          >
-            <ClearIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<ClearIcon fontSize="small" />}
+          tooltip={`Clear ${filteredResults.length} result${filteredResults.length > 1 ? "s" : ""}`}
+          size="small"
+          onClick={onClear}
+          aria-label="Clear results"
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            zIndex: 10,
+            backgroundColor: "background.paper",
+            boxShadow: 1,
+            "&:hover": {
+              backgroundColor: "action.hover"
+            }
+          }}
+        />
       )}
 
       {hasResults ? (
@@ -181,32 +178,30 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
               )}
               <div className="result-card-body">
                 <OutputRenderer value={result.value} showTextActions={false} />
-                <Tooltip
-                  title={copiedId === result.id ? "Copied!" : "Copy to clipboard"}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={handleCopyResult(result)}
-                    aria-label="Copy result"
-                    className="result-card-copy-button"
-                    sx={{
-                      position: "absolute",
-                      bottom: 8,
-                      right: 8,
-                      backgroundColor: "background.paper",
-                      boxShadow: 1,
-                      "&:hover": {
-                        backgroundColor: "action.hover"
-                      }
-                    }}
-                  >
-                    {copiedId === result.id ? (
+                <ToolbarIconButton
+                  icon={
+                    copiedId === result.id ? (
                       <CheckIcon fontSize="small" />
                     ) : (
                       <ContentCopyIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip>
+                    )
+                  }
+                  tooltip={copiedId === result.id ? "Copied!" : "Copy to clipboard"}
+                  size="small"
+                  onClick={handleCopyResult(result)}
+                  aria-label="Copy result"
+                  className="result-card-copy-button"
+                  sx={{
+                    position: "absolute",
+                    bottom: 8,
+                    right: 8,
+                    backgroundColor: "background.paper",
+                    boxShadow: 1,
+                    "&:hover": {
+                      backgroundColor: "action.hover"
+                    }
+                  }}
+                />
               </div>
             </div>
           ))}
@@ -214,7 +209,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
       ) : (
         <div className="result-placeholder">
           {isRunning ? (
-            <CircularProgress size={40} />
+            <LoadingSpinner size="medium" />
           ) : outputNodeStatus.totalOutputs === 0 ? (
             <>
               <InfoOutlinedIcon className="result-placeholder-icon" />

@@ -5,13 +5,12 @@ import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback } from "react";
 import {
   TextField,
-  Button,
   Card,
   CardContent,
   Grid,
   Box
 } from "@mui/material";
-import { Text, Caption } from "../ui_primitives";
+import { Text, Caption, EditorButton } from "../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
@@ -112,7 +111,7 @@ const HuggingFaceModelSearch: React.FC = () => {
           fullWidth
           margin="normal"
         />
-        <Button
+        <EditorButton
           type="submit"
           variant="contained"
           color="primary"
@@ -120,7 +119,7 @@ const HuggingFaceModelSearch: React.FC = () => {
           style={{ marginTop: "1rem" }}
         >
           Download
-        </Button>
+        </EditorButton>
       </form>
 
       <Grid container spacing={2} className="search-results">

@@ -6,7 +6,7 @@ import React, { memo } from "react";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { VERSION } from "../../config/constants";
-import { Divider } from "@mui/material";
+import { Divider } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({

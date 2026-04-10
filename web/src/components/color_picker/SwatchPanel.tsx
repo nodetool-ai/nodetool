@@ -6,10 +6,15 @@ import type { Theme } from "@mui/material/styles";
 import {
   Box,
   Menu,
-  MenuItem,
-  Button
+  MenuItem
 } from "@mui/material";
-import { Text, Tooltip, FlexRow } from "../ui_primitives";
+import {
+  Text,
+  Tooltip,
+  FlexRow,
+  FlexColumn,
+  EditorButton
+} from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
@@ -23,17 +28,12 @@ import {
 const styles = (theme: Theme) =>
   css({
     "&": {
-      display: "flex",
-      flexDirection: "column",
       gap: "16px"
     },
     ".section": {
-      display: "flex",
-      flexDirection: "column",
       gap: "8px"
     },
     ".section-header": {
-      display: "flex",
       alignItems: "center",
       justifyContent: "space-between"
     },
@@ -44,8 +44,6 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase"
     },
     ".color-grid": {
-      display: "flex",
-      flexWrap: "wrap",
       gap: "4px"
     },
     ".add-swatch-button": {
@@ -53,9 +51,6 @@ const styles = (theme: Theme) =>
       height: "24px",
       borderRadius: "4px",
       border: `1px dashed ${theme.vars.palette.grey[600]}`,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
       cursor: "pointer",
       color: theme.vars.palette.grey[500],
       "&:hover": {
@@ -64,15 +59,12 @@ const styles = (theme: Theme) =>
       }
     },
     ".palette-section": {
-      display: "flex",
-      flexDirection: "column",
       gap: "8px",
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900],
       borderRadius: "6px"
     },
     ".palette-header": {
-      display: "flex",
       alignItems: "center",
       justifyContent: "space-between"
     },
@@ -209,10 +201,10 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
   );
 
   return (
-    <Box css={styles(theme)}>
+    <FlexColumn css={styles(theme)} gap={2}>
       {/* Recent Colors */}
-      <div className="section">
-        <div className="section-header">
+      <FlexColumn className="section" gap={1} fullWidth>
+        <FlexRow className="section-header" align="center" justify="space-between" fullWidth>
           <Text className="section-title">Recent</Text>
           {recentColors.length > 0 && (
             <DeleteButton
@@ -222,8 +214,8 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
               nodrag={false}
             />
           )}
-        </div>
-        <div className="color-grid">
+        </FlexRow>
+        <FlexRow className="color-grid" gap={0.5} wrap fullWidth>
           {recentColors.length > 0 ? (
             recentColors.map((color) => (
               <ColorSwatch
@@ -237,15 +229,15 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
           ) : (
             <Text className="empty-message">No recent colors</Text>
           )}
-        </div>
-      </div>
+        </FlexRow>
+      </FlexColumn>
 
       {/* Saved Swatches */}
-      <div className="section">
-        <div className="section-header">
+      <FlexColumn className="section" gap={1} fullWidth>
+        <FlexRow className="section-header" align="center" justify="space-between" fullWidth>
           <Text className="section-title">Saved</Text>
-        </div>
-        <div className="color-grid">
+        </FlexRow>
+        <FlexRow className="color-grid" gap={0.5} wrap fullWidth>
           {swatches.map((swatch) => (
             <ColorSwatch
               key={swatch.id}
@@ -257,8 +249,10 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
             />
           ))}
           <Tooltip title="Save current color">
-            <div
+            <FlexRow
               className="add-swatch-button"
+              align="center"
+              justify="center"
               onClick={handleAddSwatch}
               onKeyDown={handleAddSwatchKeyDown}
               role="button"
@@ -266,20 +260,20 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
               aria-label="Save current color as swatch"
             >
               <AddIcon sx={{ fontSize: 16 }} />
-            </div>
+            </FlexRow>
           </Tooltip>
-        </div>
-      </div>
+        </FlexRow>
+      </FlexColumn>
 
       {/* User Palettes */}
       {palettes.length > 0 && (
-        <div className="section">
-          <div className="section-header">
+        <FlexColumn className="section" gap={1} fullWidth>
+          <FlexRow className="section-header" align="center" justify="space-between" fullWidth>
             <Text className="section-title">Palettes</Text>
-          </div>
+          </FlexRow>
           {palettes.map((palette) => (
-            <div key={palette.id} className="palette-section">
-              <div className="palette-header">
+            <FlexColumn key={palette.id} className="palette-section" gap={1} fullWidth>
+              <FlexRow className="palette-header" align="center" justify="space-between" fullWidth>
                 <Text className="palette-name">{palette.name}</Text>
                 <DeleteButton
                   onClick={handlePaletteRemove(palette.id)}
@@ -287,8 +281,8 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
                   iconVariant="clear"
                   nodrag={false}
                 />
-              </div>
-              <div className="color-grid">
+              </FlexRow>
+              <FlexRow className="color-grid" gap={0.5} wrap fullWidth>
                 {palette.colors.map((color) => (
                   <ColorSwatch
                     key={color}
@@ -298,24 +292,24 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
                     tooltip={color}
                   />
                 ))}
-              </div>
-            </div>
+              </FlexRow>
+            </FlexColumn>
           ))}
-        </div>
+        </FlexColumn>
       )}
 
       {/* Preset Palettes */}
-      <div className="section">
-        <div className="section-header">
+      <FlexColumn className="section" gap={1} fullWidth>
+        <FlexRow className="section-header" align="center" justify="space-between" fullWidth>
           <Text className="section-title">Presets</Text>
-          <Button
+          <EditorButton
             size="small"
             startIcon={<FolderOpenIcon />}
             onClick={handlePresetsMenuOpen}
           >
             Load
-          </Button>
-        </div>
+          </EditorButton>
+        </FlexRow>
         <Menu
           anchorEl={presetsMenuAnchor}
           open={Boolean(presetsMenuAnchor)}
@@ -342,7 +336,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
             </MenuItem>
           ))}
         </Menu>
-      </div>
+      </FlexColumn>
 
       {/* Swatch Context Menu */}
       <Menu
@@ -354,7 +348,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
           <DeleteIcon sx={{ fontSize: 16, mr: 1 }} /> Delete
         </MenuItem>
       </Menu>
-    </Box>
+    </FlexColumn>
   );
 });
 

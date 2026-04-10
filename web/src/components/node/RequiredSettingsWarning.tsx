@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { Button } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, EditorButton } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useRequiredSettings } from "../../hooks/useRequiredSettings";
 
@@ -44,7 +43,7 @@ const RequiredSettingsWarning: React.FC<RequiredSettingsWarningProps> = React.me
           >
             {message}
           </Text>
-          <Button
+          <EditorButton
             className="required-settings-button"
             variant="contained"
             color="warning"
@@ -62,7 +61,7 @@ const RequiredSettingsWarning: React.FC<RequiredSettingsWarningProps> = React.me
             }}
           >
             Configure in Settings
-          </Button>
+          </EditorButton>
         </>
       );
     }, [missingSettings, handleOpenSettings]);

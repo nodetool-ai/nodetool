@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { IconButton, Divider, SxProps } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { IconButton, SxProps } from "@mui/material";
+import { Tooltip, Divider } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 

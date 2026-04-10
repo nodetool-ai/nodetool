@@ -7,7 +7,7 @@ import { memo, useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef } from "../../stores/ApiTypes";
 import ColumnsManager from "../node/ColumnsManager";
-import { Button, ButtonGroup } from "@mui/material";
+import { EditorButton, ButtonGroup } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import isEqual from "lodash/isEqual";
@@ -88,9 +88,9 @@ const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
   return (
     <div css={styles(theme)}>
       <ButtonGroup className="button-group">
-        <Button onClick={addColumn}>
+        <EditorButton onClick={addColumn}>
           <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column
-        </Button>
+        </EditorButton>
       </ButtonGroup>
       <ColumnsManager
         columns={value.columns || []}

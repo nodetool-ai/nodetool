@@ -1,6 +1,5 @@
 import React, { useCallback } from "react";
-import { Button, Box } from "@mui/material";
-import { Text, FlexRow } from "../ui_primitives";
+import { Text, FlexRow, EditorButton } from "../ui_primitives";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
 import ImageModelSelect from "../properties/ImageModelSelect";
@@ -111,9 +110,9 @@ function DefaultModelRow({
       <FlexRow align="center" gap={1} sx={{ mt: 1 }}>
         <Select onChange={handleChange} value={current?.id || ""} />
         {current && (
-          <Button size="small" onClick={handleClear}>
+          <EditorButton size="small" onClick={handleClear}>
             Clear
-          </Button>
+          </EditorButton>
         )}
       </FlexRow>
       {current && (

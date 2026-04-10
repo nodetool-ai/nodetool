@@ -6,10 +6,8 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   Box,
-  Button,
-  CircularProgress
 } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { EditorButton, Text, LoadingSpinner } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   WaveRecorderProps,
@@ -112,29 +110,29 @@ const WaveRecorder = (props: WaveRecorderProps) => {
 
   return (
     <Box className="waverecorder" css={styles(theme)}>
-      <Button
+      <EditorButton
         onClick={handleRecord}
         className={`record-button nodrag ${isRecording ? " recording" : ""}`}
         variant="text"
-        size="small"
+        density="compact"
         disabled={isLoading}
       >
         {isRecording ? "STOP" : "RECORD"}
-        {isLoading && <CircularProgress size={6} />}
-      </Button>
+        {isLoading && <LoadingSpinner size="small" />}
+      </EditorButton>
 
-      <Button
+      <EditorButton
         className="nodrag device-button"
         onClick={toggleDeviceListVisibility}
         variant="text"
-        size="small"
+        density="compact"
       >
         {isDeviceListVisible ? (
           <SettingsInputComponentIcon className="toggle-on" />
         ) : (
           <SettingsInputComponentIcon className="toggle-off" />
         )}
-      </Button>
+      </EditorButton>
       {error && <div className="error">{error}</div>}
 
       {isDeviceListVisible && (

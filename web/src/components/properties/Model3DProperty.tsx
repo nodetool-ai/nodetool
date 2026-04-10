@@ -12,8 +12,8 @@ import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
-import { Button, TextField } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { TextField } from "@mui/material";
+import { Tooltip, EditorButton } from "../ui_primitives";
 import AssetViewer from "../assets/AssetViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { resolveAssetUri } from "../node/output/hooks";
@@ -222,7 +222,7 @@ const Model3DProperty = (props: PropertyProps) => {
           <Tooltip
             title={showUrlInput ? "Hide URL input" : "Show input to enter a URL"}
           >
-            <Button
+            <EditorButton
               className="toggle-url-button"
               variant="text"
               style={{
@@ -231,7 +231,7 @@ const Model3DProperty = (props: PropertyProps) => {
               onClick={handleToggleUrlInput}
             >
               {showUrlInput ? "X" : "URL"}
-            </Button>
+            </EditorButton>
           </Tooltip>
 
           <div

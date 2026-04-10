@@ -3,12 +3,11 @@
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
-  Box,
-  Chip,
   InputAdornment,
   Popover,
   TextField,
 } from "@mui/material";
+import { Chip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
@@ -221,7 +220,7 @@ const SnippetMenu = ({
         onEntered: () => searchRef.current?.focus(),
       }}
     >
-      <Box css={styles(theme)} onKeyDown={handleKeyDown}>
+      <div css={styles(theme)} onKeyDown={handleKeyDown}>
         {/* Search */}
         <div className="snippet-search">
           <TextField
@@ -297,7 +296,7 @@ const SnippetMenu = ({
             ))
           )}
         </div>
-      </Box>
+      </div>
     </Popover>
   );
 };

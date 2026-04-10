@@ -5,12 +5,10 @@ import { IconForType } from "../../config/data_types";
 import {
   Autocomplete,
   Box,
-  Button,
-  Chip,
   Menu,
   TextField
 } from "@mui/material";
-import { Tooltip, Text } from "../ui_primitives";
+import { Tooltip, Text, Chip, EditorButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -370,14 +368,14 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
         </Box>
 
         <Box className="filter-actions">
-          <Button
+          <EditorButton
             variant="outlined"
             className="more-filters-button"
             startIcon={<FilterListIcon fontSize="small" />}
             onClick={handleOpenMenu}
           >
             Filters
-          </Button>
+          </EditorButton>
         </Box>
 
         <Menu

@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { Box, Divider } from "@mui/material";
+import { Box } from "@mui/material";
+import { Divider } from "../ui_primitives";
 import {
   AlignHorizontalLeft,
   AlignHorizontalCenter,

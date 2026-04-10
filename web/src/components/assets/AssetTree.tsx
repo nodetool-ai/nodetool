@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 
 import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
 import {
-  CircularProgress,
   List,
   ListItemButton,
   ListItemIcon,
@@ -11,7 +10,7 @@ import {
   Collapse,
   Box
 } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, LoadingSpinner } from "../ui_primitives";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
@@ -251,7 +250,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   }, [closedFolders, createFolderToggleHandler, getFileIcon, theme.vars.palette.grey]);
 
   if (isLoading) {
-    return <CircularProgress />;
+    return <LoadingSpinner />;
   }
 
   return assetTree.length > 0 ? (

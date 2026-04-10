@@ -7,13 +7,17 @@ import React, {
   useState
 } from "react";
 import { useTheme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 import {
-  Box,
-  Button,
-  CircularProgress,
-  LinearProgress
-} from "@mui/material";
-import { Text, Caption, Tooltip } from "../ui_primitives";
+  Text,
+  Caption,
+  Tooltip,
+  LoadingSpinner,
+  ProgressBar,
+  FlexRow,
+  FlexColumn,
+  EditorButton,
+} from "../ui_primitives";
 import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -239,9 +243,9 @@ const MiniAppPage: React.FC = () => {
           <div className="layout-container">
             {/* Loading State */}
             {isLoading && (
-              <Box display="flex" justifyContent="center" py={8}>
-                <CircularProgress />
-              </Box>
+              <FlexRow justify="center" fullWidth sx={{ py: 8 }}>
+                <LoadingSpinner />
+              </FlexRow>
             )}
 
             {/* Error State */}
@@ -272,14 +276,14 @@ const MiniAppPage: React.FC = () => {
                 {isRunning && progress && (
                   <div className="status-bar">
                     <Box className="status-bar-progress" sx={{ width: "100%" }}>
-                      <LinearProgress
-                        variant="determinate"
+                      <ProgressBar
                         value={
                           progress.total > 0
                             ? (progress.current * 100.0) / progress.total
                             : 0
                         }
-                        sx={{ height: 6, borderRadius: 3 }}
+                        showValue={false}
+                        barHeight={6}
                       />
                     </Box>
                   </div>
@@ -302,9 +306,9 @@ const MiniAppPage: React.FC = () => {
                       onInputChange={updateInputValue}
                       onError={setSubmitError}
                     />
-                    <div className="composer-actions">
+                    <FlexColumn className="composer-actions" gap={1} fullWidth>
                       {isRunning ? (
-                        <Button
+                        <EditorButton
                           color="warning"
                           variant="contained"
                           onClick={handleCancelWorkflow}
@@ -312,7 +316,7 @@ const MiniAppPage: React.FC = () => {
                           fullWidth
                         >
                           Stop
-                        </Button>
+                        </EditorButton>
                       ) : (
                         <Tooltip
                           delay={TOOLTIP_ENTER_DELAY * 2}
@@ -320,8 +324,8 @@ const MiniAppPage: React.FC = () => {
                             isSubmitDisabled ? "Workflow is running..." : ""
                           }
                         >
-                          <span style={{ width: "100%" }}>
-                            <Button
+                          <Box component="span" sx={{ width: "100%" }}>
+                            <EditorButton
                               color="primary"
                               variant="contained"
                               type="submit"
@@ -330,8 +334,8 @@ const MiniAppPage: React.FC = () => {
                               fullWidth
                             >
                               Run Workflow
-                            </Button>
-                          </span>
+                            </EditorButton>
+                          </Box>
                         </Tooltip>
                       )}
                       {isRunning && (
@@ -360,7 +364,7 @@ const MiniAppPage: React.FC = () => {
                           Completed in {formatDuration(lastRunDuration)}
                         </Caption>
                       )}
-                    </div>
+                    </FlexColumn>
                   </div>
                   <MiniAppResults
                     results={results}

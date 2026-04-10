@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { IconButton, Paper, Popover, Box } from "@mui/material";
-import { Text, Tooltip } from "../ui_primitives";
+import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -51,15 +50,11 @@ const SEVERITY_COLORS = (theme: Theme): Record<Severity, { bg: string; text: str
 
 const tableStyles = (theme: Theme) =>
   css({
-    display: "flex",
-    flexDirection: "column",
     height: "100%",
     width: "100%",
     position: "relative",
 
     ".table": {
-      display: "flex",
-      flexDirection: "column",
       flex: 1,
       minHeight: 0,
       borderRadius: 6,
@@ -144,9 +139,7 @@ const tableStyles = (theme: Theme) =>
     },
 
     ".cell.actions": {
-      display: "flex",
       justifyContent: "flex-end",
-      alignItems: "center",
       whiteSpace: "normal",
       gap: 4
     },
@@ -173,9 +166,6 @@ const tableStyles = (theme: Theme) =>
     },
 
     ".empty": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
       height: "100%",
       color: theme.vars.palette.grey[500],
       fontSize: "0.85rem"
@@ -347,44 +337,37 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
           />
           {r.data !== undefined && r.data !== null && (
             <>
-              <IconButton
-                size="small"
-                onClick={handleClick}
-                sx={{ padding: "2px" }}
-                aria-label="View log data"
-                title="View log data"
-              >
-                <DataObjectIcon fontSize="inherit" />
-              </IconButton>
+              <ToolbarIconButton
+                icon={<DataObjectIcon fontSize="inherit" />}
+                tooltip="View log data"
+              onClick={handleClick}
+              size="small"
+              sx={{ padding: "2px" }}
+            />
               <Popover
                 open={open}
                 anchorEl={anchorEl}
                 onClose={handlePopoverClose}
-                anchorOrigin={{
-                  vertical: "bottom",
-                  horizontal: "left",
-                }}
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
+                placement="bottom-left"
+                maxWidth={400}
+                maxHeight={300}
               >
-                 <Box sx={{ p: 2, maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
-                    <pre style={{ margin: 0, fontSize: '0.75rem', fontFamily: 'monospace' }}>
-                        {JSON.stringify(r.data, null, 2)}
-                    </pre>
-                 </Box>
-                 {/* Close button inside popover just in case */}
-                 <Box sx={{ p: 1, display: 'flex', justifyContent: 'flex-end', borderTop: 1, borderColor: 'divider' }}>
+                <FlexColumn gap={0} sx={{ p: 2 }}>
+                  <pre style={{ margin: 0, fontSize: "0.75rem", fontFamily: "monospace" }}>
+                    {JSON.stringify(r.data, null, 2)}
+                  </pre>
+                  {/* Close button inside popover just in case */}
+                  <FlexRow justify="flex-end" sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}>
                     <Text
-                        component="span"
-                        size="small"
-                        sx={{ cursor: 'pointer', color: 'primary.main' }}
-                        onClick={handleClose}
+                      component="span"
+                      size="small"
+                      sx={{ cursor: "pointer", color: "primary.main" }}
+                      onClick={handleClose}
                     >
-                        Close
+                      Close
                     </Text>
-                 </Box>
+                  </FlexRow>
+                </FlexColumn>
               </Popover>
             </>
           )}
@@ -538,39 +521,38 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   ]);
 
   return (
-    <div css={styles} style={height ? { height } : undefined}>
-      <Paper variant="outlined" className="table">
-        <div className="header" style={{ gridTemplateColumns: columns }}>
-          <span>Message</span>
-          {showTimestampColumn && <span>Time</span>}
-          <span style={{ textAlign: "right" }}></span>
-        </div>
-        <div className="list-container">
-          {filteredRows.length === 0 ? (
-            <div className="empty">
-              <Text size="small">{emptyText}</Text>
-            </div>
-          ) : (
-            <AutoSizer>
-              {({ height: h, width }) => renderList(h, width)}
-            </AutoSizer>
-          )}
-        </div>
-      </Paper>
+    <FlexColumn css={styles} style={height ? { height } : undefined} fullWidth>
+      <Card variant="outlined" className="table" sx={{ flex: 1, minHeight: 0 }}>
+        <FlexColumn fullWidth fullHeight sx={{ minHeight: 0 }}>
+          <div className="header" style={{ gridTemplateColumns: columns }}>
+            <span>Message</span>
+            {showTimestampColumn && <span>Time</span>}
+            <span style={{ textAlign: "right" }}></span>
+          </div>
+          <FlexColumn className="list-container" fullWidth sx={{ flex: 1, minHeight: 0 }}>
+            {filteredRows.length === 0 ? (
+              <FlexColumn className="empty" fullWidth fullHeight align="center" justify="center">
+                <Text size="small">{emptyText}</Text>
+              </FlexColumn>
+            ) : (
+              <AutoSizer>
+                {({ height: h, width }) => renderList(h, width)}
+              </AutoSizer>
+            )}
+          </FlexColumn>
+        </FlexColumn>
+      </Card>
       
       {showScrollButton && (
-        <Tooltip title="Scroll to latest">
-          <IconButton
-            className="scroll-to-bottom"
-            onClick={scrollToBottom}
-            size="small"
-            aria-label="Scroll to latest logs"
-          >
-            <KeyboardArrowDownIcon />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<KeyboardArrowDownIcon />}
+          tooltip="Scroll to latest"
+          className="scroll-to-bottom"
+          onClick={scrollToBottom}
+          size="small"
+        />
       )}
-    </div>
+    </FlexColumn>
   );
 };
 

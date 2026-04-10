@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { Box, CircularProgress, Chip } from "@mui/material";
+import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -8,7 +8,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
 import { isElectron } from "../../stores/ApiClient";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { FlexRow, FlexColumn, Text, Caption } from "../ui_primitives";
+import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip } from "../ui_primitives";
 import log from "loglevel";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
@@ -263,7 +263,7 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
           padding: "3em"
         }}
       >
-        <CircularProgress size={40} />
+        <LoadingSpinner size="medium" />
       </FlexRow>
     );
   }

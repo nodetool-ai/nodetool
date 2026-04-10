@@ -1,5 +1,4 @@
-import { Box, Stack } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, FlexColumn } from "../ui_primitives";
 import { Property, InferenceProvider, InferenceProviderModelValue } from "../../stores/ApiTypes";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -173,8 +172,8 @@ const InferenceProviderModelSelect = ({
     }, [models]);
 
     return (
-        <Stack spacing={2}>
-            <Box>
+        <FlexColumn gap={2}>
+            <div>
                 <Text size="small" sx={{ mb: 1 }}>
                     Provider
                 </Text>
@@ -187,10 +186,10 @@ const InferenceProviderModelSelect = ({
                         keys: ["label"]
                     }}
                 />
-            </Box>
-            
+            </div>
+
             {value.provider && (
-                <Box>
+                <div>
                     <Text size="small" sx={{ mb: 1 }}>
                         Model
                     </Text>
@@ -199,19 +198,19 @@ const InferenceProviderModelSelect = ({
                         value={value.model_id}
                         onChange={handleChangeModel}
                         placeholder={
-                            isLoadingModels 
-                                ? "Loading models..." 
-                                : modelsError 
-                                    ? "Error loading models" 
+                            isLoadingModels
+                                ? "Loading models..."
+                                : modelsError
+                                    ? "Error loading models"
                                     : "Select a model"
                         }
                         fuseOptions={{
                             keys: ["label"]
                         }}
                     />
-                </Box>
+                </div>
             )}
-        </Stack>
+        </FlexColumn>
     );
 };
 

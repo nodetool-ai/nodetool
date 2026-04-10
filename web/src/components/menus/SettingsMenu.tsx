@@ -2,7 +2,6 @@
 // Dialog-based settings menu (replacing MUI Menu)
 import React, { memo, useId } from "react";
 import {
-  Button,
   Tabs,
   Tab,
   Box
@@ -20,7 +19,8 @@ import {
   LabeledSwitch,
   SelectField,
   Tooltip,
-  Text
+  Text,
+  EditorButton
 } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../stores/ApiClient";
@@ -304,7 +304,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   return (
     <div className="settings">
       <Tooltip title="Settings" delay={TOOLTIP_ENTER_DELAY}>
-        <Button
+        <EditorButton
           tabIndex={-1}
           className="settings-button command-icon"
           aria-controls={isMenuOpen ? "basic-menu" : undefined}
@@ -314,7 +314,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         >
           <SettingsIcon />
           {buttonText}
-        </Button>
+        </EditorButton>
       </Tooltip>
       <Dialog
         open={isMenuOpen}
@@ -708,7 +708,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </div>
                         </div>
                         <Tooltip title="Copy to clipboard">
-                          <Button
+                          <EditorButton
                             style={{ margin: ".5em 0" }}
                             size="small"
                             variant="outlined"
@@ -716,7 +716,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             onClick={copyAuthToken}
                           >
                             Copy Token
-                          </Button>
+                          </EditorButton>
                         </Tooltip>
                       </div>
                     </>

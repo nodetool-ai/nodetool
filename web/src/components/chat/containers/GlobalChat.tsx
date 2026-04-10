@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import React, {
   useEffect,
   useRef,
@@ -8,10 +7,15 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { Box, useMediaQuery, Button } from "@mui/material";
-import { AlertBanner, Text, FlexRow, FlexColumn } from "../../ui_primitives";
+import { useMediaQuery } from "@mui/material";
+import {
+  AlertBanner,
+  Text,
+  FlexRow,
+  FlexColumn,
+  EditorButton
+} from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
 import WelcomePlaceholder from "./WelcomePlaceholder";
@@ -402,29 +406,6 @@ const GlobalChat: React.FC = () => {
     );
   }, [threads, messageCache]);
 
-  const mainAreaStyles = (_theme: Theme) =>
-    css({
-      position: "relative",
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      minHeight: 0,
-      maxHeight: "100%",
-
-      ".chat-container": {
-        flex: 1,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "row",  // Changed from column to row for sidebar layout
-        minHeight: 0,
-        maxHeight: "100%",
-        position: "relative"
-      }
-
-      // Mobile styles handled via separate CSS file
-    });
-
   // Show loading state if threads are still loading
   if (isLoadingThreads) {
     return (
@@ -484,15 +465,14 @@ const GlobalChat: React.FC = () => {
       }}
     >
       {/* Main Chat Area */}
-      <Box
-        css={mainAreaStyles(theme)}
+      <FlexColumn
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed && error && (
           <AlertBanner
-            className="global-chat-status-alert"
-            severity="error"
-            onClose={() => setAlertDismissed(true)}
+          className="global-chat-status-alert"
+          severity="error"
+          onClose={() => setAlertDismissed(true)}
             sx={{
               position: "absolute",
               top: "5rem",
@@ -508,20 +488,18 @@ const GlobalChat: React.FC = () => {
               <Text size="small" component="span">
                 {error}
               </Text>
-              <Button
-                size="small"
-                variant="outlined"
-                color="inherit"
+              <EditorButton
                 onClick={() => {
                   setAlertDismissed(true);
                   connect().catch((err) => {
                     log.error("Retry connection failed:", err);
                   });
                 }}
-                sx={{ ml: "auto", whiteSpace: "nowrap", minWidth: "auto" }}
+                variant="outlined"
+                sx={{ ml: "auto", whiteSpace: "nowrap" }}
               >
                 Retry
-              </Button>
+              </EditorButton>
             </FlexRow>
           </AlertBanner>
         )}
@@ -534,7 +512,8 @@ const GlobalChat: React.FC = () => {
             marginTop: "50px", // Offset for AppHeader
             minHeight: 0,
             flex: 1,
-            overflow: "hidden"
+            overflow: "hidden",
+            maxHeight: "100%"
           }}
         >
           {/* Chat Sidebar */}
@@ -558,7 +537,8 @@ const GlobalChat: React.FC = () => {
               transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               minWidth: 0,
               minHeight: 0,
-              overflow: "hidden"
+              overflow: "hidden",
+              maxHeight: "100%"
             }}
           >
             <ChatView
@@ -588,7 +568,7 @@ const GlobalChat: React.FC = () => {
             />
           </FlexColumn>
         </FlexRow>
-      </Box>
+      </FlexColumn>
     </FlexColumn>
   );
 };

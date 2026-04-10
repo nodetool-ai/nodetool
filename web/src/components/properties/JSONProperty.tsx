@@ -7,9 +7,8 @@ import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "lodash/isEqual";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
-import { IconButton } from "@mui/material";
+import { CopyButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { CopyButton, Tooltip } from "../ui_primitives";
 import TextEditorModal from "./TextEditorModal";
 
 const JSONProperty = (props: PropertyProps) => {
@@ -145,11 +144,7 @@ const JSONProperty = (props: PropertyProps) => {
         />
         {isHovered && (
           <div className="json-action-buttons">
-            <Tooltip title="Open Editor" placement="bottom">
-              <IconButton size="small" onClick={toggleExpand} aria-label="Open Editor">
-                <OpenInFullIcon />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton tooltip="Open Editor" icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
             <CopyButton value={value} buttonSize="small" />
           </div>
         )}

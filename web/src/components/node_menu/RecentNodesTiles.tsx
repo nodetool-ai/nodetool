@@ -4,8 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
-import { Box, IconButton } from "@mui/material";
-import { Tooltip, Text } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
 import HistoryIcon from "@mui/icons-material/History";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
@@ -288,16 +288,15 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
           <HistoryIcon fontSize="small" sx={{ opacity: 0.8 }} />
           Recent Nodes
         </Text>
-        <Tooltip title="Clear recent nodes" placement="top">
-          <IconButton
-            size="small"
-            className="clear-button"
-            onClick={handleClearRecent}
-            aria-label="Clear recent nodes"
-          >
-            <ClearIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<ClearIcon fontSize="small" />}
+          tooltip="Clear recent nodes"
+          tooltipPlacement="top"
+          size="small"
+          className="clear-button"
+          onClick={handleClearRecent}
+          aria-label="Clear recent nodes"
+        />
       </div>
       <div className="tiles-container">
         {filteredRecentNodes.map((recentNode) => {

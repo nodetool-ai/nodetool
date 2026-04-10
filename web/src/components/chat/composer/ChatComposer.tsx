@@ -6,8 +6,8 @@ import React, {
   memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, IconButton, Collapse } from "@mui/material";
-import { Tooltip, Caption, FlexRow } from "../../ui_primitives";
+import { Collapse } from "@mui/material";
+import { Tooltip, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
 import { MessageContent } from "../../../stores/ApiTypes";
@@ -136,7 +136,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
               boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}25`
             }}
           >
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <Caption
                 color="primary"
                 sx={{
@@ -158,34 +158,26 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
               >
                 {queuedMessage?.prompt}
               </Caption>
-            </Box>
-            <Tooltip title="Send now (interrupts current response)">
-              <IconButton
-                size="small"
-                onClick={sendQueuedNow}
-                disabled={!onStop}
-                aria-label="Send now"
-                sx={{
-                  color: "primary.main",
-                  "&:hover": { backgroundColor: theme.vars.palette.primary.main + "20" }
-                }}
-              >
-                <SendIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Cancel queued message">
-              <IconButton
-                size="small"
-                onClick={cancelQueued}
-                aria-label="Cancel queued message"
-                sx={{
-                  color: "text.secondary",
-                  "&:hover": { color: "error.main" }
-                }}
-              >
-                <ClearIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
+            </div>
+            <ToolbarIconButton
+              tooltip="Send now (interrupts current response)"
+              onClick={sendQueuedNow}
+              disabled={!onStop}
+              icon={<SendIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                color: "primary.main",
+                "&:hover": { backgroundColor: theme.vars.palette.primary.main + "20" }
+              }}
+            />
+            <ToolbarIconButton
+              tooltip="Cancel queued message"
+              onClick={cancelQueued}
+              icon={<ClearIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                color: "text.secondary",
+                "&:hover": { color: "error.main" }
+              }}
+            />
           </FlexRow>
         </FlexRow>
       </Collapse>

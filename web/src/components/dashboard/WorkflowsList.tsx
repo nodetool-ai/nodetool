@@ -2,18 +2,20 @@
 import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 import {
-  Box,
-  Button,
-  ToggleButton,
-  ToggleButtonGroup
-} from "@mui/material";
-import { LoadingSpinner, FlexRow, Text, Tooltip } from "../ui_primitives";
+  FlexColumn,
+  FlexRow,
+  LoadingSpinner,
+  Text,
+  ToggleGroup,
+  ToggleOption,
+  ToolbarIconButton
+} from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import AddIcon from "@mui/icons-material/Add";
-import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 import { sanitizeImageUrl } from "../../utils/urlValidation";
 
 interface WorkflowsListProps {
@@ -29,13 +31,10 @@ const styles = (theme: Theme) =>
   css({
     borderRadius: theme.spacing(1),
     padding: "1em",
-    display: "flex",
-    flexDirection: "column",
     overflowY: "auto",
     height: "100%",
     boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}1a`,
     ".header-controls": {
-      display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
       marginBottom: "1em"
@@ -45,10 +44,7 @@ const styles = (theme: Theme) =>
       marginBottom: 0
     },
     ".workflow-controls": {
-      height: "40px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
+      height: "40px"
     },
     ".sort-toggle .MuiToggleButton-root": {
       lineHeight: "1em",
@@ -61,7 +57,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".create-button": {
-      padding: ".3em 1em",
+      padding: ".3em",
       backgroundColor: theme.vars.palette.grey[600],
       color: theme.vars.palette.grey[0],
       ":hover": {
@@ -74,15 +70,9 @@ const styles = (theme: Theme) =>
       paddingRight: theme.spacing(1)
     },
     ".loading-container": {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
       height: "300px"
     },
     ".workflow-item": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(4),
       padding: theme.spacing(1),
       marginBottom: theme.spacing(1),
       cursor: "pointer",
@@ -156,9 +146,9 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
     }
   }, [sortedWorkflows, handleWorkflowClick]);
 
-  return (
-    <div className="workflows-list" css={styles(theme)}>
-      <Box className="header-controls">
+    return (
+    <FlexColumn className="workflows-list" css={styles(theme)} fullHeight>
+      <FlexRow className="header-controls" justify="space-between" align="center" fullWidth>
         <Text size="big" className="section-title">
           Recent Workflows
         </Text>
@@ -167,44 +157,40 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
           gap={2}
           align="center"
         >
-          <ToggleButtonGroup
+          <ToggleGroup
             className="sort-toggle"
             value={settings.workflowOrder}
             onChange={handleOrderChange}
             exclusive
             size="small"
           >
-            <ToggleButton value="name">Name</ToggleButton>
-            <ToggleButton value="updated_at">Date</ToggleButton>
-          </ToggleButtonGroup>
-          <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
-          nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-          placement="top"
-          title="Create New Workflow"
-          arrow
-          >
-            <Button
-              className="create-button"
-              startIcon={<AddIcon />}
-              onClick={handleCreateNewWorkflow}
-              size="small"
-            ></Button>
-          </Tooltip>
+            <ToggleOption value="name">Name</ToggleOption>
+            <ToggleOption value="updated_at">Date</ToggleOption>
+          </ToggleGroup>
+          <ToolbarIconButton
+            className="create-button"
+            icon={<AddIcon />}
+            tooltip="Create New Workflow"
+            tooltipPlacement="top"
+            variant="primary"
+            onClick={handleCreateNewWorkflow}
+          />
         </FlexRow>
-      </Box>
-      <Box className="content-scrollable">
+      </FlexRow>
+      <FlexColumn className="content-scrollable" sx={{ flex: 1, overflow: "auto", pr: 1 }}>
         {isLoadingWorkflows ? (
-          <Box className="loading-container">
+          <FlexRow className="loading-container" align="center" justify="center" fullWidth>
             <LoadingSpinner size="large" />
-          </Box>
+          </FlexRow>
         ) : (
           sortedWorkflows.map((workflow) => (
-            <Box
+            <FlexRow
               key={workflow.id}
               className="workflow-item"
               data-workflow-id={workflow.id}
               onClick={handleWorkflowItemClick}
+              align="center"
+              gap={4}
             >
               <Box
                 className="workflow-thumbnail"
@@ -225,11 +211,11 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
               <Text className="workflow-date">
                 {relativeTime(workflow.updated_at)}
               </Text>
-            </Box>
+            </FlexRow>
           ))
         )}
-      </Box>
-    </div>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

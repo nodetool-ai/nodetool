@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, CircularProgress } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, LoadingSpinner } from "../ui_primitives";
 import { PlayArrow } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useCallback, useMemo } from "react";
@@ -86,15 +85,16 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
       }
       delay={TOOLTIP_ENTER_DELAY}
     >
-      <IconButton
+      <ToolbarIconButton
+        title=""
         size="small"
         tabIndex={-1}
         css={styles(theme, isRunning)}
         className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
         onClick={handleClick}
       >
-        {isRunning ? <CircularProgress /> : <PlayArrow />}
-      </IconButton>
+        {isRunning ? <LoadingSpinner size={16} /> : <PlayArrow />}
+      </ToolbarIconButton>
     </Tooltip>
   );
 };

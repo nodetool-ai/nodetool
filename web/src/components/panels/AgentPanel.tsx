@@ -7,10 +7,8 @@ import {
   MenuItem,
   Menu,
   IconButton,
-  Dialog,
   DialogTitle,
-  DialogContent,
-  CircularProgress
+  DialogContent
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -38,7 +36,9 @@ import {
   SelectField,
   ToggleGroup,
   ToggleOption,
-  FlexRow
+  FlexRow,
+  Dialog,
+  LoadingSpinner
 } from "../ui_primitives";
 
 import { useQuery } from "@tanstack/react-query";
@@ -822,7 +822,7 @@ const AgentPanel: React.FC = () => {
 
           {draftModelsLoading && (
             <FlexRow align="center" gap={1} sx={{ marginTop: "8px" }}>
-              <CircularProgress size={16} />
+              <LoadingSpinner size="small" />
               <Caption size="smaller">
                 Loading {draftProviderLabel} models...
               </Caption>

@@ -3,15 +3,9 @@ import { css } from "@emotion/react";
 import { keyframes } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState, useEffect, memo } from "react";
-import {
-  Box,
-  Button,
-  CircularProgress,
-  IconButton,
-  Chip
-} from "@mui/material";
-import { Tooltip, Text, Caption } from "../ui_primitives";
-import CloseIcon from "@mui/icons-material/Close";
+import { Box } from "@mui/material";
+import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton, FlexRow, FlexColumn } from "../ui_primitives";
+import { ProgressBar } from "../ui_primitives/ProgressBar";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useTheme } from "@mui/material/styles";
@@ -26,8 +20,6 @@ const styles = (theme: Theme) =>
     borderRadius: "8px",
     padding: "0.75em 1em 1em",
     position: "relative",
-    display: "flex",
-    flexDirection: "column",
     alignItems: "stretch",
     justifyContent: "start",
     border: `1px solid ${theme.vars.palette.divider}`,
@@ -53,12 +45,6 @@ const styles = (theme: Theme) =>
     ".download-message": {
       fontSize: theme.fontSizeSmall,
       // Color is handled via dynamic style prop or class
-    },
-    ".header-row": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: theme.spacing(1)
     },
     ".progress-bar-container": {
       height: "8px",
@@ -94,10 +80,6 @@ const styles = (theme: Theme) =>
       alignSelf: "start"
     },
     ".meta-row": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: theme.spacing(1),
       marginTop: theme.spacing(1)
     }
   });
@@ -291,35 +273,14 @@ export const DownloadProgress: React.FC<{
           download.message ? ` — ${download.message}` : ""
         }`}
       >
-        <Box
-          component="span"
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 0.75,
-            ml: 0.5
-          }}
-        >
-          <CircularProgress
-            size={14}
-            color="inherit"
-            variant={
-              download.status === "completed" || totalBytes > 0
-                ? "determinate"
-                : "indeterminate"
-            }
-            value={
-              download.status === "completed"
-                ? 100
-                : totalBytes > 0
-                ? percent
-                : undefined
-            }
+        <FlexRow component="span" align="center" gap={0.5} sx={{ ml: 0.5 }}>
+          <ProgressBar
+            value={download.status === "completed" ? 100 : percent}
+            showValue={false}
+            barHeight={4}
+            sx={{ width: 56, minWidth: 56 }}
           />
-          <Box
-            component="span"
-            sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}
-          >
+          <FlexRow component="span" align="center" gap={0.5}>
             <Caption sx={{ lineHeight: 1 }}>
               {label}
             </Caption>
@@ -330,28 +291,25 @@ export const DownloadProgress: React.FC<{
                 {formatBytes(downloadedBytes)} / {formatBytes(totalBytes)}
               </Caption>
             )}
-          </Box>
-        </Box>
+          </FlexRow>
+        </FlexRow>
       </Tooltip>
     );
   }
 
   return (
-    <Box css={styles(theme)}>
-      <Box className="header-row">
+    <FlexColumn css={styles(theme)} fullWidth gap={0.75}>
+      <FlexRow className="header-row" align="center" justify="space-between" gap={1} fullWidth>
         <Text className="repo-name" size="small" weight={500}>
           {name}
         </Text>
-        <Tooltip title={getCloseButtonTooltip()}>
-          <IconButton
-            onClick={handleRemove}
-            size="small"
-            aria-label={getCloseButtonTooltip()}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+        <CloseButton
+          onClick={handleRemove}
+          buttonSize="small"
+          tooltip={getCloseButtonTooltip()}
+          nodrag={false}
+        />
+      </FlexRow>
       {download.message && (
         <Text
           className="download-message"
@@ -367,14 +325,14 @@ export const DownloadProgress: React.FC<{
         </Text>
       )}
       {(download.status === "start" || download.status === "pending") && (
-        <Box display="flex" alignItems="center">
-          <CircularProgress size={20} style={{ marginRight: "0.5em" }} />
+        <FlexRow align="center">
+          <LoadingSpinner size="small" />
           <Text size="small">
             {download.status === "start"
               ? "Starting download..."
               : "Pending download..."}
           </Text>
-        </Box>
+        </FlexRow>
       )}
       {download.status === "completed" && (
         <Tooltip title="Download has finished successfully">
@@ -408,7 +366,7 @@ export const DownloadProgress: React.FC<{
       )}
       {showDetails && (
         <>
-          <Box className="meta-row">
+          <FlexRow className="meta-row" align="center" justify="space-between" gap={1} fullWidth>
             <Caption sx={{ opacity: 0.85 }}>
               {percent.toFixed(0)}%
             </Caption>
@@ -420,14 +378,7 @@ export const DownloadProgress: React.FC<{
                     : `No progress received for ${timeSinceUpdate}. The download may have stalled or the connection was lost. Try cancelling and restarting the download.`
                 }
               >
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
-                    color: "var(--palette-warning-main)"
-                  }}
-                >
+                <FlexRow align="center" gap={0.5} sx={{ color: "var(--palette-warning-main)" }}>
                   <WarningAmberIcon fontSize="small" />
                   <Caption sx={{ fontWeight: 500 }}>
                     {isDisconnected
@@ -437,8 +388,8 @@ export const DownloadProgress: React.FC<{
                         : `Stalled (${timeSinceUpdate} since last update)`}
                   </Caption>
                   {isDisconnected && !isReconnecting && (
-                    <Button
-                      size="small"
+                    <EditorButton
+                      density="compact"
                       variant="text"
                       onClick={reconnectWebSocket}
                       sx={{
@@ -449,12 +400,12 @@ export const DownloadProgress: React.FC<{
                       }}
                     >
                       Reconnect
-                    </Button>
+                    </EditorButton>
                   )}
-                </Box>
+                </FlexRow>
               </Tooltip>
             )}
-          </Box>
+          </FlexRow>
           <Box className="progress-bar-container">
             <Box
               className="progress-bar"
@@ -521,22 +472,22 @@ export const DownloadProgress: React.FC<{
             </Text>
           </Box>
           <Tooltip title="Stop the current download. You can restart it later.">
-            <Button
+            <EditorButton
               onClick={handleCancelDownload}
               variant="contained"
+              density="compact"
               style={{
                 color: theme.vars.palette.primary.contrastText,
                 backgroundColor: theme.vars.palette.info.main
               }}
-              size="small"
               className="cancel-button"
             >
               Cancel Download
-            </Button>
+            </EditorButton>
           </Tooltip>
         </>
       )}
-    </Box>
+    </FlexColumn>
   );
 });
 

@@ -4,12 +4,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback } from "react";
 import {
-  Box,
-  Button
+  Box
 } from "@mui/material";
-import { Tooltip, Text } from "../ui_primitives";
+import { Tooltip, Text, EditorButton, FlexRow, CloseButton } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { CloseButton } from "../ui_primitives";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -277,14 +275,14 @@ const NodeInfoPanel: React.FC = memo(() => {
   return (
     <Box className="node-info-panel" css={styles(theme)}>
       <Box className="panel-content">
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+        <FlexRow align="center" justify="space-between" sx={{ mb: 1 }}>
           <Text className="node-name">{nodeInfo.label}</Text>
           <CloseButton
             onClick={handleClose}
             sx={{ color: "text.secondary" }}
             nodrag={false}
           />
-        </Box>
+        </FlexRow>
 
         <Tooltip
           title={
@@ -303,13 +301,13 @@ const NodeInfoPanel: React.FC = memo(() => {
           placement="bottom-start"
           delay={TOOLTIP_ENTER_DELAY}
         >
-          <Button
+          <EditorButton
             tabIndex={1}
             className="namespace-button"
             onClick={handleNamespaceClick}
           >
             <PrettyNamespace namespace={nodeInfo.namespace} />
-          </Button>
+          </EditorButton>
         </Tooltip>
 
         {parsedDescription && (
@@ -349,14 +347,14 @@ const NodeInfoPanel: React.FC = memo(() => {
           </Box>
         )}
 
-        <Button
+        <EditorButton
           className="action-button"
           size="small"
           startIcon={<OpenInNewIcon fontSize="small" />}
           onClick={handleFocusClick}
         >
           Focus
-        </Button>
+        </EditorButton>
       </Box>
     </Box >
   );

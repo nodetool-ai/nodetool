@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import { Badge, Box, IconButton, Divider } from "@mui/material";
-import { Caption, Tooltip, FlexColumn } from "../ui_primitives";
+import { Badge } from "@mui/material";
+import { Caption, Tooltip, FlexColumn, Divider, ToolbarIconButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
@@ -85,49 +85,48 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
     >
       {/* History button - visible when multiple results exist */}
       {hasSessionHistory && sessionHistory.length > 1 && nodeId && workflowId && (
-        <Tooltip delay={TOOLTIP_ENTER_DELAY} title={`View History (${sessionHistory.length})`} placement="left">
-          <IconButton
-            size="small"
-            onClick={handleOpenHistory}
+        <ToolbarIconButton
+          title={`View History (${sessionHistory.length})`}
+          size="small"
+          onClick={handleOpenHistory}
+          sx={{
+            position: "absolute",
+            top: 4,
+            right: 8,
+            zIndex: 10,
+            width: 24,
+            height: 24,
+            padding: "4px",
+            borderRadius: "4px",
+            opacity: 0.6,
+            transition: "opacity 0.2s ease",
+            backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+            color: theme.vars.palette.common.white,
+            "&:hover": {
+              opacity: 1,
+              backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
+            },
+            "& svg": {
+              fontSize: 14
+            }
+          }}
+        >
+          <Badge
+            badgeContent={sessionHistory.length}
+            color="primary"
+            max={99}
             sx={{
-              position: "absolute",
-              top: 4,
-              right: 8,
-              zIndex: 10,
-              width: 24,
-              height: 24,
-              padding: "4px",
-              borderRadius: "4px",
-              opacity: 0.6,
-              transition: "opacity 0.2s ease",
-              backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
-              color: theme.vars.palette.common.white,
-              "&:hover": {
-                opacity: 1,
-                backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
-              },
-              "& svg": {
-                fontSize: 14
+              "& .MuiBadge-badge": {
+                fontSize: "0.6rem",
+                minWidth: 16,
+                height: 16,
+                padding: "0 3px"
               }
             }}
           >
-            <Badge
-              badgeContent={sessionHistory.length}
-              color="primary"
-              max={99}
-              sx={{
-                "& .MuiBadge-badge": {
-                  fontSize: "0.6rem",
-                  minWidth: 16,
-                  height: 16,
-                  padding: "0 3px"
-                }
-              }}
-            >
-              <HistoryIcon />
-            </Badge>
-          </IconButton>
-        </Tooltip>
+            <HistoryIcon />
+          </Badge>
+        </ToolbarIconButton>
       )}
 
       {/* Render accumulated session results */}
@@ -156,7 +155,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
               : item.result;
           const typeLabel = index === 0 ? resultTypeLabel(unwrapped) : "";
           return (
-            <Box key={`result-${item.timestamp}-${index}`}>
+            <div key={`result-${item.timestamp}-${index}`}>
               {index === 0 && typeLabel && (
                 <Caption
                   size="tiny"
@@ -181,7 +180,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
                 </Divider>
               )}
               <OutputRenderer value={unwrapped} />
-            </Box>
+            </div>
           );
         })}
       </FlexColumn>

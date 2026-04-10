@@ -4,8 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
-import { Box, IconButton } from "@mui/material";
-import { Tooltip, Text } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -307,21 +307,15 @@ const FavoritesTiles = memo(function FavoritesTiles() {
           />
           Favorites
         </Text>
-        <Tooltip
-          title="Clear all favorites"
-          placement="top"
-          delay={TOOLTIP_ENTER_DELAY}
-          nextDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <IconButton
-            size="small"
-            className="clear-button"
-            onClick={handleClearFavorites}
-            aria-label="Clear all favorites"
-          >
-            <ClearIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<ClearIcon fontSize="small" />}
+          tooltip="Clear all favorites"
+          tooltipPlacement="top"
+          size="small"
+          className="clear-button"
+          onClick={handleClearFavorites}
+          aria-label="Clear all favorites"
+        />
       </div>
       <div className="tiles-container">
         {favorites.map((favorite) => {
@@ -364,15 +358,15 @@ const FavoritesTiles = memo(function FavoritesTiles() {
                   } as CSSProperties
                 }
               >
-                <IconButton
+                <ToolbarIconButton
+                  icon={<StarBorderIcon fontSize="small" />}
+                  tooltip={`Remove ${displayName} from favorites`}
                   size="small"
                   className="unfavorite-btn"
                   onClick={handleUnfavorite}
                   data-node-type={nodeType}
                   aria-label={`Remove ${displayName} from favorites`}
-                >
-                  <StarBorderIcon fontSize="small" />
-                </IconButton>
+                />
                 <Text className="tile-label">{displayName}</Text>
               </div>
             </Tooltip>

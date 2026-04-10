@@ -2,15 +2,13 @@
 import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import {
+  Box,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Divider
+  DialogActions
 } from "@mui/material";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
-import { Dialog, CloseButton, Text, FlexColumn } from "../ui_primitives";
+import { Dialog, CloseButton, Text, FlexColumn, Divider, EditorButton } from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
@@ -129,20 +127,20 @@ const DownloadManagerDialog: React.FC = () => {
             <>
               <Divider sx={{ my: 2 }} />
               <Box className="folders-row">
-                <Button
+                <EditorButton
                   variant="outlined"
                   startIcon={<FolderOutlined />}
                   onClick={openHuggingfacePath}
                 >
                   Open HuggingFace folder
-                </Button>
-                <Button
+                </EditorButton>
+                <EditorButton
                   variant="outlined"
                   startIcon={<FolderOutlined />}
                   onClick={openOllamaPath}
                 >
                   Open Ollama folder
-                </Button>
+                </EditorButton>
               </Box>
             </>
           )}
@@ -165,9 +163,9 @@ const DownloadManagerDialog: React.FC = () => {
           />
           {infoMessage}
         </Text>
-        <Button onClick={closeDialog} variant="contained">
+        <EditorButton onClick={closeDialog} variant="contained">
           Close
-        </Button>
+        </EditorButton>
       </DialogActions>
     </Dialog>
   );

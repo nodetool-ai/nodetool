@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton } from "../ui_primitives";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -98,7 +97,8 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
       }
       delay={TOOLTIP_ENTER_DELAY}
     >
-      <IconButton
+      <ToolbarIconButton
+        title=""
         size="small"
         tabIndex={-1}
         css={buttonStyles}
@@ -106,7 +106,7 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
         onClick={onClick}
       >
         {isBypassed ? <VisibilityIcon /> : <VisibilityOffIcon />}
-      </IconButton>
+      </ToolbarIconButton>
     </Tooltip>
   );
 });

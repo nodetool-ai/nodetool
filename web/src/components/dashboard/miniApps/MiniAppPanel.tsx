@@ -3,15 +3,13 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  CircularProgress,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
-  LinearProgress,
-  IconButton
+  LinearProgress
 } from "@mui/material";
-import { Text, Tooltip, FlexColumn, FlexRow } from "../../ui_primitives";
+import { Text, Tooltip, FlexColumn, FlexRow, LoadingSpinner, ToolbarIconButton } from "../../ui_primitives";
 import EditIcon from "@mui/icons-material/Edit";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -235,7 +233,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
       <Box css={styles} component="section" sx={{ height: "100%", overflow: "hidden" }}>
         {isLoading && (
           <FlexRow justify="center" padding={2}>
-            <CircularProgress />
+            <LoadingSpinner />
           </FlexRow>
         )}
         {error && <Text color="error">{error.message}</Text>}
@@ -252,11 +250,13 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
               <Text size="normal" weight={500} noWrap>
                 {workflow?.name}
               </Text>
-              <Tooltip title="Open in Editor">
-                <IconButton size="small" onClick={handleOpenInEditor} aria-label="Open in Editor">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <ToolbarIconButton
+                icon={<EditIcon fontSize="small" />}
+                tooltip="Open in Editor"
+                onClick={handleOpenInEditor}
+                size="small"
+                nodrag={false}
+              />
             </FlexRow>
 
             <div className="content-grid" style={{ height: "calc(100% - 40px)", overflow: "auto", display: "flex", flexDirection: "column" }}>

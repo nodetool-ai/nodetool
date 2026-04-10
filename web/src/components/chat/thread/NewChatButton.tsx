@@ -1,5 +1,4 @@
 import React from "react";
-import { Box } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { CreateFab } from "../../ui_primitives";
 
@@ -11,7 +10,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
   onNewThread
 }) => {
   return (
-    <Box className="new-chat-section">
+    <div className="new-chat-section">
       <CreateFab
         className="new-chat-button"
         icon={<AddIcon sx={{ fontSize: "1.3rem" }} />}
@@ -45,6 +44,6 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
           }
         })}
       />
-    </Box>
+    </div>
   );
 };

@@ -4,8 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { IconButton } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton } from "../ui_primitives";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
@@ -506,15 +505,13 @@ const PropertyDropzone = ({
                       }
                     }}
                   />
-                  <Tooltip title="Replace file">
-                    <IconButton
-                      className="asset-action-button"
-                      onClick={handleReplaceClick}
-                      size="small"
-                    >
-                      <FolderOpenIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  <ToolbarIconButton
+                    tooltip="Replace file"
+                    icon={<FolderOpenIcon fontSize="small" />}
+                    className="asset-action-button"
+                    onClick={handleReplaceClick}
+                    size="small"
+                  />
                 </div>
               )}
             </>

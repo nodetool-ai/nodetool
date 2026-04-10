@@ -1,23 +1,14 @@
 /** @jsxImportSource @emotion/react */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  TextField,
-  Alert
-} from "@mui/material";
-import { Text } from "../ui_primitives";
+import { useTheme } from "@mui/material/styles";
+import { Text, Dialog, AlertBanner, EditorButton, FlexColumn, FlexRow, TextInput } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
 import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
-import { useTheme } from "@mui/material/styles";
 
 interface AssetRenameConfirmationProps {
   assets: string[];
@@ -160,8 +151,63 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             css={dialogStyles(theme)}
             open={dialogOpen}
             onClose={handleClose}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
+            title={
+              <span>
+                {`${assets?.length} ${
+                  assets?.length === 1 ? "asset" : "assets"
+                }`}
+                {" will be renamed to:"}
+              </span>
+            }
+            content={
+              <FlexColumn gap={2}>
+                {showAlert && (
+                  <AlertBanner
+                    className="asset-rename-error-alert"
+                    severity="success"
+                    onClose={handleClose}
+                  >
+                    {showAlert}
+                  </AlertBanner>
+                )}
+                <TextInput
+                  className="asset-rename-input input-field"
+                  inputRef={inputRef}
+                  value={baseNewName}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleRename();
+                    }
+                  }}
+                  onChange={(e) => setBaseNewName(e.target.value)}
+                  fullWidth
+                  autoCorrect="off"
+                  spellCheck="false"
+                />
+                <FlexRow justify="flex-end" gap={1} fullWidth>
+                  <EditorButton
+                    className="asset-rename-cancel-button button-cancel"
+                    onClick={handleClose}
+                  >
+                    Cancel
+                  </EditorButton>
+                  <EditorButton
+                    className="asset-rename-confirm-button button-confirm"
+                    onClick={handleRename}
+                  >
+                    Rename
+                  </EditorButton>
+                </FlexRow>
+                {assets && assets.length > 1 && (
+                  <FlexColumn className="asset-rename-notice-container" gap={0}>
+                    <Text className="asset-rename-notice notice" size="small">
+                      <span>Multiple assets selected:</span> <br />
+                      Names will be appended with a number.
+                    </Text>
+                  </FlexColumn>
+                )}
+              </FlexColumn>
+            }
             componentsProps={{
               backdrop: {
                 style: {
@@ -179,70 +225,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
                 top: `${dialogPosition.y - 300}px`,
                 margin: 0
               }
-            }}
-          >
-            <DialogTitle
-              className="asset-rename-dialog-title dialog-title"
-              id="alert-dialog-title"
-            >
-              <span>
-                {`${assets?.length} ${
-                  assets?.length === 1 ? "asset" : "assets"
-                }`}
-              </span>
-              {" will be renamed to:"}
-            </DialogTitle>
-
-            <DialogContent className="asset-rename-dialog-content dialog-content">
-              {showAlert && (
-                <Alert
-                  className="asset-rename-error-alert"
-                  severity="success"
-                  onClose={handleClose}
-                >
-                  {showAlert}
-                </Alert>
-              )}
-              <TextField
-                className="asset-rename-input input-field"
-                inputRef={inputRef}
-                value={baseNewName}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleRename();
-                  }
-                }}
-                onChange={(e) => setBaseNewName(e.target.value)}
-                fullWidth
-                autoCorrect="off"
-                spellCheck="false"
-              />
-            </DialogContent>
-            <DialogActions className="asset-rename-dialog-actions dialog-actions">
-              <Button
-                className="asset-rename-cancel-button button-cancel"
-                onClick={handleClose}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="asset-rename-confirm-button button-confirm"
-                onClick={handleRename}
-              >
-                Rename
-              </Button>
-            </DialogActions>
-            {assets && assets.length > 1 && (
-              <div className="asset-rename-notice-container">
-                <Text
-                  className="asset-rename-notice notice"
-                  size="small"
-                >
-                  <span>Multiple assets selected:</span> <br />
-                  Names will be appended with a number.
-                </Text>
-              </div>
-            )}
+            }}>
           </Dialog>
         </div>
       )}

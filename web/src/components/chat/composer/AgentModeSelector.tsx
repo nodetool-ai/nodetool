@@ -6,8 +6,7 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText,
-  Box
+  ListItemText
 } from "@mui/material";
 import { Text, Caption } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
@@ -174,7 +173,7 @@ export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   );
 
   return (
-    <Box css={styles(theme)}>
+    <div css={styles(theme)}>
       <Button
         className={`agent-mode-button ${agentMode ? "active" : ""}`}
         onClick={handleClick}
@@ -234,6 +233,6 @@ export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
           );
         })}
       </Menu>
-    </Box>
+    </div>
   );
 };

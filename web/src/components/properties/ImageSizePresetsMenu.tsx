@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Box, Menu, MenuItem, ListSubheader, TextField, InputAdornment } from "@mui/material";
+import { Menu, MenuItem, ListSubheader, TextField, InputAdornment } from "@mui/material";
+import { FlexColumn, FlexRow } from "../ui_primitives";
 import Search from "@mui/icons-material/Search";
 import { IMAGE_SIZE_PRESETS, PresetOption } from "../../config/constants";
 
@@ -94,16 +95,14 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
         }
       }}
     >
-      <Box className="presets-search-container" sx={{ 
-        p: 1, 
-        position: 'sticky', 
-        top: 0, 
-        backgroundColor: '#1E1E1E', 
-        zIndex: 11, 
+      <FlexRow className="presets-search-container" align="center" sx={{
+        p: 1,
+        position: 'sticky',
+        top: 0,
+        backgroundColor: '#1E1E1E',
+        zIndex: 11,
         borderBottom: '1px solid rgba(255,255,255,0.1)',
-        height: '48px', 
-        display: 'flex',
-        alignItems: 'center',
+        height: '48px',
         boxSizing: 'border-box'
       }}>
         <TextField
@@ -130,7 +129,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
             }
           }}
         />
-      </Box>
+      </FlexRow>
 
       {Object.entries(filteredGroupedPresets).length === 0 ? (
         <MenuItem disabled sx={{ fontSize: '0.8125rem' }}>No presets found</MenuItem>
@@ -145,19 +144,16 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
               selected={currentWidth === preset.width && currentHeight === preset.height}
               sx={{ py: 1, px: 2 }}
             >
-              <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                <Box sx={{ fontSize: '1rem', fontWeight: 500 }}>
+              <FlexColumn fullWidth>
+                <span style={{ fontSize: '1rem', fontWeight: 500 }}>
                   {preset.width} × {preset.height}
-                </Box>
-                <Box sx={{ 
-                  fontSize: 'var(--fontSizeSmall)', 
+                </span>
+                <FlexRow gap={0.5} align="center" sx={{
+                  fontSize: 'var(--fontSizeSmall)',
                   color: 'text.secondary',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: 'flex',
-                  gap: 0.5,
-                  alignItems: 'center'
+                  textOverflow: 'ellipsis'
                 }}>
                   <span>{preset.aspectRatio}</span>
                   <span>·</span>
@@ -168,8 +164,8 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
                       <span>{preset.description}</span>
                     </>
                   )}
-                </Box>
-              </Box>
+                </FlexRow>
+              </FlexColumn>
             </MenuItem>
           ))
         ])

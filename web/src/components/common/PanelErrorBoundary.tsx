@@ -1,6 +1,5 @@
 import React from "react";
-import { Box } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, FlexRow } from "../ui_primitives";
 import log from "loglevel";
 
 interface PanelErrorBoundaryProps {
@@ -42,12 +41,11 @@ export default class PanelErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         this.props.fallback ?? (
-          <Box
+          <FlexRow
+            align="center"
+            justify="center"
             sx={{
               padding: 3,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               minHeight: 200,
               bgcolor: "error.dark",
               color: "error.contrastText",
@@ -57,7 +55,7 @@ export default class PanelErrorBoundary extends React.Component<
             <Text size="small" component="div">
               Panel failed to render.
             </Text>
-          </Box>
+          </FlexRow>
         )
       );
     }

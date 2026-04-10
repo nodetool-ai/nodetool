@@ -4,12 +4,8 @@ import React, { useState, useCallback, useMemo, useEffect, useRef, memo } from "
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  Tabs,
-  Tab,
-  Button
-} from "@mui/material";
-import { Text, Caption, Tooltip } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup } from "../ui_primitives";
+import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -43,10 +39,7 @@ const styles = (theme: Theme) =>
       bottom: 0,
       backgroundColor: "rgba(0, 0, 0, 0.5)",
       backdropFilter: "blur(4px)",
-      zIndex: 10000,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center"
+      zIndex: 10000
     },
     ".modal-content": {
       backgroundColor: theme.vars.palette.background.paper,
@@ -56,13 +49,9 @@ const styles = (theme: Theme) =>
       width: "90%",
       maxWidth: "720px",
       maxHeight: "90vh",
-      display: "flex",
-      flexDirection: "column",
       overflow: "hidden"
     },
     ".modal-header": {
-      display: "flex",
-      alignItems: "center",
       justifyContent: "space-between",
       padding: "12px 16px",
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
@@ -74,28 +63,21 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary
     },
     ".header-actions": {
-      display: "flex",
-      alignItems: "center",
       gap: "8px"
     },
     ".modal-body": {
-      display: "flex",
       flex: 1,
       overflow: "hidden"
     },
     ".picker-section": {
       flex: "0 0 320px",
       padding: "16px",
-      display: "flex",
-      flexDirection: "column",
       gap: "16px",
       borderRight: `1px solid ${theme.vars.palette.grey[800]}`,
       overflow: "auto"
     },
     ".tabs-section": {
       flex: 1,
-      display: "flex",
-      flexDirection: "column",
       overflow: "hidden"
     },
     ".tab-content": {
@@ -104,7 +86,6 @@ const styles = (theme: Theme) =>
       overflow: "auto"
     },
     ".color-preview": {
-      display: "flex",
       gap: "8px",
       marginTop: "8px"
     },
@@ -113,9 +94,6 @@ const styles = (theme: Theme) =>
       height: "48px",
       borderRadius: "8px",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
       cursor: "pointer",
       position: "relative",
       overflow: "hidden"
@@ -159,20 +137,15 @@ const styles = (theme: Theme) =>
       padding: "4px 8px",
       color: "white",
       fontSize: "11px",
-      display: "flex",
-      alignItems: "center",
       gap: "4px"
     },
     ".modal-footer": {
-      display: "flex",
-      alignItems: "center",
       justifyContent: "space-between",
       padding: "12px 16px",
       borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".footer-actions": {
-      display: "flex",
       gap: "8px"
     }
   });
@@ -379,27 +352,44 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     copyColor("hex");
   }, [copyColor]);
 
+  const tabs: TabItem[] = useMemo(
+    () => [
+      { value: "swatches", label: "Swatches" },
+      { value: "harmonies", label: "Harmonies" },
+      ...(showGradient ? [{ value: "gradient", label: "Gradient" }] : []),
+      ...(showContrast ? [{ value: "contrast", label: "Contrast" }] : [])
+    ],
+    [showContrast, showGradient]
+  );
+
   const content = (
     <div css={styles(theme)}>
-      <div className="modal-overlay" onClick={handleOverlayClick}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <FlexRow
+        className="modal-overlay"
+        onClick={handleOverlayClick}
+        align="center"
+        justify="center"
+        fullWidth
+        fullHeight
+      >
+        <FlexColumn className="modal-content" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="modal-header">
+          <FlexRow className="modal-header" align="center" justify="space-between" fullWidth>
             <Text className="modal-title">Color Picker</Text>
-            <div className="header-actions">
+            <FlexRow className="header-actions" align="center">
               <EyedropperButton onColorPicked={handleEyedropperPick} />
               <CloseButton
                 onClick={handleApply}
                 tooltip="Close (Esc)"
                 buttonSize="small"
               />
-            </div>
-          </div>
+            </FlexRow>
+          </FlexRow>
 
           {/* Body */}
-          <div className="modal-body">
+          <FlexRow className="modal-body" fullWidth>
             {/* Left: Main Picker */}
-            <div className="picker-section">
+            <FlexColumn className="picker-section">
               {/* Saturation/Brightness Picker */}
               <SaturationPicker
                 hue={hsb.h}
@@ -430,10 +420,12 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
               />
 
               {/* Color Preview */}
-              <div className="color-preview">
+              <FlexRow className="color-preview" align="center">
                 <Tooltip title="Click to copy HEX">
-                  <div
+                  <FlexRow
                     className="preview-swatch"
+                    align="center"
+                    justify="center"
                     onClick={handleCopyHex}
                   >
                     <div className="preview-swatch-bg" />
@@ -448,29 +440,25 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                       {color.toUpperCase()}
                     </span>
                     {copiedFormat === "hex" && (
-                      <div className="copy-feedback">
+                      <FlexRow className="copy-feedback" align="center">
                         <CheckIcon sx={{ fontSize: 12 }} /> Copied
-                      </div>
+                      </FlexRow>
                     )}
-                  </div>
+                  </FlexRow>
                 </Tooltip>
-              </div>
-            </div>
+              </FlexRow>
+            </FlexColumn>
 
             {/* Right: Tabs Section */}
-            <div className="tabs-section">
-              <Tabs
+            <FlexColumn className="tabs-section">
+              <TabGroup
+                tabs={tabs}
                 value={activeTab}
-                onChange={(_, v) => setActiveTab(v)}
-                variant="fullWidth"
-              >
-                <Tab value="swatches" label="Swatches" />
-                <Tab value="harmonies" label="Harmonies" />
-                {showGradient && <Tab value="gradient" label="Gradient" />}
-                {showContrast && <Tab value="contrast" label="Contrast" />}
-              </Tabs>
+                onChange={(value) => setActiveTab(value as TabType)}
+                fullWidth
+              />
 
-              <div className="tab-content">
+              <FlexColumn className="tab-content">
                 {activeTab === "swatches" && (
                   <SwatchPanel
                     currentColor={color}
@@ -496,31 +484,31 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                     backgroundColor={contrastBackgroundColor}
                   />
                 )}
-              </div>
-            </div>
-          </div>
+              </FlexColumn>
+            </FlexColumn>
+          </FlexRow>
 
           {/* Footer */}
-          <div className="modal-footer">
+          <FlexRow className="modal-footer" align="center" justify="space-between" fullWidth>
             <Caption color="secondary">
               Press Esc to close
             </Caption>
-            <div className="footer-actions">
-              <Button variant="outlined" size="small" onClick={onClose}>
+            <FlexRow className="footer-actions" align="center">
+              <EditorButton variant="outlined" density="compact" onClick={onClose}>
                 Cancel
-              </Button>
-              <Button
+              </EditorButton>
+              <EditorButton
                 variant="contained"
-                size="small"
+                density="compact"
                 onClick={handleApply}
                 sx={{ minWidth: "80px" }}
               >
                 Apply
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+              </EditorButton>
+            </FlexRow>
+          </FlexRow>
+        </FlexColumn>
+      </FlexRow>
     </div>
   );
 

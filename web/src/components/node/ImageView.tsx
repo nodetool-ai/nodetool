@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { IconButton } from "@mui/material";
-import { Text, Tooltip } from "../ui_primitives";
+import { Text, Tooltip, ToolbarIconButton } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
@@ -179,26 +178,22 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
           contentType="image/png"
           url={imageUrl}
         />
-        <Tooltip title="Download" placement="top">
-          <IconButton
-            size="small"
-            onClick={handleDownload}
-            sx={iconButtonStyle}
-            aria-label="Download image"
-          >
-            <DownloadIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Open in Viewer (double-click)" placement="top">
-          <IconButton
-            size="small"
-            onClick={handleOpenInViewer}
-            sx={iconButtonStyle}
-            aria-label="Open image in full-screen viewer"
-          >
-            <OpenInNewIcon />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          title="Download"
+          size="small"
+          onClick={handleDownload}
+          sx={iconButtonStyle}
+        >
+          <DownloadIcon />
+        </ToolbarIconButton>
+        <ToolbarIconButton
+          title="Open in Viewer (double-click)"
+          size="small"
+          onClick={handleOpenInViewer}
+          sx={iconButtonStyle}
+        >
+          <OpenInNewIcon />
+        </ToolbarIconButton>
       </div>
       <img
         ref={imageRef}

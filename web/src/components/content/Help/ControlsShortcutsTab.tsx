@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Box, TextField } from "@mui/material";
-import { Text } from "../../ui_primitives";
+import { Box } from "@mui/material";
+import { Text, TextInput } from "../../ui_primitives";
 import {
   NODE_EDITOR_SHORTCUTS,
   getShortcutTooltip,
@@ -27,7 +27,7 @@ const ControlsShortcutsTab: React.FC = () => {
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <TextField
+      <TextInput
         variant="outlined"
         size="small"
         placeholder="Search shortcuts"

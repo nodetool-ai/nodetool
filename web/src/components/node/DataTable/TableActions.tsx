@@ -1,12 +1,11 @@
 import React, { useCallback, memo } from "react";
-import { IconButton, Divider } from "@mui/material";
 import { TabulatorFull as Tabulator, RowComponent } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { DeleteButton, RefreshButton, DownloadButton, Tooltip } from "../../ui_primitives";
+import { DeleteButton, RefreshButton, DownloadButton, Tooltip, Divider, ToolbarIconButton } from "../../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
@@ -459,11 +458,9 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     <div className="table-actions">
       {editable && (
         <>
-          <Tooltip title="Add new row">
-            <IconButton onClick={handleAddRow} aria-label="Add new row">
-              <AddIcon sx={{ fontSize: 12 }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton title="Add new row" onClick={handleAddRow}>
+            <AddIcon sx={{ fontSize: 12 }} />
+          </ToolbarIconButton>
 
           <DeleteButton
             onClick={handleDeleteRowsClick}
@@ -474,15 +471,13 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           />
 
           {isModalMode && (
-            <Tooltip title="Duplicate selected rows">
-              <IconButton
-                className={selectedRows.length === 0 ? "disabled" : ""}
-                onClick={handleDuplicateRows}
-                aria-label="Duplicate selected rows"
-              >
-                <FileCopyIcon sx={{ fontSize: 12 }} />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              title="Duplicate selected rows"
+              className={selectedRows.length === 0 ? "disabled" : ""}
+              onClick={handleDuplicateRows}
+            >
+              <FileCopyIcon sx={{ fontSize: 12 }} />
+            </ToolbarIconButton>
           )}
         </>
       )}
@@ -499,36 +494,26 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       {isModalMode && editable && (
         <>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-          <Tooltip title="Undo (Ctrl+Z)">
-            <span>
-              <IconButton
-                onClick={handleUndo}
-                disabled={!canUndo}
-                className={!canUndo ? "disabled" : ""}
-                aria-label="Undo"
-              >
-                <UndoIcon sx={{ fontSize: 12 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Redo (Ctrl+Y)">
-            <span>
-              <IconButton
-                onClick={handleRedo}
-                disabled={!canRedo}
-                className={!canRedo ? "disabled" : ""}
-                aria-label="Redo"
-              >
-                <RedoIcon sx={{ fontSize: 12 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
+          <ToolbarIconButton
+            title="Undo (Ctrl+Z)"
+            onClick={handleUndo}
+            disabled={!canUndo}
+            className={!canUndo ? "disabled" : ""}
+          >
+            <UndoIcon sx={{ fontSize: 12 }} />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            title="Redo (Ctrl+Y)"
+            onClick={handleRedo}
+            disabled={!canRedo}
+            className={!canRedo ? "disabled" : ""}
+          >
+            <RedoIcon sx={{ fontSize: 12 }} />
+          </ToolbarIconButton>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-          <Tooltip title="Paste from clipboard">
-            <IconButton onClick={handlePaste} aria-label="Paste from clipboard">
-              <ContentPasteIcon sx={{ fontSize: 12 }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton title="Paste from clipboard" onClick={handlePaste}>
+            <ContentPasteIcon sx={{ fontSize: 12 }} />
+          </ToolbarIconButton>
         </>
       )}
 
@@ -543,33 +528,27 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         </>
       )}
 
-      <Tooltip title="Show Select column">
-        <IconButton
-          onClick={handleToggleSelect}
-          color={showSelect ? "primary" : "default"}
-          aria-label="Show Select column"
-        >
-          <CheckBoxIcon sx={{ fontSize: 12 }} />
-        </IconButton>
-      </Tooltip>
+      <ToolbarIconButton
+        title="Show Select column"
+        onClick={handleToggleSelect}
+        color={showSelect ? "primary" : "default"}
+      >
+        <CheckBoxIcon sx={{ fontSize: 12 }} />
+      </ToolbarIconButton>
 
       {showRowNumbersButton && Array.isArray(data) && setShowRowNumbers && (
-        <Tooltip title="Show Row Numbers">
-          <IconButton
-            onClick={handleToggleRowNumbers}
-            color={showRowNumbers ? "primary" : "default"}
-            aria-label="Show Row Numbers"
-          >
-            <NumbersIcon sx={{ fontSize: 12 }} />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          title="Show Row Numbers"
+          onClick={handleToggleRowNumbers}
+          color={showRowNumbers ? "primary" : "default"}
+        >
+          <NumbersIcon sx={{ fontSize: 12 }} />
+        </ToolbarIconButton>
       )}
 
-      <Tooltip title="Copy table data to clipboard">
-        <IconButton onClick={handleCopyData} aria-label="Copy table data to clipboard">
-          <ContentCopyIcon sx={{ fontSize: 12 }} />
-        </IconButton>
-      </Tooltip>
+      <ToolbarIconButton title="Copy table data to clipboard" onClick={handleCopyData}>
+        <ContentCopyIcon sx={{ fontSize: 12 }} />
+      </ToolbarIconButton>
     </div>
   );
 });

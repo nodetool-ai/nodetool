@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
-  CircularProgress,
   ListItem,
   ListItemIcon,
   ListItemText,
@@ -175,14 +174,14 @@ const JobItem = ({ job }: { job: Job }) => {
 
   const getStatusIcon = () => {
     if (cancelling) {
-      return <CircularProgress size={24} color="warning" />;
+      return <LoadingSpinner size="small" />;
     }
     if (job.error) {
       return <ErrorOutlineIcon color="error" />;
     }
     switch (job.status) {
       case "running":
-        return <CircularProgress size={24} />;
+        return <LoadingSpinner size="small" />;
       case "queued":
       case "starting":
         return <HourglassEmptyIcon color="action" />;
@@ -275,7 +274,7 @@ const JobItem = ({ job }: { job: Job }) => {
             }}
           >
             {cancelling ? (
-              <CircularProgress size={16} color="warning" />
+              <LoadingSpinner size="small" />
             ) : (
               <StopIcon fontSize="small" />
             )}

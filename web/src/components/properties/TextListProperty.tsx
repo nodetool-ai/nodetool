@@ -6,9 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton } from "@mui/material";
-import { Tooltip, Text } from "../ui_primitives";
-import CloseIcon from "@mui/icons-material/Close";
+import { Tooltip, Text, CloseButton } from "../ui_primitives";
 import DescriptionIcon from "@mui/icons-material/Description";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -480,16 +478,12 @@ const TextListProperty = (props: PropertyProps) => {
                   {getFilename(text.uri)}
                 </Text>
               </div>
-              <Tooltip title="Remove text file">
-                <IconButton
-                  className="remove-button"
-                  onClick={removeButtonClickHandlers[index]}
-                  size="small"
-                  aria-label="Remove text file"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+              <CloseButton
+                className="remove-button"
+                onClick={removeButtonClickHandlers[index]}
+                buttonSize="small"
+                tooltip="Remove text file"
+              />
             </div>
           ))}
         </div>

@@ -5,15 +5,13 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
   Button,
-  Box,
   ListItemIcon,
   ListItemText,
-  IconButton,
   Dialog,
   DialogContent,
   DialogTitle
 } from "@mui/material";
-import { Tooltip, Text, Caption, FlexRow } from "../../ui_primitives";
+import { Tooltip, Text, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import isEqual from "lodash/isEqual";
 import {
   MailOutline,
@@ -360,15 +358,12 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
           <Text size="big" id="tools-selector-title">
             Tools
           </Text>
-          <Tooltip title="Close">
-            <IconButton
-              aria-label="close"
-              onClick={handleClose}
-              className="close-button"
-            >
-              <Build />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            tooltip="Close"
+            onClick={handleClose}
+            className="close-button"
+            icon={<Build />}
+          />
         </DialogTitle>
         <DialogContent sx={{ background: "transparent", pt: 2 }}>
           <div className="tools-grid">

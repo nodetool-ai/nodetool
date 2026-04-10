@@ -1,7 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { NPArray } from "../../stores/ApiTypes";
-import { Paper, Box } from "@mui/material";
-import { Text, FlexColumn } from "../ui_primitives";
+import { Text, FlexColumn, Surface } from "../ui_primitives";
 import isEqual from "lodash/isEqual";
 
 interface ArrayViewProps {
@@ -20,7 +19,7 @@ const ArrayView: React.FC<ArrayViewProps> = ({ array }) => {
   }, [value]);
 
   return (
-    <Paper elevation={2} sx={{ p: 2, my: 1, fontFamily: "monospace" }}>
+    <Surface sx={{ p: 2, my: 1, fontFamily: "monospace" }}>
       <Text size="normal" weight={600} gutterBottom>
         Array ({dtype})
       </Text>
@@ -28,19 +27,18 @@ const ArrayView: React.FC<ArrayViewProps> = ({ array }) => {
         Shape: {shape.join(", ")}
       </Text>
       <FlexColumn gap={1}>
-        <Box
-          component="pre"
-          sx={{
-            p: 1,
-            borderRadius: 1,
+        <pre
+          style={{
+            padding: 8,
+            borderRadius: 4,
             overflow: "auto",
             maxHeight: "200px"
           }}
         >
           {formattedValue}
-        </Box>
+        </pre>
       </FlexColumn>
-    </Paper>
+    </Surface>
   );
 };
 

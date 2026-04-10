@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Box } from "@mui/material";
-import Checkbox from "@mui/material/Checkbox";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
@@ -12,7 +11,7 @@ import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
-import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text, Tooltip } from "../ui_primitives";
+import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox } from "../ui_primitives";
 
 interface WorkflowListItemProps {
   workflow: Workflow;

@@ -2,8 +2,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { Divider, Menu, Box } from "@mui/material";
-import { EditorButton, Text } from "../ui_primitives";
+import { Menu, Box } from "@mui/material";
+import { EditorButton, Text, Divider } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";

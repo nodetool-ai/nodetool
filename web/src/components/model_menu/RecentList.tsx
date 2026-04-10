@@ -6,9 +6,9 @@ import {
   ListItemButton,
   ListItemText,
   ListItemIcon,
-  ListSubheader,
-  Box
+  ListSubheader
 } from "@mui/material";
+import { FlexRow } from "../ui_primitives";
 import FavoriteStar from "./FavoriteStar";
 import type { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -106,7 +106,7 @@ function RecentList<TModel extends ModelSelectorModel>({
             <ListItemText
               primary={m.name}
               secondary={
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <FlexRow gap={0.5} align="center">
                   <span>
                     {available
                       ? toTitleCase(m.provider || "")
@@ -128,7 +128,7 @@ function RecentList<TModel extends ModelSelectorModel>({
                       Local
                     </span>
                   )}
-                </Box>
+                </FlexRow>
               }
               primaryTypographyProps={{
                 noWrap: true,

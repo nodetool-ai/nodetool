@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Chip } from "@mui/material";
-import { Text } from "../../ui_primitives";
+import { Text, Chip } from "../../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { memo, useCallback } from "react";
 
@@ -80,7 +79,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
       <Text className="welcome-subtitle">
         Ask me anything, drop files to analyze, or try one of these:
       </Text>
-      <Box className="suggestions">
+      <div className="suggestions">
         {SUGGESTIONS.map((suggestion) => (
           <Chip
             key={suggestion}
@@ -100,7 +99,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
             }}
           />
         ))}
-      </Box>
+      </div>
     </div>
   );
 };

@@ -1,14 +1,12 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 import {
-  IconButton,
-  Stack,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
   Checkbox
 } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, FlexRow } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
@@ -134,62 +132,55 @@ const ToolsListProperty = (props: PropertyProps) => {
       />
 
       {/* Selected tools row */}
-      <Stack
+      <FlexRow
         className="tools-list-items"
-        direction="row"
-        spacing={1}
-        flexWrap="wrap"
-        sx={{ mt: 1 }}
+        gap={1}
+        sx={{ mt: 1, flexWrap: "wrap" }}
       >
         {toolNames.map((tool) => (
-          <Tooltip
+          <ToolbarIconButton
             key={tool}
-            title={TOOL_DESCRIPTIONS[tool] || tool}
-            placement="top"
-          >
-            <IconButton
-              size="small"
-              onClick={handleToolClick}
-              data-tool={tool}
-              sx={{
-                padding: "1px",
-                marginLeft: "0 !important",
-                transition: "color 0.2s ease",
-                color: "c_hl1",
-                "&:hover": {
-                  color: "c_hl1"
-                },
-                "& svg": {
-                  fontSize: "15px"
-                }
-              }}
-            >
-              {TOOL_ICONS[tool] || <Search fontSize="small" />}
-            </IconButton>
-          </Tooltip>
-        ))}
-
-        {/* Add (+) icon */}
-        <Tooltip title="Add / Remove Tools" placement="top">
-          <IconButton
+            tooltip={TOOL_DESCRIPTIONS[tool] || tool}
+            tooltipPlacement="top"
+            icon={TOOL_ICONS[tool] || <Search fontSize="small" />}
             size="small"
-            onClick={openMenu}
+            onClick={handleToolClick}
+            data-tool={tool}
             sx={{
               padding: "1px",
               marginLeft: "0 !important",
-              color: "palette-grey-400",
+              transition: "color 0.2s ease",
+              color: "c_hl1",
               "&:hover": {
-                color: "palette-grey-100"
+                color: "c_hl1"
               },
               "& svg": {
                 fontSize: "15px"
               }
             }}
-          >
-            <Add fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+          />
+        ))}
+
+        {/* Add (+) icon */}
+        <ToolbarIconButton
+          tooltip="Add / Remove Tools"
+          tooltipPlacement="top"
+          icon={<Add fontSize="small" />}
+          size="small"
+          onClick={openMenu}
+          sx={{
+            padding: "1px",
+            marginLeft: "0 !important",
+            color: "palette-grey-400",
+            "&:hover": {
+              color: "palette-grey-100"
+            },
+            "& svg": {
+              fontSize: "15px"
+            }
+          }}
+        />
+      </FlexRow>
 
       {/* Menu for selecting tools */}
       <Menu

@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
-  Paper,
-  Box,
   Button,
-  TextField,
-  Alert
+  TextField
 } from "@mui/material";
-import { Text, FlexRow } from "../ui_primitives";
+import { Text, FlexRow, AlertBanner, Surface } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -215,9 +212,9 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       }}
       onClick={handleBackdropClick}
     >
-      <Paper
+      <Surface
         className="asset-create-folder-dialog"
-        elevation={8}
+        elevation={3}
         sx={{
           position: "absolute",
           left: `${safeLeft}px`,
@@ -245,15 +242,15 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             : "Create new folder"}
         </Text>
 
-        <Box sx={{ padding: "0 .5em" }}>
+        <div style={{ padding: "0 .5em" }}>
           {showAlert && (
-            <Alert
+            <AlertBanner
               className="asset-create-folder-error-alert"
               severity="error"
               onClose={handleClose}
             >
               {showAlert}
-            </Alert>
+            </AlertBanner>
           )}
           <TextField
             className="asset-create-folder-input"
@@ -276,7 +273,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
               }
             }}
           />
-        </Box>
+        </div>
 
         <FlexRow
           justify="flex-end"
@@ -305,7 +302,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
         </FlexRow>
 
         {hasSelectedAssets && (
-          <Box className="asset-create-folder-notice-container">
+          <div className="asset-create-folder-notice-container">
             <Text
               className="asset-create-folder-notice"
               size="small"
@@ -322,9 +319,9 @@ const AssetCreateFolderConfirmation: React.FC = () => {
               <br />
               They will be moved to the new folder.
             </Text>
-          </Box>
+          </div>
         )}
-      </Paper>
+      </Surface>
     </div>
   );
 };

@@ -2,11 +2,9 @@ import React, { useState, useCallback, useMemo, useRef, memo } from "react";
 import isEqual from "lodash/isEqual";
 import {
   ListItemText,
-  ListItemIcon,
-  CircularProgress,
-  Box
+  ListItemIcon
 } from "@mui/material";
-import { Text, Caption } from "../ui_primitives";
+import { Text, Caption, LoadingSpinner, FlexRow } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
 import { isElectron } from "../../stores/ApiClient";
@@ -100,17 +98,14 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
         }}
       >
         {ollamaLoading ? (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              padding: 2
-            }}
+          <FlexRow
+            justify="center"
+            sx={{ padding: 2 }}
           >
-            <CircularProgress size={24} />
-          </Box>
+            <LoadingSpinner size={24} />
+          </FlexRow>
         ) : ollamaError ? (
-          <Box sx={{ p: 2, maxWidth: 300 }}>
+          <div style={{ padding: 16, maxWidth: 300 }}>
             <Text size="small" color="error" sx={{ mb: 1 }}>
               Could not load Ollama models
             </Text>
@@ -141,7 +136,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
                 Download Ollama →
               </Caption>
             )}
-          </Box>
+          </div>
         ) : sortedModels.length === 0 ? (
           <EditorMenuItem disabled>
             <ListItemText primary="No models available" />

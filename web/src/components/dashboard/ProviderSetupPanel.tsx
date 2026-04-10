@@ -3,10 +3,9 @@ import React, { useState, useCallback, useMemo, memo } from "react";
 import {
   Box,
   TextField,
-  Button,
-  Alert
+  Button
 } from "@mui/material";
-import { LoadingSpinner, FlexColumn, CollapsibleSection, Text } from "../ui_primitives";
+import { LoadingSpinner, FlexColumn, CollapsibleSection, Text, AlertBanner } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import SaveIcon from "@mui/icons-material/Save";
@@ -398,24 +397,24 @@ const ProviderSetupPanel: React.FC = () => {
                 })}
 
                 {configuredCount === 0 && (
-                  <Alert severity="info" sx={{ mt: 2 }}>
+                  <AlertBanner severity="info" sx={{ mt: 2 }}>
                     No providers configured yet. Add at least one API key to use
                     remote AI models.
-                  </Alert>
+                  </AlertBanner>
                 )}
 
                 {configuredCount > 0 && configuredCount < PROVIDERS.length && (
-                  <Alert severity="success" sx={{ mt: 2 }}>
+                  <AlertBanner severity="success" sx={{ mt: 2 }}>
                     {configuredCount} provider{configuredCount > 1 ? "s" : ""}{" "}
                     configured! You can add more providers anytime.
-                  </Alert>
+                  </AlertBanner>
                 )}
 
                 {configuredCount === PROVIDERS.length && (
-                  <Alert severity="success" sx={{ mt: 2 }}>
+                  <AlertBanner severity="success" sx={{ mt: 2 }}>
                     All providers configured! You have access to all supported
                     AI models.
-                  </Alert>
+                  </AlertBanner>
                 )}
               </>
             )}

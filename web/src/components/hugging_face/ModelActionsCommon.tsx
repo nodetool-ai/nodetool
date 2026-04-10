@@ -1,7 +1,5 @@
 import React from "react";
-import { Button, Box } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
-import { useTheme } from "@mui/material/styles";
+import { Tooltip, EditorButton } from "../ui_primitives";
 import FolderIcon from "@mui/icons-material/Folder";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -18,14 +16,15 @@ export const ModelShowInExplorerButton: React.FC<{
     nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
   >
     <span>
-      <Button
+      <EditorButton
         className="show-in-explorer-button"
+        density="compact"
         onClick={onClick}
         disabled={disabled}
         sx={{ minWidth: "auto", padding: "6px" }}
       >
         <FolderIcon />
-      </Button>
+      </EditorButton>
     </span>
   </Tooltip>
 );
@@ -39,8 +38,8 @@ export const HuggingFaceLink: React.FC<{
       delay={TOOLTIP_ENTER_DELAY * 2}
       nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
     >
-      <Button
-        size="small"
+      <EditorButton
+        density="compact"
         href={`https://huggingface.co/${modelId}`}
         className="model-external-link-icon huggingface-link"
         target="_blank"
@@ -54,41 +53,36 @@ export const HuggingFaceLink: React.FC<{
             height: "auto"
           }}
         />
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 
 export const OllamaLink: React.FC<{
   modelId: string;
 }> = ({ modelId }) => {
-  const theme = useTheme();
   return (
     <Tooltip
       title="View on Ollama"
       delay={TOOLTIP_ENTER_DELAY * 2}
       nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
     >
-      <Button
-        size="small"
+      <EditorButton
+        density="compact"
         href={`https://ollama.com/library/${modelId.split(":")[0]}`}
         className="model-external-link-icon ollama-link"
         target="_blank"
         rel="noopener noreferrer"
       >
-        <Box
-          component="img"
+        <img
           src="/ollama.png"
           alt="Ollama"
-          sx={{
+          style={{
             width: "1.25em",
             height: "auto",
-            filter: "none",
-            ...theme.applyStyles("dark", {
-              filter: "invert(1)"
-            })
+            filter: "none"
           }}
         />
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 };

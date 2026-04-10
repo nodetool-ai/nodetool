@@ -1,14 +1,6 @@
 import {
   Box,
   List,
-  ListItem,
-  Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Fab
 } from "@mui/material";
 import { memo, useEffect, useCallback, useMemo } from "react";
 import CollectionForm from "./CollectionForm";
@@ -18,7 +10,17 @@ import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
 import { useCollectionStore } from "../../stores/CollectionStore";
 import { useShallow } from "zustand/react/shallow";
-import { DialogActionButtons, Text, FlexRow } from "../ui_primitives";
+import {
+  CreateFab,
+  Dialog,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  ListGroup,
+  ListItemRow,
+  Surface,
+  Text
+} from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 
 const CollectionList = () => {
@@ -131,60 +133,12 @@ const CollectionList = () => {
                 {totalCount} {totalCount === 1 ? "collection" : "collections"}
               </Text>
             </Box>
-            <Fab
-              variant="extended"
+            <CreateFab
               onClick={handleShowForm}
+              label="Create Collection"
+              icon={<AddIcon />}
               aria-label="Create Collection"
-              sx={{
-                position: "relative",
-                overflow: "hidden",
-                borderRadius: 2.5,
-                px: 2,
-                backgroundColor: (theme) => theme.vars.palette.primary.main,
-                color: "primary.contrastText",
-                border: (theme) =>
-                  `1px solid ${theme.vars.palette.primary.main}`,
-                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
-                backdropFilter: "blur(2px)",
-                textTransform: "none",
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                "&:hover": {
-                  boxShadow: (theme) =>
-                    `0 4px 12px rgba(0, 0, 0, 0.35), 0 0 16px ${theme.vars.palette.primary.main}20`,
-                  transform: "scale(1.03)"
-                },
-                "&:active": {
-                  transform: "scale(0.98)"
-                },
-                "&::before": {
-                  content: '""',
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: "55%",
-                  background:
-                    "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
-                  pointerEvents: "none",
-                  zIndex: 0
-                },
-                "&::after": {
-                  content: '""',
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "inherit",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
-                  pointerEvents: "none"
-                },
-                "& .MuiSvgIcon-root": {
-                  mr: 1,
-                  position: "relative",
-                  zIndex: 1
-                }
-              }}
-            >
-              <AddIcon /> Create Collection
-            </Fab>
+            />
           </FlexRow>
 
           {collections?.collections.length ? <CollectionHeader /> : null}
@@ -198,7 +152,8 @@ const CollectionList = () => {
           ) : !collections?.collections.length ? (
             <EmptyCollectionState />
           ) : (
-            <Paper
+            <Surface
+              elevation={0}
               sx={{
                 mt: 2,
                 borderRadius: 2,
@@ -206,7 +161,7 @@ const CollectionList = () => {
                 boxShadow: (theme) =>
                   theme.palette.mode === "dark"
                     ? "0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)"
-                    : "0 8px 24px rgba(16,24,40,0.08), 0 0 0 1px rgba(16,24,40,0.06)"
+                : "0 8px 24px rgba(16,24,40,0.08), 0 0 0 1px rgba(16,24,40,0.06)"
               }}
             >
               <List>
@@ -243,45 +198,47 @@ const CollectionList = () => {
                   />
                 ))}
               </List>
-            </Paper>
+            </Surface>
           )}
         </>
       )}
       {showForm && <CollectionForm onClose={handleHideForm} />}
 
-      <Dialog open={Boolean(deleteTarget)} onClose={cancelDelete}>
-        <DialogTitle>Confirm Deletion</DialogTitle>
-        <DialogContent>
-          Are you sure you want to delete the collection &quot;{deleteTarget}
-          &quot;?
-        </DialogContent>
-        <DialogActionButtons
-          onConfirm={confirmDelete}
-          onCancel={cancelDelete}
-          confirmText="Delete"
-          cancelText="Cancel"
-          destructive={true}
-        />
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onClose={cancelDelete}
+        title="Confirm Deletion"
+        onConfirm={confirmDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+        destructive
+      >
+        Are you sure you want to delete the collection &quot;{deleteTarget}
+        &quot;?
       </Dialog>
 
       {indexErrors.length > 0 && (
-        <Dialog open={true} onClose={handleClearIndexErrors}>
-          <DialogTitle>Indexing Report</DialogTitle>
-          <DialogContent>
-            <Text sx={{ mb: 2 }}>
+        <Dialog open={true} onClose={handleClearIndexErrors} title="Indexing Report">
+          <FlexColumn gap={2}>
+            <Text>
               The following files encountered errors during indexing:
             </Text>
-            <List sx={{ pl: 2 }}>
+            <ListGroup compact flush sx={{ pl: 2 }}>
               {indexErrors.map((error) => (
-                <ListItem key={error.file} sx={{ display: "list-item" }}>
-                  <strong>{error.file}</strong>: {error.error}
-                </ListItem>
+                <ListItemRow
+                  key={error.file}
+                  primary={<strong>{error.file}</strong>}
+                  secondary={error.error}
+                  sx={{ display: "list-item" }}
+                />
               ))}
-            </List>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClearIndexErrors}>Close</Button>
-          </DialogActions>
+            </ListGroup>
+            <FlexRow justify="flex-end">
+              <EditorButton onClick={handleClearIndexErrors}>
+                Close
+              </EditorButton>
+            </FlexRow>
+          </FlexColumn>
         </Dialog>
       )}
     </>

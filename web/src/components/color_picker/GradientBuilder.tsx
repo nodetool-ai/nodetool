@@ -3,18 +3,20 @@ import { css } from "@emotion/react";
 import React, { useState, useCallback, useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  Box,
-  ToggleButtonGroup,
-  ToggleButton,
-  Slider,
-  TextField,
-  Button
-} from "@mui/material";
-import { Caption, Tooltip } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { DeleteButton } from "../ui_primitives";
+import {
+  Caption,
+  DeleteButton,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  NodeSlider,
+  TextInput,
+  ToggleGroup,
+  ToggleOption,
+  Tooltip
+} from "../ui_primitives";
 import {
   GradientValue,
   GradientStop,
@@ -23,11 +25,6 @@ import {
 
 const styles = (theme: Theme) =>
   css({
-    "&": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "12px"
-    },
     ".gradient-preview": {
       width: "100%",
       height: "60px",
@@ -61,18 +58,6 @@ const styles = (theme: Theme) =>
         zIndex: 10
       }
     },
-    ".stop-controls": {
-      display: "flex",
-      gap: "8px",
-      alignItems: "center",
-      marginTop: "8px"
-    },
-    ".angle-control": {
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      marginTop: "8px"
-    },
     ".css-output": {
       marginTop: "12px",
       padding: "8px",
@@ -82,11 +67,6 @@ const styles = (theme: Theme) =>
       fontFamily: "monospace",
       wordBreak: "break-all",
       color: theme.vars.palette.grey[300]
-    },
-    ".actions": {
-      display: "flex",
-      gap: "8px",
-      marginTop: "8px"
     }
   });
 
@@ -291,12 +271,12 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
     selectedStopIndex !== null ? gradient.stops[selectedStopIndex] : null;
 
   return (
-    <Box css={styles(theme)}>
+    <FlexColumn css={styles(theme)} gap={1.5}>
       {/* Gradient Preview */}
       <div className="gradient-preview" style={{ background: cssOutput }} />
 
       {/* Type Selector */}
-      <ToggleButtonGroup
+      <ToggleGroup
         value={gradient.type}
         exclusive
         onChange={handleTypeChange}
@@ -309,24 +289,25 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           }
         }}
       >
-        <ToggleButton value="linear">Linear</ToggleButton>
-        <ToggleButton value="radial">Radial</ToggleButton>
-      </ToggleButtonGroup>
+        <ToggleOption value="linear">Linear</ToggleOption>
+        <ToggleOption value="radial">Radial</ToggleOption>
+      </ToggleGroup>
 
       {/* Angle Control (for linear gradients) */}
       {gradient.type === "linear" && (
-        <div className="angle-control">
+        <FlexRow align="center" gap={1}>
           <Caption sx={{ minWidth: "50px" }}>
             Angle: {gradient.angle}°
           </Caption>
-          <Slider
+          <NodeSlider
             value={gradient.angle ?? 90}
             onChange={handleAngleChange}
             min={0}
             max={360}
-            size="small"
+            density="compact"
+            sx={{ flex: 1 }}
           />
-        </div>
+        </FlexRow>
       )}
 
       {/* Color Stops */}
@@ -353,15 +334,15 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
 
       {/* Selected Stop Controls */}
       {selectedStop && selectedStopIndex !== null && (
-        <div className="stop-controls">
-          <TextField
+        <FlexRow align="center" gap={1} wrap>
+          <TextInput
             size="small"
             label="Color"
             value={selectedStop.color}
             onChange={handleStopColorInputChange}
             sx={{ width: "100px" }}
           />
-          <TextField
+          <TextInput
             size="small"
             label="Position"
             type="number"
@@ -373,15 +354,14 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
             sx={{ width: "80px" }}
           />
           <Tooltip title="Use current color">
-            <Button
-              size="small"
+            <EditorButton
               variant="outlined"
               data-stop-index={selectedStopIndex}
               onClick={handleApplyColorButtonClick}
               sx={{ minWidth: "auto", px: 1 }}
             >
               Apply
-            </Button>
+            </EditorButton>
           </Tooltip>
           <DeleteButton
             onClick={handleRemoveStopButtonClick}
@@ -389,32 +369,30 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
             disabled={gradient.stops.length <= 2}
             nodrag={false}
           />
-        </div>
+        </FlexRow>
       )}
 
       {/* Actions */}
-      <div className="actions">
-        <Button
-          size="small"
+      <FlexRow gap={1} wrap>
+        <EditorButton
           startIcon={<AddIcon />}
           onClick={addStop}
           variant="outlined"
         >
           Add Stop
-        </Button>
-        <Button
-          size="small"
+        </EditorButton>
+        <EditorButton
           startIcon={<ContentCopyIcon />}
           onClick={copyToClipboard}
           variant="outlined"
         >
           Copy CSS
-        </Button>
-      </div>
+        </EditorButton>
+      </FlexRow>
 
       {/* CSS Output */}
       <div className="css-output">{cssOutput}</div>
-    </Box>
+    </FlexColumn>
   );
 });
 

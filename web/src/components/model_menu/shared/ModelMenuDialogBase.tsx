@@ -5,16 +5,13 @@ import {
   Popover,
   PopoverOrigin,
   Box,
-  Divider,
   ListItemText,
   ListItemIcon,
   List,
   ListItemButton,
-  CircularProgress,
-  Collapse,
-  IconButton
+  Collapse
 } from "@mui/material";
-import { Tooltip, Caption } from "../../ui_primitives";
+import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton } from "../../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
@@ -229,18 +226,14 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               width="100%"
             />
           </Box>
-          <Tooltip title="Refresh models">
-            <span>
-              <IconButton
-                size="small"
-                onClick={handleRefresh}
-                disabled={!refetch || !!isFetching}
-                aria-label="refresh models"
-              >
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<RefreshIcon fontSize="small" />}
+            tooltip="Refresh models"
+            onClick={handleRefresh}
+            disabled={!refetch || !!isFetching}
+            size="small"
+            nodrag={false}
+          />
           <ModelFiltersBar />
         </Box>
       </Box>
@@ -263,7 +256,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         >
           {(isLoading || isFetching) && (
             <>
-              <CircularProgress size={14} />
+              <LoadingSpinner size="small" />
               <Caption sx={{ color: "text.secondary" }}>
                 {loadingProgress
                   ? `Loading models: ${loadingProgress.loaded}/${loadingProgress.total} providers...`

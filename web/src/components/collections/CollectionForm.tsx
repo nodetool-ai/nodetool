@@ -3,13 +3,16 @@ import { css, keyframes } from "@emotion/react";
 import React from "react";
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Box } from "@mui/material";
 import {
-  TextField,
-  Button,
-  Box,
-  CircularProgress
-} from "@mui/material";
-import { FormField, Text, FlexRow } from "../ui_primitives";
+  FormField,
+  Text,
+  FlexRow,
+  FlexColumn,
+  LoadingSpinner,
+  TextInput,
+  EditorButton
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { CollectionCreate } from "../../stores/ApiTypes";
@@ -33,8 +36,6 @@ const styles = (theme: Theme) =>
   css({
     "&.collection-form": {
       width: "100%",
-      display: "flex",
-      flexDirection: "column",
       padding: theme.spacing(2, 3),
       background: theme.vars.palette.background.paper,
       position: "relative",
@@ -56,16 +57,11 @@ const styles = (theme: Theme) =>
       width: 36,
       height: 36,
       borderRadius: "10px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
       background: `color-mix(in srgb, ${theme.vars.palette.primary.main} 15%, transparent)`,
       color: theme.vars.palette.primary.main,
       flexShrink: 0
     },
     ".field-label": {
-      display: "flex",
-      alignItems: "center",
       gap: theme.spacing(0.5),
       color: theme.vars.palette.text.secondary,
       fontWeight: 500,
@@ -109,16 +105,6 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.4,
       opacity: 0.8
-    },
-    ".submit-button": {
-      borderRadius: "10px",
-      padding: theme.spacing(1.25, 2.5),
-      fontWeight: 600,
-      textTransform: "none",
-      fontSize: "0.875rem",
-      "&.Mui-disabled": {
-        opacity: 0.5
-      }
     },
     ".error-box": {
       marginTop: theme.spacing(2),
@@ -181,7 +167,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
   };
 
   return (
-    <Box
+    <FlexColumn
       component="form"
       onSubmit={handleSubmit}
       css={styles(theme)}
@@ -192,7 +178,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
 
         {/* Collection Name */}
         <FormField label="Collection Name" compact sx={{ flex: 1, minWidth: 180 }}>
-          <TextField
+          <TextInput
             className="text-input"
             value={formData.name}
             onChange={(e) =>
@@ -208,37 +194,36 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
         </FormField>
 
         {/* Embedding Model */}
-        <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Text className="field-label" sx={{ mb: 0.5 }}>
+        <FlexColumn sx={{ flex: 1, minWidth: 200 }}>
+          <FlexRow className="field-label" align="center" gap={0.5} sx={{ mb: 0.5 }}>
             <AutoAwesomeIcon className="field-icon" />
             Embedding Model
-          </Text>
+          </FlexRow>
           <Box className="model-select">
             <EmbeddingModelSelect
               value={formData.embedding_model}
               onChange={handleEmbeddingModelChange}
             />
           </Box>
-        </Box>
+        </FlexColumn>
 
         {/* Submit Button */}
-        <Button
+        <EditorButton
           type="submit"
           variant="contained"
           disabled={isSubmitDisabled}
-          className="submit-button"
           disableElevation
           sx={{ alignSelf: "flex-end", mb: 0.25 }}
           startIcon={
             createMutation.isPending ? (
-              <CircularProgress size={16} color="inherit" />
+              <LoadingSpinner size="small" color="inherit" />
             ) : (
               <AddCircleOutlineIcon sx={{ fontSize: "1.125rem" }} />
             )
           }
         >
           {createMutation.isPending ? "Creating..." : "Create"}
-        </Button>
+        </EditorButton>
       </FlexRow>
 
       {/* Error Display */}
@@ -251,7 +236,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
           </Text>
         </Box>
       )}
-    </Box>
+    </FlexColumn>
   );
 };
 

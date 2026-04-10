@@ -1,7 +1,7 @@
 import { memo, useCallback, forwardRef, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { IconButton, Box } from "@mui/material";
-import { Tooltip, Text } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
@@ -373,41 +373,28 @@ const NodeItem = memo(
               </Box>
             )}
             {showFavoriteButton && (
-              <Tooltip
-                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                placement="top"
-                delay={TOOLTIP_ENTER_DELAY}
-                slotProps={{
-                  popper: { sx: { zIndex: 2000 } },
-                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
-                }}
-              >
-                <IconButton
-                  size="small"
-                  onClick={handleFavoriteClick}
-                  sx={{
-                    padding: "2px",
-                    marginLeft: "auto",
-                    opacity: isFavorite ? 1 : 0.5,
-                    color: isFavorite ? "warning.main" : "text.secondary",
-                    "&:hover": {
-                      backgroundColor: "action.hover",
-                      opacity: 1
-                    }
-                  }}
-                  aria-label={
-                    isFavorite
-                      ? `Remove ${node.title} from favorites`
-                      : `Add ${node.title} to favorites`
+              <ToolbarIconButton
+                icon={isFavorite ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                tooltip={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                tooltipPlacement="top"
+                size="small"
+                onClick={handleFavoriteClick}
+                sx={{
+                  padding: "2px",
+                  marginLeft: "auto",
+                  opacity: isFavorite ? 1 : 0.5,
+                  color: isFavorite ? "warning.main" : "text.secondary",
+                  "&:hover": {
+                    backgroundColor: "action.hover",
+                    opacity: 1
                   }
-                >
-                  {isFavorite ? (
-                    <StarIcon fontSize="small" />
-                  ) : (
-                    <StarBorderIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Tooltip>
+                }}
+                aria-label={
+                  isFavorite
+                    ? `Remove ${node.title} from favorites`
+                    : `Add ${node.title} to favorites`
+                }
+              />
             )}
           </div>
         </div>

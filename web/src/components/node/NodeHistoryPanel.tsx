@@ -5,14 +5,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
-  Box,
-  CircularProgress,
-  Alert,
-  Chip,
   Stack
 } from "@mui/material";
-import { Text, Caption, FlexColumn } from "../ui_primitives";
+import { Text, Caption, FlexColumn, Chip, EditorButton, LoadingSpinner, AlertBanner, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -50,10 +45,10 @@ function ConfirmDialog({
         <Text>{message}</Text>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel}>Cancel</Button>
-        <Button onClick={onConfirm} color="error" variant="contained">
+        <EditorButton onClick={onCancel}>Cancel</EditorButton>
+        <EditorButton onClick={onConfirm} color="error" variant="contained">
           Confirm
-        </Button>
+        </EditorButton>
       </DialogActions>
     </Dialog>
   );
@@ -220,14 +215,14 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
       <DialogContent dividers sx={{ p: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Session History as Image Grid */}
         {allImages.length > 0 ? (
-          <Box sx={{ flex: 1, overflow: "hidden" }}>
+          <div style={{ flex: 1, overflow: "hidden" }}>
             <PreviewImageGrid
               images={allImages}
               itemSize={128}
               gap={8}
               showActions={true}
             />
-          </Box>
+          </div>
         ) : sessionHistory.length > 0 ? (
           <FlexColumn
             align="center"
@@ -267,46 +262,46 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
 
         {/* Asset History Section */}
         {showAssetHistory && (
-          <Box sx={{ p: 2, borderTop: `1px solid ${theme.vars.palette.divider}` }}>
+          <div style={{ padding: 16, borderTop: `1px solid ${theme.vars.palette.divider}` }}>
             <Text size="small" weight={500} sx={{ mb: 1 }}>
               Persistent Asset History
             </Text>
             {isLoadingAssets ? (
-              <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
+              <FlexRow justify="center" sx={{ p: 2 }}>
+                <LoadingSpinner size={24} />
+              </FlexRow>
             ) : assetHistory && assetHistory.length > 0 ? (
-              <Alert severity="info" sx={{ mb: 1 }}>
+              <AlertBanner severity="info" sx={{ mb: 1 }}>
                 Found {assetHistory.length} asset(s) created by this node
-              </Alert>
+              </AlertBanner>
             ) : (
-              <Alert severity="info">
+              <AlertBanner severity="info">
                 No persistent assets found for this node
-              </Alert>
+              </AlertBanner>
             )}
-          </Box>
+          </div>
         )}
       </DialogContent>
 
       <DialogActions>
         {!showAssetHistory && (
-          <Button
+          <EditorButton
             startIcon={<CloudDownloadIcon />}
             onClick={handleLoadAssetHistory}
             disabled={isLoadingAssets}
           >
             Load Persistent History
-          </Button>
+          </EditorButton>
         )}
-        <Button
+        <EditorButton
           startIcon={<DeleteIcon />}
           onClick={handleClearHistory}
           disabled={historyCount === 0}
           color="error"
         >
           Clear History
-        </Button>
-        <Button onClick={onClose}>Close</Button>
+        </EditorButton>
+        <EditorButton onClick={onClose}>Close</EditorButton>
       </DialogActions>
       <ConfirmDialog
         open={showClearConfirm}

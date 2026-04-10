@@ -15,8 +15,7 @@ import WrapTextIcon from "@mui/icons-material/WrapText";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { CircularProgress } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, LoadingSpinner } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -1053,7 +1052,7 @@ const TextEditorModal = ({
           <div className="modal-body">
             {isLoading ? (
               <div className="loading-container">
-                <CircularProgress />
+                <LoadingSpinner />
               </div>
             ) : (
               <EditorInsertionProvider value={insertIntoEditor}>
@@ -1107,7 +1106,7 @@ const TextEditorModal = ({
                             justifyContent: "center"
                           }}
                         >
-                          <CircularProgress />
+                          <LoadingSpinner />
                         </div>
                       )}
                     </div>

@@ -3,20 +3,21 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
-import DialogContent from "@mui/material/DialogContent";
-import Button from "@mui/material/Button";
-import { Dialog } from "../ui_primitives";
+import { Box } from "@mui/material";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 
 import {
-  Box,
-  CircularProgress,
-  ToggleButton,
-  ToggleButtonGroup,
-  ToggleButtonGroupProps
-} from "@mui/material";
-import { Text } from "../ui_primitives";
+  Dialog,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  LoadingSpinner,
+  Text,
+  ToggleGroup,
+  ToggleOption,
+  type ToggleGroupProps
+} from "../ui_primitives";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
@@ -39,9 +40,6 @@ const styles = (theme: Theme) =>
       maxWidth: "1000px",
       maxHeight: "800px",
       padding: "2em",
-      display: "flex",
-      flexDirection: "column",
-      gap: "1em",
       transition: "all .6s",
       background: theme.vars.palette.grey[800]
     },
@@ -61,42 +59,21 @@ const styles = (theme: Theme) =>
     },
     ".toggle-name-date": {
       marginLeft: "auto",
-      paddingRight: "3em",
-      height: "1.5em"
-    },
-    ".content": {
-      position: "relative",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      gap: "1em",
-      margin: "0",
-      padding: "0",
-
-      overflow: "hidden"
+      paddingRight: "3em"
     },
     ".recent": {
       position: "relative",
-      display: "flex",
-      flexDirection: "column",
       flexGrow: 1,
-      gap: "1em",
       height: "75%",
       width: "100%"
     },
     ".recent .tools": {
       position: "relative",
-      display: "flex",
-      flexDirection: "row",
-      gap: "1em",
       marginTop: "2em"
     },
     ".recent h4": { margin: "0" },
     ".recent .items": { height: "100%", position: "relative" },
     ".workflow-buttons": {
-      display: "flex",
-      flexDirection: "row",
-      gap: "1em",
       justifyContent: "center",
       marginLeft: "6em",
       alignItems: "center"
@@ -106,8 +83,6 @@ const styles = (theme: Theme) =>
 const listStyles = (theme: Theme) =>
   css({
     "&": {
-      display: "flex",
-      flexDirection: "column",
       alignItems: "flex-start",
       margin: "0",
       padding: "0 0 2em 0",
@@ -116,9 +91,6 @@ const listStyles = (theme: Theme) =>
     },
     ".workflow": {
       position: "relative",
-      display: "flex",
-      flexDirection: "row",
-      gap: "1em",
       alignItems: "flex-start",
       margin: ".25em 0",
       padding: "0.4em .5em",
@@ -133,8 +105,6 @@ const listStyles = (theme: Theme) =>
       outline: `0`
     },
     ".name-and-description": {
-      display: "flex",
-      flexDirection: "column",
       gap: "0.1em"
     },
     ".name": {
@@ -150,8 +120,6 @@ const listStyles = (theme: Theme) =>
       paddingTop: "0.5em"
     },
     ".right": {
-      display: "flex",
-      flexDirection: "column",
       gap: "0.2em",
       justifyContent: "flex-start",
       alignItems: "flex-start",
@@ -235,7 +203,7 @@ const OpenOrCreateDialog = () => {
   );
 
   // ORDER
-  const handleOrderChange: ToggleButtonGroupProps["onChange"] = (_event, newOrder) => {
+  const handleOrderChange: ToggleGroupProps["onChange"] = (_event, newOrder) => {
     if (newOrder !== null) {
       setWorkflowOrder(newOrder);
     }
@@ -256,11 +224,24 @@ const OpenOrCreateDialog = () => {
   // Memoize workflow list items to prevent unnecessary re-renders
   const workflowListItems = useMemo(() =>
     sortedWorkflows.map((workflow: Workflow, index: number) => (
-      <Box
+      <FlexRow
         key={`${workflow.id}-${index}`}
         className="workflow list"
+        align="flex-start"
+        gap={1}
         onClick={handleWorkflowClick}
         data-workflow-id={workflow.id}
+        sx={{
+          width: "calc(100% - 20px)",
+          cursor: "pointer",
+          borderBottom: "1px solid black",
+          backgroundColor: theme.vars.palette.grey[800],
+          transition: "background-color 0.2s ease-in-out",
+          "&:hover": {
+            backgroundColor: theme.vars.palette.grey[600],
+            outline: 0
+          }
+        }}
       >
         <Box
           className="image-wrapper"
@@ -276,7 +257,7 @@ const OpenOrCreateDialog = () => {
         >
           {!workflow.thumbnail_url && <Box className="image-placeholder" />}
         </Box>
-        <Box className="name-and-description">
+        <FlexColumn className="name-and-description" sx={{ gap: "0.1em" }}>
           <div
             className="name"
             dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
@@ -284,25 +265,34 @@ const OpenOrCreateDialog = () => {
           <Text className="description">
             {truncateString(workflow.description, 350)}
           </Text>
-        </Box>
-        <div className="right">
+        </FlexColumn>
+        <FlexColumn
+          className="right"
+          sx={{
+            gap: "0.2em",
+            justifyContent: "flex-start",
+            alignItems: "flex-start",
+            minWidth: "220px",
+            marginLeft: "auto"
+          }}
+        >
           <Text className="date">
             {prettyDate(workflow.updated_at, "verbose", settings)}
           </Text>
           <Text className="date relative">
             {relativeTime(workflow.updated_at)}
           </Text>
-        </div>
-      </Box>
+        </FlexColumn>
+      </FlexRow>
     )),
-    [sortedWorkflows, handleWorkflowClick, settings]
+    [sortedWorkflows, handleWorkflowClick, settings, theme]
   );
 
   // List view
   const renderListView = useCallback(() => (
-    <Box className="container list" css={listStyles(theme)}>
+    <FlexColumn className="container list" css={listStyles(theme)}>
       {workflowListItems}
-    </Box>
+    </FlexColumn>
   ), [workflowListItems, theme]);
   return (
     <Dialog
@@ -313,55 +303,48 @@ const OpenOrCreateDialog = () => {
       }}
       style={{ top: "100px" }}
     >
-      <Text className="title" size="big">
-        NODE
-        <br />
-        TOOL
-      </Text>
-      <DialogContent className="content">
-        <div className="workflow-buttons">
+      <FlexColumn className="content" gap={1} sx={{ position: "relative", overflow: "hidden", margin: 0, padding: 0, alignItems: "flex-start" }}>
+        <Text className="title" size="big">
+          NODE
+          <br />
+          TOOL
+        </Text>
+        <FlexRow className="workflow-buttons" gap={1} justify="center" align="center" sx={{ marginLeft: "6em" }}>
           <BackToDashboardButton />
-          <Button variant="outlined" onClick={handleCreateNewWorkflow}>
+          <EditorButton variant="outlined" density="compact" onClick={handleCreateNewWorkflow}>
             Create New
-          </Button>
-          <Button color="primary" onClick={handleNavigateExampleWorkflows}>
+          </EditorButton>
+          <EditorButton color="primary" density="compact" onClick={handleNavigateExampleWorkflows}>
             Templates
-          </Button>
-          <Button color="primary" onClick={handleOpenHelp}>
+          </EditorButton>
+          <EditorButton color="primary" density="compact" onClick={handleOpenHelp}>
             Shortcuts
-          </Button>
-        </div>
+          </EditorButton>
+        </FlexRow>
 
-        <div className="recent">
-          <div className="tools">
+        <FlexColumn className="recent" gap={1} sx={{ flexGrow: 1, height: "75%", width: "100%", position: "relative" }}>
+          <FlexRow className="tools" gap={1} sx={{ position: "relative", marginTop: "2em" }}>
             <Text className="recent-hl">Recent Workflows</Text>
-            <ToggleButtonGroup
+            <ToggleGroup
               className="toggle-name-date"
               value={settings.workflowOrder}
               onChange={handleOrderChange}
               exclusive
               aria-label="Sort workflows"
             >
-              <ToggleButton value="name" aria-label="Sort by name">
+              <ToggleOption value="name" aria-label="Sort by name">
                 Name
-              </ToggleButton>
-              <ToggleButton value="updated_at" aria-label="sort by date">
+              </ToggleOption>
+              <ToggleOption value="updated_at" aria-label="sort by date">
                 Date
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </div>
-          <div className="items">
+              </ToggleOption>
+            </ToggleGroup>
+          </FlexRow>
+          <FlexColumn className="items" sx={{ height: "100%", position: "relative" }}>
             {isLoading && (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  width: "100%",
-                  mt: 2
-                }}
-              >
-                <CircularProgress />
-              </Box>
+              <FlexRow justify="center" fullWidth sx={{ mt: 2 }}>
+                <LoadingSpinner />
+              </FlexRow>
             )}
             {isError && (
               <ErrorOutlineRounded>
@@ -370,18 +353,18 @@ const OpenOrCreateDialog = () => {
               </ErrorOutlineRounded>
             )}
             {data && sortedWorkflows && renderListView()}
-          </div>
-        </div>
-      </DialogContent>
+          </FlexColumn>
+        </FlexColumn>
       <Text
         size="smaller"
         color="secondary"
         style={{
           marginTop: "2em"
         }}
-      >
+        >
         NODETOOL {VERSION}
       </Text>
+      </FlexColumn>
     </Dialog>
   );
 };

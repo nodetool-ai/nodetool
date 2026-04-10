@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef, useEffect, useMemo } from "react";
-import { Box, CircularProgress, Divider } from "@mui/material";
-import { AlertBanner, Text, FlexRow, FlexColumn } from "../../ui_primitives";
+import { Box } from "@mui/material";
+import { AlertBanner, Text, FlexRow, FlexColumn, LoadingSpinner, Divider } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { useWorkflowAssets } from "../../../serverState/useWorkflowAssets";
@@ -161,7 +161,7 @@ const WorkflowAssetPanel: React.FC = () => {
           backgroundColor: theme.vars.palette.c_editor_bg_color
         }}
       >
-        <CircularProgress size={32} />
+        <LoadingSpinner size="medium" />
       </FlexRow>
     );
   }
