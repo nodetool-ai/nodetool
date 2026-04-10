@@ -17,7 +17,8 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
-import { Button, Container, Tooltip } from "@mui/material";
+import { Button, Container } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -803,7 +804,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
       {selected && metadata.namespace && (
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+          delay={TOOLTIP_ENTER_DELAY * 2}
           title="Open Node Menu here"
           placement="bottom"
           arrow

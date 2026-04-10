@@ -8,9 +8,9 @@ import {
   DialogTitle,
   Button,
   TextField,
-  Typography,
   Alert
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
 import dialogStyles from "../../styles/DialogStyles";
@@ -234,13 +234,13 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             </DialogActions>
             {assets && assets.length > 1 && (
               <div className="asset-rename-notice-container">
-                <Typography
+                <Text
                   className="asset-rename-notice notice"
-                  variant="body2"
+                  size="small"
                 >
                   <span>Multiple assets selected:</span> <br />
                   Names will be appended with a number.
-                </Typography>
+                </Text>
               </div>
             )}
           </Dialog>

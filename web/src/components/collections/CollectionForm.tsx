@@ -7,10 +7,9 @@ import {
   TextField,
   Button,
   Box,
-  CircularProgress,
-  Typography
+  CircularProgress
 } from "@mui/material";
-import { FormField } from "../ui_primitives/FormField";
+import { FormField, Text, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { CollectionCreate } from "../../stores/ApiTypes";

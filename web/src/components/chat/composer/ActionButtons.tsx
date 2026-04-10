@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, memo } from "react";
-import { Tooltip, Typography } from "@mui/material";
+import { Tooltip, Text } from "../../ui_primitives";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";

@@ -1,7 +1,6 @@
 import React, { useCallback } from "react";
 import PsychologyIcon from "@mui/icons-material/Psychology";
-import { StateIconButton } from "../../ui_primitives";
-import { Typography } from "@mui/material";
+import { StateIconButton, Text, Caption } from "../../ui_primitives";
 
 interface AgentModeToggleProps {
   agentMode: boolean;
@@ -20,12 +19,12 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
 
   const tooltipContent = (
     <div style={{ textAlign: "center" }}>
-      <Typography variant="inherit">
+      <Text>
         {agentMode ? "Agent Mode ON" : "Agent Mode OFF"}
-      </Typography>
-      <Typography variant="caption" display="block">
+      </Text>
+      <Caption sx={{ display: "block" }}>
         {agentMode ? "Disable" : "Enable"} agent mode
-      </Typography>
+      </Caption>
     </div>
   );
 
