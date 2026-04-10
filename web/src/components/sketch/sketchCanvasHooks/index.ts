@@ -56,6 +56,24 @@ export type {
   UseCanvasOrchestrationResult
 } from "./useCanvasOrchestration";
 
+export {
+  DisplayFrameCoordinator,
+  DisplayTracer,
+  createInitialReadiness,
+  isInteractionReady
+} from "./DisplayFrameCoordinator";
+export type {
+  RedrawReason,
+  RedrawUrgency,
+  RedrawRequest,
+  DisplayTarget,
+  DisplayBackend,
+  InteractionReadiness,
+  TraceEventType,
+  TraceEvent,
+  FrameCoordinatorCallbacks
+} from "./DisplayFrameCoordinator";
+
 // Re-export ActiveStrokeInfo from its canonical home in the rendering module.
 export type { ActiveStrokeInfo } from "../rendering";
 

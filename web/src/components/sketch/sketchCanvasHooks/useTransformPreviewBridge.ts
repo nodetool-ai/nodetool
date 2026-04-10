@@ -23,6 +23,7 @@ import {
   setActiveLayerTransformPreview,
   clearActiveLayerTransformPreview
 } from "../activeLayerTransform";
+import type { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 
 export interface UseTransformPreviewBridgeResult {
   /** Ref containing per-layer transform previews, consumed by compositing. */
@@ -31,13 +32,23 @@ export interface UseTransformPreviewBridgeResult {
   requestPreviewRedrawRef: React.MutableRefObject<() => void>;
   /** Ref that must be wired to `invalidateLayer` from compositing after mount. */
   invalidateLayerRef: React.MutableRefObject<(layerId: string) => void>;
+  /** Optional coordinator ref for typed redraw requests and tracing. */
+  coordinatorRef?: React.MutableRefObject<DisplayFrameCoordinator | null>;
   /** Set a transform preview for a layer; bails if the value is identical. */
   setLayerTransformPreview: (layerId: string, transform: LayerTransform) => void;
   /** Clear one layer's preview (by id) or all previews (no argument). */
   clearLayerTransformPreview: (layerId?: string) => void;
 }
 
-export function useTransformPreviewBridge(): UseTransformPreviewBridgeResult {
+export interface UseTransformPreviewBridgeParams {
+  /** Optional coordinator ref for typed redraw requests and tracing. */
+  coordinatorRef?: React.MutableRefObject<DisplayFrameCoordinator | null>;
+}
+
+export function useTransformPreviewBridge(
+  params?: UseTransformPreviewBridgeParams
+): UseTransformPreviewBridgeResult {
+  const coordRef = params?.coordinatorRef;
   const transformPreviewByLayerIdRef = useRef<Record<string, LayerTransform>>({});
   const requestPreviewRedrawRef = useRef<() => void>(() => {});
   /**
@@ -74,9 +85,16 @@ export function useTransformPreviewBridge(): UseTransformPreviewBridgeResult {
         ...current,
         [layerId]: transform
       };
-      requestPreviewRedrawRef.current();
+      // Trace and route through coordinator if available.
+      const coord = coordRef?.current;
+      if (coord) {
+        coord.tracer.trace("preview-set", { layerId });
+        coord.requestFrame("transform-preview", "raf");
+      } else {
+        requestPreviewRedrawRef.current();
+      }
     },
-    []
+    [coordRef]
   );
 
   const clearLayerTransformPreview = useCallback(
@@ -88,7 +106,13 @@ export function useTransformPreviewBridge(): UseTransformPreviewBridgeResult {
           return;
         }
         transformPreviewByLayerIdRef.current = {};
-        requestPreviewRedrawRef.current();
+        const coord = coordRef?.current;
+        if (coord) {
+          coord.tracer.trace("preview-cleared", { all: true });
+          coord.requestFrame("transform-preview", "raf");
+        } else {
+          requestPreviewRedrawRef.current();
+        }
         return;
       }
       if (!(layerId in current)) {
@@ -97,9 +121,15 @@ export function useTransformPreviewBridge(): UseTransformPreviewBridgeResult {
       const next = { ...current };
       delete next[layerId];
       transformPreviewByLayerIdRef.current = next;
-      requestPreviewRedrawRef.current();
+      const coord = coordRef?.current;
+      if (coord) {
+        coord.tracer.trace("preview-cleared", { layerId });
+        coord.requestFrame("transform-preview", "raf");
+      } else {
+        requestPreviewRedrawRef.current();
+      }
     },
-    []
+    [coordRef]
   );
 
   return {
