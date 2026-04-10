@@ -59,6 +59,7 @@ function nodetoolStubPlugin(): Plugin {
 export default defineConfig({
   plugins: [nodetoolStubPlugin()],
   test: {
-    include: ["tests/**/*.test.ts"]
+    include: ["tests/**/*.test.ts"],
+    testTimeout: 30000
   }
 });

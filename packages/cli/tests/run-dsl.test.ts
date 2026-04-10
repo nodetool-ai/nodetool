@@ -3,6 +3,7 @@ import { isWorkflow, runDslFile } from "../src/run-dsl.js";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string) => resolve(__dirname, "fixtures", name);
@@ -52,12 +53,14 @@ describe("runDslFile", () => {
   });
 });
 
-describe.skipIf(Boolean(process.env.CI))(
+// Skip CLI integration tests in CI or when CLI dist is not built
+const workspaceRoot = resolve(__dirname, "../../..");
+const cliEntry = join(workspaceRoot, "packages/cli/dist/nodetool.js");
+const skipCliIntegration = Boolean(process.env.CI) || !existsSync(cliEntry);
+
+describe.skipIf(skipCliIntegration)(
   "nodetool run <dsl-file> — CLI integration",
   () => {
-    // Resolve paths relative to the workspace root so the CLI can find them.
-    const workspaceRoot = resolve(__dirname, "../../..");
-    const cliEntry = join(workspaceRoot, "packages/cli/dist/nodetool.js");
     const baseFixture = join(
       workspaceRoot,
       "packages/cli/tests/fixtures/base-node-workflow.ts"
