@@ -314,12 +314,12 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
               <li>Click on the namespaces to the left</li>
             </ul>
 
-            <Typography variant="h5">Search Nodes</Typography>
+            <Text size="normal" weight={600}>Search Nodes</Text>
             <ul>
               <li>Type in the search bar to search for nodes.</li>
             </ul>
 
-            <Typography variant="h5">Create Nodes</Typography>
+            <Text size="normal" weight={600}>Create Nodes</Text>
             <ul>
               <li>Click on a node</li>
               <li>Drag a node onto the canvas</li>

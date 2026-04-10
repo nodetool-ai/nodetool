@@ -1,5 +1,6 @@
 import React, { memo } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Caption, FlexColumn } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";

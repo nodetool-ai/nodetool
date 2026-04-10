@@ -56,7 +56,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
 import { CircularProgress } from "@mui/material";
-import { Typography } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
