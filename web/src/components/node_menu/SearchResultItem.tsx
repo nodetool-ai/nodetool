@@ -323,7 +323,7 @@ const SearchResultItem = memo(
                   query={searchTerm}
                   matchStyle="primary"
                 />
-              </Typography>
+              </Text>
               <div
                 className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
                 onClick={handleToggleExpand}
@@ -335,13 +335,13 @@ const SearchResultItem = memo(
           </div>
 
           {truncatedDescription && (
-            <Typography className="result-description" component="div">
+            <Text className="result-description" component="div">
               <HighlightText
                 text={truncatedDescription}
                 query={searchTerm}
                 matchStyle="primary"
               />
-            </Typography>
+            </Text>
           )}
 
           {/* Input/Output info - click to expand (absolutely positioned overlay) */}

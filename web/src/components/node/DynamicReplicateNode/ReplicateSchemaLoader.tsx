@@ -163,8 +163,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
           </IconButton>
         </Tooltip>
         {error && (
-          <Typography
-            variant="caption"
+          <Caption
             color="error"
             sx={{
               position: "absolute",
@@ -176,7 +175,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
             }}
           >
             {error}
-          </Typography>
+          </Caption>
         )}
       </Box>
     );
