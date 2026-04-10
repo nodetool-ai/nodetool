@@ -106,7 +106,7 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
   );
 
   return (
-    <div style={{ marginBottom: theme.spacing(1) }}>
+    <div style={{ marginBottom: theme.spacing(2) }}>
       <FormControl size={size} disabled={disabled} fullWidth>
         <InputLabel htmlFor={selectId}>{label}</InputLabel>
         <Select
