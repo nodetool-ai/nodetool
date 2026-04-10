@@ -91,7 +91,7 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
   description,
   disabled = false,
   id,
-  size = "small",
+  size = "medium",
   variant = "standard"
 }) => {
   const theme = useTheme();
@@ -106,8 +106,8 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
   );
 
   return (
-    <>
-      <FormControl size={size} disabled={disabled}>
+    <div style={{ marginBottom: theme.spacing(1) }}>
+      <FormControl size={size} disabled={disabled} fullWidth>
         <InputLabel htmlFor={selectId}>{label}</InputLabel>
         <Select
           id={selectId}
@@ -128,13 +128,14 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
           variant="body2"
           sx={{
             color: theme.palette.text.secondary,
-            mt: 0.5
+            mt: 0.5,
+            fontSize: theme.fontSizeSmaller
           }}
         >
           {description}
         </Typography>
       )}
-    </>
+    </div>
   );
 };
 
