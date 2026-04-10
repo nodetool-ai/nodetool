@@ -284,6 +284,7 @@ const getNodeContainerStyles = (
   // stretches to match so vertical resizing is visible.
   height: "100%",
   minHeight,
+  overflow: "visible" as const,
   border: isLoading ? "none" : `1px solid var(--palette-grey-900)`,
   ...theme.applyStyles("dark", {
     border: isLoading ? "none" : `1px solid var(--palette-grey-900)`
@@ -730,7 +731,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           minHeight: 0,
           width: "100%",
           overflow: "visible",
-          clipPath: "inset(0 -60px)"
+          clipPath: "inset(-350px -60px 0 -60px)"
         }}
       >
         <NodeContent
