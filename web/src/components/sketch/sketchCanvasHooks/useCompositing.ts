@@ -55,6 +55,7 @@ import { useRuntimeBootstrap } from "./useRuntimeBootstrap";
 import { useTransformPreviewComposite } from "./useTransformPreviewComposite";
 import { useRedrawScheduler } from "./useRedrawScheduler";
 import { useLayerHydration } from "./useLayerHydration";
+import { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 
 export interface UseCompositingParams {
   doc: SketchDocument;
@@ -89,6 +90,8 @@ export interface UseCompositingResult {
    * before the scheduled rAF has fired.
    */
   drainPendingStrokeCommit: () => void;
+  /** The shared display frame coordinator for typed redraw requests and readiness tracking. */
+  coordinatorRef: React.MutableRefObject<DisplayFrameCoordinator | null>;
 }
 
 import type { SketchRuntime } from "../rendering";
@@ -106,6 +109,12 @@ export function useCompositing({
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
+  // ─── Display frame coordinator ─────────────────────────────────────
+  const coordinatorRef = useRef<DisplayFrameCoordinator | null>(null);
+  if (!coordinatorRef.current) {
+    coordinatorRef.current = new DisplayFrameCoordinator();
+  }
+
   // Ref bridges for circular dependencies:
   // • bootstrap reads requestRedrawRef.current to trigger redraws after init
   // • scheduler reads compositeToDisplayRef.current in rAF callbacks
@@ -121,6 +130,14 @@ export function useCompositing({
       requestRedrawRef,
       externalZoom
     });
+
+  // Sync coordinator with runtime/backend state.
+  const coord = coordinatorRef.current;
+  if (coord) {
+    coord.markRuntimeReady();
+    coord.setBackend(backend);
+    coord.setDisplayTarget(bootstrapPhaseActive ? "bootstrap" : "display");
+  }
 
   // ─── 2. Transform-preview composite callback ──────────────────────
   const { compositeToDisplay } =
@@ -150,8 +167,26 @@ export function useCompositing({
   } = useRedrawScheduler({
     compositeToDisplay,
     compositeToDisplayRef,
-    activeStrokeRef
+    activeStrokeRef,
+    coordinatorRef
   });
+
+  // Wire coordinator callbacks so it can drain strokes and composite.
+  if (coordinatorRef.current) {
+    coordinatorRef.current.setCallbacks({
+      drainPendingStroke: () => {
+        const stroke = activeStrokeRef.current;
+        const pending = stroke?.pendingCommit;
+        if (pending) {
+          stroke!.pendingCommit = null;
+          pending();
+        }
+      },
+      compositeImmediate: (dirtyRect) => {
+        compositeToDisplayRef.current(dirtyRect ?? null);
+      }
+    });
+  }
 
   // Keep the ref in sync so bootstrap can call requestRedraw after init.
   requestRedrawRef.current = requestRedraw;
@@ -251,12 +286,14 @@ export function useCompositing({
   // identity changes.
   useEffect(() => {
     const hydratedState = hydratedLayerStateRef.current;
+    const coordInstance = coordinatorRef.current;
     return () => {
       if (redrawRequestRef.current !== null) {
         cancelAnimationFrame(redrawRequestRef.current);
       }
       hydratedState.clear();
       runtimeRef.current?.dispose();
+      coordInstance?.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -275,6 +312,7 @@ export function useCompositing({
     redrawDirty,
     requestRedraw,
     requestDirtyRedraw,
-    drainPendingStrokeCommit
+    drainPendingStrokeCommit,
+    coordinatorRef
   };
 }
