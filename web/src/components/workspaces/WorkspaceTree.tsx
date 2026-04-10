@@ -476,10 +476,10 @@ const WorkspaceTree: React.FC = () => {
   );
 
   useEffect(() => {
-    if (initialFiles && !isEqual(initialFiles, files)) {
+    if (initialFiles) {
       setFiles(initialFiles);
     }
-  }, [files, initialFiles]);
+  }, [initialFiles]);
 
   useEffect(() => {
     setSelectedFilePath("");
