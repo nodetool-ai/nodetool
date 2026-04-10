@@ -20,18 +20,22 @@ Raw MUI usage creates:
 
 | Raw MUI Component | Files Using It | Primitive Replacement |
 |---|---|---|
-| `<Typography>` | **167 files** | `Text`, `Label`, `Caption` |
 | `display: flex` inline | **314 files** | `FlexRow`, `FlexColumn`, `Stack` |
-| `<Tooltip>` | **96 files** | `Tooltip` primitive |
-| `<CircularProgress>` | **54 files** | `LoadingSpinner` |
-| Hardcoded hex colors | **48 files** | Theme values (`theme.vars.palette.*`) |
-| `<Divider>` | **29 files** | `Divider` primitive |
-| `<Button>` | **29 files** | `EditorButton`, action buttons (`CopyButton`, `DeleteButton`, etc.) |
-| `<IconButton>` | **18 files** | `ToolbarIconButton`, `StateIconButton`, action buttons |
-| `<Chip>` | **8 files** | `Chip` primitive |
-| `<Dialog>` | **7 files** | `Dialog` primitive |
-| `<Paper>` | **6 files** | `Card`, `Surface`, `Panel` |
-| `<Alert>` | **5 files** | `AlertBanner` |
+| `<Typography>` | **201 files** | `Text`, `Label`, `Caption` |
+| `<Tooltip>` | **146 files** | `Tooltip` primitive |
+| `<Button>` | **103 files** | `EditorButton`, action buttons (`CopyButton`, `DeleteButton`, etc.) |
+| `<IconButton>` | **72 files** | `ToolbarIconButton`, `StateIconButton`, action buttons |
+| `<CircularProgress>` | **55 files** | `LoadingSpinner` |
+| Hardcoded hex colors | **45 files** | Theme values (`theme.vars.palette.*`) |
+| `<Dialog>` | **44 files** | `Dialog` primitive |
+| `<TextField>` | **40 files** | `NodeTextField`, `TextInput`, `SearchInput` |
+| `<Select>` | **37 files** | `NodeSelect`, `SelectField` |
+| `<Chip>` | **37 files** | `Chip` primitive |
+| `<Divider>` | **30 files** | `Divider` primitive |
+| Hardcoded px values | **27 files** | `theme.spacing()`, `SPACING` constants |
+| `<Alert>` | **14 files** | `AlertBanner` |
+| `<Paper>` | **12 files** | `Card`, `Surface`, `Panel` |
+| `<Tabs>`/`<Tab>` | **10 files** | `TabGroup` / `TabPanel` |
 
 ### Underutilized Primitives
 
