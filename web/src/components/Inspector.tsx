@@ -3,10 +3,8 @@ import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import PropertyField from "./node/PropertyField";
 import { Box } from "@mui/material";
-import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
-import NodeDescription from "./node/NodeDescription";
 import NodeExplorer from "./node/NodeExplorer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -16,7 +14,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "lodash/isEqual";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
-import { Caption, CloseButton, CollapsibleSection, ScrollArea, Text, Tooltip } from "./ui_primitives";
+import { Caption, CloseButton, ScrollArea, Text, Tooltip } from "./ui_primitives";
 import PanelHeadline from "./ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
@@ -43,44 +41,39 @@ const styles = (theme: Theme) =>
       left: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "4px",
+      gap: "6px",
       width: "100%",
       height: "100%",
       padding: "0.5em",
       transformOrigin: "top left"
     },
     ".inspector-header h5": {
-      margin: ".5em 0 .5em 0"
-    },
-    ".bottom": {
-      position: "relative",
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.5em",
-      width: "100%",
-      maxHeight: "20vh",
-      padding: "0.25em 0.5em"
+      margin: ".25em 0"
     },
     ".inspector-header": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.5em",
       width: "100%",
-      padding: "0 0 0.5em 0",
+      padding: "0 0 0.25em 0",
       margin: 0,
-      marginBottom: "0.5em"
-    },
-    ".inspector-header .header-row": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: "0.5em"
+      marginBottom: "0.25em",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".title": {
       width: "100%",
       userSelect: "none",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal
+      fontSize: theme.fontSizeNormal,
+      fontWeight: 500
+    },
+    ".header-description": {
+      color: theme.vars.palette.text.secondary,
+      fontSize: theme.fontSizeTiny,
+      lineHeight: 1.4,
+      margin: "0.25em 0 0.5em",
+      opacity: 0.8,
+      maxHeight: "3.5em",
+      overflow: "hidden"
     },
     ".description": {
       color: "var(--palette-grey-100)",
@@ -151,7 +144,6 @@ const Inspector: React.FC = () => {
   );
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
   const inspectorStyles = useMemo(() => styles(theme), [theme]);
   const nodesWithMetadata = useMemo(
@@ -239,14 +231,6 @@ const Inspector: React.FC = () => {
   const metadata = selectedNode
     ? getMetadata(selectedNode.type as string)
     : null;
-
-  const handleTagClick = useCallback((tag: string) => {
-    openNodeMenu({
-      x: 500,
-      y: 200,
-      searchTerm: tag
-    });
-  }, [openNodeMenu]);
 
   if (selectedNodes.length === 0) {
     return (
@@ -384,22 +368,11 @@ const Inspector: React.FC = () => {
                   />
                 }
               />
-              <div className="header-row">
-                <div className="title">{metadata.title}</div>
-              </div>
+              <div className="title">{metadata.title}</div>
               {metadata.description && (
-                <CollapsibleSection
-                  title={<Caption size="tiny" color="muted">Description</Caption>}
-                  defaultOpen={false}
-                  compact
-                  hideIcon={false}
-                >
-                  <NodeDescription
-                    className="description"
-                    description={metadata.description}
-                    onTagClick={handleTagClick}
-                  />
-                </CollapsibleSection>
+                <div className="header-description">
+                  {metadata.description.split("\n")[0]}
+                </div>
               )}
             </div>
             {/* Base properties */}
