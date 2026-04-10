@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { VideoRef } from "@nodetool/node-sdk";
+import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
@@ -839,6 +839,7 @@ export class FrameToVideoNode extends BaseNode {
   static readonly title = "Frame To Video";
   static readonly description =
     "Combine a sequence of frames into a single video file.\n    video, frames, combine, sequence";
+  static readonly isStreamingInput = true;
   static readonly metadataOutputTypes = {
     output: "video"
   };
@@ -865,7 +866,76 @@ export class FrameToVideoNode extends BaseNode {
   })
   declare fps: any;
 
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs,
+    _context?: ProcessingContext
+  ): Promise<void> {
+    // Collect all frames from the streaming input
+    const frames: unknown[] = [];
+    let fps = Math.max(1, Number(this.fps ?? 30));
+    for await (const [handle, item] of inputs.any()) {
+      if (handle === "frame") {
+        frames.push(item);
+      } else if (handle === "fps") {
+        fps = Math.max(1, Number(item ?? 30));
+      }
+    }
+
+    if (frames.length === 0) {
+      await outputs.emit("output", videoRef(new Uint8Array()));
+      return;
+    }
+
+    const inputDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-ftv-in-")
+    );
+    const outputDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-ftv-out-")
+    );
+    const outputPath = path.join(outputDir, "output.mp4");
+    try {
+      // Write each frame as a numbered PNG file
+      for (let i = 0; i < frames.length; i++) {
+        const f = frames[i];
+        if (!f || typeof f !== "object") continue;
+        const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
+        if (frameBytes.length === 0) continue;
+        await fs.writeFile(
+          path.join(inputDir, `frame_${String(i + 1).padStart(6, "0")}.png`),
+          frameBytes
+        );
+      }
+
+      await execFile(
+        "ffmpeg",
+        [
+          "-y",
+          "-framerate", String(fps),
+          "-i", path.join(inputDir, "frame_%06d.png"),
+          "-c:v", "libx264",
+          "-pix_fmt", "yuv420p",
+          outputPath
+        ],
+        { maxBuffer: 50 * 1024 * 1024 }
+      );
+      const result = new Uint8Array(await fs.readFile(outputPath));
+      await outputs.emit("output", videoRef(result));
+    } catch {
+      // Fallback: concatenate raw frame bytes
+      const parts = frames.map((f) => {
+        if (!f || typeof f !== "object") return new Uint8Array();
+        return toBytes((f as { data?: Uint8Array | string }).data);
+      });
+      await outputs.emit("output", videoRef(bytesConcat(parts)));
+    } finally {
+      await fs.rm(inputDir, { recursive: true, force: true });
+      await fs.rm(outputDir, { recursive: true, force: true });
+    }
+  }
+
   async process(): Promise<Record<string, unknown>> {
+    // Legacy fallback for non-streaming usage (e.g., direct array input)
     const frames = Array.isArray(this.frame) ? (this.frame as unknown[]) : [];
     if (frames.length === 0) return { output: videoRef(new Uint8Array()) };
 
@@ -877,7 +947,6 @@ export class FrameToVideoNode extends BaseNode {
     );
     const outputPath = path.join(outputDir, "output.mp4");
     try {
-      // Write each frame as a numbered PNG file
       for (let i = 0; i < frames.length; i++) {
         const f = frames[i];
         if (!f || typeof f !== "object") continue;
@@ -905,7 +974,6 @@ export class FrameToVideoNode extends BaseNode {
       const result = new Uint8Array(await fs.readFile(outputPath));
       return { output: videoRef(result) };
     } catch {
-      // Fallback: concatenate raw frame bytes
       const parts = frames.map((f) => {
         if (!f || typeof f !== "object") return new Uint8Array();
         return toBytes((f as { data?: Uint8Array | string }).data);

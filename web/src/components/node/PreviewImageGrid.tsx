@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from "
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Checkbox } from "@mui/material";
+import { Checkbox, IconButton, Button, Box } from "@mui/material";
 import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
@@ -457,26 +457,24 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                     url={urlMapRef.current.get(img) || ""}
                     className="tile-action-btn"
                   />
-                  <Tooltip title="Download" placement="top">
-                    <IconButton
-                      className="tile-action-btn"
-                      size="small"
-                      onClick={(e) => handleDownloadImage(idx, e)}
-                      aria-label={`Download image ${idx + 1}`}
-                    >
-                      <DownloadIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Open in Viewer (double-click)" placement="top">
-                    <IconButton
-                      className="tile-action-btn"
-                      size="small"
-                      onClick={(e) => handleOpenInViewer(idx, e)}
-                      aria-label={`Open image ${idx + 1} in viewer`}
-                    >
-                      <OpenInNewIcon />
-                    </IconButton>
-                  </Tooltip>
+                  <ToolbarIconButton
+                    tooltip="Download"
+                    tooltipPlacement="top"
+                    icon={<DownloadIcon />}
+                    className="tile-action-btn"
+                    size="small"
+                    onClick={(e) => handleDownloadImage(idx, e)}
+                    ariaLabel={`Download image ${idx + 1}`}
+                  />
+                  <ToolbarIconButton
+                    tooltip="Open in Viewer (double-click)"
+                    tooltipPlacement="top"
+                    icon={<OpenInNewIcon />}
+                    className="tile-action-btn"
+                    size="small"
+                    onClick={(e) => handleOpenInViewer(idx, e)}
+                    ariaLabel={`Open image ${idx + 1} in viewer`}
+                  />
                 </div>
               )}
               {selectionMode && (
