@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
-import { Container, Typography } from "@mui/material";
+import { Container } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import log from "loglevel";
@@ -490,9 +491,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             hideLogs={true}
           />
           {!displayResult && (
-            <Typography className="hint">
+            <Text className="hint">
               Displays any data from connected nodes
-            </Typography>
+            </Text>
           )}
           <PreviewActions
             onDownload={handleDownload}

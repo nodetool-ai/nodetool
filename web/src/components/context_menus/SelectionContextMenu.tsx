@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, memo } from "react";
-import { Divider, Typography, MenuItem, Menu } from "@mui/material";
+import { MenuItem, Menu } from "@mui/material";
+import { Text, Divider } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -159,15 +160,14 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       }
     >
       <MenuItem disabled>
-        <Typography
+        <Text
           style={{
             margin: ".1em 0",
             padding: "0"
           }}
-          variant="body1"
         >
           SELECTION
-        </Typography>
+        </Text>
       </MenuItem>
 
       <ContextMenuItem
@@ -296,15 +296,14 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       <Divider />
 
       <MenuItem disabled>
-        <Typography
+        <Text
           style={{
             margin: ".1em 0",
             padding: "0"
           }}
-          variant="body1"
         >
           CONNECTED
-        </Typography>
+        </Text>
       </MenuItem>
 
       <ContextMenuItem

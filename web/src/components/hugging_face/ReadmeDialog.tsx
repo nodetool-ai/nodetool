@@ -1,11 +1,6 @@
 import React, { useMemo } from "react";
-import {
-  DialogContent,
-  DialogTitle,
-  Link,
-  Typography
-} from "@mui/material";
-import { CloseButton, Dialog } from "../ui_primitives";
+import { Link } from "@mui/material";
+import { CloseButton, Dialog, FlexRow, Text } from "../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { useTheme } from "@mui/material/styles";
@@ -47,7 +42,9 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
   const formattedReadme = useMemo(() => {
     const lines = readmeData?.split("\n");
     const start = lines?.findIndex((line) => line.startsWith("#"));
-    if (!start || start === -1) {return "";}
+    if (start == null || start === -1) {
+      return "";
+    }
     return lines?.slice(start).join("\n");
   }, [readmeData]);
 
@@ -55,6 +52,14 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
+      title={
+        <FlexRow justify="space-between" align="center" fullWidth>
+          <Text size="big" weight={600}>
+            README
+          </Text>
+          <CloseButton onClick={onClose} tooltip="Close" />
+        </FlexRow>
+      }
       maxWidth="md"
       fullWidth
       slotProps={{
@@ -65,32 +70,22 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
         }
       }}
     >
-      <DialogTitle>
-        README
-        <CloseButton
-          onClick={onClose}
-          tooltip="Close"
-          sx={{ position: "absolute", right: 8, top: 8 }}
-        />
-      </DialogTitle>
-      <DialogContent>
-        {formattedReadme ? (
-          <MarkdownRenderer content={formattedReadme} isReadme={true} />
-        ) : (
-          <Typography>
-            No README available found at{" "}
-            <Link
-              className="readme-link"
-              style={{ color: theme.vars.palette.c_link }}
-              target="_blank"
-              href={`https://huggingface.co/${modelId}/raw/main/README.md`}
-              rel="noreferrer"
-            >
-              {`https://huggingface.co/${modelId}/raw/main/README.md`}
-            </Link>
-          </Typography>
-        )}
-      </DialogContent>
+      {formattedReadme ? (
+        <MarkdownRenderer content={formattedReadme} isReadme={true} />
+      ) : (
+        <Text>
+          No README available found at{" "}
+          <Link
+            className="readme-link"
+            style={{ color: theme.vars.palette.c_link }}
+            target="_blank"
+            href={`https://huggingface.co/${modelId}/raw/main/README.md`}
+            rel="noreferrer"
+          >
+            {`https://huggingface.co/${modelId}/raw/main/README.md`}
+          </Link>
+        </Text>
+      )}
     </Dialog>
   );
 };

@@ -10,12 +10,12 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { Badge, IconButton, Tooltip } from "@mui/material";
+import { Badge } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { FlexRow } from "../ui_primitives";
+import { FlexRow, Tooltip, ToolbarIconButton } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -267,42 +267,40 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           {metadataTitle}
         </span>
         {externalLink && (
-          <Tooltip title={externalLinkTitle || "Open link"} arrow enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(externalLink, "_blank", "noopener,noreferrer");
-              }}
-              sx={{ 
-                padding: "2px",
-                marginLeft: "2px",
-                color: "rgba(255, 255, 255, 0.4)",
-                "&:hover": {
-                  color: "primary.light",
-                  backgroundColor: "rgba(255, 255, 255, 0.05)"
-                }
-              }}
-            >
-              <OpenInNew sx={{ fontSize: "0.85rem" }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            title={externalLinkTitle || "Open link"}
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(externalLink, "_blank", "noopener,noreferrer");
+            }}
+            sx={{
+              padding: "2px",
+              marginLeft: "2px",
+              color: "rgba(255, 255, 255, 0.4)",
+              "&:hover": {
+                color: "primary.light",
+                backgroundColor: "rgba(255, 255, 255, 0.05)"
+              }
+            }}
+          >
+            <OpenInNew sx={{ fontSize: "0.85rem" }} />
+          </ToolbarIconButton>
         )}
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}
         {logCount > 0 && !hideLogs && (
-          <Tooltip title={`${logCount} logs`} arrow>
-            <IconButton
-              size="small"
-              onClick={handleOpenLogsDialog}
-              sx={{ padding: "4px" }}
-            >
-              <Badge badgeContent={logCount} color="warning" max={99}>
-                <ListAltIcon sx={{ fontSize: "1rem" }} />
-              </Badge>
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            title={`${logCount} logs`}
+            size="small"
+            onClick={handleOpenLogsDialog}
+            sx={{ padding: "4px" }}
+          >
+            <Badge badgeContent={logCount} color="warning" max={99}>
+              <ListAltIcon sx={{ fontSize: "1rem" }} />
+            </Badge>
+          </ToolbarIconButton>
         )}
       </FlexRow>
 
@@ -311,27 +309,27 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         <div className="header-right">
           {/* Show Result button */}
           {showResultButton && onShowResults && (
-            <Tooltip title="Show Result" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
-              <IconButton
-                size="small"
-                onClick={handleShowResultsClick}
-                sx={toggleIconButtonStyles}
-              >
-                <Visibility sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              title="Show Result"
+              delay={TOOLTIP_ENTER_DELAY}
+              size="small"
+              onClick={handleShowResultsClick}
+              sx={toggleIconButtonStyles}
+            >
+              <Visibility sx={{ fontSize: 16 }} />
+            </ToolbarIconButton>
           )}
           {/* Show Inputs button */}
           {showInputsButton && onShowInputs && (
-            <Tooltip title="Show Inputs" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
-              <IconButton
-                size="small"
-                onClick={handleShowInputsClick}
-                sx={toggleIconButtonStyles}
-              >
-                <InputOutlined sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              title="Show Inputs"
+              delay={TOOLTIP_ENTER_DELAY}
+              size="small"
+              onClick={handleShowInputsClick}
+              sx={toggleIconButtonStyles}
+            >
+              <InputOutlined sx={{ fontSize: 16 }} />
+            </ToolbarIconButton>
           )}
         </div>
       )}

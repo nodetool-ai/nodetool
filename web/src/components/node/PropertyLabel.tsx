@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
 import isEqual from "lodash/isEqual";
-import Tooltip from "@mui/material/Tooltip";
+import { Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
@@ -87,8 +87,8 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     >
       <Tooltip
         title={showTooltip ? description || "" : ""}
-        enterDelay={TOOLTIP_ENTER_DELAY * 2}
-        enterNextDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY * 2}
+        nextDelay={TOOLTIP_ENTER_DELAY}
         placement="left"
         slotProps={{
           tooltip: {

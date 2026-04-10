@@ -5,10 +5,9 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback } from "react";
 import { Node, NodeProps } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
-import { Container, Tooltip, Button } from "@mui/material";
+import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";
-import { Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { NodeInputs } from "../node/NodeInputs";
@@ -16,7 +15,12 @@ import { NodeOutputs } from "../node/NodeOutputs";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import type { Edge } from "@xyflow/react";
 import type { NodeStoreState } from "../../stores/NodeStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import {
+  EditorButton,
+  FlexColumn,
+  Text,
+  Tooltip
+} from "../ui_primitives";
 
 const humanizeType = (type: string) => {
   return type.replace(/([A-Z])/g, " $1").trim();
@@ -59,14 +63,6 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.error.main,
       padding: 0,
       margin: ".5em 0 0"
-    },
-    ".node-actions": {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      flexDirection: "column",
-      gap: "6px",
-      margin: "8px 0"
     },
     ".search-button": {
       fontSize: "var(--fontSizeTiny)",
@@ -116,7 +112,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const typeForValue = (value: any) => {
+const typeForValue = (value: unknown) => {
   if (typeof value === "string") {
     return { type: "string", optional: true, type_args: [] };
   }
@@ -127,8 +123,11 @@ const typeForValue = (value: any) => {
     return { type: "boolean", optional: true, type_args: [] };
   }
   if (typeof value === "object" && value !== null) {
-    if (value.type) {
-      return { type: value.type, optional: true, type_args: [] };
+    if (!Array.isArray(value)) {
+      const typedValue = value as { type?: unknown };
+      if (typeof typedValue.type === "string") {
+        return { type: typedValue.type, optional: true, type_args: [] };
+      }
     }
   }
   if (Array.isArray(value)) {
@@ -315,22 +314,21 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         workflowId={nodeData?.workflow_id}
       />
       <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
         title={
           isComfyNode
             ? "Start ComfyUI and reload the workflow to use this node."
             : "Try to find a replacement node or write us a fax."
         }
       >
-        <Typography variant="h4" className="missing-node-text">
+        <Text size="big" className="missing-node-text">
           {isComfyNode ? "ComfyUI Not Running" : "Missing Node"}
-        </Typography>
+        </Text>
       </Tooltip>
 
-      <div className="node-actions">
+      <FlexColumn gap={0.75} align="center" className="node-actions" sx={{ margin: "8px 0" }}>
         {isComfyNode ? (
-          <Typography
-            variant="body2"
+          <Text
+            size="small"
             sx={{
               textAlign: "center",
               padding: "4px 8px",
@@ -339,21 +337,21 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
             }}
           >
             Start ComfyUI, then reload
-          </Typography>
+          </Text>
         ) : (
           <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
-            <Button
+            <EditorButton
               variant="contained"
-              size="small"
+              density="compact"
               className="install-button"
               onClick={installPackage}
               startIcon={<CloudDownloadIcon />}
             >
               Search Package Manager
-            </Button>
+            </EditorButton>
           </Tooltip>
         )}
-      </div>
+      </FlexColumn>
 
       {mockProperties.length > 0 && (
         <NodeInputs

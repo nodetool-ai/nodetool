@@ -3,20 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { useReactFlow, Node } from "@xyflow/react";
 import {
   Toolbar,
-  IconButton,
-  Tooltip,
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText,
-  Divider
+  ListItemText
 } from "@mui/material";
+import { Tooltip, Divider, ToolbarIconButton } from "../ui_primitives";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
-import { DeleteButton } from "../ui_primitives/DeleteButton";
+import { DeleteButton } from "../ui_primitives";
 import InfoIcon from "@mui/icons-material/Info";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
-import { EditButton } from "../ui_primitives/EditButton";
+import { EditButton } from "../ui_primitives";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
@@ -164,46 +162,29 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         sx={{ backgroundColor: "transparent", gap: 0.5 }}
       >
         {/* Primary Actions - Always Visible */}
-        <Tooltip
-          title={
-            <span>
-              {isWorkflowRunning ? "Running..." : "Run From Here"}
-            </span>
-          }
-          enterDelay={TOOLTIP_ENTER_DELAY}
+        <ToolbarIconButton
+          title={isWorkflowRunning ? "Running..." : "Run From Here"}
+          delay={TOOLTIP_ENTER_DELAY}
+          className="nodrag"
+          onClick={runFromHere}
+          tabIndex={-1}
+          disabled={isWorkflowRunning}
+          size="small"
         >
-          <span>
-            <IconButton
-              className="nodrag"
-              onClick={runFromHere}
-              tabIndex={-1}
-              disabled={isWorkflowRunning}
-              size="small"
-            >
-              <PlayArrowIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
+          <PlayArrowIcon fontSize="small" />
+        </ToolbarIconButton>
 
-        <Tooltip
-          title={
-            <span>
-              {isBypassed ? "Enable Node" : "Bypass Node"}{" "}
-              {getShortcutTooltip("bypassNode", undefined, "combo")}
-            </span>
-          }
-          enterDelay={TOOLTIP_ENTER_DELAY}
+        <ToolbarIconButton
+          title={`${isBypassed ? "Enable Node" : "Bypass Node"} ${getShortcutTooltip("bypassNode", undefined, "combo")}`}
+          delay={TOOLTIP_ENTER_DELAY}
+          className="nodrag"
+          onClick={handleToggleBypass}
+          tabIndex={-1}
+          color={isBypassed ? "warning" : "default"}
+          size="small"
         >
-          <IconButton
-            className="nodrag"
-            onClick={handleToggleBypass}
-            tabIndex={-1}
-            color={isBypassed ? "warning" : "default"}
-            size="small"
-          >
-            <PowerSettingsNewIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+          <PowerSettingsNewIcon fontSize="small" />
+        </ToolbarIconButton>
 
         <EditButton
           onClick={handleToggleComment}
@@ -212,24 +193,16 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           sx={hasCommentTitle ? { color: "primary.main" } : undefined}
         />
 
-        <Tooltip
-          title={
-            <span>
-              Duplicate{" "}
-              {getShortcutTooltip("duplicate", undefined, "combo")}
-            </span>
-          }
-          enterDelay={TOOLTIP_ENTER_DELAY}
+        <ToolbarIconButton
+          title={`Duplicate ${getShortcutTooltip("duplicate", undefined, "combo")}`}
+          delay={TOOLTIP_ENTER_DELAY}
+          className="nodrag"
+          onClick={handleDuplicateNodes}
+          tabIndex={-1}
+          size="small"
         >
-          <IconButton
-            className="nodrag"
-            onClick={handleDuplicateNodes}
-            tabIndex={-1}
-            size="small"
-          >
-            <CopyAllIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+          <CopyAllIcon fontSize="small" />
+        </ToolbarIconButton>
 
         <DeleteButton
           onClick={handleDelete}
@@ -242,36 +215,30 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           }
         />
 
-        <Tooltip
-          title={<span>Info</span>}
-          enterDelay={TOOLTIP_ENTER_DELAY}
+        <ToolbarIconButton
+          title="Info"
+          delay={TOOLTIP_ENTER_DELAY}
+          className="nodrag"
+          onClick={handleToggleInfo}
+          tabIndex={-1}
+          color={isInspected ? "primary" : "default"}
+          size="small"
         >
-          <IconButton
-            className="nodrag"
-            onClick={handleToggleInfo}
-            tabIndex={-1}
-            color={isInspected ? "primary" : "default"}
-            size="small"
-          >
-            <InfoIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+          <InfoIcon fontSize="small" />
+        </ToolbarIconButton>
 
 
         {/* More Actions Dropdown */}
-        <Tooltip
-          title={<span>More Actions</span>}
-          enterDelay={TOOLTIP_ENTER_DELAY}
+        <ToolbarIconButton
+          title="More Actions"
+          delay={TOOLTIP_ENTER_DELAY}
+          className="nodrag"
+          onClick={handleOpenDropdown}
+          tabIndex={-1}
+          size="small"
         >
-          <IconButton
-            className="nodrag"
-            onClick={handleOpenDropdown}
-            tabIndex={-1}
-            size="small"
-          >
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+          <MoreVertIcon fontSize="small" />
+        </ToolbarIconButton>
       </Toolbar>
 
       {/* Dropdown Menu for Secondary Actions */}

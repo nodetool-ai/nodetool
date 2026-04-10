@@ -2,11 +2,12 @@
 import React, { useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Box, IconButton, Tooltip, Typography, Collapse, Button } from "@mui/material";
+import { Box, Collapse } from "@mui/material";
+import { ToolbarIconButton, EditorButton } from "../../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import { Caption, CloseButton, ExpandCollapseButton } from "../../ui_primitives";
+import { Caption, CloseButton, ExpandCollapseButton, Text } from "../../ui_primitives";
 
 import ThemeToggle from "../../ui/ThemeToggle";
 import MiniWorkflowGraph from "./MiniWorkflowGraph";
@@ -173,15 +174,14 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
     <Box css={styles}>
       {/* Toggle button - hidden when panel is open */}
       {!isOpen && (
-        <Tooltip title="Open settings" placement="left">
-          <IconButton
-            className="side-panel-toggle"
-            onClick={handleOpenPanel}
-            size="small"
-          >
-            <MenuIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<MenuIcon fontSize="small" />}
+          tooltip="Open settings"
+          tooltipPlacement="left"
+          className="side-panel-toggle"
+          onClick={handleOpenPanel}
+          size="small"
+        />
       )}
 
       {/* Backdrop */}
@@ -198,18 +198,17 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
 
         <div className="side-panel-content">
           {/* Description */}
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              fontSize: theme.fontSizeSmall,
+          <Text
+            size="small"
+            sx={{
               lineHeight: 1.5,
               color: theme.vars.palette.text.primary,
               marginBottom: theme.spacing(4),
             }}
           >
-            App Mode turns workflows into applications. 
+            App Mode turns workflows into applications.
             Input nodes become form fields, output nodes display results.
-          </Typography>
+          </Text>
 
           {/* Workflow Graph Section */}
           <div className="panel-section" style={panelSectionMarginStyle}>
@@ -236,7 +235,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
 
           {/* VibeCoding Button */}
           <div className="panel-section" style={vibeCodingSectionMarginStyle}>
-            <Button
+            <EditorButton
               variant="outlined"
               startIcon={<AutoFixHighIcon />}
               onClick={handleOpenVibeCoding}
@@ -248,7 +247,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
               }}
             >
               Design App UI
-            </Button>
+            </EditorButton>
             {workflow.html_app && (
               <Caption
                 color="secondary"

@@ -2,13 +2,11 @@
 import React, { useState, useCallback } from "react";
 import {
   Box,
-  Button,
   TextField,
-  Typography,
-  Alert,
   ToggleButton,
   ToggleButtonGroup
 } from "@mui/material";
+import { Text, Caption, FlexRow, EditorButton, AlertBanner } from "../ui_primitives";
 import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import type { ComfyBackendType } from "../../stores/ComfyUIStore";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -92,13 +90,13 @@ const ComfyUISettings: React.FC = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
+      <Text size="normal" weight={600} sx={{ mb: 2 }}>
         ComfyUI Connection
-      </Typography>
+      </Text>
 
-      <Typography variant="body2" sx={{ mb: 2, color: theme.palette.text.secondary }}>
+      <Text size="small" color="secondary" sx={{ mb: 2 }}>
         Connect to a ComfyUI backend to enable ComfyUI workflow execution.
-      </Typography>
+      </Text>
 
       <ToggleButtonGroup
         value={backendType}
@@ -128,39 +126,38 @@ const ComfyUISettings: React.FC = () => {
           />
 
           {connectionError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <AlertBanner severity="error" sx={{ mb: 2 }}>
               {connectionError}
-            </Alert>
+            </AlertBanner>
           )}
 
           {isConnected && (
-            <Alert severity="success" sx={{ mb: 2 }}>
+            <AlertBanner severity="success" sx={{ mb: 2 }}>
               Connected to ComfyUI backend
-            </Alert>
+            </AlertBanner>
           )}
 
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <FlexRow gap={2}>
             {!isConnected ? (
-              <Button
+              <EditorButton
                 variant="contained"
                 onClick={handleConnect}
                 disabled={isConnecting}
               >
                 {isConnecting ? "Connecting..." : "Connect"}
-              </Button>
+              </EditorButton>
             ) : (
-              <Button variant="outlined" onClick={handleDisconnect}>
+              <EditorButton variant="outlined" onClick={handleDisconnect}>
                 Disconnect
-              </Button>
+              </EditorButton>
             )}
-          </Box>
+          </FlexRow>
 
-          <Typography
-            variant="caption"
-            sx={{ mt: 2, display: "block", color: theme.palette.text.secondary }}
+          <Caption
+            sx={{ mt: 2, display: "block" }}
           >
             ComfyUI must be running and accessible at the specified URL.
-          </Typography>
+          </Caption>
         </>
       )}
 
@@ -186,40 +183,39 @@ const ComfyUISettings: React.FC = () => {
           />
 
           {saveError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <AlertBanner severity="error" sx={{ mb: 2 }}>
               {saveError}
-            </Alert>
+            </AlertBanner>
           )}
 
           {saveSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }}>
+            <AlertBanner severity="success" sx={{ mb: 2 }}>
               RunPod API key saved securely.
-            </Alert>
+            </AlertBanner>
           )}
 
           {runpodKeyConfigured && !saveSuccess && (
-            <Alert severity="info" sx={{ mb: 2 }}>
+            <AlertBanner severity="info" sx={{ mb: 2 }}>
               RunPod API key is configured. Set the endpoint ID on each
               &quot;Run ComfyUI Workflow (RunPod)&quot; node in your workflow.
-            </Alert>
+            </AlertBanner>
           )}
 
-          <Button
+          <EditorButton
             variant="contained"
             onClick={handleSaveApiKey}
             disabled={saving || !localApiKey}
           >
             {saving ? "Saving..." : "Save API Key"}
-          </Button>
+          </EditorButton>
 
-          <Typography
-            variant="caption"
-            sx={{ mt: 2, display: "block", color: theme.palette.text.secondary }}
+          <Caption
+            sx={{ mt: 2, display: "block" }}
           >
             Deploy a ComfyUI worker on RunPod Serverless, then add a
             &quot;Run ComfyUI Workflow (RunPod)&quot; node to your workflow with
             the endpoint ID.
-          </Typography>
+          </Caption>
         </>
       )}
     </Box>

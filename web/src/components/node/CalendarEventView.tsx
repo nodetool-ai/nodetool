@@ -1,5 +1,6 @@
 import React from "react";
-import { Card, CardContent, Typography, Box, Chip } from "@mui/material";
+import { CardContent } from "@mui/material";
+import { Text, FlexRow, Card, Chip } from "../ui_primitives";
 import { CalendarEvent, Datetime } from "../../stores/ApiTypes";
 import EventIcon from "@mui/icons-material/Event";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -27,42 +28,42 @@ const CalendarEventView: React.FC<CalendarEventViewProps> = ({ event }) => {
   return (
     <Card sx={{ minWidth: 275, maxWidth: 600, m: 1, boxShadow: 3 }}>
       <CardContent>
-        <Box display="flex" alignItems="center" mb={2}>
+        <FlexRow align="center" sx={{ mb: 2 }}>
           <EventIcon color="primary" sx={{ mr: 1 }} />
-          <Typography variant="h6" component="div">
+          <Text size="normal" weight={600} component="div">
             {event.title}
-          </Typography>
-        </Box>
+          </Text>
+        </FlexRow>
 
-        <Box display="flex" alignItems="center" mb={1}>
+        <FlexRow align="center" sx={{ mb: 1 }}>
           <AccessTimeIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-          <Typography variant="body2" color="text.secondary">
+          <Text size="small" color="secondary">
             {formatDatetime(event.start_date)} - {formatDatetime(event.end_date)}
-          </Typography>
-        </Box>
+          </Text>
+        </FlexRow>
 
         {event.location && (
-          <Box display="flex" alignItems="center" mb={1}>
+          <FlexRow align="center" sx={{ mb: 1 }}>
             <LocationOnIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-            <Typography variant="body2" color="text.secondary">
+            <Text size="small" color="secondary">
               {event.location}
-            </Typography>
-          </Box>
+            </Text>
+          </FlexRow>
         )}
 
         {event.calendar && (
-          <Box mb={1} mt={1}>
+          <div style={{ marginBottom: 8, marginTop: 8 }}>
             <Chip label={event.calendar} size="small" variant="outlined" />
-          </Box>
+          </div>
         )}
 
         {event.notes && (
-          <Box display="flex" alignItems="flex-start" mt={2}>
+          <FlexRow align="flex-start" sx={{ mt: 2 }}>
             <NotesIcon fontSize="small" color="action" sx={{ mr: 1, mt: 0.5 }} />
-            <Typography variant="body2" style={{ whiteSpace: "pre-wrap" }}>
+            <Text size="small" sx={{ whiteSpace: "pre-wrap" }}>
               {event.notes}
-            </Typography>
-          </Box>
+            </Text>
+          </FlexRow>
         )}
       </CardContent>
     </Card>

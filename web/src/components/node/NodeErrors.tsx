@@ -2,7 +2,6 @@
 import { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import {
   nodeErrorToDisplayString,
@@ -59,13 +58,13 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
 
   return (
     <div css={errorStyles(theme)} className="node-error nodrag nowheel">
-      <Box sx={{ position: "absolute", top: 10, right: 10 }}>
+      <div style={{ position: "absolute", top: 10, right: 10 }}>
         <CopyButton
           value={errorDisplay}
           tooltip="Copy to clipboard"
           tabIndex={-1}
         />
-      </Box>
+      </div>
       <div className="error-text">{errorDisplay}</div>
     </div>
   );

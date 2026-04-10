@@ -2,7 +2,8 @@
 import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import { useMemo, useState, useCallback, memo } from "react";
-import { Typography, Box } from "@mui/material";
+
+import { Text, FlexColumn, FlexRow } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -180,30 +181,30 @@ const FoldersSettings = () => {
   return (
     <>
       {isLoading && (
-        <Typography sx={{ textAlign: "center", padding: "2em" }}>
+        <Text sx={{ textAlign: "center", padding: "2em" }}>
           Loading folder settings...
-        </Typography>
+        </Text>
       )}
       <div
         className="remote-settings-content"
         css={getSharedSettingsStyles(theme)}
       >
         <div className="settings-main-content">
-          <Typography variant="h1">Folder Settings</Typography>
+          <Text size="giant">Folder Settings</Text>
 
           {/* System Folders Section - Always show when in Electron */}
           {canOpenSystemFolders && (
             <div className="settings-section">
-              <Typography
-                variant="h2"
+              <Text
+                size="bigger"
                 id="system-folders"
               >
                 System Folders
-              </Typography>
-              <Typography className="description" sx={{ mb: 2 }}>
+              </Text>
+              <Text className="description" sx={{ mb: 2 }}>
                 Open important Nodetool directories in your file explorer.
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              </Text>
+              <FlexColumn gap={1.5}>
                 <FolderButton
                   label="Nodetool Installation"
                   onClick={openInstallationPath}
@@ -216,23 +217,23 @@ const FoldersSettings = () => {
                   label="Assets Storage"
                   onClick={openAssetsPath}
                 />
-              </Box>
+              </FlexColumn>
             </div>
           )}
 
           {/* Model Folders Section */}
           {canOpenFolders && (
             <div className="settings-section">
-              <Typography
-                variant="h2"
+              <Text
+                size="bigger"
                 id="model-folders"
               >
                 Model Folders
-              </Typography>
-              <Typography className="description" sx={{ mb: 2 }}>
+              </Text>
+              <Text className="description" sx={{ mb: 2 }}>
                 Open model cache directories in your file explorer.
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              </Text>
+              <FlexColumn gap={1.5}>
                 <FolderButton
                   label="HuggingFace Models"
                   onClick={openHuggingfacePath}
@@ -241,7 +242,7 @@ const FoldersSettings = () => {
                   label="Ollama Models"
                   onClick={openOllamaPath}
                 />
-              </Box>
+              </FlexColumn>
             </div>
           )}
 
@@ -256,15 +257,15 @@ const FoldersSettings = () => {
                   
                   return (
                     <div key={groupName} className="settings-section">
-                      <Typography
-                        variant="h2"
+                      <Text
+                        size="bigger"
                         id={groupName.toLowerCase().replace(/\s+/g, "-")}
                       >
                         {sectionTitle}
-                      </Typography>
+                      </Text>
                       {groupSettings.map((setting) => (
                         <div key={setting.env_var} className="settings-item large">
-                          <Box sx={{ display: "flex", alignItems: "flex-end", width: "100%" }}>
+                          <FlexRow align="flex-end" fullWidth>
                             <NodeTextField
                               type={setting.is_secret ? "text" : "text"}
                               autoComplete="off"
@@ -278,11 +279,11 @@ const FoldersSettings = () => {
                               sx={{ flex: 1 }}
                             />
                             <OpenFolderButton settingValue={settingValues[setting.env_var]} />
-                          </Box>
+                          </FlexRow>
                           {setting.description && (
-                            <Typography className="description">
+                            <Text className="description">
                               {setting.description}
-                            </Typography>
+                            </Text>
                           )}
                         </div>
                       ))}
@@ -310,10 +311,10 @@ const FoldersSettings = () => {
             const showNoSettingsMessage = hasNoSettings && hasNoFolderButtons;
             
             return showNoSettingsMessage ? (
-              <Typography sx={{ textAlign: "center", padding: "2em" }}>
+              <Text sx={{ textAlign: "center", padding: "2em" }}>
                 No folder settings available or defined in the &apos;Folders&apos;
                 group.
-              </Typography>
+              </Text>
             ) : null;
           })()}
         </div>

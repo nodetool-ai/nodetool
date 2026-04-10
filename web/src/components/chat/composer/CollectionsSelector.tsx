@@ -1,12 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import {
-  Button,
   Checkbox,
-  Typography,
   Box,
-  Chip,
-  Tooltip,
   Popover,
   PopoverOrigin
 } from "@mui/material";
@@ -16,7 +12,7 @@ import { useCollectionStore } from "../../../stores/CollectionStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ScrollArea } from "../../ui_primitives";
+import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, EditorButton, Chip } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 320;
@@ -28,8 +24,6 @@ const styles = (theme: Theme) => css({
     padding: "8px"
   },
   ".collection-item": {
-    display: "flex",
-    alignItems: "center",
     padding: "6px 8px",
     borderRadius: 6,
     cursor: "pointer",
@@ -41,13 +35,6 @@ const styles = (theme: Theme) => css({
     "&.selected": {
       backgroundColor: theme.vars.palette.action.selected,
       borderLeft: `3px solid ${theme.vars.palette.primary.main}`
-    }
-  },
-  ".checkbox-label": {
-    margin: 0,
-    width: "100%",
-    "& .MuiFormControlLabel-label": {
-      flex: 1
     }
   }
 });
@@ -163,19 +150,19 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
               } selected`
             : "Select Collections"
         }
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
       >
-        <Button
+        <EditorButton
           ref={buttonRef}
           className={`collections-button ${selectedCount > 0 ? "active" : ""}`}
           onClick={handleClick}
-          size="small"
+          density="compact"
           startIcon={<LibraryBooksOutlinedIcon sx={{ fontSize: 18 }} />}
           endIcon={
             selectedCount > 0 && (
               <Chip
-                size="small"
                 label={selectedCount}
+                compact
                 sx={{
                   marginLeft: "-4px",
                   backgroundColor: theme.vars.palette.grey[700],
@@ -225,131 +212,145 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
               borderRadius: theme.vars.rounded.dialog,
               background: theme.vars.palette.background.paper,
               border: `1px solid ${theme.vars.palette.divider}`,
-              display: "flex",
-              flexDirection: "column",
               overflow: "hidden"
             }
           }
         }}
       >
-        {/* Header */}
-        <Box
+        <FlexColumn
           sx={{
-            p: 1.5,
-            pl: 2,
-            borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-            background: theme.vars.palette.background.paper
+            width: `${POPOVER_WIDTH}px`,
+            height: `${POPOVER_HEIGHT}px`,
+            maxHeight: "90vh",
+            maxWidth: "100vw",
+            overflow: "hidden"
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: theme.vars.palette.text.secondary,
-                fontWeight: 600,
-                fontSize: "0.75rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5
-              }}
-            >
-              Collections
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: theme.vars.palette.text.secondary }}
-            >
-              {selectedCount}/{totalCount}
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex", gap: 0.5 }}>
-            <Button
-              size="small"
-              onClick={handleSelectAll}
-              sx={{ fontSize: "0.7rem", minWidth: "auto", px: 1 }}
-            >
-              All
-            </Button>
-            <Button
-              size="small"
-              onClick={handleClearAll}
-              sx={{ fontSize: "0.7rem", minWidth: "auto", px: 1 }}
-            >
-              Clear
-            </Button>
-          </Box>
-        </Box>
+          {/* Header */}
+          <FlexRow
+            align="center"
+            justify="space-between"
+            sx={{
+              p: 1.5,
+              pl: 2,
+              borderBottom: `1px solid ${theme.vars.palette.divider}`,
+              flexShrink: 0,
+              background: theme.vars.palette.background.paper
+            }}
+          >
+            <FlexRow gap={1} align="center">
+              <Text
+                size="small"
+                weight={600}
+                color="secondary"
+                sx={{
+                  fontSize: "0.75rem",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5
+                }}
+              >
+                Collections
+              </Text>
+              <Caption>
+                {selectedCount}/{totalCount}
+              </Caption>
+            </FlexRow>
+            <FlexRow gap={0.5}>
+              <EditorButton
+                density="compact"
+                onClick={handleSelectAll}
+                sx={{ fontSize: "0.7rem", minWidth: "auto", px: 1 }}
+              >
+                All
+              </EditorButton>
+              <EditorButton
+                density="compact"
+                onClick={handleClearAll}
+                sx={{ fontSize: "0.7rem", minWidth: "auto", px: 1 }}
+              >
+                Clear
+              </EditorButton>
+            </FlexRow>
+          </FlexRow>
 
-        {/* Collections List */}
-        <ScrollArea className="collections-list" fullHeight>
-          {isLoading ? (
-            <Typography
-              variant="body2"
-              sx={{ p: 2, color: theme.vars.palette.text.secondary }}
-            >
-              Loading collections...
-            </Typography>
-          ) : !collections?.collections.length ? (
-            <Box sx={{ p: 2, color: theme.vars.palette.text.secondary }}>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                No collections available
-              </Typography>
-              <Typography variant="caption" sx={{ display: "block", opacity: 0.8, mb: 1 }}>
-                Collections are vector databases used for semantic search during chat.
-                When selected, relevant document chunks are retrieved and included as context.
-              </Typography>
-              <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
-                Create a collection from the left sidebar, then add documents, PDFs, or text files to index them.
-              </Typography>
-            </Box>
-          ) : (
-            collections.collections.map((collection: { name: string; count: number }) => {
-              const isSelected = value.includes(collection.name);
-              return (
-                <Box
-                  key={collection.name}
-                  className={`collection-item ${isSelected ? "selected" : ""}`}
-                  onClick={toggleHandlers[collection.name]}
-                >
-                  <Checkbox
-                    checked={isSelected}
-                    size="small"
+          {/* Collections List */}
+          <ScrollArea className="collections-list" fullHeight sx={{ flex: 1, minHeight: 0 }}>
+            {isLoading ? (
+              <Text
+                size="small"
+                color="secondary"
+                sx={{ p: 2 }}
+              >
+                Loading collections...
+              </Text>
+            ) : !collections?.collections.length ? (
+              <Box sx={{ p: 2, color: theme.vars.palette.text.secondary }}>
+                <Text size="small" sx={{ mb: 1 }}>
+                  No collections available
+                </Text>
+                <Caption sx={{ display: "block", opacity: 0.8, mb: 1 }}>
+                  Collections are vector databases used for semantic search during chat.
+                  When selected, relevant document chunks are retrieved and included as context.
+                </Caption>
+                <Caption sx={{ display: "block", opacity: 0.8 }}>
+                  Create a collection from the left sidebar, then add documents, PDFs, or text files to index them.
+                </Caption>
+              </Box>
+            ) : (
+              collections.collections.map((collection: { name: string; count: number }) => {
+                const isSelected = value.includes(collection.name);
+                return (
+                  <FlexRow
+                    key={collection.name}
+                    className={`collection-item ${isSelected ? "selected" : ""}`}
+                    onClick={toggleHandlers[collection.name]}
+                    align="center"
+                    fullWidth
                     sx={{
-                      padding: 0.5,
-                      mr: 1,
-                      color: theme.vars.palette.text.secondary,
-                      "&.Mui-checked": {
-                        color: theme.vars.palette.primary.main
+                      p: "6px 8px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      borderLeft: "3px solid transparent",
+                      marginBottom: "2px",
+                      "&:hover": {
+                        backgroundColor: theme.vars.palette.action.hover
+                      },
+                      "&.selected": {
+                        backgroundColor: theme.vars.palette.action.selected,
+                        borderLeft: `3px solid ${theme.vars.palette.primary.main}`
                       }
                     }}
-                  />
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      variant="body2"
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      size="small"
                       sx={{
-                        fontSize: "0.8rem",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
+                        padding: 0.5,
+                        mr: 1,
+                        color: theme.vars.palette.text.secondary,
+                        "&.Mui-checked": {
+                          color: theme.vars.palette.primary.main
+                        }
                       }}
-                    >
-                      {collection.name}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: theme.vars.palette.text.secondary }}
-                    >
-                      {collection.count} items
-                    </Typography>
-                  </Box>
-                </Box>
-              );
-            })
-          )}
-        </ScrollArea>
+                    />
+                    <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
+                      <Text
+                        size="small"
+                        truncate
+                        sx={{ fontSize: "0.8rem" }}
+                      >
+                        {collection.name}
+                      </Text>
+                      <Caption>
+                        {collection.count} items
+                      </Caption>
+                    </FlexColumn>
+                  </FlexRow>
+                );
+              })
+            )}
+          </ScrollArea>
+        </FlexColumn>
       </Popover>
     </>
   );

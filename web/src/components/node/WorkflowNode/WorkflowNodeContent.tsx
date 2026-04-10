@@ -1,5 +1,6 @@
 import React, { memo } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Caption, FlexColumn } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
@@ -138,9 +139,9 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
           <LoadingSpinner />
         )}
         {isError && (
-          <Typography variant="caption" color="error">
+          <Caption color="error">
             Error loading workflow
-          </Typography>
+          </Caption>
         )} */}
         <Box
           sx={{
@@ -152,9 +153,9 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             borderColor: "divider"
           }}
         >
-          <Typography variant="caption" color="text.secondary">
+          <Caption>
             {/* {subWorkflow?.name && <> · {subWorkflow.name}</>} */}
-          </Typography>
+          </Caption>
         </Box>
       </Box>
     );

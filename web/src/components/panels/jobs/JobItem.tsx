@@ -2,15 +2,13 @@ import { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
-  CircularProgress,
   ListItem,
   ListItemIcon,
   ListItemText,
   IconButton,
-  Collapse,
-  Tooltip
+  Collapse
 } from "@mui/material";
-import { FlexColumn, Text, LoadingSpinner } from "../../ui_primitives";
+import { FlexColumn, Text, LoadingSpinner, Tooltip } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -176,14 +174,14 @@ const JobItem = ({ job }: { job: Job }) => {
 
   const getStatusIcon = () => {
     if (cancelling) {
-      return <CircularProgress size={24} color="warning" />;
+      return <LoadingSpinner size="small" />;
     }
     if (job.error) {
       return <ErrorOutlineIcon color="error" />;
     }
     switch (job.status) {
       case "running":
-        return <CircularProgress size={24} />;
+        return <LoadingSpinner size="small" />;
       case "queued":
       case "starting":
         return <HourglassEmptyIcon color="action" />;
@@ -276,7 +274,7 @@ const JobItem = ({ job }: { job: Job }) => {
             }}
           >
             {cancelling ? (
-              <CircularProgress size={16} color="warning" />
+              <LoadingSpinner size="small" />
             ) : (
               <StopIcon fontSize="small" />
             )}

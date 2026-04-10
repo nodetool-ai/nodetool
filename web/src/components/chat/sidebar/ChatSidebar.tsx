@@ -1,20 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import {
-    Box,
-    IconButton,
-    InputBase,
-    Tooltip,
-    Divider
-} from "@mui/material";
+import { FlexRow, FlexColumn, ToolbarIconButton, Divider, Text, ScrollArea, SearchInput } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
-import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ThreadList from "../thread/ThreadList";
 import type { ThreadInfo } from "../types/thread.types";
-import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../../config/constants";
+
 
 export const SIDEBAR_WIDTH = 280;
 
@@ -41,6 +34,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 }) => {
     const theme = useTheme();
     const [searchQuery, setSearchQuery] = useState("");
+
+    const handleSearchChange = useCallback((value: string) => {
+        setSearchQuery(value);
+    }, []);
 
     const handleOpen = useCallback(() => {
         onOpenChange(true);
@@ -82,15 +79,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     return (
         <>
             {/* Collapsed toolbar - floating button group */}
-            <Box
+            <FlexRow
+                align="center"
+                gap={0.5}
                 sx={{
                     position: "absolute",
                     top: 16,
                     left: 16,
                     zIndex: 100,
                     display: isOpen ? "none" : "flex",
-                    alignItems: "center",
-                    gap: 0.5,
                     p: 1,
                     borderRadius: 3,
                     backgroundColor: theme.vars.palette.background.paper,
@@ -100,61 +97,41 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     transition: "all 0.3s ease"
                 }}
             >
-                <Tooltip
-                    title="Open sidebar"
-                    placement="bottom"
-                    enterDelay={TOOLTIP_ENTER_DELAY}
-                    enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-                >
-                    <IconButton
-                        onClick={handleOpen}
-                        size="small"
-                        aria-label="Open sidebar"
-                        sx={{
-                            color: theme.vars.palette.text.secondary,
-                            "&:hover": {
-                                color: theme.vars.palette.text.primary,
-                                backgroundColor: theme.vars.palette.action.hover
-                            }
-                        }}
-                    >
-                        <MenuIcon />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip
-                    title="New chat"
-                    placement="bottom"
-                    enterDelay={TOOLTIP_ENTER_DELAY}
-                    enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-                >
-                    <IconButton
-                        onClick={handleNewChat}
-                        size="small"
-                        aria-label="New chat"
-                        sx={{
-                            color: theme.vars.palette.text.secondary,
-                            "&:hover": {
-                                color: theme.vars.palette.text.primary,
-                                backgroundColor: theme.vars.palette.action.hover
-                            }
-                        }}
-                    >
-                        <AddIcon />
-                    </IconButton>
-                </Tooltip>
-            </Box>
+                <ToolbarIconButton
+                    onClick={handleOpen}
+                    tooltip="Open sidebar"
+                    icon={<MenuIcon />}
+                    sx={{
+                        color: theme.vars.palette.text.secondary,
+                        "&:hover": {
+                            color: theme.vars.palette.text.primary,
+                            backgroundColor: theme.vars.palette.action.hover
+                        }
+                    }}
+                />
+                <ToolbarIconButton
+                    onClick={handleNewChat}
+                    tooltip="New chat"
+                    icon={<AddIcon />}
+                    sx={{
+                        color: theme.vars.palette.text.secondary,
+                        "&:hover": {
+                            color: theme.vars.palette.text.primary,
+                            backgroundColor: theme.vars.palette.action.hover
+                        }
+                    }}
+                />
+            </FlexRow>
 
             {/* Sidebar Panel */}
-            <Box
+            <FlexColumn
+                fullHeight
                 sx={{
                     position: "absolute",
                     top: 0,
                     left: 0,
                     width: SIDEBAR_WIDTH,
-                    height: "100%",
                     zIndex: 100,
-                    display: "flex",
-                    flexDirection: "column",
                     backgroundColor: theme.vars.palette.background.default,
                     borderRight: `1px solid ${theme.vars.palette.divider}`,
                     boxShadow: "4px 0 24px rgba(0, 0, 0, 0.05)",
@@ -164,128 +141,72 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 }}
             >
                 {/* Header with collapse button */}
-                <Box
+                <FlexRow
+                    align="center"
+                    justify="space-between"
                     sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
                         p: 1,
                         minHeight: 48,
                         borderBottom: `1px solid ${theme.vars.palette.divider}`
                     }}
                 >
-                    <Box sx={{ fontSize: "0.875rem", fontWeight: 600, pl: 1, color: theme.vars.palette.text.secondary }}>
+                    <Text size="small" weight={600} sx={{ pl: 1, color: theme.vars.palette.text.secondary }}>
                         Conversations
-                    </Box>
-                    <Tooltip
-                        title="Collapse sidebar"
-                        placement="right"
-                        enterDelay={TOOLTIP_ENTER_DELAY}
-                        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-                    >
-                        <IconButton
-                            onClick={handleClose}
-                            size="small"
-                            aria-label="Collapse sidebar"
-                            sx={{
-                                color: theme.vars.palette.text.secondary,
-                                "&:hover": {
-                                    color: theme.vars.palette.text.primary,
-                                    backgroundColor: theme.vars.palette.action.hover
-                                }
-                            }}
-                        >
-                            <ChevronLeftIcon />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
-                {/* Search with New Chat button */}
-                <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
-                    <Box
+                    </Text>
+                    <ToolbarIconButton
+                        onClick={handleClose}
+                        tooltip="Collapse sidebar"
+                        icon={<ChevronLeftIcon />}
                         sx={{
-                            flex: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                            px: 1.5,
-                            py: 1,
-                            borderRadius: 2,
-                            backgroundColor: theme.vars.palette.action.hover,
-                            border: `1px solid transparent`,
-                            transition: "all 0.2s ease",
-                            "&:focus-within": {
-                                backgroundColor: theme.vars.palette.background.default,
-                                borderColor: theme.vars.palette.primary.main,
-                                boxShadow: `0 0 0 3px ${theme.vars.palette.primary.main}20`
+                            color: theme.vars.palette.text.secondary,
+                            "&:hover": {
+                                color: theme.vars.palette.text.primary,
+                                backgroundColor: theme.vars.palette.action.hover
                             }
                         }}
+                    />
+                </FlexRow>
+                {/* Search with New Chat button */}
+                <FlexRow gap={1} align="center" sx={{ px: 2, py: 1.5 }}>
+                    <FlexRow
+                        align="center"
+                        sx={{
+                            flex: 1,
+                            minWidth: 0
+                        }}
                     >
-                        <SearchIcon
-                            sx={{
-                                color: theme.vars.palette.text.secondary,
-                                fontSize: "1.1rem"
-                            }}
-                        />
-                        <InputBase
+                        <SearchInput
                             placeholder="Search threads..."
                             value={searchQuery}
-                            onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-                                setSearchQuery(e.target.value);
-                            }, [])}
+                            onChange={handleSearchChange}
                             fullWidth
-                            sx={{
-                                fontSize: "0.875rem",
-                                "& input::placeholder": {
-                                    color: theme.vars.palette.text.secondary,
-                                    opacity: 1
-                                }
-                            }}
+                            showClear={false}
                         />
-                    </Box>
-                    <Tooltip
-                        title="New chat"
-                        placement="bottom"
-                        enterDelay={TOOLTIP_ENTER_DELAY}
-                        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-                    >
-                        <IconButton
-                            onClick={handleNewChat}
-                            size="small"
-                            aria-label="New chat"
-                            sx={{
-                                backgroundColor: theme.vars.palette.grey[800],
-                                color: theme.vars.palette.common.white,
-                                border: `1px solid ${theme.vars.palette.grey[700]}`,
-                                borderRadius: 2,
-                                width: 36,
-                                height: 36,
-                                transition: "all 0.2s ease",
-                                "&:hover": {
-                                    backgroundColor: theme.vars.palette.grey[700],
-                                    borderColor: theme.vars.palette.grey[600]
-                                }
-                            }}
-                        >
-                            <AddIcon sx={{ fontSize: "1.2rem" }} />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
+                    </FlexRow>
+                    <ToolbarIconButton
+                        onClick={handleNewChat}
+                        tooltip="New chat"
+                        icon={<AddIcon sx={{ fontSize: "1.2rem" }} />}
+                        sx={{
+                            backgroundColor: theme.vars.palette.grey[800],
+                            color: theme.vars.palette.common.white,
+                            border: `1px solid ${theme.vars.palette.grey[700]}`,
+                            borderRadius: 2,
+                            width: 36,
+                            height: 36,
+                            transition: "all 0.2s ease",
+                            "&:hover": {
+                                backgroundColor: theme.vars.palette.grey[700],
+                                borderColor: theme.vars.palette.grey[600]
+                            }
+                        }}
+                    />
+                </FlexRow>
 
                 <Divider />
 
                 {/* Thread list */}
-                <Box
-                    sx={{
-                        flex: 1,
-                        overflow: "auto",
-                        "&::-webkit-scrollbar": { width: 6 },
-                        "&::-webkit-scrollbar-track": { background: "transparent" },
-                        "&::-webkit-scrollbar-thumb": {
-                            background: theme.vars.palette.grey[600],
-                            borderRadius: 3
-                        }
-                    }}
-                >
+                <ScrollArea fullHeight>
                     <ThreadList
                         threads={filteredThreads}
                         currentThreadId={currentThreadId}
@@ -294,8 +215,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         onDeleteThread={onDeleteThread}
                         getThreadPreview={getThreadPreview}
                     />
-                </Box>
-            </Box>
+                </ScrollArea>
+            </FlexColumn>
         </>
     );
 };

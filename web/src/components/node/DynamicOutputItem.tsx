@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback } from "react";
-import { Box, Typography } from "@mui/material";
-import { EditButton, DeleteButton } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { EditButton, DeleteButton, Text, FlexRow } from "../ui_primitives";
 import NodeOutput from "./NodeOutput";
 import { Property } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
@@ -39,22 +39,20 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
   return (
     <>
       {supportsDynamicOutputs && (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            padding: 0,
-            gap: 1
-          }}
+        <FlexRow
+          align="center"
+          justify="flex-end"
+          gap={1}
+          sx={{ padding: 0 }}
           css={{
             ".actions": { opacity: 0, transition: "opacity 0.15s ease" },
             ":hover .actions": { opacity: 1 }
           }}
         >
-          <Box
+          <FlexRow
             className="actions"
-            sx={{ height: "1em", display: "flex", gap: 0.5 }}
+            gap={0.5}
+            sx={{ height: "1em" }}
           >
             <EditButton
               onClick={handleRename}
@@ -68,9 +66,9 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
               iconVariant="outline"
               tabIndex={-1}
             />
-          </Box>
-          <Typography textAlign="right">{output.name}</Typography>
-        </Box>
+          </FlexRow>
+          <Text sx={{ textAlign: "right" }}>{output.name}</Text>
+        </FlexRow>
       )}
       {!supportsDynamicOutputs && (
         <Box
@@ -86,7 +84,7 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
           }}
         >
           {showLabel && (
-            <Typography textAlign="right">{output.name}</Typography>
+            <Text sx={{ textAlign: "right" }}>{output.name}</Text>
           )}
         </Box>
       )}

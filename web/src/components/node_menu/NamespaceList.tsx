@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Box, List, Typography, Button } from "@mui/material";
+import { Box, List } from "@mui/material";
+import { Text, EditorButton } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
@@ -357,7 +358,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
         </>
       ) : null}
       <div className="node-packs-info">
-        <Button
+        <EditorButton
           startIcon={<AddCircleOutline />}
           size="small"
           variant="outlined"
@@ -371,7 +372,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
           }}
         >
           Install additional node packs
-        </Button>
+        </EditorButton>
       </div>
     </div>
   );
@@ -411,9 +412,9 @@ const InfoBox = memo(function InfoBox({
 
   return (
     <Box className="info-box">
-      <Typography className="result-info" sx={{ fontSize: "0.8rem" }}>
+      <Text className="result-info" sx={{ fontSize: "0.8rem" }}>
         {buildContextMessage()}
-      </Typography>
+      </Text>
     </Box>
   );
 });

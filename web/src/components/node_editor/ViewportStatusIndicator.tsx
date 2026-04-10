@@ -1,14 +1,12 @@
 import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import {
   Box,
-  IconButton,
-  Tooltip,
-  Typography,
   Popover,
   List,
   ListItemButton,
   ListItemText
 } from "@mui/material";
+import { Tooltip, ToolbarIconButton, Text } from "../ui_primitives";
 import { useViewport, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -148,22 +146,21 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           transition: "opacity 0.2s ease-in-out"
         }}
       >
-        <Tooltip title={getShortcutTooltip("zoomOut")} placement="top" arrow>
-          <IconButton
-            onClick={handleZoomOut}
-            size="small"
-            sx={{
-              padding: "2px",
-              color: theme.vars.palette.text.secondary,
-              "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover,
-                color: theme.palette.primary.main
-              }
-            }}
-          >
-            <RemoveIcon sx={{ fontSize: "1rem" }} />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<RemoveIcon sx={{ fontSize: "1rem" }} />}
+          tooltip={getShortcutTooltip("zoomOut")}
+          tooltipPlacement="top"
+          onClick={handleZoomOut}
+          size="small"
+          sx={{
+            padding: "2px",
+            color: theme.vars.palette.text.secondary,
+            "&:hover": {
+              backgroundColor: theme.vars.palette.action.hover,
+              color: theme.palette.primary.main
+            }
+          }}
+        />
 
         <Tooltip
           title={
@@ -175,9 +172,8 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
             </Box>
           }
           placement="top"
-          arrow
         >
-          <Typography
+          <Text
             component="button"
             onClick={handleOpenZoomMenu}
             sx={{
@@ -202,25 +198,24 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
             }}
           >
             {zoomPercentage}%
-          </Typography>
+          </Text>
         </Tooltip>
 
-        <Tooltip title={getShortcutTooltip("zoomIn")} placement="top" arrow>
-          <IconButton
-            onClick={handleZoomIn}
-            size="small"
-            sx={{
-              padding: "2px",
-              color: theme.vars.palette.text.secondary,
-              "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover,
-                color: theme.palette.primary.main
-              }
-            }}
-          >
-            <AddIcon sx={{ fontSize: "1rem" }} />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<AddIcon sx={{ fontSize: "1rem" }} />}
+          tooltip={getShortcutTooltip("zoomIn")}
+          tooltipPlacement="top"
+          onClick={handleZoomIn}
+          size="small"
+          sx={{
+            padding: "2px",
+            color: theme.vars.palette.text.secondary,
+            "&:hover": {
+              backgroundColor: theme.vars.palette.action.hover,
+              color: theme.palette.primary.main
+            }
+          }}
+        />
 
         <Box
           sx={{
@@ -231,26 +226,21 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           }}
         />
 
-        <Tooltip
-          title={getShortcutTooltip("fitView")}
-          placement="top"
-          arrow
-        >
-          <IconButton
-            onClick={handleFitView}
-            size="small"
-            sx={{
-              padding: "2px",
-              color: theme.vars.palette.text.secondary,
-              "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover,
-                color: theme.palette.primary.main
-              }
-            }}
-          >
-            <CenterFocusStrongIcon sx={{ fontSize: "1rem" }} />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<CenterFocusStrongIcon sx={{ fontSize: "1rem" }} />}
+          tooltip={getShortcutTooltip("fitView")}
+          tooltipPlacement="top"
+          onClick={handleFitView}
+          size="small"
+          sx={{
+            padding: "2px",
+            color: theme.vars.palette.text.secondary,
+            "&:hover": {
+              backgroundColor: theme.vars.palette.action.hover,
+              color: theme.palette.primary.main
+            }
+          }}
+        />
       </Box>
 
       <Popover

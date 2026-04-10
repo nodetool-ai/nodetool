@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import WaveSurfer from "wavesurfer.js";
 import Minimap from "wavesurfer.js/dist/plugins/minimap";
-import { Typography } from "@mui/material";
+import { Text } from "../ui_primitives";
 
 import React, {
   useEffect,
@@ -373,20 +373,18 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         audioUrl === "" ? " disabled" : ""
       }`}
     >
-      <Typography
-        variant="body1"
+      <Text
         className={`${fontSize} filename`}
         style={{ color: "var(--palette-text-primary)" }}
       >
         {filename}
-      </Typography>
-      <Typography
-        variant="body1"
+      </Text>
+      <Text
         className={`${fontSize} filename`}
         style={{ color: "var(--palette-text-secondary)" }}
       >
         {`${formatTime(displayTime)} | ${formatTime(duration)}`}
-      </Typography>
+      </Text>
       <div
         id="waveform"
         className="waveform nodrag"

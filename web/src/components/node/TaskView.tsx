@@ -3,7 +3,8 @@ import React from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Paper, Typography, List } from "@mui/material";
+import { Paper, List } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { Task } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -34,13 +35,13 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
   return (
     <div css={styles(theme)} className="noscroll">
       <Paper className="task-container" elevation={1}>
-        <Typography variant="h6" className="task-title">
+        <Text size="normal" weight={600} className="task-title">
           Task: {task.title}
-        </Typography>
+        </Text>
         {task.description && (
-          <Typography variant="body2" className="task-description">
+          <Text size="small" className="task-description">
             {task.description}
-          </Typography>
+          </Text>
         )}
         {task.steps.length > 0 && (
           <>

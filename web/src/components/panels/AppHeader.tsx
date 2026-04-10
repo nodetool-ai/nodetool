@@ -3,14 +3,14 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Tooltip, Toolbar, Box, Button } from "@mui/material";
+import { Toolbar, Box, Button } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { FlexRow } from "../ui_primitives";
+import { FlexRow, Tooltip } from "../ui_primitives";
 import log from "loglevel";
 
 const styles = (theme: Theme) =>
@@ -186,7 +186,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
 
   return (
     <div className="mode-pills">
-      <Tooltip title="Editor" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+      <Tooltip title="Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
           className={`mode-pill ${isEditorActive ? "active" : ""}`}
           onClick={handleEditorClick}
@@ -196,7 +196,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
           <span>Editor</span>
         </button>
       </Tooltip>
-      <Tooltip title="Chat" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+      <Tooltip title="Chat" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
           className={`mode-pill ${isChatActive ? "active" : ""}`}
           onClick={handleChatClick}
@@ -206,7 +206,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
           <span>Chat</span>
         </button>
       </Tooltip>
-      <Tooltip title={currentWorkflowId ? "Run as App" : "Open a workflow first"} enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+      <Tooltip title={currentWorkflowId ? "Run as App" : "Open a workflow first"} delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <span style={{ display: "inline-flex" }}>
           <button
             className={`mode-pill ${isAppActive ? "active" : ""}`}
@@ -242,7 +242,7 @@ const TemplatesButton = memo(function TemplatesButton({
   return (
     <Tooltip
       title="Explore Templates"
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      delay={TOOLTIP_ENTER_DELAY}
       placement="bottom"
     >
       <Button
@@ -290,7 +290,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
       <Toolbar variant="dense" className="toolbar" tabIndex={-1} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <FlexRow className="navigate" gap={1} align="center">
           {/* Logo - clicks to Dashboard */}
-          <Tooltip title="Go to Dashboard" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+          <Tooltip title="Go to Dashboard" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
             <div className="logo-container" onClick={handleLogoClick}>
               <Logo
                 small

@@ -2,16 +2,14 @@
 import { css } from "@emotion/react";
 
 import {
-  Typography,
   Tabs,
   Tab,
   Box,
   DialogContent,
-  Tooltip,
   Link
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { CloseButton } from "../../ui_primitives";
+import { CloseButton, Text, Tooltip } from "../../ui_primitives";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";
@@ -247,7 +245,7 @@ const Help = ({
         <div css={helpStyles(theme)}>
           <div className="help">
             <div className="top">
-              <Typography variant="h2">Help</Typography>
+              <Text size="bigger">Help</Text>
               <CloseButton onClick={handleClose} />
             </div>
             <div className="tabs-row">
@@ -262,7 +260,7 @@ const Help = ({
                 <Tab label="DataTypes" id="help-tab-2" />
               </Tabs>
               <Tooltip title="Open Nodetool Documentation Website" placement="bottom"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
               >
                 <Link
                   href="https://docs.nodetool.ai"

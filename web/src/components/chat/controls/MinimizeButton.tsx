@@ -1,7 +1,7 @@
 import React from "react";
 import MinimizeIcon from "@mui/icons-material/Minimize";
 import { ToolbarIconButton } from "../../ui_primitives";
-import { SxProps, Theme } from "@mui/material/styles";
+import type { SxProps, Theme } from "@mui/material/styles";
 
 interface MinimizeButtonProps {
   onClick: () => void;

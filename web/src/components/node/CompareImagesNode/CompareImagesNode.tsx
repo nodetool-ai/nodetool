@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { memo, useMemo, useRef } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
@@ -225,9 +226,9 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
               initialMode="horizontal"
             />
           ) : (
-            <Typography className="hint">
+            <Text className="hint">
               Connect two images and run workflow to compare
-            </Typography>
+            </Text>
           )}
         </div>
 

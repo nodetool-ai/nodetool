@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, memo } from "react";
-import { Tooltip, Typography } from "@mui/material";
+import { Tooltip, Text } from "../../ui_primitives";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
@@ -59,7 +59,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = memo(({
         </Tooltip>
       )} */}
       {showStopButton && (
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
+        <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span className="button-wrapper">
             <StopGenerationButton onClick={handleStop} />
           </span>
@@ -67,11 +67,11 @@ export const ActionButtons: React.FC<ActionButtonsProps> = memo(({
       )}
       {!showStopButton && (
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           title={
             <div style={{ textAlign: "center" }}>
-              <Typography variant="inherit">Send Message</Typography>
-              <Typography variant="inherit">[Enter]</Typography>
+              <Text>Send Message</Text>
+              <Text>[Enter]</Text>
             </div>
           }
         >

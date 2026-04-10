@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef, useEffect, useMemo } from "react";
-import { Box, Typography, CircularProgress, Divider } from "@mui/material";
-import { AlertBanner } from "../../ui_primitives";
+import { Box } from "@mui/material";
+import { AlertBanner, Text, FlexRow, FlexColumn, LoadingSpinner, Divider } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { useWorkflowAssets } from "../../../serverState/useWorkflowAssets";
@@ -133,37 +133,36 @@ const WorkflowAssetPanel: React.FC = () => {
   // No workflow selected
   if (!currentWorkflowId) {
     return (
-      <Box
+      <FlexRow
+        align="center"
+        justify="center"
+        fullWidth
         sx={{
           height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           p: 3,
           backgroundColor: theme.vars.palette.c_editor_bg_color
         }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Text size="small" color="secondary">
           No workflow selected
-        </Typography>
-      </Box>
+        </Text>
+      </FlexRow>
     );
   }
 
   // Loading state
   if (isLoading) {
     return (
-      <Box
+      <FlexRow
+        align="center"
+        justify="center"
         sx={{
           height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           backgroundColor: theme.vars.palette.c_editor_bg_color
         }}
       >
-        <CircularProgress size={32} />
-      </Box>
+        <LoadingSpinner size="medium" />
+      </FlexRow>
     );
   }
 
@@ -187,34 +186,30 @@ const WorkflowAssetPanel: React.FC = () => {
   // Empty state
   if (!assets || assets.length === 0) {
     return (
-      <Box
+      <FlexColumn
+        align="center"
+        justify="center"
         sx={{
           height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
           p: 3,
           backgroundColor: theme.vars.palette.c_editor_bg_color
         }}
       >
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+        <Text color="secondary" sx={{ mb: 2 }}>
           No assets for this workflow yet
-        </Typography>
-      </Box>
+        </Text>
+      </FlexColumn>
     );
   }
 
   // Assets display
   return (
-    <Box
+    <FlexColumn
       ref={containerRef}
       sx={{
         height: "100%",
         overflow: "hidden",
-        backgroundColor: theme.vars.palette.c_editor_bg_color,
-        display: "flex",
-        flexDirection: "column"
+        backgroundColor: theme.vars.palette.c_editor_bg_color
       }}
     >
       <WorkflowAssetToolbar
@@ -240,7 +235,7 @@ const WorkflowAssetPanel: React.FC = () => {
       )}
       {/* Delete confirmation dialog */}
       <AssetDeleteConfirmation assets={selectedAssetIds} />
-    </Box>
+    </FlexColumn>
   );
 };
 

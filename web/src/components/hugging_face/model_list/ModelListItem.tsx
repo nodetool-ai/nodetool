@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
-import { Typography, Tooltip, Chip, Box, Link } from "@mui/material";
+import { Box, Link } from "@mui/material";
+import { Chip, FlexRow, Tooltip, Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -101,23 +102,23 @@ const ModelListItem: React.FC<
                 const content = (
                   <>
                     {owner ? (
-                      <Typography component="div" className="model-owner">
+                      <Text component="div" className="model-owner">
                         {owner}
-                      </Typography>
+                      </Text>
                     ) : null}
                     {model.path ? (
                       <>
-                        <Typography component="span" className="model-name">
+                        <Text component="span" className="model-name">
                           {model.path}
-                        </Typography>
-                        <Typography component="span" className="model-path">
+                        </Text>
+                        <Text component="span" className="model-path">
                           {repo}
-                        </Typography>
+                        </Text>
                       </>
                     ) : (
-                      <Typography component="span" className="model-name">
+                      <Text component="span" className="model-name">
                         {repo}
-                      </Typography>
+                      </Text>
                     )}
                   </>
                 );
@@ -145,7 +146,7 @@ const ModelListItem: React.FC<
             </div>
 
             <div className="model-details">
-              <Tooltip title="Runs locally on your device">
+              <Tooltip title="Runs locally on your device" delay={400}>
                 <Chip
                   label="Local"
                   size="small"
@@ -182,8 +183,8 @@ const ModelListItem: React.FC<
               {model.pipeline_tag && (
                 <Tooltip
                   title="View trending models with this tag on HuggingFace"
-                  enterDelay={TOOLTIP_ENTER_DELAY * 2}
-                  enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
+                  delay={TOOLTIP_ENTER_DELAY * 2}
+                  nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
                 >
                   <Link
                     href={`https://huggingface.co/models?pipeline_tag=${model.pipeline_tag}&sort=trending`}
@@ -228,10 +229,15 @@ const ModelListItem: React.FC<
             </div>
           </div>
 
-          <div className="actions-container" style={{ gap: "1em" }}>
-            <Typography component="span" className="model-size">
+          <FlexRow
+            className="actions-container"
+            justify="flex-end"
+            align="center"
+            gap={1}
+          >
+            <Text component="span" className="model-size">
               {formatBytes(model.size_on_disk || 0)}
-            </Typography>
+            </Text>
             <ModelListItemActions
               model={model}
               onDownload={onDownload}
@@ -240,7 +246,7 @@ const ModelListItem: React.FC<
               showFileExplorerButton={showFileExplorerButton}
               isCheckingCache={isCheckingCache}
             />
-          </div>
+          </FlexRow>
         </div>
 
         <div className="model-details">
@@ -250,25 +256,25 @@ const ModelListItem: React.FC<
                 <Tooltip title="Downloads on HF last month">
                   <CloudDownloadIcon fontSize="small" />
                 </Tooltip>
-                <Typography component="span" variant="body2">
+                <Text component="span" size="small">
                   {model.downloads?.toLocaleString() || "N/A"}
-                </Typography>
+                </Text>
               </div>
               <div className="model-stats-item">
                 <Tooltip title="Likes on HF">
                   <FavoriteIcon fontSize="small" />
                 </Tooltip>
-                <Typography component="span" variant="body2">
+                <Text component="span" size="small">
                   {model.likes?.toLocaleString() || "N/A"}
-                </Typography>
+                </Text>
               </div>
             </div>
           )}
           {model.description && (
             <div className="model-description-container">
-              <Typography component="span" className="model-description">
+              <Text component="span" className="model-description">
                 {model.description}
-              </Typography>
+              </Text>
             </div>
           )}
         </div>

@@ -3,12 +3,7 @@ import React from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  Paper,
-  Typography,
-  Box,
-  CircularProgress
-} from "@mui/material";
+import { Text, LoadingSpinner, Surface, FlexRow } from "../ui_primitives";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import { Step } from "../../stores/ApiTypes";
@@ -92,28 +87,24 @@ const StepView: React.FC<StepViewProps> = ({ step }) => {
 
   return (
     <div css={styles(theme)}>
-      <Paper 
-        className={`step-item ${isRunning ? "running" : ""} ${step.completed ? "completed" : ""}`} 
-        elevation={0}
+      <Surface
+        className={`step-item ${isRunning ? "running" : ""} ${step.completed ? "completed" : ""}`}
       >
         <div className="step-content">
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "20px" 
-            }}
+          <FlexRow
+            align="center"
+            justify="center"
+            sx={{ height: "20px" }}
           >
             {isRunning ? (
-              <CircularProgress size={16} className="step-running-spinner" thickness={5} />
+              <LoadingSpinner size={16} className="step-running-spinner" />
             ) : step.completed ? (
               <CheckCircleRoundedIcon className="step-status-icon step-completed-icon" />
             ) : (
               <RadioButtonUncheckedRoundedIcon className="step-status-icon" />
             )}
-          </Box>
-          <Typography
+          </FlexRow>
+          <Text
             className={`step-text ${
               step.completed
                 ? "completed"
@@ -123,9 +114,9 @@ const StepView: React.FC<StepViewProps> = ({ step }) => {
             }`}
           >
             {step.instructions}
-          </Typography>
+          </Text>
         </div>
-      </Paper>
+      </Surface>
     </div>
   );
 };

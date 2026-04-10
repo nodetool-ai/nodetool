@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
-import { IconButton, Tooltip, Button, Popover } from "@mui/material";
+import { IconButton, Button, Popover } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import ListIcon from "@mui/icons-material/List";
 import AddIcon from "@mui/icons-material/Add";

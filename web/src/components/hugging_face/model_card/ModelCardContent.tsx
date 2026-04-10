@@ -1,12 +1,13 @@
 import React, { useCallback } from "react";
+import { CardContent } from "@mui/material";
 import {
-  CardContent,
-  Typography,
-  Box,
-  Button,
+  Tooltip,
+  Text,
   Chip,
-  Tooltip
-} from "@mui/material";
+  EditorButton,
+  FlexColumn,
+  FlexRow
+} from "../../ui_primitives";
 import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
@@ -45,18 +46,18 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
 
     return (
       <CardContent sx={{ flexGrow: 1 }}>
-        <Typography
+        <Text
           className="repo-name"
-          variant="h4"
+          size="big"
           component="div"
           gutterBottom
         >
           {getShortModelName(model.id)}
-        </Typography>
+        </Text>
 
         {model.path && (
-          <Typography
-            variant="h3"
+          <Text
+            size="big"
             style={{
               color: theme.vars.palette.primary.main,
               fontSize: "0.85em",
@@ -64,66 +65,62 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
             }}
           >
             {model.path}
-          </Typography>
+          </Text>
         )}
 
         {isOllama && !downloaded && (
-          <Typography
-            variant="h5"
+          <Text
+            size="normal" weight={600}
             style={{ color: theme.vars.palette.grey[400] }}
           >
             Model not downloaded
-          </Typography>
+          </Text>
         )}
 
-        <Box>
+        <FlexColumn gap={0.5}>
           {model.size_on_disk && (
-            <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
-              <Typography variant="body2" className="text-model-size">
+            <Tooltip delay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
+              <Text size="small" className="text-model-size">
                 {formatBytes(model.size_on_disk)}
-              </Typography>
+              </Text>
             </Tooltip>
           )}
           {model.tags && (
-            <Box className="tags-container">
-              <Button className="pipeline-tag" onClick={toggleTags}>
+            <FlexColumn className="tags-container" gap={0.5}>
+              <EditorButton className="pipeline-tag" onClick={toggleTags}>
                 {model.pipeline_tag || "#"}
-              </Button>
+              </EditorButton>
 
-              <Box
-                className="tags-list"
-                style={{ display: tagsExpanded ? "block" : "none" }}
-              >
-                <Box mt={1}>
+              {tagsExpanded && (
+                <FlexRow className="tags-list" wrap gap={0.5} sx={{ mt: 1 }}>
                   {model.tags.map((tag: string) => (
                     <Chip
                       className="tag"
                       key={tag}
                       label={tag}
-                      size="small"
-                      sx={{ margin: "2px" }}
+                      compact
                     />
                   ))}
-                </Box>
-              </Box>
-            </Box>
+                </FlexRow>
+              )}
+            </FlexColumn>
           )}
-        </Box>
+        </FlexColumn>
 
         {isHuggingFace && (
-          <Box>
-            <Button
+          <FlexColumn gap={0.5}>
+            <EditorButton
               className="readme-toggle-button"
               onClick={handleOpenReadme}
             >
-              <Typography>README</Typography>
-            </Button>
+              <Text>README</Text>
+            </EditorButton>
             <ReadmeDialog
               open={readmeDialogOpen}
               onClose={handleCloseReadme}
               modelId={model.id}
             />
-          </Box>
+          </FlexColumn>
         )}
       </CardContent>
     );

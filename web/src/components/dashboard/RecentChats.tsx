@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -8,6 +8,7 @@ import ThreadList from "../chat/thread/ThreadList";
 import { Thread } from "../../stores/ApiTypes";
 import { ThreadInfo } from "../chat/types/thread.types";
 import { memo } from "react";
+import { Text } from "../ui_primitives";
 
 interface RecentChatsProps {
   threads: { [key: string]: Thread };
@@ -72,9 +73,9 @@ const RecentChats: React.FC<RecentChatsProps> = ({
 
   return (
     <div className="recent-chats" css={styles(theme)}>
-      <Typography variant="h3" className="section-title">
+      <Text size="big" className="section-title">
         Recent Chats
-      </Typography>
+      </Text>
       <Box className="content-scrollable">
         <ThreadList
           threads={sortedAndTransformedThreads}

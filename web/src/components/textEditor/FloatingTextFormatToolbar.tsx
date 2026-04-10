@@ -18,14 +18,7 @@ import CodeIcon from "@mui/icons-material/Code";
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button
-} from "@mui/material";
+import { Dialog, EditorButton, TextInput } from "../ui_primitives";
 
 const toolbarStyles = css`
   position: fixed;
@@ -285,28 +278,28 @@ export function FloatingTextFormatToolbar(): React.JSX.Element | null {
         onClose={handleCancelLink}
         maxWidth="sm"
         fullWidth
+        title="Insert Link"
+        actions={
+          <>
+            <EditorButton onClick={handleCancelLink}>Cancel</EditorButton>
+            <EditorButton onClick={handleLinkSubmit} variant="contained">
+              Insert
+            </EditorButton>
+          </>
+        }
       >
-        <DialogTitle>Insert Link</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="URL"
-            type="url"
-            fullWidth
-            variant="outlined"
-            value={linkUrl}
-            onChange={handleLinkUrlChange}
-            onKeyDown={handleLinkKeyDown}
-            placeholder="https://example.com"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelLink}>Cancel</Button>
-          <Button onClick={handleLinkSubmit} variant="contained">
-            Insert
-          </Button>
-        </DialogActions>
+        <TextInput
+          autoFocus
+          label="URL"
+          type="url"
+          fullWidth
+          variant="outlined"
+          value={linkUrl}
+          onChange={handleLinkUrlChange}
+          onKeyDown={handleLinkKeyDown}
+          placeholder="https://example.com"
+          size="small"
+        />
       </Dialog>
     </>
   );

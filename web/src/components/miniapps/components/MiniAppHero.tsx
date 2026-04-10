@@ -8,9 +8,9 @@ import {
   LinearProgress,
   MenuItem,
   Select,
-  SelectChangeEvent,
-  Typography
+  SelectChangeEvent
 } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
 import { Workflow } from "../../../stores/ApiTypes";
@@ -83,21 +83,21 @@ const MiniAppHero: React.FC<MiniAppHeroProps> = memo(({
         {workflowsLoading && (
           <>
             <CircularProgress size={18} />
-            <Typography variant="body2">Loading workflows…</Typography>
+            <Text size="small">Loading workflows…</Text>
           </>
         )}
         {runnerState === "running" && (
           <>
             <CircularProgress size={18} />
-            <Typography variant="body2">
+            <Text size="small">
               {statusMessage || "Running workflow…"}
-            </Typography>
+            </Text>
           </>
         )}
         {runnerState === "idle" && statusMessage && (
-          <Typography variant="body2" color="text.secondary">
+          <Text size="small" color="secondary">
             {statusMessage}
-          </Typography>
+          </Text>
         )}
         {progress && progress.total > 0 && (
           <LinearProgress

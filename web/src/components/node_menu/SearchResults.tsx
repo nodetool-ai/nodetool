@@ -3,9 +3,9 @@ import {
   Box,
   List,
   ListItemButton,
-  ListItemText,
-  Typography
+  ListItemText
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 
 interface SearchResultsProps {
@@ -43,10 +43,10 @@ const SearchResults = memo(({
         {words.map((word, idx) => (
           <Box key={`${node.node_type}-${word}-${idx}`} sx={{ display: "flex" }}>
             <ListItemText sx={{ ml: 2 }}>
-              <Typography fontSize="small">
+              <Text size="small">
                 {word}
                 {idx < words.length - 1 && " > "}
-              </Typography>
+              </Text>
             </ListItemText>
           </Box>
         ))}

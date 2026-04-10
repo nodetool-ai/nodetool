@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { Box, Chip } from "@mui/material";
+import { Box } from "@mui/material";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";
@@ -22,7 +22,7 @@ import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
 import { useCreateNode } from "../../hooks/useCreateNode";
-import { FlexColumn, FlexRow } from "../ui_primitives";
+import { FlexColumn, FlexRow, Chip } from "../ui_primitives";
 import log from "loglevel";
 
 const treeStyles = (theme: Theme) =>

@@ -2,7 +2,6 @@
 import {
   Box,
   TextField,
-  Tooltip,
   Switch,
   FormControlLabel,
   IconButton,
@@ -13,6 +12,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
+import { Tooltip } from "../ui_primitives";
 import React, { memo, useCallback } from "react";
 
 interface SearchBarProps {
@@ -76,7 +76,7 @@ const SearchBar = memo(({
       />
       <Tooltip
         title="Search for Nodes used in the example workflows"
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
         leaveDelay={TOOLTIP_LEAVE_DELAY}
       >
         <FormControlLabel

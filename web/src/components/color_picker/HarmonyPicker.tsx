@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography, Tooltip } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text, Tooltip } from "../ui_primitives";
 import { CopyButton } from "../ui_primitives";
 import {
   HarmonyType,
@@ -123,10 +124,10 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
         >
           <div className="harmony-header">
             <div>
-              <Typography className="harmony-title">{harmony.name}</Typography>
-              <Typography className="harmony-description">
+              <Text className="harmony-title">{harmony.name}</Text>
+              <Text className="harmony-description">
                 {harmony.description}
-              </Typography>
+              </Text>
             </div>
             <CopyButton
               tooltip="Copy all colors"

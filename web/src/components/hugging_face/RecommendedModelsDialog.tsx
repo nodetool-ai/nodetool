@@ -6,14 +6,13 @@ import React, { useState } from "react";
 import {
   DialogTitle,
   DialogContent,
-  Tooltip,
   IconButton,
   Tabs,
   Tab,
   Box
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { Dialog } from "../ui_primitives";
+import { Dialog, Tooltip } from "../ui_primitives";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import { UnifiedModel, ModelPack } from "../../stores/ApiTypes";
@@ -104,7 +103,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
     >
       <DialogTitle style={{ marginBottom: 0 }}>
         Model Downloads
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | ESC">
+        <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Close | ESC">
           <IconButton
             aria-label="close"
             onClick={onClose}

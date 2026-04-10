@@ -3,9 +3,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, memo } from "react";
-import { IconButton, Collapse, Box } from "@mui/material";
+import { Collapse } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { CloseButton } from "../../ui_primitives";
+import { CloseButton, ToolbarIconButton } from "../../ui_primitives";
 import ChatToolBar from "./ChatToolBar";
 import { LanguageModel } from "../../../stores/ApiTypes";
 
@@ -115,15 +115,14 @@ const MobileChatToolbar: React.FC<MobileChatToolbarProps> = memo(
     }, []);
 
     return (
-      <Box css={styles(theme, isExpanded)} className="mobile-chat-toolbar">
+      <div css={styles(theme, isExpanded)} className="mobile-chat-toolbar">
         {!isExpanded ? (
-          <IconButton
+          <ToolbarIconButton
             className="toggle-button"
             onClick={handleToggle}
-            aria-label="Open chat settings"
-          >
-            <SettingsIcon />
-          </IconButton>
+            tooltip="Open chat settings"
+            icon={<SettingsIcon />}
+          />
         ) : (
           <div className="toolbar-container">
             <CloseButton
@@ -146,7 +145,7 @@ const MobileChatToolbar: React.FC<MobileChatToolbarProps> = memo(
             </Collapse>
           </div>
         )}
-      </Box>
+      </div>
     );
   }
 );

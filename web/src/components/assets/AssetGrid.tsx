@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, memo } from "react";
-import { Box, Divider, Tooltip, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text, Tooltip, Divider } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -84,7 +85,7 @@ const SelectedItemsInfo: React.FC<{
   return (
     <div className="header-info">
       <div className="selected-asset-info">
-        <Typography variant="body1" className="selected-info">
+        <Text className="selected-info">
           {selectedAssetIds.length}{" "}
           {selectedAssetIds.length === 1 ? "item" : "items"} selected
           {totalSize > 0 && (
@@ -94,7 +95,7 @@ const SelectedItemsInfo: React.FC<{
               </span>
             </Tooltip>
           )}
-        </Typography>
+        </Text>
       </div>
     </div>
   );
@@ -245,19 +246,19 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   return (
     <Box css={styles(theme)} className="asset-grid-container">
       {error && (
-        <Typography
+        <Text
           className="error-message"
+          color="error"
           sx={{
             position: "absolute",
             top: "1em",
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 1000,
-            color: "var(--palette-error-main)"
+            zIndex: 1000
           }}
         >
           {error.message}
-        </Typography>
+        </Text>
       )}
       {openAsset && (
         <AssetViewer

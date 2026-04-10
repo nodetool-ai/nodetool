@@ -5,13 +5,10 @@ import { IconForType } from "../../config/data_types";
 import {
   Autocomplete,
   Box,
-  Button,
-  Chip,
   Menu,
-  TextField,
-  Tooltip,
-  Typography
+  TextField
 } from "@mui/material";
+import { Tooltip, Text, Chip, EditorButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -371,14 +368,14 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
         </Box>
 
         <Box className="filter-actions">
-          <Button
+          <EditorButton
             variant="outlined"
             className="more-filters-button"
             startIcon={<FilterListIcon fontSize="small" />}
             onClick={handleOpenMenu}
           >
             Filters
-          </Button>
+          </EditorButton>
         </Box>
 
         <Menu
@@ -407,24 +404,24 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
             }}
           >
             <Box className="menu-header">
-              <Typography
+              <Text
+                size="smaller"
+                color="secondary"
                 sx={{
-                  fontSize: theme.fontSizeSmaller,
-                  color: theme.vars.palette.text.secondary,
                   marginBottom: "1em"
                 }}
               >
                 Filter nodes by input and output data types
-              </Typography>
+              </Text>
             </Box>
 
-            <Typography
+            <Text
               sx={{
                 marginBottom: "0.25em"
               }}
             >
               Input Type
-            </Typography>
+            </Text>
             <Autocomplete<TypeOption, false, false, false>
               className="filter-select"
               disablePortal
@@ -465,13 +462,13 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
               sx={{ marginBottom: "1em" }}
             />
 
-            <Typography
+            <Text
               sx={{
                 marginBottom: "0.25em"
               }}
             >
               Output Type
-            </Typography>
+            </Text>
             <Autocomplete<TypeOption, false, false, false>
               className="filter-select"
               disablePortal

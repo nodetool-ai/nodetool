@@ -5,7 +5,8 @@ import { BASE_URL } from "../../stores/BASE_URL";
 import { Model3DModelValue } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
-import { Menu, MenuItem, ListItemText, Typography, Divider } from "@mui/material";
+import { Menu, MenuItem, ListItemText } from "@mui/material";
+import { Caption, Divider } from "../ui_primitives";
 
 // Local type until codegen adds Model3DModel to ApiTypes
 interface Model3DModel {
@@ -177,9 +178,9 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
           <React.Fragment key={provider}>
             {index > 0 && <Divider />}
             <MenuItem disabled sx={{ opacity: 1 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight="bold">
+              <Caption color="secondary" sx={{ fontWeight: "bold" }}>
                 {provider}
-              </Typography>
+              </Caption>
             </MenuItem>
             {providerModels.map((model) => (
               <ModelMenuItem

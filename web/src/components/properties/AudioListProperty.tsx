@@ -6,8 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip, Typography } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { Tooltip, Text, CloseButton } from "../ui_primitives";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -470,20 +469,16 @@ const AudioListProperty = (props: PropertyProps) => {
                   preload="metadata"
                   aria-label={getFilename(audio.uri)}
                 />
-                <Typography className="audio-filename" title={getFilename(audio.uri)}>
+                <Text className="audio-filename" title={getFilename(audio.uri)}>
                   {getFilename(audio.uri)}
-                </Typography>
+                </Text>
               </div>
-              <Tooltip title="Remove audio">
-                <IconButton
-                  className="remove-button"
-                  onClick={removeHandlers[index]}
-                  size="small"
-                  aria-label="Remove audio"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+              <CloseButton
+                className="remove-button"
+                onClick={removeHandlers[index]}
+                buttonSize="small"
+                tooltip="Remove audio"
+              />
             </div>
           ))}
         </div>

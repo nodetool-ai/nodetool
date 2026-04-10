@@ -15,7 +15,7 @@ import WrapTextIcon from "@mui/icons-material/WrapText";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { CircularProgress, Tooltip } from "@mui/material";
+import { Tooltip, LoadingSpinner } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -902,13 +902,13 @@ const TextEditorModal = ({
             <div className="actions">
               {isCodeEditor && (
                 <div className="toolbar-group code-tools">
-                  <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Find">
+                  <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Find">
                     <button className="button-ghost" onClick={handleMonacoFind}>
                       <FindInPageIcon />
                     </button>
                   </Tooltip>
                   {!readOnly && (
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Format">
+                    <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Format">
                       <button
                         className="button-ghost"
                         onClick={handleMonacoFormat}
@@ -919,7 +919,7 @@ const TextEditorModal = ({
                   )}
                   {!readOnly && (
                     <Tooltip
-                      enterDelay={TOOLTIP_ENTER_DELAY}
+                      delay={TOOLTIP_ENTER_DELAY}
                       title={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
                     >
                       <button
@@ -931,7 +931,7 @@ const TextEditorModal = ({
                     </Tooltip>
                   )}
                   <Tooltip
-                    enterDelay={TOOLTIP_ENTER_DELAY}
+                    delay={TOOLTIP_ENTER_DELAY}
                     title={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
                   >
                     <button
@@ -971,7 +971,7 @@ const TextEditorModal = ({
               <div className="toolbar-group">
                 {!readOnly && (
                   <Tooltip
-                    enterDelay={TOOLTIP_ENTER_DELAY}
+                    delay={TOOLTIP_ENTER_DELAY}
                     title={
                       isCodeEditor
                         ? "Switch to Rich Text"
@@ -986,7 +986,7 @@ const TextEditorModal = ({
               </div>
               <div className="toolbar-group">
                 <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  delay={TOOLTIP_ENTER_DELAY}
                   title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
                 >
                   <button className="button" onClick={toggleAssistantVisible}>
@@ -997,13 +997,13 @@ const TextEditorModal = ({
                     )}
                   </button>
                 </Tooltip>
-                <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Download">
+                <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Download">
                   <button className="button" onClick={handleDownload}>
                     <DownloadIcon />
                   </button>
                 </Tooltip>
                 <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  delay={TOOLTIP_ENTER_DELAY}
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   <button className="button" onClick={toggleFullscreen}>
@@ -1011,7 +1011,7 @@ const TextEditorModal = ({
                   </button>
                 </Tooltip>
                 <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  delay={TOOLTIP_ENTER_DELAY}
                   title="Close Editor | Esc"
                 >
                   <button className="button button-close" onClick={onClose}>
@@ -1052,7 +1052,7 @@ const TextEditorModal = ({
           <div className="modal-body">
             {isLoading ? (
               <div className="loading-container">
-                <CircularProgress />
+                <LoadingSpinner />
               </div>
             ) : (
               <EditorInsertionProvider value={insertIntoEditor}>
@@ -1106,7 +1106,7 @@ const TextEditorModal = ({
                             justifyContent: "center"
                           }}
                         >
-                          <CircularProgress />
+                          <LoadingSpinner />
                         </div>
                       )}
                     </div>

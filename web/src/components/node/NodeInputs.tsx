@@ -9,9 +9,8 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
-import { Button } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { Tooltip } from "@mui/material";
+import { Tooltip, EditorButton } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Collapse } from "@mui/material";
 
@@ -308,9 +307,9 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           <Tooltip
             title={`${showAdvancedFields ? "Hide" : "Show"} Advanced Fields`}
             placement="bottom"
-            enterDelay={TOOLTIP_ENTER_DELAY}
+            delay={TOOLTIP_ENTER_DELAY}
           >
-            <Button
+            <EditorButton
               tabIndex={-1}
               onClick={onToggleAdvancedFields}
               size="small"
@@ -344,7 +343,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
               })}
             >
               <ExpandMoreIcon /> {showAdvancedFields ? "Less" : "More"}
-            </Button>
+            </EditorButton>
           </Tooltip>
         </div>
       )}

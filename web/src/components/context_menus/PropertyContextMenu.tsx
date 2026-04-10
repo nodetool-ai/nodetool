@@ -1,6 +1,7 @@
 import React, { memo } from "react";
 //mui
-import { Divider, Menu, MenuItem, Typography } from "@mui/material";
+import { Menu, MenuItem } from "@mui/material";
+import { Text, Divider } from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
@@ -176,7 +177,7 @@ const PropertyContextMenuComponent: React.FC = () => {
       }
     >
       <MenuItem disabled>
-        <Typography variant="body1">Property</Typography>
+        <Text>Property</Text>
       </MenuItem>
 
       {description && description.length > 0 && (
@@ -189,15 +190,14 @@ const PropertyContextMenuComponent: React.FC = () => {
             maxWidth: "300px"
           }}
         >
-          <Typography
-            variant="body2"
+          <Text
+            size="small"
             sx={{
-              fontSize: theme.fontSizeSmall,
               padding: "4px 0"
             }}
           >
             {description}
-          </Typography>
+          </Text>
         </MenuItem>
       )}
 
