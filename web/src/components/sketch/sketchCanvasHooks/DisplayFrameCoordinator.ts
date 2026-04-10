@@ -469,6 +469,26 @@ export class DisplayFrameCoordinator {
     }
   }
 
+  // ─── Initial composite handoff ──────────────────────────────────────
+
+  /**
+   * Notify the coordinator that the initial composite was performed
+   * externally (e.g. by the `useLayoutEffect` in `useCompositing`).
+   *
+   * This marks `firstFrameComposited` without scheduling a new frame,
+   * since the caller has already run the composite synchronously.
+   * Without this, the coordinator's readiness contract would be stuck
+   * in a half-ready state after the very first visible paint.
+   */
+  notifyInitialComposite(): void {
+    if (this.readiness.firstFrameComposited) {
+      return;
+    }
+    this.readiness.firstFrameComposited = true;
+    this.tracer.trace("frame-composited", { initial: true });
+    this.checkInteractionReady();
+  }
+
   // ─── Cleanup ──────────────────────────────────────────────────────
   cancelPending(): void {
     if (this.rafId !== null) {
