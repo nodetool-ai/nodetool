@@ -1,12 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import {
-  Button,
-  Autocomplete,
-  TextField,
-  createFilterOptions
-} from "@mui/material";
-import { Text, Caption, TextInput, SelectField } from "../ui_primitives";
+import { Button } from "@mui/material";
+import { Text, Caption, TextInput, SelectField, AutocompleteTagInput } from "../ui_primitives";
 import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -233,27 +228,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     onClose();
   }, [saveWorkflow, localWorkflow, addNotification, onClose]);
 
-  const handleTagChange = (_event: React.SyntheticEvent, newValue: (string | { inputValue: string; title: string })[]) => {
-    // Handle both string values and objects from freeSolo createOption
-    const processedTags = newValue.map((item) => {
-      if (typeof item === "string") {
-        return item.trim().toLowerCase();
-      }
-      // Handle the createOption object format
-      return item.inputValue.trim().toLowerCase();
-    }).filter((tag) => tag.length > 0);
-    
-    // Remove duplicates
-    const uniqueTags = Array.from(new Set(processedTags));
-    
-    const updatedWorkflow = {
-      ...workflow,
-      ...localWorkflow,
-      tags: uniqueTags
-    };
-    setLocalWorkflow(updatedWorkflow);
-  };
-
   const handleToolNameChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const rawValue = event.target.value || "";
@@ -304,60 +278,17 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           minRows={2}
         />
 
-        <Autocomplete
-          className="tag-input"
-          size="small"
-          multiple
-          freeSolo
-          selectOnFocus
-          clearOnBlur
-          handleHomeEndKeys
-          options={tagOptions}
+        <AutocompleteTagInput
+          label="Tags"
           value={localWorkflow.tags || []}
-          onChange={handleTagChange}
-          filterOptions={(options, params) => {
-            const filter = createFilterOptions<string>();
-            const filtered = filter(options, params);
-            const { inputValue } = params;
-            // Suggest creating a new tag if it doesn't exist
-            const isExisting = options.some(
-              (option) => inputValue.toLowerCase() === option.toLowerCase()
-            );
-            if (inputValue !== "" && !isExisting) {
-              filtered.push(inputValue);
-            }
-            return filtered;
+          onChange={(tags) => {
+            const uniqueTags = Array.from(new Set(tags.map(t => t.trim().toLowerCase()).filter(t => t.length > 0)));
+            setLocalWorkflow((prev: Workflow) => ({ ...prev, tags: uniqueTags }));
           }}
-          getOptionLabel={(option) => {
-            if (typeof option === "string") {
-              return option;
-            }
-            return (option as { inputValue?: string }).inputValue || "";
-          }}
-          renderOption={(props, option) => {
-            const { key, ...rest } = props;
-            const optionStr = typeof option === "string" ? option : (option as { inputValue?: string }).inputValue || "";
-            const isNew = optionStr !== "" && !tagOptions.includes(optionStr);
-            return (
-              <li key={key} {...rest}>
-                {isNew ? `Add "${optionStr}"` : optionStr}
-              </li>
-            );
-          }}
-          slotProps={{
-            popper: {
-              style: {
-                zIndex: theme.zIndex.autocomplete
-              }
-            }
-          }}
-          renderInput={(params) => (
-            <TextField {...params} label="Tags" placeholder="Type or select tags..." />
-          )}
+          suggestions={tagOptions}
+          placeholder="Type or select tags..."
+          description="Select from suggestions or type custom tags (press Enter to add)"
         />
-        <Caption>
-          Select from suggestions or type custom tags (press Enter to add)
-        </Caption>
       </div>
 
       {/* Execution Section */}

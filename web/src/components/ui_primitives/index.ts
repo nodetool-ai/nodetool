@@ -100,6 +100,9 @@ export type { TagInputProps, TagValidationResult } from "./TagInput";
 export { ThemeToggleButton } from "./ThemeToggleButton";
 export type { ThemeToggleButtonProps } from "./ThemeToggleButton";
 
+export { AutocompleteTagInput } from "./AutocompleteTagInput";
+export type { AutocompleteTagInputProps } from "./AutocompleteTagInput";
+
 // Navigation & Layout primitives
 export { SearchInput } from "./SearchInput";
 export type { SearchInputProps } from "./SearchInput";
