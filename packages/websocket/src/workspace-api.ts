@@ -133,7 +133,11 @@ export async function handleWorkspaceRequest(
 
     const queryPath = url.searchParams.get("path") ?? ".";
     const workspacePath = resolve(workspace.path);
-    const resolvedPath = resolve(join(workspacePath, queryPath));
+    // If queryPath is absolute and within workspace, use it directly
+    // Otherwise treat as relative to workspace root
+    const resolvedPath = resolve(queryPath).startsWith(workspacePath)
+      ? resolve(queryPath)
+      : resolve(join(workspacePath, queryPath));
 
     // Path traversal check
     if (!resolvedPath.startsWith(workspacePath)) {
