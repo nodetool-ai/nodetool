@@ -17,42 +17,107 @@ import type {
 } from "@nodetool/protocol";
 
 const log = createLogger("nodetool.agents.planner");
-import type { Step, Task } from "./types.js";
+import type { Step, Task, TaskPlan } from "./types.js";
 import type { Tool } from "./tools/base-tool.js";
 import { extractJSON } from "./utils/json-parser.js";
 import { randomUUID } from "node:crypto";
 
 const MAX_RETRIES = 3;
 
-const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect that transforms user objectives into executable Task plans.
+const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect that transforms user objectives into executable plans with MAXIMUM parallelism.
 
-A Task has a title and a list of Steps. Each Step has:
+You create a TaskPlan with multiple Tasks. Each Task runs as an independent sub-agent.
+
+A TaskPlan has:
+- title: overall plan title
+- tasks: array of Tasks
+
+Each Task has:
 - id: unique snake_case identifier
+- title: human-readable title
+- depends_on: list of task IDs this depends on ([] for none)
+- steps: array of Steps for this task
+
+Each Step has:
+- id: unique snake_case identifier (unique across ALL tasks)
 - instructions: clear, actionable instructions
-- dependsOn: list of step IDs this depends on ([] for none)
-- outputSchema (optional): JSON schema string for the step output
+- depends_on: list of step IDs within this task ([] for none)
+- output_schema (optional): JSON schema string for the step output
 - tools (optional): list of tool names this step can use
 
-Requirements:
-- All step IDs must be unique
+CRITICAL RULES FOR PARALLELISM:
+- MAXIMIZE parallelism: decompose the objective into as many independent Tasks as possible
+- Tasks that don't depend on each other MUST be separate Tasks (they run in parallel)
+- Only add task dependencies when a task genuinely needs output from another task
+- Each task is a self-contained unit of work executed by its own sub-agent
+- A single task should have a focused, coherent objective
+- Include a final aggregation task that depends on all other tasks if results need combining
+- All IDs must be unique across the entire plan
 - Dependencies must form a valid DAG (no cycles)
-- All referenced dependency IDs must exist as step IDs
-- Steps should be atomic (smallest executable units)
 
-Call the create_task tool with your plan.`;
+Call the create_plan tool with your plan.`;
 
-const PLAN_CREATION_PROMPT_TEMPLATE = `Create an executable Task for this objective using the create_task tool.
+const PLAN_CREATION_PROMPT_TEMPLATE = `Create an executable TaskPlan with MAXIMUM parallelism using the create_plan tool.
+Decompose the objective into independent tasks that can run in parallel as sub-agents.
 
 Objective: {{objective}}
 
 Available tools:
 {{toolsInfo}}
 
-Output schema:
+Output schema (for the final result):
 {{outputSchema}}`;
 
 /**
- * Schema for the create_task tool used by the planner.
+ * Schema for the create_plan tool used by the planner.
+ * Produces a multi-task plan where each task runs as an independent sub-agent.
+ */
+const CREATE_PLAN_SCHEMA = {
+  type: "object",
+  properties: {
+    title: { type: "string", description: "Overall plan title" },
+    tasks: {
+      type: "array",
+      description:
+        "Independent tasks to execute in parallel. Each task runs as its own sub-agent.",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "Unique task identifier" },
+          title: { type: "string", description: "Task title" },
+          depends_on: {
+            type: "array",
+            items: { type: "string" },
+            description: "Task IDs this task depends on ([] for independent)"
+          },
+          steps: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                instructions: { type: "string" },
+                depends_on: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Step IDs within this task"
+                },
+                output_schema: { type: "string" },
+                tools: { type: "array", items: { type: "string" } }
+              },
+              required: ["id", "instructions", "depends_on"]
+            }
+          }
+        },
+        required: ["id", "title", "depends_on", "steps"]
+      }
+    }
+  },
+  required: ["title", "tasks"]
+};
+
+/**
+ * Legacy schema kept for backward compatibility with single-task plans.
  */
 const CREATE_TASK_SCHEMA = {
   type: "object",
@@ -113,7 +178,7 @@ export class TaskPlanner {
   }
 
   /**
-   * Generate a Task plan from an objective.
+   * Generate a single-Task plan from an objective (legacy method).
    * Retries up to maxRetries on parse/validation failure with error feedback.
    * Returns null on repeated failure (graceful degradation).
    */
@@ -316,6 +381,225 @@ export class TaskPlanner {
     }
 
     // Should not reach here, but just in case
+    return null;
+  }
+
+  /**
+   * Generate a multi-task plan from an objective, maximizing parallelism.
+   * Each task runs as an independent sub-agent. Tasks form a DAG via dependsOn.
+   * Returns null on repeated failure (graceful degradation).
+   */
+  async *planMultiTask(
+    objective: string,
+    _context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage, TaskPlan | null> {
+    const toolsInfo = this.formatToolsInfo();
+
+    const userPrompt = PLAN_CREATION_PROMPT_TEMPLATE.replace(
+      "{{objective}}",
+      objective
+    )
+      .replace("{{toolsInfo}}", toolsInfo)
+      .replace(
+        "{{outputSchema}}",
+        this.outputSchema
+          ? JSON.stringify(this.outputSchema, null, 2)
+          : "None specified"
+      );
+
+    const messages: Message[] = [
+      { role: "system", content: this.systemPrompt },
+      { role: "user", content: userPrompt }
+    ];
+
+    yield {
+      type: "planning_update",
+      phase: "initialization",
+      status: "started",
+      content: "Starting parallel task planning..."
+    } satisfies PlanningUpdate;
+
+    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+      log.debug("Generating multi-task plan", {
+        objective: objective.slice(0, 60),
+        attempt: attempt + 1
+      });
+
+      let content = "";
+      let planData: Record<string, unknown> | null = null;
+
+      yield {
+        type: "planning_update",
+        phase: "generation",
+        status: "running",
+        content:
+          attempt > 0
+            ? `Retry attempt ${attempt + 1}/${this.maxRetries}...`
+            : "Generating parallel plan..."
+      } satisfies PlanningUpdate;
+
+      const onToolCall = async (
+        name: string,
+        args: Record<string, unknown>
+      ): Promise<string> => {
+        if (name === "create_plan") {
+          planData = args;
+          return JSON.stringify({ status: "plan_created" });
+        }
+        return JSON.stringify({ error: `Unknown tool: ${name}` });
+      };
+
+      const stream = this.provider.generateMessagesTraced({
+        messages: [...messages],
+        model: this.model,
+        tools: [
+          {
+            name: "create_plan",
+            description:
+              "Create a parallel execution plan with multiple independent tasks.",
+            inputSchema: CREATE_PLAN_SCHEMA
+          }
+        ],
+        toolChoice: "create_plan",
+        threadId: this.threadId,
+        onToolCall
+      });
+
+      for await (const item of stream) {
+        if (
+          "type" in item &&
+          (item as unknown as Record<string, unknown>)["type"] === "chunk"
+        ) {
+          const chunk = item as { content?: string };
+          if (typeof chunk.content === "string") {
+            content += chunk.content;
+            yield {
+              type: "chunk",
+              content: chunk.content,
+              done: false
+            } satisfies Chunk;
+          }
+        }
+        if ("name" in item && item.name === "create_plan") {
+          planData = item.args as Record<string, unknown>;
+        }
+      }
+
+      // If no tool call, try extracting from text
+      if (!planData && content) {
+        const parsed = extractJSON(content);
+        if (parsed && typeof parsed === "object") {
+          planData = parsed as Record<string, unknown>;
+        }
+      }
+
+      if (!planData) {
+        const errorMsg = `LLM did not call create_plan tool on attempt ${attempt + 1}/${this.maxRetries}`;
+        log.warn("Multi-task plan generation retry", {
+          attempt: attempt + 1,
+          reason: errorMsg
+        });
+        if (attempt < this.maxRetries - 1) {
+          messages.push({ role: "assistant", content });
+          messages.push({
+            role: "user",
+            content: `Error: ${errorMsg}. Please call the create_plan tool with your multi-task plan.`
+          });
+          continue;
+        }
+        log.error("Multi-task plan generation failed", {
+          attempts: this.maxRetries
+        });
+        yield {
+          type: "chunk",
+          content: `\nFailed to generate a multi-task plan after ${this.maxRetries} attempts.\n`,
+          done: true
+        } satisfies Chunk;
+        yield {
+          type: "planning_update",
+          phase: "complete",
+          status: "failed",
+          content: errorMsg
+        } satisfies PlanningUpdate;
+        return null;
+      }
+
+      // Build TaskPlan from the LLM response
+      const taskPlan = this.buildTaskPlan(planData);
+
+      // Validate
+      yield {
+        type: "planning_update",
+        phase: "validation",
+        status: "running",
+        content: "Validating parallel plan..."
+      } satisfies PlanningUpdate;
+
+      const errors = this.validateTaskPlan(taskPlan);
+
+      if (errors.length > 0) {
+        const errorMsg = `Plan validation failed on attempt ${attempt + 1}/${this.maxRetries}:\n${errors.map((e) => `- ${e}`).join("\n")}`;
+
+        yield {
+          type: "planning_update",
+          phase: "validation",
+          status: "failed",
+          content: errorMsg
+        } satisfies PlanningUpdate;
+
+        if (attempt < this.maxRetries - 1) {
+          messages.push({ role: "assistant", content });
+          messages.push({
+            role: "user",
+            content: `Error: The plan has validation errors:\n${errors.map((e) => `- ${e}`).join("\n")}\n\nPlease fix these issues and call create_plan again with the corrected plan.`
+          });
+          continue;
+        }
+
+        yield {
+          type: "chunk",
+          content: `\nFailed to generate a valid multi-task plan after ${this.maxRetries} attempts.\n`,
+          done: true
+        } satisfies Chunk;
+        yield {
+          type: "planning_update",
+          phase: "complete",
+          status: "failed",
+          content: errorMsg
+        } satisfies PlanningUpdate;
+        return null;
+      }
+
+      // Apply schema normalization to all task steps
+      for (const task of taskPlan.tasks) {
+        this.applySchemaOverrides(task.steps);
+      }
+
+      const totalSteps = taskPlan.tasks.reduce(
+        (sum, t) => sum + t.steps.length,
+        0
+      );
+      const independentTasks = taskPlan.tasks.filter(
+        (t) => !t.dependsOn || t.dependsOn.length === 0
+      ).length;
+
+      log.info("Multi-task plan created", {
+        title: taskPlan.title,
+        tasks: taskPlan.tasks.length,
+        totalSteps,
+        independentTasks
+      });
+
+      yield {
+        type: "planning_update",
+        phase: "complete",
+        status: "success",
+        content: `Plan created: ${taskPlan.title} (${taskPlan.tasks.length} tasks, ${totalSteps} steps, ${independentTasks} parallelizable)`
+      } satisfies PlanningUpdate;
+
+      return taskPlan;
+    }
+
     return null;
   }
 
@@ -595,6 +879,186 @@ export class TaskPlanner {
       title,
       steps
     };
+  }
+
+  /**
+   * Build a TaskPlan from raw LLM output data with multiple tasks.
+   */
+  buildTaskPlan(data: Record<string, unknown>): TaskPlan {
+    const title =
+      typeof data["title"] === "string" ? data["title"] : "Untitled Plan";
+    const rawTasks = Array.isArray(data["tasks"]) ? data["tasks"] : [];
+
+    const tasks: Task[] = rawTasks.map((t: unknown) => {
+      const rawTask = t as Record<string, unknown>;
+      const taskId =
+        typeof rawTask["id"] === "string" ? rawTask["id"] : randomUUID();
+      const taskTitle =
+        typeof rawTask["title"] === "string"
+          ? rawTask["title"]
+          : "Untitled Task";
+      const taskDependsOn = Array.isArray(rawTask["depends_on"])
+        ? (rawTask["depends_on"] as string[])
+        : Array.isArray(rawTask["dependsOn"])
+          ? (rawTask["dependsOn"] as string[])
+          : [];
+
+      const rawSteps = Array.isArray(rawTask["steps"])
+        ? rawTask["steps"]
+        : [];
+      const steps: Step[] = rawSteps.map((s: unknown) => {
+        const raw = s as Record<string, unknown>;
+        return {
+          id: typeof raw["id"] === "string" ? raw["id"] : randomUUID(),
+          instructions:
+            typeof raw["instructions"] === "string" ? raw["instructions"] : "",
+          completed: false,
+          dependsOn: Array.isArray(raw["depends_on"])
+            ? (raw["depends_on"] as string[])
+            : Array.isArray(raw["dependsOn"])
+              ? (raw["dependsOn"] as string[])
+              : [],
+          outputSchema:
+            typeof raw["output_schema"] === "string"
+              ? raw["output_schema"]
+              : typeof raw["outputSchema"] === "string"
+                ? raw["outputSchema"]
+                : undefined,
+          tools: Array.isArray(raw["tools"])
+            ? (raw["tools"] as string[])
+            : undefined,
+          logs: []
+        };
+      });
+
+      return {
+        id: taskId,
+        title: taskTitle,
+        dependsOn: taskDependsOn,
+        completed: false,
+        steps
+      };
+    });
+
+    return { title, tasks };
+  }
+
+  /**
+   * Validate a multi-task plan. Returns list of error messages.
+   */
+  validateTaskPlan(taskPlan: TaskPlan): string[] {
+    const errors: string[] = [];
+    const taskIds = new Set(taskPlan.tasks.map((t) => t.id));
+
+    // Check for duplicate task IDs
+    const seenTaskIds = new Set<string>();
+    for (const task of taskPlan.tasks) {
+      if (seenTaskIds.has(task.id)) {
+        errors.push(`Duplicate task ID: '${task.id}'.`);
+      }
+      seenTaskIds.add(task.id);
+    }
+
+    // Check task-level dependencies
+    for (const task of taskPlan.tasks) {
+      for (const dep of task.dependsOn ?? []) {
+        if (!taskIds.has(dep)) {
+          errors.push(
+            `Task '${task.id}' depends on '${dep}' which does not exist as a task ID.`
+          );
+        }
+      }
+    }
+
+    // Check for cycles at the task level
+    if (!this.checkForTaskCycles(taskPlan)) {
+      errors.push("Circular dependency detected among tasks.");
+    }
+
+    // Collect all step IDs across all tasks for uniqueness check
+    const allStepIds = new Set<string>();
+    for (const task of taskPlan.tasks) {
+      for (const step of task.steps) {
+        if (allStepIds.has(step.id)) {
+          errors.push(
+            `Duplicate step ID '${step.id}' found across tasks.`
+          );
+        }
+        allStepIds.add(step.id);
+      }
+    }
+
+    // Validate each task's internal steps
+    for (const task of taskPlan.tasks) {
+      const stepIds = new Set(task.steps.map((s) => s.id));
+      const inputKeys = new Set(Object.keys(this.inputs));
+
+      for (const step of task.steps) {
+        for (const dep of step.dependsOn) {
+          if (!stepIds.has(dep) && !inputKeys.has(dep)) {
+            errors.push(
+              `Step '${step.id}' in task '${task.id}' depends on '${dep}' which does not exist within that task or as an input key.`
+            );
+          }
+        }
+      }
+
+      // Check for step-level cycles within this task
+      if (!this.checkForCycles(task)) {
+        errors.push(
+          `Circular dependency detected in steps of task '${task.id}'.`
+        );
+      }
+
+      // Validate semantics within each task
+      const semanticErrors = this.validatePlanSemantics(task.steps);
+      for (const err of semanticErrors) {
+        errors.push(`Task '${task.id}': ${err}`);
+      }
+    }
+
+    // Must have at least one task
+    if (taskPlan.tasks.length === 0) {
+      errors.push("Plan must contain at least one task.");
+    }
+
+    return errors;
+  }
+
+  /**
+   * Validate that task-level dependencies form a valid DAG (no cycles).
+   */
+  checkForTaskCycles(taskPlan: TaskPlan): boolean {
+    const taskIds = new Set(taskPlan.tasks.map((t) => t.id));
+    const visited = new Set<string>();
+    const inStack = new Set<string>();
+    const taskMap = new Map(taskPlan.tasks.map((t) => [t.id, t]));
+
+    const hasCycle = (id: string): boolean => {
+      if (inStack.has(id)) return true;
+      if (visited.has(id)) return false;
+
+      visited.add(id);
+      inStack.add(id);
+
+      const task = taskMap.get(id);
+      if (task) {
+        for (const dep of task.dependsOn ?? []) {
+          if (taskIds.has(dep) && hasCycle(dep)) {
+            return true;
+          }
+        }
+      }
+
+      inStack.delete(id);
+      return false;
+    };
+
+    for (const task of taskPlan.tasks) {
+      if (hasCycle(task.id)) return false;
+    }
+
+    return true;
   }
 
   /**

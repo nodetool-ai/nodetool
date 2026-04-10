@@ -56,6 +56,7 @@ export type { FakeProviderOptions } from "./fake-provider.js";
 export {
   ScriptedProvider,
   planScript,
+  multiTaskPlanScript,
   stepScript,
   textScript,
   toolCallScript,
@@ -65,7 +66,8 @@ export {
 export type {
   ScriptFn,
   ScriptItem,
-  TaskPlanSpec
+  TaskPlanSpec,
+  MultiTaskPlanSpec
 } from "./scripted-provider.js";
 export {
   registerProvider,

@@ -24,10 +24,11 @@ import { BaseAgent } from "./base-agent.js";
 import { StepExecutor } from "./step-executor.js";
 import { TaskPlanner } from "./task-planner.js";
 import { TaskExecutor } from "./task-executor.js";
+import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { TeamExecutor } from "./team/team-executor.js";
 import { SubAgentPlanner } from "./sub-agent-planner.js";
 import type { Tool } from "./tools/base-tool.js";
-import type { AgentMode, Step, SubAgentConfig, Task } from "./types.js";
+import type { AgentMode, Step, SubAgentConfig, Task, TaskPlan } from "./types.js";
 import { randomUUID } from "node:crypto";
 
 const log = createLogger("nodetool.agents.multi-mode-agent");
@@ -197,54 +198,115 @@ export class MultiModeAgent extends BaseAgent {
   private async *executePlanMode(
     context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage> {
-    let task: Task | null = this.initialTask ?? null;
-
-    if (!task) {
-      log.info("Planning phase started", { name: this.name });
-      yield {
-        type: "log_update",
-        node_id: "agent_planner",
-        node_name: this.name,
-        content: `Planning steps for objective: ${this.objective.slice(0, 100)}...`,
-        severity: "info"
-      } satisfies LogUpdate;
-
-      const planner = new TaskPlanner({
-        provider: this.provider,
-        model: this.planningModel,
-        reasoningModel: this.planningModel,
-        tools: this.tools,
-        systemPrompt: this.systemPrompt || undefined,
-        outputSchema: this.outputSchema,
-        inputs: this.inputs
-      });
-
-      const planGen = planner.plan(this.objective, context);
-      let planResult = await planGen.next();
-      while (!planResult.done) {
-        yield planResult.value;
-        planResult = await planGen.next();
-      }
-      task = planResult.value;
+    // If pre-defined task, fall back to single-task execution
+    if (this.initialTask) {
+      yield* this.executeSingleTask(context, this.initialTask);
+      return;
     }
 
-    if (!task) {
+    log.info("Planning phase started", { name: this.name });
+    yield {
+      type: "log_update",
+      node_id: "agent_planner",
+      node_name: this.name,
+      content: `Planning parallel tasks for objective: ${this.objective.slice(0, 100)}...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const planner = new TaskPlanner({
+      provider: this.provider,
+      model: this.planningModel,
+      reasoningModel: this.planningModel,
+      tools: this.tools,
+      systemPrompt: this.systemPrompt || undefined,
+      outputSchema: this.outputSchema,
+      inputs: this.inputs
+    });
+
+    const planGen = planner.planMultiTask(this.objective, context);
+    let planResult = await planGen.next();
+    while (!planResult.done) {
+      yield planResult.value;
+      planResult = await planGen.next();
+    }
+    const taskPlan = planResult.value;
+
+    if (!taskPlan) {
       throw new Error("TaskPlanner failed to create a task plan.");
     }
 
     log.info("Planning complete", {
       name: this.name,
-      steps: task.steps.length
+      tasks: taskPlan.tasks.length,
+      totalSteps: taskPlan.tasks.reduce((sum, t) => sum + t.steps.length, 0)
     });
-    this.task = task;
 
-    if (!this.initialTask) {
-      yield {
-        type: "task_update",
-        event: TaskUpdateEvent.TaskCreated,
-        task: task as unknown as TaskUpdate["task"]
-      } satisfies TaskUpdate;
+    // Set task for backward compatibility
+    if (taskPlan.tasks.length > 0) {
+      this.task = taskPlan.tasks[0];
     }
+
+    // Apply output schema to last step of last task
+    if (this.outputSchema && taskPlan.tasks.length > 0) {
+      const lastTask = taskPlan.tasks[taskPlan.tasks.length - 1];
+      if (lastTask.steps.length > 0) {
+        lastTask.steps[lastTask.steps.length - 1].outputSchema =
+          JSON.stringify(this.outputSchema);
+      }
+    }
+
+    const totalSteps = taskPlan.tasks.reduce(
+      (sum, t) => sum + t.steps.length,
+      0
+    );
+    const independentTasks = taskPlan.tasks.filter(
+      (t) => !t.dependsOn || t.dependsOn.length === 0
+    ).length;
+
+    yield {
+      type: "log_update",
+      node_id: "agent_executor",
+      node_name: this.name,
+      content: `Starting parallel execution: ${taskPlan.tasks.length} tasks (${independentTasks} parallelizable), ${totalSteps} total steps...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const executor = new ParallelTaskExecutor({
+      provider: this.provider,
+      model: this.model,
+      context,
+      tools: [...this.tools],
+      taskPlan,
+      systemPrompt: this.systemPrompt || undefined,
+      inputs: this.inputs,
+      maxStepIterations: this.maxStepIterations,
+      maxTokenLimit: this.maxTokenLimit
+    });
+
+    for await (const item of executor.execute()) {
+      if (item.type === "step_result") {
+        const stepResult = item as StepResult;
+        if (stepResult.is_task_result) {
+          this.results = stepResult.result;
+        }
+      }
+      yield item;
+    }
+
+    // If no task_result was captured, use the final task's result
+    if (this.results === null) {
+      this.results = executor.getFinalResult();
+    }
+  }
+
+  /**
+   * Execute a single pre-defined task (legacy path for backward compatibility).
+   */
+  private async *executeSingleTask(
+    context: ProcessingContext,
+    task: Task
+  ): AsyncGenerator<ProcessingMessage> {
+    this.task = task;
 
     if (this.outputSchema && task.steps.length > 0) {
       task.steps[task.steps.length - 1].outputSchema = JSON.stringify(
@@ -270,7 +332,8 @@ export class MultiModeAgent extends BaseAgent {
       inputs: this.inputs,
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,
-      maxTokenLimit: this.maxTokenLimit
+      maxTokenLimit: this.maxTokenLimit,
+      parallelExecution: true
     });
 
     for await (const item of executor.executeTasks()) {

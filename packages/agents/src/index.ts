@@ -3,7 +3,7 @@
  */
 
 // Types
-export type { Step, Task, AgentMode, SubAgentConfig } from "./types.js";
+export type { Step, Task, TaskPlan, AgentMode, SubAgentConfig } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
@@ -151,6 +151,8 @@ export { TaskPlanner } from "./task-planner.js";
 export type { TaskPlannerOptions } from "./task-planner.js";
 export { TaskExecutor } from "./task-executor.js";
 export type { TaskExecutorOptions } from "./task-executor.js";
+export { ParallelTaskExecutor } from "./parallel-task-executor.js";
+export type { ParallelTaskExecutorOptions } from "./parallel-task-executor.js";
 
 // Multi-agent team system
 export {

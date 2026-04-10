@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { TaskPlanner } from "../src/task-planner.js";
-import type { Step, Task } from "../src/types.js";
+import type { Step, Task, TaskPlan } from "../src/types.js";
 import type { ProcessingMessage } from "@nodetool/protocol";
 
 function createMockProvider(taskData?: Record<string, unknown>) {
@@ -484,5 +484,393 @@ describe("TaskPlanner", () => {
       ]
     };
     expect(planner.validatePlan(task)).toHaveLength(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Multi-task plan (planMultiTask)
+  // ---------------------------------------------------------------------------
+
+  describe("planMultiTask", () => {
+    it("generates a valid multi-task plan", async () => {
+      const planData = {
+        title: "Multi-Task Plan",
+        tasks: [
+          {
+            id: "task_a",
+            title: "Task A",
+            depends_on: [],
+            steps: [
+              { id: "s1", instructions: "Do A step 1", depends_on: [] }
+            ]
+          },
+          {
+            id: "task_b",
+            title: "Task B",
+            depends_on: [],
+            steps: [
+              { id: "s2", instructions: "Do B step 1", depends_on: [] }
+            ]
+          },
+          {
+            id: "task_merge",
+            title: "Merge",
+            depends_on: ["task_a", "task_b"],
+            steps: [
+              { id: "s3", instructions: "Merge results", depends_on: [] }
+            ]
+          }
+        ]
+      };
+
+      const provider = {
+        ...createMockProvider(),
+        generateMessages: async function* () {
+          yield { type: "chunk" as const, content: "Planning...", done: false };
+          yield {
+            id: "tc_1",
+            name: "create_plan",
+            args: planData
+          };
+        }
+      } as any;
+
+      const planner = new TaskPlanner({
+        provider,
+        model: "test-model"
+      });
+
+      const messages: ProcessingMessage[] = [];
+      let taskPlan: TaskPlan | null = null;
+
+      const gen = planner.planMultiTask("Do something complex", createMockContext());
+      while (true) {
+        const { value, done } = await gen.next();
+        if (done) {
+          taskPlan = value as TaskPlan | null;
+          break;
+        }
+        messages.push(value);
+      }
+
+      expect(taskPlan).not.toBeNull();
+      expect(taskPlan!.title).toBe("Multi-Task Plan");
+      expect(taskPlan!.tasks).toHaveLength(3);
+      expect(taskPlan!.tasks[0].id).toBe("task_a");
+      expect(taskPlan!.tasks[2].dependsOn).toEqual(["task_a", "task_b"]);
+
+      const updates = messages.filter((m) => m.type === "planning_update");
+      expect(updates.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("returns null when LLM produces no plan data", async () => {
+      const provider = {
+        ...createMockProvider(),
+        generateMessages: async function* () {
+          yield {
+            type: "chunk" as const,
+            content: "Cannot create a plan",
+            done: false
+          };
+        }
+      } as any;
+
+      const planner = new TaskPlanner({
+        provider,
+        model: "test-model",
+        maxRetries: 1
+      });
+
+      const gen = planner.planMultiTask("Do something", createMockContext());
+      let taskPlan: TaskPlan | null = null;
+      while (true) {
+        const { value, done } = await gen.next();
+        if (done) {
+          taskPlan = value as TaskPlan | null;
+          break;
+        }
+      }
+
+      expect(taskPlan).toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // validateTaskPlan
+  // ---------------------------------------------------------------------------
+
+  describe("validateTaskPlan", () => {
+    it("accepts a valid multi-task plan", () => {
+      const planner = new TaskPlanner({
+        provider: createMockProvider(),
+        model: "test-model"
+      });
+
+      const plan: TaskPlan = {
+        title: "Valid Plan",
+        tasks: [
+          {
+            id: "task_a",
+            title: "A",
+            dependsOn: [],
+            steps: [
+              { id: "s1", instructions: "Do A", completed: false, dependsOn: [], logs: [] }
+            ]
+          },
+          {
+            id: "task_b",
+            title: "B",
+            dependsOn: ["task_a"],
+            steps: [
+              { id: "s2", instructions: "Do B", completed: false, dependsOn: [], logs: [] }
+            ]
+          }
+        ]
+      };
+
+      expect(planner.validateTaskPlan(plan)).toHaveLength(0);
+    });
+
+    it("rejects duplicate task IDs", () => {
+      const planner = new TaskPlanner({
+        provider: createMockProvider(),
+        model: "test-model"
+      });
+
+      const plan: TaskPlan = {
+        title: "Duplicate Plan",
+        tasks: [
+          {
+            id: "task_a",
+            title: "A",
+            dependsOn: [],
+            steps: [
+              { id: "s1", instructions: "Do A", completed: false, dependsOn: [], logs: [] }
+            ]
+          },
+          {
+            id: "task_a",
+            title: "A duplicate",
+            dependsOn: [],
+            steps: [
+              { id: "s2", instructions: "Do A again", completed: false, dependsOn: [], logs: [] }
+            ]
+          }
+        ]
+      };
+
+      const errors = planner.validateTaskPlan(plan);
+      expect(errors.some((e) => e.includes("Duplicate task ID"))).toBe(true);
+    });
+
+    it("rejects missing task dependencies", () => {
+      const planner = new TaskPlanner({
+        provider: createMockProvider(),
+        model: "test-model"
+      });
+
+      const plan: TaskPlan = {
+        title: "Missing Dep",
+        tasks: [
+          {
+            id: "task_a",
+            title: "A",
+            dependsOn: ["nonexistent"],
+            steps: [
+              { id: "s1", instructions: "Do A", completed: false, dependsOn: [], logs: [] }
+            ]
+          }
+        ]
+      };
+
+      const errors = planner.validateTaskPlan(plan);
+      expect(errors.some((e) => e.includes("nonexistent"))).toBe(true);
+    });
+
+    it("rejects duplicate step IDs across tasks", () => {
+      const planner = new TaskPlanner({
+        provider: createMockProvider(),
+        model: "test-model"
+      });
+
+      const plan: TaskPlan = {
+        title: "Duplicate Steps",
+        tasks: [
+          {
+            id: "task_a",
+            title: "A",
+            dependsOn: [],
+            steps: [
+              { id: "s1", instructions: "Do A", completed: false, dependsOn: [], logs: [] }
+            ]
+          },
+          {
+            id: "task_b",
+            title: "B",
+            dependsOn: [],
+            steps: [
+              { id: "s1", instructions: "Do B", completed: false, dependsOn: [], logs: [] }
+            ]
+          }
+        ]
+      };
+
+      const errors = planner.validateTaskPlan(plan);
+      expect(errors.some((e) => e.includes("Duplicate step ID"))).toBe(true);
+    });
+
+    it("rejects empty plan", () => {
+      const planner = new TaskPlanner({
+        provider: createMockProvider(),
+        model: "test-model"
+      });
+
+      const plan: TaskPlan = {
+        title: "Empty",
+        tasks: []
+      };
+
+      const errors = planner.validateTaskPlan(plan);
+      expect(errors.some((e) => e.includes("at least one task"))).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // checkForTaskCycles
+  // ---------------------------------------------------------------------------
+
+  describe("checkForTaskCycles", () => {
+    it("detects circular task dependencies", () => {
+      const planner = new TaskPlanner({
+        provider: createMockProvider(),
+        model: "test-model"
+      });
+
+      const plan: TaskPlan = {
+        title: "Cyclic",
+        tasks: [
+          {
+            id: "task_a",
+            title: "A",
+            dependsOn: ["task_b"],
+            steps: [
+              { id: "s1", instructions: "Do A", completed: false, dependsOn: [], logs: [] }
+            ]
+          },
+          {
+            id: "task_b",
+            title: "B",
+            dependsOn: ["task_a"],
+            steps: [
+              { id: "s2", instructions: "Do B", completed: false, dependsOn: [], logs: [] }
+            ]
+          }
+        ]
+      };
+
+      expect(planner.checkForTaskCycles(plan)).toBe(false);
+    });
+
+    it("accepts valid task DAGs", () => {
+      const planner = new TaskPlanner({
+        provider: createMockProvider(),
+        model: "test-model"
+      });
+
+      const plan: TaskPlan = {
+        title: "Valid DAG",
+        tasks: [
+          {
+            id: "task_a",
+            title: "A",
+            dependsOn: [],
+            steps: [
+              { id: "s1", instructions: "Do A", completed: false, dependsOn: [], logs: [] }
+            ]
+          },
+          {
+            id: "task_b",
+            title: "B",
+            dependsOn: ["task_a"],
+            steps: [
+              { id: "s2", instructions: "Do B", completed: false, dependsOn: [], logs: [] }
+            ]
+          },
+          {
+            id: "task_c",
+            title: "C",
+            dependsOn: ["task_a", "task_b"],
+            steps: [
+              { id: "s3", instructions: "Do C", completed: false, dependsOn: [], logs: [] }
+            ]
+          }
+        ]
+      };
+
+      expect(planner.checkForTaskCycles(plan)).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // buildTaskPlan
+  // ---------------------------------------------------------------------------
+
+  describe("buildTaskPlan", () => {
+    it("builds a TaskPlan from raw data", () => {
+      const planner = new TaskPlanner({
+        provider: createMockProvider(),
+        model: "test-model"
+      });
+
+      const rawData = {
+        title: "Test Plan",
+        tasks: [
+          {
+            id: "task_1",
+            title: "Task One",
+            depends_on: [],
+            steps: [
+              { id: "s1", instructions: "Step 1", depends_on: [] }
+            ]
+          },
+          {
+            id: "task_2",
+            title: "Task Two",
+            depends_on: ["task_1"],
+            steps: [
+              { id: "s2", instructions: "Step 2", depends_on: [] }
+            ]
+          }
+        ]
+      };
+
+      const plan = planner.buildTaskPlan(rawData);
+      expect(plan.title).toBe("Test Plan");
+      expect(plan.tasks).toHaveLength(2);
+      expect(plan.tasks[0].id).toBe("task_1");
+      expect(plan.tasks[1].dependsOn).toEqual(["task_1"]);
+      expect(plan.tasks[0].steps[0].id).toBe("s1");
+    });
+
+    it("handles camelCase dependsOn in task data", () => {
+      const planner = new TaskPlanner({
+        provider: createMockProvider(),
+        model: "test-model"
+      });
+
+      const rawData = {
+        title: "CamelCase Plan",
+        tasks: [
+          {
+            id: "task_1",
+            title: "One",
+            dependsOn: ["other"],
+            steps: [{ id: "s1", instructions: "Do it", dependsOn: [] }]
+          }
+        ]
+      };
+
+      const plan = planner.buildTaskPlan(rawData);
+      expect(plan.tasks[0].dependsOn).toEqual(["other"]);
+    });
   });
 });

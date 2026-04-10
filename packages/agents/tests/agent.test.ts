@@ -272,15 +272,22 @@ describe("Agent", () => {
   });
 
   it("plans and executes a task to completion", async () => {
-    const taskPayload = {
-      title: "Simple Task",
-      steps: [
+    const planPayload = {
+      title: "Simple Plan",
+      tasks: [
         {
-          id: "step_1",
-          instructions: "Do the work",
+          id: "task_1",
+          title: "Simple Task",
           depends_on: [],
-          output_schema:
-            '{"type":"object","properties":{"answer":{"type":"number"}}}'
+          steps: [
+            {
+              id: "step_1",
+              instructions: "Do the work",
+              depends_on: [],
+              output_schema:
+                '{"type":"object","properties":{"answer":{"type":"number"}}}'
+            }
+          ]
         }
       ]
     };
@@ -290,7 +297,7 @@ describe("Agent", () => {
       // Planning call
       [
         { type: "chunk", content: "Planning..." },
-        { id: "tc_plan", name: "create_task", args: taskPayload }
+        { id: "tc_plan", name: "create_plan", args: planPayload }
       ],
       // Execution call for step_1
       [
@@ -314,9 +321,9 @@ describe("Agent", () => {
       messages.push(msg);
     }
 
-    expect(agent.task).not.toBeNull();
-    expect(agent.task!.steps).toHaveLength(1);
-    expect(agent.task!.steps[0].completed).toBe(true);
+    expect(agent.taskPlan).not.toBeNull();
+    expect(agent.taskPlan!.tasks).toHaveLength(1);
+    expect(agent.taskPlan!.tasks[0].completed).toBe(true);
 
     // Should have step_result messages
     const stepResults = messages.filter((m) => m.type === "step_result");
@@ -324,7 +331,7 @@ describe("Agent", () => {
   });
 
   it("throws when planner fails to create a task", async () => {
-    // Provider that returns no task
+    // Provider that returns no plan
     const provider = createMockProvider([
       [{ type: "chunk", content: "I cannot plan this." }]
     ]);
@@ -355,15 +362,22 @@ describe("Agent", () => {
       "---\nname: data-analysis\ndescription: Analyze data carefully\n---\nWhen analyzing data, use statistics."
     );
 
-    const taskPayload = {
-      title: "Analysis Task",
-      steps: [
+    const planPayload = {
+      title: "Analysis Plan",
+      tasks: [
         {
-          id: "analyze",
-          instructions: "Analyze the data",
+          id: "task_analyze",
+          title: "Analysis Task",
           depends_on: [],
-          output_schema:
-            '{"type":"object","properties":{"done":{"type":"boolean"}}}'
+          steps: [
+            {
+              id: "analyze",
+              instructions: "Analyze the data",
+              depends_on: [],
+              output_schema:
+                '{"type":"object","properties":{"done":{"type":"boolean"}}}'
+            }
+          ]
         }
       ]
     };
@@ -371,7 +385,7 @@ describe("Agent", () => {
     const provider = createMockProvider([
       [
         { type: "chunk", content: "Planning..." },
-        { id: "tc_plan", name: "create_task", args: taskPayload }
+        { id: "tc_plan", name: "create_plan", args: planPayload }
       ],
       [
         { type: "chunk", content: "Analyzing..." },
@@ -397,16 +411,23 @@ describe("Agent", () => {
   });
 
   it("applies output schema to the last step", async () => {
-    const taskPayload = {
-      title: "Schema Task",
-      steps: [
-        { id: "step_a", instructions: "Do A", depends_on: [] },
-        { id: "step_b", instructions: "Final step", depends_on: ["step_a"] }
+    const planPayload = {
+      title: "Schema Plan",
+      tasks: [
+        {
+          id: "task_schema",
+          title: "Schema Task",
+          depends_on: [],
+          steps: [
+            { id: "step_a", instructions: "Do A", depends_on: [] },
+            { id: "step_b", instructions: "Final step", depends_on: ["step_a"] }
+          ]
+        }
       ]
     };
 
     const provider = createMockProvider([
-      [{ id: "tc_plan", name: "create_task", args: taskPayload }],
+      [{ id: "tc_plan", name: "create_plan", args: planPayload }],
       [
         { type: "chunk", content: "A" },
         { id: "tc_a", name: "finish_step", args: { result: { v: 1 } } }
@@ -437,8 +458,9 @@ describe("Agent", () => {
       // consume
     }
 
-    // The last step should have the output schema applied
-    expect(agent.task!.steps[1].outputSchema).toBe(
+    // The last step of the last task should have the output schema applied
+    const lastTask = agent.taskPlan!.tasks[agent.taskPlan!.tasks.length - 1];
+    expect(lastTask.steps[lastTask.steps.length - 1].outputSchema).toBe(
       JSON.stringify(outputSchema)
     );
   });
@@ -509,10 +531,17 @@ describe("Agent", () => {
       [
         {
           id: "tc_plan",
-          name: "create_task",
+          name: "create_plan",
           args: {
             title: "T",
-            steps: [{ id: "s1", instructions: "Do it", depends_on: [] }]
+            tasks: [
+              {
+                id: "task_1",
+                title: "T",
+                depends_on: [],
+                steps: [{ id: "s1", instructions: "Do it", depends_on: [] }]
+              }
+            ]
           }
         }
       ],
@@ -568,20 +597,27 @@ describe("Agent", () => {
       "---\nname: named-skill\ndescription: A named skill\n---\nNamed skill instructions."
     );
 
-    const taskPayload = {
-      title: "Named Skill Task",
-      steps: [
+    const planPayload = {
+      title: "Named Skill Plan",
+      tasks: [
         {
-          id: "s1",
-          instructions: "Do it",
+          id: "task_named",
+          title: "Named Skill Task",
           depends_on: [],
-          output_schema:
-            '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+          steps: [
+            {
+              id: "s1",
+              instructions: "Do it",
+              depends_on: [],
+              output_schema:
+                '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+            }
+          ]
         }
       ]
     };
     const provider = createMockProvider([
-      [{ id: "tc_plan", name: "create_task", args: taskPayload }],
+      [{ id: "tc_plan", name: "create_plan", args: planPayload }],
       [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }]
     ]);
 
@@ -600,7 +636,7 @@ describe("Agent", () => {
       // consume
     }
 
-    expect(agent.task).not.toBeNull();
+    expect(agent.taskPlan).not.toBeNull();
     expect(agent.getResults()).toEqual({ ok: true });
   });
 
@@ -612,20 +648,27 @@ describe("Agent", () => {
       "---\nname: env-skill\ndescription: Env-loaded skill for testing\n---\nEnv skill instructions."
     );
 
-    const taskPayload = {
-      title: "Env Skill Task",
-      steps: [
+    const planPayload = {
+      title: "Env Skill Plan",
+      tasks: [
         {
-          id: "s1",
-          instructions: "Do it",
+          id: "task_env",
+          title: "Env Skill Task",
           depends_on: [],
-          output_schema:
-            '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+          steps: [
+            {
+              id: "s1",
+              instructions: "Do it",
+              depends_on: [],
+              output_schema:
+                '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+            }
+          ]
         }
       ]
     };
     const provider = createMockProvider([
-      [{ id: "tc_plan", name: "create_task", args: taskPayload }],
+      [{ id: "tc_plan", name: "create_plan", args: planPayload }],
       [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }]
     ]);
 
@@ -646,7 +689,7 @@ describe("Agent", () => {
         // consume
       }
 
-      expect(agent.task).not.toBeNull();
+      expect(agent.taskPlan).not.toBeNull();
     } finally {
       if (savedEnv !== undefined) {
         process.env["NODETOOL_AGENT_SKILL_DIRS"] = savedEnv;
@@ -661,16 +704,23 @@ describe("Agent", () => {
       [
         {
           id: "tc_plan",
-          name: "create_task",
+          name: "create_plan",
           args: {
             title: "T",
-            steps: [
+            tasks: [
               {
-                id: "s1",
-                instructions: "Do it",
+                id: "task_1",
+                title: "T",
                 depends_on: [],
-                output_schema:
-                  '{"type":"object","properties":{"v":{"type":"number"}}}'
+                steps: [
+                  {
+                    id: "s1",
+                    instructions: "Do it",
+                    depends_on: [],
+                    output_schema:
+                      '{"type":"object","properties":{"v":{"type":"number"}}}'
+                  }
+                ]
               }
             ]
           }
@@ -716,16 +766,23 @@ describe("Agent", () => {
       [
         {
           id: "tc_plan",
-          name: "create_task",
+          name: "create_plan",
           args: {
             title: "T",
-            steps: [
+            tasks: [
               {
-                id: "s1",
-                instructions: "Do it",
+                id: "task_1",
+                title: "T",
                 depends_on: [],
-                output_schema:
-                  '{"type":"object","properties":{"done":{"type":"boolean"}}}'
+                steps: [
+                  {
+                    id: "s1",
+                    instructions: "Do it",
+                    depends_on: [],
+                    output_schema:
+                      '{"type":"object","properties":{"done":{"type":"boolean"}}}'
+                  }
+                ]
               }
             ]
           }
@@ -765,21 +822,28 @@ describe("Agent", () => {
   });
 
   it("creates workspace directory when not provided", async () => {
-    const taskPayload = {
-      title: "Workspace Task",
-      steps: [
+    const planPayload = {
+      title: "Workspace Plan",
+      tasks: [
         {
-          id: "step_1",
-          instructions: "Do work",
+          id: "task_ws",
+          title: "Workspace Task",
           depends_on: [],
-          output_schema:
-            '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+          steps: [
+            {
+              id: "step_1",
+              instructions: "Do work",
+              depends_on: [],
+              output_schema:
+                '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+            }
+          ]
         }
       ]
     };
 
     const provider = createMockProvider([
-      [{ id: "tc_plan", name: "create_task", args: taskPayload }],
+      [{ id: "tc_plan", name: "create_plan", args: planPayload }],
       [
         { type: "chunk", content: "Done" },
         { id: "tc_1", name: "finish_step", args: { result: { ok: true } } }
