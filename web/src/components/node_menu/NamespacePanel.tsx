@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { List, Typography } from "@mui/material";
+import { List } from "@mui/material";
+import { Text } from "../ui_primitives";
 import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
@@ -250,7 +251,7 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
         </div>
         {Object.keys(localTree).length > 0 && (
           <>
-            <Typography className="namespace-section-title">Local</Typography>
+            <Text className="namespace-section-title">Local</Typography>
             <div className="namespace-list-local">
               <RenderNamespaces tree={localTree} />
             </div>
@@ -258,9 +259,9 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
         )}
         {Object.keys(providerTree).length > 0 && (
           <>
-            <Typography className="namespace-section-title providers">
+            <Text className="namespace-section-title providers">
               Providers
-            </Typography>
+            </Text>
             <div className="namespace-list-providers">
               <RenderNamespaces tree={providerTree} />
             </div>
