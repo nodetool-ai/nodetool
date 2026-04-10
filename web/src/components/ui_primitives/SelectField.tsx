@@ -91,7 +91,7 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
   description,
   disabled = false,
   id,
-  size = "medium",
+  size = "small",
   variant = "standard"
 }) => {
   const theme = useTheme();

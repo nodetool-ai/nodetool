@@ -50,7 +50,7 @@ export const TextInput = memo(
     (
       {
         variant = "outlined",
-        size = "medium",
+        size = "small",
         compact = false,
         fullWidth = true,
         errorMessage,

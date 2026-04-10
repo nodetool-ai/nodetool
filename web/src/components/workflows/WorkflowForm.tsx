@@ -40,6 +40,9 @@ const styles = (theme: Theme) =>
     
     // Section grouping
     ".settings-section": {
+      display: "flex",
+      flexDirection: "column" as const,
+      gap: theme.spacing(1),
       marginBottom: theme.spacing(3),
       padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.action.hover,
@@ -56,8 +59,8 @@ const styles = (theme: Theme) =>
       marginBottom: theme.spacing(2)
     },
     
-    // Form controls
-    ".MuiFormControl-root": {
+    // Form controls — both FormControl and TextField
+    ".MuiFormControl-root, .MuiTextField-root": {
       marginBottom: theme.spacing(2),
       "&:last-child": {
         marginBottom: 0
