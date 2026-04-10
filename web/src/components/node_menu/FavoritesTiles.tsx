@@ -4,7 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
-import { Box, Tooltip, Typography, IconButton } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
+import { Tooltip, Text } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -299,18 +300,18 @@ const FavoritesTiles = memo(function FavoritesTiles() {
   return (
     <Box css={memoizedStyles}>
       <div className="tiles-header">
-        <Typography variant="h5">
+        <Text size="normal" weight={600}>
           <StarIcon
             fontSize="small"
             sx={{ opacity: 0.8, color: "warning.main" }}
           />
           Favorites
-        </Typography>
+        </Text>
         <Tooltip
           title="Clear all favorites"
           placement="top"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          enterNextDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
+          nextDelay={TOOLTIP_ENTER_DELAY}
         >
           <IconButton
             size="small"
@@ -372,7 +373,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
                 >
                   <StarBorderIcon fontSize="small" />
                 </IconButton>
-                <Typography className="tile-label">{displayName}</Typography>
+                <Text className="tile-label">{displayName}</Text>
               </div>
             </Tooltip>
           );

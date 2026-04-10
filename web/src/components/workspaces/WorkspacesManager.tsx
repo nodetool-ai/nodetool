@@ -491,16 +491,13 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
         <DialogContent>
           <div className="workspaces-manager">
             {isLoading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  py: 4
-                }}
+              <FlexRow
+                justify="center"
+                align="center"
+                sx={{ py: 4 }}
               >
                 <CircularProgress size={30} />
-              </Box>
+              </FlexRow>
             ) : error ? (
               <Box className="empty-state">
                 <Text color="error" sx={{ mb: 1 }}>
@@ -682,13 +679,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     }
                     label="Set as default workspace"
                   />
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: 1,
-                      mt: 1
-                    }}
+                  <FlexRow
+                    justify="flex-end"
+                    gap={1}
+                    sx={{ mt: 1 }}
                   >
                     <Button
                       onClick={handleCancelAdd}

@@ -8,14 +8,14 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, Typography, CircularProgress } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 
 // Icons
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 
 // UI Primitives
-import { CloseButton } from "../../ui_primitives";
+import { CloseButton, Tooltip, Text } from "../../ui_primitives";
 
 import { useCombo } from "../../../stores/KeyPressedStore";
 import ImageEditorToolbar from "./ImageEditorToolbar";
