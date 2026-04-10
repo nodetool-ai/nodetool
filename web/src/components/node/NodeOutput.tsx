@@ -10,8 +10,6 @@ import HandleTooltip from "../HandleTooltip";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findInputHandle } from "../../utils/handleUtils";
-import useConnectableNodes from "../../stores/ConnectableNodesStore";
-import AddIcon from "@mui/icons-material/Add";
 
 export type NodeOutputProps = {
   id: string;
@@ -96,32 +94,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
   const connections = useNodeConnections({ handleType: "source", handleId: output.name });
   const isConnected = connections.length > 0;
 
-  const {
-    setNodeId: setConnNodeId,
-    setSourceHandle: setConnSourceHandle,
-    setTargetHandle: setConnTargetHandle,
-    setFilterType: setConnFilterType,
-    setTypeMetadata: setConnTypeMetadata,
-    showMenu: showConnMenu
-  } = useConnectableNodes();
-
-  const handleAddClick = useCallback(
-    (event: React.MouseEvent) => {
-      event.stopPropagation();
-      event.preventDefault();
-      setConnNodeId(id);
-      setConnSourceHandle(output.name);
-      setConnTargetHandle(null);
-      setConnFilterType("input");
-      setConnTypeMetadata(output.type);
-      showConnMenu({
-        x: event.clientX + 20,
-        y: event.clientY
-      });
-    },
-    [id, output.name, output.type, setConnNodeId, setConnSourceHandle, setConnTargetHandle, setConnFilterType, setConnTypeMetadata, showConnMenu]
-  );
-
   const isConnectable = useMemo(() => {
     if (!effectiveConnectType || connectDirection !== "target") {
       return true;
@@ -178,15 +150,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
           className={`${classConnectable} ${Slugify(output.type.type)}${isStreamingOutput ? " streaming-handle" : ""}`}
         />
       </HandleTooltip>
-      {!isConnected && (
-        <div
-          className="output-add-button"
-          onClick={handleAddClick}
-          title="Add connected node"
-        >
-          <AddIcon sx={{ fontSize: 14 }} />
-        </div>
-      )}
     </div>
   );
 };
