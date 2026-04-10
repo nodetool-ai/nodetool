@@ -23,7 +23,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import { CloseButton } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { client, isLocalhost, isElectron } from "../../stores/ApiClient";
+import { isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import { getRemoteSidebarSections as getApiServicesSidebarSections } from "./remoteSidebarUtils";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
@@ -37,8 +37,6 @@ import DefaultModelsMenu from "./DefaultModelsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
-import { useMutation } from "@tanstack/react-query";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
 import { Dialog } from "../ui_primitives";
@@ -97,10 +95,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const settings = useSettingsStore((state) => state.settings);
 
   const [activeSection, setActiveSection] = useState("editor");
-  const [lastExportPath, setLastExportPath] = useState<string | null>(null);
   const [, setSecretsUpdated] = useState({});
   const settingsContentRef = useRef<HTMLDivElement | null>(null);
-  const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
   const [closeBehavior, setCloseBehavior] = useState<
     "ask" | "quit" | "background"
   >("ask");
@@ -268,92 +264,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     });
   };
 
-  const exportMutation = useMutation({
-    mutationFn: async () => {
-      const payload: {
-        workflow_id?: string;
-        graph?: Record<string, unknown>;
-        errors?: string[];
-        preferred_save?: "desktop" | "downloads";
-      } = {
-        workflow_id: currentWorkflowId || undefined,
-        errors: [],
-        preferred_save: "downloads"
-      };
-
-      // Use Electron's debug API if available (preferred for local debugging)
-      if (isElectron && typeof window.api?.debug?.exportBundle === "function") {
-        return await window.api.debug.exportBundle(payload);
-      }
-
-      // Fallback to Python API (for non-Electron or when Electron API is not available)
-      const { error, data } = await client.POST("/api/debug/export", {
-        body: payload
-      });
-      if (error) {
-        throw new Error(error.detail?.[0]?.msg || "Unknown error");
-      }
-      return data;
-    },
-    onSuccess: (data) => {
-      addNotification({
-        type: "success",
-        content: `Debug bundle saved: ${data.file_path}`,
-        alert: true
-      });
-      setLastExportPath(data.file_path);
-
-      // Show in folder using the new shell API
-      if (typeof window.api?.shell?.showItemInFolder === "function") {
-        window.api.shell.showItemInFolder(data.file_path);
-
-        // Play notification sound if enabled
-        if (
-          settings.soundNotifications &&
-          typeof window.api.shell.beep === "function"
-        ) {
-          window.api.shell.beep();
-        }
-      } else if (typeof window.api?.showItemInFolder === "function") {
-        // Fallback to legacy API
-        window.api.showItemInFolder(data.file_path);
-      } else {
-        addNotification({
-          type: "info",
-          content:
-            "Electron not available to open folder. Please open it manually.",
-          dismissable: true
-        });
-      }
-    },
-    onError: (err: unknown) => {
-      addNotification({
-        type: "error",
-        content: `Export failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-        dismissable: true
-      });
-    }
-  });
-
-  const handleExport = useCallback(() => {
-    if (exportMutation.isPending) {
-      return;
-    }
-    exportMutation.mutate();
-  }, [exportMutation]);
-
-  const handleOpenExportFolder = useCallback(() => {
-    if (!lastExportPath) {
-      return;
-    }
-    const api = window.api;
-    if (api?.shell?.showItemInFolder) {
-      api.shell.showItemInFolder(lastExportPath);
-    } else if (api?.showItemInFolder) {
-      api.showItemInFolder(lastExportPath);
-    }
-  }, [lastExportPath]);
-
   const generalSidebarSections = [
     {
       category: "General",
@@ -510,100 +420,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
               <div className="settings-content" ref={settingsContentRef}>
                 <TabPanel value={settingsTab} index={0}>
                   <div id="editor" className="settings-section">
-                    <Typography
-                      variant="h3"
-                      id="debug-tools"
-                      style={{ margin: 0, borderBottom: "none" }}
-                    >
-                      Debug Tools
-                    </Typography>
-                    <div className="settings-item">
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "0.75em"
-                        }}
-                      >
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={() => {
-                            setMenuOpen(false);
-                            window.location.href = "/node-test";
-                          }}
-                        >
-                          Node Integration Tests
-                        </Button>
-                        <Typography className="description">
-                          Run all registered nodes as single-node workflows with
-                          concurrent execution and output preview.
-                        </Typography>
-                        {isLocalhost && (
-                          <>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              onClick={handleExport}
-                              disabled={exportMutation.isPending}
-                            >
-                              Export Debug Bundle
-                            </Button>
-                            <Typography className="description">
-                              Collect logs, environment info, and the last
-                              workflow context into a ZIP in your Downloads
-                              folder.
-                            </Typography>
-                          </>
-                        )}
-                        {lastExportPath && (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "0.5em",
-                              padding: "0.5em",
-                              backgroundColor:
-                                "var(--palette-background-paper)",
-                              borderRadius: "4px",
-                              border: "1px solid var(--palette-divider)"
-                            }}
-                          >
-                            <Typography
-                              variant="caption"
-                              style={{
-                                color: "var(--palette-text-secondary)"
-                              }}
-                            >
-                              Last exported to:
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              style={{
-                                wordBreak: "break-all",
-                                fontSize: "0.8em"
-                              }}
-                            >
-                              {lastExportPath}
-                            </Typography>
-                            {/* Only show Open Folder button in Electron */}
-                            {isElectron && (
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={handleOpenExportFolder}
-                                style={{ alignSelf: "flex-start" }}
-                              >
-                                Open Folder
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="settings-section">
                     <div className="settings-item">
                       <FormControl>
                         <InputLabel htmlFor={id}>

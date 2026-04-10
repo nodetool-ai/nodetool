@@ -231,13 +231,6 @@ declare global {
         openSettings: () => Promise<void>;
       };
 
-      // Debug operations
-      debug: {
-        exportBundle: (
-          request: DebugBundleRequest,
-        ) => Promise<DebugBundleResponse>;
-      };
-
       // Native dialog operations
       dialog: {
         openFile: (
@@ -581,8 +574,6 @@ export enum IpcChannels {
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY = "file-explorer-open-system-directory",
   // System info channel
   GET_SYSTEM_INFO = "get-system-info",
-  // Debug channels
-  DEBUG_EXPORT_BUNDLE = "debug-export-bundle",
   // Dialog channels
   DIALOG_OPEN_FILE = "dialog-open-file",
   DIALOG_OPEN_FOLDER = "dialog-open-folder",
@@ -630,19 +621,6 @@ export interface InstallToLocationData {
 
 export interface FileExplorerPathRequest {
   path: string;
-}
-
-export interface DebugBundleRequest {
-  workflow_id?: string;
-  graph?: Record<string, unknown>;
-  errors?: string[];
-  preferred_save?: "desktop" | "downloads";
-}
-
-export interface DebugBundleResponse {
-  file_path: string;
-  filename: string;
-  message: string;
 }
 
 // Dialog types for native file/folder selection
@@ -770,8 +748,6 @@ export interface IpcRequest {
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: SystemDirectory;
   // System info
   [IpcChannels.GET_SYSTEM_INFO]: void;
-  // Debug
-  [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleRequest;
   // Dialog
   [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenFileRequest;
   [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenFolderRequest;
@@ -881,8 +857,6 @@ export interface IpcResponse {
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: FileExplorerResult;
   // System info
   [IpcChannels.GET_SYSTEM_INFO]: SystemInfo;
-  // Debug
-  [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleResponse;
   // Dialog
   [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenResult;
   [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenResult;

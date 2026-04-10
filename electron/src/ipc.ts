@@ -56,7 +56,7 @@ import {
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
-import { exportDebugBundle } from "./debug";
+
 import WebSocket from "ws";
 
 /**
@@ -1328,14 +1328,6 @@ export function initializeIpcHandlers(): void {
     const { getSystemInfo } = await import("./systemInfo");
     return await getSystemInfo();
   });
-
-  createIpcMainHandler(
-    IpcChannels.DEBUG_EXPORT_BUNDLE,
-    async (_event, request) => {
-      logMessage("Exporting debug bundle");
-      return await exportDebugBundle(request);
-    },
-  );
 
   // Dialog handlers for native file/folder selection
   createIpcMainHandler(
