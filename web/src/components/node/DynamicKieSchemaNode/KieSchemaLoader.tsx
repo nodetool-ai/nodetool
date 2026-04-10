@@ -1,5 +1,6 @@
 import React, { useCallback, useState, memo } from "react";
-import { Box, CircularProgress, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, CircularProgress, IconButton } from "@mui/material";
+import { Tooltip, Caption } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -135,7 +136,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
 
     return (
       <Box sx={{ display: "inline-flex", alignItems: "center" }}>
-        <Tooltip title="Reload Schema" arrow enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip title="Reload Schema" arrow delay={TOOLTIP_ENTER_DELAY}>
           <IconButton
             size="small"
             disabled={loading}
@@ -157,8 +158,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
           </IconButton>
         </Tooltip>
         {error && (
-          <Typography
-            variant="caption"
+          <Caption
             color="error"
             sx={{
               position: "absolute",
@@ -170,7 +170,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
             }}
           >
             {error}
-          </Typography>
+          </Caption>
         )}
       </Box>
     );

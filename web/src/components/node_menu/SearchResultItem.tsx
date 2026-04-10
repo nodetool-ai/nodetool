@@ -3,7 +3,8 @@ import { memo, useCallback, forwardRef, useState, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, Box, Collapse } from "@mui/material";
+import { Box, Collapse } from "@mui/material";
+import { Text } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -286,13 +287,13 @@ const SearchResultItem = memo(
                     height: "15px"
                   }}
                 />
-                <Typography className="result-title" component="div">
+                <Text className="result-title" component="div">
                   <HighlightText
                     text={node.title}
                     query={searchTerm}
                     matchStyle="primary"
                   />
-                </Typography>
+                </Text>
                 {matchingTags.length > 0 && (
                   <div className="matched-tags-inline">
                     {matchingTags.slice(0, 2).map((tag, idx) => (
@@ -316,7 +317,7 @@ const SearchResultItem = memo(
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <Typography className="result-namespace" component="div">
+              <Text className="result-namespace" component="div">
                 <HighlightText
                   text={node.namespace}
                   query={searchTerm}
