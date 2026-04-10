@@ -249,7 +249,8 @@ export function useCompositing({
     runtimeRef,
     getOrCreateLayerCanvas,
     invalidateLayer,
-    requestRedraw
+    requestRedraw,
+    coordinatorRef
   });
 
   // Wire up the forward-declared ref so getOrCreateLayerCanvas can reach it.
@@ -275,6 +276,12 @@ export function useCompositing({
   // paints so the very first frame shows layer content instead of a blank canvas.
   useLayoutEffect(() => {
     compositeToDisplayRef.current(null);
+    // Notify the coordinator that the initial composite has been performed
+    // externally. Without this, the coordinator's readiness contract would
+    // stay in a half-ready state after the first visible paint, which could
+    // cause first-interaction preview or click-only tap frames to appear
+    // dropped because firstFrameComposited was never set.
+    coordinatorRef.current?.notifyInitialComposite();
   }, [bootstrapPhaseActive, backend]);
 
   useEffect(() => {

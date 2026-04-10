@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
 import { resolveAssetUri } from "../../../utils/resolveAssetUri";
+import type { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 
 export interface UseLayerHydrationParams {
   doc: SketchDocument;
@@ -23,6 +24,8 @@ export interface UseLayerHydrationParams {
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   invalidateLayer: (layerId: string) => void;
   requestRedraw: () => void;
+  /** Optional coordinator ref for marking hydration readiness. */
+  coordinatorRef?: React.MutableRefObject<DisplayFrameCoordinator | null>;
 }
 
 export interface UseLayerHydrationResult {
@@ -52,7 +55,8 @@ export function useLayerHydration({
   layerCanvasesRef,
   getOrCreateLayerCanvas,
   invalidateLayer,
-  requestRedraw
+  requestRedraw,
+  coordinatorRef
 }: UseLayerHydrationParams): UseLayerHydrationResult {
   const hydratedLayerStateRef = useRef<Map<string, string>>(new Map());
 
@@ -176,6 +180,12 @@ export function useLayerHydration({
         }
       );
     }
+    // Mark hydration complete on the coordinator so the readiness contract
+    // accurately reflects that all layer canvases have been created and
+    // their data loading has been initiated. Without this, the coordinator's
+    // hydrationComplete flag stays false forever, leaving the readiness
+    // contract inaccurate for tracing and debugging.
+    coordinatorRef?.current?.markHydrationComplete();
     // Intentionally omit doc.canvas.width/height: canvas resize must not
     // re-hydrate layers (that called setLayerData with new doc bounds and
     // stretched rasters). Redraw is handled by the effect below.
