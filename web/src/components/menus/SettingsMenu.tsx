@@ -17,6 +17,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
+import SearchIcon from "@mui/icons-material/Search";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -91,6 +92,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     (state) => state.updateAutosaveSettings
   );
   const settings = useSettingsStore((state) => state.settings);
+  const [apiSearchTerm, setApiSearchTerm] = useState("");
 
   // Generate unique IDs for form controls
   const baseId = useId();
@@ -138,6 +140,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const handleTabChange = useCallback(
     (event: React.SyntheticEvent, newValue: number) => {
       setMenuOpen(true, newValue);
+      setApiSearchTerm("");
     },
     [setMenuOpen]
   );
@@ -737,10 +740,35 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                 {/* Tab 1: API & Keys */}
                 <TabPanel value={settingsTab} index={1}>
+                  <TextField
+                    placeholder="Search API keys, settings, and folders..."
+                    value={apiSearchTerm}
+                    onChange={(e) => setApiSearchTerm(e.target.value)}
+                    size="small"
+                    fullWidth
+                    aria-label="Search API & Keys"
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <Box component="span" sx={{ mr: 1, display: "flex", color: "text.disabled" }}>
+                            <SearchIcon />
+                          </Box>
+                        )
+                      }
+                    }}
+                    sx={{
+                      mb: 2,
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "10px",
+                        backgroundColor: "action.hover"
+                      }
+                    }}
+                  />
+
                   <Typography variant="h3" id="api-keys">
                     API Keys
                   </Typography>
-                  <SecretsMenu />
+                  <SecretsMenu searchTerm={apiSearchTerm} />
 
                   {session?.access_token && !isLocalhost && (
                     <>

@@ -3,7 +3,7 @@ import log from "loglevel";
 
 type ModelDirectory = "huggingface" | "ollama";
 
-type SystemDirectory = "installation" | "logs";
+type SystemDirectory = "installation" | "logs" | "assets";
 
 interface FileExplorerResult {
   status: "success" | "error";

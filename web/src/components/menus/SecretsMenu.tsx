@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import DeleteIcon from "@mui/icons-material/Delete";
 import { EditButton } from "../ui_primitives/EditButton";
-import SearchIcon from "@mui/icons-material/Search";
 import WarningIcon from "@mui/icons-material/Warning";
 import {
   Button,
@@ -15,15 +14,13 @@ import {
   Tooltip,
   Chip,
   Box,
-  Divider,
-  InputAdornment
+  Divider
 } from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
-import { useSettingsStore } from "../../stores/SettingsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useState, useCallback, useMemo, memo, useEffect } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -34,7 +31,11 @@ interface SecretFormData {
   value: string;
 }
 
-const SecretsMenu = memo(() => {
+interface SecretsMenuProps {
+  searchTerm?: string;
+}
+
+const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const secrets = useSecretsStore((state) => state.secrets);
@@ -53,15 +54,7 @@ const SecretsMenu = memo(() => {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const searchFilter = useSettingsStore((state) => state.searchFilter);
-
-  // Sync searchFilter from store into local searchTerm when it changes
-  useEffect(() => {
-    if (searchFilter) {
-      setSearchTerm(searchFilter);
-    }
-  }, [searchFilter]);
+  const searchTerm = externalSearchTerm ?? "";
 
   // Use React Query to trigger fetch, but use store state directly
   const { isLoading: queryLoading } = useQuery({
@@ -204,32 +197,6 @@ const SecretsMenu = memo(() => {
       {isSuccess && (
         <div className="secrets-content" css={getSharedSettingsStyles(theme)}>
           <div className="settings-main-content">
-            <Typography variant="h1">Secrets Management</Typography>
-
-            <div className="secrets-search-container">
-              <TextField
-                placeholder="Search secrets..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                size="small"
-                fullWidth
-                aria-label="Search secrets"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "text.disabled" }} />
-                    </InputAdornment>
-                  )
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "10px",
-                    backgroundColor: "action.hover"
-                  }
-                }}
-              />
-            </div>
-
             <div className="secrets">
               <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main, flexShrink: 0 }} />
               <Typography>
