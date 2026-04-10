@@ -32,9 +32,9 @@ Completed refactor items (lifecycle hook, tool chrome, color router, store actio
 
 `SketchCanvas.tsx` is much smaller than before, but it still mixes transient preview ownership, hook-bridge setup, and canvas chrome/layout in one place. Keep this refactor narrow and only extract seams that already want to exist.
 
-- [ ] [impl+test] extract a dedicated transform-preview bridge from `SketchCanvas.tsx` so preview-map ownership, active-layer preview bridging, redraw/invalidate policy, and startup texture invalidation stop living inline beside compositing and pointer wiring. this should line up with the editor task to remove the parallel preview channel used by transform UI
-- [ ] [impl+test] extract a canvas interaction-orchestration hook or bridge so the shared refs and the current `useCompositing` / `useOverlayRenderer` / `usePointerHandlers` setup stop living in one component body. focus especially on the container/canvas refs, modifier refs, cursor-position tracking, and the current circular-style wiring comments in `SketchCanvas.tsx`
-- [ ] [impl] extract canvas stack + chrome presentation from `SketchCanvas.tsx` so stacked canvas JSX, canvas/cursor style computation, resize handles, and the info bar stop living beside orchestration logic. keep the extracted piece presentational: no new state ownership, just props for already-derived layout/chrome data
+- [x] [impl+test] extract a dedicated transform-preview bridge from `SketchCanvas.tsx` so preview-map ownership, active-layer preview bridging, redraw/invalidate policy, and startup texture invalidation stop living inline beside compositing and pointer wiring. this should line up with the editor task to remove the parallel preview channel used by transform UI
+- [x] [impl+test] extract a canvas interaction-orchestration hook or bridge so the shared refs and the current `useCompositing` / `useOverlayRenderer` / `usePointerHandlers` setup stop living in one component body. focus especially on the container/canvas refs, modifier refs, cursor-position tracking, and the current circular-style wiring comments in `SketchCanvas.tsx`
+- [x] [impl] extract canvas stack + chrome presentation from `SketchCanvas.tsx` so stacked canvas JSX, canvas/cursor style computation, resize handles, and the info bar stop living beside orchestration logic. keep the extracted piece presentational: no new state ownership, just props for already-derived layout/chrome data
 
 ## Active Roadmap
 
