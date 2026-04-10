@@ -75,6 +75,11 @@ export const TextInput = memo(
           error={hasError}
           helperText={displayHelperText}
           sx={{
+            ...(size === "small" && {
+              "& .MuiInputLabel-root:not(.MuiInputLabel-shrink)": {
+                transform: "translate(14px, 8px) scale(1)",
+              },
+            }),
             ...(compact && {
               "& .MuiInputBase-input": {
                 py: 0.75,
