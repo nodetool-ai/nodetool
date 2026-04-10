@@ -14,7 +14,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "lodash/isEqual";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
-import { Caption, CloseButton, ScrollArea, Text, Tooltip } from "./ui_primitives";
+import { Caption, CloseButton, CollapsibleSection, ScrollArea, Text, Tooltip } from "./ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -371,9 +371,15 @@ const Inspector: React.FC = () => {
               </div>
               <div className="namespace">{metadata.node_type}</div>
               {metadata.description && (
-                <div className="header-description">
-                  {metadata.description}
-                </div>
+                <CollapsibleSection
+                  title="Description"
+                  defaultOpen={false}
+                  compact
+                >
+                  <div className="header-description">
+                    {metadata.description}
+                  </div>
+                </CollapsibleSection>
               )}
             </div>
             {/* Base properties */}
