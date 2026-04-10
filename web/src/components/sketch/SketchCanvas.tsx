@@ -5,17 +5,14 @@
  * Manages raster drawing with brush/eraser/shape/fill tools, zoom/pan,
  * layer compositing with blend modes, and shape preview overlay.
  *
- * After refactor: thin orchestration component that wires together
- * focused hooks for compositing, imperative methods, overlays, and pointer handling.
+ * After refactor: thin orchestration component that delegates to:
+ * - `useTransformPreviewBridge` — preview-map ownership and invalidation
+ * - `useCanvasOrchestration` — ref creation, compositing/overlay/pointer wiring
+ * - `SketchCanvasPresentation` — stacked canvas JSX, chrome, info bar
  */
 
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import React, { useCallback, useEffect, useRef, useState, useMemo, forwardRef } from "react";
+import React, { useCallback, useEffect, useState, useMemo, forwardRef } from "react";
 import { useSketchStore } from "./state";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
 import type {
   SketchDocument,
   SketchTool,
@@ -25,60 +22,13 @@ import type {
   LayerContentBounds
 } from "./types";
 import {
-  useCompositing,
   useCanvasImperativeHandle,
-  useOverlayRenderer,
-  usePointerHandlers,
-  selectionAntCanvasMarginCssPx
+  useTransformPreviewBridge,
+  useCanvasOrchestration
 } from "./sketchCanvasHooks";
 import { clientToDocumentCanvas } from "./tools/transform/handleGeometry";
 import type { StrokeEndOptions } from "./tools/types";
-import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
-import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
-import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
-import {
-  setActiveLayerTransformPreview,
-  clearActiveLayerTransformPreview
-} from "./activeLayerTransform";
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-const styles = (theme: Theme) =>
-  css({
-    position: "relative",
-    width: "100%",
-    height: "100%",
-    overflow: "visible",
-    backgroundColor: theme.vars.palette.grey[800],
-    // Pen/tablet: avoid browser gestures (Edge/Chrome “back” arrow on horizontal drag).
-    touchAction: "none",
-    overscrollBehaviorX: "none",
-    overscrollBehaviorY: "contain",
-    "& canvas": {
-      position: "absolute",
-      top: "50%",
-      left: "50%",
-      imageRendering: "pixelated",
-      // Hit target is often the canvas; touch-action is not inherited.
-      touchAction: "none"
-    },
-    "& .sketch-canvas__doc-stack": {
-      position: "absolute",
-      inset: 0,
-      overflow: "hidden",
-      pointerEvents: "none"
-    },
-    "& .cursor-overlay": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      pointerEvents: "none",
-      zIndex: SKETCH_Z_INDEX.overlay,
-      imageRendering: "auto"
-    }
-  });
+import SketchCanvasPresentation from "./SketchCanvasPresentation";
 
 // ─── Canvas Ref Interface ────────────────────────────────────────────────────
 
@@ -283,8 +233,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onCanvasResize
     } = props;
 
-    const theme = useTheme();
-
     // Subscribe to live toolSettings directly so that brush/color changes trigger
     // only a SketchCanvas re-render (not a compositing cascade). The bare `doc`
     // prop is intentionally passed to useCompositing so that compositing effects
@@ -295,159 +243,30 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [doc, liveToolSettings]
     );
 
-    const transformPreviewByLayerIdRef = useRef<Record<string, LayerTransform>>({});
-    const requestPreviewRedrawRef = useRef<() => void>(() => {});
-    /**
-     * Ref to the runtime's invalidateLayer — populated after useCompositing.
-     * Used by setLayerTransformPreview to force-invalidate a layer's GPU
-     * texture when the preview first activates, ensuring stale textures from
-     * startup/image-load timing races are re-synced before compositing.
-     */
-    const invalidateLayerRef = useRef<(layerId: string) => void>(() => {});
-
-    const setLayerTransformPreview = useCallback(
-      (layerId: string, transform: LayerTransform) => {
-        setActiveLayerTransformPreview({ layerId, transform });
-        const current = transformPreviewByLayerIdRef.current;
-        const existing = current[layerId];
-        if (
-          existing &&
-          existing.x === transform.x &&
-          existing.y === transform.y &&
-          (existing.scaleX ?? 1) === (transform.scaleX ?? 1) &&
-          (existing.scaleY ?? 1) === (transform.scaleY ?? 1) &&
-          Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
-        ) {
-          return;
-        }
-        // When a layer is first added to the preview map (start of a new drag),
-        // force-invalidate its rendering data so the GPU texture is re-synced
-        // from the CPU canvas. This prevents stale textures from startup timing
-        // races where an image loaded after the initial GPU texture upload.
-        if (!existing) {
-          invalidateLayerRef.current(layerId);
-        }
-        transformPreviewByLayerIdRef.current = {
-          ...current,
-          [layerId]: transform
-        };
-        requestPreviewRedrawRef.current();
-      },
-      []
-    );
-
-    const clearLayerTransformPreview = useCallback(
-      (layerId?: string) => {
-        clearActiveLayerTransformPreview();
-        const current = transformPreviewByLayerIdRef.current;
-        if (layerId == null) {
-          if (Object.keys(current).length === 0) {
-            return;
-          }
-          transformPreviewByLayerIdRef.current = {};
-          requestPreviewRedrawRef.current();
-          return;
-        }
-        if (!(layerId in current)) {
-          return;
-        }
-        const next = { ...current };
-        delete next[layerId];
-        transformPreviewByLayerIdRef.current = next;
-        requestPreviewRedrawRef.current();
-      },
-      []
-    );
-
-    // ─── Shared refs (created here to avoid circular deps between hooks) ─
-    const containerRef = useRef<HTMLDivElement>(null);
-    const selectionCanvasRef = useRef<HTMLCanvasElement>(null);
-    const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
-    const gizmoCanvasRef = useRef<HTMLCanvasElement>(null);
-    const mousePositionRef = useRef<Point>({ x: 0, y: 0 });
-    /** Last pointer client coords while over the canvas (for paste-at-cursor). */
-    const lastPointerClientRef = useRef<{ x: number; y: number } | null>(null);
-    const activeStrokeRef = useRef<ActiveStrokeInfo | null>(null);
-
-    // ─── Document-space cursor position for info bar readout ────────────
-    const [cursorDocPos, setCursorDocPos] = useState<Point | null>(null);
-
-    // ─── Compositing (layer canvases, redraw) ──────────────────────────
+    // ─── Transform preview bridge ──────────────────────────────────────
 
     const {
-      displayCanvasRef,
-      bootstrapDisplayRef,
-      bootstrapPhaseActive,
-      overlayCanvasRef,
-      layerCanvasesRef,
-      runtime,
-      backend,
-      getOrCreateLayerCanvas,
-      invalidateLayer,
-      redraw,
-      redrawDirty,
-      requestRedraw,
-      requestDirtyRedraw,
-      drainPendingStrokeCommit
-    } = useCompositing({
-      doc,
-      zoom,
-      isolatedLayerId,
-      activeStrokeRef,
-      transformPreviewByLayerIdRef
-    });
-    requestPreviewRedrawRef.current = requestRedraw;
-    invalidateLayerRef.current = invalidateLayer;
+      transformPreviewByLayerIdRef,
+      requestPreviewRedrawRef,
+      invalidateLayerRef,
+      setLayerTransformPreview,
+      clearLayerTransformPreview
+    } = useTransformPreviewBridge();
 
-    // ─── Pointer handlers (provides shiftHeldRef, altHeldRef, selectStartRef) ─
-    // These refs are needed by the overlay renderer, so we extract them first
-    // with stub overlay functions, then wire the real ones below.
-    //
-    // NOTE: We call usePointerHandlers once with the real overlay functions.
-    // shiftHeldRef/altHeldRef/selectStartRef are stable refs that don't change
-    // between renders, so the overlay renderer can safely reference them even
-    // though they're created inside the same hook.
+    // ─── Canvas orchestration (refs, compositing, overlay, pointer) ────
 
-    // We create the overlay renderer with refs from pointer handler.
-    // But overlay renderer needs shiftHeldRef/altHeldRef from pointer handler
-    // AND pointer handler needs overlay functions from overlay renderer.
-    //
-    // Solution: create the modifier refs at this level.
-    const shiftHeldRef = useRef(false);
-    const altHeldRef = useRef(false);
-    const selectStartRef = useRef<Point | null>(null);
-    const lassoPointsRef = useRef<Point[]>([]);
-    const selectionMoveAntsRef = useRef<{
-      start: Selection;
-      dx: number;
-      dy: number;
-    } | null>(null);
-
-    // ─── Overlay and cursor rendering ──────────────────────────────────
-
-    const overlay = useOverlayRenderer({
-      doc: docWithTools,
-      activeTool,
-      interactionTool,
-      zoom,
-      pan,
-      selection,
-      selectionMoveAntsRef,
-      overlayCanvasRef,
+    const {
+      containerRef,
       selectionCanvasRef,
       cursorCanvasRef,
       gizmoCanvasRef,
-      containerRef,
-      shiftHeldRef,
-      altHeldRef,
-      selectStartRef,
-      lassoPointsRef
-    });
-
-    // ─── Pointer handlers ──────────────────────────────────────────────
-
-    const pointerHandlers = usePointerHandlers({
-      doc: docWithTools,
+      lastPointerClientRef,
+      compositing,
+      overlay,
+      pointerHandlers
+    } = useCanvasOrchestration({
+      doc,
+      docWithTools,
       activeTool,
       interactionTool,
       zoom,
@@ -457,34 +276,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       symmetryMode,
       symmetryRays,
       selection,
-      selectStartRef,
-      lassoPointsRef,
-      displayCanvasRef,
-      overlayCanvasRef,
-      cursorCanvasRef,
-      gizmoCanvasRef,
-      containerRef,
-      layerCanvasesRef,
-      mousePositionRef,
-      activeStrokeRef,
-      runtime,
-      getOrCreateLayerCanvas,
-      invalidateLayer,
-      redraw,
-      redrawDirty,
-      requestRedraw,
-      requestDirtyRedraw,
-      clearOverlay: overlay.clearOverlay,
-      drawSelectionOverlay: overlay.drawSelectionOverlay,
-      appendSelectionOverlay: overlay.appendSelectionOverlay,
-      drawOverlayShape: overlay.drawOverlayShape,
-      drawOverlayGradient: overlay.drawOverlayGradient,
-      drawOverlayCrop: overlay.drawOverlayCrop,
-      drawOverlaySelection: overlay.drawOverlaySelection,
-      drawOverlayLassoPreview: overlay.drawOverlayLassoPreview,
-      drawCursor: overlay.drawCursor,
-      clearGizmo: overlay.clearGizmo,
-      drawGizmo: overlay.drawGizmo,
+      isolatedLayerId,
+      foregroundColor,
+      transformPreviewByLayerIdRef,
+      requestPreviewRedrawRef,
+      invalidateLayerRef,
+      setLayerTransformPreview,
+      clearLayerTransformPreview,
       onZoomChange,
       onPanChange,
       onStrokeStart,
@@ -496,14 +294,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onTransformContextMenu,
       onCropComplete,
       onEyedropperPick,
-      isolatedLayerId,
       onSelectionChange,
-      selectionMoveAntsRef,
       onAutoPickLayer,
-      foregroundColor,
-      onCanvasLeave,
-      setLayerTransformPreview,
-      clearLayerTransformPreview
+      onCanvasLeave
     });
 
     // ─── Drag-and-drop image import ─────────────────────────────────
@@ -536,11 +329,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     useCanvasImperativeHandle({
       ref,
       doc,
-      runtime,
-      displayCanvasRef,
-      overlayCanvasRef,
-      redraw,
-      drainPendingStrokeCommit,
+      runtime: compositing.runtime,
+      displayCanvasRef: compositing.displayCanvasRef,
+      overlayCanvasRef: compositing.overlayCanvasRef,
+      redraw: compositing.redraw,
+      drainPendingStrokeCommit: compositing.drainPendingStrokeCommit,
       zoom,
       lastPointerClientRef,
       cancelActiveTool: pointerHandlers.cancelActiveTool
@@ -549,10 +342,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Redraw cursor when tool settings change ──────────────────────
     // When brush size/hardness/etc. change via sliders or keyboard shortcuts,
     // the cursor ring must update immediately even without pointer movement.
-    // `lastPointerClientRef` is a stable ref — only `.current` changes, so it
-    // is intentionally NOT in the dependency array. The effect fires when
-    // `drawCursor` changes (on tool settings change) and reads the latest
-    // pointer position at that moment.
     useEffect(() => {
       const client = lastPointerClientRef.current;
       if (client) {
@@ -562,6 +351,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     }, [overlay.drawCursor]);
 
     // ─── Document-space cursor tracking ─────────────────────────────────
+
+    const [cursorDocPos, setCursorDocPos] = useState<Point | null>(null);
 
     const updateCursorDocPosFromClient = useCallback(
       (clientX: number, clientY: number) => {
@@ -605,39 +396,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       setCursorDocPos(null);
     }, [pointerHandlers]);
 
-    // ─── Transform style ──────────────────────────────────────────────
-
-    const canvasStyle: React.CSSProperties = {
-      transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-      transformOrigin: "center center",
-      // Reinforce nearest-neighbor when the bitmap is scaled via transform (some
-      // engines still blur canvas layers even when the parent sets imageRendering).
-      imageRendering: "pixelated"
-    };
-
-    // Determine cursor style based on tool
-    const cursorStyle =
-      interactionTool === "move" || interactionTool === "transform"
-        ? "move"
-        : interactionTool === "crop" || interactionTool === "select"
-          ? "crosshair"
-          : interactionTool === "brush" ||
-              interactionTool === "pencil" ||
-              interactionTool === "eraser" ||
-              interactionTool === "blur"
-            ? "none"
-            : "crosshair";
-
-    const selectionAntMarginPx = selectionAntCanvasMarginCssPx(zoom);
+    // ─── Render ──────────────────────────────────────────────────────────
 
     return (
-      <div
-        ref={containerRef}
-        className={
-          rootClassName ? `sketch-canvas ${rootClassName}` : "sketch-canvas"
-        }
-        css={styles(theme)}
-        style={{ cursor: cursorStyle }}
+      <SketchCanvasPresentation
+        containerRef={containerRef}
+        bootstrapDisplayRef={compositing.bootstrapDisplayRef}
+        displayCanvasRef={compositing.displayCanvasRef}
+        overlayCanvasRef={compositing.overlayCanvasRef}
+        selectionCanvasRef={selectionCanvasRef}
+        cursorCanvasRef={cursorCanvasRef}
+        gizmoCanvasRef={gizmoCanvasRef}
+        canvasWidth={doc.canvas.width}
+        canvasHeight={doc.canvas.height}
+        zoom={zoom}
+        pan={pan}
+        interactionTool={interactionTool}
+        bootstrapPhaseActive={compositing.bootstrapPhaseActive}
+        backend={compositing.backend}
+        cursorDocPos={cursorDocPos}
         onPointerDown={handlePointerDownWithClient}
         onPointerMove={handlePointerMoveWithCoords}
         onPointerUp={pointerHandlers.handlePointerUp}
@@ -647,117 +424,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onContextMenu={pointerHandlers.handleContextMenu}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-      >
-        <div className="sketch-canvas__doc-stack">
-          <canvas
-            ref={bootstrapDisplayRef}
-            className="sketch-canvas__bootstrap"
-            width={doc.canvas.width}
-            height={doc.canvas.height}
-            style={{
-              ...canvasStyle,
-              pointerEvents: "none",
-              ...(bootstrapPhaseActive ? {} : { visibility: "hidden" })
-            }}
-          />
-          <canvas
-            ref={displayCanvasRef}
-            className="sketch-canvas__display"
-            width={doc.canvas.width}
-            height={doc.canvas.height}
-            style={{
-              ...canvasStyle,
-              // Hit-test the root `.sketch-canvas` div so pointer capture/stylus
-              // routing matches the cursor overlay coordinate space (sibling canvases).
-              pointerEvents: "none",
-              ...(bootstrapPhaseActive ? { opacity: 0 } : {})
-            }}
-          />
-          {/* Overlay canvas for shape/gradient/crop preview (document space).
-              Pixel grid is drawn on the screen-resolution selection layer (see useOverlayRenderer). */}
-          <canvas
-            ref={overlayCanvasRef}
-            className="sketch-canvas__overlay"
-            width={doc.canvas.width}
-            height={doc.canvas.height}
-            style={{
-              ...canvasStyle,
-              pointerEvents: "none",
-              imageRendering: "auto"
-            }}
-          />
-        </div>
-        {/* Screen-resolution canvas for selection marching ants (padded bitmap + offset so ants are not clipped). */}
-        <canvas
-          ref={selectionCanvasRef}
-          className="sketch-canvas__selection cursor-overlay"
-          style={{
-            top: -selectionAntMarginPx,
-            left: -selectionAntMarginPx,
-            width: `calc(100% + ${2 * selectionAntMarginPx}px)`,
-            height: `calc(100% + ${2 * selectionAntMarginPx}px)`
-          }}
-        />
-        {/* Cursor canvas for brush size preview */}
-        <canvas
-          ref={cursorCanvasRef}
-          className="sketch-canvas__cursor cursor-overlay"
-        />
-        {/* Gizmo canvas for transform tool handles (screen resolution, not clipped by doc-stack) */}
-        <canvas
-          ref={gizmoCanvasRef}
-          className="sketch-canvas__gizmo cursor-overlay"
-        />
-        {/* Canvas resize: eight square handles (corners + edge midpoints) */}
-        {onCanvasResize && (
-          <SketchCanvasResizeHandles
-            canvasWidth={doc.canvas.width}
-            canvasHeight={doc.canvas.height}
-            zoom={zoom}
-            pan={pan}
-            onResizeStart={onCanvasResizeStart}
-            onResize={onCanvasResize}
-          />
-        )}
-        {/* Canvas info bar */}
-        <Box
-          className="sketch-canvas__info-bar"
-          sx={{
-            position: "absolute",
-            bottom: 8,
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "rgba(0,0,0,0.6)",
-            color: "#ccc",
-            padding: "2px 12px",
-            borderRadius: "4px",
-            fontSize: SKETCH_FONT.md,
-            pointerEvents: "none",
-            zIndex: 5,
-            display: "flex",
-            gap: "12px"
-          }}
-        >
-          <span>
-            {doc.canvas.width} × {doc.canvas.height}
-          </span>
-          <span>{Math.round(zoom * 100)}%</span>
-          {cursorDocPos !== null && (
-            <span>
-              {cursorDocPos.x}, {cursorDocPos.y}
-            </span>
-          )}
-          <span
-            style={{
-              textTransform: "uppercase",
-              fontSize: SKETCH_FONT.xs,
-              opacity: 0.7
-            }}
-          >
-            {backend}
-          </span>
-        </Box>
-      </div>
+        onCanvasResizeStart={onCanvasResizeStart}
+        onCanvasResize={onCanvasResize}
+        className={rootClassName}
+      />
     );
   }
 );

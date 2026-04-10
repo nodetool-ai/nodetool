@@ -47,6 +47,15 @@ export type {
 export { usePointerHandlers } from "./usePointerHandlers";
 export type { UsePointerHandlersParams, UsePointerHandlersResult } from "./usePointerHandlers";
 
+export { useTransformPreviewBridge } from "./useTransformPreviewBridge";
+export type { UseTransformPreviewBridgeResult } from "./useTransformPreviewBridge";
+
+export { useCanvasOrchestration } from "./useCanvasOrchestration";
+export type {
+  UseCanvasOrchestrationParams,
+  UseCanvasOrchestrationResult
+} from "./useCanvasOrchestration";
+
 // Re-export ActiveStrokeInfo from its canonical home in the rendering module.
 export type { ActiveStrokeInfo } from "../rendering";
 
