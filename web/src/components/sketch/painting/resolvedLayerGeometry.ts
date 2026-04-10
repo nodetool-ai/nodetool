@@ -68,6 +68,46 @@ export function getEffectiveRasterBounds(
   };
 }
 
+// ─── Resolved gizmo bounds ───────────────────────────────────────────────────
+
+/**
+ * Resolve the bounds used for gizmo sizing and handle placement.
+ *
+ * This is the single explicit contract for how both MoveTool and TransformTool
+ * determine visual bounds. The rule:
+ *   1. Start from the effective raster bounds (real canvas size, handles
+ *      off-canvas content correctly).
+ *   2. If the layer's contentBounds are *strictly smaller* in both dimensions
+ *      and represent real content (both > 0), use contentBounds instead so
+ *      small layers get a tight gizmo rather than a full-canvas outline.
+ *   3. Never fall back to document size — callers must provide the layer canvas
+ *      or explicit fallback.
+ *
+ * Both tools, gizmo painters, and hit-test helpers should call this instead of
+ * computing their own bounds mix.
+ */
+export function resolveGizmoBounds(
+  layer: { contentBounds: LayerContentBounds },
+  layerCanvas?: HTMLCanvasElement | null,
+  fallbackSize?: { width: number; height: number }
+): LayerContentBounds {
+  const rasterBounds = getEffectiveRasterBounds(layer, layerCanvas, fallbackSize);
+  const cb = layer.contentBounds;
+  // Use contentBounds only when they are strictly smaller in both dimensions
+  // and represent actual content (non-zero area). This keeps small layers
+  // (e.g. a 50×50 stamp on a 512×512 canvas) with a tight gizmo while
+  // layers that fill or exceed the canvas use the full raster bounds.
+  if (
+    cb.width > 0 &&
+    cb.height > 0 &&
+    cb.width < rasterBounds.width &&
+    cb.height < rasterBounds.height
+  ) {
+    return { ...cb };
+  }
+  return rasterBounds;
+}
+
 // ─── Composite offset ────────────────────────────────────────────────────────
 
 /**

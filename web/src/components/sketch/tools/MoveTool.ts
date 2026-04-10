@@ -4,8 +4,13 @@
  * Supports:
  *   - Ctrl+Alt click to duplicate-and-move
  *   - Alt click to auto-pick topmost non-transparent layer
- *   - setLayerTransformPreview for live compositing
+ *   - Shared PreviewSession for live compositing preview
  *   - clearLayerTransformPreview on release
+ *
+ * Preview lifecycle uses the shared `PreviewSession` contract so
+ * compositing, gizmo drawing, transform UI, and top-bar numbers all
+ * read one live preview source. See `previewSession.ts` for the
+ * start → update → commit/cancel/clear lifecycle.
  *
  * Geometry policy is delegated to `painting/resolvedLayerGeometry` and
  * `tools/transform/` helpers so this file owns only interaction flow.
@@ -27,6 +32,7 @@ import {
 import { docRectToScreen } from "./transform/handleGeometry";
 import { drawOffCanvasIndicator } from "./gizmo";
 import { useSketchStore } from "../state/useSketchStore";
+import { createPreviewSession, type PreviewSession } from "./previewSession";
 
 /** Paint a dashed outline for off-canvas layer extents on the gizmo canvas.
  *  Uses shared resolved-geometry seam for bounds and shared gizmo primitives. */
@@ -86,16 +92,31 @@ function paintOffCanvasGizmo(
 export class MoveTool implements ToolHandler {
   readonly toolId = "move" as const;
 
+  /** Shared preview session — single source of truth for preview state. */
+  private readonly session: PreviewSession = createPreviewSession();
   private moveStart: Point | null = null;
   private moveLayerStartTransform: LayerTransform = { x: 0, y: 0 };
-  private movePreviewTransform: LayerTransform | null = null;
-  private movePreviewLayerId: string | null = null;
 
   onActivate(ctx: ToolContext): void {
     this.refreshGizmo(ctx);
   }
 
   onDeactivate(ctx: ToolContext): void {
+    // If a spring-loaded move was in progress when deactivating, commit it
+    // so the layer keeps the committed transform and we don't leave stale
+    // preview state.
+    if (this.session.isActive()) {
+      this.session.commit(ctx);
+      const layerId = this.session.state.layerId;
+      if (layerId) {
+        ctx.onStrokeEnd(layerId, null, undefined, {
+          syncDocumentFromCanvas: false
+        });
+      }
+    }
+    this.session.clear(ctx);
+    this.moveStart = null;
+    this.moveLayerStartTransform = { x: 0, y: 0 };
     ctx.clearGizmo();
   }
 
@@ -106,8 +127,15 @@ export class MoveTool implements ToolHandler {
       ctx.clearGizmo();
       return;
     }
-    const previewTransform = this.movePreviewTransform ?? activeLayer.transform;
+    const previewTransform = this.session.isActive()
+      ? this.session.state.currentTransform
+      : activeLayer.transform;
     paintOffCanvasGizmo(ctx, activeLayer.id, previewTransform);
+  }
+
+  /** Get the current preview session (for external consumers). */
+  getPreviewSession(): PreviewSession {
+    return this.session;
   }
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
@@ -170,22 +198,19 @@ export class MoveTool implements ToolHandler {
       rotation: moveTargetLayer.transform?.rotation ?? 0,
       matrix: moveTargetLayer.transform?.matrix
     };
-    // Initial preview is the unchanged full transform.
-    this.movePreviewTransform = { ...this.moveLayerStartTransform };
-    this.movePreviewLayerId = moveTargetLayer.id;
-    ctx.clearLayerTransformPreview?.(moveTargetLayer.id);
-    ctx.onStrokeStart();
+    // Start the shared preview session with the full baseline transform.
+    this.session.start(ctx, moveTargetLayer.id, { ...this.moveLayerStartTransform });
     return true;
   }
 
   onMove(ctx: ToolContext, event: ToolPointerEvent, _coalescedPoints?: ToolPointerEvent[]): void {
-    if (!this.moveStart) {
+    if (!this.moveStart || !this.session.isActive()) {
       return;
     }
     const pt = event.point;
     const dx = pt.x - this.moveStart.x;
     const dy = pt.y - this.moveStart.y;
-    const previewId = this.movePreviewLayerId;
+    const previewId = this.session.state.layerId;
     // Read freshest doc from the store in case a duplicate just occurred.
     // Fall back to ctx.doc when the store document doesn't contain the target layer
     // (e.g. in unit tests where the store isn't populated).
@@ -205,31 +230,23 @@ export class MoveTool implements ToolHandler {
           y: Math.round(this.moveLayerStartTransform.y + dy)
         }
       );
-      this.movePreviewTransform = previewTransform;
-      this.movePreviewLayerId = layer.id;
-      // Live compositing preview — fast path that avoids a store update + React
-      // re-render on every pointer-move event. The transform is committed to the
-      // store once on pointer-up via onLayerTransformChange.
-      ctx.setLayerTransformPreview?.(layer.id, previewTransform);
+      // Update through the shared preview session — this writes to both
+      // the compositing pipeline and the UI singleton in one call.
+      this.session.update(ctx, previewTransform);
       this.refreshGizmo(ctx);
     }
   }
 
   onUp(ctx: ToolContext, _event?: ToolPointerEvent): void {
-    const previewLayerId = this.movePreviewLayerId;
-    const previewTransform = this.movePreviewTransform;
-    if (previewLayerId && previewTransform && ctx.onLayerTransformChange) {
-      ctx.onLayerTransformChange(previewLayerId, previewTransform);
-    }
-    ctx.clearLayerTransformPreview?.(previewLayerId ?? undefined);
+    const layerId = this.session.state.layerId;
+    // Commit through the shared session — persists to store, clears preview.
+    this.session.commit(ctx);
 
     this.moveStart = null;
     this.moveLayerStartTransform = { x: 0, y: 0 };
-    this.movePreviewTransform = null;
-    this.movePreviewLayerId = null;
 
-    if (previewLayerId) {
-      ctx.onStrokeEnd(previewLayerId, null, undefined, {
+    if (layerId) {
+      ctx.onStrokeEnd(layerId, null, undefined, {
         syncDocumentFromCanvas: false
       });
     }

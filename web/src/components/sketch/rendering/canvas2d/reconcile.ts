@@ -39,16 +39,24 @@ export function reconcileLayerToDocumentSpace(
   const hasTranslation = tx !== 0 || ty !== 0;
   const hasScaleOrRotation = sx !== 1 || sy !== 1 || rot !== 0;
 
+  // Resolve the raster origin from the canvas raster bounds (set by
+  // ensureLayerRasterBounds) or fall back to contentBounds. This matches
+  // the preview compositing path in resolvedLayerGeometry which uses
+  // getEffectiveRasterBounds → rasterBounds.x/y for the composite offset.
+  const storedBounds = getCanvasRasterBounds(canvas);
+  const rasterOriginX = storedBounds?.x ?? layer.contentBounds?.x ?? 0;
+  const rasterOriginY = storedBounds?.y ?? layer.contentBounds?.y ?? 0;
+
   if (!hasTranslation && !hasScaleOrRotation) {
     setCanvasRasterBounds(canvas, {
-      x: 0,
-      y: 0,
+      x: rasterOriginX,
+      y: rasterOriginY,
       width: canvas.width,
       height: canvas.height
     });
     return serializeLayerData(canvas.toDataURL("image/png"), {
-      x: 0,
-      y: 0,
+      x: rasterOriginX,
+      y: rasterOriginY,
       width: canvas.width,
       height: canvas.height
     });
@@ -75,10 +83,14 @@ export function reconcileLayerToDocumentSpace(
 
   // Compute the axis-aligned bounding box of the transformed content
   // so that scaling/rotating beyond document bounds doesn't clip pixels.
+  //
+  // Center computation must include the raster origin (rasterBounds.x/y)
+  // to match the preview compositing path in resolvedLayerGeometry:
+  //   cx = transform.x + rasterBounds.x + rasterBounds.width / 2
   const w = source.width;
   const h = source.height;
-  const cx = tx + w / 2;
-  const cy = ty + h / 2;
+  const cx = tx + rasterOriginX + w / 2;
+  const cy = ty + rasterOriginY + h / 2;
   const cos = Math.cos(rot);
   const sin = Math.sin(rot);
   const hw = (w * sx) / 2;
@@ -128,7 +140,8 @@ export function reconcileLayerToDocumentSpace(
     tempCtx.scale(sx, sy);
     tempCtx.drawImage(source, -w / 2, -h / 2);
   } else {
-    tempCtx.drawImage(source, tx - outX, ty - outY);
+    // Translation-only: offset includes raster origin
+    tempCtx.drawImage(source, tx + rasterOriginX - outX, ty + rasterOriginY - outY);
   }
 
   canvas.width = outW;
