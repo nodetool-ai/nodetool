@@ -24,6 +24,9 @@ Task labels used below:
 
 ## Current Tasks
 - [x] [CHECK] fix MoveTool and TransformTool gizmo size: gizmo should be sized by layer pixel bounds, currently always canvas sized. mask also holds the second last position after moving is done! so when movig stops it should update.
+- [x] fix gizmo showing second-to-last position after MoveTool and TransformTool ends: capture committed transform before session.commit() clears active flag, use it for the post-commit gizmo draw
+- [x] improve auto-select for TransformTool: read toolSettings from store instead of stale ctx.doc snapshot for reliable auto-select toggle
+- [x] add auto-select option for MoveTool: MoveSettings type with autoSelect boolean, wired through ToolSettings/toolSlice/ToolSettingsPanels/ConnectedToolTopBar; uses pickTopmostTransformableLayer in onDown
 
 ## Immediate `SketchEditor.tsx` Refactor Candidates
 

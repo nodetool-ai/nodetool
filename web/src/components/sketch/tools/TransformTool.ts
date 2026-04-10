@@ -277,17 +277,12 @@ export class TransformTool implements ToolHandler {
    * either replaces or toggles it in the target set based on Shift state.
    */
   private handleAutoSelectClick(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
+    const { doc } = ctx;
     const pt = event.point;
     const shift = event.nativeEvent.shiftKey;
 
-    // Read from the store for the freshest layer list, falling back to
-    // ctx.doc for tests where the store isn't populated.
-    const storeDoc = useSketchStore.getState().document;
-    const layers = storeDoc.layers.length > 0 ? storeDoc.layers : ctx.doc.layers;
-    const canvasSize = storeDoc.canvas ?? ctx.doc.canvas;
-
     const picked = pickTopmostTransformableLayer(
-      layers,
+      doc.layers,
       ctx.layerCanvasesRef.current,
       pt,
       null // no isolation filter for auto-pick
@@ -298,7 +293,7 @@ export class TransformTool implements ToolHandler {
     }
 
     const pickedCanvas = ctx.layerCanvasesRef.current.get(picked.id);
-    const entry = resolveTargetEntry(picked, pickedCanvas, canvasSize);
+    const entry = resolveTargetEntry(picked, pickedCanvas, doc.canvas);
 
     if (shift) {
       // Shift+click: toggle the picked layer in the target set
@@ -310,8 +305,7 @@ export class TransformTool implements ToolHandler {
 
     // Switch the active layer to the picked layer so the gizmo and
     // preview session operate on it.
-    const currentActiveId = storeDoc.activeLayerId ?? ctx.doc.activeLayerId;
-    if (picked.id !== currentActiveId) {
+    if (picked.id !== doc.activeLayerId) {
       ctx.onAutoPickLayer?.(picked.id);
     }
 
@@ -465,12 +459,7 @@ export class TransformTool implements ToolHandler {
     ctx: ToolContext,
     overrideTransform: LayerTransform | null
   ): void {
-    // Read from the store for the freshest layer state when available,
-    // falling back to ctx.doc (e.g. in tests where the store isn't populated).
-    const storeDoc = useSketchStore.getState().document;
-    const layer =
-      storeDoc.layers.find((l) => l.id === storeDoc.activeLayerId) ??
-      ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (!layer) {
       return;
     }

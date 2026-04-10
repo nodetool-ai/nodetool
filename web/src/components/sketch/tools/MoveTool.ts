@@ -135,12 +135,7 @@ export class MoveTool implements ToolHandler {
     overrideTransform: LayerTransform | null
   ): void {
     const { doc } = ctx;
-    // Read from the store for the freshest layer state when available,
-    // falling back to ctx.doc (e.g. in tests where the store isn't populated).
-    const storeDoc = useSketchStore.getState().document;
-    const activeLayer =
-      storeDoc.layers.find((l) => l.id === storeDoc.activeLayerId) ??
-      doc.layers.find((l) => l.id === doc.activeLayerId);
+    const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
     if (!activeLayer) {
       ctx.clearGizmo();
       return;
@@ -158,11 +153,7 @@ export class MoveTool implements ToolHandler {
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
     const { doc } = ctx;
-    // Read from the store for the freshest layer state when available.
-    const storeDoc = useSketchStore.getState().document;
-    const layers = storeDoc.layers.length > 0 ? storeDoc.layers : doc.layers;
-    const activeLayerId = storeDoc.activeLayerId ?? doc.activeLayerId;
-    const activeLayer = layers.find((l) => l.id === activeLayerId);
+    const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
     if (!activeLayer) {
       return false;
     }
@@ -186,10 +177,10 @@ export class MoveTool implements ToolHandler {
       }
     } else if (event.nativeEvent.altKey && ctx.onAutoPickLayer) {
       // Alt+click: auto-pick topmost non-transparent layer (affine-aware)
-      for (let i = layers.length - 1; i >= 0; i--) {
-        const layer = layers[i];
+      for (let i = doc.layers.length - 1; i >= 0; i--) {
+        const layer = doc.layers[i];
         const skipForHit =
-          !isLayerCompositeVisible(layers, layer, null) ||
+          !isLayerCompositeVisible(doc.layers, layer, null) ||
           (layer.locked && !layer.imageReference);
         if (skipForHit) {
           continue;
@@ -200,13 +191,7 @@ export class MoveTool implements ToolHandler {
         }
         if (hitTestLayerAtDocPoint(layer, layerCanvas, pt)) {
           ctx.onAutoPickLayer(layer.id);
-          // Re-read the target layer from the store after auto-pick
-          const picked = useSketchStore.getState().document.layers.find(
-            (l) => l.id === layer.id
-          );
-          if (picked) {
-            moveTargetLayer = picked;
-          }
+          moveTargetLayer = layer;
           break;
         }
       }
@@ -217,12 +202,12 @@ export class MoveTool implements ToolHandler {
       const autoSelect = storeSettings?.move?.autoSelect ?? true;
       if (autoSelect && ctx.onAutoPickLayer) {
         const picked = pickTopmostTransformableLayer(
-          layers,
+          doc.layers,
           ctx.layerCanvasesRef.current,
           pt,
           null
         );
-        if (picked && picked.id !== activeLayerId) {
+        if (picked && picked.id !== doc.activeLayerId) {
           ctx.onAutoPickLayer(picked.id);
           moveTargetLayer = picked;
         }
