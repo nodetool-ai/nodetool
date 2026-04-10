@@ -59,6 +59,10 @@ export function useToolChromeActions() {
     (s) => s.setTransformSettings
   );
 
+  const setMoveSettings = useSketchStore(
+    (s) => s.setMoveSettings
+  );
+
   return {
     setBrushSettings,
     setPencilSettings,
@@ -70,6 +74,7 @@ export function useToolChromeActions() {
     setCloneStampSettings,
     setSelectSettings,
     setSegmentSettings,
+    setMoveSettings,
     setTransformSettings,
     invertSelection,
     featherCurrentSelection,

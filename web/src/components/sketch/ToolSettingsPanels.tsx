@@ -1086,6 +1086,37 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
   );
 });
 
+// ─── MoveSettingsPanel ────────────────────────────────────────────────────
+
+interface MoveSettingsPanelProps {
+  autoSelect: boolean;
+  onAutoSelectChange: (enabled: boolean) => void;
+}
+
+export const MoveSettingsPanel = memo(function MoveSettingsPanel({
+  autoSelect,
+  onAutoSelectChange
+}: MoveSettingsPanelProps) {
+  return (
+    <FormControlLabel
+      control={
+        <Checkbox
+          checked={autoSelect}
+          onChange={(e) => onAutoSelectChange(e.target.checked)}
+          size="small"
+          sx={{ padding: "2px 4px" }}
+        />
+      }
+      label={
+        <Typography sx={{ ...SKETCH_FONT, fontSize: "0.75rem" }}>
+          Auto-Select
+        </Typography>
+      }
+      sx={{ mr: 2, ml: 0 }}
+    />
+  );
+});
+
 // ─── TransformSettingsPanel ───────────────────────────────────────────────
 
 interface TransformSettingsPanelProps {
@@ -1693,6 +1724,8 @@ export interface ToolSettingsPanelProps {
   onAdjustSaturationChange?: (value: number) => void;
   onAdjustApply?: () => void;
   onAdjustCancel?: () => void;
+  moveAutoSelect?: boolean;
+  onMoveAutoSelectChange?: (enabled: boolean) => void;
   transformScaleX?: number;
   transformScaleY?: number;
   transformRotation?: number;
@@ -1746,6 +1779,8 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onAdjustSaturationChange,
   onAdjustApply,
   onAdjustCancel,
+  moveAutoSelect,
+  onMoveAutoSelectChange,
   transformScaleX,
   transformScaleY,
   transformRotation,
@@ -1863,7 +1898,15 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
       />
     );
   }
-  if (activeTool === "move" || activeTool === "eyedropper") {
+  if (activeTool === "move") {
+    return (
+      <MoveSettingsPanel
+        autoSelect={moveAutoSelect ?? true}
+        onAutoSelectChange={onMoveAutoSelectChange ?? noop}
+      />
+    );
+  }
+  if (activeTool === "eyedropper") {
     return <NoSettingsMessage />;
   }
   if (activeTool === "transform") {

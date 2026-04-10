@@ -433,6 +433,21 @@ export interface SegmentationLayerMeta {
   maskIndex: number;
 }
 
+// ─── Move Settings ────────────────────────────────────────────────────────────
+
+export interface MoveSettings {
+  /**
+   * When true, clicking opaque pixels on the canvas while the MoveTool is
+   * active auto-selects the topmost visible transformable layer as the move
+   * target, without requiring the user to switch layers in the layers panel first.
+   */
+  autoSelect: boolean;
+}
+
+export const DEFAULT_MOVE_SETTINGS: MoveSettings = {
+  autoSelect: true
+};
+
 // ─── Transform Settings ───────────────────────────────────────────────────────
 
 export interface TransformSettings {
@@ -463,6 +478,7 @@ export interface ToolSettings {
   cloneStamp: CloneStampSettings;
   select: SelectSettings;
   segment: SegmentSettings;
+  move: MoveSettings;
   transform: TransformSettings;
 }
 
@@ -565,6 +581,7 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   cloneStamp: DEFAULT_CLONE_STAMP_SETTINGS,
   select: DEFAULT_SELECT_SETTINGS,
   segment: DEFAULT_SEGMENT_SETTINGS,
+  move: DEFAULT_MOVE_SETTINGS,
   transform: DEFAULT_TRANSFORM_SETTINGS
 };
 
@@ -594,6 +611,7 @@ export function cloneDefaultToolSettings(): ToolSettings {
     cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS },
     select: { ...DEFAULT_SELECT_SETTINGS },
     segment: { ...DEFAULT_SEGMENT_SETTINGS },
+    move: { ...DEFAULT_MOVE_SETTINGS },
     transform: { ...DEFAULT_TRANSFORM_SETTINGS }
   };
 }

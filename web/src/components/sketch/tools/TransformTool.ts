@@ -72,6 +72,7 @@ import {
   pickTopmostTransformableLayer,
   resolveTargetEntry
 } from "./transformTargetSet";
+import { useSketchStore } from "../state/useSketchStore";
 
 // ─── TransformTool class ──────────────────────────────────────────────────────
 
@@ -191,7 +192,10 @@ export class TransformTool implements ToolHandler {
 
     // If the click misses the gizmo, try auto-select targeting
     if (!handle) {
-      const autoSelect = doc.toolSettings?.transform?.autoSelect ?? true;
+      // Read auto-select from the store's toolSettings for the freshest value
+      // since ctx.doc may be a stale snapshot.
+      const storeSettings = useSketchStore.getState().toolSettings;
+      const autoSelect = storeSettings?.transform?.autoSelect ?? true;
       if (autoSelect) {
         return this.handleAutoSelectClick(ctx, event);
       }
@@ -242,6 +246,11 @@ export class TransformTool implements ToolHandler {
   }
 
   onUp(ctx: ToolContext): void {
+    // Capture the final transform before commit clears the active flag so
+    // the gizmo can draw at the correct position even though ctx.doc is stale.
+    const committedTransform = this.session.isActive()
+      ? { ...this.session.state.currentTransform }
+      : null;
     // Commit the final transform through the shared session.
     this.session.commit(ctx);
 
@@ -254,7 +263,7 @@ export class TransformTool implements ToolHandler {
         syncDocumentFromCanvas: false
       });
     }
-    this.drawGizmo(ctx);
+    this.drawGizmoWithTransform(ctx, committedTransform);
     // Redraw the selection overlay so marching ants (if any) update to the
     // committed transform instead of staying at the pre-transform position.
     ctx.drawSelectionOverlay();
@@ -268,12 +277,17 @@ export class TransformTool implements ToolHandler {
    * either replaces or toggles it in the target set based on Shift state.
    */
   private handleAutoSelectClick(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
-    const { doc } = ctx;
     const pt = event.point;
     const shift = event.nativeEvent.shiftKey;
 
+    // Read from the store for the freshest layer list, falling back to
+    // ctx.doc for tests where the store isn't populated.
+    const storeDoc = useSketchStore.getState().document;
+    const layers = storeDoc.layers.length > 0 ? storeDoc.layers : ctx.doc.layers;
+    const canvasSize = storeDoc.canvas ?? ctx.doc.canvas;
+
     const picked = pickTopmostTransformableLayer(
-      doc.layers,
+      layers,
       ctx.layerCanvasesRef.current,
       pt,
       null // no isolation filter for auto-pick
@@ -284,7 +298,7 @@ export class TransformTool implements ToolHandler {
     }
 
     const pickedCanvas = ctx.layerCanvasesRef.current.get(picked.id);
-    const entry = resolveTargetEntry(picked, pickedCanvas, doc.canvas);
+    const entry = resolveTargetEntry(picked, pickedCanvas, canvasSize);
 
     if (shift) {
       // Shift+click: toggle the picked layer in the target set
@@ -296,7 +310,8 @@ export class TransformTool implements ToolHandler {
 
     // Switch the active layer to the picked layer so the gizmo and
     // preview session operate on it.
-    if (picked.id !== doc.activeLayerId) {
+    const currentActiveId = storeDoc.activeLayerId ?? ctx.doc.activeLayerId;
+    if (picked.id !== currentActiveId) {
       ctx.onAutoPickLayer?.(picked.id);
     }
 
@@ -438,13 +453,30 @@ export class TransformTool implements ToolHandler {
   // ── Gizmo drawing ─────────────────────────────────────────────────────────
 
   private drawGizmo(ctx: ToolContext): void {
-    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+    this.drawGizmoWithTransform(ctx, null);
+  }
+
+  /**
+   * Draw the transform gizmo. When `overrideTransform` is provided it is
+   * used instead of the layer's stored transform — this avoids reading from
+   * the stale `ctx.doc` snapshot right after a commit.
+   */
+  private drawGizmoWithTransform(
+    ctx: ToolContext,
+    overrideTransform: LayerTransform | null
+  ): void {
+    // Read from the store for the freshest layer state when available,
+    // falling back to ctx.doc (e.g. in tests where the store isn't populated).
+    const storeDoc = useSketchStore.getState().document;
+    const layer =
+      storeDoc.layers.find((l) => l.id === storeDoc.activeLayerId) ??
+      ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (!layer) {
       return;
     }
     const transform = this.session.isActive()
       ? this.session.state.currentTransform
-      : layer.transform;
+      : overrideTransform ?? layer.transform;
     const hoveredHandle = this.activeHandle ?? this.hoveredHandle;
     paintTransformGizmo(ctx, transform, this.rasterBounds, hoveredHandle);
   }
