@@ -74,44 +74,15 @@
   right: 0;
   top: 0;
   bottom: 0;
-  display: block;
-  text-align: right;
-  overflow: visible;
-}
-
-.output-add-button {
-  position: absolute;
-  right: -28px;
-  top: -4px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--palette-background-paper);
-  border: 1px solid var(--palette-divider);
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background-color 0.15s, border-color 0.15s;
-  z-index: 10;
-  color: var(--palette-text-secondary);
+  justify-content: flex-end;
+  overflow: visible;
+  pointer-events: none;
 }
-/* Show output add button when hovering the entire node */
-.react-flow__node:hover .output-add-button {
-  opacity: 0.6;
-}
-.react-flow__node:hover .output-add-button:hover {
-  opacity: 1;
-}
-.output-add-button:hover {
-  background: var(--palette-primary-main);
-  border-color: var(--palette-primary-main);
-  color: var(--palette-primary-contrastText);
-}
-/* Hide add button while connecting */
-.react-flow.is-connecting .output-add-button {
-  display: none;
+
+.output-handle-container .react-flow__handle {
+  pointer-events: auto;
 }
 
 .react-flow__node-toolbar button {
