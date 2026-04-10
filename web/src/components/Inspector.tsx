@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import PropertyField from "./node/PropertyField";
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
@@ -16,7 +16,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "lodash/isEqual";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
-import { CloseButton, EditorButton, ScrollArea } from "./ui_primitives";
+import { Caption, CloseButton, CollapsibleSection, ScrollArea, Text, Tooltip } from "./ui_primitives";
 import PanelHeadline from "./ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       left: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "10px",
+      gap: "4px",
       width: "100%",
       height: "100%",
       padding: "0.5em",
@@ -56,10 +56,10 @@ const styles = (theme: Theme) =>
       position: "relative",
       display: "flex",
       flexDirection: "column",
-      gap: "1em",
+      gap: "0.5em",
       width: "100%",
       maxHeight: "20vh",
-      padding: "0.5em "
+      padding: "0.25em 0.5em"
     },
     ".inspector-header": {
       display: "flex",
@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       padding: "0 0 0.5em 0",
       margin: 0,
-      marginBottom: "1em"
+      marginBottom: "0.5em"
     },
     ".inspector-header .header-row": {
       display: "flex",
@@ -84,24 +84,10 @@ const styles = (theme: Theme) =>
     },
     ".description": {
       color: "var(--palette-grey-100)",
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeTiny,
       paddingRight: "0.5em",
-      maxHeight: "400px",
-      marginTop: "auto",
+      maxHeight: "200px",
       overflowY: "auto"
-    },
-    ".namespace": {
-      justifyContent: "center",
-      overflowY: "auto",
-      marginBottom: ".75em",
-      width: "100%",
-      textAlign: "center",
-      overflow: "hidden",
-      wordBreak: "break-word",
-      lineHeight: "1.25em",
-      color: "var(--palette-primary-main)",
-      textTransform: "uppercase",
-      fontSize: theme.fontSizeSmaller
     },
     ".multi-property-row": {
       display: "flex",
@@ -254,15 +240,6 @@ const Inspector: React.FC = () => {
     ? getMetadata(selectedNode.type as string)
     : null;
 
-  const handleOpenNodeMenu = useCallback(() => {
-    if (!metadata) {return;}
-    openNodeMenu({
-      x: 500,
-      y: 200,
-      dropType: metadata.namespace
-    });
-  }, [openNodeMenu, metadata]);
-
   const handleTagClick = useCallback((tag: string) => {
     openNodeMenu({
       x: 500,
@@ -292,9 +269,9 @@ const Inspector: React.FC = () => {
         <Box className="inspector" css={inspectorStyles}>
           <Box className="top">
             <ScrollArea className="top-content" direction="vertical">
-              <Typography>
+              <Text size="small" color="secondary">
                 Metadata is not available for all selected nodes.
-              </Typography>
+              </Text>
             </ScrollArea>
           </Box>
         </Box>
@@ -346,6 +323,7 @@ const Inspector: React.FC = () => {
                       <Tooltip
                         title="Mixed values across the selected nodes"
                         placement="top-start"
+                        delay={200}
                       >
                         <span className="mixed-indicator">
                           <WarningAmberOutlinedIcon fontSize="small" />
@@ -355,13 +333,9 @@ const Inspector: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ padding: "0.25em 0" }}
-                >
+                <Caption size="smaller" color="muted" sx={{ padding: "0.25em 0" }}>
                   No shared editable properties across the selected nodes.
-                </Typography>
+                </Caption>
               )}
             </ScrollArea>
           </Box>
@@ -378,9 +352,9 @@ const Inspector: React.FC = () => {
           <ScrollArea className="top-content" direction="vertical">
             <Box className="inspector-header">
               <PanelHeadline title="Inspector" />
-              <Typography variant="body2" color="text.secondary">
+              <Caption size="smaller" color="muted">
                 Select nodes to edit
-              </Typography>
+              </Caption>
             </Box>
           </ScrollArea>
         </Box>
@@ -390,7 +364,7 @@ const Inspector: React.FC = () => {
   }
 
   if (!metadata) {
-    return <Typography>No metadata available for this node</Typography>;
+    return <Text size="small" color="secondary">No metadata available for this node</Text>;
   }
 
   return (
@@ -413,6 +387,20 @@ const Inspector: React.FC = () => {
               <div className="header-row">
                 <div className="title">{metadata.title}</div>
               </div>
+              {metadata.description && (
+                <CollapsibleSection
+                  title={<Caption size="tiny" color="muted">Description</Caption>}
+                  defaultOpen={false}
+                  compact
+                  hideIcon={false}
+                >
+                  <NodeDescription
+                    className="description"
+                    description={metadata.description}
+                    onTagClick={handleTagClick}
+                  />
+                </CollapsibleSection>
+              )}
             </div>
             {/* Base properties */}
             {metadata.properties.map((property, index) => (
@@ -498,26 +486,7 @@ const Inspector: React.FC = () => {
             )}
           </ScrollArea>
         </Box>
-        <div className="bottom">
-          <NodeDescription
-            className="description"
-            description={metadata.description}
-            onTagClick={handleTagClick}
-          />
-          <Tooltip title="Show in NodeMenu" placement="top-start">
-            <EditorButton
-              variant="outlined"
-              sx={{
-                padding: ".5em"
-              }}
-              className="namespace"
-              onClick={handleOpenNodeMenu}
-              density="compact"
-            >
-              {metadata.namespace}
-            </EditorButton>
-          </Tooltip>
-        </div>
+        <div className="bottom"></div>
       </Box>
     </EditorUiProvider>
   );

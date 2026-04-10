@@ -50,10 +50,10 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   }, [name, isDynamicProperty]);
 
   const isInspector = scope === "inspector";
-  const labelFontSize = isInspector ? theme.fontSizeNormal : theme.fontSizeSmall;
-  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1);
-  // Auto-show inline descriptions in inspector scope
-  const shouldShowInlineDescription = showDescriptionInline || isInspector;
+  const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.25);
+  // Only show inline descriptions when explicitly requested, not automatically in inspector
+  const shouldShowInlineDescription = showDescriptionInline && !isInspector;
 
   return (
     <div
@@ -86,7 +86,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
       })}
     >
       <Tooltip
-        title={showTooltip && !shouldShowInlineDescription ? description || "" : ""}
+        title={showTooltip ? description || "" : ""}
         enterDelay={TOOLTIP_ENTER_DELAY * 2}
         enterNextDelay={TOOLTIP_ENTER_DELAY}
         placement="left"
