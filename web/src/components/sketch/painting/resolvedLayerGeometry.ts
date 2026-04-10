@@ -31,6 +31,8 @@ import type {
 } from "../types";
 import { composeAffineMatrix } from "../types";
 import type { Point } from "../types/geometry";
+import { computeLayerOpaquePixelBounds } from "./opaquePixelBounds";
+import { getCanvasRasterBounds } from "./layerBounds";
 
 // ─── Effective raster bounds ─────────────────────────────────────────────────
 
@@ -80,7 +82,12 @@ export function getEffectiveRasterBounds(
  *   2. If the layer's contentBounds are *strictly smaller* in both dimensions
  *      and represent real content (both > 0), use contentBounds instead so
  *      small layers get a tight gizmo rather than a full-canvas outline.
- *   3. Never fall back to document size — callers must provide the layer canvas
+ *   3. If a layer canvas is provided and its raster allocation matches the
+ *      full canvas area (common for newly created layers that haven't been
+ *      trimmed), compute the tight bounding box of non-transparent pixels
+ *      so the gizmo wraps actual layer content. This avoids a canvas-sized
+ *      gizmo when the layer only has a small drawn area.
+ *   4. Never fall back to document size — callers must provide the layer canvas
  *      or explicit fallback.
  *
  * Both tools, gizmo painters, and hit-test helpers should call this instead of
@@ -104,6 +111,19 @@ export function resolveGizmoBounds(
     cb.height < rasterBounds.height
   ) {
     return { ...cb };
+  }
+  // When the raster allocation equals the contentBounds (i.e. both are
+  // canvas-sized because the layer was never trimmed), scan for actual
+  // opaque pixel content so the gizmo wraps just the drawn area.
+  if (layerCanvas && layerCanvas.width > 0 && layerCanvas.height > 0) {
+    const storedOrigin = getCanvasRasterBounds(layerCanvas);
+    const opaqueRect = computeLayerOpaquePixelBounds(
+      layerCanvas,
+      storedOrigin ?? undefined
+    );
+    if (opaqueRect && (opaqueRect.width < rasterBounds.width || opaqueRect.height < rasterBounds.height)) {
+      return opaqueRect;
+    }
   }
   return rasterBounds;
 }

@@ -13,6 +13,8 @@
  *
  * Modifiers:
  *   - Shift: constrain proportions (scale) or snap angle (rotate)
+ *            When clicking outside the gizmo with auto-select: toggle
+ *            layer in the transform target set.
  *   - Alt: scale from center (keep center fixed)
  *
  * The gizmo is drawn on a dedicated screen-resolution canvas (`gizmoCanvasRef`)
@@ -22,11 +24,22 @@
  * compositing, gizmo drawing, transform UI, and top-bar numbers all
  * read one live preview source. See `previewSession.ts`.
  *
+ * Transform-targeting flow:
+ *   - An optional auto-select toggle (stored in `TransformSettings`) controls
+ *     whether clicking opaque pixels targets the topmost visible transformable
+ *     layer without requiring a panel switch.
+ *   - Shift+click adds/removes layers from the transform target set.
+ *   - The transform gizmo, transform UI, and live preview all use one shared
+ *     bounds source derived from the target set.
+ *   - The transform target set is intentionally separate from the layers-panel
+ *     multi-select (`selectedLayerIds`).
+ *
  * Responsibilities are split across dedicated modules:
  *   - Gizmo paint/layout: `transform/transformGizmoPainter.ts`
  *   - Hover hit-test / cursor: `transform/transformHoverPolicy.ts`
  *   - Geometry computation: `transform/computeTransform.ts`
  *   - Shared primitives: `gizmo/gizmoPrimitives.ts`
+ *   - Target set management: `transformTargetSet.ts`
  *
  * This file owns only interaction orchestration (pointer events, lifecycle,
  * undo/redo stacks, preview management).
@@ -37,7 +50,6 @@ import type { Point, LayerTransform, LayerContentBounds } from "../types";
 import { layerAllowsTransformWhilePixelLocked } from "../types";
 import TransformIcon from "@mui/icons-material/Transform";
 import {
-  getEffectiveRasterBounds,
   getTransformedCenter
 } from "../painting/resolvedLayerGeometry";
 import {
@@ -55,6 +67,11 @@ import {
 } from "./transform/transformHoverPolicy";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
 import { resolveGizmoBounds } from "../painting/resolvedLayerGeometry";
+import {
+  TransformTargetSet,
+  pickTopmostTransformableLayer,
+  resolveTargetEntry
+} from "./transformTargetSet";
 
 // ─── TransformTool class ──────────────────────────────────────────────────────
 
@@ -84,6 +101,10 @@ export class TransformTool implements ToolHandler {
   /** Batched gizmo redraw scheduler. */
   private gizmoScheduler = new GizmoRedrawScheduler();
 
+  // ── Transform target set ──────────────────────────────────────────────────
+  /** Set of layers targeted for transform (separate from layers-panel multi-select). */
+  private readonly targetSet = new TransformTargetSet();
+
   // ── In-transform undo/redo stacks ─────────────────────────────────────────
   /** Stack of transforms recorded before each handle adjustment (for in-transform undo). */
   private adjustmentUndoStack: LayerTransform[] = [];
@@ -96,6 +117,7 @@ export class TransformTool implements ToolHandler {
     // Clear any stale session from a previous activation (e.g. re-activation
     // without explicit deactivation, or singleton reuse across tests).
     this.session.clear(ctx);
+    this.targetSet.clear();
 
     const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (!layer) {
@@ -115,6 +137,9 @@ export class TransformTool implements ToolHandler {
       layerCanvas,
       ctx.doc.canvas
     );
+    // Initialize the target set with the active layer
+    this.targetSet.setSingle(layer.id, this.rasterBounds);
+
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
@@ -128,6 +153,7 @@ export class TransformTool implements ToolHandler {
     this.hoveredHandle = null;
     this.gestureActive = false;
     this.session.clear(ctx);
+    this.targetSet.clear();
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
     ctx.clearGizmo();
@@ -162,7 +188,13 @@ export class TransformTool implements ToolHandler {
       pt,
       ctx.zoom
     );
+
+    // If the click misses the gizmo, try auto-select targeting
     if (!handle) {
+      const autoSelect = doc.toolSettings?.transform?.autoSelect ?? true;
+      if (autoSelect) {
+        return this.handleAutoSelectClick(ctx, event);
+      }
       return false;
     }
 
@@ -223,6 +255,63 @@ export class TransformTool implements ToolHandler {
       });
     }
     this.drawGizmo(ctx);
+    // Redraw the selection overlay so marching ants (if any) update to the
+    // committed transform instead of staying at the pre-transform position.
+    ctx.drawSelectionOverlay();
+  }
+
+  // ── Auto-select targeting ─────────────────────────────────────────────────
+
+  /**
+   * Handle a click that missed the gizmo when auto-select is enabled.
+   * Picks the topmost visible transformable layer at the click point and
+   * either replaces or toggles it in the target set based on Shift state.
+   */
+  private handleAutoSelectClick(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
+    const { doc } = ctx;
+    const pt = event.point;
+    const shift = event.nativeEvent.shiftKey;
+
+    const picked = pickTopmostTransformableLayer(
+      doc.layers,
+      ctx.layerCanvasesRef.current,
+      pt,
+      null // no isolation filter for auto-pick
+    );
+
+    if (!picked) {
+      return false;
+    }
+
+    const pickedCanvas = ctx.layerCanvasesRef.current.get(picked.id);
+    const entry = resolveTargetEntry(picked, pickedCanvas, doc.canvas);
+
+    if (shift) {
+      // Shift+click: toggle the picked layer in the target set
+      this.targetSet.toggle(picked.id, entry.bounds);
+    } else {
+      // Plain click: replace the target set with the picked layer
+      this.targetSet.setSingle(picked.id, entry.bounds);
+    }
+
+    // Switch the active layer to the picked layer so the gizmo and
+    // preview session operate on it.
+    if (picked.id !== doc.activeLayerId) {
+      ctx.onAutoPickLayer?.(picked.id);
+    }
+
+    // Update the gizmo bounds to match the new target
+    this.rasterBounds = entry.bounds;
+    this.originalTransform = {
+      x: picked.transform.x,
+      y: picked.transform.y,
+      scaleX: picked.transform.scaleX ?? 1,
+      scaleY: picked.transform.scaleY ?? 1,
+      rotation: picked.transform.rotation ?? 0
+    };
+
+    this.drawGizmo(ctx);
+    return false; // Don't start a drag, just retarget
   }
 
   // ── Public API (for settings panel commit/cancel/reset) ────────────────────
@@ -235,6 +324,11 @@ export class TransformTool implements ToolHandler {
   /** Refresh the gizmo (e.g. after external transform change). */
   refreshOverlay(ctx: ToolContext): void {
     this.drawGizmo(ctx);
+  }
+
+  /** Get the current transform target set (read-only). */
+  getTargetSet(): TransformTargetSet {
+    return this.targetSet;
   }
 
   // ── In-transform undo/redo ────────────────────────────────────────────────

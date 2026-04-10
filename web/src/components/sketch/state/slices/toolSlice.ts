@@ -18,6 +18,7 @@ import type {
   CloneStampSettings,
   SelectSettings,
   SegmentSettings,
+  TransformSettings,
   ToolSettings,
   ColorMode,
   SymmetryMode
@@ -91,6 +92,7 @@ export interface ToolSlice {
   setCloneStampSettings: (settings: Partial<CloneStampSettings>) => void;
   setSelectSettings: (settings: Partial<SelectSettings>) => void;
   setSegmentSettings: (settings: Partial<SegmentSettings>) => void;
+  setTransformSettings: (settings: Partial<TransformSettings>) => void;
 
   foregroundColor: string;
   backgroundColor: string;
@@ -210,6 +212,14 @@ export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
       toolSettings: {
         ...state.toolSettings,
         segment: { ...state.toolSettings.segment, ...settings }
+      }
+    })),
+
+  setTransformSettings: (settings: Partial<TransformSettings>) =>
+    set((state) => ({
+      toolSettings: {
+        ...state.toolSettings,
+        transform: { ...state.toolSettings.transform, ...settings }
       }
     })),
 
