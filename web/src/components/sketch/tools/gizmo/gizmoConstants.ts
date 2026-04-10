@@ -19,6 +19,12 @@ export const HANDLE_HIT_RADIUS = 8;
 /** Distance (CSS px) of the rotation handle above the top edge. */
 export const ROTATION_HANDLE_OFFSET = 24;
 
+/** Screen-space margin (CSS px) outside the bounding box where pointer triggers rotate. */
+export const OUTER_ROTATE_MARGIN = 16;
+
+/** Screen-space radius of the pivot handle (CSS px, before DPR scaling). */
+export const PIVOT_HANDLE_RADIUS = 5;
+
 /** Radius multiplier for the rotation handle circle relative to HANDLE_SIZE. */
 export const ROTATION_HANDLE_RADIUS_FACTOR = 0.7;
 
@@ -38,6 +44,12 @@ export const HANDLE_FILL_DEFAULT = "#ffffff";
 
 /** Handle fill color when hovered or active. */
 export const HANDLE_FILL_HOVERED = "rgba(0, 120, 255, 0.15)";
+
+/** Pivot handle fill color. */
+export const PIVOT_FILL_DEFAULT = "rgba(0, 120, 255, 0.3)";
+
+/** Pivot handle stroke color. */
+export const PIVOT_STROKE_COLOR = "rgba(0, 120, 255, 1)";
 
 /** Off-canvas indicator color (MoveTool dashed outline). */
 export const OFF_CANVAS_INDICATOR_COLOR = "rgba(255, 200, 0, 0.75)";

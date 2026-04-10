@@ -194,8 +194,9 @@ describe("gizmo hit testing", () => {
     const resultZoom2 = hitTestHandles(transform, bounds, testPoint, 2);
     // At zoom=1, threshold = HANDLE_RADIUS, point is within
     expect(resultZoom1).toBe("bottom-right");
-    // At zoom=2, threshold = HANDLE_RADIUS/2, point is outside
-    expect(resultZoom2).toBeNull();
+    // At zoom=2, threshold = HANDLE_RADIUS/2, point is outside the handle
+    // but still within the outer-rotate margin
+    expect(resultZoom2).toBe("rotate-outer");
   });
 });
 

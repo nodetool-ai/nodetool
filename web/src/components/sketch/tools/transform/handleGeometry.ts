@@ -31,19 +31,25 @@ export type TransformHandle =
   | "left"
   | "right"
   | "rotate"
+  | "rotate-outer"
+  | "pivot"
   | "move";
 
 // Import sizing constants from the shared gizmo module (single source of truth).
 import {
   HANDLE_HIT_RADIUS,
   ROTATION_HANDLE_OFFSET as GIZMO_ROTATION_OFFSET,
-  HANDLE_SIZE as GIZMO_HANDLE_SIZE
+  HANDLE_SIZE as GIZMO_HANDLE_SIZE,
+  OUTER_ROTATE_MARGIN as GIZMO_OUTER_ROTATE_MARGIN,
+  PIVOT_HANDLE_RADIUS as GIZMO_PIVOT_HANDLE_RADIUS
 } from "../gizmo/gizmoConstants";
 
 // Re-export with the names that existing consumers expect.
 export const HANDLE_RADIUS = HANDLE_HIT_RADIUS;
 export const ROTATION_HANDLE_OFFSET = GIZMO_ROTATION_OFFSET;
 export const HANDLE_SIZE = GIZMO_HANDLE_SIZE;
+export const OUTER_ROTATE_MARGIN = GIZMO_OUTER_ROTATE_MARGIN;
+export const PIVOT_HANDLE_RADIUS = GIZMO_PIVOT_HANDLE_RADIUS;
 
 // ─── Geometry primitives ──────────────────────────────────────────────────────
 
@@ -156,26 +162,39 @@ export function buildHandlePositions(
 /**
  * Hit-test all transform handles against a document-space point.
  *
- * Returns the handle under the pointer, or null. The "move" handle is
- * returned when the point falls inside the (rotated) bounding box but
- * doesn't hit any specific handle.
+ * Returns the handle under the pointer, or null. Priority order:
+ *   1. Pivot handle (if provided)
+ *   2. Named handles (corners, edges, rotate)
+ *   3. Interior → "move"
+ *   4. Just outside bounding box → "rotate-outer"
+ *   5. null (miss)
+ *
+ * @param pivotPoint Optional custom pivot position in document space.
+ *                   When provided, the pivot handle is hit-tested first.
  */
 export function hitTestHandles(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds,
   canvasPt: Point,
-  zoom: number
+  zoom: number,
+  pivotPoint?: Point | null
 ): TransformHandle | null {
   const threshold = HANDLE_RADIUS / zoom;
-  const handles = buildHandlePositions(transform, rasterBounds, zoom);
 
+  // 1. Pivot handle has highest priority (small target, user-placed)
+  if (pivotPoint && dist(canvasPt, pivotPoint) <= threshold) {
+    return "pivot";
+  }
+
+  // 2. Named handles (corners, edges, rotate)
+  const handles = buildHandlePositions(transform, rasterBounds, zoom);
   for (const { pos, handle } of handles) {
     if (dist(canvasPt, pos) <= threshold) {
       return handle;
     }
   }
 
-  // Check if inside the bounding box (for "move")
+  // 3. Check if inside the bounding box (for "move")
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
   const rot = transform.rotation ?? 0;
@@ -200,6 +219,17 @@ export function hitTestHandles(
     unrotated.y <= bottom
   ) {
     return "move";
+  }
+
+  // 4. Just outside bounding box → outer rotate zone
+  const outerMargin = OUTER_ROTATE_MARGIN / zoom;
+  if (
+    unrotated.x >= left - outerMargin &&
+    unrotated.x <= right + outerMargin &&
+    unrotated.y >= top - outerMargin &&
+    unrotated.y <= bottom + outerMargin
+  ) {
+    return "rotate-outer";
   }
 
   return null;
@@ -347,3 +377,67 @@ export const HANDLE_ANCHOR: Partial<
   top: { dx: 0, dy: 1 },
   bottom: { dx: 0, dy: -1 }
 };
+
+// ─── Pivot anchor snapping ───────────────────────────────────────────────────
+
+/** Snap threshold (CSS px) for pivot snapping to anchor points. */
+const PIVOT_SNAP_THRESHOLD = 10;
+
+/**
+ * Compute the set of stable anchor points that the pivot can snap to:
+ * center, 4 corners, and 4 edge midpoints — all in document space.
+ */
+export function getPivotAnchorPoints(
+  transform: LayerTransform,
+  rasterBounds: LayerContentBounds,
+  zoom: number
+): Array<{ pos: Point; label: string }> {
+  const center = getTransformedCenter(transform, rasterBounds);
+  const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
+  const rot = transform.rotation ?? 0;
+  const cx = center.x;
+  const cy = center.y;
+  const left = cx - hw;
+  const right = cx + hw;
+  const top = cy - hh;
+  const bottom = cy + hh;
+
+  return [
+    { pos: { x: cx, y: cy }, label: "center" },
+    { pos: rotatePoint(left, top, cx, cy, rot), label: "top-left" },
+    { pos: rotatePoint(right, top, cx, cy, rot), label: "top-right" },
+    { pos: rotatePoint(left, bottom, cx, cy, rot), label: "bottom-left" },
+    { pos: rotatePoint(right, bottom, cx, cy, rot), label: "bottom-right" },
+    { pos: rotatePoint(cx, top, cx, cy, rot), label: "top" },
+    { pos: rotatePoint(cx, bottom, cx, cy, rot), label: "bottom" },
+    { pos: rotatePoint(left, cy, cx, cy, rot), label: "left" },
+    { pos: rotatePoint(right, cy, cx, cy, rot), label: "right" }
+  ];
+}
+
+/**
+ * Snap a document-space point to the nearest pivot anchor if within threshold.
+ * Returns the snapped point (or the original if no anchor is close enough).
+ */
+export function snapPivotToAnchor(
+  point: Point,
+  transform: LayerTransform,
+  rasterBounds: LayerContentBounds,
+  zoom: number
+): Point {
+  const anchors = getPivotAnchorPoints(transform, rasterBounds, zoom);
+  const threshold = PIVOT_SNAP_THRESHOLD / zoom;
+
+  let best: Point | null = null;
+  let bestDist = Infinity;
+
+  for (const { pos } of anchors) {
+    const d = dist(point, pos);
+    if (d <= threshold && d < bestDist) {
+      bestDist = d;
+      best = pos;
+    }
+  }
+
+  return best ?? point;
+}

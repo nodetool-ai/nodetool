@@ -17,11 +17,14 @@ import {
   HANDLE_SIZE,
   ROTATION_HANDLE_OFFSET,
   ROTATION_HANDLE_RADIUS_FACTOR,
+  PIVOT_HANDLE_RADIUS,
   GIZMO_PRIMARY_COLOR,
   GIZMO_PRIMARY_SEMI,
   GIZMO_PRIMARY_FAINT,
   HANDLE_FILL_DEFAULT,
   HANDLE_FILL_HOVERED,
+  PIVOT_FILL_DEFAULT,
+  PIVOT_STROKE_COLOR,
   GIZMO_LINE_WIDTH,
   GIZMO_LINE_WIDTH_HOVERED,
   BOUNDING_BOX_DASH_ON,
@@ -114,8 +117,49 @@ export function drawRotationHandle(
 }
 
 /**
+ * Draw the pivot handle: a crosshair circle at a given screen-space position.
+ *
+ * The pivot handle is drawn independently of the rotated gizmo coordinate
+ * system since the pivot can be placed at any document-space position.
+ *
+ * @param gc - Canvas context (identity transform expected)
+ * @param screenPos - Pivot position in screen-space pixels
+ * @param isHovered - Whether the pivot handle is hovered or active
+ * @param dpr - Device pixel ratio
+ */
+export function drawPivotHandle(
+  gc: CanvasRenderingContext2D,
+  screenPos: Point,
+  isHovered: boolean,
+  dpr: number
+): void {
+  const r = PIVOT_HANDLE_RADIUS * dpr;
+  const lw = (isHovered ? GIZMO_LINE_WIDTH_HOVERED : GIZMO_LINE_WIDTH) * dpr;
+  const armLen = r * 1.6;
+
+  // Circle
+  gc.beginPath();
+  gc.arc(screenPos.x, screenPos.y, r, 0, Math.PI * 2);
+  gc.fillStyle = isHovered ? HANDLE_FILL_HOVERED : PIVOT_FILL_DEFAULT;
+  gc.fill();
+  gc.strokeStyle = PIVOT_STROKE_COLOR;
+  gc.lineWidth = lw;
+  gc.stroke();
+
+  // Crosshair lines extending beyond the circle
+  gc.beginPath();
+  gc.moveTo(screenPos.x - armLen, screenPos.y);
+  gc.lineTo(screenPos.x + armLen, screenPos.y);
+  gc.moveTo(screenPos.x, screenPos.y - armLen);
+  gc.lineTo(screenPos.x, screenPos.y + armLen);
+  gc.strokeStyle = PIVOT_STROKE_COLOR;
+  gc.lineWidth = lw;
+  gc.stroke();
+}
+
+/**
  * Draw the complete transform gizmo: bounding box, 8 scale handles,
- * and rotation handle.
+ * rotation handle, and optional pivot handle.
  *
  * @param gc - Canvas context (will be saved/restored internally)
  * @param screenCenter - Center point in screen-space pixels
@@ -124,6 +168,8 @@ export function drawRotationHandle(
  * @param rotation - Layer rotation in radians
  * @param activeOrHoveredHandle - The currently active or hovered handle (for highlight)
  * @param dpr - Device pixel ratio
+ * @param pivotScreenPos - Optional pivot handle position in screen-space pixels.
+ *                         When provided, a crosshair pivot handle is drawn.
  */
 export function drawTransformGizmo(
   gc: CanvasRenderingContext2D,
@@ -132,7 +178,8 @@ export function drawTransformGizmo(
   screenH: number,
   rotation: number,
   activeOrHoveredHandle: TransformHandle | null,
-  dpr: number
+  dpr: number,
+  pivotScreenPos?: Point | null
 ): void {
   gc.save();
   gc.translate(screenCenter.x, screenCenter.y);
@@ -164,9 +211,19 @@ export function drawTransformGizmo(
   }
 
   // Rotation handle
-  drawRotationHandle(gc, screenH, activeOrHoveredHandle === "rotate", dpr);
+  drawRotationHandle(
+    gc,
+    screenH,
+    activeOrHoveredHandle === "rotate" || activeOrHoveredHandle === "rotate-outer",
+    dpr
+  );
 
   gc.restore();
+
+  // Pivot handle — drawn in screen space (not rotated with the gizmo)
+  if (pivotScreenPos) {
+    drawPivotHandle(gc, pivotScreenPos, activeOrHoveredHandle === "pivot", dpr);
+  }
 }
 
 // ─── Off-canvas indicator ────────────────────────────────────────────────────

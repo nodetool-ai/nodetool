@@ -55,7 +55,8 @@ import {
 import {
   type TransformHandle,
   hitTestHandles,
-  computeTransformForHandle
+  computeTransformForHandle,
+  snapPivotToAnchor
 } from "./transform";
 import {
   paintTransformGizmo,
@@ -98,6 +99,12 @@ export class TransformTool implements ToolHandler {
   private gestureActive = false;
   /** Currently hovered handle (for cursor feedback). */
   private hoveredHandle: TransformHandle | null = null;
+
+  /**
+   * User-adjustable pivot point for rotation (document space).
+   * When null, rotation uses the layer center (default Photoshop-like behavior).
+   */
+  private pivotPoint: Point | null = null;
   /** Batched gizmo redraw scheduler. */
   private gizmoScheduler = new GizmoRedrawScheduler();
 
@@ -143,6 +150,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
+    this.pivotPoint = null;
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
     this.drawGizmo(ctx);
@@ -152,6 +160,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
+    this.pivotPoint = null;
     this.session.clear(ctx);
     this.targetSet.clear();
     this.adjustmentUndoStack = [];
@@ -186,10 +195,11 @@ export class TransformTool implements ToolHandler {
       currentTransform,
       this.rasterBounds,
       pt,
-      ctx.zoom
+      ctx.zoom,
+      this.pivotPoint
     );
 
-    // If the click misses the gizmo, try auto-select targeting
+    // If the click misses the gizmo (and the outer-rotate zone), try auto-select
     if (!handle) {
       const autoSelect = doc.toolSettings?.transform?.autoSelect ?? true;
       if (autoSelect) {
@@ -203,6 +213,12 @@ export class TransformTool implements ToolHandler {
     this.dragStartTransform = { ...currentTransform };
     this.center = getTransformedCenter(currentTransform, this.rasterBounds);
     this.gestureActive = true;
+
+    // Pivot drag doesn't change the layer transform — skip undo/session.
+    if (handle === "pivot") {
+      return true;
+    }
+
     // Record the pre-drag transform for in-transform undo; clear redo stack.
     this.adjustmentUndoStack.push({ ...currentTransform });
     this.adjustmentRedoStack = [];
@@ -221,6 +237,22 @@ export class TransformTool implements ToolHandler {
       return;
     }
 
+    // Pivot drag: update the pivot position (with optional snapping), no transform change.
+    if (this.activeHandle === "pivot") {
+      const shift = ctx.shiftHeldRef.current;
+      const currentTransform = this.session.isActive()
+        ? this.session.state.currentTransform
+        : layer.transform;
+      if (shift) {
+        // Shift held: snap pivot to anchor points
+        this.pivotPoint = snapPivotToAnchor(pt, currentTransform, this.rasterBounds, ctx.zoom);
+      } else {
+        this.pivotPoint = { ...pt };
+      }
+      this.gizmoScheduler.scheduleRedraw(() => this.drawGizmo(ctx));
+      return;
+    }
+
     const shift = ctx.shiftHeldRef.current;
     const alt = ctx.altHeldRef.current;
     const newTransform = computeTransformForHandle(
@@ -231,7 +263,8 @@ export class TransformTool implements ToolHandler {
       this.center,
       this.rasterBounds,
       shift,
-      alt
+      alt,
+      this.pivotPoint
     );
     // Update through the shared preview session — writes to both compositing
     // pipeline and the UI singleton in one call.
@@ -242,6 +275,14 @@ export class TransformTool implements ToolHandler {
   }
 
   onUp(ctx: ToolContext): void {
+    // Pivot drag doesn't need a session commit.
+    if (this.activeHandle === "pivot") {
+      this.activeHandle = null;
+      this.dragStart = null;
+      this.drawGizmo(ctx);
+      return;
+    }
+
     // Commit the final transform through the shared session.
     this.session.commit(ctx);
 
@@ -331,6 +372,29 @@ export class TransformTool implements ToolHandler {
     return this.targetSet;
   }
 
+  // ── Pivot management ──────────────────────────────────────────────────────
+
+  /** Get the current pivot point (null = layer center). */
+  getPivotPoint(): Point | null {
+    return this.pivotPoint ? { ...this.pivotPoint } : null;
+  }
+
+  /** Set a custom pivot point (null resets to layer center). */
+  setPivotPoint(point: Point | null, ctx?: ToolContext): void {
+    this.pivotPoint = point ? { ...point } : null;
+    if (ctx) {
+      this.drawGizmo(ctx);
+    }
+  }
+
+  /** Reset the pivot to the layer center. */
+  resetPivot(ctx?: ToolContext): void {
+    this.pivotPoint = null;
+    if (ctx) {
+      this.drawGizmo(ctx);
+    }
+  }
+
   // ── In-transform undo/redo ────────────────────────────────────────────────
 
   /** Whether there are undoable handle adjustments in the current transform session. */
@@ -389,10 +453,12 @@ export class TransformTool implements ToolHandler {
       transform,
       this.rasterBounds,
       docPoint,
-      ctx.zoom
+      ctx.zoom,
+      this.pivotPoint
     );
     // hitTestHandles returns "move" when inside the bounding box, or a named
     // handle when on a handle — both count as "inside".
+    // "rotate-outer" and "pivot" also count as "inside" the interaction zone.
     return handle !== null;
   }
 
@@ -420,7 +486,7 @@ export class TransformTool implements ToolHandler {
     const transform = this.session.isActive()
       ? this.session.state.currentTransform
       : layer.transform;
-    const info = getTransformHoverInfo(docPoint, transform, this.rasterBounds, ctx.zoom);
+    const info = getTransformHoverInfo(docPoint, transform, this.rasterBounds, ctx.zoom, this.pivotPoint);
     this.hoveredHandle = info.handle;
     return info.cursor;
   }
@@ -446,7 +512,7 @@ export class TransformTool implements ToolHandler {
       ? this.session.state.currentTransform
       : layer.transform;
     const hoveredHandle = this.activeHandle ?? this.hoveredHandle;
-    paintTransformGizmo(ctx, transform, this.rasterBounds, hoveredHandle);
+    paintTransformGizmo(ctx, transform, this.rasterBounds, hoveredHandle, this.pivotPoint);
   }
 }
 

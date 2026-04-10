@@ -85,9 +85,10 @@ Sections **2.1** (transform, zoom, selection), **2.2** (lifecycle shortcuts), co
 Do not start these until the `NEXT UP` hardening pass is done. Preview ownership, spring-loaded move lifecycle, resolved gizmo bounds, and preview-vs-commit parity all belong to that earlier pass; this section starts only after those seams are stable.
 - [x] [impl+test] add a minimal transform-targeting flow, not a generic multi-tool selection framework: optional auto-select toggle for `TransformTool`; clicking opaque pixels targets the topmost visible transformable layer; `Shift+click` adds/removes layers from the transform target set; the transform gizmo, transform UI, and live preview must use one shared bounds source for the targeted set. do not assume layers-panel multi-select is already the correct transform-target model unless their semantics are made intentionally identical
 
-- [ ] support rotate behavior, including `Shift` snapping and pivot-point changes
-  - **Partial:** Rotation via dedicated handle above top-center is implemented. Shift snaps to 15° increments via `snapAngle()` in `computeRotateTransform()`. Remaining: user-adjustable pivot point (currently always layer center).
-- [ ] [impl+test] expand transform hit policy only if it can stay local to transform gizmo layout/hit-testing: allow rotate when dragging just outside the box/near scale handles, add an explicit pivot handle, and support snapping the pivot to stable anchor points such as corners/edge handles. keep this built on the same resolved geometry/hit-test seam as the box/handles above, and do not spread it into a generic cross-tool gesture system unless repeated evidence demands it
+- [x] support rotate behavior, including `Shift` snapping and pivot-point changes
+  - **Done:** Rotation via dedicated handle above top-center is implemented. Shift snaps to 15° increments via `snapAngle()` in `computeRotateTransform()`. User-adjustable pivot point implemented: draggable `pivot` handle that defaults to layer center; pivot snaps to 9 anchor points (center, 4 corners, 4 edge midpoints) when Shift is held during drag; rotation uses the custom pivot as center instead of layer center.
+- [x] [impl+test] expand transform hit policy only if it can stay local to transform gizmo layout/hit-testing: allow rotate when dragging just outside the box/near scale handles, add an explicit pivot handle, and support snapping the pivot to stable anchor points such as corners/edge handles. keep this built on the same resolved geometry/hit-test seam as the box/handles above, and do not spread it into a generic cross-tool gesture system unless repeated evidence demands it
+  - **Done:** Added `rotate-outer` zone (OUTER_ROTATE_MARGIN=16px CSS) that detects pointer just outside the bounding box and returns rotate interaction. Added `pivot` handle type with crosshair cursor, hit-test priority above all other handles, draggable positioning with Shift-snap to 9 anchor points. All stays local to `handleGeometry.ts` / `computeTransform.ts` / `transformGizmoPainter.ts`; no generic cross-tool gesture system added. 32 new regression tests in `advancedTransformModes.test.ts`.
 - [ ] support distort behavior on corner handles
 - [ ] support skew behavior on side handles
 - [ ] support perspective behavior
@@ -102,8 +103,8 @@ Modifier-key target behavior to preserve while implementing the items above:
   - **Partial:** Proportional scale (Shift on corner handles) and 15° rotation snap (Shift while rotating) are implemented. Remaining: axis-lock distortion (requires distort mode which does not exist yet).
 - [ ] `Ctrl+Shift` / `Cmd+Shift` -> skew on sides, constrained distort on corners
 - [ ] `Ctrl+Alt+Shift` / `Cmd+Option+Shift` -> perspective
-- [ ] cursor position determines behavior: outside box = rotate, inside = move, on handle = transform
-  - **Partial:** Inside box → move and on handle → transform are implemented via `hitTestHandles()`. Remaining: outside box → rotate (currently returns `null` / no interaction).
+- [x] cursor position determines behavior: outside box = rotate, inside = move, on handle = transform
+  - **Done:** Inside box → move, on handle → transform, and outside box → rotate-outer are all implemented via `hitTestHandles()`. The outer-rotate zone (`OUTER_ROTATE_MARGIN`) is 16 CSS px outside the bounding box, zoom-aware, and respects rotated layer geometry.
 
 ### 2.4 - Selection context menu
 

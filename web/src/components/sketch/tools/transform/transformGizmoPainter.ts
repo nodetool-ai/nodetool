@@ -14,7 +14,7 @@
  */
 
 import type { ToolContext } from "../types";
-import type { LayerTransform, LayerContentBounds } from "../../types";
+import type { LayerTransform, LayerContentBounds, Point } from "../../types";
 import type { TransformHandle } from "./handleGeometry";
 import { getTransformedCenter } from "../../painting/resolvedLayerGeometry";
 import { docToScreen, scaledHalfExtents } from "./handleGeometry";
@@ -27,12 +27,14 @@ import { drawTransformGizmo } from "../gizmo";
  * @param transform - The current (or live-preview) layer transform
  * @param rasterBounds - The layer's raster content bounds
  * @param activeOrHoveredHandle - Handle to highlight (active drag or hover)
+ * @param pivotPoint - Optional custom pivot position in document space
  */
 export function paintTransformGizmo(
   ctx: ToolContext,
   transform: LayerTransform,
   rasterBounds: LayerContentBounds,
-  activeOrHoveredHandle: TransformHandle | null
+  activeOrHoveredHandle: TransformHandle | null,
+  pivotPoint?: Point | null
 ): void {
   ctx.drawGizmo((gc, dpr, containerW, containerH) => {
     const rot = transform.rotation ?? 0;
@@ -54,7 +56,23 @@ export function paintTransformGizmo(
     const screenW = hw * 2 * ctx.zoom * dpr;
     const screenH = hh * 2 * ctx.zoom * dpr;
 
-    drawTransformGizmo(gc, screenCenter, screenW, screenH, rot, activeOrHoveredHandle, dpr);
+    // Convert pivot to screen space if provided
+    let pivotScreenPos: Point | null = null;
+    if (pivotPoint) {
+      pivotScreenPos = docToScreen(
+        pivotPoint.x,
+        pivotPoint.y,
+        ctx.doc.canvas.width,
+        ctx.doc.canvas.height,
+        ctx.zoom,
+        ctx.pan,
+        containerW,
+        containerH,
+        dpr
+      );
+    }
+
+    drawTransformGizmo(gc, screenCenter, screenW, screenH, rot, activeOrHoveredHandle, dpr, pivotScreenPos);
   });
 }
 

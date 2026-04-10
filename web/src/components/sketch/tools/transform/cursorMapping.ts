@@ -13,7 +13,8 @@ import type { TransformHandle } from "./handleGeometry";
  * CSS cursor for a given transform handle, accounting for layer rotation.
  *
  * Scale handles are mapped to directional resize cursors that rotate with
- * the layer. The rotation handle shows "grab" and the move area shows "move".
+ * the layer. The rotation handle and outer-rotate zone show "grab".
+ * The pivot handle shows "crosshair". The move area shows "move".
  */
 export function cursorForHandle(
   handle: TransformHandle | null,
@@ -25,8 +26,11 @@ export function cursorForHandle(
   if (handle === "move") {
     return "move";
   }
-  if (handle === "rotate") {
+  if (handle === "rotate" || handle === "rotate-outer") {
     return "grab";
+  }
+  if (handle === "pivot") {
+    return "crosshair";
   }
   // For scale handles, pick a directional resize cursor rotated by the layer rotation
   const baseDeg: Partial<Record<TransformHandle, number>> = {

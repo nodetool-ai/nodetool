@@ -22,15 +22,17 @@ import { cursorForHandle } from "./cursorMapping";
  * Hit-test transform handles and return cursor + handle info for a given
  * document-space point.
  *
+ * @param pivotPoint Optional custom pivot position in document space.
  * @returns Object with `handle` (which handle, or null) and `cursor` (CSS cursor, or null).
  */
 export function getTransformHoverInfo(
   docPoint: Point,
   transform: LayerTransform,
   rasterBounds: LayerContentBounds,
-  zoom: number
+  zoom: number,
+  pivotPoint?: Point | null
 ): { handle: TransformHandle | null; cursor: string | null } {
-  const handle = hitTestHandles(transform, rasterBounds, docPoint, zoom);
+  const handle = hitTestHandles(transform, rasterBounds, docPoint, zoom, pivotPoint);
   const rot = transform.rotation ?? 0;
   const cursor = handle ? cursorForHandle(handle, rot) : null;
   return { handle, cursor };

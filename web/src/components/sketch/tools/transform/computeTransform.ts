@@ -242,6 +242,11 @@ export function computeScaleTransform(
 /**
  * Compute a new transform for any handle type. This is the single entry
  * point that TransformTool.ts should call during a drag gesture.
+ *
+ * @param pivot Optional custom pivot point for rotation. When provided,
+ *              rotation uses this instead of the layer center. This allows
+ *              the pivot handle and outer-rotate zone to share the same
+ *              rotation computation.
  */
 export function computeTransformForHandle(
   handle: TransformHandle,
@@ -251,17 +256,24 @@ export function computeTransformForHandle(
   center: Point,
   rasterBounds: LayerContentBounds,
   shift: boolean,
-  alt: boolean
+  alt: boolean,
+  pivot?: Point | null
 ): LayerTransform {
   if (handle === "move") {
     return computeMoveTransform(dragStartTransform, dragStart, cursor);
   }
-  if (handle === "rotate") {
+  if (handle === "pivot") {
+    // Dragging the pivot does not change the transform — pivot position is
+    // managed externally by TransformTool. Return the transform unchanged.
+    return { ...dragStartTransform };
+  }
+  if (handle === "rotate" || handle === "rotate-outer") {
+    const rotationCenter = pivot ?? center;
     return computeRotateTransform(
       dragStartTransform,
       dragStart,
       cursor,
-      center,
+      rotationCenter,
       shift
     );
   }
