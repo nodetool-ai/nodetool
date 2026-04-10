@@ -495,21 +495,36 @@ const WorkspaceTree: React.FC = () => {
 
   const handleItemClick = useCallback(
     async (event: React.MouseEvent, itemId: string) => {
-      if (!filesWorkspaceId) { return; }
+      console.log("[WorkspaceTree] handleItemClick", { itemId, filesWorkspaceId, filesCount: files.length });
+      if (!filesWorkspaceId) {
+        console.log("[WorkspaceTree] early return: no filesWorkspaceId");
+        return;
+      }
 
       setSelectedFilePath(itemId);
       try {
         const targetItem = findItemInTree(files, itemId);
+        console.log("[WorkspaceTree] targetItem found:", !!targetItem, "shouldLoad:", shouldLoadChildren(targetItem));
+        if (targetItem) {
+          console.log("[WorkspaceTree] targetItem details:", {
+            id: targetItem.id,
+            label: targetItem.label,
+            childCount: targetItem.children?.length,
+            firstChildLabel: targetItem.children?.[0]?.label
+          });
+        }
         if (shouldLoadChildren(targetItem)) {
           const relativePath = itemId || ".";
+          console.log("[WorkspaceTree] fetching children for:", relativePath);
 
           const children = await fetchWorkspaceFiles(filesWorkspaceId, relativePath);
+          console.log("[WorkspaceTree] got children:", children.length);
           setFiles((currentFiles) =>
             updateTreeWithChildren(currentFiles, itemId, children)
           );
         }
       } catch (error) {
-        log.error("Failed to load children:", error);
+        console.error("[WorkspaceTree] Failed to load children:", error);
         setFiles((currentFiles) =>
           updateTreeWithChildren(currentFiles, itemId, [createErrorItem(itemId)])
         );
@@ -674,9 +689,10 @@ const WorkspaceTree: React.FC = () => {
           <div onDoubleClick={handleTreeDoubleClick}>
             <RichTreeView
               onItemClick={handleItemClick}
-              onItemExpansionToggle={(event: React.SyntheticEvent, itemId: string) =>
-                handleItemClick(event as React.MouseEvent, itemId)
-              }
+              onItemExpansionToggle={(event: React.SyntheticEvent, itemId: string) => {
+                console.log("[WorkspaceTree] onItemExpansionToggle fired:", itemId);
+                handleItemClick(event as React.MouseEvent, itemId);
+              }}
               items={files as any}
               aria-label="workspace file browser"
               selectedItems={selectedFilePath}
