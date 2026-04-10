@@ -22,7 +22,8 @@ import {
   TextField,
   InputAdornment,
   useTheme,
-  Theme
+  Theme,
+  Tooltip
 } from "@mui/material";
 import { Dialog } from "../ui_primitives";
 import {
@@ -770,12 +771,17 @@ function FileBrowserDialog({
         >
           {/* Toolbar */}
           <div className="toolbar">
-            <IconButton
-              onClick={handleUp}
-              disabled={currentPath === "~" || currentPath === "/"}
-            >
-              <ArrowUpwardIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title="Go up one folder">
+              <span>
+                <IconButton
+                  aria-label="Go up one folder"
+                  onClick={handleUp}
+                  disabled={currentPath === "~" || currentPath === "/"}
+                >
+                  <ArrowUpwardIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
 
             {isEditingPath ? (
               <TextField
