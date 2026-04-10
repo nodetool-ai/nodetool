@@ -105,6 +105,11 @@ export interface HttpApiOptions {
    * `packages/base-nodes/nodetool/examples/nodetool-base`).
    * When set, `handleWorkflowExamples` reads these files directly instead of
    * relying on Python package metadata, so no Python installation is needed.
+   *
+   * The sibling `assets` directory is automatically derived from this path to
+   * serve thumbnail images at both:
+   *   - `/api/workflows/examples/thumbnails/<name>.jpg` (used by WorkflowTile)
+   *   - `/api/assets/packages/<package-name>/<name>.jpg` (used by WorkflowCard)
    */
   examplesDir?: string;
 }
@@ -463,6 +468,9 @@ export async function handleWorkflowTools(
 
 // ── Workflow examples ──────────────────────────────────────────────────
 
+/** URL prefix for example workflow thumbnail images served by this API. */
+const EXAMPLES_THUMBNAILS_PREFIX = "/api/workflows/examples/thumbnails/";
+
 interface ExampleMetadata {
   id?: string;
   name: string;
@@ -471,11 +479,30 @@ interface ExampleMetadata {
 }
 
 /**
+ * Given an `examplesDir` (e.g. `.../nodetool/examples/nodetool-base`), return
+ * the sibling assets directory (`.../nodetool/assets/nodetool-base`).
+ */
+function deriveAssetsDir(examplesDir: string): string {
+  return nodePath.join(
+    nodePath.dirname(nodePath.dirname(examplesDir)),
+    "assets",
+    nodePath.basename(examplesDir)
+  );
+}
+
+/**
  * Read example workflow metadata from a directory of JSON files.
  * Returns lightweight objects (no graph data) suitable for the /examples list.
+ *
+ * When the sibling `assets` directory exists (e.g.
+ * `packages/base-nodes/nodetool/assets/nodetool-base`), a `thumbnail_url`
+ * pointing to `/api/workflows/examples/thumbnails/<name>` is set so the
+ * frontend can display the pre-generated JPG thumbnails.
  */
 function buildExamplesFromDir(examplesDir: string): unknown[] {
   if (!existsSync(examplesDir)) return [];
+  // Derive the assets directory from the examples directory.
+  const assetsDir = deriveAssetsDir(examplesDir);
   const now = new Date().toISOString();
   const workflows: unknown[] = [];
   let files: string[];
@@ -495,6 +522,12 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
         typeof parsed.name === "string"
           ? parsed.name
           : file.replace(/\.json$/i, "");
+      // Point thumbnail_url to the served JPG when the file exists in assets.
+      const jpgFile = `${name}.jpg`;
+      const thumbnailUrl =
+        existsSync(nodePath.join(assetsDir, jpgFile))
+          ? `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`
+          : null;
       workflows.push({
         id: file,
         access: "public",
@@ -507,8 +540,8 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
         tags: Array.isArray(parsed.tags)
           ? parsed.tags.filter((t: unknown) => typeof t === "string")
           : [],
-        thumbnail: null,
-        thumbnail_url: null,
+        thumbnail: thumbnailUrl ? jpgFile : null,
+        thumbnail_url: thumbnailUrl,
         graph: { nodes: [], edges: [] },
         input_schema: null,
         output_schema: null,
@@ -635,6 +668,62 @@ export async function handleWorkflowExamplesSearch(
       })
     : workflows;
   return jsonResponse({ workflows: filtered, next: null });
+}
+
+/**
+ * Serve a thumbnail JPG from the examples assets directory.
+ * URL: /api/workflows/examples/thumbnails/<encoded-filename>
+ */
+export async function handleWorkflowExamplesThumbnail(
+  request: Request,
+  filename: string,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  if (!options.examplesDir) {
+    return errorResponse(404, "Examples not configured");
+  }
+  // Derive the assets directory from the examples directory.
+  const assetsDir = deriveAssetsDir(options.examplesDir);
+  // Prevent path traversal — only allow a plain filename (no slashes).
+  const safe = nodePath.basename(filename);
+  const safeLower = safe.toLowerCase();
+  if (!safeLower.endsWith(".jpg") && !safeLower.endsWith(".png")) {
+    return errorResponse(400, "Only .jpg and .png thumbnails are supported");
+  }
+  const filePath = nodePath.join(assetsDir, safe);
+  if (!existsSync(filePath)) {
+    return errorResponse(404, "Thumbnail not found");
+  }
+  const { createReadStream, statSync } = await import("node:fs");
+  let stat: { size: number };
+  try {
+    stat = statSync(filePath);
+  } catch {
+    return errorResponse(404, "Thumbnail not found");
+  }
+  const contentType = safeLower.endsWith(".png") ? "image/png" : "image/jpeg";
+  const stream = createReadStream(filePath);
+  const webStream = new ReadableStream({
+    start(controller) {
+      stream.on("data", (chunk) => controller.enqueue(chunk));
+      stream.on("end", () => controller.close());
+      stream.on("error", (err) => controller.error(err));
+    },
+    cancel() {
+      stream.destroy();
+    }
+  });
+  return new Response(webStream, {
+    status: 200,
+    headers: {
+      "content-type": contentType,
+      "content-length": String(stat.size),
+      "cache-control": "public, max-age=86400"
+    }
+  });
 }
 
 // ── Workflow app page ──────────────────────────────────────────────────
@@ -2129,14 +2218,7 @@ export async function handleApiRequest(
       const packageName = decodeURIComponent(rest.slice(0, slashIdx));
       const assetName = decodeURIComponent(rest.slice(slashIdx + 1));
       if (!packageName || !assetName) return errorResponse(404, "Not found");
-      const loaded = loadPythonPackageMetadata({
-        roots: options.metadataRoots,
-        maxDepth: options.metadataMaxDepth
-      });
-      const pkg = loaded.packages.find((p) => p.name === packageName);
-      if (!pkg || !pkg.sourceFolder)
-        return errorResponse(404, `Package '${packageName}' not found`);
-      const { createReadStream, statSync } = await import("node:fs");
+      const { createReadStream, statSync, existsSync: fsExistsSync } = await import("node:fs");
       const { extname } = await import("node:path");
       const mimeTypes: Record<string, string> = {
         ".jpg": "image/jpeg",
@@ -2151,7 +2233,33 @@ export async function handleApiRequest(
         ".json": "application/json",
         ".txt": "text/plain"
       };
-      const assetPath = `${pkg.sourceFolder}/nodetool/assets/${packageName}/${assetName}`;
+
+      // Determine the asset file path. First try Python package metadata;
+      // fall back to deriving from examplesDir when no Python metadata is available.
+      let assetPath: string | null = null;
+
+      const loaded = loadPythonPackageMetadata({
+        roots: options.metadataRoots,
+        maxDepth: options.metadataMaxDepth
+      });
+      const pkg = loaded.packages.find((p) => p.name === packageName);
+      if (pkg?.sourceFolder) {
+        assetPath = `${pkg.sourceFolder}/nodetool/assets/${packageName}/${assetName}`;
+      } else if (options.examplesDir) {
+        // examplesDir = .../nodetool/examples/<collection-name>
+        // assets live at .../nodetool/assets/<packageName>/<assetName>
+        const nodeToolDir = nodePath.dirname(nodePath.dirname(options.examplesDir));
+        const candidate = nodePath.join(nodeToolDir, "assets", packageName, assetName);
+        if (fsExistsSync(candidate)) assetPath = candidate;
+      }
+
+      if (!assetPath) {
+        return errorResponse(
+          404,
+          `Asset '${assetName}' not found in package '${packageName}'`
+        );
+      }
+
       let stat: { size: number };
       try {
         stat = statSync(assetPath);
@@ -2345,6 +2453,13 @@ export async function handleApiRequest(
 
   if (pathname === "/api/workflows/examples/search") {
     return handleWorkflowExamplesSearch(request, options);
+  }
+
+  if (pathname.startsWith("/api/workflows/examples/thumbnails/")) {
+    const filename = decodeURIComponent(
+      pathname.slice("/api/workflows/examples/thumbnails/".length)
+    );
+    return handleWorkflowExamplesThumbnail(request, filename, options);
   }
 
   if (pathname.startsWith("/api/workflows/examples/")) {
