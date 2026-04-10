@@ -406,24 +406,24 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
             }}
           >
             <Box className="menu-header">
-              <Typography
+              <Text
+                size="smaller"
+                color="secondary"
                 sx={{
-                  fontSize: theme.fontSizeSmaller,
-                  color: theme.vars.palette.text.secondary,
                   marginBottom: "1em"
                 }}
               >
                 Filter nodes by input and output data types
-              </Typography>
+              </Text>
             </Box>
 
-            <Typography
+            <Text
               sx={{
                 marginBottom: "0.25em"
               }}
             >
               Input Type
-            </Typography>
+            </Text>
             <Autocomplete<TypeOption, false, false, false>
               className="filter-select"
               disablePortal
@@ -464,13 +464,13 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
               sx={{ marginBottom: "1em" }}
             />
 
-            <Typography
+            <Text
               sx={{
                 marginBottom: "0.25em"
               }}
             >
               Output Type
-            </Typography>
+            </Text>
             <Autocomplete<TypeOption, false, false, false>
               className="filter-select"
               disablePortal

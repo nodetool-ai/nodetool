@@ -139,9 +139,9 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
           <LoadingSpinner />
         )}
         {isError && (
-          <Typography variant="caption" color="error">
+          <Caption color="error">
             Error loading workflow
-          </Typography>
+          </Caption>
         )} */}
         <Box
           sx={{
@@ -153,9 +153,9 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             borderColor: "divider"
           }}
         >
-          <Typography variant="caption" color="text.secondary">
+          <Caption>
             {/* {subWorkflow?.name && <> · {subWorkflow.name}</>} */}
-          </Typography>
+          </Caption>
         </Box>
       </Box>
     );

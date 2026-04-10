@@ -514,9 +514,9 @@ const ReactFlowWrapper = ({
   if (error) {
     return (
       <div className="loading-overlay">
-        <Typography variant="body1" color="error">
+        <Text color="error">
           {(error as Error).message}
-        </Typography>
+        </Text>
       </div>
     );
   }

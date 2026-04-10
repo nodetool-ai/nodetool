@@ -491,9 +491,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             hideLogs={true}
           />
           {!displayResult && (
-            <Typography className="hint">
+            <Text className="hint">
               Displays any data from connected nodes
-            </Typography>
+            </Text>
           )}
           <PreviewActions
             onDownload={handleDownload}
