@@ -41,10 +41,10 @@ const styles = (theme: Theme) =>
       left: 0,
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1),
+      gap: theme.spacing(2),
       width: "100%",
       height: "100%",
-      padding: theme.spacing(1),
+      padding: theme.spacing(2),
       transformOrigin: "top left"
     },
     ".inspector-header h5": {
