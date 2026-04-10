@@ -310,5 +310,11 @@ export type { SurfaceProps } from "./Surface";
 export { Autocomplete } from "./Autocomplete";
 export type { AutocompleteProps, AutocompleteOption } from "./Autocomplete";
 
+export { LabeledSwitch } from "./LabeledSwitch";
+export type { LabeledSwitchProps } from "./LabeledSwitch";
+
+export { SelectField } from "./SelectField";
+export type { SelectFieldProps, SelectOption } from "./SelectField";
+
 // Accessibility
 export { SkipLinks } from "./SkipLinks";

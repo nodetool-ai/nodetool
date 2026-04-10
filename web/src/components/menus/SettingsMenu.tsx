@@ -1,26 +1,27 @@
 /** @jsxImportSource @emotion/react */
 // Dialog-based settings menu (replacing MUI Menu)
 import React, { memo, useId } from "react";
-import MenuItem from "@mui/material/MenuItem";
 import {
   Button,
   Typography,
-  InputLabel,
-  FormControl,
   Tooltip,
-  Switch,
   Tabs,
   Tab,
   Box
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import Select, { SelectChangeEvent } from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
-import { CloseButton, SearchInput, TextInput } from "../ui_primitives";
+import {
+  CloseButton,
+  SearchInput,
+  TextInput,
+  LabeledSwitch,
+  SelectField
+} from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
@@ -94,12 +95,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   // Generate unique IDs for form controls
   const baseId = useId();
-  const welcomeId = `${baseId}-welcome`;
-  const selectNodesId = `${baseId}-select-nodes`;
-  const soundNotificationsId = `${baseId}-sound-notifications`;
-  const panControlsId = `${baseId}-pan-controls`;
-  const selectionModeId = `${baseId}-selection-mode`;
-  const timeFormatId = `${baseId}-time-format`;
 
   const [activeSection, setActiveSection] = useState("editor");
   const [, setSecretsUpdated] = useState({});
@@ -153,22 +148,22 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   // Memoized handlers for settings controls to prevent re-renders
   const handleShowWelcomeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setShowWelcomeOnStartup(e.target.checked);
+    (checked: boolean) => {
+      setShowWelcomeOnStartup(checked);
     },
     [setShowWelcomeOnStartup]
   );
 
   const handleSelectNodesOnDragChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSelectNodesOnDrag(e.target.checked ?? false);
+    (checked: boolean) => {
+      setSelectNodesOnDrag(checked);
     },
     [setSelectNodesOnDrag]
   );
 
   const handleSoundNotificationsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSoundNotifications(e.target.checked ?? true);
+    (checked: boolean) => {
+      setSoundNotifications(checked);
     },
     [setSoundNotifications]
   );
@@ -188,22 +183,22 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   );
 
   const handlePanControlsChange = useCallback(
-    (e: SelectChangeEvent<string>) => {
-      setPanControls(e.target.value);
+    (value: string) => {
+      setPanControls(value);
     },
     [setPanControls]
   );
 
   const handleSelectionModeChange = useCallback(
-    (e: SelectChangeEvent<string>) => {
-      setSelectionMode(e.target.value);
+    (value: string) => {
+      setSelectionMode(value);
     },
     [setSelectionMode]
   );
 
   const handleTimeFormatChange = useCallback(
-    (e: SelectChangeEvent<string>) => {
-      setTimeFormat(e.target.value === "12h" ? "12h" : "24h");
+    (value: string) => {
+      setTimeFormat(value === "12h" ? "12h" : "24h");
     },
     [setTimeFormat]
   );
@@ -382,39 +377,20 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                 <TabPanel value={settingsTab} index={0}>
                   <div id="editor" className="settings-section">
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={welcomeId}>
-                          Show Welcome Screen
-                        </InputLabel>
-                        <Switch
-                          id={welcomeId}
-                          checked={!!settings.showWelcomeOnStartup}
-                          onChange={handleShowWelcomeChange}
-                          inputProps={{ "aria-label": "Show Welcome Screen" }}
-                        />
-                      </FormControl>
-                      <Typography className="description">
-                        Show the welcome screen when starting the application.
-                      </Typography>
+                      <LabeledSwitch
+                        label="Show Welcome Screen"
+                        checked={!!settings.showWelcomeOnStartup}
+                        onChange={handleShowWelcomeChange}
+                        description="Show the welcome screen when starting the application."
+                      />
                     </div>
 
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={selectNodesId}>
-                          Select Nodes On Drag
-                        </InputLabel>
-                        <Switch
-                          id={selectNodesId}
-                          sx={{
-                            "&.MuiSwitch-root": {
-                              margin: "16px 0 0"
-                            }
-                          }}
-                          checked={!!settings.selectNodesOnDrag}
-                          onChange={handleSelectNodesOnDragChange}
-                          inputProps={{ "aria-label": "Select Nodes On Drag" }}
-                        />
-                      </FormControl>
+                      <LabeledSwitch
+                        label="Select Nodes On Drag"
+                        checked={!!settings.selectNodesOnDrag}
+                        onChange={handleSelectNodesOnDragChange}
+                      />
                       <Typography className="description">
                         Mark nodes as selected after changing a node&apos;s
                         position.
@@ -426,52 +402,35 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                     {isElectron && (
                       <div className="settings-item">
-                        <FormControl>
-                          <InputLabel htmlFor={soundNotificationsId}>
-                            Sound Notifications
-                          </InputLabel>
-                          <Switch
-                            id={soundNotificationsId}
-                            sx={{
-                              "&.MuiSwitch-root": {
-                                margin: "16px 0 0"
-                              }
-                            }}
-                            checked={!!settings.soundNotifications}
-                            onChange={handleSoundNotificationsChange}
-                            inputProps={{ "aria-label": "Sound Notifications" }}
-                          />
-                        </FormControl>
-                        <Typography className="description">
-                          Play a system beep sound when workflows complete,
-                          exports finish, or other important events occur.
-                        </Typography>
+                        <LabeledSwitch
+                          label="Sound Notifications"
+                          checked={!!settings.soundNotifications}
+                          onChange={handleSoundNotificationsChange}
+                          description="Play a system beep sound when workflows complete, exports finish, or other important events occur."
+                        />
                       </div>
                     )}
 
                     {isElectron && (
                       <div className="settings-item">
-                        <FormControl>
-                          <InputLabel htmlFor="close-behavior-select">
-                            On Close Behavior
-                          </InputLabel>
-                          <Select
-                            id="close-behavior-select"
-                            value={closeBehavior}
-                            variant="standard"
-                            onChange={(e) =>
-                              handleCloseBehaviorChange(
-                                e.target.value as "ask" | "quit" | "background"
-                              )
+                        <SelectField
+                          label="On Close Behavior"
+                          value={closeBehavior}
+                          variant="standard"
+                          onChange={(v) =>
+                            handleCloseBehaviorChange(
+                              v as "ask" | "quit" | "background"
+                            )
+                          }
+                          options={[
+                            { value: "ask", label: "Ask Every Time" },
+                            { value: "quit", label: "Quit Application" },
+                            {
+                              value: "background",
+                              label: "Keep Running in Background"
                             }
-                          >
-                            <MenuItem value="ask">Ask Every Time</MenuItem>
-                            <MenuItem value="quit">Quit Application</MenuItem>
-                            <MenuItem value="background">
-                              Keep Running in Background
-                            </MenuItem>
-                          </Select>
-                        </FormControl>
+                          ]}
+                        />
                         <Typography className="description">
                           Choose what happens when you close the main window.
                           <br />
@@ -491,20 +450,16 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </Typography>
                   <div className="settings-section">
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={panControlsId}>Pan Controls</InputLabel>
-                        <Select
-                          id={panControlsId}
-                          labelId={`${panControlsId}-label`}
-                          value={settings.panControls}
-                          variant="standard"
-                          onChange={handlePanControlsChange}
-                        >
-                          <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
-                          <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
-                        </Select>
-                      </FormControl>
-
+                      <SelectField
+                        label="Pan Controls"
+                        value={settings.panControls}
+                        variant="standard"
+                        onChange={handlePanControlsChange}
+                        options={[
+                          { value: "LMB", label: "Pan with LMB" },
+                          { value: "RMB", label: "Pan with RMB" }
+                        ]}
+                      />
                       <div className="description">
                         <Typography>
                           Move the canvas by dragging with the left or right
@@ -518,21 +473,16 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     </div>
 
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={selectionModeId}>
-                          Node Selection Mode
-                        </InputLabel>
-                        <Select
-                          id={selectionModeId}
-                          labelId={`${selectionModeId}-label`}
-                          value={settings.selectionMode}
-                          variant="standard"
-                          onChange={handleSelectionModeChange}
-                        >
-                          <MenuItem value={"full"}>Full</MenuItem>
-                          <MenuItem value={"partial"}>Partial</MenuItem>
-                        </Select>
-                      </FormControl>
+                      <SelectField
+                        label="Node Selection Mode"
+                        value={settings.selectionMode}
+                        variant="standard"
+                        onChange={handleSelectionModeChange}
+                        options={[
+                          { value: "full", label: "Full" },
+                          { value: "partial", label: "Partial" }
+                        ]}
+                      />
                       <Typography className="description">
                         When drawing a selection box for node selections:
                         <br />
@@ -584,120 +534,85 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </Typography>
                   <div className="settings-section">
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="autosave-enabled">
-                          Enable Autosave
-                        </InputLabel>
-                        <Switch
-                          checked={settings.autosave?.enabled ?? true}
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              enabled: e.target.checked
-                            })
-                          }
-                          inputProps={{ "aria-label": "autosave-enabled" }}
-                        />
-                      </FormControl>
-                      <Typography className="description">
-                        Automatically save your workflow at regular intervals.
-                      </Typography>
+                      <LabeledSwitch
+                        label="Enable Autosave"
+                        checked={settings.autosave?.enabled ?? true}
+                        onChange={(checked) =>
+                          updateAutosaveSettings({ enabled: checked })
+                        }
+                        description="Automatically save your workflow at regular intervals."
+                      />
                     </div>
 
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="autosave-interval">
-                          Autosave Interval (minutes)
-                        </InputLabel>
-                        <Select
-                          id="autosave-interval"
-                          value={settings.autosave?.intervalMinutes ?? 10}
-                          variant="standard"
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              intervalMinutes: Number(e.target.value)
-                            })
-                          }
-                          disabled={!settings.autosave?.enabled}
-                        >
-                          <MenuItem value={1}>1 minute</MenuItem>
-                          <MenuItem value={5}>5 minutes</MenuItem>
-                          <MenuItem value={10}>10 minutes</MenuItem>
-                          <MenuItem value={15}>15 minutes</MenuItem>
-                          <MenuItem value={30}>30 minutes</MenuItem>
-                          <MenuItem value={60}>60 minutes</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Typography className="description">
-                        How often to automatically save your workflow.
-                      </Typography>
+                      <SelectField
+                        label="Autosave Interval (minutes)"
+                        value={settings.autosave?.intervalMinutes ?? 10}
+                        variant="standard"
+                        onChange={(v) =>
+                          updateAutosaveSettings({
+                            intervalMinutes: Number(v)
+                          })
+                        }
+                        options={[
+                          { value: 1, label: "1 minute" },
+                          { value: 5, label: "5 minutes" },
+                          { value: 10, label: "10 minutes" },
+                          { value: 15, label: "15 minutes" },
+                          { value: 30, label: "30 minutes" },
+                          { value: 60, label: "60 minutes" }
+                        ]}
+                        disabled={!settings.autosave?.enabled}
+                        description="How often to automatically save your workflow."
+                      />
                     </div>
 
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="save-before-run">
-                          Save Before Running
-                        </InputLabel>
-                        <Switch
-                          checked={settings.autosave?.saveBeforeRun ?? true}
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              saveBeforeRun: e.target.checked
-                            })
-                          }
-                          inputProps={{ "aria-label": "save-before-run" }}
-                        />
-                      </FormControl>
-                      <Typography className="description">
-                        Create a checkpoint version before executing workflow.
-                      </Typography>
+                      <LabeledSwitch
+                        label="Save Before Running"
+                        checked={settings.autosave?.saveBeforeRun ?? true}
+                        onChange={(checked) =>
+                          updateAutosaveSettings({
+                            saveBeforeRun: checked
+                          })
+                        }
+                        description="Create a checkpoint version before executing workflow."
+                      />
                     </div>
 
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="save-on-close">
-                          Save on Window Close
-                        </InputLabel>
-                        <Switch
-                          checked={settings.autosave?.saveOnClose ?? true}
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              saveOnClose: e.target.checked
-                            })
-                          }
-                          inputProps={{ "aria-label": "save-on-close" }}
-                        />
-                      </FormControl>
-                      <Typography className="description">
-                        Automatically save when closing the tab or window.
-                      </Typography>
+                      <LabeledSwitch
+                        label="Save on Window Close"
+                        checked={settings.autosave?.saveOnClose ?? true}
+                        onChange={(checked) =>
+                          updateAutosaveSettings({
+                            saveOnClose: checked
+                          })
+                        }
+                        description="Automatically save when closing the tab or window."
+                      />
                     </div>
 
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="max-versions">
-                          Max Versions per Workflow
-                        </InputLabel>
-                        <Select
-                          id="max-versions"
-                          value={
-                            settings.autosave?.maxVersionsPerWorkflow ?? 50
-                          }
-                          variant="standard"
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              maxVersionsPerWorkflow: Number(e.target.value)
-                            })
-                          }
-                        >
-                          <MenuItem value={10}>10 versions</MenuItem>
-                          <MenuItem value={25}>25 versions</MenuItem>
-                          <MenuItem value={50}>50 versions</MenuItem>
-                          <MenuItem value={100}>100 versions</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Typography className="description">
-                        Maximum number of versions to keep per workflow.
-                      </Typography>
+                      <SelectField
+                        label="Max Versions per Workflow"
+                        value={
+                          settings.autosave?.maxVersionsPerWorkflow ?? 50
+                        }
+                        variant="standard"
+                        onChange={(v) =>
+                          updateAutosaveSettings({
+                            maxVersionsPerWorkflow: Number(v)
+                          })
+                        }
+                        options={[
+                          { value: 10, label: "10 versions" },
+                          { value: 25, label: "25 versions" },
+                          { value: 50, label: "50 versions" },
+                          { value: 100, label: "100 versions" }
+                        ]}
+                        description="Maximum number of versions to keep per workflow."
+                      />
                     </div>
                   </div>
 
@@ -706,22 +621,17 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </Typography>
                   <div className="settings-section">
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={timeFormatId}>Time Format</InputLabel>
-                        <Select
-                          id={timeFormatId}
-                          labelId={`${timeFormatId}-label`}
-                          value={settings.timeFormat}
-                          variant="standard"
-                          onChange={handleTimeFormatChange}
-                        >
-                          <MenuItem value={"12h"}>12h</MenuItem>
-                          <MenuItem value={"24h"}>24h</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Typography className="description">
-                        Display time in 12h or 24h format.
-                      </Typography>
+                      <SelectField
+                        label="Time Format"
+                        value={settings.timeFormat}
+                        variant="standard"
+                        onChange={handleTimeFormatChange}
+                        options={[
+                          { value: "12h", label: "12h" },
+                          { value: "24h", label: "24h" }
+                        ]}
+                        description="Display time in 12h or 24h format."
+                      />
                     </div>
                   </div>
                 </TabPanel>
@@ -771,9 +681,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             "1px solid" + theme.vars.palette.warning.main
                         }}
                       >
-                        <FormControl>
-                          <InputLabel>Nodetool API Token</InputLabel>
-                        </FormControl>
+                        <Typography
+                          sx={{
+                            fontSize: "1rem",
+                            color: theme.palette.text.primary
+                          }}
+                        >
+                          Nodetool API Token
+                        </Typography>
                         <div className="description">
                           <Typography>
                             This token is used to authenticate your account
