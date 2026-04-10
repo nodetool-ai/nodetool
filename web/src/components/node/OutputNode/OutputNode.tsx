@@ -468,9 +468,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
           )}
 
           {result === null || result === undefined && (
-            <Typography className="hint">
+            <Text className="hint">
               Exposes data to App Mode
-            </Typography>
+            </Text>
           )}
           <PreviewActions
             onDownload={handleDownload}

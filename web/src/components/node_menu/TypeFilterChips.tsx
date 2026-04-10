@@ -8,10 +8,9 @@ import {
   Button,
   Chip,
   Menu,
-  TextField,
-  Tooltip,
-  Typography
+  TextField
 } from "@mui/material";
+import { Tooltip, Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";

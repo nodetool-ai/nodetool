@@ -187,7 +187,7 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
     <Tooltip
       title={tooltips[title] || ""}
       placement="bottom"
-      enterDelay={200}
+      delay={200}
       slotProps={{
         popper: { sx: { zIndex: 2000 } },
         tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
@@ -382,7 +382,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                       <Tooltip
                         title="Toggle all in namespace"
                         placement="left"
-                        enterDelay={500}
+                        delay={500}
                         slotProps={{
                           popper: { sx: { zIndex: 2000 } },
                           tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
@@ -507,7 +507,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                 <Tooltip
                   title="Toggle all in namespace"
                   placement="left"
-                  enterDelay={500}
+                  delay={500}
                   slotProps={{
                     popper: { sx: { zIndex: 2000 } },
                     tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
