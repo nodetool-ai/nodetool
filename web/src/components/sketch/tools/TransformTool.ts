@@ -18,6 +18,10 @@
  * The gizmo is drawn on a dedicated screen-resolution canvas (`gizmoCanvasRef`)
  * so it is not clipped by the document-stack overflow and appears crisp at any zoom.
  *
+ * Preview lifecycle uses the shared `PreviewSession` contract so
+ * compositing, gizmo drawing, transform UI, and top-bar numbers all
+ * read one live preview source. See `previewSession.ts`.
+ *
  * Responsibilities are split across dedicated modules:
  *   - Gizmo paint/layout: `transform/transformGizmoPainter.ts`
  *   - Hover hit-test / cursor: `transform/transformHoverPolicy.ts`
@@ -49,6 +53,8 @@ import {
   getTransformHoverInfo,
   applyCursorFeedback
 } from "./transform/transformHoverPolicy";
+import { createPreviewSession, type PreviewSession } from "./previewSession";
+import { resolveGizmoBounds } from "../painting/resolvedLayerGeometry";
 
 // ─── TransformTool class ──────────────────────────────────────────────────────
 
@@ -57,6 +63,8 @@ export { type TransformHandle } from "./transform/handleGeometry";
 export class TransformTool implements ToolHandler {
   readonly toolId = "transform" as const;
 
+  /** Shared preview session — single source of truth for preview state. */
+  private readonly session: PreviewSession = createPreviewSession();
   /** Transform when the tool was activated (used by cancel). */
   private originalTransform: LayerTransform = { x: 0, y: 0 };
   /** Raster bounds when the tool was activated (for scale computation). */
@@ -73,14 +81,6 @@ export class TransformTool implements ToolHandler {
   private gestureActive = false;
   /** Currently hovered handle (for cursor feedback). */
   private hoveredHandle: TransformHandle | null = null;
-  /**
-   * Latest transform applied during a drag gesture. Used by gizmo drawing
-   * so the gizmo matches the composited preview instead of lagging behind
-   * the store. Cleared on up / deactivate.
-   */
-  private liveTransform: LayerTransform | null = null;
-  /** Layer ID being dragged (for preview path). */
-  private dragLayerId: string | null = null;
   /** Batched gizmo redraw scheduler. */
   private gizmoScheduler = new GizmoRedrawScheduler();
 
@@ -93,6 +93,10 @@ export class TransformTool implements ToolHandler {
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   onActivate(ctx: ToolContext): void {
+    // Clear any stale session from a previous activation (e.g. re-activation
+    // without explicit deactivation, or singleton reuse across tests).
+    this.session.clear(ctx);
+
     const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (!layer) {
       return;
@@ -104,30 +108,16 @@ export class TransformTool implements ToolHandler {
       scaleY: layer.transform.scaleY ?? 1,
       rotation: layer.transform.rotation ?? 0
     };
-    // Use resolved raster bounds (shared seam) instead of bare contentBounds
+    // Use the shared resolved-bounds contract for gizmo sizing
     const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
-    const rasterBounds = getEffectiveRasterBounds(
+    this.rasterBounds = resolveGizmoBounds(
       layer,
       layerCanvas,
       ctx.doc.canvas
     );
-    // For gizmo sizing, prefer contentBounds when they represent a smaller
-    // area than the full raster. This ensures small layers get a gizmo that
-    // wraps their actual content instead of spanning the full canvas.
-    const cb = layer.contentBounds;
-    if (
-      cb.width > 0 &&
-      cb.height > 0 &&
-      (cb.width < rasterBounds.width || cb.height < rasterBounds.height)
-    ) {
-      this.rasterBounds = { ...cb };
-    } else {
-      this.rasterBounds = rasterBounds;
-    }
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
-    this.liveTransform = null;
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
     this.drawGizmo(ctx);
@@ -137,8 +127,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
-    this.liveTransform = null;
-    this.dragLayerId = null;
+    this.session.clear(ctx);
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
     ctx.clearGizmo();
@@ -164,7 +153,9 @@ export class TransformTool implements ToolHandler {
     }
 
     const pt = event.point;
-    const currentTransform = this.liveTransform ?? layer.transform;
+    const currentTransform = this.session.isActive()
+      ? this.session.state.currentTransform
+      : layer.transform;
     const handle = hitTestHandles(
       currentTransform,
       this.rasterBounds,
@@ -180,11 +171,11 @@ export class TransformTool implements ToolHandler {
     this.dragStartTransform = { ...currentTransform };
     this.center = getTransformedCenter(currentTransform, this.rasterBounds);
     this.gestureActive = true;
-    this.dragLayerId = layer.id;
     // Record the pre-drag transform for in-transform undo; clear redo stack.
     this.adjustmentUndoStack.push({ ...currentTransform });
     this.adjustmentRedoStack = [];
-    ctx.onStrokeStart();
+    // Start the shared preview session for compositing + UI.
+    this.session.start(ctx, layer.id, { ...currentTransform });
     return true;
   }
 
@@ -210,29 +201,20 @@ export class TransformTool implements ToolHandler {
       shift,
       alt
     );
-    // Store the live transform so the gizmo matches the composited preview.
-    this.liveTransform = newTransform;
-    // Use the preview-only path during drag (like MoveTool) to avoid
-    // committing to the document store on every pointer-move event.
-    // This avoids an expensive React re-render + compositing cascade per frame.
-    ctx.setLayerTransformPreview?.(layer.id, newTransform);
+    // Update through the shared preview session — writes to both compositing
+    // pipeline and the UI singleton in one call.
+    this.session.update(ctx, newTransform);
 
     // Batch gizmo redraws with rAF to avoid redundant per-event paints
     this.gizmoScheduler.scheduleRedraw(() => this.drawGizmo(ctx));
   }
 
   onUp(ctx: ToolContext): void {
-    // Commit the final transform to the document store (was preview-only during drag).
-    const dragLayerId = this.dragLayerId;
-    const finalTransform = this.liveTransform;
-    if (dragLayerId && finalTransform && ctx.onLayerTransformChange) {
-      ctx.onLayerTransformChange(dragLayerId, finalTransform);
-    }
-    ctx.clearLayerTransformPreview?.(dragLayerId ?? undefined);
+    // Commit the final transform through the shared session.
+    this.session.commit(ctx);
 
     this.activeHandle = null;
     this.dragStart = null;
-    this.dragLayerId = null;
 
     const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (layer) {
@@ -279,8 +261,6 @@ export class TransformTool implements ToolHandler {
     // Push current state onto redo stack before restoring
     this.adjustmentRedoStack.push({ ...currentTransform });
     const previous = this.adjustmentUndoStack.pop()!;
-    // Update liveTransform so gizmo drawing uses the restored state
-    this.liveTransform = previous;
     return { ...previous };
   }
 
@@ -296,8 +276,6 @@ export class TransformTool implements ToolHandler {
     // Push current state onto undo stack before re-applying
     this.adjustmentUndoStack.push({ ...currentTransform });
     const next = this.adjustmentRedoStack.pop()!;
-    // Update liveTransform so gizmo drawing uses the restored state
-    this.liveTransform = next;
     return { ...next };
   }
 
@@ -310,7 +288,9 @@ export class TransformTool implements ToolHandler {
     if (!layer) {
       return false;
     }
-    const transform = this.liveTransform ?? layer.transform;
+    const transform = this.session.isActive()
+      ? this.session.state.currentTransform
+      : layer.transform;
     const handle = hitTestHandles(
       transform,
       this.rasterBounds,
@@ -324,7 +304,14 @@ export class TransformTool implements ToolHandler {
 
   /** Get the current live transform (for external undo/redo consumers). */
   getLiveTransform(): LayerTransform | null {
-    return this.liveTransform ? { ...this.liveTransform } : null;
+    return this.session.isActive()
+      ? { ...this.session.state.currentTransform }
+      : null;
+  }
+
+  /** Get the current preview session (for external consumers). */
+  getPreviewSession(): PreviewSession {
+    return this.session;
   }
 
   /**
@@ -336,7 +323,9 @@ export class TransformTool implements ToolHandler {
     if (!layer) {
       return null;
     }
-    const transform = this.liveTransform ?? layer.transform;
+    const transform = this.session.isActive()
+      ? this.session.state.currentTransform
+      : layer.transform;
     const info = getTransformHoverInfo(docPoint, transform, this.rasterBounds, ctx.zoom);
     this.hoveredHandle = info.handle;
     return info.cursor;
@@ -359,7 +348,9 @@ export class TransformTool implements ToolHandler {
     if (!layer) {
       return;
     }
-    const transform = this.liveTransform ?? layer.transform;
+    const transform = this.session.isActive()
+      ? this.session.state.currentTransform
+      : layer.transform;
     const hoveredHandle = this.activeHandle ?? this.hoveredHandle;
     paintTransformGizmo(ctx, transform, this.rasterBounds, hoveredHandle);
   }

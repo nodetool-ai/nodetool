@@ -962,6 +962,30 @@ export function usePointerHandlers({
     prevActiveToolRef.current = activeTool;
   }, [activeTool]);
 
+  // ─── Spring-loaded tool lifecycle ──────────────────────────────────
+  // When interactionTool changes due to modifier keys (e.g. Ctrl+drag → move)
+  // but activeTool stays the same, we need to activate/deactivate the
+  // spring-loaded tool so it runs the same lifecycle as a real tool switch.
+  // This prevents desync between preview state and tool session state.
+  const prevInteractionToolRef = useRef(interactionTool);
+  useEffect(() => {
+    const prev = prevInteractionToolRef.current;
+    if (prev === interactionTool) {
+      return;
+    }
+    // Only handle the spring-loaded case where activeTool didn't change
+    // (the real tool-switch effect above handles activeTool changes).
+    if (activeTool !== prevActiveToolRef.current) {
+      prevInteractionToolRef.current = interactionTool;
+      return;
+    }
+    const prevHandler = getToolHandler(prev);
+    prevHandler.onDeactivate?.(toolCtxRef.current);
+    const nextHandler = getToolHandler(interactionTool);
+    nextHandler.onActivate?.(toolCtxRef.current);
+    prevInteractionToolRef.current = interactionTool;
+  }, [interactionTool, activeTool]);
+
   // ─── Viewport change notification (zoom / pan) ─────────────────
   const prevZoomRef = useRef(zoom);
   const prevPanRef = useRef(pan);
