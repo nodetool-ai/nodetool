@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../ui_primitives";
 interface VideoViewerProps {
   asset?: Asset;
   url?: string;
@@ -36,9 +37,9 @@ const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asse
       <video controls={true} src={asset?.get_url || ""}>
         Your browser does not support the video element.
       </video>
-      <Typography variant="h3" color="textSecondary">
+      <Text size="big" color="secondary">
         {asset?.name}
-      </Typography>
+      </Text>
     </Box>
   );
 });

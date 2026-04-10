@@ -7,9 +7,9 @@ import {
   Fab,
   Box,
   useMediaQuery,
-  Tooltip,
   Menu,
 } from "@mui/material";
+import { Tooltip, FlexRow } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
@@ -85,7 +85,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(
     );
 
     return (
-      <Tooltip title={title} enterDelay={TOOLTIP_ENTER_DELAY} placement="top">
+      <Tooltip title={title} delay={TOOLTIP_ENTER_DELAY} placement="top">
         {disabled ? (
           <span style={{ display: "inline-flex" }}>{fabElement}</span>
         ) : (
@@ -527,7 +527,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
         {isComfyWorkflow && (
           <Tooltip title={comfyIsConnected ? `ComfyUI: ${comfyBaseUrl}` : "ComfyUI not connected — configure in Settings"}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 1, fontSize: "0.7rem", color: "text.secondary" }}>
+            <FlexRow align="center" gap={0.5} sx={{ mr: 1, fontSize: "0.7rem", color: "text.secondary" }}>
               <Box
                 sx={{
                   width: 8,
@@ -537,7 +537,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
                 }}
               />
               ComfyUI
-            </Box>
+            </FlexRow>
           </Tooltip>
         )}
 

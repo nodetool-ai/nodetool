@@ -55,8 +55,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
-import { CircularProgress } from "@mui/material";
-import { Typography } from "@mui/material";
+import { Text, LoadingSpinner } from "../ui_primitives";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
@@ -507,16 +506,16 @@ const ReactFlowWrapper = ({
   if (isLoading) {
     return (
       <div className="loading-overlay">
-        <CircularProgress /> Loading workflow...
+        <LoadingSpinner /> Loading workflow...
       </div>
     );
   }
   if (error) {
     return (
       <div className="loading-overlay">
-        <Typography variant="body1" color="error">
+        <Text color="error">
           {(error as Error).message}
-        </Typography>
+        </Text>
       </div>
     );
   }

@@ -7,6 +7,7 @@ Guidelines for working with code in this repository. These are linter-like rules
 - **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`)
 - **[Web UI](web/src/AGENTS.md)** — React web application
   - [Components](web/src/components/AGENTS.md), [Stores](web/src/stores/AGENTS.md), [Contexts](web/src/contexts/AGENTS.md), [Hooks](web/src/hooks/AGENTS.md), [Utils](web/src/utils/AGENTS.md), [ServerState](web/src/serverState/AGENTS.md), [Lib](web/src/lib/AGENTS.md), [Config](web/src/config/AGENTS.md)
+- **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Primitives-first policy, decision tree, migration rules (MUST READ for frontend work)
 - **[Testing](web/TESTING.md)** — Web testing guide (Jest, React Testing Library, Playwright)
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Mobile](mobile/README.md)** — React Native mobile app
@@ -165,10 +166,16 @@ Before submitting a PR, review for:
 
 ## MUI / Styling Rules
 
-- Use MUI components over custom HTML when available.
-- Use `sx` prop for one-off styles, `styled()` for reusable styles.
-- Use theme values for spacing, colors, and typography — not hardcoded values.
+- **MANDATORY: Use UI primitives from `web/src/components/ui_primitives/` for all frontend UI.** Never import raw MUI components (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, `Skeleton`, `Tabs`, `Drawer`, `Breadcrumbs`, `Select`, `Switch`, `TextField`) directly in component files. These are only allowed inside `ui_primitives/` and `editor_ui/` where the primitives are defined.
+- See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the full decision tree, migration rules, and 90+ available primitives.
+- When touching any component file, **opportunistically migrate** raw MUI usage to primitives.
+- Replace `display: "flex"` / `flexDirection` patterns with `FlexRow` / `FlexColumn` layout primitives.
+- Replace `<Typography>` with `Text`, `Label`, or `Caption` primitives.
+- Replace `<CircularProgress>` with `LoadingSpinner`. Replace `<Tooltip>` with `Tooltip` primitive.
+- Use `sx` prop for one-off styles on primitives. Use `styled()` only inside `ui_primitives/` for defining new primitives.
+- Use theme values for spacing, colors, and typography — never hardcode hex colors or pixel values.
 - Prefer composition over deep prop drilling.
+- If no primitive exists for your use case, **create a new primitive** in `ui_primitives/` rather than using raw MUI.
 
 ## TanStack Query Rules
 

@@ -6,8 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip, Typography } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { Tooltip, Text, CloseButton } from "../ui_primitives";
 import DescriptionIcon from "@mui/icons-material/Description";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -475,20 +474,16 @@ const TextListProperty = (props: PropertyProps) => {
             <div key={text.uri} className="text-item">
               <DescriptionIcon className="text-icon" />
               <div className="text-content">
-                <Typography className="text-filename" title={getFilename(text.uri)}>
+                <Text className="text-filename" title={getFilename(text.uri)}>
                   {getFilename(text.uri)}
-                </Typography>
+                </Text>
               </div>
-              <Tooltip title="Remove text file">
-                <IconButton
-                  className="remove-button"
-                  onClick={removeButtonClickHandlers[index]}
-                  size="small"
-                  aria-label="Remove text file"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+              <CloseButton
+                className="remove-button"
+                onClick={removeButtonClickHandlers[index]}
+                buttonSize="small"
+                tooltip="Remove text file"
+              />
             </div>
           ))}
         </div>

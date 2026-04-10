@@ -8,10 +8,10 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
 import {
   Box,
-  Typography,
   Button,
   Skeleton
 } from "@mui/material";
+import { Text, Caption } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -578,12 +578,12 @@ const WorkspaceTree: React.FC = () => {
           <FolderOpenIcon
             sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }}
           />
-          <Typography color="text.secondary" variant="body2">
+          <Text size="small" color="secondary">
             No workflow selected
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </Text>
+          <Caption color="secondary">
             Open a workflow to access its workspace files
-          </Typography>
+          </Caption>
         </div>
       </Box>
     );
@@ -653,12 +653,12 @@ const WorkspaceTree: React.FC = () => {
             <FolderOpenIcon
               sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }}
             />
-            <Typography color="text.secondary" variant="body2">
+            <Text size="small" color="secondary">
               No workspace selected
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </Text>
+            <Caption color="secondary">
               Select a workspace above or create one
-            </Typography>
+            </Caption>
             <Button
               size="small"
               startIcon={<AddIcon />}
@@ -704,12 +704,12 @@ const WorkspaceTree: React.FC = () => {
             <FolderOpenIcon
               sx={{ fontSize: 36, opacity: 0.3, color: "text.secondary" }}
             />
-            <Typography color="text.secondary" variant="body2">
+            <Text size="small" color="secondary">
               Workspace is empty
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </Text>
+            <Caption color="secondary">
               Add files to your workspace folder to see them here
-            </Typography>
+            </Caption>
           </div>
         )}
       </div>

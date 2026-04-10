@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { useTheme } from "@mui/material/styles";
 import {
-  Button,
   Popover,
   DialogTitle,
   DialogContent,
   TextField
 } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { AssetList } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -18,7 +18,7 @@ import { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
 import dialogStyles from "../../styles/DialogStyles";
 import isEqual from "lodash/isEqual";
 import Select from "../inputs/Select";
-import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
+import { FlexRow, DialogActionButtons } from "../ui_primitives";
 
 const FolderProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
@@ -127,14 +127,14 @@ const FolderProperty = (props: PropertyProps) => {
       />
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
+      <FlexRow align="center" gap={0.5}>
         <Select
           options={folderOptions}
           value={selectValue}
           onChange={handleFolderSelect}
           placeholder="Select a folder"
         />
-        <Button
+        <EditorButton
           onClick={handleOpenMenu}
           sx={{
             border: "none",
@@ -143,8 +143,8 @@ const FolderProperty = (props: PropertyProps) => {
           }}
         >
           <CreateNewFolderIcon sx={{ fontSize: "1.2rem" }} />
-        </Button>
-      </div>
+        </EditorButton>
+      </FlexRow>
       <Popover
         css={dialogStyles(theme)}
         className="dialog"

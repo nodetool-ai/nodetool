@@ -1,6 +1,7 @@
 import React, { useCallback, memo, useMemo } from "react";
 //mui
-import { Divider, Menu } from "@mui/material";
+import { Menu } from "@mui/material";
+import { Divider } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
 //icons

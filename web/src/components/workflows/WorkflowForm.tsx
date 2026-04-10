@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Button } from "@mui/material";
-import { Text, Caption, TextInput, SelectField, AutocompleteTagInput } from "../ui_primitives";
+import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton } from "../ui_primitives";
 import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -345,12 +344,12 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
       </div>
 
       <div className="button-container">
-        <Button className="cancel-button" onClick={onClose}>
+        <EditorButton className="cancel-button" onClick={onClose}>
           Cancel
-        </Button>
-        <Button className="save-button" onClick={handleSave}>
+        </EditorButton>
+        <EditorButton className="save-button" onClick={handleSave}>
           Save Changes
-        </Button>
+        </EditorButton>
       </div>
     </div>
   );

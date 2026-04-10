@@ -17,7 +17,8 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
-import { Button, Container, Tooltip } from "@mui/material";
+import { Container } from "@mui/material";
+import { Tooltip, EditorButton } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -46,7 +47,6 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
 import { getIsElectronDetails } from "../../utils/browser";
-import { Box } from "@mui/material";
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -723,14 +723,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         nodeType={type}
         name={data.properties?.name as string | undefined}
       />
-      <Box
+      <div
         className="node-content-container"
-        sx={{
+        style={{
           flex: "1 1 auto",
           minHeight: 0,
           width: "100%",
-          overflow: "visible", // Allow handles to render outside bounds
-          clipPath: "inset(0 -60px)" // Clip top/bottom, extend left/right for handles and add-button
+          overflow: "visible",
+          clipPath: "inset(0 -60px)"
         }}
       >
         <NodeContent
@@ -752,7 +752,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           onShowInputs={handleShowInputs}
           onShowResults={handleShowResults}
         />
-      </Box>
+      </div>
 
       {/* Default behavior: width-only resize for regular nodes.
           If a node has toggleable result rendering, it uses the Preview-style corner handle instead. */}
@@ -778,37 +778,35 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {isFocused && (
-        <Box
-          sx={{
+        <div
+          style={{
             position: "absolute",
             top: -20,
             left: "50%",
             transform: "translateX(-50%)",
-            bgcolor: theme.vars.palette.warning.main,
+            backgroundColor: theme.vars.palette.warning.main,
             color: theme.vars.palette.warning.contrastText,
-            px: 1,
-            py: 0.25,
-            borderRadius: 1,
+            padding: "2px 8px",
+            borderRadius: 4,
             fontSize: "0.7rem",
             fontWeight: "bold",
-            zIndex: 1000,
-            boxShadow: 2
+            zIndex: 1000
           }}
         >
           FOCUSED
-        </Box>
+        </div>
       )}
 
       {title && <EditableTitle nodeId={id} title={title} />}
 
       {selected && metadata.namespace && (
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+          delay={TOOLTIP_ENTER_DELAY * 2}
           title="Open Node Menu here"
           placement="bottom"
           arrow
         >
-          <Button
+          <EditorButton
             variant="text"
             className="node-namespace nodrag nopan"
             onClick={handleNamespaceClick}
@@ -835,7 +833,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             }}
           >
             {metadata.namespace}
-          </Button>
+          </EditorButton>
         </Tooltip>
       )}
     </Container>

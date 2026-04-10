@@ -7,7 +7,8 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo, useState } from "react";
 import isEqual from "lodash/isEqual";
-import { Button, TextField } from "@mui/material";
+import { TextField } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
@@ -118,7 +119,7 @@ const AudioProperty = (props: PropertyProps) => {
                 step: 1000
               }}
             />
-            <Button
+            <EditorButton
               size="small"
               variant={isStreaming ? "contained" : "outlined"}
               color={isStreaming ? "error" : "primary"}
@@ -126,7 +127,7 @@ const AudioProperty = (props: PropertyProps) => {
               sx={{ flex: 1, minHeight: 36 }}
             >
               {isStreaming ? "Stop" : "Start Mic"}
-            </Button>
+            </EditorButton>
           </div>
         </div>
       </div>

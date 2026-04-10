@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
-import { Box, Typography, Tooltip } from "@mui/material";
+import { Box } from "@mui/material";
+import { Caption, Tooltip } from "../ui_primitives";
 import { Visibility } from "@mui/icons-material";
 import { typeFor, resolveAssetUri } from "./output";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -110,7 +111,7 @@ const ResultPreviewStrip: React.FC<ResultPreviewStripProps> = ({
   if (!label) return null;
 
   return (
-    <Tooltip title="Show Result" enterDelay={TOOLTIP_ENTER_DELAY} placement="top">
+    <Tooltip title="Show Result" delay={TOOLTIP_ENTER_DELAY} placement="top">
       <Box
         className="nodrag nopan"
         onClick={(e) => {
@@ -160,20 +161,18 @@ const ResultPreviewStrip: React.FC<ResultPreviewStripProps> = ({
             }}
           />
         )}
-        <Typography
-          variant="caption"
+        <Caption
+          size="tiny"
           sx={{
             flex: 1,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            color: "text.secondary",
-            fontSize: "0.7rem",
             lineHeight: 1.2
           }}
         >
           {label}
-        </Typography>
+        </Caption>
       </Box>
     </Tooltip>
   );

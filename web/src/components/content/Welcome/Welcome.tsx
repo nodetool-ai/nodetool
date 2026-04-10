@@ -1,30 +1,31 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, ReactNode, useMemo, memo } from "react";
 import {
-  Typography,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  TextField,
-  InputAdornment,
-  Tabs,
-  Tab,
   Box,
   Link,
   FormControlLabel,
-  Tooltip,
   Checkbox,
-  Button,
   Grid,
   Card,
   CardActionArea,
   CardContent
 } from "@mui/material";
-import Chip from "@mui/material/Chip";
+import {
+  Text,
+  Tooltip,
+  Chip,
+  FlexRow,
+  FlexColumn,
+  EditorButton,
+  SearchInput,
+  TabGroup
+} from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WidgetsIcon from "@mui/icons-material/Widgets";
 import { overviewContents, Section } from "./OverviewContent";
@@ -43,8 +44,8 @@ import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../../hugging_face/DownloadProgress";
 
 enum TabValue {
-  Overview = 0,
-  Setup = 1
+  Overview = "overview",
+  Setup = "setup"
 }
 
 interface TabPanelProps {
@@ -92,18 +93,18 @@ const InlineModelDownload: React.FC<{
 
   if (inProgress) {
     return (
-      <Box
+      <FlexRow
         component="span"
-        sx={{ ml: 1, display: "inline-flex", verticalAlign: "middle" }}
+        align="center"
+        sx={{ ml: 1, verticalAlign: "middle" }}
         className="inline-download-progress"
       >
         <DownloadProgress name={downloadKey} minimal />
-      </Box>
+      </FlexRow>
     );
   }
   const button = (
-    <Button
-      size="small"
+    <EditorButton
       variant={isDefault ? "contained" : "outlined"}
       color={isDefault ? "primary" : "inherit"}
       startIcon={<DownloadIcon fontSize="small" />}
@@ -111,9 +112,10 @@ const InlineModelDownload: React.FC<{
       sx={{ ml: 1, verticalAlign: "middle" }}
       className={`model-download-button ${isDefault ? "default-model" : ""}`}
       onClick={handleDownload}
+      density="compact"
     >
       {label ?? "Download"}
-    </Button>
+    </EditorButton>
   );
   return tooltip ? (
     <Tooltip title={tooltip} arrow>
@@ -308,18 +310,11 @@ const Welcome = () => {
     [searchEntries, fuseOptions]
   );
 
-  // Memoize static styles to prevent recreation on every render
-  const headerLeftStyle = useMemo(() => ({ display: "flex", alignItems: "center" }), []);
   const logoStyle = useMemo(() => ({
     width: "28px",
     height: "28px",
     marginRight: "1em"
   }), []);
-  const subtitleStyle = useMemo(() => ({ marginLeft: "1em" }), []);
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: TabValue) => {
-    setTabValue(newValue);
-  };
 
   const highlightText = useCallback((text: string, term: string) => {
     if (!term) {return text;}
@@ -413,9 +408,9 @@ const Welcome = () => {
   return (
     <div css={welcomeStyles(theme)} className="welcome-container">
       <div className="header">
-        <Box
+        <FlexRow
           className="header-left"
-          style={headerLeftStyle}
+          align="center"
         >
           <img
             className="logo-image"
@@ -423,19 +418,20 @@ const Welcome = () => {
             alt="NodeTool"
             style={logoStyle}
           />
-          <Typography className="panel-title" variant="h2">
+          <Text className="panel-title" size="bigger">
             NodeTool
-          </Typography>
-          <Typography
-            variant="subtitle1"
+          </Text>
+          <Text
+            size="small"
+            weight={500}
             className="subtitle"
-            style={subtitleStyle}
+            sx={{ ml: 1 }}
           >
             Open-Source Visual Agent Builder
-          </Typography>
-        </Box>
+          </Text>
+        </FlexRow>
 
-        <div className="header-right">
+        <FlexRow className="header-right" align="center">
           <div className="show-on-startup-toggle">
             <Tooltip
               title="You can always open this screen from the Nodetool logo in the top left."
@@ -455,52 +451,38 @@ const Welcome = () => {
               />
             </Tooltip>
           </div>
-          <Button
+          <EditorButton
             onClick={handleNavigateToDashboard}
             className="start-button"
+            density="compact"
           >
             Open Dashboard
-          </Button>
-        </div>
+          </EditorButton>
+        </FlexRow>
       </div>
 
       <div className="content-area">
         <div className="tabs-and-search">
-          <Tabs
+          <TabGroup
+            tabs={[
+              { value: TabValue.Overview, label: "Overview" },
+              { value: TabValue.Setup, label: "Setup" }
+            ]}
             value={tabValue}
-            onChange={handleTabChange}
+            onChange={(value) => setTabValue(value as TabValue)}
+            size="small"
             aria-label="overview tabs"
             className="overview tabs"
-          >
-            <Tab
-              label="Overview"
-              id="tab-0"
-              aria-controls="tabpanel-0"
-              className="welcome-tab"
-            />
-            <Tab
-              label="Setup"
-              id="tab-1"
-              aria-controls="tabpanel-1"
-              className="welcome-tab"
-            />
-          </Tabs>
+          />
 
           {tabValue === TabValue.Overview && (
-            <TextField
+            <SearchInput
               className="search welcome-search"
               fullWidth
-              variant="outlined"
               placeholder="Search help and tips"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                )
-              }}
+              onChange={setSearchTerm}
+              onClear={handleClearSearch}
             />
           )}
         </div>
@@ -509,13 +491,13 @@ const Welcome = () => {
           <TabPanel value={tabValue} index={TabValue.Overview}>
             {searchTerm === "" && (
               <Box className="quick-start">
-                <Typography
-                  variant="h3"
+                <Text
+                  size="big"
                   sx={{ mb: 1 }}
                   className="quick-start-title"
                 >
                   Quick Start
-                </Typography>
+                </Text>
                 <Grid container spacing={2} className="quick-start-grid">
                   <Grid
                     sx={{
@@ -530,13 +512,13 @@ const Welcome = () => {
                       >
                         <CardContent className="quick-card-content">
                           <AddCircleOutlineIcon className="quick-card-icon" />
-                          <Typography className="quick-card-title">
+                          <Text className="quick-card-title">
                             Create Workflow
-                          </Typography>
-                          <Typography className="quick-card-desc">
+                          </Text>
+                          <Text className="quick-card-desc">
                             Start a new canvas and design a workflow from
                             scratch.
-                          </Typography>
+                          </Text>
                         </CardContent>
                       </CardActionArea>
                     </Card>
@@ -554,12 +536,12 @@ const Welcome = () => {
                       >
                         <CardContent className="quick-card-content">
                           <LibraryBooksIcon className="quick-card-icon" />
-                          <Typography className="quick-card-title">
+                          <Text className="quick-card-title">
                             Browse Templates
-                          </Typography>
-                          <Typography className="quick-card-desc">
+                          </Text>
+                          <Text className="quick-card-desc">
                             Explore ready-made workflows to learn and remix.
-                          </Typography>
+                          </Text>
                         </CardContent>
                       </CardActionArea>
                     </Card>
@@ -577,12 +559,12 @@ const Welcome = () => {
                       >
                         <CardContent className="quick-card-content">
                           <ChatBubbleOutlineIcon className="quick-card-icon" />
-                          <Typography className="quick-card-title">
+                          <Text className="quick-card-title">
                             Open Chat
-                          </Typography>
-                          <Typography className="quick-card-desc">
+                          </Text>
+                          <Text className="quick-card-desc">
                             Chat globally and trigger workflows from anywhere.
-                          </Typography>
+                          </Text>
                         </CardContent>
                       </CardActionArea>
                     </Card>
@@ -600,12 +582,12 @@ const Welcome = () => {
                       >
                         <CardContent className="quick-card-content">
                           <FolderIcon className="quick-card-icon" />
-                          <Typography className="quick-card-title">
+                          <Text className="quick-card-title">
                             Open Assets
-                          </Typography>
-                          <Typography className="quick-card-desc">
+                          </Text>
+                          <Text className="quick-card-desc">
                             Manage and import your media and data files.
-                          </Typography>
+                          </Text>
                         </CardContent>
                       </CardActionArea>
                     </Card>
@@ -618,21 +600,20 @@ const Welcome = () => {
               if (!list || list.length === 0) {
                 return (
                   <Box sx={{ mt: 3 }} className="no-search-results">
-                    <Typography
-                      variant="body1"
+                    <Text
                       sx={{ opacity: 0.8 }}
                       className="no-results-text"
                     >
                       No results. Try different keywords or clear the search.
-                    </Typography>
+                    </Text>
                     <Box sx={{ mt: 1 }} className="clear-search-container">
-                      <Button
-                        size="small"
+                      <EditorButton
                         onClick={handleClearSearch}
                         className="clear-search-button"
+                        density="compact"
                       >
                         Clear search
-                      </Button>
+                      </EditorButton>
                     </Box>
                   </Box>
                 );
@@ -647,9 +628,9 @@ const Welcome = () => {
                     className="summary welcome-accordion-summary"
                     expandIcon={<ExpandMoreIcon />}
                   >
-                    <Typography className="welcome-accordion-title">
+                    <Text className="welcome-accordion-title">
                       {highlightText(section.title, searchTerm)}
-                    </Typography>
+                    </Text>
                   </AccordionSummary>
                   <AccordionDetails className="content welcome-accordion-content">
                     {renderContent(section.originalContent)}
@@ -660,15 +641,12 @@ const Welcome = () => {
           </TabPanel>
 
           <TabPanel value={tabValue} index={TabValue.Setup}>
-            <Box
-              sx={{ display: "flex", flexDirection: "column", gap: "2em" }}
+            <FlexColumn
+              sx={{ gap: "2em" }}
               className="setup-container"
             >
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: "2em"
-                }}
+              <FlexRow
+                sx={{ gap: "2em" }}
                 className="setup-content"
               >
                 <Box
@@ -680,26 +658,25 @@ const Welcome = () => {
                   }}
                   className="setup-instructions"
                 >
-                  <Typography
-                    variant="h2"
+                  <Text
+                    size="bigger"
                     sx={{ mb: 2 }}
                     className="setup-title"
                   >
                     How to Use Models
-                  </Typography>
-                  <Typography
-                    variant="body1"
+</Text>
+                  <Text
                     gutterBottom
                     className="setup-description"
                   >
                     NodeTool works with both local and remote models. Start with
                     local for privacy and low latency, then add cloud providers
                     when you need extra capability.
-                  </Typography>
+                  </Text>
 
-                  <Typography variant="subtitle1" className="setup-list-title">
+                  <Text size="small" weight={500} className="setup-list-title">
                     1. Local models (recommended to start)
-                  </Typography>
+                  </Text>
                   <Box className="setup-list-content">
                     <ol className="step-list">
                       <li className="setup-step">
@@ -744,16 +721,16 @@ const Welcome = () => {
                       </li>
                     </ol>
                     <Box className="callout" sx={{ mt: 1 }}>
-                      <Typography variant="body2" className="callout-text">
+                      <Text size="small" className="callout-text">
                         Your data stays local unless you explicitly use cloud
                         providers.
-                      </Typography>
+                      </Text>
                     </Box>
                   </Box>
 
-                  <Typography variant="subtitle1" className="setup-list-title">
+                  <Text size="small" weight={500} className="setup-list-title">
                     2. Remote models
-                  </Typography>
+                  </Text>
                   <Box className="setup-list-content">
                     <ol className="step-list">
                       <li className="setup-step">
@@ -803,36 +780,37 @@ const Welcome = () => {
                       </li>
                     </ol>
                     <Box className="callout" sx={{ mt: 1 }}>
-                      <Typography variant="body2" className="callout-text">
+                      <Text size="small" className="callout-text">
                         Cloud is optional. You control exactly what leaves your
                         machine.
-                      </Typography>
+                      </Text>
                     </Box>
                   </Box>
 
-                  <Typography variant="subtitle1" className="setup-list-title">
+                  <Text size="small" weight={500} className="setup-list-title">
                     3. Test your setup
-                  </Typography>
+                  </Text>
                   <Box
                     className="setup-list-content"
-                    sx={{ display: "flex", gap: 1 }}
                   >
-                    <Button
-                      size="small"
+                    <FlexRow gap={1}>
+                      <EditorButton
                       variant="outlined"
                       onClick={handleNavigateToTemplates}
                       className="setup-test-button"
+                      density="compact"
                     >
                       Open Templates
-                    </Button>
-                    <Button
-                      size="small"
+                      </EditorButton>
+                      <EditorButton
                       variant="outlined"
                       onClick={handleNavigateToChat}
                       className="setup-test-button"
+                      density="compact"
                     >
                       Open Chat
-                    </Button>
+                      </EditorButton>
+                    </FlexRow>
                   </Box>
                 </Box>
 
@@ -846,23 +824,23 @@ const Welcome = () => {
                   className="local-models-container"
                 >
                   <Box className="local-models">
-                    <Typography variant="h2" className="section-title">
+                    <Text size="bigger" className="section-title">
                       Local Models
-                    </Typography>
-                    <Typography variant="body1" className="section-subtitle">
+                    </Text>
+                    <Text className="section-subtitle">
                       Run powerful open models locally. Start small and scale up
                       depending on your GPU/CPU and latency needs.
-                    </Typography>
+                    </Text>
                     <Box className="callout" sx={{ mt: 1 }}>
-                      <Typography variant="body2" className="callout-text">
+                      <Text size="small" className="callout-text">
                         Tip: Use smaller models for prototyping and larger ones
                         when you need more context or reasoning.
-                      </Typography>
+                      </Text>
                     </Box>
 
-                    <Typography variant="h3" className="models-heading">
+                    <Text size="big" className="models-heading">
                       Popular local models
-                    </Typography>
+                    </Text>
 
                     <ul className="local-models-list">
                       {featuredModels.map((model) => (
@@ -874,21 +852,18 @@ const Welcome = () => {
                           <div className="local-model-item">
                             <div className="local-model-header">
                               <div className="local-model-title">
-                                <Typography
-                                  variant="h4"
+                                <Text
+                                  size="big"
                                   className="model-display-name"
                                 >
                                   {(model as FeaturedModel).displayName ||
                                     model.name}
-                                </Typography>
+                                </Text>
                               </div>
                               <div className="local-model-actions">
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    gap: 1,
-                                    flexWrap: "wrap"
-                                  }}
+                                <FlexRow
+                                  gap={1}
+                                  wrap
                                   className="model-variant-buttons"
                                 >
                                   {((model as FeaturedModel).variants &&
@@ -924,25 +899,21 @@ const Welcome = () => {
                                       />
                                     );
                                   })}
-                                </Box>
+                                </FlexRow>
                               </div>
                             </div>
                             <div className="local-model-desc">
                               {model.description && (
-                                <Typography
-                                  variant="body1"
+                                <Text
                                   className="model-description"
                                 >
                                   {model.description}
-                                </Typography>
+                                </Text>
                               )}
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  gap: 1,
-                                  flexWrap: "wrap",
-                                  mt: 1
-                                }}
+                              <FlexRow
+                                gap={1}
+                                wrap
+                                sx={{ mt: 1 }}
                                 className="model-capabilities"
                               >
                                 {((model as FeaturedModel).reasoning ??
@@ -964,14 +935,14 @@ const Welcome = () => {
                                     className="capability-chip vision-chip"
                                   />
                                 )}
-                              </Box>
+                              </FlexRow>
                               {(model as FeaturedModel).note && (
-                                <Typography
-                                  variant="body2"
+                                <Text
+                                  size="small"
                                   className="model-note"
                                 >
                                   {(model as FeaturedModel).note}
-                                </Typography>
+                                </Text>
                               )}
                             </div>
                           </div>
@@ -980,8 +951,8 @@ const Welcome = () => {
                     </ul>
                   </Box>
                 </Box>
-              </Box>
-            </Box>
+              </FlexRow>
+            </FlexColumn>
           </TabPanel>
         </div>
       </div>

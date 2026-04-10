@@ -9,11 +9,11 @@ import {
   MenuItem,
   Select,
   SelectChangeEvent,
-  Tooltip,
   ListSubheader,
   ListItemIcon,
   Box
 } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -238,7 +238,7 @@ const TypeFilter = memo(({
             </span>
           }
           placement="bottom"
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
         >
           <div
             className="type-filter"
@@ -343,7 +343,7 @@ const TypeFilter = memo(({
             </span>
           }
           placement="bottom"
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
         >
           <div
             className="type-filter"

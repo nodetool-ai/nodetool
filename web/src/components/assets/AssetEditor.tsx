@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Button, CircularProgress, Typography } from "@mui/material";
+import { Text, LoadingSpinner, EditorButton, FlexColumn } from "../ui_primitives";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetById } from "../../serverState/useAssetById";
 import { ImageEditor } from "../node/image_editor";
@@ -12,27 +12,11 @@ import log from "loglevel";
 
 const styles = (theme: Theme) =>
     css({
-        display: "flex",
-        flexDirection: "column",
         width: "100%",
         height: "100%",
         position: "relative",
         backgroundColor: theme.vars.palette.grey[900],
-        ".loading-container": {
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-            gap: "16px"
-        },
         ".error-container": {
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-            gap: "16px",
             color: theme.vars.palette.error.main
         }
     });
@@ -140,63 +124,69 @@ const AssetEditor: React.FC = () => {
     // Loading state
     if (loading) {
         return (
-            <div css={styles(theme)}>
-                <div className="loading-container">
-                    <CircularProgress />
-                    <Typography>Loading asset...</Typography>
-                </div>
-            </div>
+            <FlexColumn css={styles(theme)} fullWidth fullHeight align="center" justify="center" gap={2}>
+                    <LoadingSpinner />
+                    <Text>Loading asset...</Text>
+            </FlexColumn>
         );
     }
 
     // Error state
     if (error || !asset) {
         return (
-            <div css={styles(theme)}>
-                <div className="error-container">
-                    <Typography variant="h6">{error || "Unknown error"}</Typography>
-                    <Button
+            <FlexColumn
+                css={styles(theme)}
+                className="error-container"
+                fullWidth
+                fullHeight
+                align="center"
+                justify="center"
+                gap={2}
+            >
+                    <Text size="normal" weight={600}>{error || "Unknown error"}</Text>
+                    <EditorButton
                         variant="text"
+                        density="compact"
                         onClick={handleClose}
                         aria-label="Go back to previous page"
                     >
                         Go back
-                    </Button>
-                </div>
-            </div>
+                    </EditorButton>
+            </FlexColumn>
         );
     }
 
     // Render editor
     return (
-        <div css={styles(theme)}>
+        <FlexColumn css={styles(theme)} fullWidth fullHeight>
             {asset.get_url && (
                 <ImageEditor
                     imageUrl={asset.get_url}
                     onSave={handleSave}
                     onClose={handleClose}
                     title={`Edit: ${asset.name || "Image"}`}
-                />
+                    />
             )}
             {isSaving && (
-                <div
-                    style={{
+                <FlexColumn
+                    sx={{
                         position: "absolute",
                         top: 0,
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
                         backgroundColor: "rgba(0, 0, 0, 0.7)",
                         zIndex: 20000
                     }}
+                    fullWidth
+                    fullHeight
+                    align="center"
+                    justify="center"
                 >
-                    <CircularProgress />
-                </div>
+                    <LoadingSpinner />
+                </FlexColumn>
             )}
-        </div>
+        </FlexColumn>
     );
 };
 

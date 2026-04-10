@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { Typography, IconButton, Tooltip, CircularProgress } from "@mui/material";
+import { Text, ToolbarIconButton, LoadingSpinner } from "../../ui_primitives";
 import { Caption } from "../../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -139,26 +139,24 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
     <section className="results-shell application-card">
       {/* Clear button - shown only when there are results */}
       {hasResults && onClear && (
-        <Tooltip title={`Clear ${filteredResults.length} result${filteredResults.length > 1 ? "s" : ""}`}>
-          <IconButton
-            size="small"
-            onClick={onClear}
-            aria-label="Clear results"
-            sx={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              zIndex: 10,
-              backgroundColor: "background.paper",
-              boxShadow: 1,
-              "&:hover": {
-                backgroundColor: "action.hover"
-              }
-            }}
-          >
-            <ClearIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<ClearIcon fontSize="small" />}
+          tooltip={`Clear ${filteredResults.length} result${filteredResults.length > 1 ? "s" : ""}`}
+          size="small"
+          onClick={onClear}
+          aria-label="Clear results"
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            zIndex: 10,
+            backgroundColor: "background.paper",
+            boxShadow: 1,
+            "&:hover": {
+              backgroundColor: "action.hover"
+            }
+          }}
+        />
       )}
 
       {hasResults ? (
@@ -180,32 +178,30 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
               )}
               <div className="result-card-body">
                 <OutputRenderer value={result.value} showTextActions={false} />
-                <Tooltip
-                  title={copiedId === result.id ? "Copied!" : "Copy to clipboard"}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={handleCopyResult(result)}
-                    aria-label="Copy result"
-                    className="result-card-copy-button"
-                    sx={{
-                      position: "absolute",
-                      bottom: 8,
-                      right: 8,
-                      backgroundColor: "background.paper",
-                      boxShadow: 1,
-                      "&:hover": {
-                        backgroundColor: "action.hover"
-                      }
-                    }}
-                  >
-                    {copiedId === result.id ? (
+                <ToolbarIconButton
+                  icon={
+                    copiedId === result.id ? (
                       <CheckIcon fontSize="small" />
                     ) : (
                       <ContentCopyIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip>
+                    )
+                  }
+                  tooltip={copiedId === result.id ? "Copied!" : "Copy to clipboard"}
+                  size="small"
+                  onClick={handleCopyResult(result)}
+                  aria-label="Copy result"
+                  className="result-card-copy-button"
+                  sx={{
+                    position: "absolute",
+                    bottom: 8,
+                    right: 8,
+                    backgroundColor: "background.paper",
+                    boxShadow: 1,
+                    "&:hover": {
+                      backgroundColor: "action.hover"
+                    }
+                  }}
+                />
               </div>
             </div>
           ))}
@@ -213,48 +209,48 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
       ) : (
         <div className="result-placeholder">
           {isRunning ? (
-            <CircularProgress size={40} />
+            <LoadingSpinner size="medium" />
           ) : outputNodeStatus.totalOutputs === 0 ? (
             <>
               <InfoOutlinedIcon className="result-placeholder-icon" />
-              <Typography variant="h6" className="result-placeholder-title">
+              <Text size="normal" weight={600} className="result-placeholder-title">
                 No output nodes
-              </Typography>
-              <Typography
-                variant="body2"
+              </Text>
+              <Text
+                size="small"
                 className="result-placeholder-subtitle"
               >
                 This workflow has no output nodes. The workflow can still run
                 and perform actions, but results won&apos;t be displayed here.
-              </Typography>
+              </Text>
             </>
           ) : outputNodeStatus.allBypassed ? (
             <>
               <InfoOutlinedIcon className="result-placeholder-icon" />
-              <Typography variant="h6" className="result-placeholder-title">
+              <Text size="normal" weight={600} className="result-placeholder-title">
                 All outputs bypassed
-              </Typography>
-              <Typography
-                variant="body2"
+              </Text>
+              <Text
+                size="small"
                 className="result-placeholder-subtitle"
               >
                 All output nodes in this workflow are currently bypassed. The
                 workflow can still run, but no results will be displayed.
-              </Typography>
+              </Text>
             </>
           ) : (
             <>
               <PlayCircleOutlineIcon className="result-placeholder-icon" />
-              <Typography variant="h6" className="result-placeholder-title">
+              <Text size="normal" weight={600} className="result-placeholder-title">
                 Ready to run
-              </Typography>
-              <Typography
-                variant="body2"
+              </Text>
+              <Text
+                size="small"
                 className="result-placeholder-subtitle"
               >
                 Configure your inputs on the left and click &quot;Run Workflow&quot; to
                 see results here.
-              </Typography>
+              </Text>
             </>
           )}
         </div>

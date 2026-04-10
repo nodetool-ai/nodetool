@@ -25,10 +25,7 @@
 import { memo, useCallback, useEffect, useRef } from "react";
 import { Command, CommandInput } from "cmdk";
 import { Dialog } from "../ui_primitives";
-import {
-  Typography,
-  Chip
-} from "@mui/material";
+import { Caption, Text, Chip } from "../ui_primitives";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import useQuickAddNodeStore from "../../stores/QuickAddNodeStore";
@@ -294,9 +291,9 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
 
           <Command.List className="command-list">
             <Command.Empty className="empty-state">
-              <Typography variant="body2">
+              <Text size="small">
                 {searchTerm ? "No matching nodes found" : "Type to search for nodes..."}
-              </Typography>
+              </Text>
             </Command.Empty>
 
             {searchResults.map((node, index) => {
@@ -315,10 +312,10 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
                 >
                   <div className="node-icon">{getNodeInitial(title)}</div>
                   <div className="node-info">
-                    <Typography className="node-title">{title}</Typography>
-                    <Typography className="node-type" variant="body2">
+                    <Text className="node-title">{title}</Text>
+                    <Text className="node-type" size="small">
                       {node.node_type}
-                    </Typography>
+                    </Text>
                   </div>
                   <div className="node-meta">
                     {namespace && namespace !== "default" && (
@@ -332,10 +329,10 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
 
           {/* Footer with keyboard hints */}
           <div className="footer-hints">
-            <Typography variant="caption">
+            <Caption>
               {searchResults.length} {searchResults.length === 1 ? "node" : "nodes"}
-            </Typography>
-            <Typography variant="caption">
+            </Caption>
+            <Caption>
               <span style={{ marginRight: "12px" }}>
                 <kbd>↑↓</kbd> Navigate
               </span>
@@ -343,7 +340,7 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
               <span style={{ marginLeft: "12px" }}>
                 <kbd>Esc</kbd> Close
               </span>
-            </Typography>
+            </Caption>
           </div>
         </Command>
       </div>

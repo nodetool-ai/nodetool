@@ -1,14 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  Alert
-} from "@mui/material";
+import { Dialog, AlertBanner, EditorButton, FlexRow, FlexColumn } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { getMousePosition } from "../../utils/MousePosition";
 import dialogStyles from "../../styles/DialogStyles";
@@ -68,15 +61,34 @@ const AssetMoveToFolderConfirmation: React.FC<
     <Dialog
       css={dialogStyles(theme)}
       open={dialogOpen}
-        onClose={handleClose}
+      onClose={handleClose}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
-      PaperProps={{
-        style: {
-          width: "500px"
-        }
-      }}
-      componentsProps={{
+      title={
+        <>
+          Select new folder for &nbsp;
+          <span>
+            {`${assets?.length} ${assets?.length === 1 ? "asset" : "assets"}`}
+          </span>
+          :
+        </>
+      }
+      content={
+        <FlexColumn gap={2}>
+          {showAlert && (
+            <AlertBanner severity="success" onClose={() => setShowAlert(null)}>
+              {showAlert}
+            </AlertBanner>
+          )}
+          <FolderTree onSelect={handleSelectFolder} />
+          <FlexRow justify="flex-end">
+            <EditorButton className="button-cancel" onClick={handleClose}>
+              Cancel
+            </EditorButton>
+          </FlexRow>
+        </FlexColumn>
+      }
+      slotProps={{
         backdrop: {
           style: {
             backgroundColor: "transparent"
@@ -87,31 +99,10 @@ const AssetMoveToFolderConfirmation: React.FC<
         left: `${safeLeft}px`,
         top: `${dialogPosition.y - 300}px`,
         height: "600px",
-        maxHeight: "600px"
+        maxHeight: "600px",
+        width: "500px"
       }}
-    >
-      <DialogTitle className="dialog-title" id="alert-dialog-title">
-        Select new folder for &nbsp;
-        <span>
-          {`${assets?.length} ${assets?.length === 1 ? "asset" : "assets"}`}
-        </span>
-        :
-      </DialogTitle>
-
-      <DialogContent className="dialog-content">
-        {showAlert && (
-          <Alert severity="success" onClose={() => setShowAlert(null)}>
-            {showAlert}
-          </Alert>
-        )}
-        <FolderTree onSelect={handleSelectFolder} />
-      </DialogContent>
-      <DialogActions className="dialog-actions">
-        <Button className="button-cancel" onClick={handleClose}>
-          Cancel
-        </Button>
-      </DialogActions>
-    </Dialog>
+    />
   );
 };
 

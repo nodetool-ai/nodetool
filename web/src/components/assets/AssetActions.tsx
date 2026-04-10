@@ -8,8 +8,6 @@ import DeselectIcon from "@mui/icons-material/Deselect";
 import {
   Button,
   ButtonGroup,
-  CircularProgress,
-  Tooltip,
   Popover,
   TextField,
   DialogActions,
@@ -34,7 +32,7 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { UploadButton } from "../ui_primitives";
+import { UploadButton, Tooltip, LoadingSpinner } from "../ui_primitives";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -350,7 +348,7 @@ const AssetActions = ({
       />
       <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           title="Create Folder"
           disableInteractive
         >
@@ -362,7 +360,7 @@ const AssetActions = ({
           </Button>
         </Tooltip>
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           title="Select all"
           disableInteractive
         >
@@ -371,7 +369,7 @@ const AssetActions = ({
           </Button>
         </Tooltip>
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           title="Deselect"
           disableInteractive
         >
@@ -380,7 +378,7 @@ const AssetActions = ({
           </Button>
         </Tooltip>
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
           disableInteractive
         >
@@ -394,13 +392,13 @@ const AssetActions = ({
             className={`loading-indicator ${isLoading ? "loading" : ""}`}
             sx={loadingIndicatorStyle}
           >
-            <CircularProgress />
+            <LoadingSpinner size="small" />
           </Box>
         )}
       </ButtonGroup>
 
       <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
         title="Sort assets"
         placement="bottom"
         disableInteractive
@@ -421,7 +419,7 @@ const AssetActions = ({
       </Tooltip>
 
       <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
         title="Filter by file size"
         placement="bottom"
         disableInteractive

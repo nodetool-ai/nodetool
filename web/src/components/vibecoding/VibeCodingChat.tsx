@@ -2,7 +2,8 @@
 import React, { useCallback, useMemo, memo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Box, Typography, Chip } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text, Caption, Chip } from "../ui_primitives";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { Message, Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
@@ -248,18 +249,18 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         }}
       >
         <AutoFixHighIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
-        <Typography variant="h6" gutterBottom>
+        <Text size="normal" weight={600} sx={{ mb: 1 }}>
           Design Your App
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
+        </Text>
+        <Text
+          size="small"
+          color="secondary"
           sx={{ maxWidth: 400 }}
         >
           Describe how you want your workflow&apos;s UI to look. Try something
           like: &quot;Create a modern dark-themed interface with a gradient
           background&quot;
-        </Typography>
+        </Text>
       </Box>
     ),
     []
@@ -270,13 +271,13 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
       <div className="chat-header">
         <div className="chat-title">
           <AutoFixHighIcon color="primary" />
-          <Typography variant="subtitle1" fontWeight={500}>
+          <Text size="normal" weight={500}>
             VibeCoding
-          </Typography>
+          </Text>
         </div>
-        <Typography variant="caption" color="text.secondary">
+        <Caption color="secondary">
           {workflow.name}
-        </Typography>
+        </Caption>
       </div>
 
       {templates && templates.length > 0 && session.messages.length === 0 && (

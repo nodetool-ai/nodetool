@@ -9,27 +9,12 @@ import React, {
   memo
 } from "react";
 import {
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  IconButton,
-  Breadcrumbs,
-  Link,
-  CircularProgress,
-  TextField,
-  InputAdornment,
   useTheme,
-  Theme,
-  Tooltip
-} from "@mui/material";
-import { Dialog } from "../ui_primitives";
+  type Theme
+} from "@mui/material/styles";
 import {
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,
-  Search as SearchIcon,
   ArrowUpward as ArrowUpwardIcon
 } from "@mui/icons-material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
@@ -41,7 +26,23 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { createErrorMessage } from "../../utils/errorHandling";
 import log from "loglevel";
 
-import { CopyButton, CloseButton, RefreshButton } from "../ui_primitives";
+import {
+  Breadcrumbs,
+  CloseButton,
+  CopyButton,
+  Dialog,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  ListItemRow,
+  LoadingSpinner,
+  RefreshButton,
+  Text,
+  Caption,
+  SearchInput,
+  TextInput,
+  ToolbarIconButton
+} from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
 
@@ -65,8 +66,6 @@ type ExtendedTreeItem = TreeViewBaseItem & {
 const styles = (theme: Theme) =>
   css({
     ".file-browser-content": {
-      display: "flex",
-      flex: 1,
       minHeight: 0,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "0",
@@ -77,68 +76,20 @@ const styles = (theme: Theme) =>
       width: "250px",
       minWidth: "200px",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      display: "flex",
-      flexDirection: "column",
       backgroundColor: theme.vars.palette.background.default,
       overflow: "hidden"
     },
     ".right-panel": {
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
       overflow: "hidden",
       backgroundColor: theme.vars.palette.background.paper
     },
-    ".toolbar": {
-      display: "flex",
-      alignItems: "center",
-      padding: "8px 16px",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      gap: "16px",
-      backgroundColor: theme.vars.palette.background.default
-    },
     ".breadcrumbs": {
       flex: 1,
-      minWidth: 0,
-      "& .MuiBreadcrumbs-ol": {
-        flexWrap: "nowrap",
-        overflowX: "auto",
-        scrollbarWidth: "none",
-        listStyle: "none !important",
-        margin: 0,
-        padding: 0,
-        "&::-webkit-scrollbar": {
-          display: "none"
-        }
-      },
-      "& .MuiBreadcrumbs-li": {
-        listStyle: "none !important"
-      },
-      "& li": {
-        listStyle: "none !important"
-      },
-      "& .MuiBreadcrumbs-separator": {
-        marginLeft: "4px",
-        marginRight: "4px"
-      }
+      minWidth: 0
     },
     ".file-list": {
       flex: 1,
       outline: "none"
-    },
-    ".list-item": {
-      display: "flex",
-      alignItems: "center",
-      padding: "0 12px",
-      cursor: "pointer",
-      gap: "8px",
-      fontSize: "0.875rem",
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover
-      },
-      "&.selected": {
-        backgroundColor: theme.vars.palette.action.selected
-      }
     },
     ".folder-tree": {
       overflowY: "auto",
@@ -665,13 +616,14 @@ function FileBrowserDialog({
     handleNavigate(itemId);
   }, [handleNavigate]);
 
-  // Memoize breadcrumb click handlers to prevent re-renders
-  const handleBreadcrumbClick = useCallback(
-    (path: string) => (e: React.MouseEvent) => {
-      e.stopPropagation();
-      handleNavigate(path);
+  const handleBreadcrumbNavigate = useCallback(
+    (item: { path?: string }, index: number) => {
+      const path = item.path || breadcrumbs[index]?.path;
+      if (path) {
+        handleNavigate(path);
+      }
     },
-    [handleNavigate]
+    [breadcrumbs, handleNavigate]
   );
 
   // --- Renderers ---
@@ -685,40 +637,50 @@ function FileBrowserDialog({
   }) {
     const file = filteredFiles[index];
     const isSelected = selectedPath === file.path;
-
     const handleClick = useCallback(() => {
       handleFileClick(file);
-    }, [file]);
+    }, [file, handleFileClick]);
 
     const handleDoubleClick = useCallback(() => {
       handleFileDoubleClick(file);
-    }, [file]);
+    }, [file, handleFileDoubleClick]);
 
     return (
-      <div
+      <ListItemRow
         style={style}
-        className={`list-item ${isSelected ? "selected" : ""}`}
+        selected={isSelected}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
+        icon={
+          file.is_dir ? (
+            <FolderIcon color="primary" fontSize="small" />
+          ) : (
+            <FileIcon color="action" fontSize="small" />
+          )
+        }
+        sx={{
+          px: 1.5,
+          fontSize: "0.875rem",
+          "&:hover": {
+            backgroundColor: theme.vars.palette.action.hover
+          }
+        }}
       >
-        {file.is_dir ? (
-          <FolderIcon color="primary" sx={{ fontSize: 20 }} />
-        ) : (
-          <FileIcon color="action" sx={{ fontSize: 20 }} />
-        )}
-        <Typography
-          noWrap
-          variant="body2"
-          sx={{ flex: 1, ml: 0.5, fontSize: "0.875rem" }}
-        >
-          {file.name}
-        </Typography>
-        {file.size !== undefined && !file.is_dir && (
-          <Typography variant="caption" color="text.secondary">
-            {formatBytes(file.size)}
-          </Typography>
-        )}
-      </div>
+        <FlexRow fullWidth align="center" justify="space-between" sx={{ minWidth: 0 }}>
+          <Text
+            size="small"
+            truncate
+            sx={{ flex: 1, minWidth: 0, fontSize: "0.875rem" }}
+          >
+            {file.name}
+          </Text>
+          {file.size !== undefined && !file.is_dir && (
+            <Caption color="secondary" sx={{ ml: 1 }}>
+              {formatBytes(file.size)}
+            </Caption>
+          )}
+        </FlexRow>
+      </ListItemRow>
     );
   });
 
@@ -727,6 +689,7 @@ function FileBrowserDialog({
       className="file-browser-dialog"
       open={open}
       onClose={onClose}
+      title={title}
       maxWidth="lg"
       fullWidth
       slotProps={{
@@ -735,207 +698,150 @@ function FileBrowserDialog({
         }
       }}
     >
-      <DialogTitle
-        className="file-browser-header"
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          py: 1,
-          px: 2
-        }}
+      <FlexColumn
+        css={styles(theme)}
+        sx={{ height: "100%", minHeight: 0, overflow: "hidden" }}
+        gap={0}
       >
-        <Typography
-          variant="h6"
-          component="span"
-          sx={{ fontSize: "1.1rem", padding: "0 1em", margin: 0 }}
+        <FlexRow
+          align="center"
+          gap={2}
+          sx={{
+            px: 2,
+            py: 1,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`,
+            backgroundColor: theme.vars.palette.background.default
+          }}
         >
-          {title}
-        </Typography>
-        <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
-      </DialogTitle>
+          <ToolbarIconButton
+            icon={<ArrowUpwardIcon fontSize="small" />}
+            tooltip="Up one level"
+            onClick={handleUp}
+            disabled={currentPath === "~" || currentPath === "/"}
+            size="small"
+          />
 
-      <DialogContent
-        className="file-browser-body"
-        sx={{
-          p: 0,
-          overflow: "hidden",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column"
-        }}
-      >
-        <div
-          css={styles(theme)}
-          style={{ display: "flex", flexDirection: "column", height: "100%" }}
-        >
-          {/* Toolbar */}
-          <div className="toolbar">
-            <Tooltip title="Go up one folder">
-              <span>
-                <IconButton
-                  aria-label="Go up one folder"
-                  onClick={handleUp}
-                  disabled={currentPath === "~" || currentPath === "/"}
-                >
-                  <ArrowUpwardIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-
-            {isEditingPath ? (
-              <TextField
-                size="small"
-                fullWidth
-                value={pathInputValue}
-                onChange={handlePathInputChange}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {handlePathSubmit();}
-                  if (e.key === "Escape") {
-                    setPathInputValue(currentPath);
-                    setIsEditingPath(false);
-                  }
-                }}
-                onBlur={() => setIsEditingPath(false)}
-                autoFocus
-                sx={{ flex: 1 }}
-              />
-            ) : (
-              <div
-                className="breadcrumbs-container"
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  cursor: "text",
-                  minWidth: "100px"
-                }}
-                onClick={handleStartEditPath}
-              >
-                <Breadcrumbs className="breadcrumbs" separator="/">
-                  {breadcrumbs.map((b, i) => (
-                    <Link
-                      key={b.path}
-                      component="button"
-                      color={
-                        i === breadcrumbs.length - 1
-                          ? "text.primary"
-                          : "inherit"
-                      }
-                      onClick={handleBreadcrumbClick(b.path)}
-                      underline="hover"
-                      variant="body2"
-                    >
-                      {b.name}
-                    </Link>
-                  ))}
-                </Breadcrumbs>
-              </div>
-            )}
-
-            <TextField
+          {isEditingPath ? (
+            <TextInput
               size="small"
-              placeholder="Search in current folder..."
-              value={searchQuery}
-              onChange={handleSearchQueryChange}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  )
+              fullWidth
+              value={pathInputValue}
+              onChange={handlePathInputChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {handlePathSubmit();}
+                if (e.key === "Escape") {
+                  setPathInputValue(currentPath);
+                  setIsEditingPath(false);
                 }
               }}
-              sx={{ width: 200, "& .MuiInputBase-root": { height: 32 } }}
+              onBlur={() => setIsEditingPath(false)}
+              autoFocus
+              sx={{ flex: 1 }}
             />
+          ) : (
+            <FlexRow
+              className="breadcrumbs-container"
+              align="center"
+              sx={{ flex: 1, minWidth: 100, cursor: "text" }}
+              onClick={handleStartEditPath}
+            >
+              <Breadcrumbs
+                className="breadcrumbs"
+                items={breadcrumbs.map((b) => ({ label: b.name, path: b.path }))}
+                separator="slash"
+                onNavigate={handleBreadcrumbNavigate}
+              />
+            </FlexRow>
+          )}
 
-            <RefreshButton
-              onClick={handleRefresh}
-              buttonSize="small"
-              tooltip="Refresh"
+          <div style={{ width: 200 }}>
+            <SearchInput
+              value={searchQuery}
+              onChange={handleSearchQueryChange}
+              placeholder="Search in current folder..."
+              fullWidth
             />
           </div>
 
-          {/* Split View */}
-          <div
-            className="file-browser-content"
-            style={{ border: "none", borderRadius: 0 }}
-          >
-            {/* Left Panel: Folder Tree */}
-            <div className="left-panel">
-              <div className="folder-tree" ref={treeScrollRef}>
-                <RichTreeView
-                  items={treeItems}
-                  onItemClick={handleTreeItemClick}
-                  onItemExpansionToggle={handleItemExpansionToggle}
-                  expandedItems={expandedItems}
-                  selectedItems={currentPath}
-                />
-              </div>
-            </div>
-
-            {/* Right Panel: Files */}
-            <div className="right-panel">
-              {isLoadingFiles ? (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100%"
-                  }}
-                >
-                  <CircularProgress size={30} />
-                </Box>
-              ) : (
-                <AutoSizer>
-                  {({ height, width }) => (
-                    <List
-                      className="file-list"
-                      height={height}
-                      itemCount={filteredFiles.length}
-                      itemSize={32}
-                      width={width}
-                    >
-                      {Row}
-                    </List>
-                  )}
-                </AutoSizer>
-              )}
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-
-      <DialogActions
-        className="file-browser-footer"
-        sx={{ p: 2, borderTop: 1, borderColor: "divider" }}
-      >
-        <Typography
-          variant="body2"
-          sx={{ flex: 1, ml: 1, color: "text.secondary" }}
-        >
-          {selectedPath ? `Selected: ${selectedPath}` : "No selection"}
-        </Typography>
-        {selectedPath && (
-          <CopyButton
-            value={selectedPath}
-            tooltip="Copy path"
+          <RefreshButton
+            onClick={handleRefresh}
             buttonSize="small"
+            tooltip="Refresh"
           />
-        )}
-        <Button onClick={onClose} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleConfirmClick}
-          variant="contained"
-          disabled={!selectedPath}
+          <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
+        </FlexRow>
+
+        <FlexRow
+          className="file-browser-content"
+          sx={{ flex: 1, minHeight: 0, border: "none", borderRadius: 0 }}
         >
-          Select
-        </Button>
-      </DialogActions>
+          <FlexColumn className="left-panel" sx={{ width: 250, minWidth: 200, overflow: "hidden" }}>
+            <div className="folder-tree" ref={treeScrollRef}>
+              <RichTreeView
+                items={treeItems}
+                onItemClick={handleTreeItemClick}
+                onItemExpansionToggle={handleItemExpansionToggle}
+                expandedItems={expandedItems}
+                selectedItems={currentPath}
+              />
+            </div>
+          </FlexColumn>
+
+          <FlexColumn className="right-panel" sx={{ flex: 1, minWidth: 0 }}>
+            {isLoadingFiles ? (
+              <FlexColumn fullWidth fullHeight align="center" justify="center">
+                <LoadingSpinner size="medium" />
+              </FlexColumn>
+            ) : (
+              <AutoSizer>
+                {({ height, width }) => (
+                  <List
+                    className="file-list"
+                    height={height}
+                    itemCount={filteredFiles.length}
+                    itemSize={32}
+                    width={width}
+                  >
+                    {Row}
+                  </List>
+                )}
+              </AutoSizer>
+            )}
+          </FlexColumn>
+        </FlexRow>
+
+        <FlexRow
+          className="file-browser-footer"
+          align="center"
+          gap={1}
+          sx={{
+            p: 2,
+            borderTop: `1px solid ${theme.vars.palette.divider}`
+          }}
+        >
+          <Text size="small" color="secondary" sx={{ flex: 1, ml: 1 }}>
+            {selectedPath ? `Selected: ${selectedPath}` : "No selection"}
+          </Text>
+          {selectedPath && (
+            <CopyButton
+              value={selectedPath}
+              tooltip="Copy path"
+              buttonSize="small"
+            />
+          )}
+          <EditorButton onClick={onClose} variant="text" density="compact">
+            Cancel
+          </EditorButton>
+          <EditorButton
+            onClick={handleConfirmClick}
+            variant="contained"
+            density="compact"
+            disabled={!selectedPath}
+          >
+            Select
+          </EditorButton>
+        </FlexRow>
+      </FlexColumn>
     </Dialog>
   );
 }

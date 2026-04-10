@@ -9,9 +9,9 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Divider,
   useTheme
 } from "@mui/material";
+import { Divider } from "../ui_primitives";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 

@@ -1,12 +1,12 @@
 import React, { memo, useEffect, useMemo, useState } from "react";
 import {
   List,
-  Typography,
   Box,
   TextField,
   InputAdornment,
   Button
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
@@ -131,12 +131,11 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
       </Box>
 
       {displayModels.length === 0 ? (
-        <Typography
-          variant="body1"
+        <Text
           sx={{ color: "var(--palette-grey-200)", ml: 2, mt: 8, mb: 10 }}
         >
           No models found{searchQuery ? ` for "${searchQuery}"` : ""}.
-        </Typography>
+        </Text>
       ) : (
         <List>
           {displayModels.map((model) => {
@@ -157,8 +156,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
           })}
         </List>
       )}
-      <Typography
-        variant="body1"
+      <Text
         sx={{ marginTop: "1em", color: theme.vars.palette.grey[100] }}
       >
         <AnnouncementIcon
@@ -171,7 +169,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
         />
         Models will be downloaded to your local cache folder in the standard
         location for Huggingface and Ollama.
-      </Typography>
+      </Text>
 
       {/* Open folder buttons */}
       {isLocalhost && isFileExplorerAvailable() && (

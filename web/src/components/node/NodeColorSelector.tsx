@@ -5,11 +5,9 @@ import React, { useState, useCallback, useMemo, memo } from "react";
 import {
   Dialog,
   DialogTitle,
-  DialogContent,
-  Button,
-  Typography,
-  IconButton
+  DialogContent
 } from "@mui/material";
+import { Text, ToolbarIconButton, EditorButton } from "../ui_primitives";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 import SearchInput from "../search/SearchInput";
 import { createLinearGradient } from "../../utils/ColorUtils";
@@ -144,13 +142,14 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = memo(({
 
   return (
     <div css={colorPickerButtonStyles(theme, alwaysVisible)}>
-      <IconButton
+      <ToolbarIconButton
+        title="Pick color"
         size="small"
         className="color-picker-button"
         onClick={handleModalOpen}
       >
         <ColorizeIcon />
-      </IconButton>
+      </ToolbarIconButton>
       <Dialog
         css={colorSelectDialogStyles(theme)}
         open={modalOpen}
@@ -168,7 +167,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = memo(({
         <DialogContent>
           {dataTypesFiltered.map((datatype, index) => (
             <div key={datatype.slug} className="dt">
-              <Button
+              <EditorButton
                 className="color-button"
                 key={datatype + "_" + index}
                 style={{
@@ -181,14 +180,14 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = memo(({
                 }}
                 onClick={createColorClickHandler(datatype.color)}
               >
-                <Typography
-                  style={{
+                <Text
+                  sx={{
                     color: datatype.textColor
                   }}
                 >
                   {datatype.label}
-                </Typography>
-              </Button>
+                </Text>
+              </EditorButton>
             </div>
           ))}
         </DialogContent>

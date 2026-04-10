@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
-  Paper,
-  Box,
   Button,
-  TextField,
-  Typography,
-  Alert
+  TextField
 } from "@mui/material";
+import { Text, FlexRow, AlertBanner, Surface } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -215,9 +212,9 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       }}
       onClick={handleBackdropClick}
     >
-      <Paper
+      <Surface
         className="asset-create-folder-dialog"
-        elevation={8}
+        elevation={3}
         sx={{
           position: "absolute",
           left: `${safeLeft}px`,
@@ -230,11 +227,11 @@ const AssetCreateFolderConfirmation: React.FC = () => {
           overflow: "hidden"
         }}
       >
-        <Typography
+        <Text
           className="asset-create-folder-dialog-title"
+          size="small"
+          family="primary"
           sx={{
-            fontFamily: theme.fontFamily1,
-            fontSize: theme.fontSizeSmall,
             color: theme.vars.palette.grey[100],
             margin: ".5em 0 0",
             padding: "1em"
@@ -243,17 +240,17 @@ const AssetCreateFolderConfirmation: React.FC = () => {
           {hasSelectedAssets
             ? "Move selected to new folder"
             : "Create new folder"}
-        </Typography>
+        </Text>
 
-        <Box sx={{ padding: "0 .5em" }}>
+        <div style={{ padding: "0 .5em" }}>
           {showAlert && (
-            <Alert
+            <AlertBanner
               className="asset-create-folder-error-alert"
               severity="error"
               onClose={handleClose}
             >
               {showAlert}
-            </Alert>
+            </AlertBanner>
           )}
           <TextField
             className="asset-create-folder-input"
@@ -276,13 +273,12 @@ const AssetCreateFolderConfirmation: React.FC = () => {
               }
             }}
           />
-        </Box>
+        </div>
 
-        <Box
+        <FlexRow
+          justify="flex-end"
+          gap={1}
           sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 1,
             padding: ".5em 1em"
           }}
         >
@@ -303,18 +299,17 @@ const AssetCreateFolderConfirmation: React.FC = () => {
           >
             {hasSelectedAssets ? "Move to New Folder" : "Create Folder"}
           </Button>
-        </Box>
+        </FlexRow>
 
         {hasSelectedAssets && (
-          <Box className="asset-create-folder-notice-container">
-            <Typography
+          <div className="asset-create-folder-notice-container">
+            <Text
               className="asset-create-folder-notice"
-              variant="body2"
+              size="small"
+              family="primary"
               sx={{
                 backgroundColor: theme.vars.palette.c_attention,
                 color: theme.vars.palette.grey[1000],
-                fontFamily: theme.fontFamily1,
-                fontSize: theme.fontSizeSmall,
                 padding: ".5em 1em"
               }}
             >
@@ -323,10 +318,10 @@ const AssetCreateFolderConfirmation: React.FC = () => {
               </span>{" "}
               <br />
               They will be moved to the new folder.
-            </Typography>
-          </Box>
+            </Text>
+          </div>
         )}
-      </Paper>
+      </Surface>
     </div>
   );
 };

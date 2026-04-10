@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { Typography, Button, Box } from "@mui/material";
+import { Text, FlexRow, EditorButton } from "../ui_primitives";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
 import ImageModelSelect from "../properties/ImageModelSelect";
@@ -40,13 +40,13 @@ function DefaultModelsMenu() {
 
   return (
     <div>
-      <Typography variant="h3" id="default-models" style={{ margin: 0 }}>
+      <Text size="big" id="default-models" style={{ margin: 0 }}>
         Default Models
-      </Typography>
-      <Typography className="description" sx={{ mb: 2 }}>
+      </Text>
+      <Text className="description" sx={{ mb: 2 }}>
         Set default models for each type. These will auto-fill when you create
         new nodes.
-      </Typography>
+      </Text>
 
       {MODEL_TYPE_CONFIG.map(({ type, label, Select }) => (
         <DefaultModelRow
@@ -106,19 +106,19 @@ function DefaultModelRow({
 
   return (
     <div className="settings-section" id={`default-model-${modelType}`}>
-      <Typography variant="h4">{label}</Typography>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
+      <Text size="big">{label}</Text>
+      <FlexRow align="center" gap={1} sx={{ mt: 1 }}>
         <Select onChange={handleChange} value={current?.id || ""} />
         {current && (
-          <Button size="small" onClick={handleClear}>
+          <EditorButton size="small" onClick={handleClear}>
             Clear
-          </Button>
+          </EditorButton>
         )}
-      </Box>
+      </FlexRow>
       {current && (
-        <Typography variant="body2" sx={{ mt: 0.5, opacity: 0.7 }}>
+        <Text size="small" sx={{ mt: 0.5, opacity: 0.7 }}>
           {current.provider} / {current.name || current.id}
-        </Typography>
+        </Text>
       )}
     </div>
   );

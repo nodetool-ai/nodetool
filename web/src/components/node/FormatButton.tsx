@@ -1,6 +1,6 @@
 import { memo, useCallback } from "react";
 import type { CustomText } from "./CommentNode";
-import Tooltip from "@mui/material/Tooltip";
+import { Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 type MarkFormat = keyof Omit<CustomText, "text">;
@@ -38,8 +38,8 @@ const FormatButton: React.FC<FormatButtonProps> = ({
     <Tooltip
       title={tooltipText}
       placement="bottom"
-      enterDelay={TOOLTIP_ENTER_DELAY * 4}
-      enterNextDelay={TOOLTIP_ENTER_DELAY * 4}
+      delay={TOOLTIP_ENTER_DELAY * 4}
+      nextDelay={TOOLTIP_ENTER_DELAY * 4}
     >
       <button
         tabIndex={-1}

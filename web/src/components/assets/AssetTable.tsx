@@ -6,11 +6,9 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
-  Box,
-  CircularProgress,
 } from "@mui/material";
+import { FlexRow, LoadingSpinner, Surface } from "../ui_primitives";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -87,13 +85,10 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     border: 1,
     borderStyle: "dotted" as const,
     height: 60,
-    display: "flex" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
   }), []);
 
   return (
-    <TableContainer component={Paper}>
+    <TableContainer component={Surface}>
       <Table>
         <TableHead>
           <TableRow>
@@ -112,15 +107,17 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
           <TableRow key="last">
             <TableCell>
               {uploading ? (
-                <CircularProgress />
+                <LoadingSpinner />
               ) : (
-                <Box
+                <FlexRow
+                  align="center"
+                  justify="center"
                   onDragOver={onDragOver}
                   onDrop={onDrop}
                   sx={dropZoneStyle}
                 >
                   Drop file here
-                </Box>
+                </FlexRow>
               )}
             </TableCell>
           </TableRow>

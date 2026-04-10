@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useRef } from "react";
-import { Popover, Button, Tooltip } from "@mui/material";
+import { Popover, Button } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { ColorPickerModal } from "../color_picker";
@@ -140,7 +141,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       <Tooltip
         title="Set color"
         placement="bottom"
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY}
       >
         <Button
           className="open-colors-button"

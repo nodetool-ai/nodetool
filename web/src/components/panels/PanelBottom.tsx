@@ -2,8 +2,8 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip } from "@mui/material";
-import { CloseButton } from "../ui_primitives";
+import { Drawer, IconButton } from "@mui/material";
+import { CloseButton, Tooltip } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo, useCallback } from "react";
@@ -184,7 +184,7 @@ const PanelBottom: React.FC = () => {
           {isVisible && (
             <div className="panel-header">
               <div className="left">
-                <Tooltip title="Terminal (Ctrl+`)" enterDelay={TOOLTIP_ENTER_DELAY}>
+                <Tooltip title="Terminal (Ctrl+`)" delay={TOOLTIP_ENTER_DELAY}>
                   <IconButton
                     size="small"
                     onClick={handleTerminalToggle}
@@ -193,7 +193,7 @@ const PanelBottom: React.FC = () => {
                     <TerminalIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Trace (Ctrl+Shift+T)" enterDelay={TOOLTIP_ENTER_DELAY}>
+                <Tooltip title="Trace (Ctrl+Shift+T)" delay={TOOLTIP_ENTER_DELAY}>
                   <IconButton
                     size="small"
                     onClick={handleTraceToggle}
@@ -213,7 +213,7 @@ const PanelBottom: React.FC = () => {
                   </div>
                 }
                 placement="top-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
               >
                 <CloseButton
                   onClick={handleTerminalToggle}

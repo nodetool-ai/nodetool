@@ -7,7 +7,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import NodeItem from "./NodeItem";
 import SearchResultsPanel from "./SearchResultsPanel";
-import { Typography } from "@mui/material";
+import { Text } from "../ui_primitives";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useCreateNode } from "../../hooks/useCreateNode";
@@ -99,15 +99,16 @@ const renderVirtualRow = ({
 
   if (row.type === "namespace") {
     return (
-      <Typography
+      <Text
         style={style}
         key={row.key}
-        variant="h5"
+        size="normal"
+        weight={600}
         component="div"
         className="namespace-text"
       >
         {row.textForNamespaceHeader}
-      </Typography>
+      </Text>
     );
   }
 
@@ -306,19 +307,19 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       ) : (
         <div className="no-selection">
           <div className="explanation">
-            <Typography variant="h5" style={{ marginTop: 0 }}>
+            <Text size="normal" weight={600} style={{ marginTop: 0 }}>
               Browse Nodes
-            </Typography>
+            </Text>
             <ul>
               <li>Click on the namespaces to the left</li>
             </ul>
 
-            <Typography variant="h5">Search Nodes</Typography>
+            <Text size="normal" weight={600}>Search Nodes</Text>
             <ul>
               <li>Type in the search bar to search for nodes.</li>
             </ul>
 
-            <Typography variant="h5">Create Nodes</Typography>
+            <Text size="normal" weight={600}>Create Nodes</Text>
             <ul>
               <li>Click on a node</li>
               <li>Drag a node onto the canvas</li>

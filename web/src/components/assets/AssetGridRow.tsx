@@ -7,7 +7,7 @@ import {
 import AssetItem from "./AssetItem";
 import { colorForType, IconForType } from "../../config/data_types";
 import { Asset } from "../../stores/ApiTypes";
-import { Typography, Tooltip } from "@mui/material";
+import { Text, Tooltip } from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -122,8 +122,8 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
       <Tooltip
         title={`${isExpanded ? "Collapse" : "Expand"} ${divider.type} files`}
         placement="bottom"
-        enterDelay={TOOLTIP_ENTER_DELAY * 2}
-        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
+        delay={TOOLTIP_ENTER_DELAY * 2}
+        nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
       >
         <div
           style={{
@@ -138,8 +138,8 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           className="content-type-header"
           onClick={handleToggleExpanded}
         >
-          <Typography
-            variant="body2"
+          <Text
+            size="small"
             style={{
               display: "inline-block",
               margin: "0 1em 0 .5em",
@@ -148,7 +148,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             }}
           >
             {divider.count}
-          </Typography>
+          </Text>
           <div
             className="divider"
             style={{

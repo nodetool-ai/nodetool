@@ -5,9 +5,9 @@ import { useTheme } from "@mui/material/styles";
 import {
   Box,
   CircularProgress,
-  LinearProgress,
-  Typography
+  LinearProgress
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -191,23 +191,23 @@ const StandaloneMiniApp: React.FC = () => {
               gap: "1rem"
             }}
           >
-            <Typography color="error" variant="h6">
+            <Text color="error" size="normal" weight={600}>
               Error Loading Workflow
-            </Typography>
-            <Typography color="error">{error.message}</Typography>
+            </Text>
+            <Text color="error">{error.message}</Text>
           </div>
         )}
         {workflow && (
           <>
             <Box mb={3} display="flex" justifyContent="space-between" alignItems="flex-start">
               <Box>
-                <Typography variant="h4" fontWeight="500">
+                <Text size="big" weight={500}>
                   {workflow?.name}
-                </Typography>
+                </Text>
                 {workflow?.description && (
-                  <Typography variant="body2" color="text.secondary" mt={1}>
+                  <Text size="small" color="secondary" mt={1}>
                     {workflow.description}
-                  </Typography>
+                  </Text>
                 )}
               </Box>
               <Box display="flex" alignItems="center" gap={2}>
@@ -228,9 +228,9 @@ const StandaloneMiniApp: React.FC = () => {
               />
               <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
                 {statusMessage && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
+                  <Text
+                    size="small"
+                    color="secondary"
                     css={
                       runnerState === "running"
                         ? css`
@@ -271,7 +271,7 @@ const StandaloneMiniApp: React.FC = () => {
                     }
                   >
                     {statusMessage}
-                  </Typography>
+                  </Text>
                 )}
                 {progress ? (
                   <LinearProgress

@@ -6,7 +6,8 @@ import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
-import { Container, Tooltip } from "@mui/material";
+import { Container } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { DATA_TYPES } from "../../config/data_types";
@@ -185,7 +186,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
   return (
     <Tooltip
       title="Double-click to add a label"
-      enterDelay={TOOLTIP_ENTER_DELAY * 2}
+      delay={TOOLTIP_ENTER_DELAY * 2}
       placement="top"
     >
       <Container

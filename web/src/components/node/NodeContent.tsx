@@ -1,5 +1,6 @@
 import React, { memo } from "react";
 import { Box } from "@mui/material";
+import { FlexColumn } from "../ui_primitives";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -184,14 +185,12 @@ const NodeContent: React.FC<NodeContentProps> = ({
 
   if (shouldShowOverlay) {
     return (
-      <Box
+      <FlexColumn
+        fullWidth
+        fullHeight
         sx={{
           position: "relative",
-          width: "100%",
-          height: "100%",
-          minHeight: 0,
-          display: "flex",
-          flexDirection: "column"
+          minHeight: 0
         }}
       >
         {/* Keep inputs and outputs in DOM for handles and to set size, but hide most content visually */}
@@ -227,15 +226,13 @@ const NodeContent: React.FC<NodeContentProps> = ({
             />
           )}
         </Box>
-        <Box
+        <FlexColumn
+          fullWidth
+          fullHeight
           sx={{
             position: "absolute",
             inset: 0,
             zIndex: 1,
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
             minHeight: 0,
             overflow: "auto",
             // Keep handles clickable even when overlay is on top
@@ -251,20 +248,18 @@ const NodeContent: React.FC<NodeContentProps> = ({
             nodeName={nodeMetadata.title}
             onShowInputs={isOutputNode ? undefined : onShowInputs}
           />
-        </Box>
-      </Box>
+        </FlexColumn>
+      </FlexColumn>
     );
   }
 
   return (
-    <Box
+    <FlexColumn
+      fullWidth
+      fullHeight
       sx={{
         position: "relative",
-        width: "100%",
-        height: "100%",
-        minHeight: 0,
-        display: "flex",
-        flexDirection: "column"
+        minHeight: 0
       }}
     >
       <NodeInputs
@@ -297,7 +292,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
-    </Box>
+    </FlexColumn>
   );
 };
 

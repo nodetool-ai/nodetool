@@ -2,7 +2,8 @@
 
 import { css } from "@emotion/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Chip, InputAdornment, TextField, Tooltip } from "@mui/material";
+import { InputAdornment, TextField } from "@mui/material";
+import { Tooltip, Chip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
@@ -337,7 +338,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
                 {snippet.code.split("\n")[0].trim()}
               </div>
               <div className="snippet-actions">
-                <Tooltip title="Copy" placement="left" enterDelay={400}>
+                <Tooltip title="Copy" placement="left" delay={400}>
                   <button
                     className="snippet-action-btn"
                     onClick={(e) => {
@@ -350,7 +351,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
                     />
                   </button>
                 </Tooltip>
-                <Tooltip title="Insert" placement="left" enterDelay={400}>
+                <Tooltip title="Insert" placement="left" delay={400}>
                   <button
                     className="snippet-action-btn"
                     onClick={(e) => {

@@ -3,7 +3,8 @@ import React from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, Box } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { TaskUpdate } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -156,9 +157,9 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
   return (
     <div className="task-update-container noscroll" css={styles(theme)}>
       <div className="task-header">
-        <Typography className="task-animated-heading">
+        <Text className="task-animated-heading">
           Agent Task
-        </Typography>
+        </Text>
         <span className="task-event-badge">
           {getEventDisplayText(taskUpdate.event)}
         </span>
@@ -166,20 +167,20 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
 
       {task && (
         <Box className="task-content">
-          <Typography className="task-title">
+          <Text className="task-title">
             {task.title}
-          </Typography>
+          </Text>
           {task.description && (
-            <Typography className="task-description">
+            <Text className="task-description">
               {task.description}
-            </Typography>
+            </Text>
           )}
         </Box>
       )}
 
       {task?.steps && task.steps.length > 0 && (
         <Box className="steps-section">
-          <Typography className="steps-header">Execution Plan</Typography>
+          <Text className="steps-header">Execution Plan</Text>
           {task.steps.map((step, idx) => {
             const isCurrent =
               currentStep &&

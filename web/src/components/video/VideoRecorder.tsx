@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { EditorButton, Text, LoadingSpinner } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   VideoRecorderProps,
@@ -132,53 +133,54 @@ const VideoRecorder = (props: VideoRecorderProps) => {
   return (
     <Box className="videorecorder" css={styles(theme)}>
       {!isPreviewing ? (
-        <Button
+        <EditorButton
           onClick={startPreview}
           className="preview-button nodrag"
           variant="text"
-          size="small"
+          density="compact"
           disabled={isLoading}
         >
           START CAMERA
-          {isLoading && <CircularProgress size={6} />}
-        </Button>
+          {isLoading && <LoadingSpinner size="small" />}
+        </EditorButton>
       ) : (
         <>
-          <Button
+          <EditorButton
             onClick={handleRecord}
             className={`record-button nodrag ${isRecording ? " recording" : ""}`}
             variant="text"
-            size="small"
+            density="compact"
             disabled={isLoading}
           >
             {isRecording ? "STOP" : "RECORD"}
-            {isLoading && <CircularProgress size={6} />}
-          </Button>
+            {isLoading && <LoadingSpinner size="small" />}
+          </EditorButton>
           {!isRecording && (
-            <Button
+            <EditorButton
               onClick={stopStream}
               className="stop-button nodrag"
               variant="text"
-              size="small"
+              density="compact"
             >
               CLOSE
-            </Button>
+            </EditorButton>
           )}
         </>
       )}
 
-      <Button
+      <EditorButton
         className="nodrag device-button"
         onClick={toggleDeviceListVisibility}
         variant="text"
-        size="small"
+        density="compact"
+        aria-label="Toggle device list"
       >
         {isDeviceListVisible ? (
           <SettingsInputComponentIcon className="toggle-on" />
         ) : (
           <SettingsInputComponentIcon className="toggle-off" />
         )}
-      </Button>
+      </EditorButton>
       {error && <div className="error">{error}</div>}
 
       {isPreviewing && (
@@ -195,8 +197,8 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         <div className="device-list" style={{ margin: "5px" }}>
           {videoInputDevices.length > 0 ? (
             <>
-              <Typography
-                variant="h2"
+              <Text
+                size="bigger"
                 sx={{
                   fontSize: "var(--fontSizeSmaller)",
                   margin: "0 0 .5em 0",
@@ -204,7 +206,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
                 }}
               >
                 Camera
-              </Typography>
+              </Text>
               <div
                 className={`device-select${
                   isRecording || isLoading ? " disabled" : ""
@@ -221,8 +223,8 @@ const VideoRecorder = (props: VideoRecorderProps) => {
               </div>
             </>
           ) : (
-            <Typography
-              variant="body2"
+            <Text
+              size="small"
               sx={{
                 fontSize: "var(--fontSizeSmall)",
                 position: "absolute",
@@ -236,13 +238,13 @@ const VideoRecorder = (props: VideoRecorderProps) => {
               }}
             >
               No video input devices found.
-            </Typography>
+            </Text>
           )}
 
           {audioInputDevices.length > 0 && (
             <>
-              <Typography
-                variant="h2"
+              <Text
+                size="bigger"
                 sx={{
                   fontSize: "var(--fontSizeSmaller)",
                   margin: "1em 0 .5em 0",
@@ -250,7 +252,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
                 }}
               >
                 Microphone
-              </Typography>
+              </Text>
               <div
                 className={`device-select${
                   isRecording || isLoading ? " disabled" : ""

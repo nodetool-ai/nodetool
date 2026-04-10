@@ -2,9 +2,6 @@
 // Dialog-based settings menu (replacing MUI Menu)
 import React, { memo, useId } from "react";
 import {
-  Button,
-  Typography,
-  Tooltip,
   Tabs,
   Tab,
   Box
@@ -20,7 +17,10 @@ import {
   SearchInput,
   TextInput,
   LabeledSwitch,
-  SelectField
+  SelectField,
+  Tooltip,
+  Text,
+  EditorButton
 } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../stores/ApiClient";
@@ -303,8 +303,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   return (
     <div className="settings">
-      <Tooltip title="Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
-        <Button
+      <Tooltip title="Settings" delay={TOOLTIP_ENTER_DELAY}>
+        <EditorButton
           tabIndex={-1}
           className="settings-button command-icon"
           aria-controls={isMenuOpen ? "basic-menu" : undefined}
@@ -314,7 +314,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         >
           <SettingsIcon />
           {buttonText}
-        </Button>
+        </EditorButton>
       </Tooltip>
       <Dialog
         open={isMenuOpen}
@@ -338,7 +338,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       >
         <div css={settingsStyles(theme)}>
           <div className="top">
-            <Typography variant="h2">Settings</Typography>
+            <Text size="bigger">Settings</Text>
             <CloseButton onClick={handleClose} />
           </div>
 
@@ -391,13 +391,13 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         checked={!!settings.selectNodesOnDrag}
                         onChange={handleSelectNodesOnDragChange}
                       />
-                      <Typography className="description">
+                      <Text className="description">
                         Mark nodes as selected after changing a node&apos;s
                         position.
                         <br />
                         If disabled, nodes can still be selected by clicking on
                         them.
-                      </Typography>
+                      </Text>
                     </div>
 
                     {isElectron && (
@@ -431,7 +431,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             }
                           ]}
                         />
-                        <Typography className="description">
+                        <Text className="description">
                           Choose what happens when you close the main window.
                           <br />
                           <b>Ask Every Time:</b> Shows a dialog with options.
@@ -440,14 +440,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           <br />
                           <b>Background:</b> Keeps the app running in the system
                           tray.
-                        </Typography>
+                        </Text>
                       </div>
                     )}
                   </div>
 
-                  <Typography variant="h3" id="canvas-navigation">
+                  <Text size="big" id="canvas-navigation">
                     Canvas & Navigation
-                  </Typography>
+                  </Text>
                   <div className="settings-section">
                     <div className="settings-item">
                       <SelectField
@@ -461,14 +461,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         ]}
                       />
                       <div className="description">
-                        <Typography>
+                        <Text>
                           Move the canvas by dragging with the left or right
                           mouse button.
-                        </Typography>
-                        <Typography>
+                        </Text>
+                        <Text>
                           With RMB selected, you can also pan with the Middle
                           Mouse Button.
-                        </Typography>
+                        </Text>
                       </div>
                     </div>
 
@@ -483,13 +483,13 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           { value: "partial", label: "Partial" }
                         ]}
                       />
-                      <Typography className="description">
+                      <Text className="description">
                         When drawing a selection box for node selections:
                         <br />
                         <b>Full:</b> nodes have to be fully enclosed.
                         <br />
                         <b>Partial:</b> intersecting nodes will be selected.
-                      </Typography>
+                      </Text>
                     </div>
 
                     <div className="settings-item">
@@ -504,9 +504,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         variant="standard"
                         size="small"
                       />
-                      <Typography className="description">
+                      <Text className="description">
                         Snap precision for moving nodes on the canvas.
-                      </Typography>
+                      </Text>
                     </div>
 
                     <div className="settings-item">
@@ -521,17 +521,17 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         variant="standard"
                         size="small"
                       />
-                      <Typography className="description">
+                      <Text className="description">
                         Snap distance for connecting nodes.
-                      </Typography>
+                      </Text>
                     </div>
                   </div>
 
                   <DefaultModelsMenu />
 
-                  <Typography variant="h3" id="autosave">
+                  <Text size="big" id="autosave">
                     Autosave & Version History
-                  </Typography>
+                  </Text>
                   <div className="settings-section">
                     <div className="settings-item">
                       <LabeledSwitch
@@ -616,9 +616,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     </div>
                   </div>
 
-                  <Typography variant="h3" id="appearance">
+                  <Text size="big" id="appearance">
                     Appearance
-                  </Typography>
+                  </Text>
                   <div className="settings-section">
                     <div className="settings-item">
                       <SelectField
@@ -646,17 +646,17 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     showClear
                   />
 
-                  <Typography variant="h3" id="api-keys">
+                  <Text size="big" id="api-keys">
                     API Keys
-                  </Typography>
+                  </Text>
                   <SecretsMenu searchTerm={apiSearchTerm} />
 
                   {session?.access_token && !isLocalhost && (
                     <>
-                      <Typography variant="h3" id="nodetool-api-token">
+                      <Text size="big" id="nodetool-api-token">
                         Nodetool API
-                      </Typography>
-                      <Typography
+                      </Text>
+                      <Text
                         className="explanation"
                         sx={{ margin: "0 0 1em 0" }}
                       >
@@ -671,7 +671,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         >
                           API documentation on GitHub <br />
                         </a>
-                      </Typography>
+                      </Text>
                       <div
                         className="settings-section"
                         style={{
@@ -681,19 +681,19 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             "1px solid" + theme.vars.palette.warning.main
                         }}
                       >
-                        <Typography
+                        <Text
                           sx={{
                             fontSize: "1rem",
                             color: theme.palette.text.primary
                           }}
                         >
                           Nodetool API Token
-                        </Typography>
+                        </Text>
                         <div className="description">
-                          <Typography>
+                          <Text>
                             This token is used to authenticate your account
                             with the Nodetool API.
-                          </Typography>
+                          </Text>
                           <div className="secrets">
                             <WarningIcon
                               sx={{
@@ -701,14 +701,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                   theme.vars.palette.warning.main
                               }}
                             />
-                            <Typography component="span">
+                            <Text component="span">
                               Keep this token secure and do not share it
                               publicly
-                            </Typography>
+                            </Text>
                           </div>
                         </div>
                         <Tooltip title="Copy to clipboard">
-                          <Button
+                          <EditorButton
                             style={{ margin: ".5em 0" }}
                             size="small"
                             variant="outlined"
@@ -716,20 +716,20 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             onClick={copyAuthToken}
                           >
                             Copy Token
-                          </Button>
+                          </EditorButton>
                         </Tooltip>
                       </div>
                     </>
                   )}
 
-                  <Typography variant="h3" id="api-settings">
+                  <Text size="big" id="api-settings">
                     API Settings
-                  </Typography>
+                  </Text>
                   <RemoteSettingsMenuComponent />
 
-                  <Typography variant="h3" id="folders">
+                  <Text size="big" id="folders">
                     Folders
-                  </Typography>
+                  </Text>
                   <FoldersSettings />
                 </TabPanel>
 

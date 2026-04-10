@@ -2,20 +2,8 @@
 import DeleteIcon from "@mui/icons-material/Delete";
 import { EditButton } from "../ui_primitives/EditButton";
 import WarningIcon from "@mui/icons-material/Warning";
-import {
-  Button,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Tooltip,
-  Chip,
-  Box,
-  Divider
-} from "@mui/material";
-import { TextInput } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { FlexColumn, FlexRow, TextInput, Text, Caption, Tooltip, Dialog, Chip, ToolbarIconButton } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -190,67 +178,57 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
   return (
     <>
       {isLoading && (
-        <Typography sx={{ textAlign: "center", padding: "2em" }}>
+        <Text sx={{ textAlign: "center", padding: "2em" }}>
           Loading secrets...
-        </Typography>
+        </Text>
       )}
       {isSuccess && (
         <div className="secrets-content" css={getSharedSettingsStyles(theme)}>
-          <div className="settings-main-content">
-            <div className="secrets">
+          <FlexColumn className="settings-main-content">
+            <FlexRow className="secrets" align="center" gap={0.5}>
               <WarningIcon sx={{ fontSize: 16, color: "text.disabled", flexShrink: 0 }} />
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              <Caption>
                 Secrets are encrypted in the database.
-              </Typography>
-            </div>
+              </Caption>
+            </FlexRow>
 
             {safeSecrets.length === 0 ? (
-              <Typography sx={{ textAlign: "center", padding: "2em" }}>
+              <Text sx={{ textAlign: "center", padding: "2em" }}>
                 No secrets available. Contact your administrator to configure
                 available secrets.
-              </Typography>
+              </Text>
             ) : secretsByStatus.configured.length === 0 && secretsByStatus.unconfigured.length === 0 ? (
-              <Typography sx={{ textAlign: "center", padding: "2em" }}>
+              <Text sx={{ textAlign: "center", padding: "2em" }}>
                 No secrets found matching &quot;{searchTerm}&quot;
-              </Typography>
+              </Text>
             ) : (
               <>
                 {/* All secrets — configured first, then unconfigured */}
                 {secretsByStatus.configured.length > 0 && (
-                  <div className="settings-section">
+                  <FlexColumn className="settings-section">
                     {secretsByStatus.configured.map((secret: SecretResponse) => (
-                      <div
+                      <FlexRow
                         key={secret.key}
                         id={`secret-${secret.key}`}
                         className="settings-item large"
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "1em"
-                        }}
+                        align="center"
+                        justify="space-between"
+                        gap={1}
+                        fullWidth
                       >
-                        <div style={{ flex: 1 }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5em",
-                              marginBottom: "0.25em"
-                            }}
-                          >
-                            <Typography
-                              variant="body2"
-                              sx={{ fontWeight: 600 }}
+                        <FlexColumn sx={{ flex: 1 }}>
+                          <FlexRow align="center" gap={0.5} sx={{ marginBottom: "0.25em" }}>
+                            <Text
+                              size="small"
+                              weight={600}
                             >
                               <code
                                 style={{ color: "var(--palette-primary-main)" }}
                               >
                                 {secret.key}
                               </code>
-                            </Typography>
-                            <Typography
+                            </Text>
+                            <Caption
                               component="span"
                               sx={{
                                 opacity: 0.7,
@@ -262,21 +240,15 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                               {secret.updated_at
                                 ? new Date(secret.updated_at).toLocaleDateString()
                                 : "Never"}
-                            </Typography>
-                          </div>
+                            </Caption>
+                          </FlexRow>
                           {secret.description && (
-                            <Typography className="description">
+                            <Text className="description">
                               {secret.description}
-                            </Typography>
+                            </Text>
                           )}
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "0.5em",
-                            flexShrink: 0
-                          }}
-                        >
+                        </FlexColumn>
+                        <FlexRow gap={0.5} sx={{ flexShrink: 0 }}>
                           <EditButton
                             onClick={() => {
                               setEditingSecret(secret);
@@ -286,55 +258,51 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                             tooltip={`Update secret ${secret.key}`}
                             disabled={updateMutation.isPending}
                           />
-                          <Tooltip title="Delete secret">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={handleDeleteClick}
-                              data-secret-key={secret.key}
-                              disabled={deleteMutation.isPending}
-                              aria-label={`Delete secret ${secret.key}`}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </div>
-                      </div>
+                          <ToolbarIconButton
+                            icon={<DeleteIcon fontSize="small" />}
+                            tooltip="Delete secret"
+                            size="small"
+                            color="error"
+                            onClick={handleDeleteClick}
+                            data-secret-key={secret.key}
+                            disabled={deleteMutation.isPending}
+                            aria-label={`Delete secret ${secret.key}`}
+                          />
+                        </FlexRow>
+                      </FlexRow>
                     ))}
-                  </div>
+                  </FlexColumn>
                 )}
 
                 {/* Unconfigured Secrets Section */}
                 {secretsByStatus.unconfigured.length > 0 && (
-                  <div className="settings-section">
+                  <FlexColumn className="settings-section">
                     {secretsByStatus.unconfigured.map((secret: SecretResponse) => (
-                      <div
+                      <FlexRow
                         key={secret.key}
                         id={`secret-${secret.key}`}
                         className="settings-item large"
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "1em"
-                        }}
+                        align="center"
+                        justify="space-between"
+                        gap={1}
+                        fullWidth
                       >
-                        <div style={{ flex: 1 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, marginBottom: "0.25em" }}
+                        <FlexColumn sx={{ flex: 1 }}>
+                          <Text
+                            size="small"
+                            weight={600}
+                            sx={{ marginBottom: "0.25em" }}
                           >
                             <code
                               style={{ color: "var(--palette-primary-main)" }}
                             >
                               {secret.key}
                             </code>
-                          </Typography>
+                          </Text>
                           {secret.description && (
-                            <Typography className="description">
+                            <Text className="description">
                               {secret.description}
-                            </Typography>
+                            </Text>
                           )}
                           <Chip
                             label="Not set"
@@ -342,14 +310,8 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                             variant="outlined"
                             sx={{ marginTop: "0.5em" }}
                           />
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "0.5em",
-                            flexShrink: 0
-                          }}
-                        >
+                        </FlexColumn>
+                        <FlexRow gap={0.5} sx={{ flexShrink: 0 }}>
                           <EditButton
                             onClick={() => {
                               setEditingSecret(secret);
@@ -359,14 +321,14 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                             tooltip={`Set secret ${secret.key}`}
                             disabled={updateMutation.isPending}
                           />
-                        </div>
-                      </div>
+                        </FlexRow>
+                      </FlexRow>
                     ))}
-                  </div>
+                  </FlexColumn>
                 )}
               </>
             )}
-          </div>
+          </FlexColumn>
         </div>
       )}
 
@@ -374,105 +336,55 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
         open={openDialog}
         onClose={handleClose}
         fullWidth
-        PaperProps={{
-          sx: {
+        title={
+          <>
+            <LockIcon sx={{ color: "var(--palette-primary-main)" }} />
+            {editingSecret?.is_configured ? "Update" : "Set"} {formData.key || "Secret"}
+          </>
+        }
+        onConfirm={handleSave}
+        onCancel={handleClose}
+        confirmText={
+          updateMutation.isPending
+            ? "Saving..."
+            : editingSecret?.is_configured
+              ? "Update"
+              : "Set"
+        }
+        cancelText="Cancel"
+        confirmDisabled={updateMutation.isPending || !formData.value}
+        isLoading={updateMutation.isPending}
+        sx={{
+          "& .MuiPaper-root": {
             borderRadius: "12px",
             backgroundImage: "none",
           }
         }}
       >
-        <DialogTitle
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75em",
-            paddingBottom: "1em",
-            fontSize: "1.25rem",
-            fontWeight: 600,
-            background: `linear-gradient(135deg, ${theme.vars.palette.primary.main}15, ${theme.vars.palette.primary.main}08)`,
-            borderBottom: `1px solid ${theme.vars.palette.divider}`
-          }}
-        >
-          <LockIcon sx={{ color: "var(--palette-primary-main)" }} />
-          {editingSecret?.is_configured ? "Update" : "Set"} {formData.key || "Secret"}
-        </DialogTitle>
-        <DialogContent
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "1.5em",
-          }}
-        >
-          <Box sx={{ marginTop: "1.5em" }}>
-            <TextInput
-              label="Value"
-              type="password"
-              value={formData.value}
-              onChange={(e) =>
-                setFormData({ ...formData, value: e.target.value })
-              }
-              fullWidth
-              placeholder="Enter new secret value"
-              autoFocus
-              variant="outlined"
-              size="small"
-            />
-            <Typography
-              variant="caption"
-              sx={{
-                display: "block",
-                marginTop: "0.5em",
-                opacity: 0.7
-              }}
-            >
-              Keep this value secure and do not share it publicly.
-            </Typography>
-          </Box>
-        </DialogContent>
-
-        <Divider />
-
-        <DialogActions
-          sx={{
-            padding: "1.25em",
-            gap: "0.75em",
-            justifyContent: "flex-end"
-          }}
-        >
-          <Button
-            onClick={handleClose}
+        <Box sx={{ marginTop: "1.5em" }}>
+          <TextInput
+            label="Value"
+            type="password"
+            value={formData.value}
+            onChange={(e) =>
+              setFormData({ ...formData, value: e.target.value })
+            }
+            fullWidth
+            placeholder="Enter new secret value"
+            autoFocus
+            variant="outlined"
+            size="small"
+          />
+          <Caption
             sx={{
-              textTransform: "none",
-              fontSize: "0.95rem",
-              padding: "0.6em 1.5em"
+              display: "block",
+              marginTop: "0.5em",
+              opacity: 0.7
             }}
           >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            disabled={updateMutation.isPending || !formData.value}
-            sx={{
-              textTransform: "none",
-              fontSize: "0.95rem",
-              padding: "0.6em 2em",
-              fontWeight: 600,
-              boxShadow: (theme) => `0 2px 8px ${theme.vars.palette.grey[900]}26`,
-              "&:hover:not(:disabled)": {
-                boxShadow: (theme) => `0 4px 12px ${theme.vars.palette.grey[900]}33`,
-                transform: "translateY(-1px)"
-              },
-              transition: "all 0.2s ease"
-            }}
-          >
-            {updateMutation.isPending
-              ? "Saving..."
-              : editingSecret?.is_configured
-                ? "Update"
-                : "Set"}
-          </Button>
-        </DialogActions>
+            Keep this value secure and do not share it publicly.
+          </Caption>
+        </Box>
       </Dialog>
 
       <ConfirmDialog

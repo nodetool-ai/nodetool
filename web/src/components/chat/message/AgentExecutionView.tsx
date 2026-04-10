@@ -3,7 +3,8 @@ import React, { useMemo, useState, memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, Collapse } from "@mui/material";
+import { Collapse } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import {
   Message,
@@ -635,9 +636,9 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
                 </div>
                 {task && (
                   <>
-                    <Typography className="task-title">{task.title}</Typography>
+                    <Text className="task-title">{task.title}</Text>
                     {task.description && (
-                      <Typography className="task-description">{task.description}</Typography>
+                      <Text className="task-description">{task.description}</Text>
                     )}
                   </>
                 )}

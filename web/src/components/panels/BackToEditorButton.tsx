@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, forwardRef, useCallback } from "react";
-import { Button, Tooltip } from "@mui/material";
+import { Button } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -12,6 +12,7 @@ import { WorkflowList } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { Tooltip } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -88,7 +89,7 @@ const BackToEditorButton = forwardRef<
     ));
 
   return (
-    <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
+    <Tooltip title="Back to Editor" delay={TOOLTIP_ENTER_DELAY}>
       <Button
         ref={ref}
         className="nav-button back-to-editor"

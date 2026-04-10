@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { useMemo, useState, useCallback, memo } from "react";
 import {
   Box,
-  Chip,
   FormControl,
   InputLabel,
   MenuItem,
@@ -12,7 +11,7 @@ import {
   Select,
   SelectChangeEvent
 } from "@mui/material";
-import Tooltip from "@mui/material/Tooltip";
+import { Tooltip, Chip } from "../ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { useTheme } from "@mui/material/styles";

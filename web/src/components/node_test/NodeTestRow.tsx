@@ -1,12 +1,12 @@
 import React, { memo, useCallback, useState } from "react";
 import {
   IconButton,
-  Typography,
   Chip,
   Box,
   DialogTitle,
   DialogContent
 } from "@mui/material";
+import { Text } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CloseIcon from "@mui/icons-material/Close";
 import type { NodeMetadata } from "../../stores/ApiTypes";
@@ -80,8 +80,8 @@ function NodeTestRowInner({
           <PlayArrowIcon fontSize="small" />
         </IconButton>
 
-        <Typography
-          variant="body2"
+        <Text
+          size="small"
           sx={{
             flex: 1,
             fontFamily: "monospace",
@@ -92,10 +92,10 @@ function NodeTestRowInner({
           }}
         >
           {metadata.node_type}
-        </Typography>
+        </Text>
 
-        <Typography
-          variant="body2"
+        <Text
+          size="small"
           sx={{
             width: 160,
             overflow: "hidden",
@@ -105,10 +105,10 @@ function NodeTestRowInner({
           }}
         >
           {metadata.title}
-        </Typography>
+        </Text>
 
-        <Typography
-          variant="body2"
+        <Text
+          size="small"
           sx={{
             width: 120,
             overflow: "hidden",
@@ -120,7 +120,7 @@ function NodeTestRowInner({
           }}
         >
           {metadata.outputs.map((o) => o.type.type).join(", ")}
-        </Typography>
+        </Text>
 
         <Chip
           label={
@@ -135,8 +135,8 @@ function NodeTestRowInner({
           sx={{ width: 120, justifyContent: "center" }}
         />
 
-        <Typography
-          variant="body2"
+        <Text
+          size="small"
           sx={{
             width: 300,
             overflow: "hidden",
@@ -160,7 +160,7 @@ function NodeTestRowInner({
                   return JSON.stringify(val).slice(0, 100);
                 })()
               : ""}
-        </Typography>
+        </Text>
       </Box>
 
       {modalOpen && hasOutput && (
@@ -176,12 +176,12 @@ function NodeTestRowInner({
           >
             <span>
               {metadata.title}
-              <Typography
+              <Text
                 component="span"
                 sx={{ ml: 1, opacity: 0.5, fontSize: "0.8rem" }}
               >
                 {metadata.node_type}
-              </Typography>
+              </Text>
             </span>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               {result?.durationMs && (
@@ -198,7 +198,7 @@ function NodeTestRowInner({
           </DialogTitle>
           <DialogContent sx={{ minHeight: 200 }}>
             {result?.error ? (
-              <Typography
+              <Text
                 color="error"
                 sx={{
                   fontFamily: "monospace",
@@ -207,7 +207,7 @@ function NodeTestRowInner({
                 }}
               >
                 {result.error}
-              </Typography>
+              </Text>
             ) : (
               (() => {
                 // Unwrap single-key result objects to avoid doubled display

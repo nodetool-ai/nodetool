@@ -28,17 +28,19 @@ import {
 } from "../utils/messageUtils";
 import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import { CopyButton } from "../../ui_primitives";
+import {
+  CopyButton,
+  Tooltip,
+  Caption,
+  Text,
+  FlexRow,
+  FlexColumn,
+  ToolbarIconButton,
+  LoadingSpinner
+} from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import {
-  Box,
-  Collapse,
-  IconButton,
-  Tooltip,
-  Typography
-} from "@mui/material";
-import CircularProgress from "@mui/material/CircularProgress";
+import { Box, Collapse } from "@mui/material";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 import StepResultDisplay from "../../node/StepResultDisplay";
@@ -86,44 +88,37 @@ const ToolCallCard: React.FC<{
   }, []);
 
   return (
-    <Box className={`tool-call-card${isRunning ? " running" : ""}`}>
-      <Box className="tool-call-header">
-        <Typography component="span" variant="caption" className="tool-call-name">
-          {formatToolName(tc.name)}
-        </Typography>
-        {(isRunning || tc.message) && (
-          <Typography component="span" variant="caption" className="tool-message">
-            {isRunning ? runningToolMessage || tc.message : tc.message}
-          </Typography>
-        )}
-        {isRunning && <CircularProgress size={12} sx={{ ml: 0.5 }} />}
-        <Box sx={{ flex: 1 }} />
+    <div className={`tool-call-card${isRunning ? " running" : ""}`}>
+      <FlexRow className="tool-call-header" align="center" justify="space-between" fullWidth gap={0.5}>
+        <FlexRow align="center" gap={0.5} sx={{ minWidth: 0 }}>
+          <Text component="span" size="small" weight={600} className="tool-call-name" truncate>
+            {formatToolName(tc.name)}
+          </Text>
+          {(isRunning || tc.message) && (
+            <Text component="span" size="small" className="tool-message" truncate>
+              {isRunning ? runningToolMessage || tc.message : tc.message}
+            </Text>
+          )}
+          {isRunning && <LoadingSpinner size={12} />}
+        </FlexRow>
         {hasDetails && (
-          <Tooltip title={open ? "Hide details" : "Show details"}>
-            <IconButton
-              size="small"
-              className="tool-expand-button"
-              onClick={handleToggleOpen}
-              aria-label={open ? "Hide details" : "Show details"}
-            >
-              <ExpandMoreIcon
-                className={`expand-icon${open ? " expanded" : ""}`}
-              />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            tooltip={open ? "Hide details" : "Show details"}
+            onClick={handleToggleOpen}
+            icon={<ExpandMoreIcon className={`expand-icon${open ? " expanded" : ""}`} />}
+            className="tool-expand-button"
+          />
         )}
-      </Box>
+      </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
         {hasArgs && (
-          <Box sx={{ mt: 0.25 }}>
-            <Typography variant="caption" className="tool-section-title">
-              Arguments
-            </Typography>
+          <FlexColumn gap={0.25} sx={{ marginTop: "2px" }}>
+            <Caption className="tool-section-title">Arguments</Caption>
             <PrettyJson value={tc.args} />
-          </Box>
+          </FlexColumn>
         )}
       </Collapse>
-    </Box>
+    </div>
   );
 });
 ToolCallCard.displayName = "ToolCallCard";
@@ -241,8 +236,8 @@ export const MessageView: React.FC<
           );
         } else if (executionEventType === "log_update") {
           const logContent = executionContent as ExecutionEventContent | null;
-          return (
-            <div className="chat-message-list-item execution-event">
+        return (
+          <div className="chat-message-list-item execution-event">
               <Box sx={{
                 fontSize: "0.8rem",
                 padding: "0.5rem 0.75rem",

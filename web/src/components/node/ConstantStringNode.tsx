@@ -18,7 +18,7 @@ import {
 } from "@xyflow/react";
 import debounce from "lodash/debounce";
 import isEqual from "lodash/isEqual";
-import { Container, IconButton, Tooltip } from "@mui/material";
+import { Container, IconButton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -26,7 +26,7 @@ import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeOutputs } from "./NodeOutputs";
 import NodeResizeHandle from "./NodeResizeHandle";
-import { CopyButton } from "../ui_primitives";
+import { CopyButton, Tooltip } from "../ui_primitives";
 import TextEditorModal from "../properties/TextEditorModal";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";

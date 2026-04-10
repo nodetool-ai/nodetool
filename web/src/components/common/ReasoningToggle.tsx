@@ -1,7 +1,7 @@
 import React, { useCallback, memo } from "react";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import { LabeledToggle } from "../ui_primitives";
-import type { TooltipProps } from "@mui/material/Tooltip";
+import type { TooltipProps } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 export interface ReasoningToggleProps {

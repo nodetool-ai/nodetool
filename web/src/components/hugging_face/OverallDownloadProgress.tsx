@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from "react";
-import { Box, Tooltip } from "@mui/material";
+import { Box } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
@@ -65,7 +66,7 @@ const OverallDownloadProgress: React.FC = () => {
   );
 
   return (
-    <Tooltip title="Download Progress" enterDelay={TOOLTIP_ENTER_DELAY}>
+    <Tooltip title="Download Progress" delay={TOOLTIP_ENTER_DELAY}>
       <Box
         className="overall-download-progress"
         role="button"

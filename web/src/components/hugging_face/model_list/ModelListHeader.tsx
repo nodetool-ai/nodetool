@@ -1,18 +1,18 @@
 import React, { useCallback } from "react";
+import { Box } from "@mui/material";
 import {
-  Box,
-  IconButton,
-  MenuItem,
-  Select,
-  ToggleButton,
-  ToggleButtonGroup,
-  Slider,
-  Tooltip,
-  Typography
-} from "@mui/material";
-import type { SelectChangeEvent } from "@mui/material";
+  Text,
+  FlexRow,
+  ToggleGroup,
+  ToggleOption,
+  ToolbarIconButton,
+  NodeSlider,
+  NodeSelect,
+  NodeMenuItem
+} from "../../ui_primitives";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import type { SelectChangeEvent } from "@mui/material/Select";
 import SearchInput from "../../search/SearchInput";
 import {
   useModelManagerStore,
@@ -64,7 +64,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   };
 
   const handleSortFieldChange = useCallback(
-    (event: SelectChangeEvent) => {
+    (event: SelectChangeEvent<ModelSortField>) => {
       setSortField(event.target.value as ModelSortField);
     },
     [setSortField]
@@ -81,9 +81,8 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
         searchTerm={modelSearchTerm}
       />
 
-      <Box
+      <FlexRow
         sx={{
-          display: "flex",
           alignItems: "center",
           gap: 2,
           flex: 1,
@@ -91,9 +90,9 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           pr: 2
         }}
       >
-        <Typography
-          variant="body2"
-          color="text.secondary"
+        <Text
+          size="small"
+          color="secondary"
           sx={{ whiteSpace: "nowrap", mr: "auto", ml: 2 }}
         >
           {(() => {
@@ -108,15 +107,15 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             }
             return `${totalCount} models`;
           })()}
-        </Typography>
+        </Text>
 
-        <ToggleButtonGroup
+        <ToggleGroup
           value={filterStatus}
           exclusive
           onChange={handleToggleChange}
           aria-label="filter models"
           size="small"
-          color="primary"
+          compact
           sx={{
             height: "32px",
             background: theme.vars.palette.action.hover,
@@ -139,35 +138,34 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             }
           }}
         >
-          <ToggleButton
+          <ToggleOption
             value="all"
             aria-label="show all models"
             sx={{ px: 2, minWidth: "60px", borderRadius: "8px 0 0 8px" }}
           >
             All
-          </ToggleButton>
-          <ToggleButton
+          </ToggleOption>
+          <ToggleOption
             value="downloaded"
             aria-label="show downloaded models only"
             sx={{ px: 2, minWidth: "100px" }}
           >
             Downloaded
-          </ToggleButton>
-          <ToggleButton
+          </ToggleOption>
+          <ToggleOption
             value="not_downloaded"
             aria-label="show available models only"
             sx={{ px: 2, minWidth: "100px", borderRadius: "0 8px 8px 0" }}
           >
             Available
-          </ToggleButton>
-        </ToggleButtonGroup>
+          </ToggleOption>
+        </ToggleGroup>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Select
+        <FlexRow align="center" gap={0.5}>
+          <NodeSelect
             value={sortField}
             onChange={handleSortFieldChange}
-            size="small"
-            variant="outlined"
+            density="compact"
             aria-label="Sort models by"
             sx={{
               height: "32px",
@@ -184,36 +182,34 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             }}
           >
             {SORT_OPTIONS.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
+              <NodeMenuItem key={option.value} value={option.value}>
                 {option.label}
-              </MenuItem>
+              </NodeMenuItem>
             ))}
-          </Select>
-          <Tooltip
-            title={`Sort ${sortDirection === "asc" ? "ascending" : "descending"}`}
-          >
-            <IconButton
-              onClick={toggleSortDirection}
-              size="small"
-              aria-label="Toggle sort direction"
-              sx={{
-                color: theme.vars.palette.text.secondary,
-                "&:hover": {
-                  color: theme.vars.palette.text.primary
-                }
-              }}
-            >
-              {sortDirection === "asc" ? (
+          </NodeSelect>
+          <ToolbarIconButton
+            icon={
+              sortDirection === "asc" ? (
                 <ArrowUpwardIcon fontSize="small" />
               ) : (
                 <ArrowDownwardIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-        </Box>
+              )
+            }
+            tooltip={`Sort ${sortDirection === "asc" ? "ascending" : "descending"}`}
+            onClick={toggleSortDirection}
+            size="small"
+            aria-label="Toggle sort direction"
+            sx={{
+              color: theme.vars.palette.text.secondary,
+              "&:hover": {
+                color: theme.vars.palette.text.primary
+              }
+            }}
+          />
+        </FlexRow>
 
         <Box sx={{ width: 160, minWidth: 160, mt: 1 }}>
-          <Slider
+          <NodeSlider
             aria-label="Max model size in GB"
             value={maxModelSizeGB}
             onChange={handleSliderChange}
@@ -235,7 +231,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             }}
           />
         </Box>
-      </Box>
+      </FlexRow>
     </>
   );
 };

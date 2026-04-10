@@ -1,17 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import {
-  Box,
   TextField,
-  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
-  MenuItem,
-  IconButton
+  MenuItem
 } from "@mui/material";
+import { Tooltip, FlexRow, ToolbarIconButton, EditorButton } from "../ui_primitives";
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
@@ -102,7 +99,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   // Dynamic property creation is handled by dropping a connection onto the node
 
   return (
-    <Box
+    <div
       className="node-property-form"
       css={css({
         width: "100%",
@@ -111,47 +108,38 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     >
       {/* Add dynamic input property (+) when node is dynamic */}
       {isDynamic && (
-        <Box
+        <FlexRow
+          align="center"
+          gap={1}
+          justify="flex-start"
+          fullWidth
           css={css({
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            justifyContent: "flex-start",
-            width: "100%",
             position: "relative"
           })}
         >
-          <Tooltip title="Add input">
-            <IconButton size="small" onClick={handleShowInputDialog}>
-              <Add fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
+          <ToolbarIconButton title="Add input" size="small" onClick={handleShowInputDialog}>
+            <Add fontSize="small" />
+          </ToolbarIconButton>
+        </FlexRow>
       )}
 
       {supportsDynamicOutputs && (
         <>
-          <Box
+          <FlexRow
+            align="center"
+            gap={1}
+            justify="flex-end"
+            fullWidth
             css={css({
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              justifyContent: "flex-end",
-              width: "100%",
               position: "relative",
               right: 0,
               top: 0
             })}
           >
-            <Tooltip title="Add output">
-              <IconButton
-                size="small"
-                onClick={handleShowOutputDialog}
-              >
-                <Add fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+            <ToolbarIconButton title="Add output" size="small" onClick={handleShowOutputDialog}>
+              <Add fontSize="small" />
+            </ToolbarIconButton>
+          </FlexRow>
 
           <Dialog
             open={showOutputDialog}
@@ -161,7 +149,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           >
             <DialogTitle>Add Output</DialogTitle>
             <DialogContent>
-              <Box css={css({ display: "flex", gap: 12, marginTop: 8 })}>
+              <FlexRow css={css({ gap: 12, marginTop: 8 })}>
                 <TextField
                   autoFocus
                   label="Name"
@@ -201,19 +189,19 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                     </MenuItem>
                   ))}
                 </TextField>
-              </Box>
+              </FlexRow>
             </DialogContent>
             <DialogActions>
-              <Button
+              <EditorButton
                 onClick={handleHideOutputDialog}
                 variant="text"
                 size="small"
               >
                 Cancel
-              </Button>
-              <Button onClick={onSubmitAdd} variant="contained" size="small">
+              </EditorButton>
+              <EditorButton onClick={onSubmitAdd} variant="contained" size="small">
                 Add
-              </Button>
+              </EditorButton>
             </DialogActions>
           </Dialog>
         </>
@@ -233,7 +221,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
       >
         <DialogTitle>Add Input</DialogTitle>
         <DialogContent>
-          <Box css={css({ display: "flex", gap: 12, marginTop: 8 })}>
+          <FlexRow css={css({ gap: 12, marginTop: 8 })}>
             <TextField
               autoFocus
               label="Name"
@@ -265,26 +253,26 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               helperText={inputNameError || "Cannot start with a number"}
               sx={{ flex: 1 }}
             />
-          </Box>
+          </FlexRow>
         </DialogContent>
         <DialogActions>
-          <Button
+          <EditorButton
             onClick={handleHideInputDialog}
             variant="text"
             size="small"
           >
             Cancel
-          </Button>
-          <Button
+          </EditorButton>
+          <EditorButton
             onClick={handleAddInputProperty}
             variant="contained"
             size="small"
           >
             Add
-          </Button>
+          </EditorButton>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

@@ -76,7 +76,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = memo(function InfiniteScro
                     role="status"
                     aria-live="polite"
                     aria-label={loadingLabel}
-                    sx={{ display: 'flex', justifyContent: 'center', p: 2 }}
+                    sx={{ display: "flex", justifyContent: "center", p: 2 }}
                 >
                     {loader}
                 </Box>
