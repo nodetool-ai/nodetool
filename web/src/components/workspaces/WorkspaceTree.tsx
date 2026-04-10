@@ -693,9 +693,15 @@ const WorkspaceTree: React.FC = () => {
             {console.log("[WorkspaceTree] rendering RichTreeView, files:", files.length, "sample:", JSON.stringify(files[0]?.children?.slice(0,2).map(c => ({id:c.id, label:c.label, cc:c.children?.length}))))}
             <RichTreeView
               onItemClick={handleItemClick}
-              onItemExpansionToggle={(event: React.SyntheticEvent, itemId: string) => {
-                console.log("[WorkspaceTree] onItemExpansionToggle fired:", itemId);
-                handleItemClick(event as React.MouseEvent, itemId);
+              onExpandedItemsChange={(event: React.SyntheticEvent, itemIds: string[]) => {
+                console.log("[WorkspaceTree] onExpandedItemsChange:", itemIds);
+                // Load children for any newly expanded item that still has "loading..." placeholder
+                for (const itemId of itemIds) {
+                  const item = findItemInTree(files, itemId);
+                  if (shouldLoadChildren(item)) {
+                    handleItemClick(event as React.MouseEvent, itemId);
+                  }
+                }
               }}
               items={files as any}
               aria-label="workspace file browser"
