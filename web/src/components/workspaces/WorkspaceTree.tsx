@@ -415,8 +415,12 @@ const shouldLoadChildren = (item: TreeViewItem | undefined): boolean => {
 const WorkspaceTree: React.FC = () => {
   const theme = useTheme();
   const [files, setFiles] = useState<TreeViewItem[]>([]);
+  const filesRef = useRef<TreeViewItem[]>([]);
+  filesRef.current = files;
   const [selectedFilePath, setSelectedFilePath] = useState<string>("");
   const [filesWorkspaceId, setFilesWorkspaceId] = useState<string | undefined>();
+  const filesWorkspaceIdRef = useRef<string | undefined>();
+  filesWorkspaceIdRef.current = filesWorkspaceId;
   const previousWorkflowId = useRef<string | null | undefined>(undefined);
   const {
     currentWorkflowId,
@@ -493,47 +497,32 @@ const WorkspaceTree: React.FC = () => {
     }
   }, [filesWorkspaceId, workflowId, workspaceId]);
 
-  const handleItemClick = useCallback(
-    async (event: React.MouseEvent, itemId: string) => {
-      console.log("[WorkspaceTree] handleItemClick", { itemId, filesWorkspaceId, filesCount: files.length });
-      if (!filesWorkspaceId) {
-        console.log("[WorkspaceTree] early return: no filesWorkspaceId");
-        return;
-      }
+  const loadItemChildren = useCallback(
+    async (itemId: string) => {
+      const wsId = filesWorkspaceIdRef.current;
+      if (!wsId) return;
 
-      setSelectedFilePath(itemId);
+      const currentFiles = filesRef.current;
+      const targetItem = findItemInTree(currentFiles, itemId);
+      if (!shouldLoadChildren(targetItem)) return;
+
       try {
-        const targetItem = findItemInTree(files, itemId);
-        console.log("[WorkspaceTree] targetItem found:", !!targetItem, "shouldLoad:", shouldLoadChildren(targetItem));
-        if (targetItem) {
-          console.log("[WorkspaceTree] targetItem details:", {
-            id: targetItem.id,
-            label: targetItem.label,
-            childCount: targetItem.children?.length,
-            firstChildLabel: targetItem.children?.[0]?.label
-          });
-        }
-        if (shouldLoadChildren(targetItem)) {
-          const relativePath = itemId || ".";
-          console.log("[WorkspaceTree] fetching children for:", relativePath);
-
-          const children = await fetchWorkspaceFiles(filesWorkspaceId, relativePath);
-          console.log("[WorkspaceTree] got children:", children.length, children.map(c => c.label));
-          setFiles((currentFiles) => {
-            const updated = updateTreeWithChildren(currentFiles, itemId, children);
-            const verify = findItemInTree(updated, itemId);
-            console.log("[WorkspaceTree] after update, item children:", verify?.children?.length, verify?.children?.map(c => c.label));
-            return updated;
-          });
-        }
+        const children = await fetchWorkspaceFiles(wsId, itemId || ".");
+        setFiles((prev) => updateTreeWithChildren(prev, itemId, children));
       } catch (error) {
-        console.error("[WorkspaceTree] Failed to load children:", error);
-        setFiles((currentFiles) =>
-          updateTreeWithChildren(currentFiles, itemId, [createErrorItem(itemId)])
-        );
+        log.error("Failed to load children:", error);
+        setFiles((prev) => updateTreeWithChildren(prev, itemId, [createErrorItem(itemId)]));
       }
     },
-    [files, filesWorkspaceId]
+    []
+  );
+
+  const handleItemClick = useCallback(
+    async (_event: React.MouseEvent, itemId: string) => {
+      setSelectedFilePath(itemId);
+      await loadItemChildren(itemId);
+    },
+    [loadItemChildren]
   );
 
   const handleItemDoubleClick = useCallback(
@@ -690,17 +679,11 @@ const WorkspaceTree: React.FC = () => {
           </div>
         ) : files.length > 0 ? (
           <div onDoubleClick={handleTreeDoubleClick}>
-            {console.log("[WorkspaceTree] rendering RichTreeView, files:", files.length, "sample:", JSON.stringify(files[0]?.children?.slice(0,2).map(c => ({id:c.id, label:c.label, cc:c.children?.length}))))}
             <RichTreeView
               onItemClick={handleItemClick}
-              onExpandedItemsChange={(event: React.SyntheticEvent, itemIds: string[]) => {
-                console.log("[WorkspaceTree] onExpandedItemsChange:", itemIds);
-                // Load children for any newly expanded item that still has "loading..." placeholder
+              onExpandedItemsChange={(_event: React.SyntheticEvent, itemIds: string[]) => {
                 for (const itemId of itemIds) {
-                  const item = findItemInTree(files, itemId);
-                  if (shouldLoadChildren(item)) {
-                    handleItemClick(event as React.MouseEvent, itemId);
-                  }
+                  loadItemChildren(itemId);
                 }
               }}
               items={files as any}
