@@ -55,6 +55,10 @@ export function useToolChromeActions() {
     (s) => s.convertSelectionToBorderOutline
   );
 
+  const setTransformSettings = useSketchStore(
+    (s) => s.setTransformSettings
+  );
+
   return {
     setBrushSettings,
     setPencilSettings,
@@ -66,6 +70,7 @@ export function useToolChromeActions() {
     setCloneStampSettings,
     setSelectSettings,
     setSegmentSettings,
+    setTransformSettings,
     invertSelection,
     featherCurrentSelection,
     smoothCurrentSelectionBorders,
