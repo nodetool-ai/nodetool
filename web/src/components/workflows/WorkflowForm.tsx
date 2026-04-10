@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       "& .MuiOutlinedInput-root": {
         fontFamily: theme.fontFamily1,
         color: theme.vars.palette.grey[0],
-        minHeight: "42px"
+        minHeight: "auto"
       },
       "& .MuiAutocomplete-popper": {
         backgroundColor: theme.vars.palette.grey[800],
@@ -306,6 +306,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
         <Autocomplete
           className="tag-input"
+          size="small"
           multiple
           freeSolo
           selectOnFocus
