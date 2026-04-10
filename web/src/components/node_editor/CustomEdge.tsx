@@ -11,7 +11,7 @@ import {
   getBezierPath,
   type EdgeProps
 } from "@xyflow/react";
-import { Tooltip } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { memo, useMemo } from "react";
 
 export function CustomEdge({
@@ -100,7 +100,7 @@ export function CustomEdge({
       />
       {showLabel && (
         <EdgeLabelRenderer>
-          <Tooltip title={tooltipText} placement="top" arrow enterDelay={300}>
+          <Tooltip title={tooltipText} placement="top" arrow delay={300}>
             <div style={labelStyle} className="nodrag nopan">
               {counter}
             </div>

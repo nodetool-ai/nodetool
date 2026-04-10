@@ -266,8 +266,8 @@ const NodeItem = memo(
                       height: "15px"
                     }}
                   />
-                  <Typography
-                    fontSize="small"
+                  <Text
+                    size="small"
                     sx={{
                       lineHeight: 1.3,
                       whiteSpace: "nowrap",
