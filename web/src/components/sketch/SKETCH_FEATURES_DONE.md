@@ -472,12 +472,6 @@ Moved here so the active roadmap stays a short “what’s next” list. Task la
 
 #### Selection mask performance plan (archived)
 
-The `combineMasks()` fast-path covers the most common hot path (add/subtract on same-size canvas-origin masks). Further gains for truly large canvases need GPU involvement:
-
-1. **Short term (done):** typed-array fast-path in `combineMasks()`. Single-pass flat loop; no union buffer allocation when masks share size/origin.
-2. **Medium term:** move selection combine operations to an OffscreenCanvas compositing path using canvas `globalCompositeOperation` (`lighter` for add, `destination-out` for subtract, `destination-in` for intersect). This offloads the per-pixel work to the browser's GPU compositor. Requires careful threshold re-mapping since canvas compositing works on RGBA, not single-channel masks.
-3. **Long term:** if WebGPU is available, run selection combine as a compute shader. This is the ultimate solution for 4K+ canvases but adds complexity. Only worthwhile if profiling shows the medium-term path is still too slow.
-
 - [x] [impl+test] store subscription hardening pass 1: make `SketchEditor.tsx`, `SketchModal.tsx`, and `hooks/useSketchStoreSelectors.ts` stop acting like broad subscription aggregators; hot state such as `zoom`, `pan`, `selection`, and similar fast-changing UI state should be consumed in the narrowest subtree that actually needs it
 - [x] [impl+test] store subscription hardening pass 2: audit sketch UI props and split shell vs hot-path consumers so canvas/runtime overlays can subscribe to viewport and selection state without forcing toolbar, layers panel, modal chrome, or other editor shell pieces to rerender
 - [x] [impl+test] store subscription hardening pass 3: stop returning fresh selector objects/functions from Zustand subscriptions in sketch hot paths; move object merging/derived view models behind local `useMemo` or focused child components so unrelated store writes do not invalidate whole subtrees

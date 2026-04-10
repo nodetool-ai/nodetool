@@ -202,7 +202,9 @@ Shipped: adjustable stroke stabilizer (all drawing tools) — see `SKETCH_FEATUR
 - [ ] richer export options such as alpha/opaque/JPEG choices
 - [ ] healing brush and other AI-assisted painting tools
 
+----------------------------------------------------------------------------
 ### Parked - Editor / Input Ideas
+----------------------------------------------------------------------------
 
 - [ ] touch/tablet features such as pinch zoom, two-finger pan, and palm rejection
 - [ ] rulers and draggable guides
@@ -214,8 +216,9 @@ Shipped: adjustable stroke stabilizer (all drawing tools) — see `SKETCH_FEATUR
 - [ ] portable project import/export, backup/download flows, and richer project persistence
 - [ ] clipping masks / clipping groups
 
+----------------------------------------------------------------------------
 ### Parked - Maybe Later
-
+----------------------------------------------------------------------------
 #### HDR / Pro Imaging
 
 - [ ] wide-gamut / professional imaging workflows beyond the first SDR-focused editor slices
@@ -231,6 +234,15 @@ Shipped: adjustable stroke stabilizer (all drawing tools) — see `SKETCH_FEATUR
 - [ ] multi-document or multi-canvas workflows
 - [ ] 3D layer support to allow compositing model3D type layers with basic translate, rotate, scale
 - [ ] add performance guardrails for huge documents (warnings, history caps, throttling)
+- [ ] profile huge-document selection-mask combine paths and decide whether a canvas-compositing fast path is enough before considering worker `OffscreenCanvas` or WebGPU compute; if worker GPU work is ever considered, first define renderer ownership, readback needs, and cross-thread transfer costs
+
+#### Performance
+The `combineMasks()` fast-path covers the most common hot path (add/subtract on same-size canvas-origin masks). If profiling later shows selection-mask combine is still too slow on huge canvases, revisit it as an architecture/performance decision rather than a pre-chosen implementation path:
+
+1. **Short term (done):** typed-array fast-path in `combineMasks()`. Single-pass flat loop; no union buffer allocation when masks share size/origin.
+2. **Future option:** evaluate a canvas-compositing path for mask combine operations (`globalCompositeOperation` such as `lighter`, `destination-out`, `destination-in`) if CPU loops become the bottleneck. This can be tested on the main thread first; worker `OffscreenCanvas` is a separate choice with extra threading/ownership costs. Any canvas path must handle threshold re-mapping because compositing works on RGBA, not single-channel masks.
+3. **Future option:** evaluate a WebGPU compute path only if profiling shows the canvas-compositing path is still not enough for huge documents. Treat this as part of a broader renderer-ownership decision, not a local optimization, because worker/main-thread GPU ownership and readback costs add real complexity.
+
 
 ### AFFINITY IDEAS
 
