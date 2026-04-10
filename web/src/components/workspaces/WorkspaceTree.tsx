@@ -352,14 +352,14 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => {
 };
 
 const fetchWorkspaceFiles = async (
-  workflowId: string,
+  workspaceId: string,
   path: string = "."
 ): Promise<TreeViewItem[]> => {
   const { data, error } = await client.GET(
-    "/api/workspaces/workflow/{workflow_id}/files",
+    "/api/workspaces/{workspace_id}/files",
     {
       params: {
-        path: { workflow_id: workflowId },
+        path: { workspace_id: workspaceId },
         query: { path }
       }
     }
@@ -452,9 +452,9 @@ const WorkspaceTree: React.FC = () => {
     isLoading: isLoadingFiles,
     refetch: refetchFiles
   } = useQuery({
-    queryKey: ["workflow-workspace-files", workflowId, filesWorkspaceId],
-    queryFn: () => fetchWorkspaceFiles(workflowId!),
-    enabled: Boolean(workflowId && filesWorkspaceId)
+    queryKey: ["workspace-files", filesWorkspaceId],
+    queryFn: () => fetchWorkspaceFiles(filesWorkspaceId!),
+    enabled: Boolean(filesWorkspaceId)
   });
 
   // Query for workspace is no longer needed since we use WorkspaceSelect
@@ -509,7 +509,7 @@ const WorkspaceTree: React.FC = () => {
         if (shouldLoadChildren(targetItem)) {
           const relativePath = itemId || ".";
 
-          const children = await fetchWorkspaceFiles(workflowId, relativePath);
+          const children = await fetchWorkspaceFiles(filesWorkspaceId!, relativePath);
           setFiles((currentFiles) =>
             updateTreeWithChildren(currentFiles, itemId, children)
           );

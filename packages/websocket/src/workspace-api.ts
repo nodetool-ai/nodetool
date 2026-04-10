@@ -7,7 +7,7 @@
 import { stat, readdir, readFile } from "node:fs/promises";
 import { existsSync, accessSync, constants } from "node:fs";
 import { resolve, join, basename, isAbsolute } from "node:path";
-import { Workflow, Workspace } from "@nodetool/models";
+import { Workspace } from "@nodetool/models";
 import type { HttpApiOptions } from "./http-api.js";
 
 type JsonObject = Record<string, unknown>;
@@ -116,28 +116,26 @@ export async function handleWorkspaceRequest(
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  // GET /api/workspaces/workflow/{workflowId}/files?path=.
-  const workflowFilesMatch = pathname.match(
-    /^\/api\/workspaces\/workflow\/([^/]+)\/files$/
+  // GET /api/workspaces/{workspaceId}/files?path=.
+  const workspaceFilesMatch = pathname.match(
+    /^\/api\/workspaces\/([^/]+)\/files$/
   );
-  if (workflowFilesMatch) {
+  if (workspaceFilesMatch) {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
-    const workflowId = decodeURIComponent(workflowFilesMatch[1]);
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow || !workflow.workspace_id) {
-      return errorResponse(404, "Workflow or workspace not found");
-    }
-    const workspace = await Workspace.find(userId, workflow.workspace_id);
+    const workspaceId = decodeURIComponent(workspaceFilesMatch[1]);
+    const workspace = await Workspace.find(userId, workspaceId);
     if (!workspace) return errorResponse(404, "Workspace not found");
 
     const queryPath = url.searchParams.get("path") ?? ".";
+
+    // Reject absolute paths — only relative paths allowed
+    if (queryPath.startsWith("/")) {
+      return errorResponse(400, "Absolute paths not allowed, use relative paths");
+    }
+
     const workspacePath = resolve(workspace.path);
-    // If queryPath is absolute and within workspace, use it directly
-    // Otherwise treat as relative to workspace root
-    const resolvedPath = resolve(queryPath).startsWith(workspacePath)
-      ? resolve(queryPath)
-      : resolve(join(workspacePath, queryPath));
+    const resolvedPath = resolve(join(workspacePath, queryPath));
 
     // Path traversal check
     if (!resolvedPath.startsWith(workspacePath)) {
@@ -148,12 +146,13 @@ export async function handleWorkspaceRequest(
       const entries = await readdir(resolvedPath);
       const files: JsonObject[] = [];
       for (const entry of entries) {
+        const entryRelative = join(queryPath === "." ? "" : queryPath, entry);
         const fullPath = join(resolvedPath, entry);
         try {
           const s = await stat(fullPath);
           files.push({
             name: entry,
-            path: fullPath,
+            path: entryRelative,
             size: s.size,
             is_dir: s.isDirectory(),
             modified_at: s.mtime.toISOString()
@@ -168,21 +167,21 @@ export async function handleWorkspaceRequest(
     }
   }
 
-  // GET /api/workspaces/workflow/{workflowId}/download/...
-  const workflowDownloadMatch = pathname.match(
-    /^\/api\/workspaces\/workflow\/([^/]+)\/download\/(.+)$/
+  // GET /api/workspaces/{workspaceId}/download/{relativePath}
+  const workspaceDownloadMatch = pathname.match(
+    /^\/api\/workspaces\/([^/]+)\/download\/(.+)$/
   );
-  if (workflowDownloadMatch) {
+  if (workspaceDownloadMatch) {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
-    const workflowId = decodeURIComponent(workflowDownloadMatch[1]);
-    const filePath = decodeURIComponent(workflowDownloadMatch[2]);
-    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-    if (!workflow || !workflow.workspace_id) {
-      return errorResponse(404, "Workflow or workspace not found");
-    }
-    const workspace = await Workspace.find(userId, workflow.workspace_id);
+    const wsId = decodeURIComponent(workspaceDownloadMatch[1]);
+    const filePath = decodeURIComponent(workspaceDownloadMatch[2]);
+    const workspace = await Workspace.find(userId, wsId);
     if (!workspace) return errorResponse(404, "Workspace not found");
+
+    if (filePath.startsWith("/")) {
+      return errorResponse(400, "Absolute paths not allowed");
+    }
 
     const workspacePath = resolve(workspace.path);
     const resolvedFile = resolve(join(workspacePath, filePath));
