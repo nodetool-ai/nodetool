@@ -518,10 +518,13 @@ const WorkspaceTree: React.FC = () => {
           console.log("[WorkspaceTree] fetching children for:", relativePath);
 
           const children = await fetchWorkspaceFiles(filesWorkspaceId, relativePath);
-          console.log("[WorkspaceTree] got children:", children.length);
-          setFiles((currentFiles) =>
-            updateTreeWithChildren(currentFiles, itemId, children)
-          );
+          console.log("[WorkspaceTree] got children:", children.length, children.map(c => c.label));
+          setFiles((currentFiles) => {
+            const updated = updateTreeWithChildren(currentFiles, itemId, children);
+            const verify = findItemInTree(updated, itemId);
+            console.log("[WorkspaceTree] after update, item children:", verify?.children?.length, verify?.children?.map(c => c.label));
+            return updated;
+          });
         }
       } catch (error) {
         console.error("[WorkspaceTree] Failed to load children:", error);
@@ -687,6 +690,7 @@ const WorkspaceTree: React.FC = () => {
           </div>
         ) : files.length > 0 ? (
           <div onDoubleClick={handleTreeDoubleClick}>
+            {console.log("[WorkspaceTree] rendering RichTreeView, files:", files.length, "sample:", JSON.stringify(files[0]?.children?.slice(0,2).map(c => ({id:c.id, label:c.label, cc:c.children?.length}))))}
             <RichTreeView
               onItemClick={handleItemClick}
               onItemExpansionToggle={(event: React.SyntheticEvent, itemId: string) => {
