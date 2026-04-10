@@ -17,12 +17,11 @@ import {
 import { useTheme } from "@mui/material/styles";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
-import SearchIcon from "@mui/icons-material/Search";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
-import { CloseButton } from "../ui_primitives";
+import { CloseButton, SearchInput } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
@@ -740,29 +739,12 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                 {/* Tab 1: API & Keys */}
                 <TabPanel value={settingsTab} index={1}>
-                  <TextField
+                  <SearchInput
                     placeholder="Search API keys, settings, and folders..."
                     value={apiSearchTerm}
-                    onChange={(e) => setApiSearchTerm(e.target.value)}
+                    onChange={setApiSearchTerm}
                     size="small"
-                    fullWidth
-                    aria-label="Search API & Keys"
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <Box component="span" sx={{ mr: 1, display: "flex", color: "text.disabled" }}>
-                            <SearchIcon />
-                          </Box>
-                        )
-                      }
-                    }}
-                    sx={{
-                      mb: 2,
-                      "& .MuiOutlinedInput-root": {
-                        borderRadius: "10px",
-                        backgroundColor: "action.hover"
-                      }
-                    }}
+                    showClear
                   />
 
                   <Typography variant="h3" id="api-keys">

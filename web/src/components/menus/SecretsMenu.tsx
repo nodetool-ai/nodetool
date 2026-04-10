@@ -198,10 +198,9 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
         <div className="secrets-content" css={getSharedSettingsStyles(theme)}>
           <div className="settings-main-content">
             <div className="secrets">
-              <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main, flexShrink: 0 }} />
-              <Typography>
-                Keep your secrets secure and do not share them publicly. Secrets
-                are encrypted in the database.
+              <WarningIcon sx={{ fontSize: 16, color: "text.disabled", flexShrink: 0 }} />
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                Secrets are encrypted in the database.
               </Typography>
             </div>
 
@@ -216,10 +215,9 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
               </Typography>
             ) : (
               <>
-                {/* Configured Secrets Section */}
+                {/* All secrets — configured first, then unconfigured */}
                 {secretsByStatus.configured.length > 0 && (
                   <div className="settings-section">
-                    <Typography variant="h2">Configured Secrets</Typography>
                     {secretsByStatus.configured.map((secret: SecretResponse) => (
                       <div
                         key={secret.key}
@@ -309,7 +307,6 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                 {/* Unconfigured Secrets Section */}
                 {secretsByStatus.unconfigured.length > 0 && (
                   <div className="settings-section">
-                    <Typography variant="h2">Available Secrets</Typography>
                     {secretsByStatus.unconfigured.map((secret: SecretResponse) => (
                       <div
                         key={secret.key}

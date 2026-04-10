@@ -10,35 +10,26 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
     padding-top: 1em;
 
     .save-button-container {
-      position: absolute;
-      top: 49px;
-      right: 10px;
-      z-index: 100;
-      margin: 0;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
       padding: 0.75em 0;
       display: flex;
-      justify-content: center;
-      width: 100%;
+      justify-content: flex-end;
+      background: linear-gradient(transparent, ${theme.vars.palette.background.default} 30%);
     }
 
     .save-button {
-      position: absolute;
-      bottom: 20px;
-      right: 10px;
-      padding: 0.5em 2.5em;
+      padding: 0.4em 1.5em;
       font-family: ${theme.fontFamily2};
-      word-spacing: -0.2em;
       color: ${theme.vars.palette.primary.contrastText};
       background-color: ${theme.vars.palette.primary.main};
-      border-radius: 8px;
+      border-radius: 6px;
       text-transform: none;
-      font-size: ${theme.fontSizeNormal};
-      transition: all 0.2s ease;
+      font-size: ${theme.fontSizeSmall};
       font-weight: 500;
-      letter-spacing: 0.02em;
       &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px ${theme.vars.palette.grey[900]}33;
+        box-shadow: 0 2px 6px ${theme.vars.palette.grey[900]}33;
       }
     }
 
@@ -49,47 +40,22 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
       padding: 0.5em;
     }
 
-    h1 {
-      font-size: ${theme.fontSizeGiant};
-      margin-bottom: 1rem;
-      font-weight: 500;
-    }
-
-    .settings-section-header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-
     h2 {
       font-size: ${theme.fontSizeBigger};
-      margin: 1.5em 0 0.5em 0;
+      margin: 0.5em 0 0.3em 0;
       padding: 0;
       font-weight: 500;
-      color: ${"var(--palette-primary-main)"};
-      position: relative;
-      display: inline-block;
+      color: var(--palette-primary-main);
     }
 
     .secrets {
       display: flex;
       align-items: center;
-      gap: 0.8em;
-      background-color: ${theme.vars.palette.warning.main}1a;
-      padding: 0.8em 1.2em;
-      border-radius: 6px;
-      margin: 1em 0 2em;
-      border-left: 3px solid ${theme.vars.palette.warning.main};
-    }
-
-    .secrets-search-container {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background-color: ${theme.vars.palette.background.paper};
-      padding: 1em 0;
-      margin: 0;
+      gap: 0.6em;
+      color: ${theme.vars.palette.text.secondary};
+      padding: 0.4em 0;
+      font-size: ${theme.fontSizeSmall};
+      margin: 0 0 0.5em;
     }
 
     .description {
@@ -111,45 +77,43 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
     }
 
     .settings-section {
-      background: "transparent";
-      backdrop-filter: blur(20px);
-      border-radius: 8px;
-      padding: 1.2em;
-      margin: 1.5em 0 1.5em 0;
-      box-shadow: 0 2px 12px ${theme.vars.palette.grey[900]}33;
-      border: 1px solid ${theme.vars.palette.grey[600]};
+      padding: 0;
+      margin: 0 0 0.5em 0;
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 0.8em;
-      margin-bottom: 2rem;
 
       h2 {
         font-size: ${theme.fontSizeBigger};
-        margin: 1.5em 0 0.5em 0;
+        margin: 0.5em 0 0.3em 0;
         padding: 0;
         font-weight: 500;
-        color: ${"var(--palette-primary-main)"};
-        position: relative;
-        display: inline-block;
+        color: var(--palette-primary-main);
       }
     }
 
     .settings-item {
       display: flex;
       flex-direction: column;
-      gap: 0.8em;
-      margin-bottom: 1.5rem;
+      gap: 0.4em;
+      padding: 0.5em 0;
+      border-bottom: 1px solid ${theme.vars.palette.divider};
+
+      &:last-child {
+        border-bottom: none;
+      }
 
       .MuiTextField-root {
         width: 100%;
       }
     }
 
+    .settings-item.large {
+      padding: 0.6em 0;
+    }
+
     .settings-main-content {
-      padding: 1em 2em;
-      max-width: 800px;
-      margin: 0 auto;
+      padding: 0.5em 0;
       width: 100%;
     }
   `;
