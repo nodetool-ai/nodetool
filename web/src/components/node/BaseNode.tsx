@@ -691,16 +691,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           className="result-panel-above"
           style={{
             position: "absolute",
-            bottom: "100%",
+            bottom: "calc(100% + 8px)",
             left: 0,
             right: 0,
             maxHeight: 300,
             overflow: "auto",
-            borderRadius: "8px 8px 0 0",
+            borderRadius: "8px",
             backgroundColor: "var(--palette-grey-900)",
-            borderBottom: "1px solid var(--palette-grey-800)",
+            border: "1px solid var(--palette-grey-800)",
             zIndex: 5,
-            boxShadow: "0 -4px 16px rgba(0,0,0,0.3)"
+            boxShadow: "0 -2px 12px rgba(0,0,0,0.25), 0 4px 24px rgba(0,0,0,0.15)",
+            padding: "8px"
           }}
         >
           <ResultOverlay
