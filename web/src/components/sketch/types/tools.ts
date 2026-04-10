@@ -433,6 +433,21 @@ export interface SegmentationLayerMeta {
   maskIndex: number;
 }
 
+// ─── Transform Settings ───────────────────────────────────────────────────────
+
+export interface TransformSettings {
+  /**
+   * When true, clicking opaque pixels on the canvas while the TransformTool is
+   * active auto-selects the topmost visible transformable layer as the transform
+   * target, without requiring the user to switch layers in the layers panel first.
+   */
+  autoSelect: boolean;
+}
+
+export const DEFAULT_TRANSFORM_SETTINGS: TransformSettings = {
+  autoSelect: true
+};
+
 // ─── Composite Tool Settings ──────────────────────────────────────────────────
 
 export interface ToolSettings {
@@ -448,6 +463,7 @@ export interface ToolSettings {
   cloneStamp: CloneStampSettings;
   select: SelectSettings;
   segment: SegmentSettings;
+  transform: TransformSettings;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -576,7 +592,8 @@ export function cloneDefaultToolSettings(): ToolSettings {
     gradient: { ...DEFAULT_GRADIENT_SETTINGS },
     cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS },
     select: { ...DEFAULT_SELECT_SETTINGS },
-    segment: { ...DEFAULT_SEGMENT_SETTINGS }
+    segment: { ...DEFAULT_SEGMENT_SETTINGS },
+    transform: { ...DEFAULT_TRANSFORM_SETTINGS }
   };
 }
 

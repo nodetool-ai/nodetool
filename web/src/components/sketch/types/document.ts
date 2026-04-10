@@ -25,7 +25,8 @@ import {
   DEFAULT_GRADIENT_SETTINGS,
   DEFAULT_CLONE_STAMP_SETTINGS,
   DEFAULT_SELECT_SETTINGS,
-  DEFAULT_SEGMENT_SETTINGS
+  DEFAULT_SEGMENT_SETTINGS,
+  DEFAULT_TRANSFORM_SETTINGS
 } from "./tools";
 
 // ─── Document Format Version ──────────────────────────────────────────────────
@@ -945,6 +946,10 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         segment: {
           ...DEFAULT_SEGMENT_SETTINGS,
           ...doc.toolSettings?.segment
+        },
+        transform: {
+          ...DEFAULT_TRANSFORM_SETTINGS,
+          ...doc.toolSettings?.transform
         }
       };
     })(),
