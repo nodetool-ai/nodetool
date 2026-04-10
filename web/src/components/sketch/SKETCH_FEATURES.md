@@ -247,6 +247,100 @@ These are not current priorities, but they should stay visible so they can be re
 9. Consistent modifier key behavior and tool options. Small but meaningful — Affinity keeps keyboard modifier behavior (Shift, Alt, Ctrl) consistent and predictable across tools. Tool options appear in a clean horizontal toolbar at the top that updates contextually without overwhelming you with panels. Users who've struggled with Photoshop's sometimes inconsistent or legacy modifier key behaviors find Affinity's approach more logical and easier to build muscle memory around.
 ### Parked - Nearer-Term
 
+### Shortcuts Behaviour
+
+Shift
+
+Constrains proportions when resizing objects or layers
+Locks movement to horizontal, vertical, or 45° angles when dragging
+Constrains brush strokes to straight lines between clicks
+Adds to selections when using selection tools
+
+Alt / Option
+
+Duplicates an object when you drag it
+Samples a source point with the clone brush
+Subtracts from selections when using selection tools
+Switches to an alternate mode of the current tool (like sampling a color with the eyedropper while painting)
+
+Ctrl / Cmd
+
+Temporarily switches to the Move tool from whatever tool you're currently using
+Allows direct selection of layers by clicking on the canvas
+Modifies snapping behavior or precision in certain contexts
+
+Shift + Alt / Option together
+
+Resizes from the center while constraining proportions
+Combines add/subtract logic in selection tools depending on context
+
+Ctrl / Cmd + Alt / Option together
+
+Adjusts brush size and hardness by dragging on the canvas
+
+----
+
+Shift — Constrain / Add / Extend
+
+Move tool: locks dragging to horizontal, vertical, or 45° diagonal axes
+Resize handles: maintains aspect ratio while scaling
+Rotate: snaps rotation to 15° increments
+Marquee / Lasso / Selection tools: adds to the current selection
+Brush / Pencil / Eraser: click once, then Shift-click elsewhere to draw a perfectly straight line between the two points
+Pen tool: constrains the next node or handle to 15° angle increments
+Line tool: snaps the line to horizontal, vertical, or 45°
+Gradient tool: constrains the gradient direction to 15° increments
+Crop tool: locks the crop box to its current aspect ratio
+Shape tools (rectangle, ellipse): constrains to perfect square or circle
+
+Alt / Option — Alternate mode / Duplicate / Sample / Subtract
+
+Move tool: drag to create a duplicate of the selected layer or object
+Resize handles: scale from the center point rather than from the opposite corner
+Marquee / Lasso / Selection tools: subtracts from the current selection
+Brush / Paint tool: temporarily switches to the color picker to sample a color from the canvas
+Clone brush: sets the source sampling point
+Eraser: temporarily inverts behavior depending on context
+Gradient tool: drag to create a duplicate gradient fill layer
+Shape tools: draw the shape outward from the center rather than from a corner
+Pen tool: converts a smooth node to a sharp corner by breaking the handle
+
+Ctrl / Cmd — Direct access / Move / Precision
+
+From any tool: temporarily activates the Move tool so you can reposition a layer without switching tools, then release to return to your previous tool
+Canvas click: selects the topmost layer under the cursor, allowing direct layer picking without using the layers panel
+With brush tools: on some setups, temporarily toggles to the eraser or inverse mode
+Node tool: selects individual nodes for direct manipulation
+General: used as the primary key for most keyboard shortcuts like Ctrl+Z undo, Ctrl+S save, Ctrl+G group
+
+Shift + Alt / Option — Constrain + Center / Constrain + Duplicate
+
+Resize handles: scales proportionally from the center point, combining both behaviors
+Move tool + drag: duplicates the object and constrains the duplicate's movement to an axis
+Shape tools: draws a perfect square or circle from the center outward
+Selection tools: intersects with the current selection (the overlap of add and subtract logic)
+
+Ctrl / Cmd + Alt / Option — Brush adjustment / Direct manipulation
+
+On canvas drag (horizontal): dynamically adjusts brush size in real time as you move the mouse left or right
+On canvas drag (vertical): dynamically adjusts brush hardness or opacity as you move up or down
+With Move tool: can select and move layers that are grouped or nested without ungrouping
+Node tool: allows asymmetric handle adjustment on curve nodes
+
+Ctrl / Cmd + Shift — Grouped constraints
+
+Resize handles: skews or distorts with constraint depending on the tool
+Move tool: constrains movement to an axis while also snapping to alignment guides
+Used in various keyboard shortcuts for secondary actions like Ctrl+Shift+Z for redo, Ctrl+Shift+N for new layer
+
+All three — Ctrl / Cmd + Shift + Alt / Option
+
+Resize handles: allows perspective-style distortion on the transform box
+Rarely needed in daily use but follows the same composable logic where each modifier adds its own predictable behavior to the combination
+
+The underlying design principle is composability. Each modifier always contributes the same semantic meaning regardless of tool, and combining modifiers combines their meanings. Shift adds constraint, Alt adds alternate/center/duplicate, Ctrl adds direct access. If you know what each modifier means individually, you can predict what any combination will do without memorizing it. That composability is what makes Affinity's system feel learnable rather than arbitrary.
+
+
 
 ## Agent orientation (where things live)
 
