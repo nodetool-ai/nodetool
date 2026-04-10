@@ -100,18 +100,17 @@ Modifier-key target behavior to preserve while implementing the items above:
   - **Done:** Added `Transform Selection` menu entry in `SketchCanvasContextMenu.tsx` with `HighlightAltIcon`. Currently disabled (grayed out) — the `onTransformSelection` prop is optional and wired but no backend implementation exists yet. The entry will enable when transform-selection infrastructure is implemented.
 - [x] add a selection-tool right-click context menu entry for `Fill`
 - [x] add a selection-tool right-click context menu entry for `Stroke`
-
 - [x] add a selection-tool right-click context menu entry for `Select Inverse`
 - [x] add a selection-tool right-click context menu entry for `Deselect`
 - [x] add a selection-tool right-click context menu entry for `Reselect`
-- [x] add a selection-tool right-click context menu entry for `Layer via Copy`
-- [x] add a selection-tool right-click context menu entry for `Layer via Cut`
-- [ ] add a selection-tool right-click context menu entry for `New Layer...`
-- [x] add a selection-tool right-click context menu entry for `Free Transform`
+- [ ] fix selection `Free Transform` - should transform the selection, not the layer
 - [x] add a selection-tool right-click context menu entry for `Transform Selection`
   - **Done:** Added `Transform Selection` menu entry in `SketchCanvasContextMenu.tsx` with `HighlightAltIcon`. Currently disabled (grayed out) — the `onTransformSelection` prop is optional and wired but no backend implementation exists yet. The entry will enable when transform-selection infrastructure is implemented.
 - [x] add a selection-tool right-click context menu entry for `Fill`
 - [x] add a selection-tool right-click context menu entry for `Stroke`
+- [ ] fix `Layer via Copy` - not yet implemented
+- [ ] fix `Layer via Cut` - not yet implemented
+- [ ] submenu for selection-tool right-click context menu entry for `New Layer...` - new layer entries as in photoshop 
 
 Deferred selection-context-menu items:
 
@@ -197,11 +196,7 @@ Shipped: adjustable stroke stabilizer (all drawing tools) — see `SKETCH_FEATUR
 - [ ] investigate parallel-line helpers built on current stroke direction or explicit temporary guides, but avoid any version that requires heavy analysis of existing artwork in the first slice
 - [ ] revisit smarter assist later: contextual guides, nearby-stroke attraction, or shape-aware snapping, only after the simple shared assist model feels stable and predictable
 
-## Parked Ideas
 
-These are not current priorities, but they should stay visible so they can be revived deliberately later.
-
-### Parked - Nearer-Term
 
 - [ ] replace the old `ImageEditor.tsx` path with the new `SketchEditor` once parity is strong
 - [ ] richer export options such as alpha/opaque/JPEG choices
@@ -236,6 +231,22 @@ These are not current priorities, but they should stay visible so they can be re
 - [ ] multi-document or multi-canvas workflows
 - [ ] 3D layer support to allow compositing model3D type layers with basic translate, rotate, scale
 - [ ] add performance guardrails for huge documents (warnings, history caps, throttling)
+
+### AFFINITY IDEAS
+
+1. The Persona system. Instead of burying tools across scattered menus, Affinity splits workflows into dedicated workspaces — Photo, Liquify, Develop (RAW), Tone Mapping, and Export. Each persona shows only the tools relevant to that task, which keeps the interface clean and reduces cognitive overload 
+2. Live preview on everything. Filters, adjustments, blend modes, gradients — nearly every operation shows a real-time preview as you adjust sliders or move your cursor
+3. Superior snapping and alignment guides. Affinity's snapping behavior is noticeably more intelligent out of the box. Objects snap to edges, centers, spacing, and even distribute evenly with visual guides that appear contextually
+## Parked Ideas
+4. The Export persona and slice workflow. Exporting in Affinity is far more visual and flexible. You can define multiple slices, assign different formats and resolutions to each, and batch-export everything in one step — all from a dedicated workspace. Photoshop's "Save for Web" and export options feel scattered and dated by comparison.
+5. Frequency separation and other pro retouching tools built in natively. Affinity includes a one-click frequency separation setup, built-in inpainting brush, and a stacking tool for focus stacking and HDR — features that in Photoshop either require manual multi-step setups, third-party plugins, or separate applications. Having these accessible directly in the toolbar makes advanced techniques feel approachable rather than arcane.
+These are not current priorities, but they should stay visible so they can be revived deliberately later.
+6. Boolean operations for vector and raster layers. Affinity lets you add, subtract, intersect, and combine shapes directly on the canvas with intuitive boolean operations — and these remain editable and non-destructive. The way vector and raster tools coexist in the same document without switching to a separate application (the way Photoshop users often bounce to Illustrator) is something users find genuinely freeing.
+7. Macro recording that actually feels usable. Affinity's macro system lets you record a sequence of steps, save it, and replay it on other images. The interface for building and managing macros is straightforward and visual, with a simple list of recorded actions you can reorder or delete. Users often find it more approachable than Photoshop's Actions panel, which can feel intimidating with its scripting-heavy logic.
+8. Metal and GPU acceleration done well. Affinity was built from the ground up with modern GPU rendering in mind. Canvas panning, zooming, and brush strokes at high resolutions feel buttery smooth because the rendering pipeline was designed for hardware acceleration from day one rather than retrofitted onto older architecture. Users notice this most when working with very large canvases or complex layer stacks.
+9. Consistent modifier key behavior and tool options. Small but meaningful — Affinity keeps keyboard modifier behavior (Shift, Alt, Ctrl) consistent and predictable across tools. Tool options appear in a clean horizontal toolbar at the top that updates contextually without overwhelming you with panels. Users who've struggled with Photoshop's sometimes inconsistent or legacy modifier key behaviors find Affinity's approach more logical and easier to build muscle memory around.
+### Parked - Nearer-Term
+
 
 ## Agent orientation (where things live)
 
