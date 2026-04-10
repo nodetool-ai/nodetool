@@ -79,8 +79,7 @@ const styles = (theme: Theme) =>
       lineHeight: 1.4,
       marginTop: theme.spacing(0.5),
       opacity: 0.8,
-      maxHeight: "3.5em",
-      overflow: "hidden"
+      whiteSpace: "pre-wrap"
     },
     ".description": {
       color: "var(--palette-grey-100)",
