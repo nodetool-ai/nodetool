@@ -15,7 +15,6 @@ import isEqual from "lodash/isEqual";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
 import { Caption, CloseButton, ScrollArea, Text, Tooltip } from "./ui_primitives";
-import PanelHeadline from "./ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
   css({
@@ -47,8 +46,10 @@ const styles = (theme: Theme) =>
       padding: `${theme.spacing(2)} ${theme.spacing(3)} ${theme.spacing(2)} ${theme.spacing(5)}`,
       transformOrigin: "top left"
     },
-    ".inspector-header h5": {
-      margin: `${theme.spacing(0.5)} 0`
+    ".header-row": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
     },
     ".inspector-header": {
       display: "flex",
@@ -64,6 +65,13 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       fontWeight: 500
+    },
+    ".namespace": {
+      fontSize: theme.fontSizeTiny,
+      color: theme.vars.palette.text.disabled,
+      fontFamily: "monospace",
+      letterSpacing: "0.02em",
+      marginTop: theme.spacing(0.25)
     },
     ".header-description": {
       color: theme.vars.palette.text.secondary,
@@ -267,17 +275,15 @@ const Inspector: React.FC = () => {
           <Box className="top">
             <ScrollArea className="top-content" direction="vertical">
               <div className="inspector-header">
-                <PanelHeadline
-                  title="Inspector"
-                  actions={
-                    <CloseButton
-                      onClick={handleInspectorClose}
-                      tooltip="Close inspector"
-                      buttonSize="small"
-                      nodrag={false}
-                    />
-                  }
-                />
+                <div className="header-row">
+                  <div className="title">{selectedNodes.length} nodes selected</div>
+                  <CloseButton
+                    onClick={handleInspectorClose}
+                    tooltip="Close inspector"
+                    buttonSize="small"
+                    nodrag={false}
+                  />
+                </div>
                 <div className="title">
                   {`Editing ${selectedNodes.length} nodes`}
                 </div>
@@ -334,9 +340,8 @@ const Inspector: React.FC = () => {
         <Box className="top">
           <ScrollArea className="top-content" direction="vertical">
             <Box className="inspector-header">
-              <PanelHeadline title="Inspector" />
               <Caption size="smaller" color="muted">
-                Select nodes to edit
+                Select a node to inspect
               </Caption>
             </Box>
           </ScrollArea>
@@ -356,21 +361,19 @@ const Inspector: React.FC = () => {
         <Box className="top">
           <ScrollArea className="top-content" direction="vertical">
             <div className="inspector-header">
-              <PanelHeadline
-                title="Inspector"
-                actions={
-                  <CloseButton
-                    onClick={handleInspectorClose}
-                    tooltip="Close inspector"
-                    buttonSize="small"
-                    nodrag={false}
-                  />
-                }
-              />
-              <div className="title">{metadata.title}</div>
+              <div className="header-row">
+                <div className="title">{metadata.title}</div>
+                <CloseButton
+                  onClick={handleInspectorClose}
+                  tooltip="Close inspector"
+                  buttonSize="small"
+                  nodrag={false}
+                />
+              </div>
+              <div className="namespace">{metadata.node_type}</div>
               {metadata.description && (
                 <div className="header-description">
-                  {metadata.description.split("\n")[0]}
+                  {metadata.description}
                 </div>
               )}
             </div>
