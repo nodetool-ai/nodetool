@@ -190,36 +190,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         minHeight: 0
       }}
     >
-      {/* Result panel — positioned above the node */}
-      {shouldShowOverlay && (
-        <FlexColumn
-          className="result-panel-above"
-          fullWidth
-          sx={{
-            position: "absolute",
-            bottom: "100%",
-            left: 0,
-            right: 0,
-            maxHeight: 300,
-            overflow: "hidden",
-            borderRadius: "8px 8px 0 0",
-            backgroundColor: "var(--palette-grey-900)",
-            borderBottom: "1px solid var(--palette-grey-800)",
-            zIndex: 5,
-            boxShadow: "0 -4px 16px rgba(0,0,0,0.3)"
-          }}
-        >
-          <ResultOverlay
-            result={result}
-            nodeId={id}
-            workflowId={workflowId}
-            nodeName={nodeMetadata.title}
-            onShowInputs={isOutputNode ? undefined : onShowInputs}
-          />
-        </FlexColumn>
-      )}
-
-      {/* Always render inputs/outputs normally */}
       <NodeInputs
         id={id}
         nodeMetadata={nodeMetadata}

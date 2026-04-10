@@ -33,6 +33,7 @@ import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
+import ResultOverlay from "./ResultOverlay";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -556,8 +557,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isOverlayVisible = suppressResultOverlay
     ? false
     : shouldAlwaysShowResult
-    ? result && !isEmptyResult(result)
-    : showResultOverlay && result && !isEmptyResult(result);
+    ? Boolean(result && !isEmptyResult(result))
+    : Boolean(showResultOverlay && result && !isEmptyResult(result));
   const hasToggleableResult =
     !suppressResultOverlay &&
     !shouldAlwaysShowResult &&
@@ -684,6 +685,33 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       className={styleProps.className}
       sx={containerSx}
     >
+      {/* Result panel — floats above the node */}
+      {isOverlayVisible && (
+        <div
+          className="result-panel-above"
+          style={{
+            position: "absolute",
+            bottom: "100%",
+            left: 0,
+            right: 0,
+            maxHeight: 300,
+            overflow: "auto",
+            borderRadius: "8px 8px 0 0",
+            backgroundColor: "var(--palette-grey-900)",
+            borderBottom: "1px solid var(--palette-grey-800)",
+            zIndex: 5,
+            boxShadow: "0 -4px 16px rgba(0,0,0,0.3)"
+          }}
+        >
+          <ResultOverlay
+            result={result}
+            nodeId={id}
+            workflowId={workflow_id}
+            nodeName={metadata.title}
+            onShowInputs={nodeType.isOutputNode ? undefined : handleShowInputs}
+          />
+        </div>
+      )}
       <Handle
         type="target"
         id={CONTROL_HANDLE_ID}
@@ -731,7 +759,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           minHeight: 0,
           width: "100%",
           overflow: "visible",
-          clipPath: "inset(-350px -60px 0 -60px)"
+          clipPath: "inset(0 -60px)"
         }}
       >
         <NodeContent
