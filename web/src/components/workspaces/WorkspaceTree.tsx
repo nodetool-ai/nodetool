@@ -5,8 +5,7 @@ import isEqual from "lodash/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import log from "loglevel";
 import { FileInfo } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
+import { BASE_URL } from "../../stores/BASE_URL";
 import {
   Box,
   Typography,
@@ -355,21 +354,16 @@ const fetchWorkspaceFiles = async (
   workspaceId: string,
   path: string = "."
 ): Promise<TreeViewItem[]> => {
-  const { data, error } = await client.GET(
-    "/api/workspaces/{workspace_id}/files",
-    {
-      params: {
-        path: { workspace_id: workspaceId },
-        query: { path }
-      }
-    }
+  const params = new URLSearchParams({ path });
+  const res = await fetch(
+    `${BASE_URL}/api/workspaces/${encodeURIComponent(workspaceId)}/files?${params}`
   );
-
-  if (error) {
-    throw createErrorMessage(error, "Failed to list workspace files");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Failed to list workspace files (${res.status})`);
   }
-
-  return data.map((file: FileInfo) => fileToTreeItem(file));
+  const data: FileInfo[] = await res.json();
+  return data.map((file) => fileToTreeItem(file));
 };
 
 
