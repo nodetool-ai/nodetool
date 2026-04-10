@@ -22,6 +22,9 @@ Task labels used below:
 - `[impl+test]` implementation plus regression coverage
 - `[test-first]` write the proving test first, then fix code if the test exposes a gap
 
+## Current Tasks
+- [x] [CHECK] fix MoveTool and TransformTool gizmo size: gizmo should be sized by layer pixel bounds, currently always canvas sized. mask also holds the second last position after moving is done! so when movig stops it should update.
+
 ## Immediate `SketchEditor.tsx` Refactor Candidates
 
 `SketchEditor.tsx` is materially better after the subscription-splitting work, but it still concentrates bootstrap, tool-mode side effects, shell wiring, and editor-session orchestration in one place. Do these before piling more behavior into the editor shell.
@@ -367,7 +370,82 @@ Rarely needed in daily use but follows the same composable logic where each modi
 
 The underlying design principle is composability. Each modifier always contributes the same semantic meaning regardless of tool, and combining modifiers combines their meanings. Shift adds constraint, Alt adds alternate/center/duplicate, Ctrl adds direct access. If you know what each modifier means individually, you can predict what any combination will do without memorizing it. That composability is what makes Affinity's system feel learnable rather than arbitrary.
 
+### Affinity Color Palettes
+Swatches panel is the core of it. Every document starts with a default palette, and you can create additional palettes scoped to different levels: application-wide (available in all documents), or document-specific (embedded in and travels with the file). You add colors by picking them and clicking "add to palette," or you can auto-generate a palette from the current document — it'll scan the artwork and extract the dominant colors.
+Palette formats — Affinity supports importing .ase (Adobe Swatch Exchange) and .aco (Photoshop palette) files, plus its own .afpalette format. So migrating from Adobe workflows is straightforward. You can also export your palettes in these formats.
+Color model flexibility — each swatch stores a color in a specific model (RGB, CMYK, LAB, grayscale, or spot). This matters for print work. A palette can mix color models, so you might have some RGB swatches alongside Pantone spot colors. When you apply a swatch, Affinity does the conversion based on your document's color profile if needed.
+Global colors are a distinct feature — when you add a color as a "global" swatch, any objects using that swatch update live when you edit it. Similar to how InDesign swatches work. Regular swatches just set the color at the time of application with no ongoing link.
+The recent colors row along the bottom tracks colors you've recently used, which is separate from any palette.
+Spot colors — Affinity includes Pantone libraries (with the appropriate license) as built-in palettes. They're treated as spot colors for separation purposes in print workflows.
 
+### Affinity + Krita
+Core canvas engine:
+
+Non-destructive layer stack with groups, clipping masks, and blend modes (Affinity's model is clean here)
+Both raster and vector layers in the same document (Affinity does this well)
+Layer effects/styles that are live-editable (drop shadow, stroke, etc.)
+Reference images as a first-class concept — pinned overlays that don't affect export (Krita has this, very popular with artists)
+
+Brush engine — lean toward Krita's approach:
+
+Fully customizable brush engine with dozens of parameters (size, opacity, flow, spacing, scatter, rotation mapped to pressure/tilt/velocity)
+Brush tip from any stamp texture, not just round/square presets
+Stabilizer/smoothing with configurable lookahead — essential for lineart, and Krita's implementation is best-in-class
+Brush presets that bundle tip + dynamics + blend mode as a single saveable unit
+Smudge/color mixing brushes that simulate wet paint interaction on the canvas
+
+Selection and masking:
+
+Standard marquee, lasso, magic wand, pen path selections
+AI-assisted selection (segment anything / edge detection) — this is table stakes now and neither Affinity nor Krita does it particularly well
+Quick mask mode for painting selections
+Refine edge with hair/fur detection for photo compositing
+
+Non-destructive editing:
+
+Adjustment layers (levels, curves, HSL, color balance, gradient map)
+Filter layers that are live and re-editable, not baked (Affinity calls these "live filters")
+Smart objects or linked layers — embed a file that updates when the source changes
+Layer masks on everything, including groups and adjustment layers
+
+Color system:
+
+Document-scoped and app-scoped palettes (Affinity's model)
+Global/linked colors that propagate edits (Affinity)
+Palette generation from canvas or imported image
+Import/export ASE, ACO formats for Adobe interop
+Color history strip always visible
+A proper color gamut selector — let artists pick a triangular or shaped sub-gamut to constrain their palette, which is a feature illustrators constantly ask for and nobody ships natively
+
+Transform and warp:
+
+Standard free transform, skew, perspective
+Mesh warp and liquify as live/re-editable operations
+Content-aware scale (seam carving) — useful for photo work
+Symmetry and mirror painting modes (Krita has multiaxis symmetry, very loved by concept artists)
+
+Text:
+
+Basic text tool with standard formatting — don't try to be InDesign
+Text on path
+Text as a layer that remains editable
+Keep it simple here, this is an image editor not a layout app
+
+File handling:
+
+Native format that preserves all non-destructive state
+PSD import/export with good fidelity (this is non-negotiable for adoption)
+Standard raster exports (PNG, JPEG, TIFF, WebP, AVIF)
+OpenEXR and HDR support if you care about VFX/photography users
+ORA (OpenRaster) for Krita interop
+
+Workflow features that set you apart:
+
+Snapshotting — save named states you can flip between without undo history (Krita has session-based snapshots, but making them persistent would be better)
+Canvas annotations/notes layer that doesn't export — useful for collaboration or personal reminders
+Split view showing before/after of an adjustment in real time
+Tiled/wrap-around mode for seamless texture painting (Krita has this, invaluable for game art)
+Built-in recording of brush strokes as a timelapse (lots of artists want this for social media)
 
 ## Agent orientation (where things live)
 
