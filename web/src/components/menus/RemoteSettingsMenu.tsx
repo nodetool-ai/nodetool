@@ -6,13 +6,13 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useMemo, useState, useCallback, useEffect, memo } from "react";
 import {
   Button,
-  TextField,
   Typography,
   Select,
   MenuItem,
   FormControl,
   InputLabel
 } from "@mui/material";
+import { TextInput } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore, {
   type SettingWithValue
@@ -113,7 +113,7 @@ const SettingItem = memo(function SettingItem({
           </Select>
         </FormControl>
       ) : (
-        <TextField
+        <TextInput
           type={setting.is_secret ? "password" : "text"}
           autoComplete="off"
           id={`${setting.env_var.toLowerCase()}-input`}
@@ -121,6 +121,7 @@ const SettingItem = memo(function SettingItem({
           value={value || ""}
           onChange={handleChange}
           variant="standard"
+          size="small"
           onKeyDown={handleKeyDown}
         />
       )}

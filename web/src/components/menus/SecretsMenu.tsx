@@ -4,7 +4,6 @@ import { EditButton } from "../ui_primitives/EditButton";
 import WarningIcon from "@mui/icons-material/Warning";
 import {
   Button,
-  TextField,
   Typography,
   Dialog,
   DialogTitle,
@@ -16,6 +15,7 @@ import {
   Box,
   Divider
 } from "@mui/material";
+import { TextInput } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -404,7 +404,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
           }}
         >
           <Box sx={{ marginTop: "1.5em" }}>
-            <TextField
+            <TextInput
               label="Value"
               type="password"
               value={formData.value}
@@ -415,6 +415,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
               placeholder="Enter new secret value"
               autoFocus
               variant="outlined"
+              size="small"
             />
             <Typography
               variant="caption"

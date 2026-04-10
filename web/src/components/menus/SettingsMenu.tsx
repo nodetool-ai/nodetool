@@ -3,7 +3,6 @@
 import React, { memo, useId } from "react";
 import MenuItem from "@mui/material/MenuItem";
 import {
-  TextField,
   Button,
   Typography,
   InputLabel,
@@ -21,7 +20,7 @@ import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
-import { CloseButton, SearchInput } from "../ui_primitives";
+import { CloseButton, SearchInput, TextInput } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
@@ -544,21 +543,16 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     </div>
 
                     <div className="settings-item">
-                      <TextField
+                      <TextInput
                         type="number"
                         autoComplete="off"
-                        inputProps={{
-                          min: 1,
-                          max: 100,
-                          onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                            e.currentTarget.select();
-                          }
-                        }}
+                        slotProps={{ htmlInput: { min: 1, max: 100 } }}
                         id="grid-snap-input"
                         label="Grid Snap Precision"
                         value={settings.gridSnap}
                         onChange={handleGridSnapChange}
                         variant="standard"
+                        size="small"
                       />
                       <Typography className="description">
                         Snap precision for moving nodes on the canvas.
@@ -566,21 +560,16 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     </div>
 
                     <div className="settings-item">
-                      <TextField
+                      <TextInput
                         type="number"
                         autoComplete="off"
-                        inputProps={{
-                          min: 5,
-                          max: 30,
-                          onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                            e.currentTarget.select();
-                          }
-                        }}
+                        slotProps={{ htmlInput: { min: 5, max: 30 } }}
                         id="connection-snap-input"
                         label="Connection Snap Range"
                         value={settings.connectionSnap}
                         onChange={handleConnectionSnapChange}
                         variant="standard"
+                        size="small"
                       />
                       <Typography className="description">
                         Snap distance for connecting nodes.
