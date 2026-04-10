@@ -253,6 +253,29 @@ export async function openLogsPath(): Promise<void> {
 }
 
 /**
+ * Ask the Electron main process to open the Nodetool assets directory.
+ */
+export async function openAssetsPath(): Promise<void> {
+  const explorer = getExplorerBridge();
+  if (!explorer || typeof explorer.openSystemDirectory !== "function") {
+    debugLog("openAssetsPath aborted because openSystemDirectory is unavailable");
+    notify("warning", explorerUnavailableMessage);
+    return;
+  }
+
+  try {
+    debugLog("Calling explorer.openSystemDirectory for assets");
+    const result = await explorer.openSystemDirectory("assets");
+    handleExplorerResult(result, "Could not open Nodetool assets folder.");
+    debugLog("openAssetsPath completed");
+  } catch (error) {
+    log.error("[fileExplorer] Failed to open assets path:", error);
+    debugLog("openAssetsPath threw", error);
+    notify("error", "Could not open Nodetool assets folder.");
+  }
+}
+
+/**
  * Check if system directory opening is available.
  */
 export function isSystemDirectoryAvailable(): boolean {

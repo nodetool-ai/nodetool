@@ -416,7 +416,7 @@ export interface MenuEventData {
 
 export type ModelDirectory = "huggingface" | "ollama";
 
-export type SystemDirectory = "installation" | "logs";
+export type SystemDirectory = "installation" | "logs" | "assets";
 
 export interface FileExplorerResult {
   status: "success" | "error";

@@ -15,6 +15,7 @@ import {
   openOllamaPath,
   openInstallationPath,
   openLogsPath,
+  openAssetsPath,
   openInExplorer
 } from "../../utils/fileExplorer";
 import { isElectron } from "../../utils/browser";
@@ -210,6 +211,10 @@ const FoldersSettings = () => {
                 <FolderButton
                   label="Nodetool Logs"
                   onClick={openLogsPath}
+                />
+                <FolderButton
+                  label="Assets Storage"
+                  onClick={openAssetsPath}
                 />
               </Box>
             </div>
