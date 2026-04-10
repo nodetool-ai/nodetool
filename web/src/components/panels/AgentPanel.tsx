@@ -2,22 +2,15 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, memo, useEffect, useState } from "react";
 import {
-  Box,
-  Typography,
   Button,
-  FormControl,
   Select,
   MenuItem,
   Menu,
-  Tooltip,
   IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
-  InputLabel,
-  CircularProgress,
-  ToggleButtonGroup,
-  ToggleButton
+  CircularProgress
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -38,6 +31,14 @@ const PROVIDER_LABELS: Record<AgentProvider, string> = {
   opencode: "OpenCode",
 };
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
+import {
+  Text,
+  Caption,
+  Tooltip,
+  SelectField,
+  ToggleGroup,
+  ToggleOption
+} from "../ui_primitives";
 
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
@@ -54,7 +55,7 @@ const containerStyles = (_theme: Theme) =>
     overflow: "hidden",
     padding: "0 1em",
     ".chat-view": {
-      height: "calc(100% - 45px)"
+      height: "calc(100% - 40px)"
     },
     ".chat-thread-view": {
       paddingBottom: "4em"
@@ -87,14 +88,14 @@ const placeholderStyles = (theme: Theme) =>
     alignItems: "center",
     justifyContent: "center",
     height: "100%",
-    gap: "12px",
-    padding: "32px 24px",
+    gap: "8px",
+    padding: "16px 24px",
     textAlign: "center",
 
     ".placeholder-icon": {
-      width: "56px",
-      height: "56px",
-      borderRadius: "16px",
+      width: "40px",
+      height: "40px",
+      borderRadius: "12px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -103,26 +104,19 @@ const placeholderStyles = (theme: Theme) =>
           ? `linear-gradient(135deg, ${theme.vars.palette.primary.dark}44, ${theme.vars.palette.secondary.dark}33)`
           : `linear-gradient(135deg, ${theme.vars.palette.primary.light}33, ${theme.vars.palette.secondary.light}22)`,
       border: `1px solid ${theme.vars.palette.divider}`,
-      marginBottom: "4px",
+      marginBottom: "2px",
       "& svg": {
-        fontSize: "28px",
+        fontSize: "20px",
         color: theme.vars.palette.primary.light,
         opacity: 0.9
       }
     },
 
     ".placeholder-title": {
-      fontSize: "1rem",
-      fontWeight: 500,
-      color: theme.vars.palette.text.primary,
-      fontFamily: theme.fontFamily2,
-      letterSpacing: "0.02em",
       margin: 0
     },
 
     ".placeholder-description": {
-      fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.text.secondary,
       maxWidth: "320px",
       lineHeight: 1.5,
       margin: 0
@@ -137,12 +131,12 @@ const placeholderStyles = (theme: Theme) =>
       backgroundColor: `${theme.vars.palette.error.main}11`,
       border: `1px solid ${theme.vars.palette.error.main}33`,
       borderRadius: "8px",
-      padding: "8px 14px",
+      padding: "6px 12px",
       maxWidth: "360px"
     },
 
     ".placeholder-action": {
-      marginTop: "8px"
+      marginTop: "4px"
     }
   });
 
@@ -170,6 +164,31 @@ const startButtonStyles = (theme: Theme) =>
     "&.Mui-disabled": {
       borderColor: theme.vars.palette.divider,
       color: theme.vars.palette.text.disabled
+    }
+  });
+
+const toolbarStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "4px 6px",
+    borderBottom: `1px solid ${theme.vars.palette.divider}`,
+    flexShrink: 0
+  });
+
+const modelSelectStyles = (theme: Theme) =>
+  css({
+    height: "26px",
+    minWidth: "90px",
+    maxWidth: "180px",
+    fontSize: theme.fontSizeSmaller,
+    fontFamily: theme.fontFamily2,
+    "& .MuiSelect-select": {
+      padding: "1px 22px 1px 6px"
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: theme.vars.palette.divider
     }
   });
 
@@ -437,24 +456,24 @@ const AgentPanel: React.FC = () => {
   const noMessagesPlaceholder = useMemo(() => {
     if (!isAvailable) {
       return (
-        <Box css={placeholderStyles(theme)}>
+        <div css={placeholderStyles(theme)}>
           <div className="placeholder-icon">
             <DesktopWindowsOutlinedIcon />
           </div>
-          <Typography className="placeholder-title">
+          <Text size="normal" weight={500} family="secondary" className="placeholder-title">
             AI Agent
-          </Typography>
-          <Typography className="placeholder-description">
+          </Text>
+          <Caption size="small" className="placeholder-description">
             This feature requires the NodeTool desktop app (Electron) to run
             local agent sessions.
-          </Typography>
-        </Box>
+          </Caption>
+        </div>
       );
     }
 
     if (error) {
       return (
-        <Box css={placeholderStyles(theme)}>
+        <div css={placeholderStyles(theme)}>
           <div className="placeholder-icon">
             <SmartToyOutlinedIcon />
           </div>
@@ -473,23 +492,23 @@ const AgentPanel: React.FC = () => {
               Retry
             </Button>
           </div>
-        </Box>
+        </div>
       );
     }
 
     return (
-      <Box css={placeholderStyles(theme)}>
+      <div css={placeholderStyles(theme)}>
         <div className="placeholder-icon">
           <SmartToyOutlinedIcon />
         </div>
-        <Typography className="placeholder-title">
+        <Text size="normal" weight={500} family="secondary" className="placeholder-title">
           {providerLabel} Agent
-        </Typography>
-        <Typography className="placeholder-description">
+        </Text>
+        <Caption size="small" className="placeholder-description">
           Start a conversation with a local {providerLabel.toLowerCase()} agent
           session. The agent can execute code, browse files, and assist you with
           tasks in your workspace.
-        </Typography>
+        </Caption>
         {status === "disconnected" && !hasRunningSession && (
           <div className="placeholder-action">
             <Button
@@ -504,7 +523,7 @@ const AgentPanel: React.FC = () => {
             </Button>
           </div>
         )}
-      </Box>
+      </div>
     );
   }, [
     isAvailable,
@@ -555,11 +574,10 @@ const AgentPanel: React.FC = () => {
   }, [creatingSession]);
 
   // Stable handler for provider change in dialog
-  const handleProviderSelectChange = useCallback(
-    (event: { target: { value: string } }) => {
-      const nextProvider = event.target.value as AgentProvider;
-      if (nextProvider === "claude" || nextProvider === "codex" || nextProvider === "opencode") {
-        setDraftProvider(nextProvider);
+  const handleDraftProviderChange = useCallback(
+    (value: string) => {
+      if (value === "claude" || value === "codex" || value === "opencode") {
+        setDraftProvider(value);
       }
     },
     []
@@ -582,17 +600,17 @@ const AgentPanel: React.FC = () => {
   );
 
   // Stable handler for model change in dialog
-  const handleModelSelectChange = useCallback(
-    (event: { target: { value: string } }) => {
-      setDraftModel(event.target.value);
+  const handleDraftModelChange = useCallback(
+    (value: string) => {
+      setDraftModel(value);
     },
     []
   );
 
   // Stable handler for workspace change in dialog
-  const handleWorkspaceSelectChange = useCallback(
-    (event: { target: { value: string } }) => {
-      const val = event.target.value === "" ? undefined : event.target.value;
+  const handleWorkspaceChange = useCallback(
+    (value: string) => {
+      const val = value === "" ? undefined : value;
       handleDialogWorkspaceChange(val);
     },
     [handleDialogWorkspaceChange]
@@ -611,7 +629,7 @@ const AgentPanel: React.FC = () => {
   const toolbarButtonSx = {
     borderRadius: "6px",
     border: `1px solid ${theme.vars.palette.divider}`,
-    padding: "4px 10px",
+    padding: "3px 8px",
     gap: "4px",
     fontSize: theme.fontSizeSmaller,
     fontFamily: theme.fontFamily2,
@@ -624,30 +642,43 @@ const AgentPanel: React.FC = () => {
     },
   };
 
+  const providerOptions = useMemo(
+    () => [
+      { value: "claude", label: "Claude" },
+      { value: "codex", label: "Codex" },
+      { value: "opencode", label: "OpenCode" }
+    ],
+    []
+  );
+
+  const modelOptions = useMemo(
+    () => draftModels.map((entry) => ({ value: entry.id, label: entry.label })),
+    [draftModels]
+  );
+
+  const workspaceOptions = useMemo(
+    () => [
+      { value: "", label: "None" },
+      ...(workspaces?.map((ws) => ({ value: ws.id, label: ws.path })) ?? [])
+    ],
+    [workspaces]
+  );
+
   return (
-    <Box css={containerStyles(theme)} className="agent-panel">
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "6px 8px",
-          borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          flexShrink: 0,
-        }}
-      >
-        <ToggleButtonGroup
+    <div css={containerStyles(theme)} className="agent-panel">
+      <div css={toolbarStyles(theme)}>
+        <ToggleGroup
           value={provider}
           exclusive
           onChange={handleProviderToggle}
-          size="small"
+          compact
           disabled={hasRunningSession}
           sx={{
-            height: "28px",
+            height: "26px",
             "& .MuiToggleButton-root": {
               fontSize: theme.fontSizeSmaller,
               fontFamily: theme.fontFamily2,
-              padding: "2px 10px",
+              padding: "1px 8px",
               textTransform: "none",
               border: `1px solid ${theme.vars.palette.divider}`,
               color: theme.vars.palette.text.secondary,
@@ -659,10 +690,10 @@ const AgentPanel: React.FC = () => {
             },
           }}
         >
-          <ToggleButton value="claude">Claude</ToggleButton>
-          <ToggleButton value="codex">Codex</ToggleButton>
-          <ToggleButton value="opencode">OpenCode</ToggleButton>
-        </ToggleButtonGroup>
+          <ToggleOption value="claude">Claude</ToggleOption>
+          <ToggleOption value="codex">Codex</ToggleOption>
+          <ToggleOption value="opencode">OpenCode</ToggleOption>
+        </ToggleGroup>
 
         <Select
           value={availableModels.some((m) => m.id === model) ? model : ""}
@@ -671,19 +702,7 @@ const AgentPanel: React.FC = () => {
           disabled={hasRunningSession || modelsLoading || availableModels.length === 0}
           displayEmpty
           variant="outlined"
-          sx={{
-            height: "28px",
-            minWidth: "100px",
-            maxWidth: "200px",
-            fontSize: theme.fontSizeSmaller,
-            fontFamily: theme.fontFamily2,
-            "& .MuiSelect-select": {
-              padding: "2px 24px 2px 8px",
-            },
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.vars.palette.divider,
-            },
-          }}
+          css={modelSelectStyles(theme)}
         >
           {availableModels.map((entry) => (
             <MenuItem
@@ -696,7 +715,7 @@ const AgentPanel: React.FC = () => {
           ))}
         </Select>
 
-        <Box sx={{ flex: 1 }} />
+        <div style={{ flex: 1 }} />
 
         <Tooltip title="Resume a previous session">
           <span>
@@ -752,7 +771,7 @@ const AgentPanel: React.FC = () => {
             </MenuItem>
           ))}
         </Menu>
-      </Box>
+      </div>
 
       <Dialog
         open={newSessionDialogOpen}
@@ -762,67 +781,51 @@ const AgentPanel: React.FC = () => {
       >
         <DialogTitle>New Agent Session</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Caption size="small" sx={{ mb: 2 }}>
             Choose provider, model, and workspace for this session.
-          </Typography>
+          </Caption>
 
-          <FormControl fullWidth size="small" css={dialogFieldStyles}>
-            <InputLabel id="agent-provider-label">Provider</InputLabel>
-            <Select
-              labelId="agent-provider-label"
-              value={draftProvider}
+          <div css={dialogFieldStyles}>
+            <SelectField
               label="Provider"
-              onChange={handleProviderSelectChange}
-            >
-              <MenuItem value="claude">Claude</MenuItem>
-              <MenuItem value="codex">Codex</MenuItem>
-              <MenuItem value="opencode">OpenCode</MenuItem>
-            </Select>
-          </FormControl>
+              value={draftProvider}
+              onChange={handleDraftProviderChange}
+              options={providerOptions}
+              size="small"
+              variant="outlined"
+            />
+          </div>
 
-          <FormControl fullWidth size="small" css={dialogFieldStyles}>
-            <InputLabel id="agent-model-label">Model</InputLabel>
-            <Select
-              labelId="agent-model-label"
-              value={draftModel}
+          <div css={dialogFieldStyles}>
+            <SelectField
               label="Model"
-              onChange={handleModelSelectChange}
+              value={draftModel}
+              onChange={handleDraftModelChange}
+              options={modelOptions}
               disabled={draftModelsLoading || draftModels.length === 0}
-            >
-              {draftModels.map((entry) => (
-                <MenuItem key={entry.id} value={entry.id}>
-                  {entry.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              size="small"
+              variant="outlined"
+            />
+          </div>
 
-          <FormControl fullWidth size="small" css={dialogFieldStyles}>
-            <InputLabel id="agent-workspace-label">Workspace</InputLabel>
-            <Select
-              labelId="agent-workspace-label"
-              value={draftWorkspaceId ?? ""}
+          <div css={dialogFieldStyles}>
+            <SelectField
               label="Workspace"
-              onChange={handleWorkspaceSelectChange}
-            >
-              <MenuItem value="">
-                <em>None</em>
-              </MenuItem>
-              {workspaces?.map((ws) => (
-                <MenuItem key={ws.id} value={ws.id}>
-                  {ws.path}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              value={draftWorkspaceId ?? ""}
+              onChange={handleWorkspaceChange}
+              options={workspaceOptions}
+              size="small"
+              variant="outlined"
+            />
+          </div>
 
           {draftModelsLoading && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
               <CircularProgress size={16} />
-              <Typography variant="caption" color="text.secondary">
+              <Caption size="smaller">
                 Loading {draftProviderLabel} models...
-              </Typography>
-            </Box>
+              </Caption>
+            </div>
           )}
         </DialogContent>
         <DialogActionButtons
@@ -847,7 +850,7 @@ const AgentPanel: React.FC = () => {
         onNewChat={handleNewChat}
         noMessagesPlaceholder={noMessagesPlaceholder}
       />
-    </Box>
+    </div>
   );
 };
 
