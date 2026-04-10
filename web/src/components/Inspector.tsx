@@ -372,7 +372,7 @@ const Inspector: React.FC = () => {
               <div className="namespace">{metadata.node_type}</div>
               {metadata.description && (
                 <CollapsibleSection
-                  title="Description"
+                  title={<Caption size="tiny" color="muted">Description</Caption>}
                   defaultOpen={false}
                   compact
                 >
