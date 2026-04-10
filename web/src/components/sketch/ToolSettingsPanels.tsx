@@ -1092,6 +1092,8 @@ interface TransformSettingsPanelProps {
   scaleX: number;
   scaleY: number;
   rotation: number;
+  autoSelect: boolean;
+  onAutoSelectChange: (enabled: boolean) => void;
   onCommit: () => void;
   onCancel: () => void;
   onReset: () => void;
@@ -1101,6 +1103,8 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
   scaleX,
   scaleY,
   rotation,
+  autoSelect,
+  onAutoSelectChange,
   onCommit,
   onCancel,
   onReset
@@ -1108,6 +1112,22 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
   const rotDeg = Math.round(((rotation * 180) / Math.PI) * 10) / 10;
   return (
     <>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={autoSelect}
+            onChange={(e) => onAutoSelectChange(e.target.checked)}
+            size="small"
+            sx={{ padding: "2px 4px" }}
+          />
+        }
+        label={
+          <Typography sx={{ ...SKETCH_FONT, fontSize: "0.75rem" }}>
+            Auto-Select
+          </Typography>
+        }
+        sx={{ mr: 2, ml: 0 }}
+      />
       <Box className="setting-row">
         <Typography className="setting-label">Scale X</Typography>
         <Typography className="setting-value">
@@ -1679,6 +1699,8 @@ export interface ToolSettingsPanelProps {
   onTransformCommit?: () => void;
   onTransformCancel?: () => void;
   onTransformReset?: () => void;
+  transformAutoSelect?: boolean;
+  onTransformAutoSelectChange?: (enabled: boolean) => void;
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
@@ -1730,6 +1752,8 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onTransformCommit,
   onTransformCancel,
   onTransformReset,
+  transformAutoSelect,
+  onTransformAutoSelectChange,
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
@@ -1848,6 +1872,8 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         scaleX={transformScaleX ?? 1}
         scaleY={transformScaleY ?? 1}
         rotation={transformRotation ?? 0}
+        autoSelect={transformAutoSelect ?? true}
+        onAutoSelectChange={onTransformAutoSelectChange ?? noop}
         onCommit={onTransformCommit ?? noop}
         onCancel={onTransformCancel ?? noop}
         onReset={onTransformReset ?? noop}

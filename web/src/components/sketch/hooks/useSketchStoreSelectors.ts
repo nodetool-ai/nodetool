@@ -28,7 +28,8 @@ import {
   DEFAULT_GRADIENT_SETTINGS,
   DEFAULT_CLONE_STAMP_SETTINGS,
   DEFAULT_SELECT_SETTINGS,
-  DEFAULT_SEGMENT_SETTINGS
+  DEFAULT_SEGMENT_SETTINGS,
+  DEFAULT_TRANSFORM_SETTINGS
 } from "../types";
 
 /**
@@ -71,7 +72,8 @@ export function useResolvedToolSettings() {
         ...liveToolSettings.cloneStamp
       },
       select: { ...DEFAULT_SELECT_SETTINGS, ...liveToolSettings.select },
-      segment: { ...DEFAULT_SEGMENT_SETTINGS, ...liveToolSettings.segment }
+      segment: { ...DEFAULT_SEGMENT_SETTINGS, ...liveToolSettings.segment },
+      transform: { ...DEFAULT_TRANSFORM_SETTINGS, ...liveToolSettings.transform }
     };
   }, [liveToolSettings]);
 }

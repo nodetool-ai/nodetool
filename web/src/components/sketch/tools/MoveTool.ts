@@ -251,6 +251,9 @@ export class MoveTool implements ToolHandler {
       });
     }
     this.refreshGizmo(ctx);
+    // Redraw the selection overlay so marching ants (if any) update to the
+    // committed layer position instead of staying at the pre-move position.
+    ctx.drawSelectionOverlay();
   }
 }
 
