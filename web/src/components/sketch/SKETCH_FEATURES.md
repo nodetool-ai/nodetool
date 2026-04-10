@@ -26,13 +26,7 @@ Task labels used below:
 
 `SketchEditor.tsx` is materially better after the subscription-splitting work, but it still concentrates bootstrap, tool-mode side effects, shell wiring, and editor-session orchestration in one place. Do these before piling more behavior into the editor shell.
 
-Completed refactor items (lifecycle hook, tool chrome, color router, store action bundles, URI resolution, tests) are archived in `SKETCH_FEATURES_DONE.md`.
-
-- [ ] [impl+test] isolate transient editor-session ownership across `SketchEditor.tsx`, `SketchCanvas.tsx`, transform preview state, canvas-resize-handle preference, segmentation side effects, and shell-only refs behind a dedicated session layer so future tools stop extending multiple session seams at once
-- [ ] [impl+test] unify displayed transform consumption for transform UI with the same transient preview owner used by compositing so `ConnectedToolTopBar` and `ConnectedContextMenu` stop depending on a parallel active-layer preview channel during drag
-- [ ] [impl] extract connected shell subscriber components (`ConnectedToolbar`, `ConnectedToolTopBar`, `ConnectedLayersPanel`, `ConnectedContextMenu`, `SketchCanvasPane`) into a dedicated editor-shell module so `SketchEditor.tsx` stops being both the editor root and the place where all shell/store subscriber wrappers live
-- [ ] [impl+test] extract an editor command-surface hook so keyboard-shortcut wiring, context-menu actions, segmentation bridge callbacks, free-transform entry, and imperative modal actions stop being assembled inline in `SketchEditor.tsx`; keep behavior identical and add focused regression coverage for the extracted command wiring
-- [ ] [impl+test] extract a transform-UI adapter hook so `ConnectedToolTopBar` and `ConnectedContextMenu` consume one shared transform display/action model instead of separately wiring transform scalars, preview-driven display state, and commit/cancel/reset callbacks through `SketchEditor.tsx`
+Completed refactor items (lifecycle hook, tool chrome, color router, store action bundles, URI resolution, preview-boundary tests, editor session layer, transform UI adapter, editor-shell module, command-surface hook, and related tests) are archived in `SKETCH_FEATURES_DONE.md`.
 
 ## Immediate `SketchCanvas.tsx` Refactor Candidates
 
