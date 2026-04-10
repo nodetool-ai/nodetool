@@ -495,7 +495,7 @@ const WorkspaceTree: React.FC = () => {
 
   const handleItemClick = useCallback(
     async (event: React.MouseEvent, itemId: string) => {
-      if (!workflowId) { return; }
+      if (!filesWorkspaceId) { return; }
 
       setSelectedFilePath(itemId);
       try {
@@ -503,7 +503,7 @@ const WorkspaceTree: React.FC = () => {
         if (shouldLoadChildren(targetItem)) {
           const relativePath = itemId || ".";
 
-          const children = await fetchWorkspaceFiles(filesWorkspaceId!, relativePath);
+          const children = await fetchWorkspaceFiles(filesWorkspaceId, relativePath);
           setFiles((currentFiles) =>
             updateTreeWithChildren(currentFiles, itemId, children)
           );
