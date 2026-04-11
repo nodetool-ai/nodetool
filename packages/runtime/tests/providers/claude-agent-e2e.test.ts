@@ -20,7 +20,8 @@ import type {
 const MODEL = "claude-sonnet-4-20250514";
 const TIMEOUT = 120_000;
 
-// Check if the SDK is available and API key is configured before running
+// Check if the SDK is available and auth is configured before running.
+// Auth can be either ANTHROPIC_API_KEY or an OAuth token (Claude subscription).
 let sdkAvailable = false;
 try {
   await import("@anthropic-ai/claude-agent-sdk");
@@ -28,9 +29,13 @@ try {
 } catch {
   // SDK not installed — tests will be skipped
 }
-const hasApiKey = Boolean(process.env.ANTHROPIC_API_KEY);
+const hasAuth =
+  Boolean(process.env.ANTHROPIC_API_KEY) ||
+  Boolean(process.env.CLAUDE_OAUTH_TOKEN);
+// The SDK refuses --dangerously-skip-permissions when running as root
+const isRoot = process.getuid?.() === 0;
 
-describe.skipIf(!sdkAvailable || !hasApiKey)(
+describe.skipIf(!sdkAvailable || !hasAuth || isRoot)(
   "ClaudeAgentProvider E2E (MCP)",
   () => {
     it(
