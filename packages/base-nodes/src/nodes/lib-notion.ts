@@ -363,6 +363,15 @@ export class NotionCreatePageLibNode extends BaseNode {
 
   @prop({
     type: "str",
+    default: "Name",
+    title: "Title Property",
+    description:
+      "Name of the database title column (default: Name). Only used for database parents."
+  })
+  declare title_property: any;
+
+  @prop({
+    type: "str",
     default: "",
     title: "Properties JSON",
     description:
@@ -383,6 +392,7 @@ export class NotionCreatePageLibNode extends BaseNode {
     const parentId = String(this.parent_id ?? "").trim();
     const parentType = String(this.parent_type ?? "database_id");
     const title = String(this.title ?? "");
+    const titleProperty = String(this.title_property ?? "Name") || "Name";
     const propertiesJsonStr = String(this.properties_json ?? "");
     const contentJsonStr = String(this.content_json ?? "");
 
@@ -407,32 +417,15 @@ export class NotionCreatePageLibNode extends BaseNode {
     };
 
     if (title) {
-      properties.title = [
-        {
-          text: {
-            content: title
-          }
-        }
-      ];
-
-      if (parentType === "database_id" && !extraProperties) {
-        properties.Name = {
+      if (parentType === "database_id") {
+        // Database parents require the title under the actual column name
+        properties[titleProperty] = {
           title: [{ text: { content: title } }]
         };
+      } else {
+        // Page parents use the raw title property
+        properties.title = [{ text: { content: title } }];
       }
-    }
-
-    // For database parents, wrap title in the "Name" property if not already set
-    if (parentType === "database_id" && title && !properties.Name) {
-      properties.Name = {
-        title: [{ text: { content: title } }]
-      };
-      delete properties.title;
-    }
-
-    // For page parents, use the title property directly
-    if (parentType === "page_id" && title) {
-      properties.title = [{ text: { content: title } }];
     }
 
     const body: Record<string, unknown> = {
