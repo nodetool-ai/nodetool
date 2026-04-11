@@ -19,6 +19,59 @@ function getNotionToken(secrets: Record<string, string>): string {
   return token;
 }
 
+/**
+ * Fetch all children of a block, following pagination cursors.
+ * Recursively fetches children of blocks that have_children.
+ */
+async function fetchAllChildren(
+  blockId: string,
+  token: string,
+  pageSize: number,
+  maxDepth = 3
+): Promise<Record<string, unknown>[]> {
+  const allBlocks: Record<string, unknown>[] = [];
+  let cursor: string | undefined;
+  do {
+    const params = new URLSearchParams({
+      page_size: String(pageSize)
+    });
+    if (cursor) params.set("start_cursor", cursor);
+
+    const res = await fetch(
+      `https://api.notion.com/v1/blocks/${blockId}/children?${params}`,
+      { method: "GET", headers: notionHeaders(token) }
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        `Notion get page content failed (${res.status}): ${text}`
+      );
+    }
+    const data = (await res.json()) as {
+      results: Record<string, unknown>[];
+      has_more: boolean;
+      next_cursor: string | null;
+    };
+    const blocks = data.results ?? [];
+
+    for (const block of blocks) {
+      allBlocks.push(block);
+      if (maxDepth > 0 && block.has_children) {
+        const children = await fetchAllChildren(
+          block.id as string,
+          token,
+          pageSize,
+          maxDepth - 1
+        );
+        (block as Record<string, unknown>).children = children;
+      }
+    }
+
+    cursor = data.has_more ? (data.next_cursor ?? undefined) : undefined;
+  } while (cursor);
+  return allBlocks;
+}
+
 function parseJsonProp(value: string, label: string): unknown {
   const trimmed = (value ?? "").trim();
   if (!trimmed) return undefined;
@@ -268,23 +321,7 @@ export class NotionGetPageContentLibNode extends BaseNode {
 
     if (!pageId) throw new Error("page_id is required");
 
-    const res = await fetch(
-      `https://api.notion.com/v1/blocks/${pageId}/children?page_size=${pageSize}`,
-      {
-        method: "GET",
-        headers: notionHeaders(token)
-      }
-    );
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(
-        `Notion get page content failed (${res.status}): ${text}`
-      );
-    }
-
-    const data = (await res.json()) as { results: Record<string, unknown>[] };
-    const blocks = data.results ?? [];
+    const blocks = await fetchAllChildren(pageId, token, pageSize);
 
     return { block: blocks[0] ?? {}, blocks };
   }
@@ -296,23 +333,7 @@ export class NotionGetPageContentLibNode extends BaseNode {
 
     if (!pageId) throw new Error("page_id is required");
 
-    const res = await fetch(
-      `https://api.notion.com/v1/blocks/${pageId}/children?page_size=${pageSize}`,
-      {
-        method: "GET",
-        headers: notionHeaders(token)
-      }
-    );
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(
-        `Notion get page content failed (${res.status}): ${text}`
-      );
-    }
-
-    const data = (await res.json()) as { results: Record<string, unknown>[] };
-    const blocks = data.results ?? [];
+    const blocks = await fetchAllChildren(pageId, token, pageSize);
 
     for (const block of blocks) {
       yield { block };

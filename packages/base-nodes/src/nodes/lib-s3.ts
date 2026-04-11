@@ -467,7 +467,7 @@ export class S3CopyObjectLibNode extends BaseNode {
       new CopyObjectCommand({
         Bucket: destBucket,
         Key: destKey,
-        CopySource: `${sourceBucket}/${sourceKey}`
+        CopySource: `${sourceBucket}/${encodeURIComponent(sourceKey)}`
       })
     );
     return { output: true };

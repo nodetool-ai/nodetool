@@ -466,7 +466,7 @@ export class TwilioLookupLibNode extends BaseNode {
     if (!sid) throw new Error("Twilio Account SID is required");
     if (!token) throw new Error("Twilio Auth Token is required");
 
-    const url = `https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(phoneNumber)}`;
+    const url = `https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(phoneNumber)}?Fields=caller_name,line_type_intelligence`;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TWILIO_TIMEOUT);
