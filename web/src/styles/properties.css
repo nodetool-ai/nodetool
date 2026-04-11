@@ -24,15 +24,20 @@
   margin-top: 2px;
 }
 
-/* Connected properties: keep height consistent with unconnected inputs
-   and align badge text center (~7px) with handle center (top: 5px + margin 2px). */
-.node-property:has(.connected-badge) {
-  min-height: 28px;
+/* Connected property: label left, link icon right, single row */
+.node-property .connected {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
 }
-.node-property .connected-badge {
-  margin-top: 0;
-  padding-top: 0;
-  padding-bottom: 2px;
+.node-property .connected .property-label {
+  flex: 1;
+  margin: 0;
+}
+.node-property .connected .connected-badge {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .node-editor .node-output {

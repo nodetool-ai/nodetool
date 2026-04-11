@@ -99,15 +99,13 @@ const StringProperty = ({
 
   if (isConnected) {
     return (
-      <div className="string-property" css={propertyStyles}>
-        <div className="property-row">
-          <PropertyLabel
-            name={property.name}
-            description={property.description}
-            id={id}
-          />
-          <ConnectedBadge />
-        </div>
+      <div className="string-property connected">
+        <PropertyLabel
+          name={property.name}
+          description={property.description}
+          id={id}
+        />
+        <ConnectedBadge />
       </div>
     );
   }

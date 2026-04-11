@@ -115,7 +115,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
 
   if (isConnected) {
     return (
-      <div>
+      <div className="connected">
         <PropertyLabel
           name={property.name}
           description={property.description}

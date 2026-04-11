@@ -174,6 +174,19 @@ const ModelProperty = (props: PropertyProps) => {
     return null;
   }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask]);
 
+  if (isConnected) {
+    return (
+      <div className={`model-property ${modelClass} connected`} css={styles(theme)}>
+        <PropertyLabel
+          name={props.property.name}
+          description={props.property.description}
+          id={id}
+        />
+        <ConnectedBadge />
+      </div>
+    );
+  }
+
   return (
     <div className={`model-property ${modelClass}`} css={styles(theme)}>
       <PropertyLabel
@@ -181,7 +194,7 @@ const ModelProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {isConnected ? <ConnectedBadge /> : modelSelectComponent}
+      {modelSelectComponent}
     </div>
   );
 };

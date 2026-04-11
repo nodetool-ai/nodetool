@@ -4,15 +4,11 @@ import { memo } from "react";
 import LinkIcon from "@mui/icons-material/Link";
 import { useTheme } from "@mui/material/styles";
 
-interface ConnectedBadgeProps {
-  sourceName?: string;
-}
-
 /**
- * Small badge displayed when a property input is connected to another node.
- * Shows a link icon with optional source node name.
+ * Small icon badge displayed when a property input is connected to another node.
+ * Shows only a link icon to indicate connection status.
  */
-const ConnectedBadge: React.FC<ConnectedBadgeProps> = ({ sourceName }) => {
+const ConnectedBadge: React.FC = () => {
   const theme = useTheme();
 
   return (
@@ -21,21 +17,16 @@ const ConnectedBadge: React.FC<ConnectedBadgeProps> = ({ sourceName }) => {
       css={css({
         display: "inline-flex",
         alignItems: "center",
-        gap: "3px",
-        padding: "1px 6px",
-        borderRadius: "3px",
-        backgroundColor: theme.vars.palette.action.hover,
+        justifyContent: "center",
+        flexShrink: 0,
         color: theme.vars.palette.text.secondary,
-        fontSize: theme.fontSizeSmaller,
-        lineHeight: 1.4,
         userSelect: "none",
         "& svg": {
-          fontSize: "0.8rem",
+          fontSize: "0.85rem",
         },
       })}
     >
       <LinkIcon />
-      <span>{sourceName || "Connected"}</span>
     </div>
   );
 };

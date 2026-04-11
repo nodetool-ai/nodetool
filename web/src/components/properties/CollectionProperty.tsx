@@ -40,6 +40,19 @@ const CollectionProperty = (props: PropertyProps) => {
     );
   }, [data]);
 
+  if (isConnected) {
+    return (
+      <div className="connected">
+        <PropertyLabel
+          name={props.property.name}
+          description={props.property.description}
+          id={id}
+        />
+        <ConnectedBadge />
+      </div>
+    );
+  }
+
   return (
     <>
       <PropertyLabel
@@ -49,19 +62,15 @@ const CollectionProperty = (props: PropertyProps) => {
       />
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
-      {isConnected ? (
-        <ConnectedBadge />
-      ) : (
-        <Select
-          value={selectValue}
-          options={options}
-          onChange={(newValue) =>
-            props.onChange({ type: "collection", name: newValue })
-          }
-          placeholder="Select collection..."
-          label={props.property.name}
-        />
-      )}
+      <Select
+        value={selectValue}
+        options={options}
+        onChange={(newValue) =>
+          props.onChange({ type: "collection", name: newValue })
+        }
+        placeholder="Select collection..."
+        label={props.property.name}
+      />
     </>
   );
 };

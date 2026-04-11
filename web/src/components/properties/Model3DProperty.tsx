@@ -196,6 +196,19 @@ const Model3DProperty = (props: PropertyProps) => {
     setOpenViewer(false);
   }, []);
 
+  if (isConnected) {
+    return (
+      <div className="model3d-property connected" css={styles(theme)}>
+        <PropertyLabel
+          name={props.property.name}
+          description={props.property.description}
+          id={id}
+        />
+        <ConnectedBadge />
+      </div>
+    );
+  }
+
   return (
     <div className="model3d-property" css={styles(theme)}>
       <PropertyLabel
@@ -203,9 +216,7 @@ const Model3DProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {isConnected && <ConnectedBadge />}
-      {!isConnected && (
-        <div className="drop-container">
+      <div className="drop-container">
           {showUrlInput && (
             <TextField
               className="url-input nowheel nodrag"
@@ -264,7 +275,6 @@ const Model3DProperty = (props: PropertyProps) => {
             onClose={handleCloseViewer}
           />
         </div>
-      )}
     </div>
   );
 };
