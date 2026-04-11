@@ -219,18 +219,16 @@ describe("lib.convert.ConvertToMarkdown", () => {
         data: "<h1>Hello</h1><p>World with <strong>bold</strong> text</p>"
       }
     }).process();
-    const output = result.output as { type: string; uri: string; data: string };
-    expect(output.type).toBe("document");
-    expect(output.data).toContain("Hello");
-    expect(output.data).toContain("**bold**");
+    const output = result.output as string;
+    expect(output).toContain("Hello");
+    expect(output).toContain("**bold**");
   });
 
   it("returns plain text data as-is", async () => {
     const result = await new ConvertToMarkdownLibNode({
       document: { uri: "", data: "Just plain text, no HTML." }
     }).process();
-    const output = result.output as { type: string; data: string };
-    expect(output.data).toBe("Just plain text, no HTML.");
+    expect(result.output).toBe("Just plain text, no HTML.");
   });
 
   it("throws when no input is provided", async () => {

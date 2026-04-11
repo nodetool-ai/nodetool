@@ -49,7 +49,7 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly description =
     "Converts various document formats to markdown.\n    markdown, convert, document, pdf, docx, html, bytes\n\n    Accepts document refs, raw bytes (from DownloadFile), or text.\n    Auto-detects PDF and DOCX from binary content.";
   static readonly metadataOutputTypes = {
-    output: "document"
+    output: "str"
   };
   static readonly exposeAsTool = true;
 
@@ -81,20 +81,20 @@ export class ConvertToMarkdownLibNode extends BaseNode {
     // Auto-detect binary formats from bytes
     if (bytes && bytes.length > 0) {
       if (isPdfBuffer(bytes)) {
-        return { output: { type: "document", uri, data: await pdfToMarkdown(bytes) } };
+        return { output: await pdfToMarkdown(bytes) };
       }
       if (isDocxBuffer(bytes) || uri.toLowerCase().endsWith(".docx")) {
         const mammoth = await import("mammoth");
         const result = await mammoth.convertToHtml({ buffer: bytes });
         const markdown = turndown.turndown(result.value);
-        return { output: { type: "document", uri, data: markdown } };
+        return { output: markdown };
       }
       // Try as text
       const text = bytes.toString("utf-8");
       if (text.includes("<") && text.includes(">")) {
-        return { output: { type: "document", uri, data: turndown.turndown(text) } };
+        return { output: turndown.turndown(text) };
       }
-      return { output: { type: "document", uri, data: text } };
+      return { output: text };
     }
 
     // Handle string input (HTML or plain text)
@@ -104,9 +104,9 @@ export class ConvertToMarkdownLibNode extends BaseNode {
 
     if (textData) {
       if (textData.includes("<") && textData.includes(">")) {
-        return { output: { type: "document", uri, data: turndown.turndown(textData) } };
+        return { output: turndown.turndown(textData) };
       }
-      return { output: { type: "document", uri, data: textData } };
+      return { output: textData };
     }
 
     // Try URI-based loading
@@ -128,18 +128,18 @@ export class ConvertToMarkdownLibNode extends BaseNode {
 
       if (fileBytes) {
         if (isPdfBuffer(fileBytes)) {
-          return { output: { type: "document", uri, data: await pdfToMarkdown(fileBytes) } };
+          return { output: await pdfToMarkdown(fileBytes) };
         }
         if (isDocxBuffer(fileBytes) || uri.toLowerCase().endsWith(".docx")) {
           const mammoth = await import("mammoth");
           const result = await mammoth.convertToHtml({ buffer: fileBytes });
-          return { output: { type: "document", uri, data: turndown.turndown(result.value) } };
+          return { output: turndown.turndown(result.value) };
         }
         const content = fileBytes.toString("utf-8");
         if (content.includes("<") && content.includes(">")) {
-          return { output: { type: "document", uri, data: turndown.turndown(content) } };
+          return { output: turndown.turndown(content) };
         }
-        return { output: { type: "document", uri, data: content } };
+        return { output: content };
       }
     }
 

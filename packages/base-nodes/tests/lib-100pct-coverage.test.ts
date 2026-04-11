@@ -985,10 +985,10 @@ describe("lib-markitdown coverage", () => {
     const result = await new ConvertToMarkdownLibNode({
       document: { uri: htmlPath, data: "" }
     }).process();
-    const output = result.output as { data: string };
-    expect(typeof output.data).toBe("string");
-    expect(output.data.length).toBeGreaterThan(0);
-    expect(output.data).toContain("Hello");
+    const output = result.output as string;
+    expect(typeof output).toBe("string");
+    expect(output.length).toBeGreaterThan(0);
+    expect(output).toContain("Hello");
   });
 
   it("ConvertToMarkdown with non-DOCX URI (file read, plain text)", async () => {
@@ -999,7 +999,6 @@ describe("lib-markitdown coverage", () => {
     const result = await new ConvertToMarkdownLibNode({
       document: { uri: txtPath, data: "" }
     }).process();
-    const output = result.output as { data: string };
-    expect(output.data).toContain("Just plain text");
+    expect(result.output).toContain("Just plain text");
   });
 });
