@@ -15,12 +15,14 @@
 import type { ToolContext } from "../types";
 import type { Point, LayerTransform, LayerContentBounds } from "../../types";
 import type { TransformHandle } from "./handleGeometry";
-import { hitTestHandles } from "./handleGeometry";
+import { hitTestHandles, isInRotateZone } from "./handleGeometry";
 import { cursorForHandle } from "./cursorMapping";
 
 /**
  * Hit-test transform handles and return cursor + handle info for a given
- * document-space point.
+ * document-space point. Includes the outside-box rotate zone: if the point
+ * misses all handles and the box interior but falls within the rotate
+ * margin, handle is reported as `"rotate"`.
  *
  * @returns Object with `handle` (which handle, or null) and `cursor` (CSS cursor, or null).
  */
@@ -32,8 +34,14 @@ export function getTransformHoverInfo(
 ): { handle: TransformHandle | null; cursor: string | null } {
   const handle = hitTestHandles(transform, rasterBounds, docPoint, zoom);
   const rot = transform.rotation ?? 0;
-  const cursor = handle ? cursorForHandle(handle, rot) : null;
-  return { handle, cursor };
+  if (handle) {
+    return { handle, cursor: cursorForHandle(handle, rot) };
+  }
+  // Check the outside-box rotate zone
+  if (isInRotateZone(transform, rasterBounds, docPoint, zoom)) {
+    return { handle: "rotate", cursor: cursorForHandle("rotate", rot) };
+  }
+  return { handle: null, cursor: null };
 }
 
 /**

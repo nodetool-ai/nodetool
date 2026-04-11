@@ -50,27 +50,52 @@ export function computeMoveTransform(
  * @param dragStartTransform  Transform at the start of the drag.
  * @param dragStart           Pointer position at drag start (document space).
  * @param cursor              Current pointer position (document space).
- * @param center              Layer center in document space.
+ * @param pivot               Rotation pivot point (document space). Usually the
+ *   layer center, but may be a user-placed pivot handle position.
  * @param shift               Whether Shift is held (snap to 15° increments).
+ * @param layerCenter         Original layer center (document space). When
+ *   provided and different from `pivot`, the layer orbits the pivot so the
+ *   center follows a circular arc. Omit when pivot === layer center.
  */
 export function computeRotateTransform(
   dragStartTransform: LayerTransform,
   dragStart: Point,
   cursor: Point,
-  center: Point,
-  shift: boolean
+  pivot: Point,
+  shift: boolean,
+  layerCenter?: Point
 ): LayerTransform {
   const rot = dragStartTransform.rotation ?? 0;
   const angleStart = Math.atan2(
-    dragStart.y - center.y,
-    dragStart.x - center.x
+    dragStart.y - pivot.y,
+    dragStart.x - pivot.x
   );
-  const angleCursor = Math.atan2(cursor.y - center.y, cursor.x - center.x);
-  let newRot = rot + (angleCursor - angleStart);
+  const angleCursor = Math.atan2(cursor.y - pivot.y, cursor.x - pivot.x);
+  let deltaAngle = angleCursor - angleStart;
+  let newRot = rot + deltaAngle;
   if (shift) {
     newRot = snapAngle(newRot);
+    // Recalculate delta after snapping so the orbit stays consistent
+    deltaAngle = newRot - rot;
   }
-  return ensureTransformMatrix({ ...dragStartTransform, rotation: newRot });
+
+  const result: LayerTransform = { ...dragStartTransform, rotation: newRot };
+
+  // If the pivot differs from the layer center, adjust translation so the
+  // layer orbits the pivot (center follows a circular arc around the pivot).
+  if (layerCenter) {
+    const orbited = rotatePoint(
+      layerCenter.x,
+      layerCenter.y,
+      pivot.x,
+      pivot.y,
+      deltaAngle
+    );
+    result.x = Math.round(dragStartTransform.x + (orbited.x - layerCenter.x));
+    result.y = Math.round(dragStartTransform.y + (orbited.y - layerCenter.y));
+  }
+
+  return ensureTransformMatrix(result);
 }
 
 // ─── Scale computation ───────────────────────────────────────────────────────
@@ -242,6 +267,10 @@ export function computeScaleTransform(
 /**
  * Compute a new transform for any handle type. This is the single entry
  * point that TransformTool.ts should call during a drag gesture.
+ *
+ * @param layerCenter  Original layer center (document space). Only needed
+ *   when `center` is a custom pivot (different from the layer center) and
+ *   `handle` is `"rotate"`. When provided, the layer orbits the pivot.
  */
 export function computeTransformForHandle(
   handle: TransformHandle,
@@ -251,7 +280,8 @@ export function computeTransformForHandle(
   center: Point,
   rasterBounds: LayerContentBounds,
   shift: boolean,
-  alt: boolean
+  alt: boolean,
+  layerCenter?: Point
 ): LayerTransform {
   if (handle === "move") {
     return computeMoveTransform(dragStartTransform, dragStart, cursor);
@@ -262,7 +292,8 @@ export function computeTransformForHandle(
       dragStart,
       cursor,
       center,
-      shift
+      shift,
+      layerCenter
     );
   }
   return computeScaleTransform(

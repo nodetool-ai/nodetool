@@ -235,7 +235,7 @@ describe("Task 1: Unified preview ownership", () => {
     expect(session.isActive()).toBe(false);
 
     // Click inside the bounding box (center of a 64x64 layer = 32, 32)
-    const started = tool.onDown!(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
+    const started = tool.onDown!(ctx, makePointerEvent({ point: { x: 15, y: 15 } }));
     if (started) {
       expect(session.isActive()).toBe(true);
     }
@@ -249,7 +249,7 @@ describe("Task 1: Unified preview ownership", () => {
     const ctx = makeMockCtx({ layers: [layer] });
     tool.onActivate!(ctx);
 
-    const started = tool.onDown!(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
+    const started = tool.onDown!(ctx, makePointerEvent({ point: { x: 15, y: 15 } }));
     if (started) {
       tool.onUp!(ctx);
 
@@ -311,7 +311,7 @@ describe("Task 1: Unified preview ownership", () => {
     tool.onActivate!(ctx);
 
     // Start a drag
-    tool.onDown!(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
+    tool.onDown!(ctx, makePointerEvent({ point: { x: 15, y: 15 } }));
     const session = tool.getPreviewSession();
     expect(session.isActive()).toBe(true);
 

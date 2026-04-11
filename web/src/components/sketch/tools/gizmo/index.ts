@@ -14,6 +14,10 @@ export {
   HANDLE_HIT_RADIUS,
   ROTATION_HANDLE_OFFSET,
   ROTATION_HANDLE_RADIUS_FACTOR,
+  OUTSIDE_ROTATE_MARGIN,
+  PIVOT_CROSSHAIR_SIZE,
+  PIVOT_HIT_RADIUS,
+  PIVOT_SNAP_DISTANCE,
   GIZMO_PRIMARY_COLOR,
   GIZMO_PRIMARY_SEMI,
   GIZMO_PRIMARY_FAINT,
@@ -36,6 +40,7 @@ export {
   drawBoundingBox,
   drawSquareHandle,
   drawRotationHandle,
+  drawPivotHandle,
   drawTransformGizmo,
   drawOffCanvasIndicator,
   drawCropOverlay

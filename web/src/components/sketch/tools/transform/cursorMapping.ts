@@ -28,6 +28,9 @@ export function cursorForHandle(
   if (handle === "rotate") {
     return "grab";
   }
+  if (handle === "pivot") {
+    return "crosshair";
+  }
   // For scale handles, pick a directional resize cursor rotated by the layer rotation
   const baseDeg: Partial<Record<TransformHandle, number>> = {
     top: 0,

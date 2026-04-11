@@ -55,6 +55,9 @@ import {
 import {
   type TransformHandle,
   hitTestHandles,
+  isInRotateZone,
+  hitTestPivot,
+  snapPivotToAnchor,
   computeTransformForHandle
 } from "./transform";
 import {
@@ -102,6 +105,14 @@ export class TransformTool implements ToolHandler {
   /** Batched gizmo redraw scheduler. */
   private gizmoScheduler = new GizmoRedrawScheduler();
 
+  // ── Pivot state ───────────────────────────────────────────────────────────
+  /**
+   * Custom pivot position in document space. `null` means "use layer center"
+   * (the default). Set by dragging the pivot crosshair on the gizmo.
+   * Reset when the tool is activated/deactivated.
+   */
+  private pivotPoint: Point | null = null;
+
   // ── Transform target set ──────────────────────────────────────────────────
   /** Set of layers targeted for transform (separate from layers-panel multi-select). */
   private readonly targetSet = new TransformTargetSet();
@@ -144,6 +155,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
+    this.pivotPoint = null;
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
     this.drawGizmo(ctx);
@@ -153,6 +165,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.gestureActive = false;
+    this.pivotPoint = null;
     this.session.clear(ctx);
     this.targetSet.clear();
     this.adjustmentUndoStack = [];
@@ -183,23 +196,45 @@ export class TransformTool implements ToolHandler {
     const currentTransform = this.session.isActive()
       ? this.session.state.currentTransform
       : layer.transform;
-    const handle = hitTestHandles(
+
+    // 1. Check edge/corner/rotation handles first (highest geometric priority)
+    let handle = hitTestHandles(
       currentTransform,
       this.rasterBounds,
       pt,
       ctx.zoom
     );
 
-    // If the click misses the gizmo, try auto-select targeting
+    // 2. If the standard hit test returned "move" (inside box), check whether
+    //    the click is on the pivot crosshair — pivot grab takes priority
+    //    over move drag when directly on the crosshair.
+    if (handle === "move") {
+      const pivotDoc = this.getEffectivePivot(currentTransform);
+      if (hitTestPivot(pivotDoc, pt, ctx.zoom)) {
+        this.activeHandle = "pivot";
+        this.dragStart = pt;
+        this.dragStartTransform = { ...currentTransform };
+        return true;
+      }
+    }
+
+    // 3. If the click misses the gizmo, try auto-select targeting first,
+    //    then fall back to outside-box rotation zone.
     if (!handle) {
-      // Read auto-select from the store's toolSettings for the freshest value
-      // since ctx.doc may be a stale snapshot.
       const storeSettings = useSketchStore.getState().toolSettings;
       const autoSelect = storeSettings?.transform?.autoSelect ?? true;
       if (autoSelect) {
-        return this.handleAutoSelectClick(ctx, event);
+        const picked = this.tryAutoSelectPick(ctx, event);
+        if (picked) {
+          return false; // Layer retargeted, no drag started
+        }
       }
-      return false;
+      // No handle hit and no auto-select pick — check the rotate zone.
+      if (isInRotateZone(currentTransform, this.rasterBounds, pt, ctx.zoom)) {
+        handle = "rotate";
+      } else {
+        return false;
+      }
     }
 
     this.activeHandle = handle;
@@ -220,6 +255,22 @@ export class TransformTool implements ToolHandler {
       return;
     }
     const pt = event.point;
+
+    // Pivot drag: reposition the pivot, don't transform the layer.
+    if (this.activeHandle === "pivot") {
+      const currentTransform = this.session.isActive()
+        ? this.session.state.currentTransform
+        : this.dragStartTransform;
+      this.pivotPoint = snapPivotToAnchor(
+        pt,
+        currentTransform,
+        this.rasterBounds,
+        ctx.zoom
+      );
+      this.gizmoScheduler.scheduleRedraw(() => this.drawGizmo(ctx));
+      return;
+    }
+
     const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (!layer) {
       return;
@@ -227,15 +278,26 @@ export class TransformTool implements ToolHandler {
 
     const shift = ctx.shiftHeldRef.current;
     const alt = ctx.altHeldRef.current;
+    // Use the pivot as the rotation center when set; fall back to layer center.
+    const rotationCenter = this.activeHandle === "rotate"
+      ? this.getEffectivePivot(this.dragStartTransform)
+      : this.center;
+    // When the pivot is not the layer center, pass the layer center so
+    // computeRotateTransform can compute the orbital translation.
+    const layerCenter =
+      this.activeHandle === "rotate" && this.pivotPoint
+        ? this.center
+        : undefined;
     const newTransform = computeTransformForHandle(
       this.activeHandle,
       this.dragStartTransform,
       this.dragStart,
       pt,
-      this.center,
+      rotationCenter,
       this.rasterBounds,
       shift,
-      alt
+      alt,
+      layerCenter
     );
     // Update through the shared preview session — writes to both compositing
     // pipeline and the UI singleton in one call.
@@ -246,6 +308,15 @@ export class TransformTool implements ToolHandler {
   }
 
   onUp(ctx: ToolContext): void {
+    // Pivot drag ends without committing a transform — just redraw the gizmo
+    // at the new pivot position.
+    if (this.activeHandle === "pivot") {
+      this.activeHandle = null;
+      this.dragStart = null;
+      this.drawGizmo(ctx);
+      return;
+    }
+
     // Capture the final transform before commit clears the active flag so
     // the gizmo can draw at the correct position even though ctx.doc is stale.
     const committedTransform = this.session.isActive()
@@ -272,11 +343,14 @@ export class TransformTool implements ToolHandler {
   // ── Auto-select targeting ─────────────────────────────────────────────────
 
   /**
-   * Handle a click that missed the gizmo when auto-select is enabled.
-   * Picks the topmost visible transformable layer at the click point and
-   * either replaces or toggles it in the target set based on Shift state.
+   * Try to pick and target the topmost visible transformable layer at the
+   * click point. Returns `true` if a layer was successfully picked and
+   * targeted, `false` if no layer was found under the pointer.
+   *
+   * When Shift is held, the picked layer is toggled in the target set
+   * rather than replacing it.
    */
-  private handleAutoSelectClick(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
+  private tryAutoSelectPick(ctx: ToolContext, event: ToolPointerEvent): boolean {
     const { doc } = ctx;
     const pt = event.point;
     const shift = event.nativeEvent.shiftKey;
@@ -320,7 +394,7 @@ export class TransformTool implements ToolHandler {
     };
 
     this.drawGizmo(ctx);
-    return false; // Don't start a drag, just retarget
+    return true;
   }
 
   // ── Public API (for settings panel commit/cancel/reset) ────────────────────
@@ -430,6 +504,15 @@ export class TransformTool implements ToolHandler {
       ? this.session.state.currentTransform
       : layer.transform;
     const info = getTransformHoverInfo(docPoint, transform, this.rasterBounds, ctx.zoom);
+    // When hovering inside the box ("move"), check pivot — pivot cursor
+    // takes priority when directly over the crosshair.
+    if (info.handle === "move") {
+      const pivotDoc = this.getEffectivePivot(transform);
+      if (hitTestPivot(pivotDoc, docPoint, ctx.zoom)) {
+        this.hoveredHandle = "pivot";
+        return "crosshair";
+      }
+    }
     this.hoveredHandle = info.handle;
     return info.cursor;
   }
@@ -442,6 +525,27 @@ export class TransformTool implements ToolHandler {
   onHoverMove(ctx: ToolContext, event: ToolPointerEvent): void {
     const cursor = this.getHoverCursor(ctx, event.point);
     applyCursorFeedback(ctx, cursor);
+  }
+
+  // ── Pivot helpers ──────────────────────────────────────────────────────────
+
+  /**
+   * Get the effective pivot point in document space. Returns the custom
+   * pivot if set, otherwise the layer center computed from the transform
+   * and raster bounds.
+   */
+  private getEffectivePivot(transform: LayerTransform): Point {
+    return this.pivotPoint ?? getTransformedCenter(transform, this.rasterBounds);
+  }
+
+  /** Get the current pivot point (for external consumers / UI). */
+  getPivotPoint(): Point | null {
+    return this.pivotPoint ? { ...this.pivotPoint } : null;
+  }
+
+  /** Reset the pivot to the layer center (null = default). */
+  resetPivot(): void {
+    this.pivotPoint = null;
   }
 
   // ── Gizmo drawing ─────────────────────────────────────────────────────────
@@ -467,7 +571,8 @@ export class TransformTool implements ToolHandler {
       ? this.session.state.currentTransform
       : overrideTransform ?? layer.transform;
     const hoveredHandle = this.activeHandle ?? this.hoveredHandle;
-    paintTransformGizmo(ctx, transform, this.rasterBounds, hoveredHandle);
+    const pivotDoc = this.pivotPoint ?? null;
+    paintTransformGizmo(ctx, transform, this.rasterBounds, hoveredHandle, pivotDoc);
   }
 }
 

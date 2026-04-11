@@ -1,7 +1,7 @@
 # Sketch Editor Roadmap
 
-> **Status**: the transform-aware foundation is in place; Phase 1 helper-tool / UX items and many transform foundations are shipped (see `SKETCH_FEATURES_DONE.md`). Next focus: move/transform consolidation, editor session seams, then transform-advanced modes and later phases.
-> **Last updated**: 2026-04-10
+> **Status**: the transform-aware foundation is in place; Phase 1 helper-tool / UX items and many transform foundations are shipped (see `SKETCH_FEATURES_DONE.md`). Current Tasks, SketchCanvas refactor, display/interaction core, and move/transform hardening sections are fully complete. Next focus: advanced transform modes (2.3), selection-context-menu fixes (2.4), then later phases.
+> **Last updated**: 2026-04-11
 > **Execution note**: this is the active sketch roadmap/backlog. Completed checklists are archived in `SKETCH_FEATURES_DONE.md`. `REFACTOR-SKETCH-APP.md` is supporting context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
 
 ## Principles
@@ -23,6 +23,8 @@ Task labels used below:
 - `[test-first]` write the proving test first, then fix code if the test exposes a gap
 
 ## Current Tasks
+
+**All items complete.** Archive to `SKETCH_FEATURES_DONE.md` when convenient.
 - [x] [CHECK] fix MoveTool and TransformTool gizmo size: gizmo should be sized by layer pixel bounds, currently always canvas sized. mask also holds the second last position after moving is done! so when movig stops it should update.
 - [x] fix gizmo showing second-to-last position after MoveTool and TransformTool ends: capture committed transform before session.commit() clears active flag, use it for the post-commit gizmo draw
 - [x] improve auto-select for TransformTool: read toolSettings from store instead of stale ctx.doc snapshot for reliable auto-select toggle
@@ -36,6 +38,8 @@ Completed refactor items (lifecycle hook, tool chrome, color router, store actio
 
 ## Immediate `SketchCanvas.tsx` Refactor Candidates
 
+**All items complete.** Archive to `SKETCH_FEATURES_DONE.md` when convenient.
+
 `SketchCanvas.tsx` is much smaller than before, but it still mixes transient preview ownership, hook-bridge setup, and canvas chrome/layout in one place. Keep this refactor narrow and only extract seams that already want to exist.
 
 - [x] [impl+test] extract a dedicated transform-preview bridge from `SketchCanvas.tsx` so preview-map ownership, active-layer preview bridging, redraw/invalidate policy, and startup texture invalidation stop living inline beside compositing and pointer wiring. this should line up with the editor task to remove the parallel preview channel used by transform UI
@@ -47,6 +51,8 @@ Completed refactor items (lifecycle hook, tool chrome, color router, store actio
 Shipped backlog for this section (startup transform preview bug, selection mask CPU path + invert fix, store subscription hardening, selection performance plan notes) lives in `SKETCH_FEATURES_DONE.md`. Medium/long-term selection-mask GPU ideas are listed there for when profiling warrants them.
 
 ## TOP PRIORITY - DISPLAY / INTERACTION CORE
+
+**All items complete.** Archive to `SKETCH_FEATURES_DONE.md` when convenient.
 
 Treat this as the shared seam behind startup paint, transform preview, buffered-stroke visibility, and runtime/bootstrap display updates. Keep it narrow: centralize the contract for "a visual change becomes visible" without building a broad new interaction framework.
 Current diagnostic clue: on a freshly opened editor, move/transform preview and click-only brush taps can fail while a real dragged stroke succeeds and then "unlocks" later preview/tap behavior for the session. treat this as evidence that the shared startup redraw / pending-commit / display-target seam is dropping first interactive frames, not as proof of a tool-local bug.
@@ -60,6 +66,8 @@ Current diagnostic clue: on a freshly opened editor, move/transform preview and 
 - [x] [impl+test] add lightweight dev-only tracing for this seam (`preview-set`, `frame-requested`, `pending-stroke-drained`, `frame-composited`, `hydration-complete`, backend/target) so temporal startup bugs can be debugged without scattering temporary logs across tools and runtimes
 
 ## NEXT UP - MOVE AND TRANSFORM TOOL
+
+**All items complete.** Archive to `SKETCH_FEATURES_DONE.md` when convenient.
 
 Do these before more transform-heavy work. The goal is to reduce brittleness in `MoveTool` + `TransformTool` and nearby overlay tools by sharing only the stable gizmo primitives, not by forcing all tools into one generic interaction framework.
 Try to implement these tasks with only as much shared core as needed. It is fine to change core helpers and adapt focused tests when that removes real brittleness, but avoid introducing a broad new interaction framework just to satisfy one tool.
@@ -88,9 +96,10 @@ Sections **2.1** (transform, zoom, selection), **2.2** (lifecycle shortcuts), co
 Do not start these until the `NEXT UP` hardening pass is done. Preview ownership, spring-loaded move lifecycle, resolved gizmo bounds, and preview-vs-commit parity all belong to that earlier pass; this section starts only after those seams are stable.
 - [x] [impl+test] add a minimal transform-targeting flow, not a generic multi-tool selection framework: optional auto-select toggle for `TransformTool`; clicking opaque pixels targets the topmost visible transformable layer; `Shift+click` adds/removes layers from the transform target set; the transform gizmo, transform UI, and live preview must use one shared bounds source for the targeted set. do not assume layers-panel multi-select is already the correct transform-target model unless their semantics are made intentionally identical
 
-- [ ] support rotate behavior, including `Shift` snapping and pivot-point changes
-  - **Partial:** Rotation via dedicated handle above top-center is implemented. Shift snaps to 15° increments via `snapAngle()` in `computeRotateTransform()`. Remaining: user-adjustable pivot point (currently always layer center).
-- [ ] [impl+test] expand transform hit policy only if it can stay local to transform gizmo layout/hit-testing: allow rotate when dragging just outside the box/near scale handles, add an explicit pivot handle, and support snapping the pivot to stable anchor points such as corners/edge handles. keep this built on the same resolved geometry/hit-test seam as the box/handles above, and do not spread it into a generic cross-tool gesture system unless repeated evidence demands it
+- [x] support rotate behavior, including `Shift` snapping and pivot-point changes
+  - **Done:** Rotation via dedicated handle above top-center. Shift snaps to 15° increments. User-adjustable pivot point with crosshair gizmo, snap to 9 anchor points (center, 4 corners, 4 edge midpoints), and orbital translation when rotating around an off-center pivot.
+- [x] [impl+test] expand transform hit policy only if it can stay local to transform gizmo layout/hit-testing: allow rotate when dragging just outside the box/near scale handles, add an explicit pivot handle, and support snapping the pivot to stable anchor points such as corners/edge handles. keep this built on the same resolved geometry/hit-test seam as the box/handles above, and do not spread it into a generic cross-tool gesture system unless repeated evidence demands it
+  - **Done:** `isInRotateZone()` detects clicks in the OUTSIDE_ROTATE_MARGIN around the bounding box and triggers rotation. Pivot handle with hit-test, crosshair drawing, snap to 9 anchor points. 52 regression tests covering all new behavior.
 - [ ] support distort behavior on corner handles
 - [ ] support skew behavior on side handles
 - [ ] support perspective behavior
@@ -105,8 +114,8 @@ Modifier-key target behavior to preserve while implementing the items above:
   - **Partial:** Proportional scale (Shift on corner handles) and 15° rotation snap (Shift while rotating) are implemented. Remaining: axis-lock distortion (requires distort mode which does not exist yet).
 - [ ] `Ctrl+Shift` / `Cmd+Shift` -> skew on sides, constrained distort on corners
 - [ ] `Ctrl+Alt+Shift` / `Cmd+Option+Shift` -> perspective
-- [ ] cursor position determines behavior: outside box = rotate, inside = move, on handle = transform
-  - **Partial:** Inside box → move and on handle → transform are implemented via `hitTestHandles()`. Remaining: outside box → rotate (currently returns `null` / no interaction).
+- [x] cursor position determines behavior: outside box = rotate, inside = move, on handle = transform
+  - **Done:** `hitTestHandles()` handles inside box → move and on handle → transform. `isInRotateZone()` handles outside box → rotate. `hitTestPivot()` handles pivot crosshair → pivot drag. Hover policy and cursor mapping updated for all cases.
 
 ### 2.4 - Selection context menu
 
@@ -129,8 +138,8 @@ Modifier-key target behavior to preserve while implementing the items above:
   - **Done:** Added `Transform Selection` menu entry in `SketchCanvasContextMenu.tsx` with `HighlightAltIcon`. Currently disabled (grayed out) — the `onTransformSelection` prop is optional and wired but no backend implementation exists yet. The entry will enable when transform-selection infrastructure is implemented.
 - [x] add a selection-tool right-click context menu entry for `Fill`
 - [x] add a selection-tool right-click context menu entry for `Stroke`
-- [ ] fix `Layer via Copy` - not yet implemented
-- [ ] fix `Layer via Cut` - not yet implemented
+- [x] fix `Layer via Copy` — implemented: Ctrl+J shortcut, context menu entry, and `handleLayerViaCopy` handler in `useEditorCommands.ts`
+- [x] fix `Layer via Cut` — implemented: Ctrl+Shift+J shortcut, context menu entry, and `handleLayerViaCut` handler in `useEditorCommands.ts`
 - [ ] submenu for selection-tool right-click context menu entry for `New Layer...` - new layer entries as in photoshop 
 
 Deferred selection-context-menu items:

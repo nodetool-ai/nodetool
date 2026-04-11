@@ -303,8 +303,8 @@ describe("TransformTool", () => {
     const doc = createDefaultDocument(64, 64);
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
-    // Click in center of 64x64 layer — should be inside bounds
-    const result = tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
+    // Click inside 64x64 layer, away from center to avoid pivot crosshair
+    const result = tool.onDown(ctx, makePointerEvent({ point: { x: 15, y: 15 } }));
     expect(result).toBe(true);
     expect(ctx.onStrokeStart).toHaveBeenCalled();
   });
@@ -314,8 +314,9 @@ describe("TransformTool", () => {
     const doc = createDefaultDocument(64, 64);
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
-    tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
-    tool.onMove!(ctx, makePointerEvent({ point: { x: 42, y: 37 } }));
+    // Start drag inside box, away from center to avoid pivot crosshair
+    tool.onDown(ctx, makePointerEvent({ point: { x: 15, y: 15 } }));
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 25, y: 20 } }));
     // During drag, the transform is applied via the preview-only path
     // (setLayerTransformPreview) for performance — not via onLayerTransformChange.
     expect(ctx.setLayerTransformPreview).toHaveBeenCalledWith(
@@ -336,7 +337,8 @@ describe("TransformTool", () => {
     const doc = createDefaultDocument(64, 64);
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
-    tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
+    // Click inside box, away from center to avoid pivot crosshair
+    tool.onDown(ctx, makePointerEvent({ point: { x: 15, y: 15 } }));
     tool.onUp!(ctx);
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
       doc.activeLayerId,

@@ -22,6 +22,27 @@ export const ROTATION_HANDLE_OFFSET = 24;
 /** Radius multiplier for the rotation handle circle relative to HANDLE_SIZE. */
 export const ROTATION_HANDLE_RADIUS_FACTOR = 0.7;
 
+/**
+ * Distance (CSS px) outside the bounding box that still counts as the
+ * "rotate zone" — clicking/hovering in this margin triggers rotation
+ * instead of returning null.
+ */
+export const OUTSIDE_ROTATE_MARGIN = 20;
+
+// ─── Pivot handle ────────────────────────────────────────────────────────────
+
+/** Size (CSS px) of each arm of the pivot crosshair, before DPR scaling. */
+export const PIVOT_CROSSHAIR_SIZE = 8;
+
+/** Hit-test radius for the pivot handle (CSS px). */
+export const PIVOT_HIT_RADIUS = 10;
+
+/**
+ * Distance (CSS px) at which the pivot snaps to a corner, edge midpoint,
+ * or center anchor point.
+ */
+export const PIVOT_SNAP_DISTANCE = 12;
+
 // ─── Colors ──────────────────────────────────────────────────────────────────
 
 /** Primary gizmo accent color (transform bounding box, handle strokes). */

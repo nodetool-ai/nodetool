@@ -147,7 +147,7 @@ describe("TransformTool in-transform undo/redo", () => {
     expect(tool.hasUndoableAdjustments()).toBe(false);
 
     // Simulate a pointer down inside the bounding box (center = 32,32 for a 64x64 layer)
-    const downEvent = makePointerEvent({ point: { x: 32, y: 32 } });
+    const downEvent = makePointerEvent({ point: { x: 15, y: 15 } });
     const started = tool.onDown!(ctx, downEvent);
 
     if (started) {
@@ -173,7 +173,7 @@ describe("TransformTool in-transform undo/redo", () => {
     tool.onActivate!(ctx);
 
     // Simulate a drag that records the original transform
-    const downEvent = makePointerEvent({ point: { x: 32, y: 32 } });
+    const downEvent = makePointerEvent({ point: { x: 15, y: 15 } });
     const started = tool.onDown!(ctx, downEvent);
     if (!started) {
       // Skip if the pointer didn't start a gesture (e.g. no hit)
@@ -181,7 +181,7 @@ describe("TransformTool in-transform undo/redo", () => {
     }
 
     // Complete the drag
-    tool.onUp!(ctx, makePointerEvent({ point: { x: 40, y: 32 } }));
+    tool.onUp!(ctx);
 
     // Now undo the adjustment
     const currentTransform: LayerTransform = {
@@ -208,12 +208,12 @@ describe("TransformTool in-transform undo/redo", () => {
 
     tool.onActivate!(ctx);
 
-    const downEvent = makePointerEvent({ point: { x: 32, y: 32 } });
+    const downEvent = makePointerEvent({ point: { x: 15, y: 15 } });
     const started = tool.onDown!(ctx, downEvent);
     if (!started) {
       return;
     }
-    tool.onUp!(ctx, makePointerEvent({ point: { x: 40, y: 32 } }));
+    tool.onUp!(ctx);
 
     const movedTransform: LayerTransform = {
       x: 8,
@@ -242,12 +242,12 @@ describe("TransformTool in-transform undo/redo", () => {
     tool.onActivate!(ctx);
 
     // First drag
-    const downEvent1 = makePointerEvent({ point: { x: 32, y: 32 } });
+    const downEvent1 = makePointerEvent({ point: { x: 15, y: 15 } });
     const started1 = tool.onDown!(ctx, downEvent1);
     if (!started1) {
       return;
     }
-    tool.onUp!(ctx, makePointerEvent({ point: { x: 40, y: 32 } }));
+    tool.onUp!(ctx);
 
     // Undo the first drag
     const current: LayerTransform = { x: 8, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
@@ -255,7 +255,7 @@ describe("TransformTool in-transform undo/redo", () => {
     expect(tool.hasRedoableAdjustments()).toBe(true);
 
     // Start a new drag — should clear the redo stack
-    const downEvent2 = makePointerEvent({ point: { x: 32, y: 32 } });
+    const downEvent2 = makePointerEvent({ point: { x: 15, y: 15 } });
     const started2 = tool.onDown!(ctx, downEvent2);
     if (started2) {
       expect(tool.hasRedoableAdjustments()).toBe(false);
@@ -269,7 +269,7 @@ describe("TransformTool in-transform undo/redo", () => {
 
     tool.onActivate!(ctx);
 
-    const downEvent = makePointerEvent({ point: { x: 32, y: 32 } });
+    const downEvent = makePointerEvent({ point: { x: 15, y: 15 } });
     tool.onDown!(ctx, downEvent);
     // Deactivate clears everything
     tool.onDeactivate!(ctx);
@@ -285,7 +285,7 @@ describe("TransformTool in-transform undo/redo", () => {
 
     tool.onActivate!(ctx);
 
-    const downEvent = makePointerEvent({ point: { x: 32, y: 32 } });
+    const downEvent = makePointerEvent({ point: { x: 15, y: 15 } });
     tool.onDown!(ctx, downEvent);
 
     // Re-activate
@@ -312,7 +312,7 @@ describe("TransformTool.isPointInsideBoundingBox", () => {
       }
     });
     tool.onActivate!(ctx);
-    expect(tool.isPointInsideBoundingBox(ctx, { x: 32, y: 32 })).toBe(false);
+    expect(tool.isPointInsideBoundingBox(ctx, { x: 15, y: 15 })).toBe(false);
   });
 
   it("returns true for a point inside the layer bounds", () => {
@@ -322,7 +322,7 @@ describe("TransformTool.isPointInsideBoundingBox", () => {
 
     tool.onActivate!(ctx);
     // Center of a 64x64 layer at origin = (32, 32)
-    expect(tool.isPointInsideBoundingBox(ctx, { x: 32, y: 32 })).toBe(true);
+    expect(tool.isPointInsideBoundingBox(ctx, { x: 15, y: 15 })).toBe(true);
   });
 
   it("returns false for a point outside the layer bounds", () => {
