@@ -193,7 +193,7 @@ describe("MultiModeAgent", () => {
   describe("plan mode", () => {
     it("runs planning then execution phases", async () => {
       // Provider responses:
-      // 1. Planner call: returns create_task tool call
+      // 1. Planner call: returns create_plan tool call
       // 2. Step executor: returns chunk + finish_step
       const provider = createMockProvider([
         // Planner response
@@ -201,11 +201,18 @@ describe("MultiModeAgent", () => {
           { type: "chunk", content: "Planning..." },
           {
             id: "tc_plan",
-            name: "create_task",
+            name: "create_plan",
             args: {
-              title: "Test Task",
-              steps: [
-                { id: "s1", instructions: "Do the thing", depends_on: [] }
+              title: "Test Plan",
+              tasks: [
+                {
+                  id: "task_1",
+                  title: "Test Task",
+                  depends_on: [],
+                  steps: [
+                    { id: "s1", instructions: "Do the thing", depends_on: [] }
+                  ]
+                }
               ]
             }
           }
@@ -242,7 +249,7 @@ describe("MultiModeAgent", () => {
       );
       expect(planningUpdates.length).toBeGreaterThan(0);
 
-      // Task should have been set
+      // Task should have been set (first task in plan)
       expect(agent.task).not.toBeNull();
       expect(agent.task!.title).toBe("Test Task");
     });

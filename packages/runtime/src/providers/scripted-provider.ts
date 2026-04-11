@@ -131,8 +131,27 @@ export interface TaskPlanSpec {
 }
 
 /**
+ * Spec for a multi-task plan where each task runs as an independent sub-agent.
+ */
+export interface MultiTaskPlanSpec {
+  title: string;
+  tasks: Array<{
+    id: string;
+    title: string;
+    depends_on?: string[];
+    steps: Array<{
+      id: string;
+      instructions: string;
+      depends_on?: string[];
+      output_schema?: string;
+      tools?: string[];
+    }>;
+  }>;
+}
+
+/**
  * Script that calls the `create_task` tool with the provided plan.
- * Use this for the planning phase of agent execution.
+ * Use this for the planning phase of agent execution (single-task mode).
  */
 export function planScript(taskSpec: TaskPlanSpec): ScriptFn {
   return (_messages, _tools) => [
@@ -140,6 +159,20 @@ export function planScript(taskSpec: TaskPlanSpec): ScriptFn {
       type: "tool_call",
       name: "create_task",
       args: taskSpec as unknown as Record<string, unknown>
+    }
+  ];
+}
+
+/**
+ * Script that calls the `create_plan` tool with a multi-task plan.
+ * Use this for the planning phase of agent execution (multi-task mode).
+ */
+export function multiTaskPlanScript(planSpec: MultiTaskPlanSpec): ScriptFn {
+  return (_messages, _tools) => [
+    {
+      type: "tool_call",
+      name: "create_plan",
+      args: planSpec as unknown as Record<string, unknown>
     }
   ];
 }
@@ -174,6 +207,7 @@ export function toolCallScript(
 
 /**
  * Auto-detecting script: inspects the `tools` list for each call and decides:
+ * - If `create_plan` is available → call it with `opts.multiTaskPlan` or auto-wrap `opts.plan`
  * - If `create_task` is available → call it with `opts.plan`
  * - If `finish_step` is available → call it with `opts.result`
  * - Otherwise → emit `opts.text` as a chunk
@@ -182,11 +216,33 @@ export function toolCallScript(
  */
 export function autoScript(opts: {
   plan?: TaskPlanSpec;
+  multiTaskPlan?: MultiTaskPlanSpec;
   result?: unknown;
   text?: string;
 }): ScriptFn {
   return (_messages, tools) => {
     const toolNames = new Set(tools.map((t) => t.name));
+    if (toolNames.has("create_plan") && (opts.multiTaskPlan || opts.plan)) {
+      // Use explicit multi-task plan or auto-wrap single-task plan
+      const planArgs = opts.multiTaskPlan ?? {
+        title: opts.plan!.title,
+        tasks: [
+          {
+            id: "task_1",
+            title: opts.plan!.title,
+            depends_on: [],
+            steps: opts.plan!.steps
+          }
+        ]
+      };
+      return [
+        {
+          type: "tool_call",
+          name: "create_plan",
+          args: planArgs as unknown as Record<string, unknown>
+        }
+      ];
+    }
     if (toolNames.has("create_task") && opts.plan) {
       return [
         {

@@ -3,7 +3,7 @@
  */
 
 // Types
-export type { Step, Task, AgentMode, SubAgentConfig } from "./types.js";
+export type { Step, Task, TaskPlan, AgentMode, SubAgentConfig } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
@@ -113,6 +113,8 @@ export { ListProviderModelsTool } from "./tools/model-tools.js";
 export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
+export { CreatePlanTool } from "./tools/create-plan-tool.js";
+export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 
 // Shared JS sandbox engine
 export { buildSandbox, runInSandbox, serializeResult } from "./js-sandbox.js";
@@ -151,6 +153,8 @@ export { TaskPlanner } from "./task-planner.js";
 export type { TaskPlannerOptions } from "./task-planner.js";
 export { TaskExecutor } from "./task-executor.js";
 export type { TaskExecutorOptions } from "./task-executor.js";
+export { ParallelTaskExecutor } from "./parallel-task-executor.js";
+export type { ParallelTaskExecutorOptions } from "./parallel-task-executor.js";
 
 // Multi-agent team system
 export {

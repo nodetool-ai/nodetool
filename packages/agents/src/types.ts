@@ -52,4 +52,18 @@ export interface Task {
   title: string;
   description?: string;
   steps: Step[];
+  /** Task IDs this task depends on. Used in multi-task plans for inter-task ordering. */
+  dependsOn?: string[];
+  /** Whether this task has been completed. Set by ParallelTaskExecutor. */
+  completed?: boolean;
+}
+
+/**
+ * A plan with multiple tasks that can be executed in parallel.
+ * Tasks form a DAG via their `dependsOn` arrays. Independent tasks
+ * run concurrently as sub-agents, each with their own StepExecutor chain.
+ */
+export interface TaskPlan {
+  title: string;
+  tasks: Task[];
 }
