@@ -450,6 +450,112 @@ describe("TransformTool", () => {
     expect(onAutoPickLayer).toHaveBeenCalledWith(pickedLayer.id);
     expect(tool.getPivotPoint()).toBeNull();
   });
+
+  it("retargets to the topmost overlapping layer on interior clicks when auto-select is enabled", () => {
+    useSketchStore.setState((state) => ({
+      ...state,
+      toolSettings: {
+        ...state.toolSettings,
+        transform: {
+          ...state.toolSettings.transform,
+          autoSelect: true
+        }
+      }
+    }));
+
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(128, 128);
+    const activeLayer = doc.layers[0];
+    activeLayer.contentBounds = { x: 0, y: 0, width: 64, height: 64 };
+
+    const topLayer = createDefaultLayer("Top", "raster", 64, 64);
+    topLayer.contentBounds = { x: 0, y: 0, width: 64, height: 64 };
+    doc.layers = [activeLayer, topLayer];
+    doc.activeLayerId = activeLayer.id;
+
+    const bottomCanvas = document.createElement("canvas");
+    bottomCanvas.width = 64;
+    bottomCanvas.height = 64;
+    bottomCanvas.getContext("2d")!.fillRect(0, 0, 64, 64);
+
+    const topCanvas = document.createElement("canvas");
+    topCanvas.width = 64;
+    topCanvas.height = 64;
+    topCanvas.getContext("2d")!.fillRect(0, 0, 64, 64);
+
+    const onAutoPickLayer = jest.fn((layerId: string) => {
+      doc.activeLayerId = layerId;
+    });
+    const ctx = makeToolContext({
+      doc,
+      layerCanvasesRef: {
+        current: new Map<string, HTMLCanvasElement>([
+          [activeLayer.id, bottomCanvas],
+          [topLayer.id, topCanvas]
+        ])
+      },
+      onAutoPickLayer
+    });
+
+    tool.onActivate!(ctx);
+
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 16, y: 16 } }))).toBe(false);
+    expect(onAutoPickLayer).toHaveBeenCalledWith(topLayer.id);
+    expect(doc.activeLayerId).toBe(topLayer.id);
+  });
+
+  it("keeps handle hits on the current target ahead of auto-retargeting", () => {
+    useSketchStore.setState((state) => ({
+      ...state,
+      toolSettings: {
+        ...state.toolSettings,
+        transform: {
+          ...state.toolSettings.transform,
+          autoSelect: true
+        }
+      }
+    }));
+
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(128, 128);
+    const activeLayer = doc.layers[0];
+    activeLayer.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
+
+    const topLayer = createDefaultLayer("Top", "raster", 32, 32);
+    topLayer.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
+    doc.layers = [activeLayer, topLayer];
+    doc.activeLayerId = activeLayer.id;
+
+    const bottomCanvas = document.createElement("canvas");
+    bottomCanvas.width = 32;
+    bottomCanvas.height = 32;
+    bottomCanvas.getContext("2d")!.fillRect(0, 0, 32, 32);
+
+    const topCanvas = document.createElement("canvas");
+    topCanvas.width = 32;
+    topCanvas.height = 32;
+    topCanvas.getContext("2d")!.fillRect(0, 0, 32, 32);
+
+    const onAutoPickLayer = jest.fn((layerId: string) => {
+      doc.activeLayerId = layerId;
+    });
+    const ctx = makeToolContext({
+      doc,
+      layerCanvasesRef: {
+        current: new Map<string, HTMLCanvasElement>([
+          [activeLayer.id, bottomCanvas],
+          [topLayer.id, topCanvas]
+        ])
+      },
+      onAutoPickLayer
+    });
+
+    tool.onActivate!(ctx);
+
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 0, y: 0 } }))).toBe(true);
+    expect(onAutoPickLayer).not.toHaveBeenCalled();
+    expect(doc.activeLayerId).toBe(activeLayer.id);
+  });
 });
 
 describe("EyedropperTool", () => {

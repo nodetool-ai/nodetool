@@ -4,6 +4,8 @@
 import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { usePointerHandlers } from "../sketchCanvasHooks/usePointerHandlers";
+import { getToolHandler } from "../tools";
+import { TransformTool } from "../tools/TransformTool";
 import { createDefaultDocument } from "../types";
 import type { UsePointerHandlersParams } from "../sketchCanvasHooks/usePointerHandlers";
 
@@ -111,5 +113,50 @@ describe("usePointerHandlers", () => {
     });
 
     expect(params.containerRef.current?.style.cursor).toBe("");
+  });
+
+  it("re-syncs TransformTool state when the active layer changes while transform stays active", () => {
+    const initialDoc = createDefaultDocument(64, 64);
+    initialDoc.layers[0].contentBounds = { x: 0, y: 0, width: 32, height: 32 };
+
+    const nextLayer = {
+      ...initialDoc.layers[0],
+      id: "layer-2",
+      name: "Layer 2",
+      transform: { x: 40, y: 12, scaleX: 1, scaleY: 1, rotation: 0 },
+      contentBounds: { x: 0, y: 0, width: 20, height: 20 }
+    };
+    initialDoc.layers = [initialDoc.layers[0], nextLayer];
+
+    const params = makeParams();
+    params.doc = initialDoc;
+
+    const { rerender } = renderHook((hookParams: UsePointerHandlersParams) => usePointerHandlers(hookParams), {
+      initialProps: params
+    });
+
+    rerender({
+      ...params,
+      activeTool: "transform",
+      interactionTool: "transform"
+    });
+
+    const transformTool = getToolHandler("transform") as TransformTool;
+    expect(transformTool.getOriginalTransform().x).toBe(0);
+
+    params.drawGizmo.mockClear();
+    const updatedDoc = {
+      ...initialDoc,
+      activeLayerId: nextLayer.id
+    };
+    rerender({
+      ...params,
+      activeTool: "transform",
+      interactionTool: "transform",
+      doc: updatedDoc
+    });
+
+    expect(transformTool.getOriginalTransform().x).toBe(40);
+    expect(params.drawGizmo).toHaveBeenCalled();
   });
 });

@@ -46,7 +46,7 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
-import type { Point, LayerTransform, LayerContentBounds } from "../types";
+import type { Point, LayerTransform, LayerContentBounds, Layer } from "../types";
 import { layerAllowsTransformWhilePixelLocked } from "../types";
 import TransformIcon from "@mui/icons-material/Transform";
 import {
@@ -131,26 +131,11 @@ export class TransformTool implements ToolHandler {
     this.session.clear(ctx);
     this.targetSet.clear();
 
-    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+    const layer = this.getActiveLayer(ctx);
     if (!layer) {
       return;
     }
-    this.originalTransform = {
-      x: layer.transform.x,
-      y: layer.transform.y,
-      scaleX: layer.transform.scaleX ?? 1,
-      scaleY: layer.transform.scaleY ?? 1,
-      rotation: layer.transform.rotation ?? 0
-    };
-    // Use the shared resolved-bounds contract for gizmo sizing
-    const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
-    this.rasterBounds = resolveGizmoBounds(
-      layer,
-      layerCanvas,
-      ctx.doc.canvas
-    );
-    // Initialize the target set with the active layer
-    this.targetSet.setSingle(layer.id, this.rasterBounds);
+    this.syncStateToLayer(ctx, layer);
 
     this.activeHandle = null;
     this.hoveredHandle = null;
@@ -158,6 +143,23 @@ export class TransformTool implements ToolHandler {
     this.pivotPoint = null;
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
+    this.drawGizmo(ctx);
+  }
+
+  syncActiveLayer(ctx: ToolContext): void {
+    if (this.gestureActive || this.session.isActive()) {
+      return;
+    }
+    const layer = this.getActiveLayer(ctx);
+    if (!layer) {
+      return;
+    }
+    this.activeHandle = null;
+    this.hoveredHandle = null;
+    this.pivotPoint = null;
+    this.adjustmentUndoStack = [];
+    this.adjustmentRedoStack = [];
+    this.syncStateToLayer(ctx, layer);
     this.drawGizmo(ctx);
   }
 
@@ -215,6 +217,18 @@ export class TransformTool implements ToolHandler {
         this.dragStart = pt;
         this.dragStartTransform = { ...currentTransform };
         return true;
+      }
+    }
+
+    if (handle === "move") {
+      const storeSettings = useSketchStore.getState().toolSettings;
+      const autoSelect = storeSettings?.transform?.autoSelect ?? true;
+      if (autoSelect) {
+        const picked = this.peekAutoSelectPick(ctx, pt);
+        if (picked && picked.id !== doc.activeLayerId) {
+          this.tryAutoSelectPick(ctx, event, picked);
+          return false;
+        }
       }
     }
 
@@ -350,17 +364,15 @@ export class TransformTool implements ToolHandler {
    * When Shift is held, the picked layer is toggled in the target set
    * rather than replacing it.
    */
-  private tryAutoSelectPick(ctx: ToolContext, event: ToolPointerEvent): boolean {
+  private tryAutoSelectPick(
+    ctx: ToolContext,
+    event: ToolPointerEvent,
+    pickedOverride?: Layer | null
+  ): boolean {
     const { doc } = ctx;
-    const pt = event.point;
     const shift = event.nativeEvent.shiftKey;
 
-    const picked = pickTopmostTransformableLayer(
-      doc.layers,
-      ctx.layerCanvasesRef.current,
-      pt,
-      null // no isolation filter for auto-pick
-    );
+    const picked = pickedOverride ?? this.peekAutoSelectPick(ctx, event.point);
 
     if (!picked) {
       return false;
@@ -397,6 +409,32 @@ export class TransformTool implements ToolHandler {
 
     this.drawGizmo(ctx);
     return true;
+  }
+
+  private getActiveLayer(ctx: ToolContext): Layer | undefined {
+    return ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+  }
+
+  private syncStateToLayer(ctx: ToolContext, layer: Layer): void {
+    this.originalTransform = {
+      x: layer.transform.x,
+      y: layer.transform.y,
+      scaleX: layer.transform.scaleX ?? 1,
+      scaleY: layer.transform.scaleY ?? 1,
+      rotation: layer.transform.rotation ?? 0
+    };
+    const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
+    this.rasterBounds = resolveGizmoBounds(layer, layerCanvas, ctx.doc.canvas);
+    this.targetSet.setSingle(layer.id, this.rasterBounds);
+  }
+
+  private peekAutoSelectPick(ctx: ToolContext, docPoint: Point): Layer | null {
+    return pickTopmostTransformableLayer(
+      ctx.doc.layers,
+      ctx.layerCanvasesRef.current,
+      docPoint,
+      null
+    );
   }
 
   // ── Public API (for settings panel commit/cancel/reset) ────────────────────

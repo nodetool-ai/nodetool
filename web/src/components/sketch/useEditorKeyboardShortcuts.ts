@@ -51,6 +51,33 @@ function isArrowKey(key: string): key is ArrowKey {
   );
 }
 
+function isUiFormLikeElement(value: unknown): value is Element {
+  if (!(value instanceof Element)) {
+    return false;
+  }
+  return Boolean(
+    value.closest(
+      [
+        "input",
+        "textarea",
+        "select",
+        "[contenteditable='true']",
+        "[role='textbox']",
+        "[role='combobox']",
+        "[role='listbox']",
+        "[role='option']",
+        "[role='menuitem']",
+        "[role='slider']",
+        "[role='spinbutton']"
+      ].join(",")
+    )
+  );
+}
+
+function shouldIgnoreForUiControl(target: EventTarget | null): boolean {
+  return isUiFormLikeElement(target) || isUiFormLikeElement(document.activeElement);
+}
+
 export interface UseEditorKeyboardShortcutsParams {
   handleUndo: () => void;
   handleRedo: () => void;
@@ -173,11 +200,7 @@ export function useEditorKeyboardShortcuts(
     };
 
     const keydownHandler = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
+      if (shouldIgnoreForUiControl(e.target)) {
         return;
       }
 
@@ -561,11 +584,7 @@ export function useEditorKeyboardShortcuts(
     };
 
     const keyupHandler = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
+      if (shouldIgnoreForUiControl(e.target)) {
         return;
       }
       e.stopPropagation();

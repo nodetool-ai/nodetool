@@ -26,9 +26,9 @@ Task labels used below:
 - [x] [CHECK] fix MoveTool and TransformTool gizmo size: gizmo should be sized by layer pixel bounds, currently always canvas sized. mask also holds the second last position after moving is done! so when movig stops it should update.
 - [x] fix gizmo showing second-to-last position after MoveTool and TransformTool ends
 - [x] add auto-select for MoveTool
-- [ ] improve TransformTool: update gizmo when selecting a different layer in right panel
-- [ ] improve auto-select for TransformTool, works better for MoveTool
-- [ ] enable arrow key up + down to change focused select fields, e.g. for fast blend mode change
+- [x] improve TransformTool: update gizmo when selecting a different layer in right panel
+- [x] improve auto-select for TransformTool, works better for MoveTool
+- [x] enable arrow key up + down to change focused select fields, e.g. for fast blend mode change
 
 
 ## Immediate `SketchEditor.tsx` Refactor Candidates

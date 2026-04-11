@@ -998,6 +998,20 @@ export function usePointerHandlers({
     }
   }, [zoom, pan, interactionTool]);
 
+  // ─── Active layer change sync for transform ────────────────────────
+  const prevActiveLayerIdRef = useRef(doc.activeLayerId);
+  useEffect(() => {
+    const prev = prevActiveLayerIdRef.current;
+    prevActiveLayerIdRef.current = doc.activeLayerId;
+    if (prev === doc.activeLayerId || interactionTool !== "transform") {
+      return;
+    }
+    const handler = getToolHandler("transform");
+    if (handler instanceof TransformTool) {
+      handler.syncActiveLayer(toolCtxRef.current);
+    }
+  }, [doc.activeLayerId, interactionTool]);
+
   /** Cancel the active tool's in-progress operation (e.g. crop drag, transform). */
   const cancelActiveTool = useCallback(() => {
     const handler = getToolHandler(activeTool);
