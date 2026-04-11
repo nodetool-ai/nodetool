@@ -94,6 +94,8 @@ export interface SketchToolTopBarProps {
   onTransformReset?: () => void;
   transformAutoSelect?: boolean;
   onTransformAutoSelectChange?: (enabled: boolean) => void;
+  moveAutoSelect?: boolean;
+  onMoveAutoSelectChange?: (enabled: boolean) => void;
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
@@ -147,6 +149,8 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onTransformReset,
   transformAutoSelect,
   onTransformAutoSelectChange,
+  moveAutoSelect,
+  onMoveAutoSelectChange,
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
@@ -203,6 +207,8 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onTransformReset={onTransformReset}
         transformAutoSelect={transformAutoSelect}
         onTransformAutoSelectChange={onTransformAutoSelectChange}
+        moveAutoSelect={moveAutoSelect}
+        onMoveAutoSelectChange={onMoveAutoSelectChange}
         segmentSettings={segmentSettings}
         onSegmentSettingsChange={onSegmentSettingsChange}
         segmentationStatus={segmentationStatus}

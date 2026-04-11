@@ -54,6 +54,7 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
     setCloneStampSettings,
     setSelectSettings,
     setSegmentSettings,
+    setMoveSettings,
     setTransformSettings,
     invertSelection,
     featherCurrentSelection,
@@ -108,6 +109,10 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       transformAutoSelect={toolSettings.transform?.autoSelect ?? true}
       onTransformAutoSelectChange={(enabled: boolean) =>
         setTransformSettings({ autoSelect: enabled })
+      }
+      moveAutoSelect={toolSettings.move?.autoSelect ?? true}
+      onMoveAutoSelectChange={(enabled: boolean) =>
+        setMoveSettings({ autoSelect: enabled })
       }
       segmentSettings={toolSettings.segment}
       onSegmentSettingsChange={setSegmentSettings}

@@ -33,6 +33,7 @@ import { docRectToScreen } from "./transform/handleGeometry";
 import { drawOffCanvasIndicator } from "./gizmo";
 import { useSketchStore } from "../state/useSketchStore";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
+import { pickTopmostTransformableLayer } from "./transformTargetSet";
 
 /** Paint a dashed outline for off-canvas layer extents on the gizmo canvas.
  *  Uses shared resolved-geometry seam for bounds and shared gizmo primitives. */
@@ -121,6 +122,18 @@ export class MoveTool implements ToolHandler {
   }
 
   private refreshGizmo(ctx: ToolContext): void {
+    this.refreshGizmoWithTransform(ctx, null);
+  }
+
+  /**
+   * Refresh the gizmo overlay. When `overrideTransform` is provided it is
+   * used instead of the layer's stored transform — this avoids reading from
+   * the stale `ctx.doc` snapshot right after a commit.
+   */
+  private refreshGizmoWithTransform(
+    ctx: ToolContext,
+    overrideTransform: LayerTransform | null
+  ): void {
     const { doc } = ctx;
     const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
     if (!activeLayer) {
@@ -129,7 +142,7 @@ export class MoveTool implements ToolHandler {
     }
     const previewTransform = this.session.isActive()
       ? this.session.state.currentTransform
-      : activeLayer.transform;
+      : overrideTransform ?? activeLayer.transform;
     paintOffCanvasGizmo(ctx, activeLayer.id, previewTransform);
   }
 
@@ -178,7 +191,25 @@ export class MoveTool implements ToolHandler {
         }
         if (hitTestLayerAtDocPoint(layer, layerCanvas, pt)) {
           ctx.onAutoPickLayer(layer.id);
+          moveTargetLayer = layer;
           break;
+        }
+      }
+    } else {
+      // Auto-select: if enabled, pick the topmost visible transformable layer
+      // at the click point (same behavior as TransformTool auto-select).
+      const storeSettings = useSketchStore.getState().toolSettings;
+      const autoSelect = storeSettings?.move?.autoSelect ?? true;
+      if (autoSelect && ctx.onAutoPickLayer) {
+        const picked = pickTopmostTransformableLayer(
+          doc.layers,
+          ctx.layerCanvasesRef.current,
+          pt,
+          null
+        );
+        if (picked && picked.id !== doc.activeLayerId) {
+          ctx.onAutoPickLayer(picked.id);
+          moveTargetLayer = picked;
         }
       }
     }
@@ -239,6 +270,11 @@ export class MoveTool implements ToolHandler {
 
   onUp(ctx: ToolContext, _event?: ToolPointerEvent): void {
     const layerId = this.session.state.layerId;
+    // Capture the final transform before commit clears the session so the
+    // gizmo can draw at the correct position even though ctx.doc is stale.
+    const committedTransform = this.session.isActive()
+      ? { ...this.session.state.currentTransform }
+      : null;
     // Commit through the shared session — persists to store, clears preview.
     this.session.commit(ctx);
 
@@ -250,7 +286,9 @@ export class MoveTool implements ToolHandler {
         syncDocumentFromCanvas: false
       });
     }
-    this.refreshGizmo(ctx);
+    // Use the committed transform for the gizmo instead of reading from the
+    // stale ctx.doc (which still holds the pre-move position).
+    this.refreshGizmoWithTransform(ctx, committedTransform);
     // Redraw the selection overlay so marching ants (if any) update to the
     // committed layer position instead of staying at the pre-move position.
     ctx.drawSelectionOverlay();
