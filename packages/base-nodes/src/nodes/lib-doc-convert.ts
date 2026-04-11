@@ -1,6 +1,13 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
+import { execFile as execFileCb } from "node:child_process";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
+
+const execFile = promisify(execFileCb);
 
 /**
  * Resolve raw bytes from various input shapes:
@@ -48,6 +55,7 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly title = "Convert To Markdown";
   static readonly description =
     "Converts various document formats to markdown.\n    markdown, convert, document, pdf, docx, html, bytes\n\n    Accepts document refs, raw bytes (from DownloadFile), or text.\n    Auto-detects PDF and DOCX from binary content.";
+  static readonly requiredRuntimes = ["pandoc"];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -81,13 +89,10 @@ export class ConvertToMarkdownLibNode extends BaseNode {
     // Auto-detect binary formats from bytes
     if (bytes && bytes.length > 0) {
       if (isPdfBuffer(bytes)) {
-        return { output: await pdfToMarkdown(bytes) };
+        return { output: await convertWithPandoc(bytes, "pdf") };
       }
       if (isDocxBuffer(bytes) || uri.toLowerCase().endsWith(".docx")) {
-        const mammoth = await import("mammoth");
-        const result = await mammoth.convertToHtml({ buffer: bytes });
-        const markdown = turndown.turndown(result.value);
-        return { output: markdown };
+        return { output: await convertWithPandoc(bytes, "docx") };
       }
       // Try as text
       const text = bytes.toString("utf-8");
@@ -128,12 +133,10 @@ export class ConvertToMarkdownLibNode extends BaseNode {
 
       if (fileBytes) {
         if (isPdfBuffer(fileBytes)) {
-          return { output: await pdfToMarkdown(fileBytes) };
+          return { output: await convertWithPandoc(fileBytes, "pdf") };
         }
         if (isDocxBuffer(fileBytes) || uri.toLowerCase().endsWith(".docx")) {
-          const mammoth = await import("mammoth");
-          const result = await mammoth.convertToHtml({ buffer: fileBytes });
-          return { output: turndown.turndown(result.value) };
+          return { output: await convertWithPandoc(fileBytes, "docx") };
         }
         const content = fileBytes.toString("utf-8");
         if (content.includes("<") && content.includes(">")) {
@@ -148,58 +151,24 @@ export class ConvertToMarkdownLibNode extends BaseNode {
 }
 
 /**
- * Convert PDF bytes to markdown using pdfjs-dist.
+ * Convert document bytes to markdown using pandoc (subprocess).
+ * Non-blocking — doesn't freeze the event loop like pdfjs-dist.
  */
-async function pdfToMarkdown(pdfBytes: Buffer): Promise<string> {
-  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(pdfBytes) }).promise;
-  const parts: string[] = [];
-
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    const sizes: number[] = [];
-    for (const item of content.items as any[]) {
-      if (item.str?.trim()) {
-        sizes.push(item.height || item.transform?.[0] || 12);
-      }
-    }
-    const avgSize = sizes.length > 0 ? sizes.reduce((a, b) => a + b, 0) / sizes.length : 12;
-
-    let lastY: number | null = null;
-    const lines: string[] = [];
-    let currentLine = "";
-
-    for (const item of content.items as any[]) {
-      const text = item.str ?? "";
-      if (!text) continue;
-      const y = item.transform?.[5] ?? 0;
-      const size = item.height || item.transform?.[0] || 12;
-
-      if (lastY !== null && Math.abs(y - lastY) > size * 0.5) {
-        if (currentLine.trim()) {
-          const trimmed = currentLine.trim();
-          if (size > avgSize * 1.4) {
-            lines.push(`## ${trimmed}`);
-          } else if (size > avgSize * 1.2) {
-            lines.push(`### ${trimmed}`);
-          } else {
-            lines.push(trimmed);
-          }
-        }
-        currentLine = text;
-      } else {
-        currentLine += text;
-      }
-      lastY = y;
-    }
-    if (currentLine.trim()) {
-      lines.push(currentLine.trim());
-    }
-    parts.push(lines.join("\n"));
+async function convertWithPandoc(inputBytes: Buffer, inputFormat: string): Promise<string> {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-pandoc-"));
+  const ext = inputFormat === "pdf" ? ".pdf" : inputFormat === "docx" ? ".docx" : ".html";
+  const inputPath = path.join(tmpDir, `input${ext}`);
+  try {
+    await fs.writeFile(inputPath, inputBytes);
+    const { stdout } = await execFile(
+      "pandoc",
+      [inputPath, "-f", inputFormat, "-t", "markdown", "--wrap=none"],
+      { maxBuffer: 50 * 1024 * 1024 }
+    );
+    return stdout;
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
   }
-
-  return parts.join("\n\n---\n\n");
 }
 
 export const LIB_MARKITDOWN_NODES: readonly NodeClass[] = [
