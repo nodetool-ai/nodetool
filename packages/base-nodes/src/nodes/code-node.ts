@@ -257,9 +257,21 @@ function deepCopyInputs(
   return result;
 }
 
+/** Check if value is a binary type that should be wrapped, not spread. */
+function isBinaryLike(value: unknown): boolean {
+  if (value instanceof Uint8Array || Buffer.isBuffer(value)) return true;
+  if (value instanceof ArrayBuffer || value instanceof SharedArrayBuffer) return true;
+  // DataView and other typed arrays
+  if (ArrayBuffer.isView(value)) return true;
+  return false;
+}
+
 /** Normalize return value to Record<string, unknown>. */
 function normalizeOutput(value: unknown): Record<string, unknown> {
   if (value === null || value === undefined) return {};
+  if (isBinaryLike(value)) {
+    return { output: value };
+  }
   if (
     typeof value === "object" &&
     !Array.isArray(value) &&
