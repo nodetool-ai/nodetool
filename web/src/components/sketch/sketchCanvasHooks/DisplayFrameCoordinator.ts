@@ -206,9 +206,6 @@ export class DisplayTracer {
     if (this.events.length > MAX_TRACE_EVENTS) {
       this.events.shift();
     }
-    if (DEV) {
-      console.debug(`[DisplaySeam] ${type}`, detail ?? "");
-    }
   }
 
   /**
