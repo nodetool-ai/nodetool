@@ -439,6 +439,8 @@ export class Watchdog {
   }
 
   private _checkInProgress = false;
+  private _consecutiveFailures = 0;
+  private static readonly MAX_CONSECUTIVE_FAILURES = 3;
 
   private startMonitorLoop() {
     if (this.intervalId) clearInterval(this.intervalId);
@@ -449,10 +451,28 @@ export class Watchdog {
         const pidAlive = await this.isPidAlive();
         const healthy = await this.isHealthy();
 
-        if (!pidAlive || !healthy) {
+        if (!pidAlive) {
+          this._consecutiveFailures = 0;
           logMessage(
-            `${this.opts.name} watchdog: detected unhealthy state (pidAlive=${pidAlive}, healthy=${healthy}), restarting...`
+            `${this.opts.name} watchdog: process died (pidAlive=false), restarting...`
           );
+        } else if (!healthy) {
+          this._consecutiveFailures++;
+          if (this._consecutiveFailures < Watchdog.MAX_CONSECUTIVE_FAILURES) {
+            logMessage(
+              `${this.opts.name} watchdog: health check failed (${this._consecutiveFailures}/${Watchdog.MAX_CONSECUTIVE_FAILURES}), will retry...`
+            );
+            return;
+          }
+          logMessage(
+            `${this.opts.name} watchdog: detected unhealthy state after ${this._consecutiveFailures} consecutive failures, restarting...`
+          );
+        }
+
+        if (pidAlive && healthy) {
+          this._consecutiveFailures = 0;
+        } else if (!pidAlive || (this._consecutiveFailures >= Watchdog.MAX_CONSECUTIVE_FAILURES)) {
+          this._consecutiveFailures = 0;
           try {
             await this.restart();
           } catch (error) {
