@@ -1083,7 +1083,9 @@ export class LoadCSVAssetsNode extends BaseNode {
     "Load dataframes from an asset folder.\n    load, dataframe, file, import\n\n    Use cases:\n    - Load multiple dataframes from a folder\n    - Process multiple datasets in sequence\n    - Batch import of data files";
   static readonly metadataOutputTypes = {
     dataframe: "dataframe",
-    name: "str"
+    name: "str",
+    dataframes: "list",
+    names: "list"
   };
   static readonly exposeAsTool = true;
 
@@ -1103,10 +1105,24 @@ export class LoadCSVAssetsNode extends BaseNode {
   declare folder: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const allDataframes: unknown[] = [];
+    const allNames: string[] = [];
+    for await (const item of this._collectItems()) {
+      allDataframes.push(item.dataframe);
+      allNames.push(item.name);
+    }
+    return {
+      dataframe: allDataframes[0] ?? toDataframe([]),
+      name: allNames[0] ?? "",
+      dataframes: allDataframes,
+      names: allNames
+    };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  private async *_collectItems(): AsyncGenerator<{
+    dataframe: unknown;
+    name: string;
+  }> {
     const folder = String(this.folder ?? this.folder ?? ".");
     const entries = await fs.readdir(folder, { withFileTypes: true });
     for (const entry of entries) {
@@ -1116,6 +1132,18 @@ export class LoadCSVAssetsNode extends BaseNode {
       const csv = await fs.readFile(full, "utf8");
       yield { name: entry.name, dataframe: toDataframe(parseCsv(csv)) };
     }
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const allDataframes: unknown[] = [];
+    const allNames: string[] = [];
+    for await (const item of this._collectItems()) {
+      allDataframes.push(item.dataframe);
+      allNames.push(item.name);
+      yield { name: item.name, dataframe: item.dataframe };
+    }
+    // Emit collected lists as final output
+    yield { dataframes: allDataframes, names: allNames };
   }
 }
 

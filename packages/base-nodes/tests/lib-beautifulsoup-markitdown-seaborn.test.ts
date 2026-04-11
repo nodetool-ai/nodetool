@@ -63,24 +63,31 @@ describe("lib.html.ExtractLinks", () => {
       html: SAMPLE_HTML,
       base_url: BASE_URL
     }).process();
-    const output = result.output as { columns: unknown[]; data: string[][] };
-    expect(output.columns).toHaveLength(3);
-    expect(output.data).toHaveLength(3);
+    const links = result.links as Array<{
+      href: string;
+      text: string;
+      type: string;
+    }>;
+    expect(links).toHaveLength(3);
 
     // First link is internal (starts with base_url)
-    expect(output.data[0]).toEqual([
-      "https://example.com",
-      "Example Link",
-      "internal"
-    ]);
+    expect(links[0]).toEqual({
+      href: "https://example.com",
+      text: "Example Link",
+      type: "internal"
+    });
     // Second link is internal (starts with /)
-    expect(output.data[1]).toEqual(["/about", "About", "internal"]);
+    expect(links[1]).toEqual({
+      href: "/about",
+      text: "About",
+      type: "internal"
+    });
     // Third link is external
-    expect(output.data[2]).toEqual([
-      "https://external.com/page",
-      "External",
-      "external"
-    ]);
+    expect(links[2]).toEqual({
+      href: "https://external.com/page",
+      text: "External",
+      type: "external"
+    });
   });
 });
 
@@ -90,13 +97,13 @@ describe("lib.html.ExtractImages", () => {
       html: SAMPLE_HTML,
       base_url: BASE_URL
     }).process();
-    const output = result.output as Array<{ uri: string; type: string }>;
-    expect(output).toHaveLength(2);
-    expect(output[0]).toEqual({
+    const images = result.images as Array<{ uri: string; type: string }>;
+    expect(images).toHaveLength(2);
+    expect(images[0]).toEqual({
       uri: "https://example.com/img.png",
       type: "image"
     });
-    expect(output[1]).toEqual({
+    expect(images[1]).toEqual({
       uri: "https://cdn.example.com/photo.jpg",
       type: "image"
     });
@@ -109,13 +116,13 @@ describe("lib.html.ExtractAudio", () => {
       html: SAMPLE_HTML,
       base_url: BASE_URL
     }).process();
-    const output = result.output as Array<{ uri: string; type: string }>;
-    expect(output).toHaveLength(2);
-    expect(output[0]).toEqual({
+    const audios = result.audios as Array<{ uri: string; type: string }>;
+    expect(audios).toHaveLength(2);
+    expect(audios[0]).toEqual({
       uri: "https://example.com/song.mp3",
       type: "audio"
     });
-    expect(output[1]).toEqual({
+    expect(audios[1]).toEqual({
       uri: "https://cdn.example.com/track.ogg",
       type: "audio"
     });
@@ -128,17 +135,17 @@ describe("lib.html.ExtractVideos", () => {
       html: SAMPLE_HTML,
       base_url: BASE_URL
     }).process();
-    const output = result.output as Array<{ uri: string; type: string }>;
-    expect(output).toHaveLength(3);
-    expect(output[0]).toEqual({
+    const videos = result.videos as Array<{ uri: string; type: string }>;
+    expect(videos).toHaveLength(3);
+    expect(videos[0]).toEqual({
       uri: "https://example.com/clip.mp4",
       type: "video"
     });
-    expect(output[1]).toEqual({
+    expect(videos[1]).toEqual({
       uri: "https://cdn.example.com/movie.webm",
       type: "video"
     });
-    expect(output[2]).toEqual({
+    expect(videos[2]).toEqual({
       uri: "https://youtube.com/embed/abc",
       type: "video"
     });

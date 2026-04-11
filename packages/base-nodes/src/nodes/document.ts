@@ -185,7 +185,8 @@ export class ListDocumentsNode extends BaseNode {
   static readonly description =
     "List documents in a directory.\n    files, list, directory";
   static readonly metadataOutputTypes = {
-    document: "document"
+    document: "document",
+    documents: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -214,10 +215,17 @@ export class ListDocumentsNode extends BaseNode {
   declare recursive: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._listDocuments()) {
+      collected.push(item.document as Record<string, unknown>);
+    }
+    return {
+      document: collected[0] ?? { uri: "" },
+      documents: collected
+    };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  private async *_listDocuments(): AsyncGenerator<{ document: { uri: string } }> {
     const folder = String(this.folder ?? this.folder ?? ".");
     const pattern = String(this.pattern ?? this.pattern ?? "*");
     const recursive = Boolean(this.recursive ?? this.recursive ?? false);
@@ -253,6 +261,15 @@ export class ListDocumentsNode extends BaseNode {
       }
     }
   }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._listDocuments()) {
+      collected.push(item.document as Record<string, unknown>);
+      yield { document: item.document };
+    }
+    yield { documents: collected };
+  }
 }
 
 export class SplitDocumentNode extends BaseNode {
@@ -263,7 +280,8 @@ export class SplitDocumentNode extends BaseNode {
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
-    start_index: "int"
+    start_index: "int",
+    chunks: "list"
   };
   static readonly recommendedModels = [
     {
@@ -353,8 +371,18 @@ export class SplitDocumentNode extends BaseNode {
   })
   declare threshold: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    return {};
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this.genProcess(context)) {
+      if ("chunks" in item) continue;
+      collected.push(item);
+    }
+    return {
+      text: collected[0]?.text ?? "",
+      source_id: collected[0]?.source_id ?? "",
+      start_index: collected[0]?.start_index ?? 0,
+      chunks: collected
+    };
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
@@ -363,13 +391,17 @@ export class SplitDocumentNode extends BaseNode {
     const sourceId = documentSourceId(document);
     const chunkSize = Number((this as any).chunk_size ?? 1200);
     const overlap = Number((this as any).chunk_overlap ?? 100);
+    const collected: Record<string, unknown>[] = [];
     let startIndex = 0;
     for (const chunk of splitByChunk(text, chunkSize, overlap)) {
       const idx = text.indexOf(chunk, startIndex);
       const resolvedIndex = idx >= 0 ? idx : startIndex;
-      yield textChunk(chunk, sourceId, resolvedIndex);
+      const item = textChunk(chunk, sourceId, resolvedIndex);
+      collected.push(item);
+      yield item;
       startIndex = resolvedIndex + Math.max(chunk.length - overlap, 1);
     }
+    yield { chunks: collected };
   }
 }
 
@@ -381,7 +413,8 @@ export class SplitHTMLNode extends BaseNode {
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
-    start_index: "int"
+    start_index: "int",
+    chunks: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -399,8 +432,18 @@ export class SplitHTMLNode extends BaseNode {
   })
   declare document: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    return {};
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this.genProcess(context)) {
+      if ("chunks" in item) continue;
+      collected.push(item);
+    }
+    return {
+      text: collected[0]?.text ?? "",
+      source_id: collected[0]?.source_id ?? "",
+      start_index: collected[0]?.start_index ?? 0,
+      chunks: collected
+    };
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
@@ -460,6 +503,7 @@ export class SplitHTMLNode extends BaseNode {
     }
 
     // Merge small sections and split large ones respecting chunk_size
+    const collected: Record<string, unknown>[] = [];
     let startIndex = 0;
     let chunkIdx = 0;
     let buffer = "";
@@ -468,7 +512,9 @@ export class SplitHTMLNode extends BaseNode {
       if (buffer && (buffer.length + 1 + section.length) > chunkSize) {
         // Emit buffer
         for (const chunk of splitByChunk(buffer, chunkSize, overlap)) {
-          yield textChunk(chunk, `${sourceId}:${chunkIdx}`, startIndex);
+          const item = textChunk(chunk, `${sourceId}:${chunkIdx}`, startIndex);
+          collected.push(item);
+          yield item;
           startIndex += Math.max(chunk.length - overlap, 1);
           chunkIdx++;
         }
@@ -480,11 +526,15 @@ export class SplitHTMLNode extends BaseNode {
     // Emit remaining buffer
     if (buffer) {
       for (const chunk of splitByChunk(buffer, chunkSize, overlap)) {
-        yield textChunk(chunk, `${sourceId}:${chunkIdx}`, startIndex);
+        const item = textChunk(chunk, `${sourceId}:${chunkIdx}`, startIndex);
+        collected.push(item);
+        yield item;
         startIndex += Math.max(chunk.length - overlap, 1);
         chunkIdx++;
       }
     }
+
+    yield { chunks: collected };
   }
 }
 
@@ -496,7 +546,8 @@ export class SplitJSONNode extends BaseNode {
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
-    start_index: "int"
+    start_index: "int",
+    chunks: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -530,8 +581,18 @@ export class SplitJSONNode extends BaseNode {
   })
   declare include_prev_next_rel: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    return {};
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this.genProcess(context)) {
+      if ("chunks" in item) continue;
+      collected.push(item);
+    }
+    return {
+      text: collected[0]?.text ?? "",
+      source_id: collected[0]?.source_id ?? "",
+      start_index: collected[0]?.start_index ?? 0,
+      chunks: collected
+    };
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
@@ -540,6 +601,7 @@ export class SplitJSONNode extends BaseNode {
     const sourceId = documentSourceId(document);
     const chunkSize = Number((this as any).chunk_size ?? 1200);
     const overlap = Number((this as any).chunk_overlap ?? 100);
+    const collected: Record<string, unknown>[] = [];
 
     let parsed: unknown;
     try {
@@ -550,9 +612,12 @@ export class SplitJSONNode extends BaseNode {
       for (const chunk of splitByChunk(raw, chunkSize, overlap)) {
         const idx = raw.indexOf(chunk, startIndex);
         const resolvedIndex = idx >= 0 ? idx : startIndex;
-        yield textChunk(chunk, sourceId, resolvedIndex);
+        const item = textChunk(chunk, sourceId, resolvedIndex);
+        collected.push(item);
+        yield item;
         startIndex = resolvedIndex + Math.max(chunk.length - overlap, 1);
       }
+      yield { chunks: collected };
       return;
     }
 
@@ -578,18 +643,24 @@ export class SplitJSONNode extends BaseNode {
       if (element.length > chunkSize) {
         // Emit buffer first if any
         if (buffer) {
-          yield textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
+          const item = textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
+          collected.push(item);
+          yield item;
           chunkIdx++;
           buffer = "";
         }
         // Split large element by characters
         for (const chunk of splitByChunk(element, chunkSize, overlap)) {
-          yield textChunk(chunk, `${sourceId}:${chunkIdx}`, chunkIdx);
+          const item = textChunk(chunk, `${sourceId}:${chunkIdx}`, chunkIdx);
+          collected.push(item);
+          yield item;
           chunkIdx++;
         }
       } else if (buffer && (buffer.length + 2 + element.length) > chunkSize) {
         // Buffer would exceed chunk_size, emit it
-        yield textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
+        const item = textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
+        collected.push(item);
+        yield item;
         chunkIdx++;
         buffer = element;
       } else {
@@ -598,8 +669,12 @@ export class SplitJSONNode extends BaseNode {
     }
 
     if (buffer) {
-      yield textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
+      const item = textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
+      collected.push(item);
+      yield item;
     }
+
+    yield { chunks: collected };
   }
 }
 
@@ -611,7 +686,8 @@ export class SplitRecursivelyNode extends BaseNode {
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
-    start_index: "int"
+    start_index: "int",
+    chunks: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -653,8 +729,18 @@ export class SplitRecursivelyNode extends BaseNode {
   })
   declare separators: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    return {};
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this.genProcess(context)) {
+      if ("chunks" in item) continue;
+      collected.push(item);
+    }
+    return {
+      text: collected[0]?.text ?? "",
+      source_id: collected[0]?.source_id ?? "",
+      start_index: collected[0]?.start_index ?? 0,
+      chunks: collected
+    };
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
@@ -733,21 +819,25 @@ export class SplitRecursivelyNode extends BaseNode {
     }
 
     const chunks = recursiveSplit(text, 0);
+    const collected: Record<string, unknown>[] = [];
     let chunkIndex = 0;
     let searchFrom = 0;
     for (const chunk of chunks) {
       // Find position accounting for overlap (search from where we expect)
       const idx = text.indexOf(chunk, searchFrom);
       const resolvedIndex = idx >= 0 ? idx : searchFrom;
-      yield textChunk(
+      const item = textChunk(
         chunk,
         `${sourceId}:${chunkIndex}`,
         resolvedIndex
       );
+      collected.push(item);
+      yield item;
       // Move search forward, but not past the overlap region
       searchFrom = resolvedIndex + Math.max(chunk.length - overlap, 1);
       chunkIndex++;
     }
+    yield { chunks: collected };
   }
 }
 
@@ -759,7 +849,8 @@ export class SplitMarkdownNode extends BaseNode {
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
-    start_index: "int"
+    start_index: "int",
+    chunks: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -821,8 +912,18 @@ export class SplitMarkdownNode extends BaseNode {
   })
   declare chunk_overlap: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    return {};
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this.genProcess(context)) {
+      if ("chunks" in item) continue;
+      collected.push(item);
+    }
+    return {
+      text: collected[0]?.text ?? "",
+      source_id: collected[0]?.source_id ?? "",
+      start_index: collected[0]?.start_index ?? 0,
+      chunks: collected
+    };
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
@@ -911,6 +1012,7 @@ export class SplitMarkdownNode extends BaseNode {
     }
 
     // Yield sections
+    const collected: Record<string, unknown>[] = [];
     let chunkIdx = 0;
     for (const section of sections) {
       const sectionText = section.content.join("\n").trim();
@@ -922,6 +1024,7 @@ export class SplitMarkdownNode extends BaseNode {
           if (trimmed) {
             const result = textChunk(trimmed, sourceId, chunkIdx);
             result.metadata = section.metadata;
+            collected.push(result);
             yield result;
             chunkIdx++;
           }
@@ -931,6 +1034,7 @@ export class SplitMarkdownNode extends BaseNode {
         for (const chunk of sectionChunks) {
           const result = textChunk(chunk, sourceId, chunkIdx);
           result.metadata = section.metadata;
+          collected.push(result);
           yield result;
           chunkIdx++;
         }
@@ -943,10 +1047,14 @@ export class SplitMarkdownNode extends BaseNode {
       for (const chunk of splitByChunk(markdown, chunkSize, overlap)) {
         const idx = markdown.indexOf(chunk, startIndex);
         const resolvedIndex = idx >= 0 ? idx : startIndex;
-        yield textChunk(chunk, sourceId, resolvedIndex);
+        const item = textChunk(chunk, sourceId, resolvedIndex);
+        collected.push(item);
+        yield item;
         startIndex = resolvedIndex + Math.max(chunk.length - overlap, 1);
       }
     }
+
+    yield { chunks: collected };
   }
 }
 

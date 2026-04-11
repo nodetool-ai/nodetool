@@ -104,7 +104,8 @@ export class ListWorkspaceFilesNode extends BaseNode {
   static readonly description =
     "List files in the workspace directory matching a pattern.\n    workspace, files, list, directory";
   static readonly metadataOutputTypes = {
-    file: "str"
+    file: "str",
+    files: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -133,22 +134,43 @@ export class ListWorkspaceFilesNode extends BaseNode {
   declare recursive: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const workspace = workspaceDirFrom(this.serialize());
+    const relative = String(this.path ?? ".");
+    const pattern = String(this.pattern ?? "*");
+    const recursive = Boolean(this.recursive ?? false);
+    const root = ensureWorkspacePath(workspace, relative);
+    const regex = wildcardToRegExp(pattern);
+    const all = await walk(root, recursive);
+    const results: string[] = [];
+    for (const item of all) {
+      if (regex.test(path.basename(item))) {
+        results.push(path.relative(workspace, item));
+      }
+    }
+    return {
+      file: results[0] ?? "",
+      files: results
+    };
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? ".");
-    const pattern = String(this.pattern ?? this.pattern ?? "*");
-    const recursive = Boolean(this.recursive ?? this.recursive ?? false);
+    const relative = String(this.path ?? ".");
+    const pattern = String(this.pattern ?? "*");
+    const recursive = Boolean(this.recursive ?? false);
     const root = ensureWorkspacePath(workspace, relative);
     const regex = wildcardToRegExp(pattern);
     const all = await walk(root, recursive);
+    const results: string[] = [];
     for (const item of all) {
       if (regex.test(path.basename(item))) {
-        yield { file: path.relative(workspace, item) };
+        const rel = path.relative(workspace, item);
+        results.push(rel);
+        yield { file: rel };
       }
     }
+
+    yield { files: results };
   }
 }
 

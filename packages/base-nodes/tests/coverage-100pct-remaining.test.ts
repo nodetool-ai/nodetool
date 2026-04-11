@@ -507,13 +507,24 @@ describe("workspace nodes", () => {
       for await (const item of node.genProcess()) {
         results.push(item);
       }
-      expect(results.length).toBe(1);
+      // Individual items + 1 final list yield
+      expect(results.length).toBe(2);
       expect((results[0].file as string).endsWith("a.txt")).toBe(true);
+      expect(Array.isArray(results[1].files)).toBe(true);
     });
 
-    it("process returns empty object (streaming node)", async () => {
+    it("process returns first file and list", async () => {
+      await fs.writeFile(path.join(tmpDir, "c.txt"), "hi");
       const node = new ListWorkspaceFilesNode();
-      expect(await node.process()).toEqual({});
+      assignWithWorkspaceDir(node, {
+        workspace_dir: tmpDir,
+        path: ".",
+        pattern: "*.txt",
+        recursive: false
+      });
+      const result = await node.process();
+      expect(result.file).toBeDefined();
+      expect(Array.isArray(result.files)).toBe(true);
     });
 
     it("lists files recursively", async () => {
@@ -531,7 +542,8 @@ describe("workspace nodes", () => {
       for await (const item of node.genProcess()) {
         results.push(item);
       }
-      expect(results.length).toBe(2);
+      // 2 files + 1 final list yield
+      expect(results.length).toBe(3);
     });
   });
 
@@ -1956,11 +1968,12 @@ describe("LoadTextAssetsNode", () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("process() returns empty object (streaming node)", async () => {
+  it("process() returns first file and lists", async () => {
     const node = new LoadTextAssetsNode();
     node.assign({ folder: { type: "folder", uri: "", path: tmpDir } });
     const result = await node.process();
-    expect(result).toEqual({});
+    expect(result.text).toBeDefined();
+    expect(Array.isArray(result.texts)).toBe(true);
   });
 
   it("genProcess yields text files from folder", async () => {
@@ -1970,8 +1983,9 @@ describe("LoadTextAssetsNode", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(2);
-    const texts = items.map((i) => i.text).sort();
+    // 2 files + 1 final list yield
+    expect(items.length).toBe(3);
+    const texts = items.filter((i) => i.text).map((i) => i.text).sort();
     expect(texts).toEqual(["content one", "content two"]);
   });
 
@@ -2008,7 +2022,8 @@ describe("LoadTextFolderNode", () => {
     });
     const items: { text: string; path: string }[] = [];
     for await (const item of node.genProcess()) {
-      items.push(item);
+      if ("texts" in item) continue; // skip final list yield
+      items.push(item as { text: string; path: string });
     }
     expect(items.length).toBe(1);
     expect(items[0].text).toBe("alpha");
@@ -2023,7 +2038,8 @@ describe("LoadTextFolderNode", () => {
     });
     const items: { text: string; path: string }[] = [];
     for await (const item of node.genProcess()) {
-      items.push(item);
+      if ("texts" in item) continue; // skip final list yield
+      items.push(item as { text: string; path: string });
     }
     expect(items.length).toBe(2);
     const texts = items.map((i) => i.text).sort();
@@ -2153,8 +2169,15 @@ describe("data.ts uncovered lines", () => {
   });
 
   it("LoadCSVAssetsNode.process returns empty (line 570-571)", async () => {
-    const node = new dataModule.LoadCSVAssetsNode();
-    expect(await node.process()).toEqual({});
+    const emptyDir = await fs.mkdtemp(path.join(os.tmpdir(), "csv-empty-"));
+    try {
+      const node = new dataModule.LoadCSVAssetsNode();
+      node.assign({ folder: emptyDir });
+      const result = await node.process();
+      expect(result).toMatchObject({ dataframes: [], names: [] });
+    } finally {
+      await fs.rm(emptyDir, { recursive: true, force: true }).catch(() => {});
+    }
   });
 
   it("LoadCSVAssetsNode.genProcess streams CSV files", async () => {
@@ -2167,6 +2190,7 @@ describe("data.ts uncovered lines", () => {
       const results: any[] = [];
       node.assign({ folder: tmpDir });
       for await (const item of node.genProcess()) {
+        if ("dataframes" in item) continue; // skip final list yield
         results.push(item);
       }
       expect(results.length).toBe(1);
@@ -2246,6 +2270,7 @@ describe("document.ts uncovered lines", () => {
     const results: any[] = [];
     node.assign({ document: {} });
     for await (const item of node.genProcess()) {
+      if ("chunks" in item) continue; // skip final list yield
       results.push(item);
     }
     expect(results.length).toBe(0);
@@ -2256,18 +2281,32 @@ describe("document.ts uncovered lines", () => {
     const results: any[] = [];
     node.assign({ document: 42 });
     for await (const item of node.genProcess()) {
+      if ("chunks" in item) continue; // skip final list yield
       results.push(item);
     }
     expect(results.length).toBe(0);
   });
 
-  it("streaming node process() returns {} (lines 114, 153, 177, 202, 233, 259)", async () => {
-    expect(await new ListDocumentsNode().process()).toEqual({});
-    expect(await new SplitDocumentNode().process()).toEqual({});
-    expect(await new SplitHTMLNode().process()).toEqual({});
-    expect(await new SplitJSONNode().process()).toEqual({});
-    expect(await new SplitRecursivelyNode().process()).toEqual({});
-    expect(await new SplitMarkdownNode().process()).toEqual({});
+  it("streaming node process() returns collected lists (lines 114, 153, 177, 202, 233, 259)", async () => {
+    const listDocsNode = new ListDocumentsNode();
+    listDocsNode.assign({ folder: tmpDir });
+    const listDocsResult = await listDocsNode.process();
+    expect(listDocsResult).toHaveProperty("documents");
+    const splitDocResult = await new SplitDocumentNode().process();
+    expect(splitDocResult).toHaveProperty("chunks");
+    expect(Array.isArray(splitDocResult.chunks)).toBe(true);
+    const splitHtmlResult = await new SplitHTMLNode().process();
+    expect(splitHtmlResult).toHaveProperty("chunks");
+    expect(Array.isArray(splitHtmlResult.chunks)).toBe(true);
+    const splitJsonResult = await new SplitJSONNode().process();
+    expect(splitJsonResult).toHaveProperty("chunks");
+    expect(Array.isArray(splitJsonResult.chunks)).toBe(true);
+    const splitRecResult = await new SplitRecursivelyNode().process();
+    expect(splitRecResult).toHaveProperty("chunks");
+    expect(Array.isArray(splitRecResult.chunks)).toBe(true);
+    const splitMdResult = await new SplitMarkdownNode().process();
+    expect(splitMdResult).toHaveProperty("chunks");
+    expect(Array.isArray(splitMdResult.chunks)).toBe(true);
   });
 
   it("ListDocumentsNode streams document files", async () => {
@@ -2278,6 +2317,7 @@ describe("document.ts uncovered lines", () => {
     const results: any[] = [];
     node.assign({ folder: tmpDir });
     for await (const item of node.genProcess()) {
+      if ("documents" in item) continue; // skip final list yield
       results.push(item);
     }
     expect(results.length).toBe(2); // .txt and .pdf

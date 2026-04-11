@@ -1152,7 +1152,7 @@ describe("workspace nodes — full coverage", () => {
     const results: string[] = [];
     node.assign({ workspace_dir: tmpDir, path: "sub", pattern: "*.txt" });
     for await (const item of node.genProcess()) {
-      results.push(String(item.file));
+      if ("file" in item) results.push(String(item.file));
     }
     expect(results).toEqual(["sub/a.txt"]);
   });
@@ -1178,7 +1178,7 @@ describe("workspace nodes — full coverage", () => {
       recursive: true
     });
     for await (const item of node.genProcess()) {
-      results.push(String(item.file));
+      if ("file" in item) results.push(String(item.file));
     }
     expect(results.sort()).toEqual(["top/a.txt", "top/nested/b.txt"]);
   });
@@ -1190,7 +1190,10 @@ describe("workspace nodes — full coverage", () => {
       pattern: "*",
       recursive: false
     });
-    expect(await node.process()).toEqual({});
+    const result = await node.process();
+    expect(result).toHaveProperty("file");
+    expect(result).toHaveProperty("files");
+    expect(Array.isArray(result.files)).toBe(true);
   });
 
   it("SaveImageFileNode defaults", () => {

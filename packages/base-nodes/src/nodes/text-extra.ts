@@ -1842,7 +1842,9 @@ export class LoadTextFolderNode extends BaseNode {
     "Load all text files from a folder, optionally including subfolders.\n    text, load, folder, files";
   static readonly metadataOutputTypes = {
     text: "str",
-    path: "str"
+    path: "str",
+    texts: "list",
+    paths: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -1879,10 +1881,24 @@ export class LoadTextFolderNode extends BaseNode {
   declare pattern: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const allTexts: string[] = [];
+    const allPaths: string[] = [];
+    for await (const item of this._walkFiles()) {
+      allTexts.push(item.text);
+      allPaths.push(item.path);
+    }
+    return {
+      text: allTexts[0] ?? "",
+      path: allPaths[0] ?? "",
+      texts: allTexts,
+      paths: allPaths
+    };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *_walkFiles(): AsyncGenerator<{
+    text: string;
+    path: string;
+  }> {
     const folder = String(this.folder ?? this.folder ?? "");
     const includeSubdirs = Boolean(
       this.include_subdirectories ?? this.include_subdirectories ?? false
@@ -1911,13 +1927,25 @@ export class LoadTextFolderNode extends BaseNode {
       }
     };
 
-    for await (const path of walk(folder)) {
-      if (!extensions.includes(extname(path).toLowerCase())) {
+    for await (const filePath of walk(folder)) {
+      if (!extensions.includes(extname(filePath).toLowerCase())) {
         continue;
       }
-      const text = await fs.readFile(path, "utf-8");
-      yield { path, text };
+      const text = await fs.readFile(filePath, "utf-8");
+      yield { path: filePath, text };
     }
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const allTexts: string[] = [];
+    const allPaths: string[] = [];
+    for await (const item of this._walkFiles()) {
+      allTexts.push(item.text);
+      allPaths.push(item.path);
+      yield { path: item.path, text: item.text };
+    }
+    // Emit collected lists as final output
+    yield { texts: allTexts, paths: allPaths };
   }
 }
 
@@ -1928,7 +1956,9 @@ export class LoadTextAssetsNode extends BaseNode {
     "Load text files from an asset folder.\n    load, text, file, import";
   static readonly metadataOutputTypes = {
     text: "text",
-    name: "str"
+    name: "str",
+    texts: "list",
+    names: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -1947,7 +1977,24 @@ export class LoadTextAssetsNode extends BaseNode {
   declare folder: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const allTexts: unknown[] = [];
+    const allNames: string[] = [];
+    const folder = folderPath(this.folder ?? "");
+    if (!folder) {
+      throw new Error("folder cannot be empty");
+    }
+    const walker = new LoadTextFolderNode();
+    walker.assign({ folder });
+    for await (const item of walker._walkFiles()) {
+      allTexts.push(item.text);
+      allNames.push(item.path);
+    }
+    return {
+      text: allTexts[0] ?? "",
+      name: allNames[0] ?? "",
+      texts: allTexts,
+      names: allNames
+    };
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
@@ -1956,11 +2003,17 @@ export class LoadTextAssetsNode extends BaseNode {
       throw new Error("folder cannot be empty");
     }
 
+    const allTexts: unknown[] = [];
+    const allNames: string[] = [];
     const walker = new LoadTextFolderNode();
     walker.assign({ folder });
-    for await (const item of walker.genProcess()) {
-      yield item;
+    for await (const item of walker._walkFiles()) {
+      allTexts.push(item.text);
+      allNames.push(item.path);
+      yield { text: item.text, name: item.path };
     }
+    // Emit collected lists as final output
+    yield { texts: allTexts, names: allNames };
   }
 }
 

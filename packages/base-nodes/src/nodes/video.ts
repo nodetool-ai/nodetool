@@ -555,7 +555,9 @@ export class LoadVideoAssetsNode extends BaseNode {
     "Load video files from an asset folder.\n\n    video, assets, load";
   static readonly metadataOutputTypes = {
     video: "video",
-    name: "str"
+    name: "str",
+    videos: "list",
+    names: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -574,10 +576,24 @@ export class LoadVideoAssetsNode extends BaseNode {
   declare folder: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const allVideos: unknown[] = [];
+    const allNames: string[] = [];
+    for await (const item of this._loadVideos()) {
+      allVideos.push(item.video);
+      allNames.push(item.name);
+    }
+    return {
+      video: allVideos[0] ?? null,
+      name: allNames[0] ?? "",
+      videos: allVideos,
+      names: allNames
+    };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  private async *_loadVideos(): AsyncGenerator<{
+    video: unknown;
+    name: string;
+  }> {
     const folder = String(this.folder ?? ".");
     const entries = await fs.readdir(folder, { withFileTypes: true });
     for (const entry of entries) {
@@ -591,6 +607,18 @@ export class LoadVideoAssetsNode extends BaseNode {
         name: entry.name
       };
     }
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const allVideos: unknown[] = [];
+    const allNames: string[] = [];
+    for await (const item of this._loadVideos()) {
+      allVideos.push(item.video);
+      allNames.push(item.name);
+      yield { video: item.video, name: item.name };
+    }
+    // Emit collected lists as final output
+    yield { videos: allVideos, names: allNames };
   }
 }
 

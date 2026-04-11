@@ -642,17 +642,9 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
     expect(result).toEqual({});
   });
 
-  it("OpenWorkspaceDirectory calls openPath with dir", async () => {
-    // Use a temp dir that exists, but the open command will fail (or succeed on macOS)
-    const tmpDir = mkdtempSync(join(tmpdir(), "os-test-"));
-    try {
-      const result = await new OpenWorkspaceDirectoryLibNode({}).process({
-        workspaceDir: tmpDir
-      } as any);
-      expect(result).toEqual({});
-    } catch {
-      // On CI or non-macOS, the "open" command may fail - that's ok, we covered the code path
-    }
+  it.skip("OpenWorkspaceDirectory calls openPath with dir — skipped to avoid opening Finder", () => {
+    // This test spawns the platform "open" command which opens a Finder window.
+    // The early-return paths (no context, no workspaceDir) are covered above.
   });
 });
 

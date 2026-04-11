@@ -39,7 +39,8 @@ export class ExtractLinksLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     href: "str",
     text: "str",
-    type: "str"
+    type: "str",
+    links: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -60,11 +61,11 @@ export class ExtractLinksLibNode extends BaseNode {
   })
   declare base_url: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  private _extractLinks(): Array<{ href: string; text: string; type: string }> {
     const html = String(this.html ?? "");
     const baseUrl = String(this.base_url ?? "");
     const $ = cheerio.load(html);
-    const rows: string[][] = [];
+    const results: Array<{ href: string; text: string; type: string }> = [];
 
     $("a[href]").each((_, el) => {
       const href = $(el).attr("href") ?? "";
@@ -73,18 +74,29 @@ export class ExtractLinksLibNode extends BaseNode {
         href.startsWith(baseUrl) || href.startsWith("/")
           ? "internal"
           : "external";
-      rows.push([href, text, linkType]);
+      results.push({ href, text, type: linkType });
     });
 
+    return results;
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const results = this._extractLinks();
+
+    for (const item of results) {
+      yield item;
+    }
+
+    yield { links: results };
+  }
+
+  async process(): Promise<Record<string, unknown>> {
+    const results = this._extractLinks();
     return {
-      output: {
-        columns: [
-          { name: "href", data_type: "string" },
-          { name: "text", data_type: "string" },
-          { name: "type", data_type: "string" }
-        ],
-        data: rows
-      }
+      href: results[0]?.href ?? "",
+      text: results[0]?.text ?? "",
+      type: results[0]?.type ?? "",
+      links: results
     };
   }
 }
@@ -95,7 +107,8 @@ export class ExtractImagesLibNode extends BaseNode {
   static readonly description =
     "Extract images from HTML content.\n    extract, images, src\n\n    Use cases:\n    - Collect images from web pages\n    - Analyze image usage on websites\n    - Create image galleries";
   static readonly metadataOutputTypes = {
-    image: "image"
+    image: "image",
+    images: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -116,7 +129,7 @@ export class ExtractImagesLibNode extends BaseNode {
   })
   declare base_url: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  private _extractImages(): Array<{ uri: string; type: string }> {
     const html = String(this.html ?? "");
     const baseUrl = String(this.base_url ?? "");
     const $ = cheerio.load(html);
@@ -128,7 +141,25 @@ export class ExtractImagesLibNode extends BaseNode {
       images.push({ uri: fullUrl, type: "image" });
     });
 
-    return { output: images };
+    return images;
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const results = this._extractImages();
+
+    for (const item of results) {
+      yield { image: item };
+    }
+
+    yield { images: results };
+  }
+
+  async process(): Promise<Record<string, unknown>> {
+    const results = this._extractImages();
+    return {
+      image: results[0] ?? { uri: "", type: "image" },
+      images: results
+    };
   }
 }
 
@@ -138,7 +169,8 @@ export class ExtractAudioLibNode extends BaseNode {
   static readonly description =
     "Extract audio elements from HTML content.\n    extract, audio, src\n\n    Use cases:\n    - Collect audio sources from web pages\n    - Analyze audio usage on websites\n    - Create audio playlists";
   static readonly metadataOutputTypes = {
-    audio: "audio"
+    audio: "audio",
+    audios: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -159,7 +191,7 @@ export class ExtractAudioLibNode extends BaseNode {
   })
   declare base_url: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  private _extractAudio(): Array<{ uri: string; type: string }> {
     const html = String(this.html ?? "");
     const baseUrl = String(this.base_url ?? "");
     const $ = cheerio.load(html);
@@ -173,7 +205,25 @@ export class ExtractAudioLibNode extends BaseNode {
       }
     });
 
-    return { output: audioList };
+    return audioList;
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const results = this._extractAudio();
+
+    for (const item of results) {
+      yield { audio: item };
+    }
+
+    yield { audios: results };
+  }
+
+  async process(): Promise<Record<string, unknown>> {
+    const results = this._extractAudio();
+    return {
+      audio: results[0] ?? { uri: "", type: "audio" },
+      audios: results
+    };
   }
 }
 
@@ -183,7 +233,8 @@ export class ExtractVideosLibNode extends BaseNode {
   static readonly description =
     "Extract videos from HTML content.\n    extract, videos, src\n\n    Use cases:\n    - Collect video sources from web pages\n    - Analyze video usage on websites\n    - Create video playlists";
   static readonly metadataOutputTypes = {
-    video: "video"
+    video: "video",
+    videos: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -204,7 +255,7 @@ export class ExtractVideosLibNode extends BaseNode {
   })
   declare base_url: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  private _extractVideos(): Array<{ uri: string; type: string }> {
     const html = String(this.html ?? "");
     const baseUrl = String(this.base_url ?? "");
     const $ = cheerio.load(html);
@@ -218,7 +269,25 @@ export class ExtractVideosLibNode extends BaseNode {
       }
     });
 
-    return { output: videos };
+    return videos;
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const results = this._extractVideos();
+
+    for (const item of results) {
+      yield { video: item };
+    }
+
+    yield { videos: results };
+  }
+
+  async process(): Promise<Record<string, unknown>> {
+    const results = this._extractVideos();
+    return {
+      video: results[0] ?? { uri: "", type: "video" },
+      videos: results
+    };
   }
 }
 

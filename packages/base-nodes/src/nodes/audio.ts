@@ -174,7 +174,8 @@ export class LoadAudioAssetsNode extends BaseNode {
     "Load audio files from an asset folder.\n    load, audio, file, import";
   static readonly metadataOutputTypes = {
     audio: "audio",
-    name: "str"
+    name: "str",
+    audios: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -193,10 +194,18 @@ export class LoadAudioAssetsNode extends BaseNode {
   declare folder: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._loadAudios()) {
+      collected.push(item.audio as Record<string, unknown>);
+    }
+    return {
+      audio: collected[0] ?? {},
+      name: "",
+      audios: collected
+    };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  private async *_loadAudios(): AsyncGenerator<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
     const entries = await fs.readdir(folder, { withFileTypes: true });
     for (const entry of entries) {
@@ -210,6 +219,15 @@ export class LoadAudioAssetsNode extends BaseNode {
         name: entry.name
       };
     }
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._loadAudios()) {
+      collected.push(item.audio as Record<string, unknown>);
+      yield item;
+    }
+    yield { audios: collected };
   }
 }
 
@@ -244,7 +262,8 @@ export class LoadAudioFolderNode extends BaseNode {
     "Load all audio files from a folder, optionally including subfolders.\n    audio, load, folder, files";
   static readonly metadataOutputTypes = {
     audio: "audio",
-    path: "str"
+    path: "str",
+    audios: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -273,7 +292,10 @@ export class LoadAudioFolderNode extends BaseNode {
   declare extensions: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const loader = new LoadAudioAssetsNode();
+    loader.assign({ folder: this.folder ?? "." });
+    const result = await loader.process();
+    return result;
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {

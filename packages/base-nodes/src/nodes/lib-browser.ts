@@ -406,7 +406,8 @@ export class SpiderCrawlLibNode extends BaseNode {
     depth: "int",
     html: "str",
     title: "str",
-    status_code: "int"
+    status_code: "int",
+    pages: "list"
   };
   static readonly exposeAsTool = true;
 
@@ -503,6 +504,28 @@ export class SpiderCrawlLibNode extends BaseNode {
   declare exclude_pattern: any;
 
   async process(): Promise<Record<string, unknown>> {
+    const allPages: Array<Record<string, unknown>> = [];
+    for await (const page of this._crawlPages()) {
+      allPages.push(page);
+    }
+    const first = allPages[0] ?? {
+      url: "",
+      depth: 0,
+      html: null,
+      title: null,
+      status_code: 0
+    };
+    return {
+      url: first.url,
+      depth: first.depth,
+      html: first.html,
+      title: first.title,
+      status_code: first.status_code,
+      pages: allPages
+    };
+  }
+
+  private async *_crawlPages(): AsyncGenerator<Record<string, unknown>> {
     const startUrl = String(this.start_url ?? "");
     const maxDepth = Number(this.max_depth ?? 2);
     const maxPages = Number(this.max_pages ?? 50);
@@ -585,7 +608,6 @@ export class SpiderCrawlLibNode extends BaseNode {
     const toVisit: Array<{ url: string; depth: number }> = [
       { url: startUrl, depth: 0 }
     ];
-    const results: Array<Record<string, unknown>> = [];
     let pagesCrawled = 0;
 
     while (toVisit.length > 0 && pagesCrawled < maxPages) {
@@ -618,13 +640,13 @@ export class SpiderCrawlLibNode extends BaseNode {
         const $ = cheerio.load(htmlContent);
         const title = $("title").text() || null;
 
-        results.push({
+        yield {
           url: currentUrl,
           depth,
           html: includeHtml ? htmlContent : null,
           title,
           status_code: statusCode
-        });
+        };
         pagesCrawled++;
 
         if (depth < maxDepth) {
@@ -660,17 +682,25 @@ export class SpiderCrawlLibNode extends BaseNode {
           await new Promise((r) => setTimeout(r, delayMs));
         }
       } catch {
-        results.push({
+        yield {
           url: currentUrl,
           depth,
           html: null,
           title: null,
           status_code: 0
-        });
+        };
       }
     }
+  }
 
-    return { output: results };
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const allPages: Array<Record<string, unknown>> = [];
+    for await (const page of this._crawlPages()) {
+      allPages.push(page);
+      yield page;
+    }
+    // Emit collected list as final output
+    yield { pages: allPages };
   }
 }
 

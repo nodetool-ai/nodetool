@@ -206,7 +206,8 @@ export class LoadImageFolderNode extends BaseNode {
     "Load all images from a folder, optionally including subfolders.\n    image, load, folder, files";
   static readonly metadataOutputTypes = {
     image: "image",
-    path: "str"
+    path: "str",
+    images: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -243,10 +244,18 @@ export class LoadImageFolderNode extends BaseNode {
   declare pattern: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._loadImages()) {
+      collected.push(item.image as Record<string, unknown>);
+    }
+    return {
+      image: collected[0] ?? {},
+      name: "",
+      images: collected
+    };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  private async *_loadImages(): AsyncGenerator<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
     const extensions: string[] = Array.isArray(this.extensions)
       ? this.extensions.map((e: string) => String(e).toLowerCase())
@@ -293,6 +302,15 @@ export class LoadImageFolderNode extends BaseNode {
         name: file.name
       };
     }
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._loadImages()) {
+      collected.push(item.image as Record<string, unknown>);
+      yield item;
+    }
+    yield { images: collected };
   }
 }
 
@@ -378,7 +396,8 @@ export class LoadImageAssetsNode extends BaseNode {
     "Load images from an asset folder.\n    load, image, file, import";
   static readonly metadataOutputTypes = {
     image: "image",
-    name: "str"
+    name: "str",
+    images: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -397,7 +416,10 @@ export class LoadImageAssetsNode extends BaseNode {
   declare folder: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const loader = new LoadImageFolderNode();
+    loader.assign({ folder: this.folder ?? "." });
+    const result = await loader.process();
+    return result;
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {

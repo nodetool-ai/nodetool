@@ -1617,29 +1617,28 @@ describe("lib-beautifulsoup gaps", () => {
     const __n106 = new ExtractLinksLibNode();
     __n106.assign({ html, base_url: "https://example.com" });
     const res = await __n106.process();
-    const out = res.output as any;
-    expect(out.data.length).toBe(2);
+    expect((res.links as any[]).length).toBe(2);
   });
 
   it("ExtractImages", async () => {
     const __n107 = new ExtractImagesLibNode();
     __n107.assign({ html, base_url: "https://example.com" });
     const res = await __n107.process();
-    expect((res.output as any[]).length).toBe(1);
+    expect((res.images as any[]).length).toBe(1);
   });
 
   it("ExtractAudio", async () => {
     const __n108 = new ExtractAudioLibNode();
     __n108.assign({ html, base_url: "https://example.com" });
     const res = await __n108.process();
-    expect((res.output as any[]).length).toBeGreaterThan(0);
+    expect((res.audios as any[]).length).toBeGreaterThan(0);
   });
 
   it("ExtractVideos", async () => {
     const __n109 = new ExtractVideosLibNode();
     __n109.assign({ html, base_url: "https://example.com" });
     const res = await __n109.process();
-    expect((res.output as any[]).length).toBe(2);
+    expect((res.videos as any[]).length).toBe(2);
   });
 
   it("ExtractMetadata", async () => {
@@ -2496,7 +2495,9 @@ describe("document.ts gaps", () => {
     const node = new ListDocumentsNode();
     node.assign({ folder: dir });
     const items = await collectGen(node.genProcess());
-    expect(items.length).toBe(2);
+    // Last yield is the collected documents list
+    const docItems = items.filter((item) => "document" in item);
+    expect(docItems.length).toBe(2);
   });
 
   it("ListDocuments recursive", async () => {
@@ -2506,7 +2507,9 @@ describe("document.ts gaps", () => {
     const node = new ListDocumentsNode();
     node.assign({ folder: dir, recursive: true });
     const items = await collectGen(node.genProcess());
-    expect(items.length).toBe(1);
+    // Last yield is the collected documents list
+    const docItems = items.filter((item) => "document" in item);
+    expect(docItems.length).toBe(1);
   });
 
   it("SplitDocument genProcess", async () => {
@@ -3086,7 +3089,9 @@ describe("data.ts round 2", () => {
     node.assign({ folder: dir });
     const gen = node.genProcess();
     const results = await collectGen(gen);
-    expect(results.length).toBe(2); // only .csv files
+    // Last yield is the collected dataframes/names list
+    const csvItems = results.filter((item) => "dataframe" in item);
+    expect(csvItems.length).toBe(2); // only .csv files
   });
 
   it("Aggregate groups and aggregates", async () => {
@@ -3125,7 +3130,9 @@ describe("document.ts round 2", () => {
     node.assign({ folder: dir, recursive: false });
     const gen = node.genProcess();
     const results = await collectGen(gen);
-    expect(results.length).toBe(2); // .txt and .md
+    // Last yield is the collected documents list
+    const docItems = results.filter((item) => "document" in item);
+    expect(docItems.length).toBe(2); // .txt and .md
   });
 
   it("SplitDocument genProcess splits text", async () => {

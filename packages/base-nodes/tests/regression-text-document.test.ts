@@ -304,7 +304,8 @@ describe("document regressions", () => {
         chunk_overlap: 0,
         separators: ["\n\n", "\n"]
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
 
       // para2 alone is ~250 chars, so with chunk_size=50 we need at least 5+ chunks total
       // (para1=1, para2 splits into multiple, para3=1)
@@ -335,7 +336,8 @@ describe("document regressions", () => {
         chunk_size: 50,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
 
       // Should produce multiple chunks based on block elements, not just stripped text
       expect(chunks.length).toBeGreaterThanOrEqual(1);
@@ -364,7 +366,8 @@ describe("document regressions", () => {
         chunk_size: 50,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       expect(chunks.length).toBeGreaterThan(1);
     });
   });
@@ -379,7 +382,8 @@ describe("document regressions", () => {
         chunk_size: 5000,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
 
       // With a large chunk_size, elements may be merged, but the content
       // should preserve JSON structure (pretty-printed individual elements)
@@ -398,7 +402,8 @@ describe("document regressions", () => {
         chunk_size: 30,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
 
       // With chunk_size=30, each element (~16 chars pretty-printed) should
       // fit in its own chunk. Should have multiple chunks.
@@ -424,7 +429,8 @@ describe("document regressions", () => {
         chunk_size: 5000,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       const allText = chunks.map((c) => c.text as string).join("\n");
       expect(allText).toContain('"name"');
       expect(allText).toContain('"age"');
@@ -475,7 +481,9 @@ describe("document regressions", () => {
         chunk_overlap: 0,
         strip_headers: true
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      // Filter out the collected chunks list yield
+      const chunks = allYields.filter((item) => !("chunks" in item));
 
       // Find the chunk under "# Second"
       const lastChunk = chunks[chunks.length - 1];
