@@ -4,6 +4,9 @@ export type RootStackParamList = {
     workflowId: string;
     workflowName: string;
   };
+  GraphEditor: {
+    workflowId?: string;
+  } | undefined;
   Settings: undefined;
   Chat: undefined;
   LanguageModelSelection: undefined;

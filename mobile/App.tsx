@@ -9,6 +9,7 @@ import MiniAppScreen from './src/screens/MiniAppScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import LanguageModelSelectionScreen from './src/screens/LanguageModelSelectionScreen';
+import GraphEditorScreen from './src/screens/GraphEditorScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { apiService } from './src/services/api';
 import { useTheme } from './src/hooks/useTheme';
@@ -89,6 +90,11 @@ export default function App() {
               options={{
                 title: 'Chat',
               }}
+            />
+            <Stack.Screen
+              name="GraphEditor"
+              component={GraphEditorScreen}
+              options={{ title: 'Workflow Editor' }}
             />
             <Stack.Screen
               name="LanguageModelSelection"
