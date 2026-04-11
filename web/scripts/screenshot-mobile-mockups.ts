@@ -43,6 +43,25 @@ const SCREENS = [
     width: 390,
     height: 844,
   },
+  // Web chain editor screenshots (desktop)
+  {
+    html: "web-chain-editor-empty.html",
+    output: "web-chain-editor-empty.png",
+    width: 1280,
+    height: 800,
+  },
+  {
+    html: "web-chain-editor-chain.html",
+    output: "web-chain-editor-chain.png",
+    width: 1280,
+    height: 800,
+  },
+  {
+    html: "web-chain-editor-picker.html",
+    output: "web-chain-editor-picker.png",
+    width: 1280,
+    height: 800,
+  },
 ];
 
 async function main() {
