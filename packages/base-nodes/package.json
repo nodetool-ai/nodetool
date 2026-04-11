@@ -15,13 +15,14 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@k13engineering/rubberband": "^0.0.8",
     "@mozilla/readability": "^0.6.0",
     "@napi-rs/canvas": "^0.1.65",
     "@nodetool/agents": "*",
-    "@nodetool/kie-nodes": "*",
-    "@nodetool/config": "*",
     "@nodetool/code-runners": "*",
+    "@nodetool/config": "*",
     "@nodetool/kernel": "*",
+    "@nodetool/kie-nodes": "*",
     "@nodetool/node-sdk": "*",
     "@nodetool/runtime": "*",
     "@nodetool/vectorstore": "*",
@@ -39,7 +40,6 @@
     "pdfjs-dist": "^5.5.207",
     "playwright": "^1.58.2",
     "sharp": "^0.34.4",
-    "soundtouchjs": "^0.3.0",
     "turndown": "^7.2.2",
     "ws": "^8.18.0"
   },
