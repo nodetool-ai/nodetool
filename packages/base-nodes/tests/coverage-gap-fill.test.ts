@@ -4083,7 +4083,7 @@ describe("lib-audio-effects signal verification", () => {
   });
 
   it("TimeStretch produces output with different length", async () => {
-    // Use longer audio for SoundTouch to work properly
+    // Use longer audio for Rubber Band to work properly
     const audio = longSine(8000, 0.5);
     const inputLen = decodeTestWav(audio).samples.length;
 

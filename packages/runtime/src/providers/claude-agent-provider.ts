@@ -345,10 +345,24 @@ export class ClaudeAgentProvider extends BaseProvider {
       mcpEnabled: !!mcpServer
     });
 
-    // Unset CLAUDECODE to allow running inside a Claude Code session
+    // Strip all Claude Code env vars to allow running inside a Claude Code session.
+    // Just deleting CLAUDECODE/CLAUDE_CODE is not enough — the SDK inherits
+    // session IDs, proxy settings, auth tokens, etc. that conflict with
+    // spawning a nested Claude Code process.
     const cleanEnv = { ...process.env };
-    delete cleanEnv.CLAUDECODE;
-    delete cleanEnv.CLAUDE_CODE;
+    for (const key of Object.keys(cleanEnv)) {
+      if (
+        key === "CLAUDECODE" ||
+        key === "CLAUDE_CODE" ||
+        key.startsWith("CLAUDE_CODE_") ||
+        key.startsWith("CLAUDE_SESSION_") ||
+        key.startsWith("CLAUDE_ENABLE_") ||
+        key.startsWith("CLAUDE_AFTER_") ||
+        key.startsWith("CLAUDE_AUTO_")
+      ) {
+        delete cleanEnv[key];
+      }
+    }
 
     // Bridge AbortSignal → AbortController for the SDK
     let abortController: AbortController | undefined;
