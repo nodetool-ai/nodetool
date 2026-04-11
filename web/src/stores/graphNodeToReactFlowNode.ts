@@ -2,6 +2,8 @@ import { Node } from "@xyflow/react";
 import { Workflow, Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
+import useMetadataStore from "./MetadataStore";
+import { applyDefaultModels } from "../utils/applyDefaultModels";
 import log from "loglevel";
 
 export function graphNodeToReactFlowNode(
@@ -62,7 +64,14 @@ export function graphNodeToReactFlowNode(
     selectable,
     className: isBypassed ? "bypassed" : undefined,
     data: {
-      properties: (node.data || {}) as Record<string, unknown>,
+      properties: (() => {
+        const props = (node.data || {}) as Record<string, unknown>;
+        const meta = useMetadataStore.getState().getMetadata(node.type);
+        if (meta?.properties) {
+          return applyDefaultModels(props, meta.properties);
+        }
+        return props;
+      })(),
       dynamic_properties: (node.dynamic_properties || {}) as Record<string, unknown>,
       dynamic_outputs: node.dynamic_outputs || {},
       sync_mode: node.sync_mode,
