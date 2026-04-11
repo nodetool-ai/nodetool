@@ -563,16 +563,6 @@ export {
   HybridSearchNode,
   VECTOR_NODES
 } from "./nodes/vector.js";
-export {
-  CreateIndexFlatL2Node,
-  CreateIndexFlatIPNode,
-  CreateIndexIVFFlatNode,
-  TrainIndexNode,
-  AddVectorsNode,
-  AddWithIdsNode,
-  SearchNode as FaissSearchNode,
-  VECTOR_FAISS_NODES
-} from "./nodes/vector-faiss.js";
 export { GEMINI_NODES } from "./nodes/gemini.js";
 export { APIFY_NODES } from "./nodes/apify.js";
 export { MESSAGING_NODES } from "./nodes/messaging.js";
@@ -630,7 +620,6 @@ import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-audio-effects.js";
 import { LIB_PDF_NODES } from "./nodes/lib-pdf.js";
 import { KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
 import { VECTOR_NODES } from "./nodes/vector.js";
-import { VECTOR_FAISS_NODES } from "./nodes/vector-faiss.js";
 import { GEMINI_NODES } from "./nodes/gemini.js";
 import { APIFY_NODES } from "./nodes/apify.js";
 import { MESSAGING_NODES } from "./nodes/messaging.js";
@@ -690,7 +679,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_PDF_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
-  ...VECTOR_FAISS_NODES,
   ...GEMINI_NODES,
   ...APIFY_NODES,
   ...MESSAGING_NODES,

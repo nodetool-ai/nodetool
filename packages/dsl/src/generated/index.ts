@@ -78,4 +78,3 @@ export * as openaiImage from "./openai.image.js";
 export * as openaiText from "./openai.text.js";
 export * as searchGoogle from "./search.google.js";
 export * as vector from "./vector.js";
-export * as vectorFaiss from "./vector.faiss.js";

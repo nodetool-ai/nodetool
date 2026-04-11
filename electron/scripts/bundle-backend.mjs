@@ -47,7 +47,6 @@ const EXTERNAL_PACKAGES = [
   "@img/sharp-*",
   "node-web-audio-api",
   "keytar",
-  "faiss-node",
 
   // Native optional deps (loaded by bundleable packages)
   "msgpackr",

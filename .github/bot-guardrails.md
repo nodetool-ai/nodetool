@@ -4,7 +4,7 @@
 These exist for good reasons. Never remove or modify them:
 
 - **`@ts-expect-error` / `@ts-ignore` directives with comments** — these suppress known type incompatibilities between library versions (e.g. zundo/zustand, Electron types). If the comment explains why, leave it alone. Removing them will break the build.
-- **`describe.skipIf()` / `test.skip()` / `test.fixme()`** — these skip tests that require specific environments (native modules like faiss-node/canvas, API keys, Docker). Do not remove skip conditions.
+- **`describe.skipIf()` / `test.skip()` / `test.fixme()`** — these skip tests that require specific environments (native modules like canvas, API keys, Docker). Do not remove skip conditions.
 - **Version pins in package.json** — do not bump major versions of dependencies (e.g. vitest 1.x → 4.x). Major version bumps require manual review and often break mocks, APIs, and test patterns.
 - **CI workflow files** (`.github/workflows/`) — do not modify these unless explicitly asked.
 - **`process.env.CI` guards** — code that checks for CI environment is intentional. Don't remove it.
