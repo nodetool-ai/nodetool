@@ -71,7 +71,8 @@ function expandUser(p: string): string {
  * that runs `schema.parse({})` on each access to fill in sub-defaults.
  */
 function withEmptyDefault<T extends z.ZodTypeAny>(schema: T): z.ZodDefault<T> {
-  return schema.default(() => schema.parse({}) as z.output<T>);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return schema.default(() => schema.parse({}) as any) as z.ZodDefault<T>;
 }
 
 // ============================================================================
