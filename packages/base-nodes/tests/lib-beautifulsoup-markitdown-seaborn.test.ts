@@ -224,19 +224,24 @@ describe("lib.convert.ConvertToMarkdown", () => {
     expect(output).toContain("**bold**");
   });
 
-  it("returns plain text data as-is", async () => {
+  it("returns plain text via text input", async () => {
     const result = await new ConvertToMarkdownLibNode({
-      document: { uri: "", data: "Just plain text, no HTML." }
+      text: "Just plain text, no HTML."
     }).process();
     expect(result.output).toBe("Just plain text, no HTML.");
   });
 
+  it("converts HTML string input", async () => {
+    const result = await new ConvertToMarkdownLibNode({
+      html: "<p>Simple <em>test</em></p>"
+    }).process();
+    expect(result.output).toContain("test");
+  });
+
   it("throws when no input is provided", async () => {
     await expect(
-      new ConvertToMarkdownLibNode({
-        document: null
-      }).process()
-    ).rejects.toThrow("Input is required");
+      new ConvertToMarkdownLibNode({}).process()
+    ).rejects.toThrow("Provide a document, HTML, or text input");
   });
 });
 
