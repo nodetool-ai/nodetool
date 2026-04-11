@@ -37,10 +37,11 @@ describe('ConnectionLine', () => {
         } as any)}
       />
     );
-    const path = container.querySelector('path');
-    expect(path?.getAttribute('d')).toBe('M-bezier');
-    expect(path).toHaveClass('my_type');
-    const rect = container.querySelector('rect');
-    expect(rect).toBeInTheDocument();
+    const paths = container.querySelectorAll('path');
+    expect(paths[0]?.getAttribute('d')).toBe('M-bezier');
+    // The second path element has the type className via Slugify
+    expect(paths[1]).toHaveClass('my_type');
+    const circle = container.querySelector('circle');
+    expect(circle).toBeInTheDocument();
   });
 });

@@ -546,8 +546,8 @@ function FileBrowserDialog({
     setPathInputValue(e.target.value);
   }, []);
 
-  const handleSearchQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+  const handleSearchQueryChange = useCallback((value: string) => {
+    setSearchQuery(value);
   }, []);
 
   // --- Tree Logic ---

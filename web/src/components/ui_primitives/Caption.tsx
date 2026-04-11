@@ -16,6 +16,14 @@ export interface CaptionProps extends Omit<TypographyProps, 'variant'> {
   color?: "primary" | "secondary" | "error" | "warning" | "success" | "muted" | string;
   /** Italic text */
   italic?: boolean;
+  /** Polymorphic component type (e.g., "a" for anchor) */
+  component?: React.ElementType;
+  /** URL for anchor usage */
+  href?: string;
+  /** Link target */
+  target?: string;
+  /** Link rel attribute */
+  rel?: string;
 }
 
 /**

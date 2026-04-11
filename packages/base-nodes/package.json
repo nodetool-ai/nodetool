@@ -25,7 +25,7 @@
     "@nodetool/runtime": "*",
     "@nodetool/vectorstore": "*",
     "@supabase/supabase-js": "^2.98.0",
-    "axios": "^1.13.6",
+    "axios": "^1.15.0",
     "better-sqlite3": "^12.6.2",
     "chart.js": "^4.5.1",
     "chartjs-node-canvas": "^5.0.0",

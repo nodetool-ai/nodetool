@@ -34,40 +34,25 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
-          cache-dependency-path: web/package-lock.json
 
-      - name: Install web dependencies
-        run: |
-          cd web
-          npm ci
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
       - name: Build @nodetool/protocol
-        run: |
-          cd packages/protocol
-          npm install
-          npm run build
-
-      - name: Link @nodetool/protocol into web
-        run: |
-          mkdir -p web/node_modules/@nodetool
-          ln -s "$(pwd)/packages/protocol" web/node_modules/@nodetool/protocol
+        run: cd packages/protocol && npm run build
 
       - name: Run TypeScript type check
-        run: |
-          cd web
-          npm run typecheck
+        run: cd web && npm run typecheck
 
       - name: Run ESLint
-        run: |
-          cd web
-          npm run lint
+        run: cd web && npm run lint
 
       - name: Run Tests
-        run: |
-          cd web
-          npm test
+        run: cd web && npm test
 
   packages:
     name: Packages Test
@@ -109,27 +94,23 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: electron/package-lock.json
 
-      - name: Install electron dependencies
-        run: |
-          cd electron
-          npm ci
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Build backend packages
+        run: npm run build:packages
 
       - name: Run TypeScript type check
-        run: |
-          cd electron
-          npm run typecheck
+        run: cd electron && npm run typecheck
 
       - name: Run ESLint
-        run: |
-          cd electron
-          npm run lint
+        run: cd electron && npm run lint
 
       - name: Run Tests
-        run: |
-          cd electron
-          npm test
+        run: cd electron && npm test
 
   mobile:
     name: Mobile Test
