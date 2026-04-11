@@ -55,7 +55,7 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly title = "Convert To Markdown";
   static readonly description =
     "Converts various document formats to markdown.\n    markdown, convert, document, pdf, docx, html, bytes\n\n    Accepts document refs, raw bytes (from DownloadFile), or text.\n    Auto-detects PDF and DOCX from binary content.";
-  static readonly requiredRuntimes = ["pandoc"];
+  static readonly requiredRuntimes = ["pdftotext", "pandoc"];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -89,7 +89,7 @@ export class ConvertToMarkdownLibNode extends BaseNode {
     // Auto-detect binary formats from bytes
     if (bytes && bytes.length > 0) {
       if (isPdfBuffer(bytes)) {
-        return { output: await convertWithPandoc(bytes, "pdf") };
+        return { output: await pdfToText(bytes) };
       }
       if (isDocxBuffer(bytes) || uri.toLowerCase().endsWith(".docx")) {
         return { output: await convertWithPandoc(bytes, "docx") };
@@ -151,12 +151,32 @@ export class ConvertToMarkdownLibNode extends BaseNode {
 }
 
 /**
- * Convert document bytes to markdown using pandoc (subprocess).
- * Non-blocking — doesn't freeze the event loop like pdfjs-dist.
+ * Convert PDF bytes to text using pdftotext from poppler (subprocess).
+ * Non-blocking — runs as a subprocess.
+ */
+async function pdfToText(inputBytes: Buffer): Promise<string> {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-pdf-"));
+  const inputPath = path.join(tmpDir, "input.pdf");
+  const outputPath = path.join(tmpDir, "output.txt");
+  try {
+    await fs.writeFile(inputPath, inputBytes);
+    await execFile(
+      "pdftotext",
+      ["-layout", inputPath, outputPath],
+      { maxBuffer: 50 * 1024 * 1024 }
+    );
+    return await fs.readFile(outputPath, "utf-8");
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Convert DOCX/HTML bytes to markdown using pandoc (subprocess).
  */
 async function convertWithPandoc(inputBytes: Buffer, inputFormat: string): Promise<string> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-pandoc-"));
-  const ext = inputFormat === "pdf" ? ".pdf" : inputFormat === "docx" ? ".docx" : ".html";
+  const ext = inputFormat === "docx" ? ".docx" : ".html";
   const inputPath = path.join(tmpDir, `input${ext}`);
   try {
     await fs.writeFile(inputPath, inputBytes);

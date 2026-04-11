@@ -55,7 +55,7 @@ function getAppVersion(): string {
 // Get all installed nodetool-* pip packages (excluding torchruntime which has separate installation)
 async function getInstalledNodetoolPackages(): Promise<string[]> {
   try {
-    const output = await runUvCommand(["pip", "list", "--format=json"]);
+    const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
     const allPackages = JSON.parse(output);
     return allPackages
       .filter((pkg: any) => pkg.name.startsWith("nodetool-"))
@@ -524,7 +524,7 @@ export async function getPackageForNodeType(
  */
 async function runUvCommand(
   args: string[],
-  options?: { stdin?: string }
+  options?: { stdin?: string; silent?: boolean }
 ): Promise<string> {
   const uvPath = getUVPath();
   const pythonPath = getPythonPath();
@@ -565,13 +565,15 @@ async function runUvCommand(
     process.stdout?.on("data", (data: Buffer) => {
       const output = data.toString();
       stdout += output;
-      const lines = output
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-      for (const line of lines) {
-        logMessage(line);
-        emitServerLog(line);
+      if (!options?.silent) {
+        const lines = output
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+        for (const line of lines) {
+          logMessage(line);
+          emitServerLog(line);
+        }
       }
     });
 
@@ -617,7 +619,7 @@ async function runUvCommand(
 async function listInstalledPackagesInternal(): Promise<PackageModel[]> {
   try {
     // Use uv pip list to get all installed packages
-    const output = await runUvCommand(["pip", "list", "--format=json"]);
+    const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
     const allPackages = JSON.parse(output);
 
     // Filter for nodetool packages
@@ -874,7 +876,7 @@ export async function checkPackageVersion(
   }
 
   try {
-    const output = await runUvCommand(["pip", "show", packageName]);
+    const output = await runUvCommand(["pip", "show", packageName], { silent: true });
     const versionMatch = output.match(/^Version: (.+)$/m);
     const currentVersion = versionMatch ? versionMatch[1] : null;
 
@@ -1069,7 +1071,7 @@ import type { RuntimePackageId, RuntimePackageStatus } from "./types.d";
 /** All valid runtime package IDs, derived from a single source of truth. */
 export const RUNTIME_PACKAGE_IDS: readonly RuntimePackageId[] = [
   "python", "nodejs", "bash", "ruby", "lua",
-  "ffmpeg", "pandoc", "yt-dlp",
+  "ffmpeg", "pandoc", "pdftotext", "yt-dlp",
 ] as const;
 
 /**
@@ -1131,6 +1133,12 @@ const RUNTIME_DEFINITIONS: Record<RuntimePackageId, {
     description: "Universal document converter for text and file format conversion.",
     condaPackages: ["pandoc"],
     verifyBinary: "pandoc",
+  },
+  pdftotext: {
+    name: "PDF Tools (Poppler)",
+    description: "PDF text extraction using pdftotext from poppler. Required for PDF-to-text conversion.",
+    condaPackages: ["poppler"],
+    verifyBinary: "pdftotext",
   },
   "yt-dlp": {
     name: "yt-dlp",

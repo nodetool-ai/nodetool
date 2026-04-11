@@ -16,6 +16,7 @@ export const RUNTIME_LABELS: Record<string, string> = {
   lua: "Lua",
   "yt-dlp": "yt-dlp",
   pandoc: "Pandoc",
+  pdftotext: "PDF Tools (Poppler)",
 };
 
 /** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
@@ -27,6 +28,7 @@ export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   lua: "lua",
   ffmpeg: "ffmpeg",
   pandoc: "pandoc",
+  pdftotext: "pdftotext",
   "yt-dlp": "yt-dlp",
 };
 

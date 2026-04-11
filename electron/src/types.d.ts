@@ -998,6 +998,7 @@ export type RuntimePackageId =
   | "lua"
   | "ffmpeg"
   | "pandoc"
+  | "pdftotext"
   | "yt-dlp";
 
 export interface RuntimePackageStatus {
