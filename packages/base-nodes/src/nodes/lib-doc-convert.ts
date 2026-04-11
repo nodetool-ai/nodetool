@@ -24,10 +24,13 @@ function refToBytes(ref: unknown): Buffer | null {
   // Cross-context Uint8Array (from MsgPack/kernel)
   const name = (ref as object).constructor?.name;
   if ((name === "Uint8Array" || name === "Buffer") && typeof (ref as any).length === "number") {
-    const v = ref as { length: number; [i: number]: number };
-    const buf = Buffer.alloc(v.length);
-    for (let i = 0; i < v.length; i++) buf[i] = v[i];
-    return buf;
+    // Use the underlying ArrayBuffer to avoid byte-by-byte copy
+    const v = ref as { buffer?: ArrayBuffer; byteOffset?: number; byteLength?: number; length: number; [i: number]: number };
+    if (v.buffer instanceof ArrayBuffer) {
+      return Buffer.from(v.buffer, v.byteOffset ?? 0, v.byteLength ?? v.length);
+    }
+    // Fallback: copy via Uint8Array constructor which handles array-like objects
+    return Buffer.from(new Uint8Array(v as unknown as ArrayLike<number>));
   }
 
   // Inline data field (nested Uint8Array or base64-only string)
@@ -62,14 +65,38 @@ async function loadFromUri(uri: string, context?: ProcessingContext): Promise<Bu
 // PDF → Text (pdftotext from poppler)
 // ---------------------------------------------------------------------------
 
+async function findBinary(name: string): Promise<string> {
+  // Check conda env first
+  const condaPrefix = process.env.CONDA_PREFIX;
+  if (condaPrefix) {
+    const condaPath = path.join(condaPrefix, "bin", name);
+    try { await fs.access(condaPath); return condaPath; } catch { /* not there */ }
+  }
+  // Check common conda locations
+  const home = process.env.HOME || os.homedir();
+  for (const envDir of [
+    path.join(home, "conda/envs/nodetool/bin"),
+    path.join(home, ".nodetool/conda_env/bin"),
+    path.join(home, "miniconda3/envs/nodetool/bin"),
+  ]) {
+    const p = path.join(envDir, name);
+    try { await fs.access(p); return p; } catch { /* not there */ }
+  }
+  // Fall back to PATH
+  return name;
+}
+
 async function pdfToText(inputBytes: Buffer): Promise<string> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-pdf-"));
   const inputPath = path.join(tmpDir, "input.pdf");
   const outputPath = path.join(tmpDir, "output.txt");
   try {
     await fs.writeFile(inputPath, inputBytes);
-    await execFile("pdftotext", ["-layout", inputPath, outputPath], {
-      maxBuffer: 50 * 1024 * 1024
+    const bin = await findBinary("pdftotext");
+    console.log(`[pdfToText] running: ${bin} -layout ${inputPath}`);
+    await execFile(bin, ["-layout", inputPath, outputPath], {
+      maxBuffer: 50 * 1024 * 1024,
+      timeout: 60000
     });
     return await fs.readFile(outputPath, "utf-8");
   } finally {
@@ -86,10 +113,11 @@ async function docxToMarkdown(inputBytes: Buffer): Promise<string> {
   const inputPath = path.join(tmpDir, "input.docx");
   try {
     await fs.writeFile(inputPath, inputBytes);
+    const bin = await findBinary("pandoc");
     const { stdout } = await execFile(
-      "pandoc",
+      bin,
       [inputPath, "-f", "docx", "-t", "markdown", "--wrap=none"],
-      { maxBuffer: 50 * 1024 * 1024 }
+      { maxBuffer: 50 * 1024 * 1024, timeout: 60000 }
     );
     return stdout;
   } finally {
@@ -155,19 +183,29 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   declare html: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const t0 = Date.now();
     const TurndownService = (await import("turndown")).default;
     const turndown = new TurndownService();
+    console.log(`[ConvertToMarkdown] import turndown: ${Date.now() - t0}ms`);
 
     // 1. Document ref input
     const doc = this.document;
     if (doc && typeof doc === "object") {
+      console.log(`[ConvertToMarkdown] doc: constructor=${doc.constructor?.name}, instanceof=${doc instanceof Uint8Array}, keys=${Object.keys(doc).slice(0,5)}, length=${doc.length}`);
       const uri = typeof doc.uri === "string" ? doc.uri : "";
+      const t1 = Date.now();
       let bytes = refToBytes(doc);
+      console.log(`[ConvertToMarkdown] refToBytes: ${Date.now() - t1}ms, got=${bytes ? bytes.length : "null"}`);
       if ((!bytes || bytes.length === 0) && uri) {
+        const t2 = Date.now();
         bytes = await loadFromUri(uri, context);
+        console.log(`[ConvertToMarkdown] loadFromUri: ${Date.now() - t2}ms, got=${bytes ? bytes.length : "null"}`);
       }
       if (bytes && bytes.length > 0) {
-        return { output: await convertBytes(bytes, turndown) };
+        const t3 = Date.now();
+        const result = await convertBytes(bytes, turndown);
+        console.log(`[ConvertToMarkdown] convertBytes: ${Date.now() - t3}ms, total: ${Date.now() - t0}ms`);
+        return { output: result };
       }
       if (typeof doc.data === "string" && doc.data) {
         if (doc.data.includes("<") && doc.data.includes(">")) {
