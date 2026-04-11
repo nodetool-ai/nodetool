@@ -746,13 +746,32 @@ return { output: re.test(value) };`,
   // HTTP
   // ---------------------------------------------------------------------------
   {
-    id: "http-get",
-    title: "HTTP GET",
-    description: "Fetch data from a URL",
+    id: "http-get-text",
+    title: "HTTP GET Text",
+    description: "Fetch text content from a URL",
     category: "HTTP",
     code: `const res = await fetch(url);
-return { output: res.json ?? res.body };`,
-    tags: ["http", "get", "request", "api", "fetch"],
+return { output: res.body };`,
+    tags: ["http", "get", "request", "api", "fetch", "text"],
+  },
+  {
+    id: "http-get-json",
+    title: "HTTP GET JSON",
+    description: "Fetch and parse JSON from a URL",
+    category: "HTTP",
+    code: `const res = await fetch(url);
+return { output: res.json };`,
+    tags: ["http", "get", "request", "api", "fetch", "json"],
+  },
+  {
+    id: "http-get-bytes",
+    title: "HTTP GET Bytes",
+    description: "Download binary data from a URL",
+    category: "HTTP",
+    code: `const res = await fetch(url);
+const bytes = await res.bytes();
+return { output: bytes };`,
+    tags: ["http", "get", "request", "api", "fetch", "bytes", "binary", "download"],
   },
   {
     id: "http-post",
@@ -764,7 +783,7 @@ return { output: res.json ?? res.body };`,
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(data)
 });
-return { output: res.json ?? res.body };`,
+return { output: res.json };`,
     tags: ["http", "post", "request", "api", "send"],
   },
   {
@@ -777,7 +796,7 @@ return { output: res.json ?? res.body };`,
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(data)
 });
-return { output: res.json ?? res.body };`,
+return { output: res.json };`,
     tags: ["http", "put", "update", "request", "api"],
   },
   {
@@ -801,7 +820,7 @@ const res = await fetch(url, {
     "Content-Type": "application/json"
   }
 });
-return { output: res.json ?? res.body };`,
+return { output: res.json };`,
     tags: ["http", "headers", "auth", "bearer", "api", "token"],
   },
   {
@@ -810,7 +829,7 @@ return { output: res.json ?? res.body };`,
     description: "Fetch multiple URLs in parallel",
     category: "HTTP",
     code: `const results = await Promise.all(
-  urls.map(u => fetch(u).then(r => r.json ?? r.body))
+  urls.map(u => fetch(u).then(r => r.json))
 );
 return { output: results };`,
     tags: ["parallel", "concurrent", "multiple", "batch", "promise"],

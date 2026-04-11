@@ -150,28 +150,46 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
       }
 
       const response = await fetch(url, fetchOptions);
-      const text = await response.text();
-      const body =
-        text.length > MAX_RESPONSE_BODY_SIZE
-          ? text.slice(0, MAX_RESPONSE_BODY_SIZE) + "...[truncated]"
-          : text;
+      const rawBytes = new Uint8Array(await response.arrayBuffer());
+      const ok = response.ok;
+      const status = response.status;
+      const statusText = response.statusText;
+      const headers = Object.fromEntries(response.headers.entries());
 
-      // Try to parse as JSON
-      let json: unknown = undefined;
-      try {
-        json = JSON.parse(body);
-      } catch {
-        // not JSON, that's fine
-      }
-
-      return {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        body,
-        json
+      // Decode text lazily (only when needed)
+      let cachedText: string | null = null;
+      const getText = (): string => {
+        if (cachedText === null) {
+          const decoded = new TextDecoder().decode(rawBytes);
+          cachedText =
+            decoded.length > MAX_RESPONSE_BODY_SIZE
+              ? decoded.slice(0, MAX_RESPONSE_BODY_SIZE) + "...[truncated]"
+              : decoded;
+        }
+        return cachedText;
       };
+
+      // Build a Response-like object with both legacy fields and methods.
+      // Legacy: .body (string), .json (parsed object or undefined)
+      // Methods: .text(), .json(), .arrayBuffer(), .bytes()
+      let parsedJson: unknown;
+      try { parsedJson = JSON.parse(getText()); } catch { parsedJson = undefined; }
+
+      const result: Record<string, unknown> = {
+        ok,
+        status,
+        statusText,
+        headers,
+        body: getText(),
+        json: parsedJson,
+        text: async () => getText(),
+        arrayBuffer: async () => rawBytes.buffer.slice(
+          rawBytes.byteOffset,
+          rawBytes.byteOffset + rawBytes.byteLength
+        ),
+        bytes: async () => rawBytes
+      };
+      return result;
     } finally {
       clearTimeout(timer);
     }
