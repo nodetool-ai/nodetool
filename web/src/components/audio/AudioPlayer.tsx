@@ -13,7 +13,6 @@ import React, {
   useCallback,
   useMemo
 } from "react";
-import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import throttle from "lodash/throttle";
 import AudioControls from "./AudioControls";
@@ -213,14 +212,13 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     const abortCtrl = new AbortController();
 
     try {
-      const response = await axios.get(audioUrl, {
+      const response = await fetch(audioUrl, {
         headers: { Accept: mimeType },
-        responseType: "blob",
         signal: abortCtrl.signal
       });
 
       if (
-        response.status === 200 &&
+        response.ok &&
         waveFormRef.current &&
         (!prevUrl || prevUrl !== audioUrl)
       ) {
@@ -295,11 +293,11 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           }
         });
         setPrevUrl(audioUrl);
-      } else if (response.status !== 200) {
+      } else if (!response.ok) {
         log.error("Audio file not found.");
       }
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (error instanceof DOMException && error.name === "AbortError") {
         log.info("Request canceled:", error.message);
       } else {
         log.error("Error while checking or loading audio:", error);
