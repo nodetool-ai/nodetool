@@ -28,6 +28,7 @@ import { SegmentTool } from "../tools/SegmentTool";
 import type { SketchTool } from "../types";
 import { createDefaultDocument, createDefaultLayer } from "../types";
 import { rectSelectionMask } from "../selection";
+import { useSketchStore } from "../state/useSketchStore";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -372,6 +373,82 @@ describe("TransformTool", () => {
     tool.onActivate!(ctx);
     tool.onDeactivate!(ctx);
     expect(ctx.clearGizmo).toHaveBeenCalled();
+  });
+
+  it("re-grabs a custom pivot after moving it outside the box", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }))).toBe(true);
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 84, y: 32 } }));
+    tool.onUp!(ctx);
+    expect(tool.getPivotPoint()).toEqual({ x: 84, y: 32 });
+
+    expect(tool.getHoverCursor(ctx, { x: 84, y: 32 })).toBe("crosshair");
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 84, y: 32 } }))).toBe(true);
+
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 90, y: 32 } }));
+    expect(tool.getPivotPoint()).toEqual({ x: 90, y: 32 });
+  });
+
+  it("clears a custom pivot when auto-pick switches to a different layer", () => {
+    useSketchStore.setState((state) => ({
+      ...state,
+      toolSettings: {
+        ...state.toolSettings,
+        transform: {
+          ...state.toolSettings.transform,
+          autoSelect: true
+        }
+      }
+    }));
+
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(256, 256);
+    const activeLayer = doc.layers[0];
+    activeLayer.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
+
+    const pickedLayer = createDefaultLayer("Picked", "raster", 32, 32);
+    pickedLayer.transform = { x: 150, y: 0 };
+    pickedLayer.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
+    doc.layers = [activeLayer, pickedLayer];
+    doc.activeLayerId = activeLayer.id;
+
+    const activeCanvas = document.createElement("canvas");
+    activeCanvas.width = 32;
+    activeCanvas.height = 32;
+    const activeCtx = activeCanvas.getContext("2d")!;
+    activeCtx.fillStyle = "#000";
+    activeCtx.fillRect(0, 0, 32, 32);
+
+    const pickedCanvas = document.createElement("canvas");
+    pickedCanvas.width = 32;
+    pickedCanvas.height = 32;
+    const pickedCtx = pickedCanvas.getContext("2d")!;
+    pickedCtx.fillStyle = "#000";
+    pickedCtx.fillRect(0, 0, 32, 32);
+
+    const layerCanvases = new Map<string, HTMLCanvasElement>([
+      [activeLayer.id, activeCanvas],
+      [pickedLayer.id, pickedCanvas]
+    ]);
+    const onAutoPickLayer = jest.fn((layerId: string) => {
+      doc.activeLayerId = layerId;
+    });
+    const ctx = makeToolContext({ doc, layerCanvasesRef: { current: layerCanvases }, onAutoPickLayer });
+
+    tool.onActivate!(ctx);
+
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 16, y: 16 } }))).toBe(true);
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 52, y: 16 } }));
+    tool.onUp!(ctx);
+    expect(tool.getPivotPoint()).toEqual({ x: 52, y: 16 });
+
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 160, y: 16 } }))).toBe(false);
+    expect(onAutoPickLayer).toHaveBeenCalledWith(pickedLayer.id);
+    expect(tool.getPivotPoint()).toBeNull();
   });
 });
 

@@ -65,7 +65,6 @@ import {
   GizmoRedrawScheduler
 } from "./transform/transformGizmoPainter";
 import {
-  getTransformHoverInfo,
   applyCursorFeedback
 } from "./transform/transformHoverPolicy";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
@@ -76,6 +75,7 @@ import {
   resolveTargetEntry
 } from "./transformTargetSet";
 import { useSketchStore } from "../state/useSketchStore";
+import { cursorForHandle } from "./transform/cursorMapping";
 
 // ─── TransformTool class ──────────────────────────────────────────────────────
 
@@ -205,10 +205,10 @@ export class TransformTool implements ToolHandler {
       ctx.zoom
     );
 
-    // 2. If the standard hit test returned "move" (inside box), check whether
-    //    the click is on the pivot crosshair — pivot grab takes priority
-    //    over move drag when directly on the crosshair.
-    if (handle === "move") {
+    // 2. Allow the pivot to be re-grabbed anywhere it is visible. When the
+    //    pivot is outside the box, `hitTestHandles()` returns null, so the
+    //    pivot must win before auto-pick / rotate-zone fallback.
+    if (handle === "move" || handle === null) {
       const pivotDoc = this.getEffectivePivot(currentTransform);
       if (hitTestPivot(pivotDoc, pt, ctx.zoom)) {
         this.activeHandle = "pivot";
@@ -380,6 +380,8 @@ export class TransformTool implements ToolHandler {
     // Switch the active layer to the picked layer so the gizmo and
     // preview session operate on it.
     if (picked.id !== doc.activeLayerId) {
+      this.pivotPoint = null;
+      this.hoveredHandle = null;
       ctx.onAutoPickLayer?.(picked.id);
     }
 
@@ -503,18 +505,26 @@ export class TransformTool implements ToolHandler {
     const transform = this.session.isActive()
       ? this.session.state.currentTransform
       : layer.transform;
-    const info = getTransformHoverInfo(docPoint, transform, this.rasterBounds, ctx.zoom);
-    // When hovering inside the box ("move"), check pivot — pivot cursor
-    // takes priority when directly over the crosshair.
-    if (info.handle === "move") {
+    const handle = hitTestHandles(transform, this.rasterBounds, docPoint, ctx.zoom);
+    // Let the visible pivot win over move-zone and rotate-zone hover, while
+    // still preserving direct hits on concrete gizmo handles.
+    if (handle === "move" || handle === null) {
       const pivotDoc = this.getEffectivePivot(transform);
       if (hitTestPivot(pivotDoc, docPoint, ctx.zoom)) {
         this.hoveredHandle = "pivot";
         return "crosshair";
       }
     }
-    this.hoveredHandle = info.handle;
-    return info.cursor;
+    if (handle) {
+      this.hoveredHandle = handle;
+      return cursorForHandle(handle, transform.rotation ?? 0);
+    }
+    if (isInRotateZone(transform, this.rasterBounds, docPoint, ctx.zoom)) {
+      this.hoveredHandle = "rotate";
+      return cursorForHandle("rotate", transform.rotation ?? 0);
+    }
+    this.hoveredHandle = null;
+    return null;
   }
 
   /**
