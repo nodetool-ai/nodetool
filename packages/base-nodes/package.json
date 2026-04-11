@@ -31,7 +31,6 @@
     "cheerio": "^1.2.0",
     "docx": "^9.6.0",
     "exceljs": "^4.4.0",
-    "faiss-node": "^0.5.1",
     "html-to-text": "^9.0.5",
     "linkedom": "^0.18.9",
     "mammoth": "^1.11.0",

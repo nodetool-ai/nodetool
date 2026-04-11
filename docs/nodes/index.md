@@ -148,4 +148,3 @@ Complete reference documentation for all 698 NodeTool nodes across 113 namespace
 ### vector
 
 - **[vector.chroma](vector/chroma/)** - 13 node(s)
-- **[vector.faiss](vector/faiss/)** - 7 node(s)
