@@ -546,12 +546,17 @@ export default function useConnectionHandlers() {
         }
       }
 
-      // targetIsPane: open context menu for output (skip during edge reconnection)
+      // Click on handle without dragging: target is the handle itself
+      const targetIsHandle =
+        htmlTarget.classList.contains("react-flow__handle") ||
+        htmlTarget.closest(".react-flow__handle") !== null;
+
+      // Open context menu when releasing on pane, group, or clicking a handle in place
       const { isReconnecting } = useConnectionStore.getState();
       if (
         !connectionCreated.current &&
         !isReconnecting &&
-        (targetIsPane || targetIsGroup)
+        (targetIsPane || targetIsGroup || targetIsHandle)
       ) {
         if (connectDirection === "source") {
           openContextMenu(
