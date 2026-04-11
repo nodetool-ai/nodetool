@@ -56,13 +56,15 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
       padding: 0.4em 0;
       font-size: ${theme.fontSizeSmall};
       margin: 0 0 0.5em;
+      border: none;
+      outline: none;
     }
 
     .description {
-      margin-top: 1em;
-      opacity: 0.8;
-      font-size: 0.9em;
-      line-height: 1.5;
+      margin-top: 0.25em;
+      opacity: 0.5;
+      font-size: 0.85em;
+      line-height: 1.4;
     }
 
     a {
@@ -105,6 +107,20 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
 
       .MuiTextField-root {
         width: 100%;
+      }
+
+      .MuiInputBase-root {
+        border: 1px solid ${theme.vars.palette.divider};
+        border-radius: 0.3em;
+        transition: border-color 0.2s ease;
+
+        &:hover {
+          border-color: ${theme.vars.palette.grey[300]};
+        }
+
+        &.Mui-focused {
+          border-color: ${theme.vars.palette.primary.main};
+        }
       }
     }
 
