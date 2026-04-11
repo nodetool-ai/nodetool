@@ -12,7 +12,8 @@ import type { BaseProvider, ProcessingContext } from "@nodetool/runtime";
 import type {
   GraphData,
   ProcessingMessage,
-  NodeUpdate
+  NodeUpdate,
+  StepResult
 } from "@nodetool/protocol";
 import { createLogger } from "@nodetool/config";
 import { AGENT_STEP_NODE_TYPE } from "./graph-builder.js";
@@ -31,6 +32,7 @@ export interface AgentWorkflowRunnerOptions {
   systemPrompt?: string;
   maxTokenLimit?: number;
   maxStepIterations?: number;
+  inputs?: Record<string, unknown>;
 }
 
 export class AgentWorkflowRunner {
@@ -85,7 +87,10 @@ export class AgentWorkflowRunner {
       edges: graphData.edges.length
     });
 
-    const result = await runner.run({ job_id: jobId }, graphData);
+    const result = await runner.run(
+      { job_id: jobId, params: this.opts.inputs },
+      graphData
+    );
 
     // Yield all collected messages
     for (const msg of collectedMessages) {
@@ -120,5 +125,16 @@ export class AgentWorkflowRunner {
       status: result.status,
       outputKeys: Object.keys(result.outputs)
     });
+
+    // Yield a final step_result with the graph outputs so callers can
+    // capture the result (MultiModeAgent checks is_task_result).
+    if (result.status === "completed" && Object.keys(result.outputs).length > 0) {
+      yield {
+        type: "step_result",
+        step: { name: "graph_execution", status: "completed" },
+        result: result.outputs,
+        is_task_result: true
+      } satisfies StepResult;
+    }
   }
 }
