@@ -33,6 +33,33 @@ function resultTypeLabel(value: unknown): string {
   return labels[type] || type;
 }
 
+/**
+ * Unwrap a node result object to find the most meaningful value to display.
+ * - Single-key objects: unwrap the value (e.g., { output: <video> } → <video>)
+ * - Multi-key objects with a typed value: find the first value with a `type` field
+ * - Otherwise: return as-is for ObjectRenderer
+ */
+function unwrapResult(result: unknown): unknown {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return result;
+  }
+  const entries = Object.entries(result as Record<string, unknown>);
+  if (entries.length === 0) return result;
+
+  // Single-key: always unwrap
+  if (entries.length === 1) {
+    return entries[0][1];
+  }
+
+  // Multi-key: find the first typed value (has .type field indicating a media ref)
+  const typed = entries.find(
+    ([, v]) => v && typeof v === "object" && "type" in (v as Record<string, unknown>)
+  );
+  if (typed) return typed[1];
+
+  return result;
+}
+
 interface ResultOverlayProps {
   result: unknown;
   nodeId?: string;
@@ -146,13 +173,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }}
       >
         {resultsToDisplay.map((item, index) => {
-          const unwrapped =
-            typeof item.result === "object" &&
-            item.result !== null &&
-            "output" in item.result &&
-            (item.result as Record<string, unknown>).output !== undefined
-              ? (item.result as Record<string, unknown>).output
-              : item.result;
+          const unwrapped = unwrapResult(item.result);
           const typeLabel = index === 0 ? resultTypeLabel(unwrapped) : "";
           return (
             <div key={`result-${item.timestamp}-${index}`}>
