@@ -1,7 +1,7 @@
 # Sketch Editor Roadmap
 
-> **Status**: the transform-aware foundation is in place; Phase 1 helper-tool / UX items and many transform foundations are shipped (see `SKETCH_FEATURES_DONE.md`). Next focus: move/transform consolidation, editor session seams, then transform-advanced modes and later phases.
-> **Last updated**: 2026-04-10
+> **Status**: the transform-aware foundation is in place; Phase 1 helper-tool / UX items and many transform foundations are shipped (see `SKETCH_FEATURES_DONE.md`). Current Tasks, SketchCanvas refactor, display/interaction core, and move/transform hardening sections are fully complete. Next focus: advanced transform modes (2.3), selection-context-menu fixes (2.4), then later phases.
+> **Last updated**: 2026-04-11
 > **Execution note**: this is the active sketch roadmap/backlog. Completed checklists are archived in `SKETCH_FEATURES_DONE.md`. `REFACTOR-SKETCH-APP.md` is supporting context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
 
 ## Principles
@@ -23,6 +23,8 @@ Task labels used below:
 - `[test-first]` write the proving test first, then fix code if the test exposes a gap
 
 ## Current Tasks
+
+**All items complete.** Archive to `SKETCH_FEATURES_DONE.md` when convenient.
 - [x] [CHECK] fix MoveTool and TransformTool gizmo size: gizmo should be sized by layer pixel bounds, currently always canvas sized. mask also holds the second last position after moving is done! so when movig stops it should update.
 - [x] fix gizmo showing second-to-last position after MoveTool and TransformTool ends: capture committed transform before session.commit() clears active flag, use it for the post-commit gizmo draw
 - [x] improve auto-select for TransformTool: read toolSettings from store instead of stale ctx.doc snapshot for reliable auto-select toggle
@@ -36,6 +38,8 @@ Completed refactor items (lifecycle hook, tool chrome, color router, store actio
 
 ## Immediate `SketchCanvas.tsx` Refactor Candidates
 
+**All items complete.** Archive to `SKETCH_FEATURES_DONE.md` when convenient.
+
 `SketchCanvas.tsx` is much smaller than before, but it still mixes transient preview ownership, hook-bridge setup, and canvas chrome/layout in one place. Keep this refactor narrow and only extract seams that already want to exist.
 
 - [x] [impl+test] extract a dedicated transform-preview bridge from `SketchCanvas.tsx` so preview-map ownership, active-layer preview bridging, redraw/invalidate policy, and startup texture invalidation stop living inline beside compositing and pointer wiring. this should line up with the editor task to remove the parallel preview channel used by transform UI
@@ -47,6 +51,8 @@ Completed refactor items (lifecycle hook, tool chrome, color router, store actio
 Shipped backlog for this section (startup transform preview bug, selection mask CPU path + invert fix, store subscription hardening, selection performance plan notes) lives in `SKETCH_FEATURES_DONE.md`. Medium/long-term selection-mask GPU ideas are listed there for when profiling warrants them.
 
 ## TOP PRIORITY - DISPLAY / INTERACTION CORE
+
+**All items complete.** Archive to `SKETCH_FEATURES_DONE.md` when convenient.
 
 Treat this as the shared seam behind startup paint, transform preview, buffered-stroke visibility, and runtime/bootstrap display updates. Keep it narrow: centralize the contract for "a visual change becomes visible" without building a broad new interaction framework.
 Current diagnostic clue: on a freshly opened editor, move/transform preview and click-only brush taps can fail while a real dragged stroke succeeds and then "unlocks" later preview/tap behavior for the session. treat this as evidence that the shared startup redraw / pending-commit / display-target seam is dropping first interactive frames, not as proof of a tool-local bug.
@@ -60,6 +66,8 @@ Current diagnostic clue: on a freshly opened editor, move/transform preview and 
 - [x] [impl+test] add lightweight dev-only tracing for this seam (`preview-set`, `frame-requested`, `pending-stroke-drained`, `frame-composited`, `hydration-complete`, backend/target) so temporal startup bugs can be debugged without scattering temporary logs across tools and runtimes
 
 ## NEXT UP - MOVE AND TRANSFORM TOOL
+
+**All items complete.** Archive to `SKETCH_FEATURES_DONE.md` when convenient.
 
 Do these before more transform-heavy work. The goal is to reduce brittleness in `MoveTool` + `TransformTool` and nearby overlay tools by sharing only the stable gizmo primitives, not by forcing all tools into one generic interaction framework.
 Try to implement these tasks with only as much shared core as needed. It is fine to change core helpers and adapt focused tests when that removes real brittleness, but avoid introducing a broad new interaction framework just to satisfy one tool.
@@ -129,8 +137,8 @@ Modifier-key target behavior to preserve while implementing the items above:
   - **Done:** Added `Transform Selection` menu entry in `SketchCanvasContextMenu.tsx` with `HighlightAltIcon`. Currently disabled (grayed out) — the `onTransformSelection` prop is optional and wired but no backend implementation exists yet. The entry will enable when transform-selection infrastructure is implemented.
 - [x] add a selection-tool right-click context menu entry for `Fill`
 - [x] add a selection-tool right-click context menu entry for `Stroke`
-- [ ] fix `Layer via Copy` - not yet implemented
-- [ ] fix `Layer via Cut` - not yet implemented
+- [x] fix `Layer via Copy` — implemented: Ctrl+J shortcut, context menu entry, and `handleLayerViaCopy` handler in `useEditorCommands.ts`
+- [x] fix `Layer via Cut` — implemented: Ctrl+Shift+J shortcut, context menu entry, and `handleLayerViaCut` handler in `useEditorCommands.ts`
 - [ ] submenu for selection-tool right-click context menu entry for `New Layer...` - new layer entries as in photoshop 
 
 Deferred selection-context-menu items:
