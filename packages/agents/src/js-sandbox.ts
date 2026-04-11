@@ -43,6 +43,31 @@ function formatArg(arg: unknown): string {
   }
 }
 
+/** Check if a value is a typed array from the VM sandbox (constructor name check). */
+function isTypedArray(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const name = (value as object).constructor?.name;
+  return name === "Uint8Array" || name === "Buffer" ||
+    name === "Int8Array" || name === "Uint8ClampedArray" ||
+    name === "Int16Array" || name === "Uint16Array" ||
+    name === "Int32Array" || name === "Uint32Array" ||
+    name === "Float32Array" || name === "Float64Array" ||
+    name === "ArrayBuffer";
+}
+
+/** Convert a VM sandbox typed array to a real Uint8Array. */
+function toNativeUint8Array(value: unknown): Uint8Array {
+  const v = value as { length?: number; byteLength?: number; [i: number]: number };
+  const len = v.length ?? v.byteLength ?? 0;
+  const arr = new Uint8Array(len);
+  for (let i = 0; i < len; i++) arr[i] = v[i] ?? 0;
+  return arr;
+}
+
+/**
+ * Recursively serialize a result, converting VM typed arrays to native ones
+ * and applying size limits.
+ */
 export function serializeResult(result: unknown): unknown {
   if (result === undefined) return null;
   if (result === null) return null;
@@ -56,15 +81,44 @@ export function serializeResult(result: unknown): unknown {
     }
     return result;
   }
-  try {
-    const json = JSON.stringify(result);
-    if (json.length > MAX_OUTPUT_SIZE) {
-      return truncate(json, MAX_OUTPUT_SIZE);
-    }
-    return JSON.parse(json);
-  } catch {
-    return String(result);
+  // Preserve typed arrays as native Uint8Array
+  if (isTypedArray(result)) {
+    return toNativeUint8Array(result);
   }
+  // For objects/arrays, check for typed arrays in values (shallow)
+  if (typeof result === "object") {
+    // Check if any value is a typed array — if so, convert them
+    let hasBinary = false;
+    if (Array.isArray(result)) {
+      hasBinary = result.some(isTypedArray);
+    } else {
+      for (const v of Object.values(result as Record<string, unknown>)) {
+        if (isTypedArray(v)) { hasBinary = true; break; }
+      }
+    }
+    if (hasBinary) {
+      if (Array.isArray(result)) {
+        return result.map(v => isTypedArray(v) ? toNativeUint8Array(v) : v);
+      }
+      const obj = result as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(obj)) {
+        out[k] = isTypedArray(v) ? toNativeUint8Array(v) : v;
+      }
+      return out;
+    }
+    // No binary — use JSON round-trip for safety
+    try {
+      const json = JSON.stringify(result);
+      if (json.length > MAX_OUTPUT_SIZE) {
+        return truncate(json, MAX_OUTPUT_SIZE);
+      }
+      return JSON.parse(json);
+    } catch {
+      return String(result);
+    }
+  }
+  return String(result);
 }
 
 export function cleanStack(stack: string): string {

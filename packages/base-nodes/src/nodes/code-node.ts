@@ -257,27 +257,63 @@ function deepCopyInputs(
   return result;
 }
 
-/** Check if value is a binary type that should be wrapped, not spread. */
+/** Check if value is a binary type that should be wrapped, not spread.
+ *  Uses constructor name check because vm sandbox creates objects with
+ *  different prototypes than the outer context (instanceof fails). */
 function isBinaryLike(value: unknown): boolean {
-  if (value instanceof Uint8Array || Buffer.isBuffer(value)) return true;
-  if (value instanceof ArrayBuffer || value instanceof SharedArrayBuffer) return true;
-  // DataView and other typed arrays
-  if (ArrayBuffer.isView(value)) return true;
-  return false;
+  if (value === null || value === undefined || typeof value !== "object") return false;
+  const name = (value as object).constructor?.name;
+  if (!name) return false;
+  return (
+    name === "Uint8Array" ||
+    name === "Buffer" ||
+    name === "ArrayBuffer" ||
+    name === "SharedArrayBuffer" ||
+    name === "DataView" ||
+    name === "Int8Array" ||
+    name === "Uint8ClampedArray" ||
+    name === "Int16Array" ||
+    name === "Uint16Array" ||
+    name === "Int32Array" ||
+    name === "Uint32Array" ||
+    name === "Float32Array" ||
+    name === "Float64Array"
+  );
+}
+
+/** Convert a sandbox binary value to a real Uint8Array.
+ *  VM sandbox typed arrays have .length and numeric indexing but fail instanceof. */
+function toRealUint8Array(value: unknown): Uint8Array {
+  const v = value as { length?: number; [i: number]: number };
+  if (typeof v.length === "number" && v.length > 0) {
+    const arr = new Uint8Array(v.length);
+    for (let i = 0; i < v.length; i++) arr[i] = v[i];
+    return arr;
+  }
+  return new Uint8Array();
+}
+
+/** Recursively convert sandbox binary values in an output object. */
+function convertBinaryValues(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    result[key] = isBinaryLike(value) ? toRealUint8Array(value) : value;
+  }
+  return result;
 }
 
 /** Normalize return value to Record<string, unknown>. */
 function normalizeOutput(value: unknown): Record<string, unknown> {
   if (value === null || value === undefined) return {};
   if (isBinaryLike(value)) {
-    return { output: value };
+    return { output: toRealUint8Array(value) };
   }
   if (
     typeof value === "object" &&
     !Array.isArray(value) &&
-    (value as object).constructor === Object
+    (value as object).constructor?.name === "Object"
   ) {
-    return value as Record<string, unknown>;
+    return convertBinaryValues(value as Record<string, unknown>);
   }
   return { output: value };
 }
