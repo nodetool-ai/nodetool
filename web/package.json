@@ -61,6 +61,7 @@
     "history": "^5.3.0",
     "jszip": "^3.10.1",
     "lexical": "^0.32.1",
+    "lodash": "^4.17.23",
     "lodash.debounce": "^4.0.8",
     "loglevel": "^1.9.2",
     "luxon": "^3.5.0",
