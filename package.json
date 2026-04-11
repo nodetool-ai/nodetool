@@ -58,7 +58,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.8",
+    "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.1.2",
     "concurrently": "^9.0.0",
     "eslint": "^10.0.3",
