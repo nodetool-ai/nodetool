@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { format, isValid, parseISO } from "date-fns";
 import log from "loglevel";
 
 interface Settings {
@@ -28,37 +28,41 @@ export function prettyDate(
   }
 
   // Handle numeric timestamp input
-  let dateTime: DateTime;
+  let date: Date;
   if (typeof dateStr === "number") {
-    dateTime = DateTime.fromMillis(dateStr, { zone: 'utc' });
+    date = new Date(dateStr);
   } else {
     const compliantDateStr = dateStr.replace(" ", "T");
-    dateTime = DateTime.fromISO(compliantDateStr);
+    date = parseISO(compliantDateStr);
   }
 
-  if (!dateTime.isValid) {
-    log.warn(dateTime.invalidReason);
+  if (!isValid(date)) {
+    log.warn("Invalid date input");
     return "Invalid Date";
   }
 
-  const now = DateTime.now();
+  const now = new Date();
   const timeFormat = settings?.timeFormat || "12h";
 
   if (formatStyle === "verbose") {
     if (timeFormat === "24h") {
-      const dateFormat =
-        dateTime.year === now.year ? "d. MMMM " : "d MMMM yyyy";
-      return dateTime.toFormat(`${dateFormat} | HH:mm`);
+      const datePattern =
+        date.getFullYear() === now.getFullYear()
+          ? "d. MMMM "
+          : "d MMMM yyyy";
+      return format(date, `${datePattern} | HH:mm`);
     } else {
-      const dateFormat = dateTime.year === now.year ? "MMMM d" : "yyyy MMMM d";
-      return dateTime.toFormat(`${dateFormat} | hh:mm a`);
+      const datePattern =
+        date.getFullYear() === now.getFullYear()
+          ? "MMMM d"
+          : "yyyy MMMM d";
+      return format(date, `${datePattern} | hh:mm a`);
     }
   } else {
     if (timeFormat === "24h") {
-      const dateFormat = "dd.MM.yyyy";
-      return dateTime.toFormat(`${dateFormat} | HH:mm:ss`);
+      return format(date, "dd.MM.yyyy | HH:mm:ss");
     } else {
-      return dateTime.toFormat("yyyy-MM-dd | hh:mm:ss a");
+      return format(date, "yyyy-MM-dd | hh:mm:ss a");
     }
   }
 }
@@ -91,10 +95,12 @@ export function relativeTime(date: Date | string): string {
 }
 
 export function getTimestampForFilename(includeTime: boolean = true): string {
-  const now = DateTime.now().toUTC();
+  const now = new Date();
+  const iso = now.toISOString();
   if (includeTime) {
-    return now.toFormat("yyyy-MM-dd_HH-mm-ss");
+    // Format: yyyy-MM-dd_HH-mm-ss in UTC (from ISO string)
+    return iso.slice(0, 10) + "_" + iso.slice(11, 19).replace(/:/g, "-");
   } else {
-    return now.toFormat("yyyy-MM-dd");
+    return iso.slice(0, 10);
   }
 }
