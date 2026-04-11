@@ -298,8 +298,8 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
             <View style={[styles.terminalContainer, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
               <FlatList
                 data={logs}
-                keyExtractor={(_item, index) => `log-${index}`}
-                renderItem={({ item: log }) => (
+                keyExtractor={(_item: string, index: number) => `log-${index}`}
+                renderItem={({ item: log }: { item: string }) => (
                   <Text style={[styles.terminalText, { color: colors.textSecondary }]}>
                     <Text style={[styles.terminalPrompt, { color: colors.primary }]}>{'> '}</Text>
                     {log}

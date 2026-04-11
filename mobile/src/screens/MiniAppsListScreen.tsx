@@ -245,7 +245,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
           <FlatList
             data={filteredWorkflows}
             renderItem={renderWorkflowItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item: Workflow) => item.id}
             contentContainerStyle={styles.listContent}
             refreshControl={
               <RefreshControl

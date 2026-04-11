@@ -211,7 +211,7 @@ export default function LanguageModelSelectionScreen() {
         <FlatList
           data={filteredProviders}
           renderItem={renderProviderItem}
-          keyExtractor={(item) => item.provider}
+          keyExtractor={(item: Provider) => item.provider}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={renderEmptyList('providers')}
         />
@@ -219,7 +219,7 @@ export default function LanguageModelSelectionScreen() {
         <FlatList
           data={filteredModels}
           renderItem={renderModelItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: LanguageModel) => item.id}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={renderEmptyList('models')}
         />

@@ -234,7 +234,7 @@ export default function SettingsScreen() {
         <TextInput
           style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.borderLight }]}
           value={apiHost}
-          onChangeText={(text) => {
+          onChangeText={(text: string) => {
             setApiHost(text);
             setConnectionStatus('idle');
           }}

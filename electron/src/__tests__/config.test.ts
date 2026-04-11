@@ -4,6 +4,7 @@ import {
   getUVPath,
   getCondaLockFilePath,
   getProcessEnv,
+  _resetCondaEnvCache,
   srcPath,
   PID_FILE_PATH,
   webPath,
@@ -29,6 +30,8 @@ describe('Config', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset the module-level conda path cache so each test starts fresh
+    _resetCondaEnvCache();
     // Reset process.env and remove CONDA_PREFIX to allow settings mocking
     process.env = { ...originalEnv };
     // Explicitly unset CONDA_PREFIX to allow settings-based path resolution

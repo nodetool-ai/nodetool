@@ -346,6 +346,14 @@ const getProcessEnv = (): ProcessEnv => {
   };
 };
 
+/**
+ * Resets the cached conda env path. Intended for use in tests only so that
+ * each test case starts with a clean slate.
+ */
+const _resetCondaEnvCache = (): void => {
+  cachedCondaEnvPath = null;
+};
+
 export {
   getCondaEnvPath,
   getNodePath,
@@ -355,6 +363,7 @@ export {
   getCondaLockFilePath,
   getProcessEnv,
   getSystemDataPath,
+  _resetCondaEnvCache,
   PID_FILE_PATH,
   PID_DIRECTORY,
   srcPath,
