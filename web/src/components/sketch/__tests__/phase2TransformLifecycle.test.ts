@@ -181,7 +181,7 @@ describe("TransformTool in-transform undo/redo", () => {
     }
 
     // Complete the drag
-    tool.onUp!(ctx, makePointerEvent({ point: { x: 40, y: 32 } }));
+    tool.onUp!(ctx);
 
     // Now undo the adjustment
     const currentTransform: LayerTransform = {
@@ -213,7 +213,7 @@ describe("TransformTool in-transform undo/redo", () => {
     if (!started) {
       return;
     }
-    tool.onUp!(ctx, makePointerEvent({ point: { x: 40, y: 32 } }));
+    tool.onUp!(ctx);
 
     const movedTransform: LayerTransform = {
       x: 8,
@@ -247,7 +247,7 @@ describe("TransformTool in-transform undo/redo", () => {
     if (!started1) {
       return;
     }
-    tool.onUp!(ctx, makePointerEvent({ point: { x: 40, y: 32 } }));
+    tool.onUp!(ctx);
 
     // Undo the first drag
     const current: LayerTransform = { x: 8, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
