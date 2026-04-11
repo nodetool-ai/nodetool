@@ -377,7 +377,8 @@ export class MultiModeAgent extends BaseAgent {
       context,
       systemPrompt: this.systemPrompt || undefined,
       maxTokenLimit: this.maxTokenLimit,
-      maxStepIterations: this.maxStepIterations
+      maxStepIterations: this.maxStepIterations,
+      inputs: this.inputs
     });
 
     for await (const item of runner.execute(graphData)) {
