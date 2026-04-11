@@ -63,7 +63,15 @@ const PROMPT_OUTPUT_SCHEMA = `# Output Schema
 
 const PROMPT_TOOL_USE = `# Tool Use
 - Use tools only when they materially improve correctness or are required.
-- Avoid exploratory or repeated tool calls that are unlikely to change the outcome.`;
+- Avoid exploratory or repeated tool calls that are unlikely to change the outcome.
+
+## File Tools
+- Use \`read_file\` to read files. Do not use \`run_code\` with cat/head/tail.
+- Use \`edit_file\` for modifying existing files — it performs exact string replacement and only sends the diff. Prefer it over \`write_file\` for modifications.
+- Use \`write_file\` only for creating new files or complete rewrites.
+- Use \`glob\` to find files by name pattern (e.g. "**/*.ts"). Do not use \`run_code\` with find or ls.
+- Use \`grep\` to search file contents with regex. Do not use \`run_code\` with grep or rg.
+- Use \`run_code\` with language="bash" only for system commands and operations that require shell execution.`;
 
 const PROMPT_FINISH_STEP = `# Completion (Tool Call Only)
 - When done, CALL \`finish_step\` exactly once with:

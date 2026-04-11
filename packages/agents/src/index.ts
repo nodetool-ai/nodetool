@@ -26,6 +26,11 @@ export {
   ListDirectoryTool
 } from "./tools/filesystem-tools.js";
 export { DownloadFileTool, HttpRequestTool } from "./tools/http-tools.js";
+export {
+  EditFileTool,
+  GlobTool,
+  GrepTool
+} from "./tools/claude-code-tools.js";
 export { RunCodeTool } from "./tools/code-tools.js";
 export { MiniJSAgentTool } from "./tools/js-code-tool.js";
 export {
