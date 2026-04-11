@@ -4,7 +4,7 @@ import { memo, useCallback, useState } from "react";
 import Editor from "react-simple-code-editor";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import { CopyButton, Tooltip, ToolbarIconButton } from "../ui_primitives";

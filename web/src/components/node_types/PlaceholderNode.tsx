@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback } from "react";
 import { Node, NodeProps } from "@xyflow/react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";

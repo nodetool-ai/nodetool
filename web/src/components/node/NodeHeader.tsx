@@ -5,7 +5,7 @@ import useLogsStore from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { memo, useCallback, useMemo, useState } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";

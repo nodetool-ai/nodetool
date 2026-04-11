@@ -2,7 +2,7 @@ import { Text, FlexColumn } from "../ui_primitives";
 import { Property, InferenceProvider, InferenceProviderModelValue } from "../../stores/ApiTypes";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import Select from "../inputs/Select";
 
 interface HuggingFaceModel {

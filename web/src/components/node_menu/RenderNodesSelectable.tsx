@@ -15,7 +15,7 @@ import {
   Box
 } from "@mui/material";
 import { Tooltip, Text } from "../ui_primitives";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SearchResultGroup } from "../../utils/nodeSearch";
 import { serializeDragData } from "../../lib/dragdrop";

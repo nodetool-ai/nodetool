@@ -7,7 +7,7 @@ import { truncateString } from "../../utils/truncateString";
 import { DeleteButton, EditorButton, Text, Tooltip, FlexColumn } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { sanitizeImageUrl } from "../../utils/urlValidation";
 import { addBreaks } from "../../utils/sanitize";
 

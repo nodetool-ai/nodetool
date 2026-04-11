@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";

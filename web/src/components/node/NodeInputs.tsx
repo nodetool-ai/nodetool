@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import PropertyField from "./PropertyField";
 import { Property, NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
 import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";

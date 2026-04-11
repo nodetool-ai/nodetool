@@ -10,7 +10,7 @@ import {
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
 import { CopyButton } from "../../../ui_primitives/CopyButton";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 interface CodeBlockProps {
   node?: unknown;

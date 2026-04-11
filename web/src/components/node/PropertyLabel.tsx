@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useTheme } from "@mui/material/styles";

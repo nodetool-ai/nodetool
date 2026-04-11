@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useEffect, useState, useRef } from "react";
 import useResultsStore from "../../stores/ResultsStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { ProgressBar } from "../ui_primitives/ProgressBar";
 
 const NodeProgress = ({

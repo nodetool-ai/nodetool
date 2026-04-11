@@ -3,7 +3,7 @@ import React, { useCallback, memo } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import ColorPicker from "../inputs/ColorPicker";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 import { FlexRow } from "../ui_primitives";
 

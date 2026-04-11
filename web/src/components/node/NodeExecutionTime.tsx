@@ -2,7 +2,7 @@
 import React, { memo, useMemo } from "react";
 import { Box } from "@mui/material";
 import { Text, FlexRow } from "../ui_primitives";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 
 interface NodeExecutionTimeProps {

@@ -8,8 +8,8 @@ import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // store
 import { NodeData } from "../../stores/NodeData";
-import debounce from "lodash/debounce";
-import isEqual from "lodash/isEqual";
+import { debounce } from "../../utils/lodashAlternatives";
+import isEqual from "fast-deep-equal";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";

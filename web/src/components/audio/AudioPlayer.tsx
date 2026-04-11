@@ -14,7 +14,7 @@ import React, {
   useMemo
 } from "react";
 import { v4 as uuidv4 } from "uuid";
-import throttle from "lodash/throttle";
+import { throttle } from "../../utils/lodashAlternatives";
 import AudioControls from "./AudioControls";
 import log from "loglevel";
 

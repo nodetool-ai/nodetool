@@ -13,7 +13,7 @@ import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { LanguageModel, Thread } from "../../stores/ApiTypes";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import DashboardHeader from "./DashboardHeader";
 import { DockviewReact, DockviewReadyEvent, DockviewApi } from "dockview";
 import AddPanelDropdown from "./AddPanelDropdown";

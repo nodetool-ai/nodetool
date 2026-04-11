@@ -8,7 +8,7 @@ import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import log from "loglevel";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";

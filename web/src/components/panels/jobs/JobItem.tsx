@@ -24,7 +24,7 @@ import { client } from "../../../stores/ApiClient";
 import { useQueryClient } from "@tanstack/react-query";
 import log from "loglevel";
 import AssetGridContent from "../../assets/AssetGridContent";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 /**
  * Format a duration in milliseconds to a human-readable string

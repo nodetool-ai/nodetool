@@ -4,7 +4,7 @@ import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
 import { CopyButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";

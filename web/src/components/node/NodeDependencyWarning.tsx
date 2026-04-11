@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { getIsElectronDetails } from "../../utils/browser";
 
 export const RUNTIME_LABELS: Record<string, string> = {

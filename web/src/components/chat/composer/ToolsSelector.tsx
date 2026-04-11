@@ -12,7 +12,7 @@ import {
   DialogTitle
 } from "@mui/material";
 import { Tooltip, Text, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import {
   MailOutline,
   Search,

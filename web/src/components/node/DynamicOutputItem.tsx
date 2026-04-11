@@ -4,7 +4,7 @@ import { Box } from "@mui/material";
 import { EditButton, DeleteButton, Text, FlexRow } from "../ui_primitives";
 import NodeOutput from "./NodeOutput";
 import { Property } from "../../stores/ApiTypes";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 type OutputItem = Property & { isDynamic?: boolean };
 

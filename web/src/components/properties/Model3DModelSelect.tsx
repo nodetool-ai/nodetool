@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { Model3DModelValue } from "../../stores/ApiTypes";

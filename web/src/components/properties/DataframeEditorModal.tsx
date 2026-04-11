@@ -11,7 +11,7 @@ import TableRowsIcon from "@mui/icons-material/TableRows";
 import SearchIcon from "@mui/icons-material/Search";
 import { InputAdornment } from "@mui/material";
 import { Tooltip } from "../ui_primitives";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import Markdown from "react-markdown";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";

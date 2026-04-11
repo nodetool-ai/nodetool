@@ -1,7 +1,7 @@
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useCallback } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { NodeSwitch } from "../editor_ui";
 
 const BoolProperty = (props: PropertyProps) => {
