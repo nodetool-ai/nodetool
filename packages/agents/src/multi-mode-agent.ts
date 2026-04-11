@@ -29,6 +29,9 @@ import { TeamExecutor } from "./team/team-executor.js";
 import { SubAgentPlanner } from "./sub-agent-planner.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { AgentMode, Step, SubAgentConfig, Task, TaskPlan } from "./types.js";
+import type { NodeRegistry } from "@nodetool/node-sdk";
+import { GraphPlanner } from "./graph-planner.js";
+import { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 import { randomUUID } from "node:crypto";
 
 const log = createLogger("nodetool.agents.multi-mode-agent");
@@ -55,6 +58,10 @@ export interface MultiModeAgentOptions {
   maxStepIterations?: number;
   /** Pre-defined task, skipping planning. */
   task?: Task;
+  /** Use graph-native planner (builds DAG directly instead of TaskPlan). */
+  useGraphPlanner?: boolean;
+  /** Node registry for graph planner (required when useGraphPlanner is true). */
+  registry?: NodeRegistry;
 
   // --- Loop mode options ---
   /** Maximum iterations for loop mode. */
@@ -83,6 +90,8 @@ export class MultiModeAgent extends BaseAgent {
   private readonly numSubAgents: number;
   private readonly teamStrategy: "coordinator" | "autonomous" | "hybrid";
   private readonly maxConcurrency: number;
+  private readonly useGraphPlanner: boolean;
+  private readonly registry?: NodeRegistry;
 
   constructor(opts: MultiModeAgentOptions) {
     super({
@@ -106,6 +115,8 @@ export class MultiModeAgent extends BaseAgent {
     this.numSubAgents = opts.numSubAgents ?? 3;
     this.teamStrategy = opts.teamStrategy ?? "coordinator";
     this.maxConcurrency = opts.maxConcurrency ?? 5;
+    this.useGraphPlanner = opts.useGraphPlanner ?? false;
+    this.registry = opts.registry;
 
     if (opts.task) {
       this.task = opts.task;
@@ -204,6 +215,12 @@ export class MultiModeAgent extends BaseAgent {
       return;
     }
 
+    // Graph-native planner: build DAG directly
+    if (this.useGraphPlanner && this.registry) {
+      yield* this.executeGraphPlanMode(context);
+      return;
+    }
+
     log.info("Planning phase started", { name: this.name });
     yield {
       type: "log_update",
@@ -296,6 +313,81 @@ export class MultiModeAgent extends BaseAgent {
     // If no task_result was captured, use the final task's result
     if (this.results === null) {
       this.results = executor.getFinalResult();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Graph plan mode: GraphPlanner -> WorkflowRunner
+  // ---------------------------------------------------------------------------
+
+  private async *executeGraphPlanMode(
+    context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage> {
+    log.info("Graph planning phase started", { name: this.name });
+
+    yield {
+      type: "log_update",
+      node_id: "graph_planner",
+      node_name: this.name,
+      content: `Building workflow graph for: ${this.objective.slice(0, 100)}...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const planner = new GraphPlanner({
+      provider: this.provider,
+      model: this.planningModel,
+      registry: this.registry!,
+      tools: this.tools,
+      systemPrompt: this.systemPrompt || undefined,
+      outputSchema: this.outputSchema,
+      inputs: this.inputs
+    });
+
+    const planGen = planner.plan(this.objective, context);
+    let planResult = await planGen.next();
+    while (!planResult.done) {
+      yield planResult.value;
+      planResult = await planGen.next();
+    }
+    const graphData = planResult.value;
+
+    if (!graphData) {
+      throw new Error("GraphPlanner failed to build a workflow graph.");
+    }
+
+    log.info("Graph planning complete", {
+      name: this.name,
+      nodes: graphData.nodes.length,
+      edges: graphData.edges.length
+    });
+
+    yield {
+      type: "log_update",
+      node_id: "graph_executor",
+      node_name: this.name,
+      content: `Executing workflow: ${graphData.nodes.length} nodes, ${graphData.edges.length} edges...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const runner = new AgentWorkflowRunner({
+      provider: this.provider,
+      model: this.model,
+      registry: this.registry!,
+      tools: [...this.tools],
+      context,
+      systemPrompt: this.systemPrompt || undefined,
+      maxTokenLimit: this.maxTokenLimit,
+      maxStepIterations: this.maxStepIterations
+    });
+
+    for await (const item of runner.execute(graphData)) {
+      if (item.type === "step_result") {
+        const stepResult = item as StepResult;
+        if (stepResult.is_task_result) {
+          this.results = stepResult.result;
+        }
+      }
+      yield item;
     }
   }
 
