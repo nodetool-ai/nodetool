@@ -24,6 +24,7 @@ electron/backend-bundle/
 electron/resources/micromamba
 conda-lock.yml
 # Temporary build files
+*.tsbuildinfo
 .tmp/
 __notebooks/
 package/

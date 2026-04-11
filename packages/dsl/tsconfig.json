@@ -4,6 +4,32 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"],
-  "exclude": ["dist", "tests", "scripts"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist",
+    "tests",
+    "scripts"
+  ],
+  "references": [
+    {
+      "path": "../base-nodes"
+    },
+    {
+      "path": "../elevenlabs-nodes"
+    },
+    {
+      "path": "../kernel"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../runtime"
+    }
+  ]
 }

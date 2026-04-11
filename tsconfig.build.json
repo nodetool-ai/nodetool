@@ -1,0 +1,31 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/protocol" },
+    { "path": "packages/config" },
+    { "path": "packages/auth" },
+    { "path": "packages/storage" },
+    { "path": "packages/security" },
+    { "path": "packages/huggingface" },
+    { "path": "packages/vectorstore" },
+    { "path": "packages/runtime" },
+    { "path": "packages/kernel" },
+    { "path": "packages/models" },
+    { "path": "packages/code-runners" },
+    { "path": "packages/node-sdk" },
+    { "path": "packages/fal-codegen" },
+    { "path": "packages/fal-nodes" },
+    { "path": "packages/replicate-codegen" },
+    { "path": "packages/replicate-nodes" },
+    { "path": "packages/elevenlabs-nodes" },
+    { "path": "packages/kie-codegen" },
+    { "path": "packages/kie-nodes" },
+    { "path": "packages/agents" },
+    { "path": "packages/base-nodes" },
+    { "path": "packages/dsl" },
+    { "path": "packages/deploy" },
+    { "path": "packages/chat" },
+    { "path": "packages/websocket" },
+    { "path": "packages/cli" }
+  ]
+}

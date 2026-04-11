@@ -4,5 +4,18 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../agents"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../runtime"
+    }
+  ]
 }
