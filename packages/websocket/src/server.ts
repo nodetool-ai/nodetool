@@ -358,8 +358,9 @@ if (tlsEnabled && tlsCertPath && tlsKeyPath) {
 // ---------------------------------------------------------------------------
 
 const port = Number(process.env["PORT"] ?? 7777);
-// In production (TLS), bind to 0.0.0.0 unless HOST is explicitly set
-const host = process.env["HOST"] ?? (tlsEnabled ? "0.0.0.0" : "127.0.0.1");
+const isProduction = process.env["NODETOOL_ENV"] === "production";
+// In production, bind to all interfaces unless HOST is explicitly set
+const host = process.env["HOST"] ?? (isProduction ? "0.0.0.0" : "127.0.0.1");
 
 // ---------------------------------------------------------------------------
 // Fastify app
@@ -424,6 +425,11 @@ app.addHook("onRequest", async (req, reply) => {
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata"
   ) {
+    return;
+  }
+
+  // Static frontend assets don't require auth (served by fastifyStatic)
+  if (hasStaticApp && req.method === "GET" && !pathname.startsWith("/api") && !pathname.startsWith("/ws") && !pathname.startsWith("/v1")) {
     return;
   }
 
