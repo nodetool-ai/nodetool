@@ -15,7 +15,6 @@ export type SnippetCategory =
   | "Dictionary"
   | "Date & Time"
   | "UUID"
-  | "HTTP"
   | "JSON"
   | "Streaming";
 
@@ -37,7 +36,6 @@ export const SNIPPET_CATEGORIES: SnippetCategory[] = [
   "Dictionary",
   "Date & Time",
   "UUID",
-  "HTTP",
   "JSON",
   "Streaming",
 ];
@@ -745,95 +743,7 @@ return { output: re.test(value) };`,
   // ---------------------------------------------------------------------------
   // HTTP
   // ---------------------------------------------------------------------------
-  {
-    id: "http-get-text",
-    title: "HTTP GET Text",
-    description: "Fetch text content from a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url);
-return { output: res.body };`,
-    tags: ["http", "get", "request", "api", "fetch", "text"],
-  },
-  {
-    id: "http-get-json",
-    title: "HTTP GET JSON",
-    description: "Fetch and parse JSON from a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url);
-return { output: res.json };`,
-    tags: ["http", "get", "request", "api", "fetch", "json"],
-  },
-  {
-    id: "http-get-bytes",
-    title: "HTTP GET Bytes",
-    description: "Download binary data from a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url);
-const bytes = await res.bytes();
-return { output: bytes };`,
-    tags: ["http", "get", "request", "api", "fetch", "bytes", "binary", "download"],
-  },
-  {
-    id: "http-post",
-    title: "HTTP POST",
-    description: "Send data to a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(data)
-});
-return { output: res.json };`,
-    tags: ["http", "post", "request", "api", "send"],
-  },
-  {
-    id: "http-put",
-    title: "HTTP PUT",
-    description: "Update data at a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url, {
-  method: "PUT",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(data)
-});
-return { output: res.json };`,
-    tags: ["http", "put", "update", "request", "api"],
-  },
-  {
-    id: "http-delete",
-    title: "HTTP DELETE",
-    description: "Delete a resource at a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url, { method: "DELETE" });
-return { output: res.ok };`,
-    tags: ["http", "delete", "remove", "request", "api"],
-  },
-  {
-    id: "http-headers",
-    title: "HTTP with Headers",
-    description: "Make a request with custom headers and auth",
-    category: "HTTP",
-    code: `const apiKey = await getSecret("API_KEY");
-const res = await fetch(url, {
-  headers: {
-    "Authorization": "Bearer " + apiKey,
-    "Content-Type": "application/json"
-  }
-});
-return { output: res.json };`,
-    tags: ["http", "headers", "auth", "bearer", "api", "token"],
-  },
-  {
-    id: "http-parallel",
-    title: "Parallel Requests",
-    description: "Fetch multiple URLs in parallel",
-    category: "HTTP",
-    code: `const results = await Promise.all(
-  urls.map(u => fetch(u).then(r => r.json))
-);
-return { output: results };`,
-    tags: ["parallel", "concurrent", "multiple", "batch", "promise"],
-  },
+  // HTTP snippets removed — use lib.http.* nodes instead (GetText, GetJSON, GetBytes, Post, Put, Patch, Delete)
 
   // ---------------------------------------------------------------------------
   // JSON

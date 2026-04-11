@@ -437,6 +437,16 @@ export {
   LIB_BROWSER_NODES
 } from "./nodes/lib-browser.js";
 export {
+  HttpGetTextNode,
+  HttpGetJsonNode,
+  HttpGetBytesNode,
+  HttpPostNode,
+  HttpPutNode,
+  HttpPatchNode,
+  HttpDeleteNode,
+  LIB_HTTP_NODES
+} from "./nodes/lib-http.js";
+export {
   SendEmailLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
@@ -612,6 +622,7 @@ import { LIB_EXCEL_NODES } from "./nodes/lib-excel.js";
 import { LIB_DOCX_NODES } from "./nodes/lib-docx.js";
 import { LIB_BEAUTIFULSOUP_NODES } from "./nodes/lib-html-parse.js";
 import { LIB_BROWSER_NODES } from "./nodes/lib-browser.js";
+import { LIB_HTTP_NODES } from "./nodes/lib-http.js";
 import { LIB_MAIL_NODES } from "./nodes/lib-mail.js";
 import { LIB_MARKITDOWN_NODES } from "./nodes/lib-doc-convert.js";
 import { LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
@@ -671,6 +682,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_DOCX_NODES,
   ...LIB_BEAUTIFULSOUP_NODES,
   ...LIB_BROWSER_NODES,
+  ...LIB_HTTP_NODES,
   ...LIB_MAIL_NODES,
   ...LIB_MARKITDOWN_NODES,
   ...LIB_SEABORN_NODES,
