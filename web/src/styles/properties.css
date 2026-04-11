@@ -24,6 +24,13 @@
   margin-top: 2px;
 }
 
+/* Ensure connected properties match the height of unconnected inputs */
+.node-property .connected-badge {
+  min-height: 24px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+}
+
 .node-editor .node-output {
   padding: 0 1em;
   margin: 1px 0 0;
