@@ -23,3 +23,20 @@ export { LuaRunner, LuaSubprocessRunner } from "./lua-runner.js";
 export { CommandDockerRunner } from "./command-runner.js";
 export { ServerDockerRunner } from "./server-docker-runner.js";
 export { ServerSubprocessRunner } from "./server-subprocess-runner.js";
+
+// Firecracker microVM-based runners
+export { FirecrackerClient } from "./firecracker-client.js";
+export { FirecrackerVM } from "./firecracker-vm.js";
+export { FirecrackerRunner } from "./firecracker-runner.js";
+export { FirecrackerPool } from "./firecracker-pool.js";
+export type {
+  FirecrackerVMConfig,
+  FirecrackerNetworkConfig,
+  FirecrackerRunnerOptions,
+  FirecrackerStreamOptions,
+  FirecrackerPoolConfig,
+  GuestExecRequest,
+  GuestOutputMessage,
+  GuestExitMessage,
+  GuestMessage
+} from "./firecracker-types.js";

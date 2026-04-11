@@ -2,7 +2,7 @@
   "name": "@nodetool/code-runners",
   "type": "module",
   "version": "0.1.0",
-  "description": "Streaming code runners: Docker containers and local subprocesses for executing Python, JS, Bash, Ruby, and Lua code",
+  "description": "Streaming code runners: Docker containers, local subprocesses, and Firecracker microVMs for executing Python, JS, Bash, Ruby, and Lua code",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

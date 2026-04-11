@@ -17,7 +17,11 @@ import {
   LuaSubprocessRunner,
   CommandDockerRunner,
   ServerDockerRunner,
-  ServerSubprocessRunner
+  ServerSubprocessRunner,
+  FirecrackerClient,
+  FirecrackerVM,
+  FirecrackerRunner,
+  FirecrackerPool
 } from "../src/index.js";
 
 describe("index.ts barrel exports", () => {
@@ -82,5 +86,27 @@ describe("index.ts barrel exports", () => {
   it("exports ServerSubprocessRunner", () => {
     expect(ServerSubprocessRunner).toBeDefined();
     expect(typeof ServerSubprocessRunner).toBe("function");
+  });
+
+  // Firecracker exports
+
+  it("exports FirecrackerClient", () => {
+    expect(FirecrackerClient).toBeDefined();
+    expect(typeof FirecrackerClient).toBe("function");
+  });
+
+  it("exports FirecrackerVM", () => {
+    expect(FirecrackerVM).toBeDefined();
+    expect(typeof FirecrackerVM).toBe("function");
+  });
+
+  it("exports FirecrackerRunner", () => {
+    expect(FirecrackerRunner).toBeDefined();
+    expect(typeof FirecrackerRunner).toBe("function");
+  });
+
+  it("exports FirecrackerPool", () => {
+    expect(FirecrackerPool).toBeDefined();
+    expect(typeof FirecrackerPool).toBe("function");
   });
 });
