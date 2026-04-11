@@ -224,13 +224,6 @@ describe("lib.convert.ConvertToMarkdown", () => {
     expect(output).toContain("**bold**");
   });
 
-  it("returns plain text via text input", async () => {
-    const result = await new ConvertToMarkdownLibNode({
-      text: "Just plain text, no HTML."
-    }).process();
-    expect(result.output).toBe("Just plain text, no HTML.");
-  });
-
   it("converts HTML string input", async () => {
     const result = await new ConvertToMarkdownLibNode({
       html: "<p>Simple <em>test</em></p>"
@@ -241,7 +234,7 @@ describe("lib.convert.ConvertToMarkdown", () => {
   it("throws when no input is provided", async () => {
     await expect(
       new ConvertToMarkdownLibNode({}).process()
-    ).rejects.toThrow("Provide a document, HTML, or text input");
+    ).rejects.toThrow("Provide a document, bytes, or HTML input");
   });
 });
 

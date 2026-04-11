@@ -98,6 +98,24 @@ async function docxToMarkdown(inputBytes: Buffer): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Shared byte format detection
+// ---------------------------------------------------------------------------
+
+async function convertBytes(bytes: Buffer, turndown: { turndown(html: string): string }): Promise<string> {
+  if (bytes.length >= 4 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+    return pdfToText(bytes);
+  }
+  if (bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) {
+    return docxToMarkdown(bytes);
+  }
+  const text = bytes.toString("utf-8");
+  if (text.includes("<") && text.includes(">")) {
+    return turndown.turndown(text);
+  }
+  return text;
+}
+
+// ---------------------------------------------------------------------------
 // ConvertToMarkdown node
 // ---------------------------------------------------------------------------
 
@@ -105,7 +123,7 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.convert.ConvertToMarkdown";
   static readonly title = "Convert To Markdown";
   static readonly description =
-    "Converts PDF, DOCX, or HTML to markdown text.\n    markdown, convert, document, pdf, docx, html\n\n    Connect one input — the others can be left empty.";
+    "Converts PDF, DOCX, or HTML to markdown text.\n    markdown, convert, document, pdf, docx, html, bytes\n\n    Connect one input — document ref, raw bytes, or HTML string.";
   static readonly requiredRuntimes = ["pdftotext", "pandoc"];
   static readonly metadataOutputTypes = {
     output: "str"
@@ -121,20 +139,20 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   declare document: any;
 
   @prop({
+    type: "bytes",
+    default: null,
+    title: "Bytes",
+    description: "Raw PDF or DOCX bytes (e.g. from HTTP GET Bytes)"
+  })
+  declare bytes: any;
+
+  @prop({
     type: "str",
     default: "",
     title: "HTML",
     description: "HTML string to convert to markdown"
   })
   declare html: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Text",
-    description: "Plain text (passed through as-is)"
-  })
-  declare text: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const TurndownService = (await import("turndown")).default;
@@ -144,33 +162,13 @@ export class ConvertToMarkdownLibNode extends BaseNode {
     const doc = this.document;
     if (doc && typeof doc === "object") {
       const uri = typeof doc.uri === "string" ? doc.uri : "";
-
-      // Try inline bytes first
       let bytes = refToBytes(doc);
-
-      // Fall back to URI loading
       if ((!bytes || bytes.length === 0) && uri) {
         bytes = await loadFromUri(uri, context);
       }
-
       if (bytes && bytes.length > 0) {
-        // PDF: starts with %PDF
-        if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
-          return { output: await pdfToText(bytes) };
-        }
-        // DOCX: ZIP archive starting with PK
-        if (bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) {
-          return { output: await docxToMarkdown(bytes) };
-        }
-        // Text/HTML
-        const text = bytes.toString("utf-8");
-        if (text.includes("<") && text.includes(">")) {
-          return { output: turndown.turndown(text) };
-        }
-        return { output: text };
+        return { output: await convertBytes(bytes, turndown) };
       }
-
-      // Document ref with string data
       if (typeof doc.data === "string" && doc.data) {
         if (doc.data.includes("<") && doc.data.includes(">")) {
           return { output: turndown.turndown(doc.data) };
@@ -179,19 +177,19 @@ export class ConvertToMarkdownLibNode extends BaseNode {
       }
     }
 
-    // 2. HTML string input
+    // 2. Raw bytes input
+    const rawBytes = refToBytes(this.bytes);
+    if (rawBytes && rawBytes.length > 0) {
+      return { output: await convertBytes(rawBytes, turndown) };
+    }
+
+    // 3. HTML string input
     const html = String(this.html ?? "");
     if (html) {
       return { output: turndown.turndown(html) };
     }
 
-    // 3. Plain text input
-    const text = String(this.text ?? "");
-    if (text) {
-      return { output: text };
-    }
-
-    throw new Error("Provide a document, HTML, or text input");
+    throw new Error("Provide a document, bytes, or HTML input");
   }
 }
 
