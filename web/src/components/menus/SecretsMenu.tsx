@@ -3,7 +3,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { EditButton } from "../ui_primitives/EditButton";
 import WarningIcon from "@mui/icons-material/Warning";
 import { Box } from "@mui/material";
-import { FlexColumn, FlexRow, TextInput, Text, Caption, Tooltip, Dialog, Chip, ToolbarIconButton } from "../ui_primitives";
+import { FlexColumn, FlexRow, TextInput, Text, Caption, Tooltip, Dialog, ToolbarIconButton } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -184,8 +184,8 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
       )}
       {isSuccess && (
         <div className="secrets-content" css={getSharedSettingsStyles(theme)}>
-          <FlexColumn className="settings-main-content">
-            <FlexRow className="secrets" align="center" gap={0.5}>
+          <FlexColumn className="settings-main-content" gap={1}>
+            <FlexRow className="secrets" align="center" gap={0.5} sx={{ marginBottom: "0.5em" }}>
               <WarningIcon sx={{ fontSize: 16, color: "text.disabled", flexShrink: 0 }} />
               <Caption>
                 Secrets are encrypted in the database.
@@ -210,14 +210,18 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                       <FlexRow
                         key={secret.key}
                         id={`secret-${secret.key}`}
-                        className="settings-item large"
                         align="center"
                         justify="space-between"
                         gap={1}
                         fullWidth
+                        sx={{
+                          padding: "0.6em 0",
+                          borderBottom: `1px solid ${theme.vars.palette.divider}`,
+                          "&:last-child": { borderBottom: "none" }
+                        }}
                       >
                         <FlexColumn sx={{ flex: 1 }}>
-                          <FlexRow align="center" gap={0.5} sx={{ marginBottom: "0.25em" }}>
+                          <FlexRow align="center" gap={1} sx={{ marginBottom: "0.25em" }}>
                             <Text
                               size="small"
                               weight={600}
@@ -231,7 +235,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                             <Caption
                               component="span"
                               sx={{
-                                opacity: 0.7,
+                                opacity: 0.5,
                                 whiteSpace: "nowrap",
                                 fontSize: `${theme.fontSizeTiny} !important`,
                                 lineHeight: 1
@@ -281,11 +285,15 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                       <FlexRow
                         key={secret.key}
                         id={`secret-${secret.key}`}
-                        className="settings-item large"
                         align="center"
                         justify="space-between"
                         gap={1}
                         fullWidth
+                        sx={{
+                          padding: "0.6em 0",
+                          borderBottom: `1px solid ${theme.vars.palette.divider}`,
+                          "&:last-child": { borderBottom: "none" }
+                        }}
                       >
                         <FlexColumn sx={{ flex: 1 }}>
                           <Text
@@ -304,12 +312,15 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                               {secret.description}
                             </Text>
                           )}
-                          <Chip
-                            label="Not set"
-                            size="small"
-                            variant="outlined"
-                            sx={{ marginTop: "0.5em" }}
-                          />
+                          <Caption
+                            sx={{
+                              opacity: 0.5,
+                              fontStyle: "italic",
+                              marginTop: "0.25em"
+                            }}
+                          >
+                            Not set
+                          </Caption>
                         </FlexColumn>
                         <FlexRow gap={0.5} sx={{ flexShrink: 0 }}>
                           <EditButton

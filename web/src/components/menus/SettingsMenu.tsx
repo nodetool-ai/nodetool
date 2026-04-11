@@ -644,9 +644,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     onChange={setApiSearchTerm}
                     size="small"
                     showClear
+                    sx={{ marginBottom: "1em" }}
                   />
 
-                  <Text size="big" id="api-keys">
+                  <Text size="big" id="api-keys" sx={{ marginBottom: "0.5em" }}>
                     API Keys
                   </Text>
                   <SecretsMenu searchTerm={apiSearchTerm} />
