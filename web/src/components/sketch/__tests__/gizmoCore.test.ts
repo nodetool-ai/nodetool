@@ -17,9 +17,11 @@ import {
   clientToDocumentCanvas,
   documentCanvasToClient,
   scaledHalfExtents,
+  isInRotateZone,
   HANDLE_RADIUS,
   ROTATION_HANDLE_OFFSET,
-  HANDLE_SIZE
+  HANDLE_SIZE,
+  OUTSIDE_ROTATE_MARGIN
 } from "../tools/transform/handleGeometry";
 import { cursorForHandle } from "../tools/transform/cursorMapping";
 import {
@@ -258,6 +260,109 @@ describe("gizmo hover cursor behavior", () => {
     expect(
       isPointInsideGizmo({ x: -100, y: -100 }, transform, bounds, 1)
     ).toBe(false);
+  });
+});
+
+// ─── Outside-box rotate zone ────────────────────────────────────────────────
+
+describe("outside-box rotate zone", () => {
+  const transform = makeTransform();
+  const bounds = makeBounds(); // 100x100 at origin → box from (0,0) to (100,100)
+  const zoom = 1;
+
+  it("returns false for points inside the bounding box", () => {
+    expect(isInRotateZone(transform, bounds, { x: 50, y: 50 }, zoom)).toBe(false);
+  });
+
+  it("returns true for points just outside the bounding box edge", () => {
+    // Just outside the right edge
+    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
+    expect(
+      isInRotateZone(transform, bounds, { x: 100 + margin * 0.5, y: 50 }, zoom)
+    ).toBe(true);
+  });
+
+  it("returns true for points just outside a corner", () => {
+    // Just outside the top-left corner
+    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
+    expect(
+      isInRotateZone(transform, bounds, { x: -margin * 0.5, y: -margin * 0.5 }, zoom)
+    ).toBe(true);
+  });
+
+  it("returns false for points far outside the margin", () => {
+    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
+    expect(
+      isInRotateZone(transform, bounds, { x: -margin * 2, y: -margin * 2 }, zoom)
+    ).toBe(false);
+  });
+
+  it("respects zoom scaling of the margin", () => {
+    // At zoom=2, the margin in doc-space is halved
+    const marginZoom2 = OUTSIDE_ROTATE_MARGIN / 2;
+    // Point just inside margin at zoom=2
+    expect(
+      isInRotateZone(transform, bounds, { x: 100 + marginZoom2 * 0.5, y: 50 }, 2)
+    ).toBe(true);
+    // Point outside margin at zoom=2 but inside margin at zoom=1
+    expect(
+      isInRotateZone(transform, bounds, { x: 100 + marginZoom2 * 1.5, y: 50 }, 2)
+    ).toBe(false);
+  });
+
+  it("works with rotated layers", () => {
+    const rotated = makeTransform({ rotation: Math.PI / 4 }); // 45°
+    // Center of 100x100 box at origin is (50,50), hw=hh=50.
+    // A point far to the right of the rotated box should be in the zone.
+    // The rotated box extends to ~120.7 on x axis from center=50.
+    // A point at x=121, y=50 is just outside; un-rotated it falls outside
+    // the axis-aligned box but inside the expanded margin.
+    expect(
+      isInRotateZone(rotated, bounds, { x: 121, y: 50 }, zoom)
+    ).toBe(true);
+    // A point well outside should miss
+    expect(
+      isInRotateZone(rotated, bounds, { x: 200, y: 200 }, zoom)
+    ).toBe(false);
+  });
+
+  it("works with scaled layers", () => {
+    const scaled = makeTransform({ scaleX: 2, scaleY: 1 });
+    // Center = (50, 50), hw = 100*2/2 = 100, hh = 50
+    // Box goes from x=-50..150, y=0..100
+    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
+    // Just outside the right edge (x=150)
+    expect(
+      isInRotateZone(scaled, bounds, { x: 150 + margin * 0.5, y: 50 }, zoom)
+    ).toBe(true);
+    // Inside the scaled box
+    expect(
+      isInRotateZone(scaled, bounds, { x: 80, y: 50 }, zoom)
+    ).toBe(false);
+  });
+
+  it("getTransformHoverInfo returns rotate for outside-box rotate zone", () => {
+    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
+    const info = getTransformHoverInfo(
+      { x: 100 + margin * 0.5, y: 50 },
+      transform,
+      bounds,
+      zoom
+    );
+    expect(info.handle).toBe("rotate");
+    expect(info.cursor).toBe("grab");
+  });
+
+  it("getTransformHoverInfo returns null for points well outside", () => {
+    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
+    const info = getTransformHoverInfo(
+      { x: 100 + margin * 2, y: 50 },
+      transform,
+      bounds,
+      zoom
+    );
+    expect(info.handle).toBeNull();
+    expect(info.cursor).toBeNull();
   });
 });
 

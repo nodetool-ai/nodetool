@@ -37,13 +37,15 @@ export type TransformHandle =
 import {
   HANDLE_HIT_RADIUS,
   ROTATION_HANDLE_OFFSET as GIZMO_ROTATION_OFFSET,
-  HANDLE_SIZE as GIZMO_HANDLE_SIZE
+  HANDLE_SIZE as GIZMO_HANDLE_SIZE,
+  OUTSIDE_ROTATE_MARGIN as GIZMO_OUTSIDE_ROTATE_MARGIN
 } from "../gizmo/gizmoConstants";
 
 // Re-export with the names that existing consumers expect.
 export const HANDLE_RADIUS = HANDLE_HIT_RADIUS;
 export const ROTATION_HANDLE_OFFSET = GIZMO_ROTATION_OFFSET;
 export const HANDLE_SIZE = GIZMO_HANDLE_SIZE;
+export const OUTSIDE_ROTATE_MARGIN = GIZMO_OUTSIDE_ROTATE_MARGIN;
 
 // ─── Geometry primitives ──────────────────────────────────────────────────────
 
@@ -203,6 +205,57 @@ export function hitTestHandles(
   }
 
   return null;
+}
+
+// ─── Outside-box rotate zone ─────────────────────────────────────────────────
+
+/**
+ * Test whether a point falls in the "rotate zone": outside the bounding box
+ * but within `OUTSIDE_ROTATE_MARGIN / zoom` document units of the box edge.
+ *
+ * This enables Photoshop-style "drag outside box to rotate" behavior.
+ * Should only be called after `hitTestHandles` returns `null` — it does NOT
+ * check handles or the box interior.
+ */
+export function isInRotateZone(
+  transform: LayerTransform,
+  rasterBounds: LayerContentBounds,
+  canvasPt: Point,
+  zoom: number
+): boolean {
+  const margin = OUTSIDE_ROTATE_MARGIN / zoom;
+  const center = getTransformedCenter(transform, rasterBounds);
+  const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
+  const rot = transform.rotation ?? 0;
+
+  const left = center.x - hw;
+  const right = center.x + hw;
+  const top = center.y - hh;
+  const bottom = center.y + hh;
+
+  // Un-rotate the point into axis-aligned space
+  const unrotated = rotatePoint(
+    canvasPt.x,
+    canvasPt.y,
+    center.x,
+    center.y,
+    -rot
+  );
+
+  // Check if inside the expanded box (box + margin) but outside the inner box
+  const inExpandedBox =
+    unrotated.x >= left - margin &&
+    unrotated.x <= right + margin &&
+    unrotated.y >= top - margin &&
+    unrotated.y <= bottom + margin;
+
+  const inInnerBox =
+    unrotated.x >= left &&
+    unrotated.x <= right &&
+    unrotated.y >= top &&
+    unrotated.y <= bottom;
+
+  return inExpandedBox && !inInnerBox;
 }
 
 // ─── Doc-to-screen conversion ────────────────────────────────────────────────

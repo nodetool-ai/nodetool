@@ -10,6 +10,7 @@ export {
   HANDLE_RADIUS,
   ROTATION_HANDLE_OFFSET,
   HANDLE_SIZE,
+  OUTSIDE_ROTATE_MARGIN,
   HANDLE_ANCHOR,
   rotatePoint,
   snapAngle,
@@ -18,6 +19,7 @@ export {
   scaledHalfExtents,
   buildHandlePositions,
   hitTestHandles,
+  isInRotateZone,
   docToScreen,
   docRectToScreen,
   getLayerGizmoBounds

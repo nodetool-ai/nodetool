@@ -55,6 +55,7 @@ import {
 import {
   type TransformHandle,
   hitTestHandles,
+  isInRotateZone,
   computeTransformForHandle
 } from "./transform";
 import {
@@ -190,16 +191,25 @@ export class TransformTool implements ToolHandler {
       ctx.zoom
     );
 
-    // If the click misses the gizmo, try auto-select targeting
+    // If the click misses the gizmo, try auto-select targeting first,
+    // then fall back to outside-box rotation zone.
     if (!handle) {
       // Read auto-select from the store's toolSettings for the freshest value
       // since ctx.doc may be a stale snapshot.
       const storeSettings = useSketchStore.getState().toolSettings;
       const autoSelect = storeSettings?.transform?.autoSelect ?? true;
       if (autoSelect) {
-        return this.handleAutoSelectClick(ctx, event);
+        const picked = this.tryAutoSelectPick(ctx, event);
+        if (picked) {
+          return false; // Layer retargeted, no drag started
+        }
       }
-      return false;
+      // No handle hit and no auto-select pick — check the rotate zone.
+      if (isInRotateZone(currentTransform, this.rasterBounds, pt, ctx.zoom)) {
+        handle = "rotate";
+      } else {
+        return false;
+      }
     }
 
     this.activeHandle = handle;
@@ -272,11 +282,14 @@ export class TransformTool implements ToolHandler {
   // ── Auto-select targeting ─────────────────────────────────────────────────
 
   /**
-   * Handle a click that missed the gizmo when auto-select is enabled.
-   * Picks the topmost visible transformable layer at the click point and
-   * either replaces or toggles it in the target set based on Shift state.
+   * Try to pick and target the topmost visible transformable layer at the
+   * click point. Returns `true` if a layer was successfully picked and
+   * targeted, `false` if no layer was found under the pointer.
+   *
+   * When Shift is held, the picked layer is toggled in the target set
+   * rather than replacing it.
    */
-  private handleAutoSelectClick(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
+  private tryAutoSelectPick(ctx: ToolContext, event: ToolPointerEvent): boolean {
     const { doc } = ctx;
     const pt = event.point;
     const shift = event.nativeEvent.shiftKey;
@@ -320,7 +333,7 @@ export class TransformTool implements ToolHandler {
     };
 
     this.drawGizmo(ctx);
-    return false; // Don't start a drag, just retarget
+    return true;
   }
 
   // ── Public API (for settings panel commit/cancel/reset) ────────────────────

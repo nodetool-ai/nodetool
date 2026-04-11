@@ -22,6 +22,13 @@ export const ROTATION_HANDLE_OFFSET = 24;
 /** Radius multiplier for the rotation handle circle relative to HANDLE_SIZE. */
 export const ROTATION_HANDLE_RADIUS_FACTOR = 0.7;
 
+/**
+ * Distance (CSS px) outside the bounding box that still counts as the
+ * "rotate zone" — clicking/hovering in this margin triggers rotation
+ * instead of returning null.
+ */
+export const OUTSIDE_ROTATE_MARGIN = 20;
+
 // ─── Colors ──────────────────────────────────────────────────────────────────
 
 /** Primary gizmo accent color (transform bounding box, handle strokes). */
