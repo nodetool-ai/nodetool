@@ -30,7 +30,6 @@ const CATEGORY_TYPE: Record<SnippetCategory, string> = {
   "Dictionary": "dict",
   "Date & Time": "str",
   "UUID": "str",
-  "HTTP": "str",
   "JSON": "str",
   "Streaming": "str",
 };
