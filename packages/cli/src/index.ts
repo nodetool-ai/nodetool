@@ -21,7 +21,20 @@ import { initDb } from "@nodetool/models";
 import { getSecret } from "@nodetool/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool/config";
 
-// Configure logging early so NODETOOL_LOG_LEVEL and NODETOOL_LOG_FILE are picked up.
+// Configure logging: in interactive mode, suppress non-error logs to a file
+// so they don't interfere with the Ink TUI. Env vars can still override.
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { mkdirSync } from "node:fs";
+
+if (!process.env["NODETOOL_LOG_LEVEL"]) {
+  process.env["NODETOOL_LOG_LEVEL"] = "error";
+}
+if (!process.env["NODETOOL_LOG_FILE"]) {
+  const logDir = join(homedir(), ".nodetool");
+  mkdirSync(logDir, { recursive: true });
+  process.env["NODETOOL_LOG_FILE"] = join(logDir, "chat.log");
+}
 configureLogging();
 
 // Initialize OpenLLMetry before any LLM SDK calls are made.

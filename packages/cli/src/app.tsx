@@ -19,12 +19,15 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Text, Static, useApp, useInput } from "ink";
 import ReadlineInput from "./readline-input.js";
 import Spinner from "ink-spinner";
+import { ExecutionTree } from "./ExecutionTree.js";
+import { useExecutionState } from "./useExecutionState.js";
 import type { Message, ToolCall } from "@nodetool/runtime";
 import { ProcessingContext } from "@nodetool/runtime";
 import { processChat } from "@nodetool/chat";
 import { Agent } from "@nodetool/agents";
 import {
   ReadFileTool, WriteFileTool, ListDirectoryTool,
+  EditFileTool, GlobTool, GrepTool,
   DownloadFileTool, HttpRequestTool,
   GoogleSearchTool, GoogleNewsTool, GoogleImagesTool,
   BrowserTool, ScreenshotTool,
@@ -222,8 +225,12 @@ export function App({
   const [streaming, setStreaming] = useState(false);
   const [streamContent, setStreamContent] = useState("");
   const [streamLabel, setStreamLabel] = useState("");
+  // Buffer messages during streaming to avoid Ink <Static> artifacts
+  const pendingMessagesRef = useRef<ChatMessage[]>([]);
+  const streamingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const execState = useExecutionState();
   const [acIndex, setAcIndex] = useState(0);
   const [modelList, setModelList] = useState<Array<{ id: string; name: string }>>([]);
 
@@ -285,20 +292,36 @@ export function App({
   const nextId = useRef(0);
   const genId = () => `msg-${++nextId.current}`;
 
-  // Add a message to the display history
+  // Add a message to the display history.
+  // During streaming, tool/system messages are buffered to avoid Ink <Static> artifacts.
+  // User and assistant messages (which mark start/end of a turn) are added immediately.
   const addMessage = useCallback(async (role: ChatMessage["role"], content: string, opts?: { toolName?: string; toolArgs?: Record<string, unknown> }) => {
     let rendered: string | undefined;
     if (role === "assistant") {
       rendered = await renderMarkdown(content);
     }
-    setMessages(prev => [...prev, {
+    const msg: ChatMessage = {
       id: genId(),
       role,
       content,
       rendered,
       toolName: opts?.toolName,
       toolArgs: opts?.toolArgs,
-    }]);
+    };
+    if (streamingRef.current && role !== "user" && role !== "assistant") {
+      pendingMessagesRef.current.push(msg);
+    } else {
+      setMessages(prev => [...prev, msg]);
+    }
+  }, []);
+
+  // Flush buffered messages when streaming ends
+  const flushPendingMessages = useCallback(() => {
+    if (pendingMessagesRef.current.length > 0) {
+      const pending = pendingMessagesRef.current;
+      pendingMessagesRef.current = [];
+      setMessages(prev => [...prev, ...pending]);
+    }
   }, []);
 
   // Create tools from enabled list
@@ -307,7 +330,10 @@ export function App({
       // Filesystem
       read_file: new ReadFileTool(),
       write_file: new WriteFileTool(),
+      edit_file: new EditFileTool(),
       list_directory: new ListDirectoryTool(),
+      glob: new GlobTool(),
+      grep: new GrepTool(),
       // HTTP
       download_file: new DownloadFileTool(),
       http_request: new HttpRequestTool(),
@@ -452,6 +478,7 @@ export function App({
     abortRef.current = false;
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+    streamingRef.current = true;
     setStreaming(true);
     setStreamContent("");
     setStreamLabel("thinking");
@@ -463,6 +490,7 @@ export function App({
       if (agentModeRef.current) {
         // --- Agent mode ---
         setStreamLabel("planning");
+        execState.reset();
         const prov = wsClientRef.current
           ? new WebSocketProvider(wsClientRef.current, modelRef.current, providerRef.current)
           : await createProvider(providerRef.current);
@@ -475,36 +503,27 @@ export function App({
           tools,
         });
 
-        let assistantContent = "";
+        // Feed all messages into the execution tree state.
+        // Collect task results for the final chat message.
+        const taskResults: string[] = [];
         for await (const msg of agent.execute(ctx)) {
           if (abortRef.current) break;
-          if (msg.type === "chunk") {
-            const chunk = msg as { content?: string };
-            assistantContent += chunk.content ?? "";
-            setStreamContent(assistantContent);
-            setStreamLabel("generating");
-          } else if (msg.type === "tool_call_update") {
-            const tc = msg as { name: string };
-            setStreamLabel(`tool: ${tc.name}`);
-          } else if (msg.type === "task_update") {
-            const tu = msg as { event: string };
-            setStreamLabel(`task: ${tu.event}`);
-          } else if (msg.type === "planning_update") {
-            const pu = msg as { content: string };
-            setStreamLabel(`planning: ${pu.content.slice(0, 40)}`);
-          } else if (msg.type === "step_result") {
+          execState.processMessage(msg);
+
+          if (msg.type === "step_result") {
             const sr = msg as { result: unknown; is_task_result: boolean };
             if (sr.is_task_result) {
               const result = typeof sr.result === "string"
                 ? sr.result
                 : JSON.stringify(sr.result, null, 2);
-              assistantContent = result;
+              if (result) taskResults.push(result);
             }
           }
         }
+        execState.markDone();
 
-        if (assistantContent) {
-          await addMessage("assistant", assistantContent);
+        if (taskResults.length > 0) {
+          await addMessage("assistant", taskResults.join("\n\n---\n\n"));
         }
 
       } else if (wsClientRef.current) {
@@ -584,13 +603,15 @@ export function App({
         await addMessage("system", `Error: ${msg}`);
       }
     } finally {
+      streamingRef.current = false;
       setStreaming(false);
       setStreamContent("");
       setStreamLabel("");
+      flushPendingMessages();
       submittingRef.current = false;
       abortControllerRef.current = null;
     }
-  }, [handleCommand, addMessage, workspaceDir, enabledTools]);
+  }, [handleCommand, addMessage, flushPendingMessages, workspaceDir, enabledTools]);
 
   // ---------------------------------------------------------------------------
   // Keyboard: history navigation and tab completion
@@ -653,6 +674,15 @@ export function App({
       } else {
         saveSettings({ provider, model, agentMode }).then(() => exit());
       }
+      return;
+    }
+
+    // During agent streaming, allow tree navigation
+    if (streaming && agentModeRef.current) {
+      if (key.upArrow) { execState.navigate("up"); return; }
+      if (key.downArrow) { execState.navigate("down"); return; }
+      if (key.return || key.rightArrow) { execState.toggleExpand(); return; }
+      if (key.leftArrow) { execState.toggleExpand(); return; }
       return;
     }
 
@@ -750,19 +780,30 @@ export function App({
       {showHelp && <HelpPanel />}
 
       {/* Live streaming area */}
-      {streaming && (
-        <Box flexDirection="column" marginTop={1}>
-          {streamContent ? (
-            <Box>
-              <Text color="green">{"● "}</Text>
-              <Text>{streamContent}</Text>
-            </Box>
-          ) : null}
-          <Box>
-            <Text color="gray" dimColor>{"  "}<Spinner type="dots" /> {streamLabel || "thinking"}</Text>
-          </Box>
-        </Box>
+      {streaming && agentMode && (
+        <ExecutionTree state={execState.state} treeActive={true} />
       )}
+      {streaming && !agentMode && (() => {
+        // Truncate streaming preview to avoid overflowing the terminal's dynamic area.
+        const maxPreviewLines = Math.max((process.stdout.rows ?? 24) - 4, 5);
+        const lines = streamContent ? streamContent.split("\n") : [];
+        const truncated = lines.length > maxPreviewLines
+          ? lines.slice(-maxPreviewLines).join("\n")
+          : streamContent;
+        return (
+          <Box flexDirection="column" marginTop={1}>
+            {truncated ? (
+              <Box>
+                <Text color="green">{"● "}</Text>
+                <Text>{truncated}</Text>
+              </Box>
+            ) : null}
+            <Box>
+              <Text color="gray" dimColor>{"  "}<Spinner type="dots" /> {streamLabel || "thinking"}</Text>
+            </Box>
+          </Box>
+        );
+      })()}
 
       {/* Error display */}
       {error && (
@@ -780,31 +821,29 @@ export function App({
         />
       )}
 
-      {/* Input area */}
-      <Box>
-        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
-      </Box>
-      <Box>
-        <Text color="magenta" dimColor bold>{"❯ "}</Text>
-        {streaming
-          ? <Text color="gray" dimColor> </Text>
-          : (
+      {/* Input area — hidden during streaming to avoid terminal artifacts */}
+      {!streaming && (
+        <>
+          <Box>
+            <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
+          </Box>
+          <Box>
+            <Text color="magenta" dimColor bold>{"❯ "}</Text>
             <ReadlineInput
               value={inputValue}
               onChange={setInputValue}
               onSubmit={handleSubmit}
             />
-          )
-        }
-      </Box>
-      <Box>
-        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
-      </Box>
-
-      {/* Status bar */}
-      <Box>
-        <Text color="gray" dimColor>{"  "}{statusParts}</Text>
-      </Box>
+          </Box>
+          <Box>
+            <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
+          </Box>
+          {/* Status bar */}
+          <Box>
+            <Text color="gray" dimColor>{"  "}{statusParts}</Text>
+          </Box>
+        </>
+      )}
     </Box>
   );
 }
