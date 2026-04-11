@@ -18,10 +18,15 @@ import {
   documentCanvasToClient,
   scaledHalfExtents,
   isInRotateZone,
+  hitTestPivot,
+  getPivotSnapAnchors,
+  snapPivotToAnchor,
   HANDLE_RADIUS,
   ROTATION_HANDLE_OFFSET,
   HANDLE_SIZE,
-  OUTSIDE_ROTATE_MARGIN
+  OUTSIDE_ROTATE_MARGIN,
+  PIVOT_HIT_RADIUS,
+  PIVOT_SNAP_DISTANCE
 } from "../tools/transform/handleGeometry";
 import { cursorForHandle } from "../tools/transform/cursorMapping";
 import {
@@ -29,6 +34,7 @@ import {
   isPointInsideGizmo
 } from "../tools/transform/transformHoverPolicy";
 import { GizmoRedrawScheduler } from "../tools/transform/transformGizmoPainter";
+import { computeRotateTransform } from "../tools/transform/computeTransform";
 import {
   HANDLE_HIT_RADIUS,
   ROTATION_HANDLE_OFFSET as GIZMO_ROTATION_HANDLE_OFFSET,
@@ -483,6 +489,215 @@ describe("gizmo viewport conversion", () => {
     const { hw, hh } = scaledHalfExtents(bounds, transform);
     expect(hw).toBe(200); // 200 * 2 / 2
     expect(hh).toBe(25); // 100 * 0.5 / 2
+  });
+});
+
+// ─── Pivot handle ────────────────────────────────────────────────────────────
+
+describe("pivot handle", () => {
+  const transform = makeTransform();
+  const bounds = makeBounds(); // 100x100, center at (50, 50)
+  const zoom = 1;
+  const center: Point = { x: 50, y: 50 };
+
+  describe("hitTestPivot", () => {
+    it("returns true when clicking on the pivot", () => {
+      expect(hitTestPivot(center, { x: 50, y: 50 }, zoom)).toBe(true);
+    });
+
+    it("returns true when clicking within the hit radius", () => {
+      const threshold = PIVOT_HIT_RADIUS / zoom;
+      expect(
+        hitTestPivot(center, { x: 50 + threshold * 0.5, y: 50 }, zoom)
+      ).toBe(true);
+    });
+
+    it("returns false when clicking outside the hit radius", () => {
+      const threshold = PIVOT_HIT_RADIUS / zoom;
+      expect(
+        hitTestPivot(center, { x: 50 + threshold * 2, y: 50 }, zoom)
+      ).toBe(false);
+    });
+
+    it("respects zoom scaling", () => {
+      const threshold1 = PIVOT_HIT_RADIUS / 1;
+      const threshold2 = PIVOT_HIT_RADIUS / 2;
+      // Point within radius at zoom=1 but outside at zoom=2
+      const pt: Point = { x: 50 + threshold1 * 0.9, y: 50 };
+      expect(hitTestPivot(center, pt, 1)).toBe(true);
+      expect(hitTestPivot(center, pt, 2)).toBe(threshold1 * 0.9 <= threshold2);
+    });
+
+    it("works with a custom pivot position", () => {
+      const customPivot: Point = { x: 0, y: 0 };
+      expect(hitTestPivot(customPivot, { x: 1, y: 1 }, zoom)).toBe(true);
+      expect(hitTestPivot(customPivot, { x: 100, y: 100 }, zoom)).toBe(false);
+    });
+  });
+
+  describe("getPivotSnapAnchors", () => {
+    it("returns 9 anchor points (center + 4 corners + 4 edge midpoints)", () => {
+      const anchors = getPivotSnapAnchors(transform, bounds);
+      expect(anchors).toHaveLength(9);
+    });
+
+    it("first anchor is the layer center", () => {
+      const anchors = getPivotSnapAnchors(transform, bounds);
+      expect(anchors[0].x).toBeCloseTo(50, 1);
+      expect(anchors[0].y).toBeCloseTo(50, 1);
+    });
+
+    it("includes all corners", () => {
+      const anchors = getPivotSnapAnchors(transform, bounds);
+      // Corners of a 100x100 box centered at (50,50): (0,0), (100,0), (0,100), (100,100)
+      const cornerPoints = anchors.slice(1, 5);
+      const xs = cornerPoints.map((p) => Math.round(p.x)).sort((a, b) => a - b);
+      const ys = cornerPoints.map((p) => Math.round(p.y)).sort((a, b) => a - b);
+      expect(xs).toEqual([0, 0, 100, 100]);
+      expect(ys).toEqual([0, 0, 100, 100]);
+    });
+
+    it("includes edge midpoints", () => {
+      const anchors = getPivotSnapAnchors(transform, bounds);
+      const edgePoints = anchors.slice(5);
+      expect(edgePoints).toHaveLength(4);
+      // Edge midpoints: (50,0), (50,100), (0,50), (100,50)
+      const expected = [
+        { x: 50, y: 0 },
+        { x: 50, y: 100 },
+        { x: 0, y: 50 },
+        { x: 100, y: 50 }
+      ];
+      for (let i = 0; i < expected.length; i++) {
+        expect(edgePoints[i].x).toBeCloseTo(expected[i].x, 1);
+        expect(edgePoints[i].y).toBeCloseTo(expected[i].y, 1);
+      }
+    });
+  });
+
+  describe("snapPivotToAnchor", () => {
+    it("snaps to center when within snap distance", () => {
+      const threshold = PIVOT_SNAP_DISTANCE / zoom;
+      const result = snapPivotToAnchor(
+        { x: 50 + threshold * 0.5, y: 50 },
+        transform,
+        bounds,
+        zoom
+      );
+      expect(result.x).toBeCloseTo(50, 1);
+      expect(result.y).toBeCloseTo(50, 1);
+    });
+
+    it("snaps to nearest corner", () => {
+      const threshold = PIVOT_SNAP_DISTANCE / zoom;
+      const result = snapPivotToAnchor(
+        { x: threshold * 0.5, y: threshold * 0.5 },
+        transform,
+        bounds,
+        zoom
+      );
+      // Should snap to top-left corner (0, 0)
+      expect(result.x).toBeCloseTo(0, 1);
+      expect(result.y).toBeCloseTo(0, 1);
+    });
+
+    it("returns original point when far from all anchors", () => {
+      const farPoint: Point = { x: 500, y: 500 };
+      const result = snapPivotToAnchor(farPoint, transform, bounds, zoom);
+      expect(result.x).toBe(500);
+      expect(result.y).toBe(500);
+    });
+
+    it("respects zoom scaling of snap distance", () => {
+      // At zoom=2, snap distance in doc-space is halved
+      const threshold2 = PIVOT_SNAP_DISTANCE / 2;
+      // Point just outside snap distance at zoom=2
+      const result = snapPivotToAnchor(
+        { x: 50 + threshold2 * 1.5, y: 50 },
+        transform,
+        bounds,
+        2
+      );
+      // Should NOT snap
+      expect(result.x).not.toBeCloseTo(50, 0);
+    });
+  });
+
+  describe("cursor for pivot handle", () => {
+    it("returns crosshair cursor for pivot handle", () => {
+      expect(cursorForHandle("pivot", 0)).toBe("crosshair");
+    });
+  });
+});
+
+// ─── Pivot rotation ──────────────────────────────────────────────────────────
+
+describe("rotation with custom pivot", () => {
+  const bounds = makeBounds(); // 100x100
+  const layerCenter: Point = { x: 50, y: 50 };
+
+  it("rotates around layer center without orbit when pivot matches center", () => {
+    const transform = makeTransform();
+    // Drag from right of center to above center (90° CCW)
+    const dragStart: Point = { x: 150, y: 50 };
+    const cursor: Point = { x: 50, y: -50 };
+    const result = computeRotateTransform(
+      transform,
+      dragStart,
+      cursor,
+      layerCenter, // pivot === center
+      false
+      // no layerCenter arg → no orbit
+    );
+    // Rotation should change but translation should stay at (0, 0)
+    expect(result.rotation).toBeDefined();
+    expect(result.x).toBe(0);
+    expect(result.y).toBe(0);
+  });
+
+  it("orbits layer center around off-center pivot", () => {
+    const transform = makeTransform();
+    // Pivot at the top-left corner of the box
+    const pivot: Point = { x: 0, y: 0 };
+    // Small rotation (not exactly 90°) so both x and y change
+    const dragStart: Point = { x: 100, y: 0 };
+    const cursor: Point = { x: 87, y: 50 }; // ~30° rotation
+    const result = computeRotateTransform(
+      transform,
+      dragStart,
+      cursor,
+      pivot,
+      false,
+      layerCenter // enables orbit
+    );
+    // The layer should rotate AND translate so the center orbits the pivot
+    expect(result.rotation).toBeDefined();
+    // At least one coordinate should change from the orbital translation
+    const translationChanged = result.x !== 0 || result.y !== 0;
+    expect(translationChanged).toBe(true);
+  });
+
+  it("preserves distance from pivot after rotation", () => {
+    const transform = makeTransform();
+    const pivot: Point = { x: 0, y: 0 };
+    // Small rotation
+    const dragStart: Point = { x: 100, y: 0 };
+    const cursor: Point = { x: 95, y: 31 }; // ~18° rotation
+    const result = computeRotateTransform(
+      transform,
+      dragStart,
+      cursor,
+      pivot,
+      false,
+      layerCenter
+    );
+    // The new layer center (derived from new translation) should be at the
+    // same distance from the pivot as the original center was.
+    const origDist = Math.hypot(layerCenter.x, layerCenter.y);
+    const newCenterX = result.x + bounds.x + bounds.width / 2;
+    const newCenterY = result.y + bounds.y + bounds.height / 2;
+    const newDist = Math.hypot(newCenterX, newCenterY);
+    expect(newDist).toBeCloseTo(origDist, 0);
   });
 });
 

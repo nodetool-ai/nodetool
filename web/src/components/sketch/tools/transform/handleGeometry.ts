@@ -31,14 +31,17 @@ export type TransformHandle =
   | "left"
   | "right"
   | "rotate"
-  | "move";
+  | "move"
+  | "pivot";
 
 // Import sizing constants from the shared gizmo module (single source of truth).
 import {
   HANDLE_HIT_RADIUS,
   ROTATION_HANDLE_OFFSET as GIZMO_ROTATION_OFFSET,
   HANDLE_SIZE as GIZMO_HANDLE_SIZE,
-  OUTSIDE_ROTATE_MARGIN as GIZMO_OUTSIDE_ROTATE_MARGIN
+  OUTSIDE_ROTATE_MARGIN as GIZMO_OUTSIDE_ROTATE_MARGIN,
+  PIVOT_HIT_RADIUS as GIZMO_PIVOT_HIT_RADIUS,
+  PIVOT_SNAP_DISTANCE as GIZMO_PIVOT_SNAP_DISTANCE
 } from "../gizmo/gizmoConstants";
 
 // Re-export with the names that existing consumers expect.
@@ -46,6 +49,8 @@ export const HANDLE_RADIUS = HANDLE_HIT_RADIUS;
 export const ROTATION_HANDLE_OFFSET = GIZMO_ROTATION_OFFSET;
 export const HANDLE_SIZE = GIZMO_HANDLE_SIZE;
 export const OUTSIDE_ROTATE_MARGIN = GIZMO_OUTSIDE_ROTATE_MARGIN;
+export const PIVOT_HIT_RADIUS = GIZMO_PIVOT_HIT_RADIUS;
+export const PIVOT_SNAP_DISTANCE = GIZMO_PIVOT_SNAP_DISTANCE;
 
 // ─── Geometry primitives ──────────────────────────────────────────────────────
 
@@ -400,3 +405,82 @@ export const HANDLE_ANCHOR: Partial<
   top: { dx: 0, dy: 1 },
   bottom: { dx: 0, dy: -1 }
 };
+
+// ─── Pivot handle ────────────────────────────────────────────────────────────
+
+/**
+ * Hit-test the pivot handle at a document-space position.
+ *
+ * @param pivotDoc - Current pivot position in document space.
+ * @param canvasPt - Point to test (document space).
+ * @param zoom     - Current zoom level (scales hit radius).
+ * @returns `true` if the point is within the pivot hit radius.
+ */
+export function hitTestPivot(
+  pivotDoc: Point,
+  canvasPt: Point,
+  zoom: number
+): boolean {
+  const threshold = PIVOT_HIT_RADIUS / zoom;
+  return dist(canvasPt, pivotDoc) <= threshold;
+}
+
+/**
+ * Snap anchor points for the pivot: center, 4 corners, and 4 edge midpoints.
+ *
+ * Positions are in document space, computed from the resolved layer center
+ * and raster bounds (identical to the handle positions minus the rotation handle).
+ */
+export function getPivotSnapAnchors(
+  transform: LayerTransform,
+  rasterBounds: LayerContentBounds
+): Point[] {
+  const center = getTransformedCenter(transform, rasterBounds);
+  const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
+  const rot = transform.rotation ?? 0;
+  const cx = center.x;
+  const cy = center.y;
+
+  return [
+    // Center
+    center,
+    // Corners
+    rotatePoint(cx - hw, cy - hh, cx, cy, rot),
+    rotatePoint(cx + hw, cy - hh, cx, cy, rot),
+    rotatePoint(cx - hw, cy + hh, cx, cy, rot),
+    rotatePoint(cx + hw, cy + hh, cx, cy, rot),
+    // Edge midpoints
+    rotatePoint(cx, cy - hh, cx, cy, rot),
+    rotatePoint(cx, cy + hh, cx, cy, rot),
+    rotatePoint(cx - hw, cy, cx, cy, rot),
+    rotatePoint(cx + hw, cy, cx, cy, rot)
+  ];
+}
+
+/**
+ * Snap a document-space point to the nearest pivot anchor if within
+ * `PIVOT_SNAP_DISTANCE / zoom`. Returns the snapped point (or the
+ * original if no anchor is close enough).
+ */
+export function snapPivotToAnchor(
+  docPoint: Point,
+  transform: LayerTransform,
+  rasterBounds: LayerContentBounds,
+  zoom: number
+): Point {
+  const threshold = PIVOT_SNAP_DISTANCE / zoom;
+  const anchors = getPivotSnapAnchors(transform, rasterBounds);
+  let nearest: Point | null = null;
+  let nearestDist = Infinity;
+  for (const anchor of anchors) {
+    const d = dist(docPoint, anchor);
+    if (d < nearestDist) {
+      nearestDist = d;
+      nearest = anchor;
+    }
+  }
+  if (nearest && nearestDist <= threshold) {
+    return nearest;
+  }
+  return docPoint;
+}

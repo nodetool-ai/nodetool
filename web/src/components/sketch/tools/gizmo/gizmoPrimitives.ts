@@ -17,6 +17,7 @@ import {
   HANDLE_SIZE,
   ROTATION_HANDLE_OFFSET,
   ROTATION_HANDLE_RADIUS_FACTOR,
+  PIVOT_CROSSHAIR_SIZE,
   GIZMO_PRIMARY_COLOR,
   GIZMO_PRIMARY_SEMI,
   GIZMO_PRIMARY_FAINT,
@@ -114,8 +115,48 @@ export function drawRotationHandle(
 }
 
 /**
+ * Draw the pivot handle: a crosshair with a small circle at the center.
+ *
+ * @param gc - Canvas context (save/restored internally)
+ * @param pos - Pivot position in screen pixels (relative to gizmo canvas origin)
+ * @param isHovered - Whether the pivot handle is hovered or active
+ * @param dpr - Device pixel ratio
+ */
+export function drawPivotHandle(
+  gc: CanvasRenderingContext2D,
+  pos: Point,
+  isHovered: boolean,
+  dpr: number
+): void {
+  const arm = PIVOT_CROSSHAIR_SIZE * dpr;
+  const lineW = (isHovered ? GIZMO_LINE_WIDTH_HOVERED : GIZMO_LINE_WIDTH) * dpr;
+  const circleRadius = 3 * dpr;
+
+  gc.save();
+  gc.strokeStyle = GIZMO_PRIMARY_COLOR;
+  gc.lineWidth = lineW;
+
+  // Crosshair arms
+  gc.beginPath();
+  gc.moveTo(pos.x - arm, pos.y);
+  gc.lineTo(pos.x + arm, pos.y);
+  gc.moveTo(pos.x, pos.y - arm);
+  gc.lineTo(pos.x, pos.y + arm);
+  gc.stroke();
+
+  // Small circle at center
+  gc.beginPath();
+  gc.arc(pos.x, pos.y, circleRadius, 0, Math.PI * 2);
+  gc.fillStyle = isHovered ? HANDLE_FILL_HOVERED : HANDLE_FILL_DEFAULT;
+  gc.fill();
+  gc.stroke();
+
+  gc.restore();
+}
+
+/**
  * Draw the complete transform gizmo: bounding box, 8 scale handles,
- * and rotation handle.
+ * rotation handle, and pivot crosshair.
  *
  * @param gc - Canvas context (will be saved/restored internally)
  * @param screenCenter - Center point in screen-space pixels
@@ -124,6 +165,9 @@ export function drawRotationHandle(
  * @param rotation - Layer rotation in radians
  * @param activeOrHoveredHandle - The currently active or hovered handle (for highlight)
  * @param dpr - Device pixel ratio
+ * @param pivotScreenPos - Optional pivot position in screen-space pixels.
+ *   When provided, a crosshair is drawn at this position. When omitted the
+ *   pivot is drawn at the box center.
  */
 export function drawTransformGizmo(
   gc: CanvasRenderingContext2D,
@@ -132,7 +176,8 @@ export function drawTransformGizmo(
   screenH: number,
   rotation: number,
   activeOrHoveredHandle: TransformHandle | null,
-  dpr: number
+  dpr: number,
+  pivotScreenPos?: Point | null
 ): void {
   gc.save();
   gc.translate(screenCenter.x, screenCenter.y);
@@ -167,6 +212,11 @@ export function drawTransformGizmo(
   drawRotationHandle(gc, screenH, activeOrHoveredHandle === "rotate", dpr);
 
   gc.restore();
+
+  // Pivot crosshair — drawn in un-rotated screen space (after gc.restore)
+  // so the crosshair orientation stays axis-aligned regardless of layer rotation.
+  const pivotPos: Point = pivotScreenPos ?? screenCenter;
+  drawPivotHandle(gc, pivotPos, activeOrHoveredHandle === "pivot", dpr);
 }
 
 // ─── Off-canvas indicator ────────────────────────────────────────────────────

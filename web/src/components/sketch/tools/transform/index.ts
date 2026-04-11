@@ -11,6 +11,8 @@ export {
   ROTATION_HANDLE_OFFSET,
   HANDLE_SIZE,
   OUTSIDE_ROTATE_MARGIN,
+  PIVOT_HIT_RADIUS,
+  PIVOT_SNAP_DISTANCE,
   HANDLE_ANCHOR,
   rotatePoint,
   snapAngle,
@@ -20,6 +22,9 @@ export {
   buildHandlePositions,
   hitTestHandles,
   isInRotateZone,
+  hitTestPivot,
+  getPivotSnapAnchors,
+  snapPivotToAnchor,
   docToScreen,
   docRectToScreen,
   getLayerGizmoBounds
