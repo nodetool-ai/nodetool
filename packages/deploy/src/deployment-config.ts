@@ -65,16 +65,13 @@ function expandUser(p: string): string {
 }
 
 /**
- * Helper to create a `.default({})` that satisfies Zod v4's type checker.
- * At runtime `schema.parse({})` fills in all sub-defaults; the cast is safe
- * because every field in the object schema already carries its own default.
+ * Helper to create a `.default({})` that applies nested field defaults.
+ *
+ * Zod v4 does not re-parse the default value, so we use a factory function
+ * that runs `schema.parse({})` on each access to fill in sub-defaults.
  */
 function withEmptyDefault<T extends z.ZodTypeAny>(schema: T): z.ZodDefault<T> {
-  // Use a factory so that Zod re-parses the empty object through the inner
-  // schema on each access, ensuring nested field defaults are applied.
-  // (Zod v4 no longer re-parses the default value itself.)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return schema.default(() => schema.parse({}) as any);
+  return schema.default(() => schema.parse({}) as z.output<T>);
 }
 
 // ============================================================================
@@ -461,7 +458,7 @@ export const DefaultsConfigSchema = z.object({
   log_level: z.string().default("INFO"),
   auth_provider: z.string().default("local"),
 
-  extra: z.record(z.string(), z.unknown()).default({} as any)
+  extra: z.record(z.string(), z.unknown()).default({})
 });
 export type DefaultsConfig = z.infer<typeof DefaultsConfigSchema>;
 
@@ -482,7 +479,7 @@ export const DeploymentConfigSchema = z.object({
   version: z.string().default("2.0"),
   defaults: withEmptyDefault(DefaultsConfigSchema),
 
-  deployments: z.record(z.string(), AnyDeploymentSchema).default({} as any)
+  deployments: z.record(z.string(), AnyDeploymentSchema).default({})
 });
 export type DeploymentConfig = z.infer<typeof DeploymentConfigSchema>;
 
