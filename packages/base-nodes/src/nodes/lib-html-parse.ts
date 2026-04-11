@@ -2,7 +2,7 @@ import { BaseNode, prop } from "@nodetool/node-sdk";
 import * as cheerio from "cheerio";
 import { convert } from "html-to-text";
 import { Readability } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
+import { parseHTML } from "linkedom";
 
 export class BaseUrlLibNode extends BaseNode {
   static readonly nodeType = "lib.html.BaseUrl";
@@ -375,8 +375,8 @@ export class WebsiteContentExtractorLibNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const htmlContent = String(this.html_content ?? "");
 
-    const dom = new JSDOM(htmlContent);
-    const reader = new Readability(dom.window.document);
+    const { document } = parseHTML(htmlContent);
+    const reader = new Readability(document);
     const article = reader.parse();
 
     if (article) {
