@@ -15,7 +15,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   const codeTheme = mode === 'dark' ? atomDark : tomorrow;
 
   const rules: RenderRules = {
-    fence: (node, children, parent, styles) => {
+    fence: (node: any, children: any, parent: any, styles: any) => {
       const language = (node as any).sourceInfo || (node as any).attributes?.lang || 'text';
 
       return (
@@ -41,7 +41,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
         </View>
       );
     },
-    code_block: (node, children, parent, styles) => {
+    code_block: (node: any, children: any, parent: any, styles: any) => {
       return (
         <View key={node.key} style={styles.code_block}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
