@@ -48,9 +48,17 @@ NODE TYPES:
 - Agent step nodes (type: "nodetool.agents.AgentStep") — for work requiring LLM reasoning.
   Required properties: instructions (string).
   Optional properties: tools (string array), output_schema (JSON schema string).
+  Input handles: "input" (receives upstream data). Output handles: "output" (text result).
+  IMPORTANT: For LLM tasks, always use "nodetool.agents.AgentStep" — NOT "nodetool.agents.Agent".
+  AgentStep nodes automatically use the configured model. Do NOT use registry Agent nodes
+  as they require a complex model property that cannot be set via add_node.
 
 RULES:
 - SEARCH before building. Don't guess node types — verify with search_nodes and get_node_info.
+- INSPECT before adding. Always call get_node_info to see exact property names, types, and defaults.
+- SET PROPERTIES: When adding a node, pass all required properties in the "properties" argument.
+  For example, a constant String node needs properties: { "value": "your text here" }.
+  Nodes without correct properties will produce empty/default outputs!
 - MAXIMIZE parallelism: nodes without data dependencies run concurrently automatically.
 - Use deterministic nodes when possible (cheaper, faster, reproducible).
 - Use agent step nodes ONLY when no deterministic node can do the job.
@@ -296,13 +304,20 @@ export class GraphPlanner {
       }
 
       // Execute tool calls and build message history
-      const assistantContent = content || undefined;
-      if (assistantContent) {
-        messages.push({ role: "assistant", content: assistantContent });
-      }
+      const toolCalls = pendingToolCalls.map((tc) => ({
+        id: tc.id,
+        name: tc.name,
+        args: tc.args
+      }));
+      messages.push({
+        role: "assistant",
+        content: content || undefined,
+        toolCalls
+      });
 
       for (const tc of pendingToolCalls) {
         totalToolCalls++;
+        log.debug("Tool call", { name: tc.name, args: tc.args });
         const tool = toolMap.get(tc.name);
         if (!tool) {
           messages.push({

@@ -10,6 +10,9 @@ import type { ProcessingContext } from "@nodetool/runtime";
 import type { NodeRegistry } from "@nodetool/node-sdk";
 import { Tool } from "./base-tool.js";
 import { AGENT_STEP_NODE_TYPE, type GraphBuilder } from "../graph-builder.js";
+import { createLogger } from "@nodetool/config";
+
+const log = createLogger("nodetool.agents.add-node-tool");
 
 const ADD_NODE_INPUT_SCHEMA = {
   type: "object" as const,
@@ -23,24 +26,28 @@ const ADD_NODE_INPUT_SCHEMA = {
       description:
         'Fully-qualified node type from registry, or "nodetool.agents.AgentStep" for LLM-driven steps'
     },
-    properties: {
+    node_properties: {
       type: "object" as const,
       description:
-        "Input properties for the node. For AgentStep nodes: instructions (required), tools (optional), output_schema (optional)"
+        'Configuration values for the node. Example: {"value": "Hello World"} for a String constant, ' +
+        '{"delimiter": " "} for a Split node. Use get_node_info to see available properties. ' +
+        "Pass {} if no configuration is needed (e.g. the node only receives input via edges)."
     },
     name: {
       type: "string" as const,
       description: "Optional human-readable name for the node"
     }
   },
-  required: ["id", "type"] as string[]
+  required: ["id", "type"] as string[],
+  additionalProperties: true as const
 };
 
 export class AddNodeTool extends Tool {
   readonly name = "add_node";
   readonly description =
-    "Add a node to the workflow graph. Use a registry node type for deterministic work, " +
-    'or "nodetool.agents.AgentStep" for tasks requiring LLM reasoning.';
+    "Add a node to the workflow graph. Set node configuration either via node_properties object " +
+    "or as direct parameters (e.g. value: \"Hello World\" for a String constant). " +
+    'Use a registry node type for deterministic work, or "nodetool.agents.AgentStep" for LLM reasoning.';
   readonly inputSchema: Record<string, unknown> = ADD_NODE_INPUT_SCHEMA;
 
   constructor(
@@ -56,8 +63,21 @@ export class AddNodeTool extends Tool {
   ): Promise<unknown> {
     const id = params["id"] as string | undefined;
     const type = params["type"] as string | undefined;
-    const properties = (params["properties"] as Record<string, unknown>) ?? {};
     const name = params["name"] as string | undefined;
+
+    // Accept properties from node_properties, properties, or any extra params
+    const knownKeys = new Set(["id", "type", "name", "node_properties", "properties"]);
+    const extraProps: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(params)) {
+      if (!knownKeys.has(k)) {
+        extraProps[k] = v;
+      }
+    }
+    const properties = (params["node_properties"] as Record<string, unknown>) ??
+      (params["properties"] as Record<string, unknown>) ??
+      (Object.keys(extraProps).length > 0 ? extraProps : {});
+
+    log.debug("add_node", { id, type, properties });
 
     if (!id || typeof id !== "string") {
       return { status: "error", errors: ["id must be a non-empty string."] };
@@ -99,12 +119,28 @@ export class AddNodeTool extends Tool {
       return { status: "error", errors };
     }
 
-    return {
+    // Include set properties in response and warn if none were set
+    const propsSet = Object.keys(properties);
+    const meta = !isAgentStep ? this.registry.getMetadata(type) : null;
+    const configurableProps = meta?.properties
+      ?.filter((p: { name: string }) => p.name !== "text" && p.name !== "input") // skip edge-connected inputs
+      ?.map((p: { name: string; default: unknown }) => `${p.name} (default: ${JSON.stringify(p.default)})`) ?? [];
+
+    const result: Record<string, unknown> = {
       status: "node_added",
       id,
       type,
+      properties_set: propsSet,
       total_nodes: this.builder.nodeCount
     };
+
+    if (propsSet.length === 0 && configurableProps.length > 0) {
+      result["warning"] =
+        `No node_properties were set. This node has configurable properties: [${configurableProps.join(", ")}]. ` +
+        `If any need non-default values, remove this node and re-add with node_properties set.`;
+    }
+
+    return result;
   }
 
   userMessage(params: Record<string, unknown>): string {

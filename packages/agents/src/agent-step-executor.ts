@@ -132,6 +132,7 @@ export class AgentStepExecutor implements NodeExecutor {
       context.set(this.node.id, result);
     }
 
-    return { result };
+    // Use "output" as the handle name so downstream nodes can connect via .output
+    return { output: result, result };
   }
 }
