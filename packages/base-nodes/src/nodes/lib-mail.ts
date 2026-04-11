@@ -101,6 +101,46 @@ export class SendEmailLibNode extends BaseNode {
   }
 }
 
+/**
+ * Create an ImapFlow client connected to Gmail using app password.
+ */
+async function createImapClient(
+  user: string,
+  appPassword: string
+): Promise<any> {
+  const { ImapFlow } = await import("imapflow");
+  const client = new ImapFlow({
+    host: "imap.gmail.com",
+    port: 993,
+    secure: true,
+    auth: { user, pass: appPassword },
+    logger: false
+  });
+  await client.connect();
+  return client;
+}
+
+/**
+ * Compute a date threshold from a named filter.
+ */
+function dateThreshold(filter: string): Date {
+  const now = new Date();
+  switch (filter) {
+    case "SINCE_ONE_HOUR":
+      return new Date(now.getTime() - 60 * 60 * 1000);
+    case "SINCE_ONE_DAY":
+      return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    case "SINCE_ONE_WEEK":
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    case "SINCE_ONE_MONTH":
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    case "SINCE_ONE_YEAR":
+      return new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    default:
+      return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  }
+}
+
 export class GmailSearchLibNode extends BaseNode {
   static readonly nodeType = "lib.mail.GmailSearch";
   static readonly title = "Gmail Search";
@@ -210,11 +250,83 @@ export class GmailSearchLibNode extends BaseNode {
   })
   declare max_results: any;
 
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const user = this._secrets["GOOGLE_MAIL_USER"];
+    const pass = this._secrets["GOOGLE_APP_PASSWORD"];
+    if (!user || !pass) {
+      throw new Error(
+        "GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD must be configured in settings."
+      );
+    }
+
+    const client = await createImapClient(user, pass);
+    try {
+      const folder = String(this.folder ?? "INBOX");
+      await client.mailboxOpen(folder);
+
+      // Build IMAP search query
+      const query: Record<string, unknown> = {
+        since: dateThreshold(String(this.date_filter ?? "SINCE_ONE_DAY"))
+      };
+      const from = String(this.from_address ?? "");
+      if (from) query.from = from;
+      const to = String(this.to_address ?? "");
+      if (to) query.to = to;
+      const subject = String(this.subject ?? "");
+      if (subject) query.subject = subject;
+      const body = String(this.body ?? "");
+      if (body) query.body = body;
+      const text = String(this.text ?? "");
+      if (text) query.text = text;
+      const keywords = String(this.keywords ?? "");
+      if (keywords) query.keyword = keywords;
+
+      const maxResults = Math.max(1, Number(this.max_results ?? 50));
+
+      let count = 0;
+      for await (const msg of client.fetch(query, {
+        envelope: true,
+        source: true
+      })) {
+        if (count >= maxResults) break;
+
+        const envelope = msg.envelope || {};
+        const emailData: Record<string, unknown> = {
+          subject: envelope.subject ?? "",
+          from: envelope.from?.[0]?.address ?? "",
+          to:
+            envelope.to?.map((a: { address?: string }) => a.address).join(", ") ?? "",
+          date: envelope.date?.toISOString() ?? "",
+          message_id: envelope.messageId ?? ""
+        };
+
+        // Extract plain text body from source
+        if (msg.source) {
+          const raw = msg.source.toString();
+          // Simple extraction: find text after headers
+          const headerEnd = raw.indexOf("\r\n\r\n");
+          if (headerEnd > -1) {
+            emailData.body = raw.substring(headerEnd + 4).substring(0, 10000);
+          }
+        }
+
+        yield {
+          email: emailData,
+          message_id: String(envelope.messageId ?? "")
+        };
+        count++;
+      }
+    } finally {
+      await client.logout();
+    }
+  }
+
   async process(): Promise<Record<string, unknown>> {
-    throw new Error(
-      "GmailSearch requires Google OAuth2/IMAP credentials which are not available in the TypeScript runtime. " +
-        "Configure GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD environment variables and use the Python runtime."
-    );
+    // Collect first result from streaming
+    for await (const result of this.genProcess()) {
+      return result;
+    }
+    return { email: {}, message_id: "" };
   }
 }
 
@@ -249,10 +361,39 @@ export class AddLabelLibNode extends BaseNode {
   declare label: any;
 
   async process(): Promise<Record<string, unknown>> {
-    throw new Error(
-      "AddLabel requires Google OAuth2/IMAP credentials which are not available in the TypeScript runtime. " +
-        "Configure GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD environment variables and use the Python runtime."
-    );
+    const user = this._secrets["GOOGLE_MAIL_USER"];
+    const pass = this._secrets["GOOGLE_APP_PASSWORD"];
+    if (!user || !pass) {
+      throw new Error(
+        "GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD must be configured in settings."
+      );
+    }
+
+    const messageId = String(this.message_id ?? "");
+    const label = String(this.label ?? "");
+    if (!messageId) throw new Error("Message ID is required");
+    if (!label) throw new Error("Label is required");
+
+    const client = await createImapClient(user, pass);
+    try {
+      await client.mailboxOpen("INBOX");
+
+      // Find message by Message-ID header
+      const results = await client.search({
+        header: { "message-id": messageId }
+      });
+
+      if (!results || results.length === 0) {
+        throw new Error(`Message not found: ${messageId}`);
+      }
+
+      // In Gmail, labels are mapped to IMAP folders/flags
+      // Use COPY to add the message to the label folder
+      await client.messageCopy(results, label);
+      return { output: true };
+    } finally {
+      await client.logout();
+    }
   }
 }
 
@@ -279,10 +420,36 @@ export class MoveToArchiveLibNode extends BaseNode {
   declare message_id: any;
 
   async process(): Promise<Record<string, unknown>> {
-    throw new Error(
-      "MoveToArchive requires Google OAuth2/IMAP credentials which are not available in the TypeScript runtime. " +
-        "Configure GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD environment variables and use the Python runtime."
-    );
+    const user = this._secrets["GOOGLE_MAIL_USER"];
+    const pass = this._secrets["GOOGLE_APP_PASSWORD"];
+    if (!user || !pass) {
+      throw new Error(
+        "GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD must be configured in settings."
+      );
+    }
+
+    const messageId = String(this.message_id ?? "");
+    if (!messageId) throw new Error("Message ID is required");
+
+    const client = await createImapClient(user, pass);
+    try {
+      await client.mailboxOpen("INBOX");
+
+      // Find message by Message-ID header
+      const results = await client.search({
+        header: { "message-id": messageId }
+      });
+
+      if (!results || results.length === 0) {
+        throw new Error(`Message not found: ${messageId}`);
+      }
+
+      // In Gmail, archiving = moving to [Gmail]/All Mail (removing INBOX label)
+      await client.messageMove(results, "[Gmail]/All Mail");
+      return { output: true };
+    } finally {
+      await client.logout();
+    }
   }
 }
 
