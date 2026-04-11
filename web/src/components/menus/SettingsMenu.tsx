@@ -648,7 +648,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     />
                   </div>
 
-                  <Text size="big" id="api-keys" sx={{ marginBottom: "0.75em" }}>
+                  <Text size="big" id="api-keys" sx={{ marginBottom: "0.25em" }}>
                     API Keys
                   </Text>
                   <SecretsMenu searchTerm={apiSearchTerm} />
