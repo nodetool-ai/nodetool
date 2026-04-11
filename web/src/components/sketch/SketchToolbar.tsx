@@ -88,7 +88,7 @@ function renderToolButton(def: ToolDefinition) {
   return (
     <ToggleButton key={tool} value={tool} aria-label={label}>
       <Tooltip title={tooltip} placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-        <Icon sx={{ fontSize: "20px" }} />
+        <Icon sx={{ fontSize: "2em" }} />
       </Tooltip>
     </ToggleButton>
   );

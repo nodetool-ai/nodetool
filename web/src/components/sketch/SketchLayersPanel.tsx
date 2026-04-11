@@ -97,6 +97,48 @@ function layerRowHasMultiSelectModifier(
   return layerRowShiftHeld(e) || layerRowCtrlOrMetaHeld(e);
 }
 
+const QUICK_CYCLE_BLEND_MODES: readonly BlendMode[] = [
+  "normal",
+  "multiply",
+  "screen",
+  "overlay",
+  "darken",
+  "lighten",
+  "color-dodge",
+  "color-burn",
+  "hard-light",
+  "soft-light",
+  "difference",
+  "exclusion"
+];
+
+function cycleArrayValue<T>(
+  values: readonly T[],
+  currentIndex: number,
+  direction: -1 | 1
+): T | null {
+  if (values.length === 0) {
+    return null;
+  }
+  const nextIndex =
+    currentIndex >= 0
+      ? Math.max(0, Math.min(values.length - 1, currentIndex + direction))
+      : direction > 0
+        ? 0
+        : values.length - 1;
+  return values[nextIndex] ?? null;
+}
+
+function quickCycleDirectionForArrowKey(key: string): -1 | 1 | null {
+  if (key === "ArrowUp" || key === "ArrowLeft") {
+    return -1;
+  }
+  if (key === "ArrowDown" || key === "ArrowRight") {
+    return 1;
+  }
+  return null;
+}
+
 type PanelSectionKey = "canvasSize" | "shortcuts";
 
 // ─── Collapsible PanelSection component ───────────────────────────────────
@@ -678,6 +720,84 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     ? layers.length - selectedLayersPresentCount >= 1
     : layers.length > 1;
 
+  const cycleBlendMode = useCallback((direction: -1 | 1) => {
+    if (!activeLayer) {
+      return;
+    }
+    const current = coerceBlendMode(activeLayer.blendMode);
+    const currentIndex = QUICK_CYCLE_BLEND_MODES.indexOf(current);
+    const next = cycleArrayValue(
+      QUICK_CYCLE_BLEND_MODES,
+      currentIndex,
+      direction
+    );
+    if (next && next !== current) {
+      onLayerBlendModeChange(activeLayer.id, next);
+    }
+  }, [activeLayer, onLayerBlendModeChange]);
+
+  const handleBlendModeQuickCycleKeyDownCapture = useCallback((
+    e: React.KeyboardEvent
+  ) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) {
+      return;
+    }
+    const direction = quickCycleDirectionForArrowKey(e.key);
+    if (direction === null) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    cycleBlendMode(direction);
+  }, [cycleBlendMode]);
+
+  const handleBlendModeQuickCycleWheelCapture = useCallback((
+    e: React.WheelEvent
+  ) => {
+    if (e.deltaY === 0) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    cycleBlendMode(e.deltaY > 0 ? 1 : -1);
+  }, [cycleBlendMode]);
+
+  const cycleCanvasPreset = useCallback((direction: -1 | 1) => {
+    const currentIndex = CANVAS_PRESETS.findIndex(
+      (preset) => preset.width === canvasWidth && preset.height === canvasHeight
+    );
+    const next = cycleArrayValue(CANVAS_PRESETS, currentIndex, direction);
+    if (next) {
+      onCanvasResize(next.width, next.height);
+    }
+  }, [canvasWidth, canvasHeight, onCanvasResize]);
+
+  const handleCanvasPresetQuickCycleKeyDownCapture = useCallback((
+    e: React.KeyboardEvent
+  ) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) {
+      return;
+    }
+    const direction = quickCycleDirectionForArrowKey(e.key);
+    if (direction === null) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    cycleCanvasPreset(direction);
+  }, [cycleCanvasPreset]);
+
+  const handleCanvasPresetQuickCycleWheelCapture = useCallback((
+    e: React.WheelEvent
+  ) => {
+    if (e.deltaY === 0) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    cycleCanvasPreset(e.deltaY > 0 ? 1 : -1);
+  }, [cycleCanvasPreset]);
+
   return (
     <Box className="sketch-layers-panel" css={styles(theme)}>
       {/* ── Color Selector ── */}
@@ -1128,6 +1248,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   e.target.value as BlendMode
                 )
               }
+              onKeyDownCapture={handleBlendModeQuickCycleKeyDownCapture}
+              onWheelCapture={handleBlendModeQuickCycleWheelCapture}
               sx={{ fontSize: SKETCH_FONT.md, height: "28px" }}
             >
               <MenuItem value="normal">Normal</MenuItem>
@@ -1207,6 +1329,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onCanvasResize(preset.width, preset.height);
             }
           }}
+          onKeyDownCapture={handleCanvasPresetQuickCycleKeyDownCapture}
+          onWheelCapture={handleCanvasPresetQuickCycleWheelCapture}
           sx={{
             width: "100%",
             fontSize: SKETCH_FONT.sm,

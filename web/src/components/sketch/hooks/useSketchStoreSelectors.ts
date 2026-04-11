@@ -29,6 +29,7 @@ import {
   DEFAULT_CLONE_STAMP_SETTINGS,
   DEFAULT_SELECT_SETTINGS,
   DEFAULT_SEGMENT_SETTINGS,
+  DEFAULT_MOVE_SETTINGS,
   DEFAULT_TRANSFORM_SETTINGS
 } from "../types";
 
@@ -73,6 +74,7 @@ export function useResolvedToolSettings() {
       },
       select: { ...DEFAULT_SELECT_SETTINGS, ...liveToolSettings.select },
       segment: { ...DEFAULT_SEGMENT_SETTINGS, ...liveToolSettings.segment },
+      move: { ...DEFAULT_MOVE_SETTINGS, ...liveToolSettings.move },
       transform: { ...DEFAULT_TRANSFORM_SETTINGS, ...liveToolSettings.transform }
     };
   }, [liveToolSettings]);

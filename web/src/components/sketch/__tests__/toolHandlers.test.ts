@@ -272,6 +272,57 @@ describe("MoveTool", () => {
     const ctx = makeToolContext({ doc });
     expect(tool.onDown(ctx, makePointerEvent())).toBe(true);
   });
+
+  it("does not auto-pick another layer when move auto-select is disabled", () => {
+    useSketchStore.setState((state) => ({
+      ...state,
+      toolSettings: {
+        ...state.toolSettings,
+        move: {
+          ...state.toolSettings.move,
+          autoSelect: false
+        }
+      }
+    }));
+
+    const tool = new MoveTool();
+    const doc = createDefaultDocument(128, 128);
+    const activeLayer = doc.layers[0];
+    activeLayer.contentBounds = { x: 0, y: 0, width: 64, height: 64 };
+
+    const topLayer = createDefaultLayer("Top", "raster", 64, 64);
+    topLayer.contentBounds = { x: 0, y: 0, width: 64, height: 64 };
+    doc.layers = [activeLayer, topLayer];
+    doc.activeLayerId = activeLayer.id;
+
+    const bottomCanvas = document.createElement("canvas");
+    bottomCanvas.width = 64;
+    bottomCanvas.height = 64;
+    bottomCanvas.getContext("2d")!.fillRect(0, 0, 64, 64);
+
+    const topCanvas = document.createElement("canvas");
+    topCanvas.width = 64;
+    topCanvas.height = 64;
+    topCanvas.getContext("2d")!.fillRect(0, 0, 64, 64);
+
+    const onAutoPickLayer = jest.fn((layerId: string) => {
+      doc.activeLayerId = layerId;
+    });
+    const ctx = makeToolContext({
+      doc,
+      layerCanvasesRef: {
+        current: new Map<string, HTMLCanvasElement>([
+          [activeLayer.id, bottomCanvas],
+          [topLayer.id, topCanvas]
+        ])
+      },
+      onAutoPickLayer
+    });
+
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 16, y: 16 } }))).toBe(true);
+    expect(onAutoPickLayer).not.toHaveBeenCalled();
+    expect(doc.activeLayerId).toBe(activeLayer.id);
+  });
 });
 
 describe("TransformTool", () => {
