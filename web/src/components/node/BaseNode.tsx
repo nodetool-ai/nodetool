@@ -304,11 +304,7 @@ const getNodeContainerStyles = (
   backgroundColor:
     hasParent && !isLoading
       ? parentColor
-      : selected
-        ? "transparent !important"
-        : theme.vars.palette.c_node_bg,
-  backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-  WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
+      : theme.vars.palette.c_node_bg,
   borderRadius: "var(--rounded-node)",
   // dynamic node color
   "--node-primary-color": baseColor || "var(--palette-primary-main)",
