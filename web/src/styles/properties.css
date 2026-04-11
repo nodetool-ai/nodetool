@@ -24,11 +24,15 @@
   margin-top: 2px;
 }
 
-/* Ensure connected properties match the height of unconnected inputs */
+/* Connected properties: keep height consistent with unconnected inputs
+   and align badge text center (~7px) with handle center (top: 5px + margin 2px). */
+.node-property:has(.connected-badge) {
+  min-height: 28px;
+}
 .node-property .connected-badge {
-  min-height: 24px;
-  padding: 4px 8px;
-  box-sizing: border-box;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 2px;
 }
 
 .node-editor .node-output {
