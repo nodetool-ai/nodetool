@@ -137,7 +137,7 @@ const searchResultStyles = (theme: Theme) =>
         padding: "1px 5px",
         borderRadius: "6px",
         letterSpacing: "0.3px",
-        opacity: 0.4,
+        opacity: 1,
         border: "none"
       },
       ".io-info-wrapper": {
