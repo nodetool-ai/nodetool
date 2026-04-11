@@ -148,7 +148,9 @@ export class GmailSearchLibNode extends BaseNode {
     "Searches Gmail using Gmail-specific search operators and yields matching emails.\n    email, gmail, search\n\n    Use cases:\n    - Search for emails based on specific criteria\n    - Retrieve emails from a specific sender\n    - Filter emails by subject, sender, or date";
   static readonly metadataOutputTypes = {
     email: "dict",
-    message_id: "str"
+    message_id: "str",
+    emails: "list",
+    message_ids: "list"
   };
   static readonly basicFields = [
     "from_address",
@@ -250,7 +252,9 @@ export class GmailSearchLibNode extends BaseNode {
   })
   declare max_results: any;
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  private async _fetchEmails(): Promise<
+    Array<{ email: Record<string, unknown>; message_id: string }>
+  > {
     const user = this._secrets["GOOGLE_MAIL_USER"];
     const pass = this._secrets["GOOGLE_APP_PASSWORD"];
     if (!user || !pass) {
@@ -264,7 +268,6 @@ export class GmailSearchLibNode extends BaseNode {
       const folder = String(this.folder ?? "INBOX");
       await client.mailboxOpen(folder);
 
-      // Build IMAP search query
       const query: Record<string, unknown> = {
         since: dateThreshold(String(this.date_filter ?? "SINCE_ONE_DAY"))
       };
@@ -282,51 +285,75 @@ export class GmailSearchLibNode extends BaseNode {
       if (keywords) query.keyword = keywords;
 
       const maxResults = Math.max(1, Number(this.max_results ?? 50));
+      const results: Array<{
+        email: Record<string, unknown>;
+        message_id: string;
+      }> = [];
 
-      let count = 0;
       for await (const msg of client.fetch(query, {
         envelope: true,
         source: true
       })) {
-        if (count >= maxResults) break;
+        if (results.length >= maxResults) break;
 
         const envelope = msg.envelope || {};
         const emailData: Record<string, unknown> = {
           subject: envelope.subject ?? "",
           from: envelope.from?.[0]?.address ?? "",
           to:
-            envelope.to?.map((a: { address?: string }) => a.address).join(", ") ?? "",
+            envelope.to
+              ?.map((a: { address?: string }) => a.address)
+              .join(", ") ?? "",
           date: envelope.date?.toISOString() ?? "",
           message_id: envelope.messageId ?? ""
         };
 
-        // Extract plain text body from source
         if (msg.source) {
           const raw = msg.source.toString();
-          // Simple extraction: find text after headers
           const headerEnd = raw.indexOf("\r\n\r\n");
           if (headerEnd > -1) {
             emailData.body = raw.substring(headerEnd + 4).substring(0, 10000);
           }
         }
 
-        yield {
+        results.push({
           email: emailData,
           message_id: String(envelope.messageId ?? "")
-        };
-        count++;
+        });
       }
+
+      return results;
     } finally {
       await client.logout();
     }
   }
 
-  async process(): Promise<Record<string, unknown>> {
-    // Collect first result from streaming
-    for await (const result of this.genProcess()) {
-      return result;
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const results = await this._fetchEmails();
+
+    // Stream individual emails
+    for (const item of results) {
+      yield {
+        email: item.email,
+        message_id: item.message_id
+      };
     }
-    return { email: {}, message_id: "" };
+
+    // Emit collected lists as final output
+    yield {
+      emails: results.map((r) => r.email),
+      message_ids: results.map((r) => r.message_id)
+    };
+  }
+
+  async process(): Promise<Record<string, unknown>> {
+    const results = await this._fetchEmails();
+    return {
+      email: results[0]?.email ?? {},
+      message_id: results[0]?.message_id ?? "",
+      emails: results.map((r) => r.email),
+      message_ids: results.map((r) => r.message_id)
+    };
   }
 }
 
