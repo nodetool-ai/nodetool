@@ -133,11 +133,12 @@ const searchResultStyles = (theme: Theme) =>
         letterSpacing: "0.3px"
       },
       ".provider-tag": {
-        fontSize: "0.65rem",
-        padding: "2px 6px",
-        borderRadius: "8px",
+        fontSize: "0.6rem",
+        padding: "1px 5px",
+        borderRadius: "6px",
         letterSpacing: "0.3px",
-        border: "1px solid currentColor"
+        opacity: 0.4,
+        border: "none"
       },
       ".io-info-wrapper": {
         position: "absolute",
